@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Zap, Droplets, Send, MapPin, Clock } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,7 @@ const ReportPage = () => {
   const [serviceType, setServiceType] = useState<ServiceType | "">("");
   const [urgency, setUrgency] = useState<"normal" | "urgent">("normal");
   const [commune, setCommune] = useState("");
+  const [quartier, setQuartier] = useState("");
   const [description, setDescription] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
@@ -54,8 +56,8 @@ const ReportPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!serviceType || !commune) {
-      toast.error("Veuillez sélectionner un type et une commune");
+    if (!serviceType || !commune || !quartier.trim()) {
+      toast.error("Veuillez remplir le type, la commune et le quartier");
       return;
     }
     if (!user) {
@@ -71,7 +73,7 @@ const ReportPage = () => {
         description: description || `Coupure de ${serviceType === "electricity" ? "courant" : "eau"} à ${commune}`,
         location: commune,
         commune,
-        quartier: "",
+        quartier: quartier.trim(),
         latitude,
         longitude,
         urgency: urgency === "urgent" ? "high" : "medium",
@@ -151,6 +153,17 @@ const ReportPage = () => {
             </Select>
           </div>
 
+          {/* Quartier */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Quartier *</Label>
+            <Input
+              placeholder="Ex: Angré, Riviera 2, Plateau Dokui..."
+              value={quartier}
+              onChange={(e) => setQuartier(e.target.value)}
+              maxLength={100}
+            />
+          </div>
+
           {/* Service type */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">Type de coupure *</Label>
@@ -226,7 +239,7 @@ const ReportPage = () => {
               backgroundColor: selectedCommuneData?.couleur || undefined,
               color: "white",
             }}
-            disabled={submitting || !serviceType || !commune}
+            disabled={submitting || !serviceType || !commune || !quartier.trim()}
           >
             <Send className="mr-2 h-5 w-5" />
             {submitting ? "Envoi..." : "Confirmer signalement"}
