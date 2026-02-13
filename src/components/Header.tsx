@@ -1,11 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
-import { Zap, Droplets, Menu, X } from "lucide-react";
+import { Zap, Menu, X, LogIn, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Header = () => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, signOut } = useAuth();
 
   const links = [
     { to: "/", label: "Accueil" },
@@ -39,6 +41,25 @@ const Header = () => {
               {link.label}
             </Link>
           ))}
+
+          {user ? (
+            <div className="ml-2 flex items-center gap-2">
+              <span className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-2 text-sm text-foreground">
+                <User className="h-4 w-4" />
+                {user.email?.split("@")[0]}
+              </span>
+              <Button variant="ghost" size="sm" onClick={signOut}>
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <Button asChild variant="outline" size="sm" className="ml-2">
+              <Link to="/auth">
+                <LogIn className="mr-1.5 h-4 w-4" />
+                Connexion
+              </Link>
+            </Button>
+          )}
         </nav>
 
         <Button
@@ -67,6 +88,24 @@ const Header = () => {
               {link.label}
             </Link>
           ))}
+          {user ? (
+            <button
+              onClick={() => { signOut(); setMobileOpen(false); }}
+              className="mt-2 block w-full rounded-lg px-4 py-3 text-left text-sm font-medium text-muted-foreground hover:bg-secondary"
+            >
+              <LogOut className="mr-2 inline h-4 w-4" />
+              Déconnexion
+            </button>
+          ) : (
+            <Link
+              to="/auth"
+              onClick={() => setMobileOpen(false)}
+              className="mt-2 block rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-secondary"
+            >
+              <LogIn className="mr-2 inline h-4 w-4" />
+              Connexion
+            </Link>
+          )}
         </nav>
       )}
     </header>
