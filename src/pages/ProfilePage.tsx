@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   User, Mail, Phone, MapPin, Home, Building2, Save, Shield,
-  Bell, Globe, Palette, ChevronRight, CheckCircle2
+  Bell, Globe, Palette, ChevronRight, CheckCircle2, FileText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
+import MyReports from "@/components/MyReports";
 
 interface ProfileData {
   first_name: string;
@@ -148,8 +149,11 @@ const ProfilePage = () => {
             </Button>
           </div>
 
-          <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+          <Tabs defaultValue="reports" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="reports" className="gap-2">
+                <FileText className="h-4 w-4" /> Signalements
+              </TabsTrigger>
               <TabsTrigger value="profile" className="gap-2">
                 <User className="h-4 w-4" /> Profil
               </TabsTrigger>
@@ -160,6 +164,14 @@ const ProfilePage = () => {
                 <Shield className="h-4 w-4" /> Paramètres
               </TabsTrigger>
             </TabsList>
+
+            {/* ── MES SIGNALEMENTS ── */}
+            <TabsContent value="reports">
+              <div className="rounded-xl border border-border bg-card p-6 shadow-card">
+                <h2 className="font-display text-lg font-bold text-foreground mb-4">Mes signalements</h2>
+                <MyReports />
+              </div>
+            </TabsContent>
 
             {/* ── PROFIL ── */}
             <TabsContent value="profile">
