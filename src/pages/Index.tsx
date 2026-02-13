@@ -31,13 +31,15 @@ const Index = () => {
             </div>
 
             <h1 className="font-display text-4xl font-extrabold leading-tight text-primary-foreground md:text-5xl lg:text-6xl">
-              Signalez les coupures.{" "}
-              <span className="text-water-light">Ensemble.</span>
+              Plateforme citoyenne pour Signaler les{" "}
+              <span className="text-electricity">Coupures</span> :{" "}
+              <span className="text-water-light">Eau</span> ou{" "}
+              <span className="text-electricity">Électricité</span> ?
             </h1>
 
-            <p className="mt-6 max-w-lg text-lg text-primary-foreground/80">
-              Plateforme citoyenne pour signaler les coupures d'électricité et d'eau en temps réel 
-              dans les 5 communes prioritaires d'Abidjan.
+            <p className="mt-6 max-w-lg text-xl font-semibold text-primary-foreground">
+              En <span className="text-electricity">15 Secondes</span>, Tu Signales.{" "}
+              <span className="text-water-light">Tes voisins agissent déjà.</span>
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
