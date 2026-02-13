@@ -11,7 +11,7 @@ import Header from "@/components/Header";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { COMMUNES, findNearestCommune, type Commune } from "@/lib/communes";
+import { COMMUNES, findNearestCommune, type Commune, type CommuneResult } from "@/lib/communes";
 import type { ServiceType, UrgencyLevel } from "@/lib/data";
 
 const ReportPage = () => {
@@ -25,6 +25,7 @@ const ReportPage = () => {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [detectedCommune, setDetectedCommune] = useState<Commune | null>(null);
+  const [outsidePilotZone, setOutsidePilotZone] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -41,10 +42,15 @@ const ReportPage = () => {
         const lon = pos.coords.longitude;
         setLatitude(lat);
         setLongitude(lon);
-        const nearest = findNearestCommune(lat, lon);
-        if (nearest) {
-          setDetectedCommune(nearest);
-          setCommune(nearest.nom);
+        const result = findNearestCommune(lat, lon);
+        if (result.isInPilotZone && result.commune) {
+          setDetectedCommune(result.commune);
+          setCommune(result.commune.nom);
+          setOutsidePilotZone(false);
+        } else {
+          setDetectedCommune(null);
+          setCommune("");
+          setOutsidePilotZone(true);
         }
         setGpsLoading(false);
         toast.success("Position GPS capturée !");
@@ -123,6 +129,10 @@ const ReportPage = () => {
                 <span className="text-muted-foreground text-sm animate-pulse flex items-center gap-1">
                   <Loader2 className="h-4 w-4 animate-spin" /> Détection GPS...
                 </span>
+              ) : outsidePilotZone ? (
+                <span className="text-sm font-medium text-destructive">
+                  ⚠️ Vous n'êtes pas dans une commune pilote
+                </span>
               ) : detectedCommune ? (
                 <span className="font-bold" style={{ color: detectedCommune.couleur }}>
                   📍 {detectedCommune.nom} détecté ✓
@@ -155,6 +165,21 @@ const ReportPage = () => {
             </Button>
           </div>
         </motion.div>
+
+        {outsidePilotZone && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-center"
+          >
+            <p className="text-sm font-medium text-destructive">
+              🚧 Votre position actuelle ne se trouve pas dans l'une des 5 communes pilotes (Yopougon, Cocody, Abobo, Adjamé, Bingerville).
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Les signalements pour les autres communes seront disponibles ultérieurement. Vous pouvez tout de même sélectionner manuellement une commune pilote.
+            </p>
+          </motion.div>
+        )}
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-4 text-center">
           <p className="text-sm text-muted-foreground">
