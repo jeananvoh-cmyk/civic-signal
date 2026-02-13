@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Zap, Droplets, Send, Building2, Home, Clock, Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { ServiceType, UrgencyLevel } from "@/lib/data";
 
 const ReportPage = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [serviceType, setServiceType] = useState<ServiceType | "">("");
   const [urgency, setUrgency] = useState<UrgencyLevel | "">("");
@@ -104,13 +106,7 @@ const ReportPage = () => {
       if (error) throw error;
 
       toast.success("Signalement envoyé avec succès !");
-      setServiceType("");
-      setUrgency("");
-      setCommune("");
-      setQuartier("");
-      setDescription("");
-      setStartTime("");
-      removePhoto();
+      navigate("/");
     } catch (error: any) {
       toast.error(error.message || "Erreur lors de l'envoi");
     } finally {
