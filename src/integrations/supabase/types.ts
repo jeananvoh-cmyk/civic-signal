@@ -203,6 +203,7 @@ export type Database = {
     }
     Functions: {
       corroborate_report: { Args: { p_report_id: string }; Returns: undefined }
+      count_user_daily_reports: { Args: { p_user_id: string }; Returns: number }
       find_nearest_commune: {
         Args: { p_lat: number; p_lon: number }
         Returns: {

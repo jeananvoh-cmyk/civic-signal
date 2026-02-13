@@ -14,6 +14,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { COMMUNES, findNearestCommune, type Commune, type CommuneResult } from "@/lib/communes";
 import type { ServiceType, UrgencyLevel } from "@/lib/data";
 
+const DAILY_LIMIT = 5;
+
 const ReportPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -28,6 +30,8 @@ const ReportPage = () => {
   const [outsidePilotZone, setOutsidePilotZone] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [dailyCount, setDailyCount] = useState<number | null>(null);
+  const [limitReached, setLimitReached] = useState(false);
 
   const captureGPS = (showError = true) => {
     if (!navigator.geolocation) {
@@ -64,14 +68,32 @@ const ReportPage = () => {
   };
 
   useEffect(() => {
-    captureGPS(false); // silent on initial load
+    captureGPS(false);
   }, []);
+
+  // Check daily limit
+  useEffect(() => {
+    if (!user) return;
+    const checkLimit = async () => {
+      const { data, error } = await supabase.rpc("count_user_daily_reports", { p_user_id: user.id });
+      if (!error && data !== null) {
+        const count = data as number;
+        setDailyCount(count);
+        setLimitReached(count >= DAILY_LIMIT);
+      }
+    };
+    checkLimit();
+  }, [user]);
 
   const now = new Date();
   const timeStr = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (limitReached) {
+      toast.error(`Vous avez atteint la limite de ${DAILY_LIMIT} signalements par jour`);
+      return;
+    }
     if (!serviceType || !commune || !quartier.trim()) {
       toast.error("Veuillez remplir le type, la commune et le quartier");
       return;
@@ -178,6 +200,34 @@ const ReportPage = () => {
             <p className="mt-1 text-xs text-muted-foreground">
               Les signalements pour les autres communes seront disponibles ultérieurement. Vous pouvez tout de même sélectionner manuellement une commune pilote.
             </p>
+          </motion.div>
+        )}
+
+        {/* Daily limit counter */}
+        {dailyCount !== null && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`mb-4 rounded-xl border p-3 text-center ${
+              limitReached
+                ? "border-destructive/30 bg-destructive/5"
+                : "border-border bg-card"
+            }`}
+          >
+            {limitReached ? (
+              <>
+                <p className="text-sm font-bold text-destructive">
+                  🚫 Limite atteinte : {dailyCount}/{DAILY_LIMIT} signalements aujourd'hui
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Vous pourrez signaler à nouveau demain. L'abonnement premium sera bientôt disponible.
+                </p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                📊 {dailyCount}/{DAILY_LIMIT} signalements utilisés aujourd'hui
+              </p>
+            )}
           </motion.div>
         )}
 
@@ -300,7 +350,7 @@ const ReportPage = () => {
               backgroundColor: selectedCommuneData?.couleur || undefined,
               color: "white",
             }}
-            disabled={submitting || !serviceType || !commune || !quartier.trim()}
+            disabled={submitting || limitReached || !serviceType || !commune || !quartier.trim()}
           >
             <Send className="mr-2 h-5 w-5" />
             {submitting ? "Envoi..." : "Confirmer signalement"}
