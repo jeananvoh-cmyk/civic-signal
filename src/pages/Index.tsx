@@ -39,23 +39,12 @@ const Index = () => {
               Chaque signalement est validé par la communauté.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-4">
-              <Button asChild size="lg" className="bg-water text-water-foreground hover:bg-water/90">
+            <div className="mt-8">
+              <Button asChild size="lg" className="bg-water text-water-foreground hover:bg-water/90 px-10 py-6 text-base">
                 <Link to="/signaler">
                   <Zap className="mr-2 h-5 w-5" />
                   Signaler une coupure
                   <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
-              >
-                <Link to="/tableau-de-bord">
-                  <BarChart3 className="mr-2 h-5 w-5" />
-                  Voir le tableau de bord
                 </Link>
               </Button>
             </div>
