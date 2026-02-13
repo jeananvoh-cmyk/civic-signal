@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Zap, Droplets, Send, MapPin, Clock } from "lucide-react";
+import { Zap, Droplets, Send, MapPin, Clock, Navigation, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,27 +28,37 @@ const ReportPage = () => {
   const [gpsLoading, setGpsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const lat = pos.coords.latitude;
-          const lon = pos.coords.longitude;
-          setLatitude(lat);
-          setLongitude(lon);
-          const nearest = findNearestCommune(lat, lon);
-          if (nearest) {
-            setDetectedCommune(nearest);
-            setCommune(nearest.nom);
-          }
-          setGpsLoading(false);
-        },
-        () => setGpsLoading(false),
-        { enableHighAccuracy: true, timeout: 5000 }
-      );
-    } else {
+  const captureGPS = () => {
+    if (!navigator.geolocation) {
       setGpsLoading(false);
+      toast.error("La géolocalisation n'est pas supportée par votre appareil");
+      return;
     }
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        setLatitude(lat);
+        setLongitude(lon);
+        const nearest = findNearestCommune(lat, lon);
+        if (nearest) {
+          setDetectedCommune(nearest);
+          setCommune(nearest.nom);
+        }
+        setGpsLoading(false);
+        toast.success("Position GPS capturée !");
+      },
+      (err) => {
+        setGpsLoading(false);
+        toast.error("Impossible d'obtenir votre position. Vérifiez les permissions GPS.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  useEffect(() => {
+    captureGPS();
   }, []);
 
   const now = new Date();
@@ -106,23 +116,49 @@ const ReportPage = () => {
             borderWidth: detectedCommune ? 2 : 1,
           }}
         >
-          <div className="flex items-center justify-center gap-2">
-            <MapPin className="h-5 w-5" style={{ color: detectedCommune?.couleur }} />
-            {gpsLoading ? (
-              <span className="text-muted-foreground text-sm animate-pulse">Détection GPS...</span>
-            ) : detectedCommune ? (
-              <span className="font-bold" style={{ color: detectedCommune.couleur }}>
-                📍 {detectedCommune.nom} détecté ✓
-              </span>
-            ) : (
-              <span className="text-muted-foreground text-sm">GPS non disponible — sélectionnez manuellement</span>
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" style={{ color: detectedCommune?.couleur }} />
+              {gpsLoading ? (
+                <span className="text-muted-foreground text-sm animate-pulse flex items-center gap-1">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Détection GPS...
+                </span>
+              ) : detectedCommune ? (
+                <span className="font-bold" style={{ color: detectedCommune.couleur }}>
+                  📍 {detectedCommune.nom} détecté ✓
+                </span>
+              ) : (
+                <span className="text-muted-foreground text-sm">GPS non disponible — sélectionnez manuellement</span>
+              )}
+            </div>
+
+            {latitude && longitude && (
+              <p className="text-xs text-muted-foreground font-mono">
+                {latitude.toFixed(5)}, {longitude.toFixed(5)}
+              </p>
             )}
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={captureGPS}
+              disabled={gpsLoading}
+              className="mt-1 gap-1.5"
+            >
+              {gpsLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Navigation className="h-4 w-4" />
+              )}
+              {latitude ? "Recapturer ma position" : "Capturer ma position GPS"}
+            </Button>
           </div>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-4 text-center">
           <p className="text-sm text-muted-foreground">
-            📍 {commune || "..."} — [{timeStr}]
+            📍 {commune || "..."}{quartier ? `, ${quartier}` : ""} — [{timeStr}]
           </p>
         </motion.div>
 
