@@ -253,6 +253,17 @@ export type Database = {
           verifications: number
         }[]
       }
+      get_reports_time_series: {
+        Args: { p_days?: number }
+        Returns: {
+          actifs: number
+          commune: string
+          report_date: string
+          resolus: number
+          service_type: string
+          total: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

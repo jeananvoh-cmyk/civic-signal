@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNES, COMMUNE_COLORS } from "@/lib/communes";
 import { COMMUNE_LOGOS } from "@/lib/commune-logos";
+import TrendsChart from "@/components/TrendsChart";
 
 interface CommuneStat {
   commune: string;
@@ -106,6 +107,9 @@ const DashboardPage = () => {
             </div>
           </div>
         </motion.div>
+
+        {/* Trends chart */}
+        <TrendsChart className="mb-8" />
 
         {/* Commune ranking */}
         <h2 className="font-display text-xl font-bold text-foreground mb-4">Classement communes</h2>
