@@ -5,6 +5,8 @@ import Header from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNES, COMMUNE_COLORS } from "@/lib/communes";
 import { COMMUNE_LOGOS } from "@/lib/commune-logos";
+import electricityIcon from "@/assets/electricity-icon.png";
+import waterIcon from "@/assets/water-icon.png";
 
 interface CommuneStat {
   commune: string;
@@ -51,7 +53,7 @@ const DashboardPage = () => {
       <Header />
       <main className="container py-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-          <h1 className="font-display text-3xl font-bold text-foreground">Dashboard Opérateur</h1>
+          <h1 className="font-display text-3xl font-bold text-foreground">DASHBOARD DES COUPURES</h1>
           <p className="mt-1 text-muted-foreground">5 communes pilotes — Abidjan</p>
         </motion.div>
 
@@ -91,10 +93,18 @@ const DashboardPage = () => {
               <p className="text-sm opacity-80">Total coupures</p>
             </div>
             <div>
+              <div className="flex items-center justify-center gap-1.5 mb-1">
+                <img src={electricityIcon} alt="Électricité" className="h-5 w-5" />
+                <p className="text-sm opacity-80">Électricité</p>
+              </div>
               <p className="font-display text-3xl font-extrabold">{loading ? "..." : totalActifs}</p>
               <p className="text-sm opacity-80">Actives</p>
             </div>
             <div>
+              <div className="flex items-center justify-center gap-1.5 mb-1">
+                <img src={waterIcon} alt="Eau" className="h-5 w-5" />
+                <p className="text-sm opacity-80">Eau</p>
+              </div>
               <p className="font-display text-3xl font-extrabold">{loading ? "..." : totalResolus}</p>
               <p className="text-sm opacity-80">Résolues</p>
             </div>
@@ -161,7 +171,7 @@ const DashboardPage = () => {
                         <span>{c.actifs} actif{c.actifs !== 1 ? "s" : ""}</span>
                         <span>{c.resolus} résolu{c.resolus !== 1 ? "s" : ""}</span>
                         <span>{(c.population / 1000).toFixed(0)}k hab.</span>
-                        <span>Cap. {capacite.toLocaleString("fr-FR")}</span>
+                        
                       </div>
                     </div>
                   </motion.div>
