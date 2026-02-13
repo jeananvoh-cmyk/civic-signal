@@ -161,7 +161,7 @@ const DashboardPage = () => {
                         <span>{c.actifs} actif{c.actifs !== 1 ? "s" : ""}</span>
                         <span>{c.resolus} résolu{c.resolus !== 1 ? "s" : ""}</span>
                         <span>{(c.population / 1000).toFixed(0)}k hab.</span>
-                        <span>Cap. {capacite.toLocaleString("fr-FR")}</span>
+                        
                       </div>
                     </div>
                   </motion.div>
