@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Zap, Droplets, MapPin, AlertTriangle, Send, Building2, Home } from "lucide-react";
+import { Zap, Droplets, MapPin, Send, Building2, Home, Clock, Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,22 +9,36 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Header from "@/components/Header";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import type { ServiceType, UrgencyLevel } from "@/lib/data";
 
 const ReportPage = () => {
+  const { user } = useAuth();
   const [serviceType, setServiceType] = useState<ServiceType | "">("");
   const [urgency, setUrgency] = useState<UrgencyLevel | "">("");
   const [reporterType, setReporterType] = useState<"household" | "business">("household");
   const [location, setLocation] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
   const [description, setDescription] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleGeolocate = () => {
     setIsLocating(true);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          setLocation(`${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`);
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          setLatitude(lat);
+          setLongitude(lng);
+          setLocation(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
           setIsLocating(false);
           toast.success("Position GPS obtenue !");
         },
@@ -36,31 +50,89 @@ const ReportPage = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("La photo ne doit pas dépasser 5 Mo");
+        return;
+      }
+      setPhoto(file);
+      setPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const removePhoto = () => {
+    setPhoto(null);
+    setPhotoPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!serviceType || !urgency || !location || !description) {
-      toast.error("Veuillez remplir tous les champs");
+    if (!serviceType || !urgency || !location || !description || !startTime) {
+      toast.error("Veuillez remplir tous les champs obligatoires");
       return;
     }
-    toast.success("Signalement envoyé avec succès ! La communauté va le vérifier.");
-    setServiceType("");
-    setUrgency("");
-    setLocation("");
-    setDescription("");
+    if (!user) {
+      toast.error("Vous devez être connecté");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      let photoUrl: string | null = null;
+
+      if (photo) {
+        const ext = photo.name.split(".").pop();
+        const path = `${user.id}/${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("report-photos")
+          .upload(path, photo);
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage
+          .from("report-photos")
+          .getPublicUrl(path);
+        photoUrl = urlData.publicUrl;
+      }
+
+      const { error } = await supabase.from("reports").insert({
+        user_id: user.id,
+        service_type: serviceType,
+        description,
+        location,
+        latitude,
+        longitude,
+        urgency,
+        reporter_type: reporterType,
+        start_time: new Date(startTime).toISOString(),
+        photo_url: photoUrl,
+      });
+
+      if (error) throw error;
+
+      toast.success("Signalement envoyé avec succès !");
+      setServiceType("");
+      setUrgency("");
+      setLocation("");
+      setLatitude(null);
+      setLongitude(null);
+      setDescription("");
+      setStartTime("");
+      removePhoto();
+    } catch (error: any) {
+      toast.error(error.message || "Erreur lors de l'envoi");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container max-w-2xl py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="font-display text-3xl font-bold text-foreground">
-            Signaler une coupure
-          </h1>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+          <h1 className="font-display text-3xl font-bold text-foreground">Signaler une coupure</h1>
           <p className="mt-2 text-muted-foreground">
             Votre signalement sera vérifié par la communauté pour une fiabilité maximale.
           </p>
@@ -75,7 +147,7 @@ const ReportPage = () => {
         >
           {/* Service type */}
           <div className="space-y-3">
-            <Label className="text-sm font-semibold">Type de service</Label>
+            <Label className="text-sm font-semibold">Type de service *</Label>
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
@@ -133,9 +205,24 @@ const ReportPage = () => {
             </RadioGroup>
           </div>
 
+          {/* Start time */}
+          <div className="space-y-3">
+            <Label className="text-sm font-semibold">Heure de début de la coupure *</Label>
+            <div className="relative">
+              <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="datetime-local"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="pl-10"
+                required
+              />
+            </div>
+          </div>
+
           {/* Location */}
           <div className="space-y-3">
-            <Label className="text-sm font-semibold">Localisation</Label>
+            <Label className="text-sm font-semibold">Localisation *</Label>
             <div className="flex gap-2">
               <Input
                 placeholder="Adresse ou coordonnées GPS"
@@ -143,12 +230,7 @@ const ReportPage = () => {
                 onChange={(e) => setLocation(e.target.value)}
                 className="flex-1"
               />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleGeolocate}
-                disabled={isLocating}
-              >
+              <Button type="button" variant="outline" onClick={handleGeolocate} disabled={isLocating}>
                 <MapPin className="mr-1.5 h-4 w-4" />
                 {isLocating ? "..." : "GPS"}
               </Button>
@@ -157,7 +239,7 @@ const ReportPage = () => {
 
           {/* Urgency */}
           <div className="space-y-3">
-            <Label className="text-sm font-semibold">Niveau d'urgence</Label>
+            <Label className="text-sm font-semibold">Niveau d'urgence *</Label>
             <Select value={urgency} onValueChange={(v) => setUrgency(v as UrgencyLevel)}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner le niveau" />
@@ -173,18 +255,52 @@ const ReportPage = () => {
 
           {/* Description */}
           <div className="space-y-3">
-            <Label className="text-sm font-semibold">Description</Label>
+            <Label className="text-sm font-semibold">Description *</Label>
             <Textarea
-              placeholder="Décrivez la situation : heure de début, zone affectée, impact..."
+              placeholder="Décrivez la situation : zone affectée, impact..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
             />
           </div>
 
-          <Button type="submit" className="w-full gradient-hero text-primary-foreground" size="lg">
+          {/* Photo */}
+          <div className="space-y-3">
+            <Label className="text-sm font-semibold">Photo (optionnelle)</Label>
+            {photoPreview ? (
+              <div className="relative inline-block">
+                <img src={photoPreview} alt="Aperçu" className="h-32 w-auto rounded-lg border border-border object-cover" />
+                <button
+                  type="button"
+                  onClick={removePhoto}
+                  className="absolute -right-2 -top-2 rounded-full bg-destructive p-1 text-destructive-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ) : (
+              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                <Camera className="mr-2 h-4 w-4" />
+                Ajouter une photo
+              </Button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoChange}
+            />
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full gradient-hero text-primary-foreground"
+            size="lg"
+            disabled={submitting}
+          >
             <Send className="mr-2 h-4 w-4" />
-            Envoyer le signalement
+            {submitting ? "Envoi en cours..." : "Envoyer le signalement"}
           </Button>
         </motion.form>
       </main>
