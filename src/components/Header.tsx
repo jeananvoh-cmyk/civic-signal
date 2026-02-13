@@ -1,19 +1,23 @@
 import { Link, useLocation } from "react-router-dom";
-import { Zap, Menu, X, LogIn, LogOut, User } from "lucide-react";
+import { Zap, Menu, X, LogIn, LogOut, User, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const Header = () => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { canValidate, isAdmin } = useUserRole();
 
   const links = [
     { to: "/", label: "Accueil" },
     { to: "/signaler", label: "Signaler" },
     { to: "/tableau-de-bord", label: "Tableau de bord" },
     { to: "/carte", label: "Carte" },
+    ...(canValidate ? [{ to: "/admin/signalements", label: "Validation" }] : []),
+    ...(isAdmin ? [{ to: "/admin/utilisateurs", label: "Rôles" }] : []),
   ];
 
   return (
