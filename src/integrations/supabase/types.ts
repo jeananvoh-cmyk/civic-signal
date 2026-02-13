@@ -142,7 +142,6 @@ export type Database = {
           latitude: number
           location: string
           longitude: number
-          photo_url: string
           reporter_type: string
           resolved_at: string
           service_type: string

@@ -27,7 +27,7 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/signaler" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
             <Route path="/tableau-de-bord" element={<DashboardPage />} />
-            <Route path="/carte" element={<MapPage />} />
+            <Route path="/carte" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
             <Route path="/profil" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
