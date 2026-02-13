@@ -4,6 +4,7 @@ import { Zap, Droplets, Users, TrendingUp } from "lucide-react";
 import Header from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNES, COMMUNE_COLORS } from "@/lib/communes";
+import { COMMUNE_LOGOS } from "@/lib/commune-logos";
 
 interface CommuneStat {
   commune: string;
@@ -61,13 +62,17 @@ const DashboardPage = () => {
           transition={{ delay: 0.1 }}
           className="mb-6 flex flex-wrap gap-3"
         >
-          {stats.map((c) => (
+          {[...stats].sort((a, b) => a.commune.localeCompare(b.commune)).map((c) => (
             <div
               key={c.commune}
               className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold text-white"
               style={{ backgroundColor: c.couleur }}
             >
-              <span className="h-2 w-2 rounded-full bg-white/60" />
+              {COMMUNE_LOGOS[c.commune] ? (
+                <img src={COMMUNE_LOGOS[c.commune]} alt={c.commune} className="h-6 w-6 rounded-full object-cover bg-white" />
+              ) : (
+                <span className="h-2 w-2 rounded-full bg-white/60" />
+              )}
               {c.commune} {c.actifs} actif{c.actifs !== 1 ? "s" : ""}
             </div>
           ))}
@@ -111,7 +116,7 @@ const DashboardPage = () => {
             </div>
           ) : (
             [...stats]
-              .sort((a, b) => b.actifs - a.actifs)
+              .sort((a, b) => a.commune.localeCompare(b.commune))
               .map((c, i) => {
                 const pct = totalSignalements > 0 ? Math.round((c.total / totalSignalements) * 100) : 0;
                 return (
@@ -123,10 +128,14 @@ const DashboardPage = () => {
                     className="flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-card"
                   >
                     <div
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white font-bold text-sm"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl overflow-hidden"
                       style={{ backgroundColor: c.couleur }}
                     >
-                      #{i + 1}
+                      {COMMUNE_LOGOS[c.commune] ? (
+                        <img src={COMMUNE_LOGOS[c.commune]} alt={c.commune} className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="text-white font-bold text-sm">#{i + 1}</span>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
