@@ -34,21 +34,12 @@ const Index = () => {
 
             <h1 className="font-display text-4xl font-extrabold leading-tight text-primary-foreground md:text-5xl lg:text-6xl">
               Plateforme citoyenne pour Signaler les{" "}
-              <span className="text-urgent">Coupures</span>
+              <span className="text-urgent">Coupures</span> :{" "}
+              <img src={waterIcon} alt="Eau" className="inline-block h-10 w-10 md:h-14 md:w-14 drop-shadow-lg" />{" "}
+              ou{" "}
+              <img src={electricityIcon} alt="Électricité" className="inline-block h-10 w-10 md:h-14 md:w-14 drop-shadow-lg" />{" "}
+              ?
             </h1>
-
-            <div className="mt-4 flex flex-wrap items-center gap-4 text-3xl font-extrabold md:text-4xl lg:text-5xl">
-              <span className="flex items-center gap-2 text-water-light">
-                <img src={waterIcon} alt="Eau" className="h-10 w-10 md:h-14 md:w-14" />
-                Eau
-              </span>
-              <span className="font-display text-primary-foreground">ou</span>
-              <span className="flex items-center gap-2 text-electricity">
-                <img src={electricityIcon} alt="Électricité" className="h-10 w-10 md:h-14 md:w-14" />
-                Électricité
-              </span>
-              <span className="font-display text-primary-foreground">?</span>
-            </div>
 
             <p className="mt-6 max-w-lg text-xl font-semibold text-primary-foreground">
               En <span className="text-electricity">15 Secondes</span>, Tu Signales.{" "}
