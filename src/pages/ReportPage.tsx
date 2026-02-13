@@ -28,10 +28,10 @@ const ReportPage = () => {
   const [gpsLoading, setGpsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  const captureGPS = () => {
+  const captureGPS = (showError = true) => {
     if (!navigator.geolocation) {
       setGpsLoading(false);
-      toast.error("La géolocalisation n'est pas supportée par votre appareil");
+      if (showError) toast.error("La géolocalisation n'est pas supportée par votre appareil");
       return;
     }
     setGpsLoading(true);
@@ -49,16 +49,16 @@ const ReportPage = () => {
         setGpsLoading(false);
         toast.success("Position GPS capturée !");
       },
-      (err) => {
+      () => {
         setGpsLoading(false);
-        toast.error("Impossible d'obtenir votre position. Vérifiez les permissions GPS.");
+        if (showError) toast.error("Impossible d'obtenir votre position. Vérifiez les permissions GPS.");
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 
   useEffect(() => {
-    captureGPS();
+    captureGPS(false); // silent on initial load
   }, []);
 
   const now = new Date();
@@ -142,7 +142,7 @@ const ReportPage = () => {
               type="button"
               variant="outline"
               size="sm"
-              onClick={captureGPS}
+              onClick={() => captureGPS(true)}
               disabled={gpsLoading}
               className="mt-1 gap-1.5"
             >
