@@ -130,60 +130,28 @@ export type Database = {
       }
     }
     Views: {
-      reports_public: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: string | null
-          latitude: number | null
-          location: string | null
-          longitude: number | null
-          photo_url: string | null
-          reporter_type: string | null
-          resolved_at: string | null
-          service_type: string | null
-          start_time: string | null
-          status: string | null
-          urgency: string | null
-          verifications: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string | null
-          latitude?: never
-          location?: string | null
-          longitude?: never
-          photo_url?: string | null
-          reporter_type?: string | null
-          resolved_at?: string | null
-          service_type?: string | null
-          start_time?: string | null
-          status?: string | null
-          urgency?: string | null
-          verifications?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string | null
-          latitude?: never
-          location?: string | null
-          longitude?: never
-          photo_url?: string | null
-          reporter_type?: string | null
-          resolved_at?: string | null
-          service_type?: string | null
-          start_time?: string | null
-          status?: string | null
-          urgency?: string | null
-          verifications?: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_public_reports: {
+        Args: never
+        Returns: {
+          created_at: string
+          description: string
+          id: string
+          latitude: number
+          location: string
+          longitude: number
+          photo_url: string
+          reporter_type: string
+          resolved_at: string
+          service_type: string
+          start_time: string
+          status: string
+          urgency: string
+          verifications: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

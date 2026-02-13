@@ -27,11 +27,7 @@ const MapPage = () => {
 
   useEffect(() => {
     const fetchReports = async () => {
-      const { data, error } = await supabase
-        .from("reports_public" as any)
-        .select("id, service_type, description, location, latitude, longitude, urgency, status, start_time, created_at")
-        .order("created_at", { ascending: false })
-        .limit(100);
+      const { data, error } = await supabase.rpc("get_public_reports");
       if (!error && data) setReports(data as unknown as ReportRow[]);
       setLoading(false);
     };
