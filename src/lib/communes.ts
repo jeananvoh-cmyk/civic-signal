@@ -1,0 +1,43 @@
+export interface Commune {
+  nom: string;
+  centerLat: number;
+  centerLon: number;
+  rayonM: number;
+  population: number;
+  couleur: string;
+}
+
+export const COMMUNES: Commune[] = [
+  { nom: "Yopougon", centerLat: 5.3500, centerLon: -4.0833, rayonM: 8000, population: 1200000, couleur: "#DC2626" },
+  { nom: "Cocody", centerLat: 5.3667, centerLon: -3.9833, rayonM: 6000, population: 300000, couleur: "#10B981" },
+  { nom: "Abobo", centerLat: 5.4167, centerLon: -4.0167, rayonM: 5000, population: 850000, couleur: "#3B82F6" },
+  { nom: "Adjamé", centerLat: 5.3500, centerLon: -4.0167, rayonM: 3000, population: 150000, couleur: "#F59E0B" },
+  { nom: "Bingerville", centerLat: 5.4000, centerLon: -3.8833, rayonM: 7000, population: 80000, couleur: "#8B5CF6" },
+];
+
+export const COMMUNE_COLORS: Record<string, string> = Object.fromEntries(
+  COMMUNES.map((c) => [c.nom, c.couleur])
+);
+
+/** Haversine distance in meters */
+export const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+export const findNearestCommune = (lat: number, lon: number): Commune | null => {
+  let best: Commune | null = null;
+  let bestDist = Infinity;
+  for (const c of COMMUNES) {
+    const d = haversineDistance(lat, lon, c.centerLat, c.centerLon);
+    if (d < bestDist) {
+      bestDist = d;
+      best = c;
+    }
+  }
+  return best;
+};

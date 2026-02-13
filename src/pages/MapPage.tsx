@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import Header from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
-import { Zap, Droplets } from "lucide-react";
+import { COMMUNES, COMMUNE_COLORS } from "@/lib/communes";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -37,11 +37,23 @@ const MapPage = () => {
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return;
 
-    const map = L.map(mapRef.current).setView([6.5, -1.5], 5);
+    // Center on Abidjan
+    const map = L.map(mapRef.current).setView([5.38, -4.01], 12);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a>',
     }).addTo(map);
     mapInstance.current = map;
+
+    // Draw commune circles
+    COMMUNES.forEach((c) => {
+      L.circle([c.centerLat, c.centerLon], {
+        radius: c.rayonM,
+        color: c.couleur,
+        fillColor: c.couleur,
+        fillOpacity: 0.08,
+        weight: 2,
+      }).addTo(map).bindPopup(`<strong>${c.nom}</strong><br/>${(c.population / 1000).toFixed(0)}k habitants`);
+    });
 
     return () => {
       map.remove();
@@ -61,42 +73,49 @@ const MapPage = () => {
     const geoReports = reports.filter((r) => r.latitude && r.longitude);
 
     geoReports.forEach((r) => {
-      const color = r.service_type === "electricity" ? "#F59E0B" : "#3B82F6";
+      // Find commune color
+      const communeName = r.location?.split(",")[0]?.trim() || "";
+      const color = COMMUNE_COLORS[communeName] || (r.service_type === "electricity" ? "#F59E0B" : "#3B82F6");
+      const emoji = r.service_type === "electricity" ? "⚡" : "💧";
+
       const icon = L.divIcon({
         className: "",
-        html: `<div style="background:${color};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.3);font-size:14px;">${r.service_type === "electricity" ? "⚡" : "💧"}</div>`,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
+        html: `<div style="background:${color};width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,.3);font-size:14px;">${emoji}</div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 15],
       });
 
       L.marker([r.latitude!, r.longitude!], { icon })
         .addTo(map)
         .bindPopup(
-          `<div style="min-width:180px">
-            <strong>${r.service_type === "electricity" ? "⚡ Électricité" : "💧 Eau"}</strong><br/>
-            <span style="font-size:12px">${r.location}</span><br/>
-            <span style="font-size:12px;color:#666">${r.description.slice(0, 80)}${r.description.length > 80 ? "..." : ""}</span><br/>
+          `<div style="min-width:160px">
+            <strong>${emoji} ${communeName || r.location}</strong><br/>
+            <span style="font-size:12px">${r.description?.slice(0, 80) || ""}</span><br/>
             <span style="font-size:11px;color:#999">${new Date(r.start_time).toLocaleString("fr-FR")}</span>
           </div>`
         );
     });
-
-    if (geoReports.length > 0) {
-      const bounds = L.latLngBounds(geoReports.map((r) => [r.latitude!, r.longitude!]));
-      map.fitBounds(bounds, { padding: [40, 40] });
-    }
   }, [reports, loading]);
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container py-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-          <h1 className="font-display text-3xl font-bold text-foreground">Carte des signalements</h1>
-          <p className="mt-2 text-muted-foreground">
-            {loading ? "Chargement..." : `${reports.length} signalement(s) récent(s)`}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-4">
+          <h1 className="font-display text-3xl font-bold text-foreground">Carte des 5 communes</h1>
+          <p className="mt-1 text-muted-foreground">
+            {loading ? "Chargement..." : `${reports.length} signalement(s) — Clusters 5 couleurs`}
           </p>
         </motion.div>
+
+        {/* Legend */}
+        <div className="mb-4 flex flex-wrap gap-2">
+          {COMMUNES.map((c) => (
+            <span key={c.nom} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-white" style={{ backgroundColor: c.couleur }}>
+              {c.nom}
+            </span>
+          ))}
+        </div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -106,43 +125,6 @@ const MapPage = () => {
         >
           <div ref={mapRef} className="h-[500px] w-full" />
         </motion.div>
-
-        {/* Recent reports list */}
-        {!loading && reports.length > 0 && (
-          <div className="mt-6 space-y-3">
-            <h2 className="font-display text-lg font-bold text-foreground">Signalements récents</h2>
-            {reports.slice(0, 10).map((r) => (
-              <div key={r.id} className="flex items-start gap-3 rounded-lg border border-border bg-card p-4">
-                <div className={`mt-0.5 rounded-lg p-2 ${r.service_type === "electricity" ? "bg-electricity-light" : "bg-water-light"}`}>
-                  {r.service_type === "electricity" ? (
-                    <Zap className="h-4 w-4 text-electricity" />
-                  ) : (
-                    <Droplets className="h-4 w-4 text-water" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{r.location}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate">{r.description}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Début : {new Date(r.start_time).toLocaleString("fr-FR")}
-                  </p>
-                </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                  r.status === "active" ? "bg-destructive/10 text-destructive" :
-                  r.status === "resolved" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"
-                }`}>
-                  {r.status === "active" ? "Actif" : r.status === "resolved" ? "Résolu" : "Vérification"}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {!loading && reports.length === 0 && (
-          <div className="mt-8 text-center text-muted-foreground">
-            Aucun signalement pour le moment. Soyez le premier à signaler !
-          </div>
-        )}
       </main>
     </div>
   );

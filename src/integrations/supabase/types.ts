@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      communes: {
+        Row: {
+          center_lat: number
+          center_lon: number
+          couleur: string
+          created_at: string
+          id: string
+          nom: string
+          population: number
+          rayon_m: number
+        }
+        Insert: {
+          center_lat: number
+          center_lon: number
+          couleur?: string
+          created_at?: string
+          id?: string
+          nom: string
+          population?: number
+          rayon_m?: number
+        }
+        Update: {
+          center_lat?: number
+          center_lon?: number
+          couleur?: string
+          created_at?: string
+          id?: string
+          nom?: string
+          population?: number
+          rayon_m?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -169,6 +202,38 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      corroborate_report: { Args: { p_report_id: string }; Returns: undefined }
+      find_nearest_commune: {
+        Args: { p_lat: number; p_lon: number }
+        Returns: {
+          couleur: string
+          distance_km: number
+          nom: string
+        }[]
+      }
+      get_commune_stats: {
+        Args: never
+        Returns: {
+          actifs: number
+          commune: string
+          couleur: string
+          population: number
+          resolus: number
+          total: number
+        }[]
+      }
+      get_nearby_reports: {
+        Args: { p_lat: number; p_lon: number; p_rayon_m?: number }
+        Returns: {
+          commune: string
+          created_at: string
+          description: string
+          distance_m: number
+          id: string
+          nb_verifications: number
+          service_type: string
+        }[]
+      }
       get_public_reports: {
         Args: never
         Returns: {
