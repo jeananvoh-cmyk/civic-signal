@@ -118,7 +118,13 @@ const DashboardPage = () => {
             [...stats]
               .sort((a, b) => a.commune.localeCompare(b.commune))
               .map((c, i) => {
-                const pct = totalSignalements > 0 ? Math.round((c.total / totalSignalements) * 100) : 0;
+                // Pourcentage de signalements par rapport à la population
+                const pctPop = c.population > 0 ? ((c.total / c.population) * 100) : 0;
+                const pctPopDisplay = pctPop < 0.01 && c.total > 0 ? "<0.01" : pctPop.toFixed(2);
+                // Capacité : moitié de la population
+                const capacite = Math.floor(c.population / 2);
+                const tauxCapacite = capacite > 0 ? Math.min((c.total / capacite) * 100, 100) : 0;
+
                 return (
                   <motion.div
                     key={c.commune}
@@ -140,18 +146,22 @@ const DashboardPage = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <span className="font-bold text-foreground">{c.commune}</span>
-                        <span className="text-xs text-muted-foreground">{pct}% des signalements</span>
+                        <span className="text-xs font-semibold" style={{ color: c.couleur }}>
+                          {pctPopDisplay}% de la pop.
+                        </span>
                       </div>
+                      {/* Barre de capacité (50% population) */}
                       <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all duration-700"
-                          style={{ width: `${Math.max(pct, 2)}%`, backgroundColor: c.couleur }}
+                          style={{ width: `${Math.max(tauxCapacite, 1)}%`, backgroundColor: c.couleur }}
                         />
                       </div>
-                      <div className="mt-1 flex gap-4 text-xs text-muted-foreground">
+                      <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
                         <span>{c.actifs} actif{c.actifs !== 1 ? "s" : ""}</span>
                         <span>{c.resolus} résolu{c.resolus !== 1 ? "s" : ""}</span>
                         <span>{(c.population / 1000).toFixed(0)}k hab.</span>
+                        <span>Cap. {capacite.toLocaleString("fr-FR")}</span>
                       </div>
                     </div>
                   </motion.div>
