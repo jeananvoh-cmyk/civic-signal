@@ -34,16 +34,15 @@ const Index = () => {
 
             <h1 className="font-display text-4xl font-extrabold leading-tight text-primary-foreground md:text-5xl lg:text-6xl">
               Plateforme citoyenne pour Signaler les{" "}
-              <span className="text-urgent">Coupures</span> :{" "}
+              <span className="text-urgent">Coupures</span>{" "}
               <img src={waterIcon} alt="Eau" className="inline-block h-10 w-10 md:h-14 md:w-14 drop-shadow-lg" />{" "}
-              ou{" "}
-              <img src={electricityIcon} alt="Électricité" className="inline-block h-10 w-10 md:h-14 md:w-14 drop-shadow-lg" />{" "}
-              ?
+              <img src={electricityIcon} alt="Électricité" className="inline-block h-10 w-10 md:h-14 md:w-14 drop-shadow-lg" />
             </h1>
 
             <p className="mt-6 max-w-lg text-xl font-semibold text-primary-foreground">
-              En <span className="text-electricity">15 Secondes</span>, Tu Signales.{" "}
-              <span className="text-water-light">Tes voisins agissent déjà.</span>
+              En <span className="text-electricity">15 Secondes</span> Signales si tu n'as plus d'
+              <span className="text-water-light">eau</span> ou l'
+              <span className="text-electricity">électricité</span>. Tes voisins agissent déjà.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
