@@ -44,10 +44,13 @@ const Header = () => {
 
           {user ? (
             <div className="ml-2 flex items-center gap-2">
-              <span className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-2 text-sm text-foreground">
+              <Link
+                to="/profil"
+                className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-2 text-sm text-foreground hover:bg-secondary/80 transition-colors"
+              >
                 <User className="h-4 w-4" />
                 {user.email?.split("@")[0]}
-              </span>
+              </Link>
               <Button variant="ghost" size="sm" onClick={signOut}>
                 <LogOut className="h-4 w-4" />
               </Button>
