@@ -215,7 +215,7 @@ const ProfilePage = () => {
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      value={user?.phone ?? profile.phone ?? ""}
+                      value={profile.phone || user?.phone || "Non renseigné"}
                       disabled
                       className="pl-10 opacity-60"
                     />
