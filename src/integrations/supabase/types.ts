@@ -130,7 +130,57 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      reports_public: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string | null
+          latitude: number | null
+          location: string | null
+          longitude: number | null
+          photo_url: string | null
+          reporter_type: string | null
+          resolved_at: string | null
+          service_type: string | null
+          start_time: string | null
+          status: string | null
+          urgency: string | null
+          verifications: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          latitude?: never
+          location?: string | null
+          longitude?: never
+          photo_url?: string | null
+          reporter_type?: string | null
+          resolved_at?: string | null
+          service_type?: string | null
+          start_time?: string | null
+          status?: string | null
+          urgency?: string | null
+          verifications?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          latitude?: never
+          location?: string | null
+          longitude?: never
+          photo_url?: string | null
+          reporter_type?: string | null
+          resolved_at?: string | null
+          service_type?: string | null
+          start_time?: string | null
+          status?: string | null
+          urgency?: string | null
+          verifications?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
