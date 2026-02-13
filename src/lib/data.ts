@@ -20,6 +20,67 @@ export interface Report {
   reporterType: "household" | "business";
 }
 
+export interface GroupedReport {
+  key: string;
+  commune: string;
+  quartier: string;
+  serviceType: ServiceType;
+  count: number;
+  highestUrgency: UrgencyLevel;
+  totalVerifications: number;
+  latestCreatedAt: Date;
+  activeCount: number;
+  resolvedCount: number;
+  descriptions: string[];
+}
+
+const URGENCY_ORDER: Record<UrgencyLevel, number> = { low: 0, medium: 1, high: 2, critical: 3 };
+
+export const groupReportsByZone = (reports: Report[]): GroupedReport[] => {
+  const groups = new Map<string, GroupedReport>();
+
+  for (const r of reports) {
+    // Extract commune and quartier from location "Commune, Quartier"
+    const parts = r.location.split(", ");
+    const commune = parts[0] || r.location;
+    const quartier = parts[1] || "";
+    const key = `${commune}|${quartier}|${r.serviceType}`;
+
+    const existing = groups.get(key);
+    if (existing) {
+      existing.count++;
+      existing.totalVerifications += r.verifications;
+      if (URGENCY_ORDER[r.urgency] > URGENCY_ORDER[existing.highestUrgency]) {
+        existing.highestUrgency = r.urgency;
+      }
+      if (r.createdAt > existing.latestCreatedAt) {
+        existing.latestCreatedAt = r.createdAt;
+      }
+      if (r.status === "active") existing.activeCount++;
+      if (r.status === "resolved") existing.resolvedCount++;
+      if (existing.descriptions.length < 3) existing.descriptions.push(r.description);
+    } else {
+      groups.set(key, {
+        key,
+        commune,
+        quartier,
+        serviceType: r.serviceType as ServiceType,
+        count: 1,
+        highestUrgency: r.urgency,
+        totalVerifications: r.verifications,
+        latestCreatedAt: r.createdAt,
+        activeCount: r.status === "active" ? 1 : 0,
+        resolvedCount: r.status === "resolved" ? 1 : 0,
+        descriptions: [r.description],
+      });
+    }
+  }
+
+  return Array.from(groups.values()).sort(
+    (a, b) => URGENCY_ORDER[b.highestUrgency] - URGENCY_ORDER[a.highestUrgency] || b.count - a.count
+  );
+};
+
 export const SERVICE_CONFIG: Record<ServiceType, { label: string; icon: LucideIcon; colorClass: string; bgClass: string; lightBgClass: string }> = {
   electricity: {
     label: "Électricité",
