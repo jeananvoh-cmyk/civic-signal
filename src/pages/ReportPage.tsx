@@ -225,7 +225,7 @@ const ReportPage = () => {
               <Input
                 placeholder="Adresse ou coordonnées GPS"
                 value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                onChange={(e) => setLocation(e.target.value.slice(0, 500))}
                 className="flex-1"
               />
               <Button type="button" variant="outline" onClick={handleGeolocate} disabled={isLocating}>
@@ -257,7 +257,8 @@ const ReportPage = () => {
             <Textarea
               placeholder="Décrivez la situation : zone affectée, impact..."
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => setDescription(e.target.value.slice(0, 2000))}
+              maxLength={2000}
               rows={4}
             />
           </div>
