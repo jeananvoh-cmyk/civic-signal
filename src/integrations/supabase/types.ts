@@ -71,6 +71,63 @@ export type Database = {
         }
         Relationships: []
       }
+      reports: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          latitude: number | null
+          location: string
+          longitude: number | null
+          photo_url: string | null
+          reporter_type: string
+          resolved_at: string | null
+          service_type: string
+          start_time: string
+          status: string
+          updated_at: string
+          urgency: string
+          user_id: string
+          verifications: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          latitude?: number | null
+          location: string
+          longitude?: number | null
+          photo_url?: string | null
+          reporter_type?: string
+          resolved_at?: string | null
+          service_type: string
+          start_time?: string
+          status?: string
+          updated_at?: string
+          urgency: string
+          user_id: string
+          verifications?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          latitude?: number | null
+          location?: string
+          longitude?: number | null
+          photo_url?: string | null
+          reporter_type?: string
+          resolved_at?: string | null
+          service_type?: string
+          start_time?: string
+          status?: string
+          updated_at?: string
+          urgency?: string
+          user_id?: string
+          verifications?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
