@@ -16,28 +16,55 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          avatar_url: string | null
+          bio: string
+          commune: string
           created_at: string
           display_name: string
+          first_name: string
           id: string
+          language: string
+          last_name: string
+          notifications_enabled: boolean
           phone: string | null
+          quartier: string
+          theme: string
           updated_at: string
           user_id: string
           user_type: string
         }
         Insert: {
+          avatar_url?: string | null
+          bio?: string
+          commune?: string
           created_at?: string
           display_name?: string
+          first_name?: string
           id?: string
+          language?: string
+          last_name?: string
+          notifications_enabled?: boolean
           phone?: string | null
+          quartier?: string
+          theme?: string
           updated_at?: string
           user_id: string
           user_type?: string
         }
         Update: {
+          avatar_url?: string | null
+          bio?: string
+          commune?: string
           created_at?: string
           display_name?: string
+          first_name?: string
           id?: string
+          language?: string
+          last_name?: string
+          notifications_enabled?: boolean
           phone?: string | null
+          quartier?: string
+          theme?: string
           updated_at?: string
           user_id?: string
           user_type?: string
