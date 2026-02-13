@@ -212,6 +212,20 @@ export type Database = {
           nom: string
         }[]
       }
+      get_commune_service_stats: {
+        Args: never
+        Returns: {
+          commune: string
+          couleur: string
+          eau_actifs: number
+          eau_resolus: number
+          eau_total: number
+          electricite_actifs: number
+          electricite_resolus: number
+          electricite_total: number
+          population: number
+        }[]
+      }
       get_commune_stats: {
         Args: never
         Returns: {
