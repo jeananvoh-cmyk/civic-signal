@@ -1,71 +1,61 @@
-import { useState, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Zap, Droplets, Send, Building2, Home, Clock, Camera, X } from "lucide-react";
+import { Zap, Droplets, Send, MapPin, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Header from "@/components/Header";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { COMMUNES, findNearestCommune, type Commune } from "@/lib/communes";
 import type { ServiceType, UrgencyLevel } from "@/lib/data";
 
 const ReportPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [serviceType, setServiceType] = useState<ServiceType | "">("");
-  const [urgency, setUrgency] = useState<UrgencyLevel | "">("");
-  const [reporterType, setReporterType] = useState<"household" | "business">("household");
+  const [urgency, setUrgency] = useState<"normal" | "urgent">("normal");
   const [commune, setCommune] = useState("");
-  const [quartier, setQuartier] = useState("");
+  const [description, setDescription] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
-  const [description, setDescription] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [detectedCommune, setDetectedCommune] = useState<Commune | null>(null);
+  const [gpsLoading, setGpsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Silently capture GPS on mount (not shared publicly)
-  useState(() => {
+  useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          setLatitude(pos.coords.latitude);
-          setLongitude(pos.coords.longitude);
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          setLatitude(lat);
+          setLongitude(lon);
+          const nearest = findNearestCommune(lat, lon);
+          if (nearest) {
+            setDetectedCommune(nearest);
+            setCommune(nearest.nom);
+          }
+          setGpsLoading(false);
         },
-        () => {} // silently fail
+        () => setGpsLoading(false),
+        { enableHighAccuracy: true, timeout: 5000 }
       );
+    } else {
+      setGpsLoading(false);
     }
-  });
+  }, []);
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("La photo ne doit pas dépasser 5 Mo");
-        return;
-      }
-      setPhoto(file);
-      setPhotoPreview(URL.createObjectURL(file));
-    }
-  };
-
-  const removePhoto = () => {
-    setPhoto(null);
-    setPhotoPreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
+  const now = new Date();
+  const timeStr = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!serviceType || !urgency || !commune || !quartier || !description || !startTime) {
-      toast.error("Veuillez remplir tous les champs obligatoires");
+    if (!serviceType || !commune) {
+      toast.error("Veuillez sélectionner un type et une commune");
       return;
     }
     if (!user) {
@@ -75,37 +65,20 @@ const ReportPage = () => {
 
     setSubmitting(true);
     try {
-      let photoUrl: string | null = null;
-
-      if (photo) {
-        const ext = photo.name.split(".").pop();
-        const path = `${user.id}/${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from("report-photos")
-          .upload(path, photo);
-        if (uploadError) throw uploadError;
-        // Store the storage path, not a public URL (bucket is private)
-        photoUrl = path;
-      }
-
       const { error } = await supabase.from("reports").insert({
         user_id: user.id,
         service_type: serviceType,
-        description,
-        location: `${commune}, ${quartier}`,
+        description: description || `Coupure de ${serviceType === "electricity" ? "courant" : "eau"} à ${commune}`,
+        location: commune,
         commune,
-        quartier,
+        quartier: "",
         latitude,
         longitude,
-        urgency,
-        reporter_type: reporterType,
-        start_time: new Date(startTime).toISOString(),
-        photo_url: photoUrl,
+        urgency: urgency === "urgent" ? "high" : "medium",
+        start_time: new Date().toISOString(),
       });
-
       if (error) throw error;
-
-      toast.success("Signalement envoyé avec succès !");
+      toast.success("Signalement envoyé !");
       navigate("/");
     } catch (error: any) {
       toast.error(error.message || "Erreur lors de l'envoi");
@@ -114,14 +87,40 @@ const ReportPage = () => {
     }
   };
 
+  const selectedCommuneData = COMMUNES.find((c) => c.nom === commune);
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container max-w-2xl py-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <h1 className="font-display text-3xl font-bold text-foreground">Signaler une coupure</h1>
-          <p className="mt-2 text-muted-foreground">
-            Votre signalement sera vérifié par la communauté pour une fiabilité maximale.
+      <main className="container max-w-md py-8">
+        {/* GPS detection banner */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 rounded-xl p-4 text-center"
+          style={{
+            backgroundColor: detectedCommune ? `${detectedCommune.couleur}15` : undefined,
+            borderColor: detectedCommune?.couleur,
+            borderWidth: detectedCommune ? 2 : 1,
+          }}
+        >
+          <div className="flex items-center justify-center gap-2">
+            <MapPin className="h-5 w-5" style={{ color: detectedCommune?.couleur }} />
+            {gpsLoading ? (
+              <span className="text-muted-foreground text-sm animate-pulse">Détection GPS...</span>
+            ) : detectedCommune ? (
+              <span className="font-bold" style={{ color: detectedCommune.couleur }}>
+                📍 {detectedCommune.nom} détecté ✓
+              </span>
+            ) : (
+              <span className="text-muted-foreground text-sm">GPS non disponible — sélectionnez manuellement</span>
+            )}
+          </div>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-4 text-center">
+          <p className="text-sm text-muted-foreground">
+            📍 {commune || "..."} — [{timeStr}]
           </p>
         </motion.div>
 
@@ -130,172 +129,107 @@ const ReportPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           onSubmit={handleSubmit}
-          className="space-y-6 rounded-xl border border-border bg-card p-6 shadow-card"
+          className="space-y-5 rounded-xl border border-border bg-card p-6 shadow-card"
         >
+          {/* Commune selector */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Commune *</Label>
+            <Select value={commune} onValueChange={setCommune}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner la commune" />
+              </SelectTrigger>
+              <SelectContent>
+                {COMMUNES.map((c) => (
+                  <SelectItem key={c.nom} value={c.nom}>
+                    <span className="flex items-center gap-2">
+                      <span className="h-3 w-3 rounded-full inline-block" style={{ backgroundColor: c.couleur }} />
+                      {c.nom}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Service type */}
-          <div className="space-y-3">
-            <Label className="text-sm font-semibold">Type de service *</Label>
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Type de coupure *</Label>
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setServiceType("electricity")}
-                className={`flex items-center gap-3 rounded-xl border-2 p-4 text-left transition-all ${
+                className={`flex items-center justify-center gap-2 rounded-xl border-2 p-4 transition-all ${
                   serviceType === "electricity"
                     ? "border-electricity bg-electricity-light"
                     : "border-border hover:border-electricity/50"
                 }`}
               >
-                <Zap className={`h-6 w-6 ${serviceType === "electricity" ? "text-electricity" : "text-muted-foreground"}`} />
-                <div>
-                  <p className="font-medium text-foreground">Électricité</p>
-                  <p className="text-xs text-muted-foreground">Coupure de courant</p>
-                </div>
+                <Zap className={`h-5 w-5 ${serviceType === "electricity" ? "text-electricity" : "text-muted-foreground"}`} />
+                <span className="font-medium text-sm">Électricité</span>
               </button>
               <button
                 type="button"
                 onClick={() => setServiceType("water")}
-                className={`flex items-center gap-3 rounded-xl border-2 p-4 text-left transition-all ${
+                className={`flex items-center justify-center gap-2 rounded-xl border-2 p-4 transition-all ${
                   serviceType === "water"
                     ? "border-water bg-water-light"
                     : "border-border hover:border-water/50"
                 }`}
               >
-                <Droplets className={`h-6 w-6 ${serviceType === "water" ? "text-water" : "text-muted-foreground"}`} />
-                <div>
-                  <p className="font-medium text-foreground">Eau</p>
-                  <p className="text-xs text-muted-foreground">Coupure d'eau</p>
-                </div>
+                <Droplets className={`h-5 w-5 ${serviceType === "water" ? "text-water" : "text-muted-foreground"}`} />
+                <span className="font-medium text-sm">Eau</span>
               </button>
             </div>
           </div>
 
-          {/* Reporter type */}
-          <div className="space-y-3">
-            <Label className="text-sm font-semibold">Type de profil</Label>
-            <RadioGroup
-              value={reporterType}
-              onValueChange={(v) => setReporterType(v as "household" | "business")}
-              className="flex gap-4"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="household" id="household" />
-                <Label htmlFor="household" className="flex items-center gap-1.5 text-sm">
-                  <Home className="h-4 w-4" /> Ménage
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="business" id="business" />
-                <Label htmlFor="business" className="flex items-center gap-1.5 text-sm">
-                  <Building2 className="h-4 w-4" /> Entreprise
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          {/* Start time */}
-          <div className="space-y-3">
-            <Label className="text-sm font-semibold">Heure de début de la coupure *</Label>
-            <div className="relative">
-              <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="datetime-local"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="pl-10"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Commune & Quartier */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-3">
-              <Label className="text-sm font-semibold">Commune *</Label>
-              <Input
-                placeholder="Ex: Cocody, Plateau..."
-                value={commune}
-                onChange={(e) => setCommune(e.target.value.slice(0, 100))}
-                maxLength={100}
-                required
-              />
-            </div>
-            <div className="space-y-3">
-              <Label className="text-sm font-semibold">Quartier *</Label>
-              <Input
-                placeholder="Ex: Riviera, Angré..."
-                value={quartier}
-                onChange={(e) => setQuartier(e.target.value.slice(0, 100))}
-                maxLength={100}
-                required
-              />
-            </div>
-          </div>
-
           {/* Urgency */}
-          <div className="space-y-3">
-            <Label className="text-sm font-semibold">Niveau d'urgence *</Label>
-            <Select value={urgency} onValueChange={(v) => setUrgency(v as UrgencyLevel)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner le niveau" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">🟢 Faible — Gêne mineure</SelectItem>
-                <SelectItem value="medium">🟡 Moyen — Impact modéré</SelectItem>
-                <SelectItem value="high">🟠 Élevé — Impact significatif</SelectItem>
-                <SelectItem value="critical">🔴 Critique — Urgence vitale</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Niveau</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setUrgency("normal")}
+                className={`rounded-xl border-2 p-3 text-sm font-medium transition-all ${
+                  urgency === "normal" ? "border-success bg-success/10 text-success" : "border-border text-muted-foreground"
+                }`}
+              >
+                ✅ Normal
+              </button>
+              <button
+                type="button"
+                onClick={() => setUrgency("urgent")}
+                className={`rounded-xl border-2 p-3 text-sm font-medium transition-all ${
+                  urgency === "urgent" ? "border-urgent bg-urgent/10 text-urgent" : "border-border text-muted-foreground"
+                }`}
+              >
+                🚨 Urgent
+              </button>
+            </div>
           </div>
 
           {/* Description */}
-          <div className="space-y-3">
-            <Label className="text-sm font-semibold">Description *</Label>
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Description (optionnelle)</Label>
             <Textarea
-              placeholder="Décrivez la situation : zone affectée, impact..."
+              placeholder="Décrivez la situation..."
               value={description}
-              onChange={(e) => setDescription(e.target.value.slice(0, 2000))}
-              maxLength={2000}
-              rows={4}
-            />
-          </div>
-
-          {/* Photo */}
-          <div className="space-y-3">
-            <Label className="text-sm font-semibold">Photo (optionnelle)</Label>
-            {photoPreview ? (
-              <div className="relative inline-block">
-                <img src={photoPreview} alt="Aperçu" className="h-32 w-auto rounded-lg border border-border object-cover" />
-                <button
-                  type="button"
-                  onClick={removePhoto}
-                  className="absolute -right-2 -top-2 rounded-full bg-destructive p-1 text-destructive-foreground"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ) : (
-              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
-                <Camera className="mr-2 h-4 w-4" />
-                Ajouter une photo
-              </Button>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handlePhotoChange}
+              onChange={(e) => setDescription(e.target.value.slice(0, 500))}
+              maxLength={500}
+              rows={3}
             />
           </div>
 
           <Button
             type="submit"
-            className="w-full gradient-hero text-primary-foreground"
-            size="lg"
-            disabled={submitting}
+            className="w-full py-6 text-base font-bold"
+            style={{
+              backgroundColor: selectedCommuneData?.couleur || undefined,
+              color: "white",
+            }}
+            disabled={submitting || !serviceType || !commune}
           >
-            <Send className="mr-2 h-4 w-4" />
-            {submitting ? "Envoi en cours..." : "Envoyer le signalement"}
+            <Send className="mr-2 h-5 w-5" />
+            {submitting ? "Envoi..." : "Confirmer signalement"}
           </Button>
         </motion.form>
       </main>

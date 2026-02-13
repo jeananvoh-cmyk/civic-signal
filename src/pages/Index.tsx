@@ -1,7 +1,9 @@
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Zap, Droplets, Shield, Users, ArrowRight, BarChart3, MapPin } from "lucide-react";
+import { Zap, Droplets, Shield, Users, ArrowRight, BarChart3, MapPin, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
+import { COMMUNES } from "@/lib/communes";
 import heroBg from "@/assets/hero-bg.jpg";
 
 const Index = () => {
@@ -25,7 +27,7 @@ const Index = () => {
           >
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary-foreground/20 bg-primary-foreground/10 px-4 py-1.5 text-sm text-primary-foreground backdrop-blur-sm">
               <Shield className="h-4 w-4" />
-              Vérification communautaire — Fiabilité &gt;95%
+              Pilote 5 communes — Abidjan
             </div>
 
             <h1 className="font-display text-4xl font-extrabold leading-tight text-primary-foreground md:text-5xl lg:text-6xl">
@@ -34,16 +36,37 @@ const Index = () => {
             </h1>
 
             <p className="mt-6 max-w-lg text-lg text-primary-foreground/80">
-              Plateforme citoyenne pour signaler les coupures d'électricité et d'eau en temps réel. 
-              Chaque signalement est validé par la communauté.
+              Plateforme citoyenne pour signaler les coupures d'électricité et d'eau en temps réel 
+              dans les 5 communes prioritaires d'Abidjan.
             </p>
 
-            <div className="mt-8">
-              <Button size="lg" className="bg-water text-water-foreground hover:bg-water/90 px-10 py-6 text-base">
-                <Zap className="mr-2 h-5 w-5" />
-                Signaler une coupure
-                <ArrowRight className="ml-2 h-4 w-4" />
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Button asChild size="lg" className="bg-water text-water-foreground hover:bg-water/90 px-8 py-6 text-base">
+                <Link to="/signaler">
+                  <Zap className="mr-2 h-5 w-5" />
+                  Signaler une coupure
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
               </Button>
+              <Button asChild size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 px-8 py-6 text-base">
+                <Link to="/verification">
+                  <CheckCircle2 className="mr-2 h-5 w-5" />
+                  Vérifier un signal
+                </Link>
+              </Button>
+            </div>
+
+            {/* 5 communes badges */}
+            <div className="mt-8 flex flex-wrap gap-2">
+              {COMMUNES.map((c) => (
+                <span
+                  key={c.nom}
+                  className="rounded-full px-3 py-1 text-xs font-bold text-white"
+                  style={{ backgroundColor: c.couleur }}
+                >
+                  {c.nom}
+                </span>
+              ))}
             </div>
           </motion.div>
         </div>
@@ -61,32 +84,39 @@ const Index = () => {
             Comment ça fonctionne
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
-            Trois étapes simples pour améliorer la fiabilité des services publics
+            Quatre étapes pour améliorer les services publics à Abidjan
           </p>
         </motion.div>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {[
             {
               icon: <MapPin className="h-6 w-6" />,
-              title: "1. Signalez",
-              description: "Localisez-vous par GPS et décrivez la coupure en quelques secondes.",
+              title: "1. Localisation",
+              description: "GPS détecte votre commune automatiquement parmi les 5 pilotes.",
               bgClass: "bg-electricity-light",
               iconClass: "text-electricity",
             },
             {
-              icon: <Users className="h-6 w-6" />,
-              title: "2. Vérifiez",
-              description: "La communauté confirme le signalement pour éliminer les faux positifs.",
+              icon: <Zap className="h-6 w-6" />,
+              title: "2. Signalez",
+              description: "Choisissez Électricité ou Eau, niveau d'urgence, et confirmez.",
               bgClass: "bg-water-light",
               iconClass: "text-water",
             },
             {
-              icon: <BarChart3 className="h-6 w-6" />,
-              title: "3. Agissez",
-              description: "Les opérateurs reçoivent des données fiables pour prioriser les interventions.",
+              icon: <Users className="h-6 w-6" />,
+              title: "3. Vérifiez",
+              description: "Les voisins à moins de 200m confirment pour éliminer les faux positifs.",
               bgClass: "bg-secondary",
               iconClass: "text-primary",
+            },
+            {
+              icon: <BarChart3 className="h-6 w-6" />,
+              title: "4. Dashboard",
+              description: "Les opérateurs voient les stats par commune avec codes couleur.",
+              bgClass: "bg-muted",
+              iconClass: "text-foreground",
             },
           ].map((feature, i) => (
             <motion.div
@@ -94,7 +124,7 @@ const Index = () => {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.15 }}
+              transition={{ delay: i * 0.12 }}
               className="rounded-xl border border-border bg-card p-6 shadow-card"
             >
               <div className={`mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl ${feature.bgClass}`}>
@@ -111,9 +141,9 @@ const Index = () => {
       <section className="gradient-hero py-12">
         <div className="container grid gap-8 text-center sm:grid-cols-3">
           {[
-            { value: "2 340+", label: "Signalements ce mois" },
-            { value: "96%", label: "Fiabilité vérifiée" },
-            { value: "12 min", label: "Temps moyen de validation" },
+            { value: "5", label: "Communes pilotes" },
+            { value: "2.58M", label: "Population couverte" },
+            { value: "<200m", label: "Rayon vérification" },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -143,7 +173,7 @@ const Index = () => {
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
-            © 2026 SignalÉnergie — Plateforme CivicTech pour la transparence des services publics
+            © 2026 SignalÉnergie — CivicTech Abidjan · Pilote 5 communes
           </p>
         </div>
       </footer>
