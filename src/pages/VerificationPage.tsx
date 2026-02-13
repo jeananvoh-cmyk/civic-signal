@@ -1,78 +1,67 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, CheckCircle2, Users, Clock, Power, Zap, Droplets, Loader2, PartyPopper } from "lucide-react";
+import { CheckCircle2, Clock, Power, Zap, Droplets, Loader2, PartyPopper, AlertTriangle, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Header from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { findNearestCommune, COMMUNE_COLORS } from "@/lib/communes";
+import { COMMUNE_COLORS } from "@/lib/communes";
 import { toast } from "sonner";
 
-interface NearbyReport {
+interface MyReport {
   id: string;
   service_type: string;
   description: string;
   commune: string;
-  distance_m: number;
-  nb_verifications: number;
+  quartier: string;
+  status: string;
+  urgency: string;
   created_at: string;
+  start_time: string;
+  verifications: number;
 }
 
 const VerificationPage = () => {
   const { user } = useAuth();
-  const [reports, setReports] = useState<NearbyReport[]>([]);
+  const [reports, setReports] = useState<MyReport[]>([]);
   const [loading, setLoading] = useState(true);
-  const [latitude, setLatitude] = useState<number | null>(null);
-  const [longitude, setLongitude] = useState<number | null>(null);
-  const [detectedCommune, setDetectedCommune] = useState<string | null>(null);
-  const [confirming, setConfirming] = useState<string | null>(null);
 
-  // Resolve state
-  const [resolveTarget, setResolveTarget] = useState<NearbyReport | null>(null);
+  // Resolve dialog
+  const [resolveTarget, setResolveTarget] = useState<MyReport | null>(null);
   const [resolveTime, setResolveTime] = useState("");
   const [resolving, setResolving] = useState(false);
   const [justResolved, setJustResolved] = useState<string | null>(null);
 
+  // Confirm still ongoing
+  const [confirming, setConfirming] = useState<string | null>(null);
+
+  const fetchMyActiveReports = async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("reports")
+      .select("id, service_type, description, commune, quartier, status, urgency, created_at, start_time, verifications")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .order("created_at", { ascending: false });
+    if (!error && data) setReports(data);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    if (!navigator.geolocation) {
-      setLoading(false);
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-        setLatitude(lat);
-        setLongitude(lon);
-        const result = findNearestCommune(lat, lon);
-        if (result.commune && result.isInPilotZone) setDetectedCommune(result.commune.nom);
+    fetchMyActiveReports();
+  }, [user]);
 
-        const { data, error } = await supabase.rpc("get_nearby_reports", {
-          p_lat: lat,
-          p_lon: lon,
-          p_rayon_m: 200,
-        });
-        if (!error && data) {
-          setReports(data as unknown as NearbyReport[]);
-        }
-        setLoading(false);
-      },
-      () => setLoading(false),
-      { enableHighAccuracy: true, timeout: 5000 }
-    );
-  }, []);
-
-  const handleConfirm = async (reportId: string) => {
+  const handleConfirmStillOngoing = async (reportId: string) => {
     setConfirming(reportId);
     try {
       const { error } = await supabase.rpc("corroborate_report", { p_report_id: reportId });
       if (error) throw error;
       setReports((prev) =>
-        prev.map((r) => (r.id === reportId ? { ...r, nb_verifications: r.nb_verifications + 1 } : r))
+        prev.map((r) => (r.id === reportId ? { ...r, verifications: r.verifications + 1 } : r))
       );
-      toast.success("Confirmation enregistrée !");
+      toast.success("Confirmé : la coupure est toujours en cours.");
     } catch (err: any) {
       toast.error(err.message || "Erreur");
     } finally {
@@ -80,7 +69,7 @@ const VerificationPage = () => {
     }
   };
 
-  const openResolveDialog = (report: NearbyReport) => {
+  const openResolveDialog = (report: MyReport) => {
     const now = new Date();
     const pad = (n: number) => n.toString().padStart(2, "0");
     setResolveTime(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`);
@@ -98,11 +87,10 @@ const VerificationPage = () => {
       });
       if (error) throw error;
       const resolvedId = resolveTarget.id;
-      const serviceLabel = resolveTarget.service_type === "electricity" ? "Électricité" : "Eau";
+      const serviceLabel = resolveTarget.service_type === "electricity" ? "L'électricité" : "L'eau";
       setJustResolved(resolvedId);
       setResolveTarget(null);
-      toast.success(`🎉 ${serviceLabel} rétablie ! Merci pour votre contribution.`);
-      // Animate out after a moment
+      toast.success(`🎉 ${serviceLabel} est de retour ! Merci.`);
       setTimeout(() => {
         setReports((prev) => prev.filter((r) => r.id !== resolvedId));
         setJustResolved(null);
@@ -114,8 +102,6 @@ const VerificationPage = () => {
     }
   };
 
-  const communeColor = detectedCommune ? COMMUNE_COLORS[detectedCommune] || "#6B7280" : "#6B7280";
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -124,43 +110,28 @@ const VerificationPage = () => {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-success/10">
             <CheckCircle2 className="h-8 w-8 text-success" />
           </div>
-          <h1 className="font-display text-2xl font-bold text-foreground">Vérification & Rétablissement</h1>
+          <h1 className="font-display text-2xl font-bold text-foreground">Mes signalements actifs</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Confirmez une coupure ou signalez le retour du service près de vous
+            Confirmez le retour du service ou signalez que la coupure est toujours en cours
           </p>
         </motion.div>
-
-        {detectedCommune && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-6 flex items-center justify-center gap-2 rounded-xl p-3 text-sm font-bold text-white"
-            style={{ backgroundColor: communeColor }}
-          >
-            <MapPin className="h-4 w-4" />
-            {detectedCommune} — Signalements à proximité
-          </motion.div>
-        )}
 
         {loading ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Recherche des signalements…</p>
+            <p className="text-sm text-muted-foreground">Chargement…</p>
           </div>
         ) : reports.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="rounded-2xl border border-success/20 bg-success/5 py-16 text-center"
+            className="rounded-2xl border border-border bg-card py-16 text-center shadow-card"
           >
-            <PartyPopper className="mx-auto h-12 w-12 text-success mb-4" />
-            <p className="font-display text-lg font-bold text-foreground">Tout va bien !</p>
-            <p className="mt-1 text-sm text-muted-foreground">Aucun signalement actif à proximité (&lt;200m)</p>
-            {latitude && longitude && (
-              <p className="mt-3 text-xs text-muted-foreground">
-                📍 {latitude.toFixed(4)}, {longitude.toFixed(4)}
-              </p>
-            )}
+            <ThumbsUp className="mx-auto h-12 w-12 text-success mb-4" />
+            <p className="font-display text-lg font-bold text-foreground">Aucun signalement actif</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Vous n'avez pas de coupure en cours à vérifier.
+            </p>
           </motion.div>
         ) : (
           <AnimatePresence>
@@ -195,7 +166,7 @@ const VerificationPage = () => {
                           {isElec ? "Électricité" : "Eau"} — {r.commune}
                         </span>
                       </div>
-                      <span className="text-xs text-white/70">{Math.round(r.distance_m)}m</span>
+                      <span className="text-xs text-white/70">{timeAgo}</span>
                     </div>
 
                     {isResolved ? (
@@ -205,42 +176,43 @@ const VerificationPage = () => {
                       </div>
                     ) : (
                       <div className="p-4">
-                        <p className="text-sm text-muted-foreground mb-3">{r.description}</p>
+                        <p className="text-sm text-muted-foreground mb-2">{r.description}</p>
+                        {r.quartier && (
+                          <p className="text-xs text-muted-foreground mb-3">📍 {r.quartier}</p>
+                        )}
 
                         <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
                           <span className="flex items-center gap-1">
-                            <Users className="h-3.5 w-3.5" />
-                            {r.nb_verifications} confirmation{r.nb_verifications !== 1 ? "s" : ""}
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            {r.verifications} confirmation{r.verifications !== 1 ? "s" : ""}
                           </span>
                           <span className="flex items-center gap-1">
                             <Clock className="h-3.5 w-3.5" />
-                            {timeAgo}
+                            Signalé {timeAgo}
                           </span>
                         </div>
 
                         {/* Two clear action buttons */}
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-3">
                           <Button
-                            size="sm"
-                            onClick={() => handleConfirm(r.id)}
+                            onClick={() => handleConfirmStillOngoing(r.id)}
                             disabled={confirming === r.id}
-                            className="text-xs font-semibold"
-                            style={{ backgroundColor: color, color: "white" }}
+                            variant="outline"
+                            className="border-urgent text-urgent hover:bg-urgent hover:text-urgent-foreground font-semibold"
                           >
                             {confirming === r.id ? (
-                              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
                             ) : (
-                              <Users className="mr-1.5 h-3.5 w-3.5" />
+                              <AlertTriangle className="mr-1.5 h-4 w-4" />
                             )}
                             Toujours coupé
                           </Button>
                           <Button
-                            size="sm"
                             onClick={() => openResolveDialog(r)}
-                            className="text-xs font-semibold bg-success text-success-foreground hover:bg-success/90"
+                            className="bg-success text-success-foreground hover:bg-success/90 font-semibold"
                           >
-                            <Power className="mr-1.5 h-3.5 w-3.5" />
-                            C'est revenu !
+                            <Power className="mr-1.5 h-4 w-4" />
+                            Tout va bien
                           </Button>
                         </div>
                       </div>
@@ -252,7 +224,7 @@ const VerificationPage = () => {
           </AnimatePresence>
         )}
 
-        {/* Resolve dialog — simple and focused */}
+        {/* Resolve dialog */}
         <Dialog open={!!resolveTarget} onOpenChange={(open) => !open && setResolveTarget(null)}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
@@ -321,7 +293,7 @@ const VerificationPage = () => {
 function getTimeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "À l'instant";
+  if (mins < 1) return "à l'instant";
   if (mins < 60) return `il y a ${mins}min`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `il y a ${hours}h`;
