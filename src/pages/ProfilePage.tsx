@@ -215,13 +215,12 @@ const ProfilePage = () => {
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      placeholder="+225 XX XX XX XX"
-                      value={profile.phone}
-                      onChange={(e) => update("phone", e.target.value)}
-                      className="pl-10"
-                      maxLength={20}
+                      value={user?.phone ?? profile.phone ?? ""}
+                      disabled
+                      className="pl-10 opacity-60"
                     />
                   </div>
+                  <p className="text-xs text-muted-foreground">Le numéro de téléphone ne peut pas être modifié</p>
                 </div>
 
                 <div className="space-y-2">
