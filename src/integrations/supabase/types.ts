@@ -73,6 +73,7 @@ export type Database = {
       }
       reports: {
         Row: {
+          commune: string
           created_at: string
           description: string
           id: string
@@ -80,6 +81,7 @@ export type Database = {
           location: string
           longitude: number | null
           photo_url: string | null
+          quartier: string
           reporter_type: string
           resolved_at: string | null
           service_type: string
@@ -91,6 +93,7 @@ export type Database = {
           verifications: number
         }
         Insert: {
+          commune?: string
           created_at?: string
           description: string
           id?: string
@@ -98,6 +101,7 @@ export type Database = {
           location: string
           longitude?: number | null
           photo_url?: string | null
+          quartier?: string
           reporter_type?: string
           resolved_at?: string | null
           service_type: string
@@ -109,6 +113,7 @@ export type Database = {
           verifications?: number
         }
         Update: {
+          commune?: string
           created_at?: string
           description?: string
           id?: string
@@ -116,6 +121,7 @@ export type Database = {
           location?: string
           longitude?: number | null
           photo_url?: string | null
+          quartier?: string
           reporter_type?: string
           resolved_at?: string | null
           service_type?: string

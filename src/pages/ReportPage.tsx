@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Zap, Droplets, MapPin, Send, Building2, Home, Clock, Camera, X } from "lucide-react";
+import { Zap, Droplets, Send, Building2, Home, Clock, Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,37 +18,29 @@ const ReportPage = () => {
   const [serviceType, setServiceType] = useState<ServiceType | "">("");
   const [urgency, setUrgency] = useState<UrgencyLevel | "">("");
   const [reporterType, setReporterType] = useState<"household" | "business">("household");
-  const [location, setLocation] = useState("");
+  const [commune, setCommune] = useState("");
+  const [quartier, setQuartier] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [description, setDescription] = useState("");
   const [startTime, setStartTime] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [isLocating, setIsLocating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleGeolocate = () => {
-    setIsLocating(true);
+  // Silently capture GPS on mount (not shared publicly)
+  useState(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          setLatitude(lat);
-          setLongitude(lng);
-          setLocation(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-          setIsLocating(false);
-          toast.success("Position GPS obtenue !");
+          setLatitude(pos.coords.latitude);
+          setLongitude(pos.coords.longitude);
         },
-        () => {
-          setIsLocating(false);
-          toast.error("Impossible d'obtenir la position GPS");
-        }
+        () => {} // silently fail
       );
     }
-  };
+  });
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -70,7 +62,7 @@ const ReportPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!serviceType || !urgency || !location || !description || !startTime) {
+    if (!serviceType || !urgency || !commune || !quartier || !description || !startTime) {
       toast.error("Veuillez remplir tous les champs obligatoires");
       return;
     }
@@ -98,7 +90,9 @@ const ReportPage = () => {
         user_id: user.id,
         service_type: serviceType,
         description,
-        location,
+        location: `${commune}, ${quartier}`,
+        commune,
+        quartier,
         latitude,
         longitude,
         urgency,
@@ -112,9 +106,8 @@ const ReportPage = () => {
       toast.success("Signalement envoyé avec succès !");
       setServiceType("");
       setUrgency("");
-      setLocation("");
-      setLatitude(null);
-      setLongitude(null);
+      setCommune("");
+      setQuartier("");
       setDescription("");
       setStartTime("");
       removePhoto();
@@ -218,20 +211,27 @@ const ReportPage = () => {
             </div>
           </div>
 
-          {/* Location */}
-          <div className="space-y-3">
-            <Label className="text-sm font-semibold">Localisation *</Label>
-            <div className="flex gap-2">
+          {/* Commune & Quartier */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold">Commune *</Label>
               <Input
-                placeholder="Adresse ou coordonnées GPS"
-                value={location}
-                onChange={(e) => setLocation(e.target.value.slice(0, 500))}
-                className="flex-1"
+                placeholder="Ex: Cocody, Plateau..."
+                value={commune}
+                onChange={(e) => setCommune(e.target.value.slice(0, 100))}
+                maxLength={100}
+                required
               />
-              <Button type="button" variant="outline" onClick={handleGeolocate} disabled={isLocating}>
-                <MapPin className="mr-1.5 h-4 w-4" />
-                {isLocating ? "..." : "GPS"}
-              </Button>
+            </div>
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold">Quartier *</Label>
+              <Input
+                placeholder="Ex: Riviera, Angré..."
+                value={quartier}
+                onChange={(e) => setQuartier(e.target.value.slice(0, 100))}
+                maxLength={100}
+                required
+              />
             </div>
           </div>
 
