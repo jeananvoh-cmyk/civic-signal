@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Zap, Droplets, Shield, Users, ArrowRight, BarChart3, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -40,12 +39,10 @@ const Index = () => {
             </p>
 
             <div className="mt-8">
-              <Button asChild size="lg" className="bg-water text-water-foreground hover:bg-water/90 px-10 py-6 text-base">
-                <Link to="/signaler">
-                  <Zap className="mr-2 h-5 w-5" />
-                  Signaler une coupure
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+              <Button size="lg" className="bg-water text-water-foreground hover:bg-water/90 px-10 py-6 text-base">
+                <Zap className="mr-2 h-5 w-5" />
+                Signaler une coupure
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           </motion.div>
