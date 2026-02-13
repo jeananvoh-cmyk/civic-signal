@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNE_COLORS } from "@/lib/communes";
+import TrendsChart from "@/components/TrendsChart";
 
 interface CommuneStat {
   commune: string;
@@ -54,6 +55,9 @@ const AdminStatsPage = () => {
               <p className="text-sm text-muted-foreground">Résolus</p>
             </div>
           </div>
+
+          {/* Trends chart */}
+          <TrendsChart className="mb-8" />
 
           {/* Per commune */}
           <div className="space-y-3">
