@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import Header from "@/components/Header";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
@@ -83,20 +83,15 @@ const AdminUsersPage = () => {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container py-8">
-          <p className="text-muted-foreground">Seuls les administrateurs peuvent gérer les rôles.</p>
-        </main>
+      <div className="p-6">
+        <p className="text-muted-foreground">Seuls les administrateurs peuvent gérer les rôles.</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container max-w-2xl py-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 flex items-center justify-between">
+    <div className="p-6 max-w-2xl mx-auto">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="font-display text-3xl font-bold text-foreground">Gestion des rôles</h1>
             <p className="mt-1 text-muted-foreground">Attribuez des rôles admin ou validateur.</p>
@@ -189,8 +184,7 @@ const AdminUsersPage = () => {
             })
           )}
         </div>
-      </main>
-    </div>
+      </div>
   );
 };
 

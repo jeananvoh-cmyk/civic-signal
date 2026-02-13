@@ -1,13 +1,15 @@
 import { Link, useLocation } from "react-router-dom";
-import { Zap, Menu, X, LogIn, LogOut, User } from "lucide-react";
+import { Zap, Menu, X, LogIn, LogOut, User, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const Header = () => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { canValidate } = useUserRole();
 
   const links = [
     { to: "/", label: "Accueil" },
@@ -46,7 +48,17 @@ const Header = () => {
 
           {user ? (
             <div className="ml-2 flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">{user.email?.split("@")[0]}</span>
+              {canValidate && (
+                <Link
+                  to="/admin"
+                  className="rounded-lg px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 flex items-center gap-1"
+                >
+                  <Shield className="h-4 w-4" /> Admin
+                </Link>
+              )}
+              <Link to="/profil" className="text-sm text-muted-foreground hover:text-foreground">
+                {user.email?.split("@")[0]}
+              </Link>
               <Button variant="ghost" size="sm" onClick={signOut}>
                 <LogOut className="h-4 w-4" />
               </Button>
@@ -88,13 +100,33 @@ const Header = () => {
             </Link>
           ))}
           {user ? (
-            <button
-              onClick={() => { signOut(); setMobileOpen(false); }}
-              className="mt-2 block w-full rounded-lg px-4 py-3 text-left text-sm font-medium text-muted-foreground hover:bg-secondary"
-            >
-              <LogOut className="mr-2 inline h-4 w-4" />
-              Déconnexion
-            </button>
+            <>
+              {canValidate && (
+                <Link
+                  to="/admin"
+                  onClick={() => setMobileOpen(false)}
+                  className="block rounded-lg px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10"
+                >
+                  <Shield className="mr-2 inline h-4 w-4" />
+                  Administration
+                </Link>
+              )}
+              <Link
+                to="/profil"
+                onClick={() => setMobileOpen(false)}
+                className="block rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-secondary"
+              >
+                <User className="mr-2 inline h-4 w-4" />
+                Mon profil
+              </Link>
+              <button
+                onClick={() => { signOut(); setMobileOpen(false); }}
+                className="mt-2 block w-full rounded-lg px-4 py-3 text-left text-sm font-medium text-muted-foreground hover:bg-secondary"
+              >
+                <LogOut className="mr-2 inline h-4 w-4" />
+                Déconnexion
+              </button>
+            </>
           ) : (
             <Link
               to="/auth"
