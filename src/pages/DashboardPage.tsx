@@ -14,11 +14,7 @@ const DashboardPage = () => {
 
   useEffect(() => {
     const fetchReports = async () => {
-      const { data, error } = await supabase
-        .from("reports")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(50);
+      const { data, error } = await supabase.rpc("get_public_reports");
 
       if (!error && data) {
         const mapped: Report[] = data.map((r: any) => ({
