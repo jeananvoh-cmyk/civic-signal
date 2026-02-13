@@ -259,6 +259,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      resolve_report: {
+        Args: { p_report_id: string; p_resolved_at: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { MapPin, CheckCircle2, Users } from "lucide-react";
+import { MapPin, CheckCircle2, Users, Clock, Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Header from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,6 +28,11 @@ const VerificationPage = () => {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [detectedCommune, setDetectedCommune] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
+
+  // Resolve dialog state
+  const [resolveTarget, setResolveTarget] = useState<NearbyReport | null>(null);
+  const [resolveTime, setResolveTime] = useState("");
+  const [resolving, setResolving] = useState(false);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -72,6 +79,34 @@ const VerificationPage = () => {
     }
   };
 
+  const openResolveDialog = (report: NearbyReport) => {
+    // Pre-fill with current time
+    const now = new Date();
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    setResolveTime(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`);
+    setResolveTarget(report);
+  };
+
+  const handleResolve = async () => {
+    if (!resolveTarget || !resolveTime) return;
+    setResolving(true);
+    try {
+      const resolvedAt = new Date(resolveTime).toISOString();
+      const { error } = await supabase.rpc("resolve_report", {
+        p_report_id: resolveTarget.id,
+        p_resolved_at: resolvedAt,
+      });
+      if (error) throw error;
+      setReports((prev) => prev.filter((r) => r.id !== resolveTarget.id));
+      setResolveTarget(null);
+      toast.success(`✅ ${resolveTarget.service_type === "electricity" ? "Électricité" : "Eau"} de retour ! Signalement résolu.`);
+    } catch (err: any) {
+      toast.error(err.message || "Erreur");
+    } finally {
+      setResolving(false);
+    }
+  };
+
   const communeColor = detectedCommune ? COMMUNE_COLORS[detectedCommune] || "#6B7280" : "#6B7280";
 
   return (
@@ -80,7 +115,7 @@ const VerificationPage = () => {
       <main className="container max-w-md py-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 text-center">
           <h1 className="font-display text-2xl font-bold text-foreground">Vérification communautaire</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Confirmez les signalements de vos voisins (&lt;200m)</p>
+          <p className="mt-1 text-sm text-muted-foreground">Confirmez ou signalez le retour du service (&lt;200m)</p>
         </motion.div>
 
         {detectedCommune && (
@@ -106,7 +141,7 @@ const VerificationPage = () => {
             className="py-12 text-center"
           >
             <CheckCircle2 className="mx-auto h-12 w-12 text-success mb-3" />
-            <p className="text-muted-foreground">Aucun signalement à proximité (&lt;200m)</p>
+            <p className="text-muted-foreground">Aucun signalement actif à proximité (&lt;200m)</p>
             <p className="text-xs text-muted-foreground mt-1">
               {latitude && longitude
                 ? `Position : ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
@@ -118,6 +153,7 @@ const VerificationPage = () => {
             {reports.map((r, i) => {
               const color = COMMUNE_COLORS[r.commune] || "#6B7280";
               const emoji = r.service_type === "electricity" ? "⚡" : "💧";
+              const serviceLabel = r.service_type === "electricity" ? "Électricité" : "Eau";
               return (
                 <motion.div
                   key={r.id}
@@ -134,10 +170,10 @@ const VerificationPage = () => {
                     <span className="text-xs text-muted-foreground">{Math.round(r.distance_m)}m</span>
                   </div>
                   <p className="text-sm text-muted-foreground mb-3">{r.description}</p>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-2">
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Users className="h-3 w-3" />
-                      {r.nb_verifications} voisin{r.nb_verifications !== 1 ? "s" : ""} {r.commune} confirment
+                      {r.nb_verifications} voisin{r.nb_verifications !== 1 ? "s" : ""} confirment
                     </span>
                     <Button
                       size="sm"
@@ -145,14 +181,68 @@ const VerificationPage = () => {
                       disabled={confirming === r.id}
                       style={{ backgroundColor: color, color: "white" }}
                     >
-                      {confirming === r.id ? "..." : "Confirmer"}
+                      {confirming === r.id ? "..." : "Confirmer coupure"}
                     </Button>
                   </div>
+                  {/* Resolve button */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full border-success text-success hover:bg-success hover:text-success-foreground"
+                    onClick={() => openResolveDialog(r)}
+                  >
+                    <Power className="mr-1.5 h-4 w-4" />
+                    {serviceLabel} est de retour
+                  </Button>
                 </motion.div>
               );
             })}
           </div>
         )}
+
+        {/* Resolve dialog */}
+        <Dialog open={!!resolveTarget} onOpenChange={(open) => !open && setResolveTarget(null)}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-success" />
+                Confirmer le retour
+              </DialogTitle>
+            </DialogHeader>
+            {resolveTarget && (
+              <div className="space-y-4">
+                <div className="rounded-lg bg-success/10 p-3 text-center">
+                  <p className="text-sm font-medium text-success">
+                    {resolveTarget.service_type === "electricity" ? "⚡ Électricité" : "💧 Eau"} est de retour à{" "}
+                    <span className="font-bold">{resolveTarget.commune}</span>
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    Heure de retour du service
+                  </label>
+                  <Input
+                    type="datetime-local"
+                    value={resolveTime}
+                    onChange={(e) => setResolveTime(e.target.value)}
+                    className="text-base"
+                  />
+                </div>
+
+                <Button
+                  className="w-full bg-success text-success-foreground hover:bg-success/90"
+                  onClick={handleResolve}
+                  disabled={resolving || !resolveTime}
+                >
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  {resolving ? "Envoi..." : "Confirmer le retour"}
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
