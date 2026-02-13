@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Header from "@/components/Header";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -126,10 +126,8 @@ const AdminReportsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container py-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+    <div className="p-6 max-w-4xl mx-auto">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <h1 className="font-display text-3xl font-bold text-foreground">Validation des signalements</h1>
           <p className="mt-1 text-muted-foreground">
             Vérifiez la cohérence entre commune/quartier et coordonnées GPS avant publication.
@@ -244,8 +242,7 @@ const AdminReportsPage = () => {
               </div>
             )}
           </DialogContent>
-        </Dialog>
-      </main>
+      </Dialog>
     </div>
   );
 };
