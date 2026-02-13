@@ -42,9 +42,8 @@ const DashboardPage = () => {
   const totalActifs = stats.reduce((s, c) => s + c.actifs, 0);
   const totalResolus = stats.reduce((s, c) => s + c.resolus, 0);
   const totalSignalements = stats.reduce((s, c) => s + c.total, 0);
-  const totalPopImpactee = stats
-    .filter((c) => c.actifs > 0)
-    .reduce((s, c) => s + c.population, 0);
+  // Estimation: chaque signalement actif représente ~1 ménage impacté
+  const totalMenagesImpactes = totalActifs;
 
   return (
     <div className="min-h-screen bg-background">
@@ -96,7 +95,7 @@ const DashboardPage = () => {
             </div>
             <div>
               <p className="font-display text-3xl font-extrabold">
-                {loading ? "..." : `${Math.round(totalPopImpactee / 1000)}k`}
+                {loading ? "..." : totalMenagesImpactes}
               </p>
               <p className="text-sm opacity-80">Ménages impactés</p>
             </div>
