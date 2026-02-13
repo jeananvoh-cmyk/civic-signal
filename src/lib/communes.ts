@@ -8,11 +8,11 @@ export interface Commune {
 }
 
 export const COMMUNES: Commune[] = [
-  { nom: "Yopougon", centerLat: 5.3500, centerLon: -4.0833, rayonM: 8000, population: 1200000, couleur: "#DC2626" },
-  { nom: "Cocody", centerLat: 5.3667, centerLon: -3.9833, rayonM: 6000, population: 300000, couleur: "#10B981" },
-  { nom: "Abobo", centerLat: 5.4167, centerLon: -4.0167, rayonM: 5000, population: 850000, couleur: "#3B82F6" },
-  { nom: "Adjamé", centerLat: 5.3500, centerLon: -4.0167, rayonM: 3000, population: 150000, couleur: "#F59E0B" },
-  { nom: "Bingerville", centerLat: 5.4000, centerLon: -3.8833, rayonM: 7000, population: 80000, couleur: "#8B5CF6" },
+  { nom: "Yopougon", centerLat: 5.3364, centerLon: -4.0833, rayonM: 7000, population: 1571065, couleur: "#DC2626" },
+  { nom: "Cocody", centerLat: 5.3480, centerLon: -3.9750, rayonM: 6500, population: 541000, couleur: "#10B981" },
+  { nom: "Abobo", centerLat: 5.4167, centerLon: -4.0200, rayonM: 5000, population: 1400000, couleur: "#3B82F6" },
+  { nom: "Adjamé", centerLat: 5.3530, centerLon: -4.0220, rayonM: 2000, population: 422000, couleur: "#F59E0B" },
+  { nom: "Bingerville", centerLat: 5.3550, centerLon: -3.8900, rayonM: 6300, population: 115000, couleur: "#8B5CF6" },
 ];
 
 export const COMMUNE_COLORS: Record<string, string> = Object.fromEntries(
