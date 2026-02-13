@@ -45,18 +45,12 @@ const Index = () => {
               <span className="text-electricity">électricité</span>. Tes voisins agissent déjà.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button asChild size="lg" className="bg-water text-water-foreground hover:bg-water/90 px-8 py-6 text-base">
+            <div className="mt-8">
+              <Button asChild size="lg" className="bg-water text-water-foreground hover:bg-water/90 px-12 py-7 text-lg font-bold">
                 <Link to="/signaler">
-                  <Zap className="mr-2 h-5 w-5" />
+                  <Zap className="mr-2 h-6 w-6" />
                   Signaler une coupure
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 px-8 py-6 text-base">
-                <Link to="/verification">
-                  <CheckCircle2 className="mr-2 h-5 w-5" />
-                  Vérifier un signal
+                  <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
             </div>
