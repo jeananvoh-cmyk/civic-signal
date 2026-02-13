@@ -45,8 +45,8 @@ const VerificationPage = () => {
         const lon = pos.coords.longitude;
         setLatitude(lat);
         setLongitude(lon);
-        const nearest = findNearestCommune(lat, lon);
-        if (nearest) setDetectedCommune(nearest.nom);
+        const result = findNearestCommune(lat, lon);
+        if (result.commune && result.isInPilotZone) setDetectedCommune(result.commune.nom);
 
         const { data, error } = await supabase.rpc("get_nearby_reports", {
           p_lat: lat,

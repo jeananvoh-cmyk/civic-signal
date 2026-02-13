@@ -29,7 +29,13 @@ export const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
-export const findNearestCommune = (lat: number, lon: number): Commune | null => {
+export interface CommuneResult {
+  commune: Commune | null;
+  distance: number;
+  isInPilotZone: boolean;
+}
+
+export const findNearestCommune = (lat: number, lon: number): CommuneResult => {
   let best: Commune | null = null;
   let bestDist = Infinity;
   for (const c of COMMUNES) {
@@ -39,5 +45,7 @@ export const findNearestCommune = (lat: number, lon: number): Commune | null => 
       best = c;
     }
   }
-  return best;
+  // User is in pilot zone only if within the commune's radius
+  const isInPilotZone = best !== null && bestDist <= best.rayonM;
+  return { commune: best, distance: bestDist, isInPilotZone };
 };
