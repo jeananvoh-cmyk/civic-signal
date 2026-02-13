@@ -1,0 +1,1 @@
+ALTER TABLE public.reports ALTER COLUMN validated SET DEFAULT true;
