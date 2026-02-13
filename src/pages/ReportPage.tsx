@@ -90,10 +90,8 @@ const ReportPage = () => {
           .from("report-photos")
           .upload(path, photo);
         if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage
-          .from("report-photos")
-          .getPublicUrl(path);
-        photoUrl = urlData.publicUrl;
+        // Store the storage path, not a public URL (bucket is private)
+        photoUrl = path;
       }
 
       const { error } = await supabase.from("reports").insert({
