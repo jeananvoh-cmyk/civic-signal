@@ -34,7 +34,7 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/signaler" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
             <Route path="/tableau-de-bord" element={<DashboardPage />} />
-            <Route path="/carte" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
+            <Route path="/carte" element={<MapPage />} />
             <Route path="/verification" element={<ProtectedRoute><VerificationPage /></ProtectedRoute>} />
             <Route path="/profil" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             
