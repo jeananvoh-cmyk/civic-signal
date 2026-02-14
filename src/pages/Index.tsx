@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import { COMMUNES } from "@/lib/communes";
 import heroBg from "@/assets/hero-bg.jpg";
-import waterIcon from "@/assets/water-icon.png";
-import electricityIcon from "@/assets/electricity-icon.png";
+import waterIcon from "@/assets/water-icon-sm.webp";
+import electricityIcon from "@/assets/electricity-icon-sm.webp";
 
 const Index = () => {
   return (
@@ -16,7 +16,7 @@ const Index = () => {
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
-          <img src={heroBg} alt="" className="h-full w-full object-cover" />
+          <img src={heroBg} alt="" className="h-full w-full object-cover" fetchPriority="high" loading="eager" />
           <div className="absolute inset-0 gradient-hero opacity-85" />
         </div>
 
