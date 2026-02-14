@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
+import { getUserFriendlyError } from "@/lib/error-utils";
 
 const ROLE_LABELS: Record<string, { label: string; icon: typeof Shield }> = {
   admin: { label: "Administrateur", icon: ShieldCheck },
@@ -66,7 +67,7 @@ const AdminUsersPage = () => {
       setNewEmail("");
       setDialogOpen(false);
     },
-    onError: (err: any) => toast.error(err.message || "Erreur lors de l'attribution"),
+    onError: (err: any) => toast.error(getUserFriendlyError(err, "Erreur lors de l'attribution")),
   });
 
   const removeRoleMutation = useMutation({
@@ -78,7 +79,7 @@ const AdminUsersPage = () => {
       queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
       toast.success("Rôle retiré");
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: any) => toast.error(getUserFriendlyError(err)),
   });
 
   if (!isAdmin) {

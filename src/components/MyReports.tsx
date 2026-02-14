@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { getUserFriendlyError } from "@/lib/error-utils";
 import { COMMUNE_COLORS } from "@/lib/communes";
 
 interface Report {
@@ -67,7 +68,7 @@ const MyReports = () => {
       setResolveTarget(null);
       fetchReports();
     } catch (err: any) {
-      toast.error(err.message || "Erreur");
+      toast.error(getUserFriendlyError(err));
     } finally {
       setResolving(false);
     }
@@ -81,7 +82,7 @@ const MyReports = () => {
       setReports((prev) => prev.filter((r) => r.id !== id));
       toast.success("Signalement supprimé");
     } catch (err: any) {
-      toast.error(err.message || "Erreur");
+      toast.error(getUserFriendlyError(err));
     } finally {
       setDeleting(null);
     }

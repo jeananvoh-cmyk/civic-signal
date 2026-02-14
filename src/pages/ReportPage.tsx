@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Header from "@/components/Header";
 import PhotoUpload from "@/components/PhotoUpload";
 import { toast } from "sonner";
+import { getUserFriendlyError } from "@/lib/error-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { COMMUNES, findNearestCommune, type Commune, type CommuneResult } from "@/lib/communes";
@@ -128,7 +129,7 @@ const ReportPage = () => {
       toast.success("Signalement envoyé !");
       navigate("/");
     } catch (error: any) {
-      toast.error(error.message || "Erreur lors de l'envoi");
+      toast.error(getUserFriendlyError(error, "Erreur lors de l'envoi"));
     } finally {
       setSubmitting(false);
     }

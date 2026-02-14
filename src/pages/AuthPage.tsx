@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getUserFriendlyError } from "@/lib/error-utils";
 
 const AuthPage = () => {
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
@@ -36,7 +37,7 @@ const AuthPage = () => {
       toast.success("Connexion réussie !");
       navigate("/");
     } catch (error: any) {
-      toast.error(error.message || "Une erreur est survenue");
+      toast.error(getUserFriendlyError(error));
     } finally {
       setLoading(false);
     }
@@ -82,7 +83,7 @@ const AuthPage = () => {
       );
       setMode("login");
     } catch (error: any) {
-      toast.error(error.message || "Une erreur est survenue");
+      toast.error(getUserFriendlyError(error));
     } finally {
       setLoading(false);
     }
@@ -104,7 +105,7 @@ const AuthPage = () => {
       toast.success("Email de réinitialisation envoyé !");
       setMode("login");
     } catch (error: any) {
-      toast.error(error.message || "Une erreur est survenue");
+      toast.error(getUserFriendlyError(error));
     } finally {
       setLoading(false);
     }
