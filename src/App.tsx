@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,22 +7,23 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
-import AdminLayout from "@/components/AdminLayout";
 import Index from "./pages/Index";
-import AuthPage from "./pages/AuthPage";
-import ReportPage from "./pages/ReportPage";
-import DashboardPage from "./pages/DashboardPage";
-import MapPage from "./pages/MapPage";
-import VerificationPage from "./pages/VerificationPage";
-import ProfilePage from "./pages/ProfilePage";
-import AdminReportsPage from "./pages/AdminReportsPage";
-import AdminUsersPage from "./pages/AdminUsersPage";
-import AdminPurgePage from "./pages/AdminPurgePage";
-import AdminStatsPage from "./pages/AdminStatsPage";
-import CommuneDetailPage from "./pages/CommuneDetailPage";
-import AboutPage from "./pages/AboutPage";
-import HistoryPage from "./pages/HistoryPage";
-import NotFound from "./pages/NotFound";
+
+const AuthPage = lazy(() => import("./pages/AuthPage"));
+const ReportPage = lazy(() => import("./pages/ReportPage"));
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const MapPage = lazy(() => import("./pages/MapPage"));
+const VerificationPage = lazy(() => import("./pages/VerificationPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const AdminLayout = lazy(() => import("@/components/AdminLayout"));
+const AdminReportsPage = lazy(() => import("./pages/AdminReportsPage"));
+const AdminUsersPage = lazy(() => import("./pages/AdminUsersPage"));
+const AdminPurgePage = lazy(() => import("./pages/AdminPurgePage"));
+const AdminStatsPage = lazy(() => import("./pages/AdminStatsPage"));
+const CommuneDetailPage = lazy(() => import("./pages/CommuneDetailPage"));
+const AboutPage = lazy(() => import("./pages/AboutPage"));
+const HistoryPage = lazy(() => import("./pages/HistoryPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
@@ -32,29 +34,31 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/signaler" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
-            <Route path="/tableau-de-bord" element={<DashboardPage />} />
-            <Route path="/carte" element={<MapPage />} />
-            <Route path="/commune/:communeName" element={<CommuneDetailPage />} />
-            <Route path="/verification" element={<ProtectedRoute><VerificationPage /></ProtectedRoute>} />
-            <Route path="/profil" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-            <Route path="/historique" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
-            <Route path="/a-propos" element={<AboutPage />} />
-            
-            {/* Admin routes */}
-            <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
-              <Route index element={<Navigate to="/admin/signalements" replace />} />
-              <Route path="signalements" element={<AdminReportsPage />} />
-              <Route path="utilisateurs" element={<AdminUsersPage />} />
-              <Route path="purge" element={<AdminPurgePage />} />
-              <Route path="stats" element={<AdminStatsPage />} />
-            </Route>
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/signaler" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
+              <Route path="/tableau-de-bord" element={<DashboardPage />} />
+              <Route path="/carte" element={<MapPage />} />
+              <Route path="/commune/:communeName" element={<CommuneDetailPage />} />
+              <Route path="/verification" element={<ProtectedRoute><VerificationPage /></ProtectedRoute>} />
+              <Route path="/profil" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+              <Route path="/historique" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
+              <Route path="/a-propos" element={<AboutPage />} />
+              
+              {/* Admin routes */}
+              <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+                <Route index element={<Navigate to="/admin/signalements" replace />} />
+                <Route path="signalements" element={<AdminReportsPage />} />
+                <Route path="utilisateurs" element={<AdminUsersPage />} />
+                <Route path="purge" element={<AdminPurgePage />} />
+                <Route path="stats" element={<AdminStatsPage />} />
+              </Route>
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
