@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   User, Mail, Phone, MapPin, Home, Building2, Save, Shield,
-  Bell, Globe, Palette, ChevronRight, CheckCircle2, FileText
+  Bell, Globe, Palette, ChevronRight, CheckCircle2, FileText, Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -150,9 +150,12 @@ const ProfilePage = () => {
           </div>
 
           <Tabs defaultValue="reports" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="reports" className="gap-2">
                 <FileText className="h-4 w-4" /> Signalements
+              </TabsTrigger>
+              <TabsTrigger value="history" className="gap-2" onClick={() => navigate("/historique")}>
+                <Clock className="h-4 w-4" /> Historique
               </TabsTrigger>
               <TabsTrigger value="profile" className="gap-2">
                 <User className="h-4 w-4" /> Profil

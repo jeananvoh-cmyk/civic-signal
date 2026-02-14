@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Header from "@/components/Header";
+import PhotoUpload from "@/components/PhotoUpload";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,6 +25,7 @@ const ReportPage = () => {
   const [commune, setCommune] = useState("");
   const [quartier, setQuartier] = useState("");
   const [description, setDescription] = useState("");
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [detectedCommune, setDetectedCommune] = useState<Commune | null>(null);
@@ -120,6 +122,7 @@ const ReportPage = () => {
         longitude,
         urgency: urgency === "urgent" ? "high" : "medium",
         start_time: new Date().toISOString(),
+        photo_url: photoUrl || null,
       });
       if (error) throw error;
       toast.success("Signalement envoyé !");
@@ -333,6 +336,12 @@ const ReportPage = () => {
                 🚨 Urgent
               </button>
             </div>
+          </div>
+
+          {/* Photo */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Photo</Label>
+            <PhotoUpload onPhotoUploaded={setPhotoUrl} photoUrl={photoUrl} />
           </div>
 
           {/* Description */}
