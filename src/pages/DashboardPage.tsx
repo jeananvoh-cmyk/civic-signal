@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Zap, Droplets } from "lucide-react";
 import Header from "@/components/Header";
@@ -21,6 +22,7 @@ interface CommuneServiceStat {
 }
 
 const DashboardPage = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<CommuneServiceStat[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -175,7 +177,13 @@ const DashboardPage = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-foreground text-lg">{c.commune}</span>
+                        <button
+                          onClick={() => navigate(`/commune/${encodeURIComponent(c.commune)}`)}
+                          className="font-bold text-foreground text-lg hover:underline underline-offset-2 transition-colors"
+                          style={{ color: c.couleur }}
+                        >
+                          {c.commune}
+                        </button>
                         <span className="text-xs font-semibold" style={{ color: c.couleur }}>
                           {pctPopDisplay}% de la pop.
                         </span>

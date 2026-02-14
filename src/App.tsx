@@ -18,6 +18,7 @@ import AdminReportsPage from "./pages/AdminReportsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import AdminPurgePage from "./pages/AdminPurgePage";
 import AdminStatsPage from "./pages/AdminStatsPage";
+import CommuneDetailPage from "./pages/CommuneDetailPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/signaler" element={<ProtectedRoute><ReportPage /></ProtectedRoute>} />
             <Route path="/tableau-de-bord" element={<DashboardPage />} />
             <Route path="/carte" element={<MapPage />} />
+            <Route path="/commune/:communeName" element={<CommuneDetailPage />} />
             <Route path="/verification" element={<ProtectedRoute><VerificationPage /></ProtectedRoute>} />
             <Route path="/profil" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             
