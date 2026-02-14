@@ -19,6 +19,8 @@ import AdminUsersPage from "./pages/AdminUsersPage";
 import AdminPurgePage from "./pages/AdminPurgePage";
 import AdminStatsPage from "./pages/AdminStatsPage";
 import CommuneDetailPage from "./pages/CommuneDetailPage";
+import AboutPage from "./pages/AboutPage";
+import HistoryPage from "./pages/HistoryPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +41,8 @@ const App = () => (
             <Route path="/commune/:communeName" element={<CommuneDetailPage />} />
             <Route path="/verification" element={<ProtectedRoute><VerificationPage /></ProtectedRoute>} />
             <Route path="/profil" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+            <Route path="/historique" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
+            <Route path="/a-propos" element={<AboutPage />} />
             
             {/* Admin routes */}
             <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>

@@ -171,9 +171,14 @@ const Index = () => {
               Signal<span className="text-water">Énergie</span>
             </span>
           </div>
-          <p className="text-xs text-muted-foreground">
-            © 2026 SignalÉnergie — CivicTech Abidjan · Pilote 5 communes
-          </p>
+          <div className="flex items-center gap-4">
+            <Link to="/a-propos" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+              À propos & CGU
+            </Link>
+            <p className="text-xs text-muted-foreground">
+              © 2026 SignalÉnergie — CivicTech Abidjan
+            </p>
+          </div>
         </div>
       </footer>
     </div>

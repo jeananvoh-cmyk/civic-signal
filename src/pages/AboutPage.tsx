@@ -1,0 +1,124 @@
+import { motion } from "framer-motion";
+import { Shield, Users, MapPin, Zap, Droplets, Heart, ExternalLink } from "lucide-react";
+import Header from "@/components/Header";
+import { COMMUNES } from "@/lib/communes";
+import { COMMUNE_LOGOS } from "@/lib/commune-logos";
+
+const AboutPage = () => {
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <main className="container max-w-3xl py-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <div className="mb-8 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl gradient-hero">
+              <Zap className="h-8 w-8 text-primary-foreground" />
+            </div>
+            <h1 className="font-display text-3xl font-bold text-foreground">
+              Signal<span className="text-water">Énergie</span>
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              Plateforme citoyenne de signalement des coupures d'eau et d'électricité
+            </p>
+          </div>
+
+          {/* Mission */}
+          <section className="mb-8 rounded-2xl border border-border bg-card p-6 shadow-card">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                <Heart className="h-5 w-5 text-primary" />
+              </div>
+              <h2 className="font-display text-xl font-bold text-foreground">Notre mission</h2>
+            </div>
+            <p className="text-muted-foreground leading-relaxed">
+              SignalÉnergie est une initiative CivicTech qui permet aux habitants d'Abidjan de signaler 
+              les coupures d'eau et d'électricité en temps réel. En collectant ces données citoyennes, 
+              nous aidons les opérateurs (CIE, SODECI) et les autorités locales à mieux comprendre 
+              et résoudre les problèmes d'accès aux services essentiels.
+            </p>
+          </section>
+
+          {/* Communes pilotes */}
+          <section className="mb-8 rounded-2xl border border-border bg-card p-6 shadow-card">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                <MapPin className="h-5 w-5 text-primary" />
+              </div>
+              <h2 className="font-display text-xl font-bold text-foreground">5 communes pilotes</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {COMMUNES.map((c) => (
+                <div key={c.nom} className="flex items-center gap-3 rounded-xl border border-border p-3">
+                  <div
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg overflow-hidden"
+                    style={{ backgroundColor: c.couleur }}
+                  >
+                    {COMMUNE_LOGOS[c.nom] ? (
+                      <img src={COMMUNE_LOGOS[c.nom]} alt={c.nom} className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-white font-bold text-xs">{c.nom[0]}</span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground text-sm">{c.nom}</p>
+                    <p className="text-xs text-muted-foreground">{(c.population / 1000).toFixed(0)}k hab.</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Comment ça marche */}
+          <section className="mb-8 rounded-2xl border border-border bg-card p-6 shadow-card">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                <Users className="h-5 w-5 text-primary" />
+              </div>
+              <h2 className="font-display text-xl font-bold text-foreground">Comment ça marche</h2>
+            </div>
+            <ol className="space-y-3 text-sm text-muted-foreground">
+              <li className="flex gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
+                <span><strong className="text-foreground">Géolocalisation automatique</strong> — Le GPS détecte votre commune parmi les 5 pilotes.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
+                <span><strong className="text-foreground">Signalement rapide</strong> — Choisissez eau ou électricité, ajoutez une photo si nécessaire.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">3</span>
+                <span><strong className="text-foreground">Vérification par les voisins</strong> — Les habitants à proximité confirment la coupure.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">4</span>
+                <span><strong className="text-foreground">Dashboard en temps réel</strong> — Les opérateurs et mairies suivent les statistiques.</span>
+              </li>
+            </ol>
+          </section>
+
+          {/* CGU */}
+          <section className="mb-8 rounded-2xl border border-border bg-card p-6 shadow-card">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                <Shield className="h-5 w-5 text-primary" />
+              </div>
+              <h2 className="font-display text-xl font-bold text-foreground">Conditions d'utilisation</h2>
+            </div>
+            <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+              <p><strong className="text-foreground">Données personnelles :</strong> Vos coordonnées GPS exactes ne sont jamais affichées publiquement. Seules les statistiques agrégées par commune sont visibles.</p>
+              <p><strong className="text-foreground">Utilisation responsable :</strong> Les faux signalements sont interdits. Chaque utilisateur est limité à 5 signalements par jour pour garantir la qualité des données.</p>
+              <p><strong className="text-foreground">Propriété des données :</strong> Les données collectées sont utilisées exclusivement pour améliorer les services publics d'eau et d'électricité à Abidjan.</p>
+              <p><strong className="text-foreground">Contact :</strong> Pour toute question, contactez-nous à signalenergie@civictech.ci</p>
+            </div>
+          </section>
+
+          <div className="text-center text-xs text-muted-foreground">
+            © 2026 SignalÉnergie — CivicTech Abidjan · Version pilote
+          </div>
+        </motion.div>
+      </main>
+    </div>
+  );
+};
+
+export default AboutPage;

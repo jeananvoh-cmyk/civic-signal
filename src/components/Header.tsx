@@ -1,15 +1,19 @@
 import { Link, useLocation } from "react-router-dom";
-import { Zap, Menu, X, LogIn, LogOut, User, Shield } from "lucide-react";
+import { Zap, Menu, X, LogIn, LogOut, User, Shield, Moon, Sun, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useTheme } from "@/hooks/useTheme";
 
 const Header = () => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, signOut } = useAuth();
   const { canValidate } = useUserRole();
+  const { theme, toggleTheme } = useTheme();
+
+  const themeIcon = theme === "dark" ? <Moon className="h-4 w-4" /> : theme === "light" ? <Sun className="h-4 w-4" /> : <Monitor className="h-4 w-4" />;
 
   const links = [
     { to: "/", label: "Accueil" },
@@ -46,8 +50,12 @@ const Header = () => {
             </Link>
           ))}
 
+          <Button variant="ghost" size="icon" onClick={toggleTheme} className="ml-1" title={`Thème: ${theme}`}>
+            {themeIcon}
+          </Button>
+
           {user ? (
-            <div className="ml-2 flex items-center gap-2">
+            <div className="ml-1 flex items-center gap-2">
               {canValidate && (
                 <Link
                   to="/admin"
@@ -73,14 +81,18 @@ const Header = () => {
           )}
         </nav>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="md:hidden"
-          onClick={() => setMobileOpen(!mobileOpen)}
-        >
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </Button>
+        <div className="flex items-center gap-1 md:hidden">
+          <Button variant="ghost" size="icon" onClick={toggleTheme}>
+            {themeIcon}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileOpen(!mobileOpen)}
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+        </div>
       </div>
 
       {mobileOpen && (

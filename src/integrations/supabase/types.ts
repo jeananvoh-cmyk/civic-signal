@@ -212,6 +212,17 @@ export type Database = {
           nom: string
         }[]
       }
+      get_commune_duration_stats: {
+        Args: never
+        Returns: {
+          avg_duration_minutes: number
+          commune: string
+          couleur: string
+          longest_duration_minutes: number
+          total_active: number
+          total_resolved: number
+        }[]
+      }
       get_commune_quartier_stats: {
         Args: { p_commune: string }
         Returns: {
