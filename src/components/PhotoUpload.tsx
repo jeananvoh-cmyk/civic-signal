@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { getUserFriendlyError } from "@/lib/error-utils";
 
 interface PhotoUploadProps {
   onPhotoUploaded: (url: string) => void;
@@ -45,7 +46,7 @@ const PhotoUpload = ({ onPhotoUploaded, photoUrl }: PhotoUploadProps) => {
       onPhotoUploaded(urlData.publicUrl);
       toast.success("Photo ajoutée !");
     } catch (err: any) {
-      toast.error(err.message || "Erreur lors de l'upload");
+      toast.error(getUserFriendlyError(err, "Erreur lors de l'upload"));
     } finally {
       setUploading(false);
     }

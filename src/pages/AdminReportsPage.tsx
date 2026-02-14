@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { getUserFriendlyError } from "@/lib/error-utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -71,7 +72,7 @@ const AdminReportsPage = () => {
       toast.success(validated ? "Signalement validé et visible sur la carte" : "Signalement rejeté");
       setSelectedReport(null);
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: any) => toast.error(getUserFriendlyError(err)),
   });
 
   const ReportRow = ({ report, showActions }: { report: any; showActions: boolean }) => {
