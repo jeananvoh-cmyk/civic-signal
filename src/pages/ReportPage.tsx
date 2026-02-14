@@ -94,6 +94,10 @@ const ReportPage = () => {
       toast.error(`Vous avez atteint la limite de ${DAILY_LIMIT} signalements par jour`);
       return;
     }
+    if (!latitude || !longitude) {
+      toast.error("Votre position GPS est requise pour signaler. Activez la géolocalisation.");
+      return;
+    }
     if (!serviceType || !commune || !quartier.trim()) {
       toast.error("Veuillez remplir le type, la commune et le quartier");
       return;
@@ -350,7 +354,7 @@ const ReportPage = () => {
               backgroundColor: selectedCommuneData?.couleur || undefined,
               color: "white",
             }}
-            disabled={submitting || limitReached || !serviceType || !commune || !quartier.trim()}
+            disabled={submitting || limitReached || !serviceType || !commune || !quartier.trim() || !latitude || !longitude}
           >
             <Send className="mr-2 h-5 w-5" />
             {submitting ? "Envoi..." : "Confirmer signalement"}
