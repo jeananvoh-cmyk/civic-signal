@@ -4,7 +4,7 @@ import { Zap, Droplets, Shield, Users, ArrowRight, BarChart3, MapPin, CheckCircl
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import { COMMUNES } from "@/lib/communes";
-import heroBg from "@/assets/hero-bg.jpg";
+const heroBg = "/images/hero-bg.jpg";
 import waterIcon from "@/assets/water-icon-sm.webp";
 import electricityIcon from "@/assets/electricity-icon-sm.webp";
 
