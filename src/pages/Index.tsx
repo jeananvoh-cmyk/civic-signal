@@ -27,19 +27,19 @@ const Index = () => {
             transition={{ duration: 0.7 }}
             className="max-w-2xl"
           >
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary-foreground/20 bg-primary-foreground/10 px-4 py-1.5 text-sm text-primary-foreground backdrop-blur-sm">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm text-white backdrop-blur-sm">
               <Shield className="h-4 w-4" />
               Pilote 5 communes — Abidjan
             </div>
 
-            <h1 className="font-display text-4xl font-extrabold leading-tight text-primary-foreground md:text-5xl lg:text-6xl">
+            <h1 className="font-display text-4xl font-extrabold leading-tight text-white md:text-5xl lg:text-6xl">
               Plateforme citoyenne pour Signaler les{" "}
               <span className="text-urgent">Coupures</span>{" "}
               <img src={waterIcon} alt="Eau" className="inline-block h-10 w-10 md:h-14 md:w-14 drop-shadow-lg" />{" "}
               <img src={electricityIcon} alt="Électricité" className="inline-block h-10 w-10 md:h-14 md:w-14 drop-shadow-lg" />
             </h1>
 
-            <p className="mt-6 max-w-lg text-xl font-semibold text-primary-foreground">
+            <p className="mt-6 max-w-lg text-xl font-semibold text-white">
               En <span className="text-electricity">15 Secondes</span> Signales si tu n'as plus d'
               <span className="text-water-light">eau</span> ou l'
               <span className="text-electricity">électricité</span>. Tes voisins agissent déjà.
@@ -151,10 +151,10 @@ const Index = () => {
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
             >
-              <p className="font-display text-3xl font-extrabold text-primary-foreground md:text-4xl">
+              <p className="font-display text-3xl font-extrabold text-white md:text-4xl">
                 {stat.value}
               </p>
-              <p className="mt-1 text-sm text-primary-foreground/70">{stat.label}</p>
+              <p className="mt-1 text-sm text-white/70">{stat.label}</p>
             </motion.div>
           ))}
         </div>
