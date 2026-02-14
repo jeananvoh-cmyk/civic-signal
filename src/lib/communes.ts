@@ -11,7 +11,7 @@ export const COMMUNES: Commune[] = [
   { nom: "Abobo", centerLat: 5.4167, centerLon: -4.0200, rayonM: 5000, population: 1400000, couleur: "#3B82F6" },
   { nom: "Adjamé", centerLat: 5.3530, centerLon: -4.0220, rayonM: 2000, population: 422000, couleur: "#F59E0B" },
   { nom: "Bingerville", centerLat: 5.3550, centerLon: -3.8900, rayonM: 6300, population: 115000, couleur: "#8B5CF6" },
-  { nom: "Cocody", centerLat: 5.3480, centerLon: -3.9750, rayonM: 6500, population: 541000, couleur: "#10B981" },
+  { nom: "Cocody", centerLat: 5.3480, centerLon: -3.9750, rayonM: 6500, population: 447055, couleur: "#10B981" },
   { nom: "Yopougon", centerLat: 5.3364, centerLon: -4.0833, rayonM: 7000, population: 1571065, couleur: "#DC2626" },
 ];
 
