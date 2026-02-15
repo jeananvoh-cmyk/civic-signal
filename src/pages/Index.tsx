@@ -99,7 +99,7 @@ const Index = () => {
             {
               icon: <Zap className="h-6 w-6" />,
               title: "2. Signalez",
-              description: "Choisissez Électricité ou Eau, niveau d'urgence, et confirmez.",
+              description: "Choisissez Eau ou Électricité, indiquez les personnes impactées et confirmez.",
               bgClass: "bg-water-light",
               iconClass: "text-water",
             },
@@ -113,7 +113,7 @@ const Index = () => {
             {
               icon: <BarChart3 className="h-6 w-6" />,
               title: "4. Dashboard",
-              description: "Les opérateurs voient les stats par commune avec codes couleur.",
+              description: "Opérateurs et mairies suivent les coupures en temps réel par commune.",
               bgClass: "bg-muted",
               iconClass: "text-foreground",
             },
