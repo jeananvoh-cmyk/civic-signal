@@ -270,6 +270,7 @@ export type Database = {
           commune: string
           couleur: string
           longest_duration_minutes: number
+          service_type: string
           total_active: number
           total_resolved: number
         }[]
