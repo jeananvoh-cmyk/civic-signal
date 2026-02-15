@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Zap, Droplets, Trash2, CheckCircle2, Clock, Loader2, AlertTriangle } from "lucide-react";
+import { Zap, Droplets, Trash2, CheckCircle2, Clock, Loader2, AlertTriangle, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -26,6 +26,11 @@ interface Report {
   verifications: number;
 }
 
+interface QuartierCount {
+  key: string;
+  count: number;
+}
+
 const MyReports = () => {
   const { user } = useAuth();
   const [reports, setReports] = useState<Report[]>([]);
@@ -36,6 +41,7 @@ const MyReports = () => {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Report | null>(null);
   const [deleteReason, setDeleteReason] = useState("");
+  const [quartierCounts, setQuartierCounts] = useState<Record<string, number>>({});
 
   const fetchReports = async () => {
     if (!user) return;
@@ -44,7 +50,29 @@ const MyReports = () => {
       .select("id, service_type, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, verifications")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
-    if (!error && data) setReports(data);
+    if (!error && data) {
+      setReports(data);
+      // Fetch counts of active reports per quartier for user's active reports
+      const activeReports = data.filter((r: Report) => r.status === "active" && r.quartier);
+      const uniqueKeys = [...new Set(activeReports.map((r: Report) => `${r.commune}|${r.quartier}|${r.service_type}`))];
+      if (uniqueKeys.length > 0) {
+        const counts: Record<string, number> = {};
+        await Promise.all(
+          uniqueKeys.map(async (key) => {
+            const [commune, quartier, serviceType] = (key as string).split("|");
+            const { count } = await supabase
+              .from("reports")
+              .select("id", { count: "exact", head: true })
+              .eq("commune", commune)
+              .eq("quartier", quartier)
+              .eq("service_type", serviceType)
+              .eq("status", "active");
+            counts[key as string] = count || 0;
+          })
+        );
+        setQuartierCounts(counts);
+      }
+    }
     setLoading(false);
   };
 
@@ -161,6 +189,16 @@ const MyReports = () => {
                       ⚡ {r.verifications} confirmations
                     </Badge>
                   )}
+                  {isActive && r.quartier && (() => {
+                    const key = `${r.commune}|${r.quartier}|${r.service_type}`;
+                    const count = quartierCounts[key];
+                    return count && count > 0 ? (
+                      <Badge variant="outline" className="border-primary text-primary">
+                        <Users className="mr-1 h-3 w-3" />
+                        {count} signalement{count > 1 ? "s" : ""} à {r.quartier}
+                      </Badge>
+                    ) : null;
+                  })()}
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     {new Date(r.created_at).toLocaleDateString("fr-FR")}
