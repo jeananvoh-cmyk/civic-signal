@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
+  { label: "Vue d'ensemble", path: "/admin", icon: Shield },
   { label: "Signalements", path: "/admin/signalements", icon: FileText },
   { label: "Utilisateurs", path: "/admin/utilisateurs", icon: Users },
+  { label: "Suppressions", path: "/admin/suppressions", icon: Trash2 },
   { label: "Purge données", path: "/admin/purge", icon: Trash2 },
   { label: "Statistiques", path: "/admin/stats", icon: BarChart3 },
 ];

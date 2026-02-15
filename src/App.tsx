@@ -20,6 +20,8 @@ const AdminReportsPage = lazy(() => import("./pages/AdminReportsPage"));
 const AdminUsersPage = lazy(() => import("./pages/AdminUsersPage"));
 const AdminPurgePage = lazy(() => import("./pages/AdminPurgePage"));
 const AdminStatsPage = lazy(() => import("./pages/AdminStatsPage"));
+const AdminOverviewPage = lazy(() => import("./pages/AdminOverviewPage"));
+const AdminDeletionsPage = lazy(() => import("./pages/AdminDeletionsPage"));
 const CommuneDetailPage = lazy(() => import("./pages/CommuneDetailPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 const HistoryPage = lazy(() => import("./pages/HistoryPage"));
@@ -49,9 +51,10 @@ const App = () => (
               
               {/* Admin routes */}
               <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
-                <Route index element={<Navigate to="/admin/signalements" replace />} />
+                <Route index element={<AdminOverviewPage />} />
                 <Route path="signalements" element={<AdminReportsPage />} />
                 <Route path="utilisateurs" element={<AdminUsersPage />} />
+                <Route path="suppressions" element={<AdminDeletionsPage />} />
                 <Route path="purge" element={<AdminPurgePage />} />
                 <Route path="stats" element={<AdminStatsPage />} />
               </Route>
