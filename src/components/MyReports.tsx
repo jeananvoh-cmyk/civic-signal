@@ -78,9 +78,22 @@ const MyReports = () => {
   };
 
   const handleDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || !deleteReason.trim()) return;
     setDeleting(deleteTarget.id);
     try {
+      // Enregistrer la raison de suppression
+      const { error: logError } = await supabase.from("report_deletions").insert({
+        report_id: deleteTarget.id,
+        user_id: user!.id,
+        reason: deleteReason.trim(),
+        service_type: deleteTarget.service_type,
+        commune: deleteTarget.commune,
+        quartier: deleteTarget.quartier,
+        description: deleteTarget.description,
+      });
+      if (logError) throw logError;
+
+      // Supprimer le signalement
       const { error } = await supabase.from("reports").delete().eq("id", deleteTarget.id);
       if (error) throw error;
       setReports((prev) => prev.filter((r) => r.id !== deleteTarget.id));
