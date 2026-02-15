@@ -156,12 +156,58 @@ const DashboardPage = () => {
         {/* Duration stats */}
         {!loading && durations.some((d) => d.total_resolved > 0) && (() => {
           const communeNames = [...new Set(durations.map((d) => d.commune))];
+          // Global averages
+          const elecDurations = durations.filter((d) => d.service_type === "electricity" && d.total_resolved > 0);
+          const waterDurations = durations.filter((d) => d.service_type === "water" && d.total_resolved > 0);
+          const globalElecAvg = elecDurations.length > 0 ? elecDurations.reduce((s, d) => s + d.avg_duration_minutes * d.total_resolved, 0) / elecDurations.reduce((s, d) => s + d.total_resolved, 0) : 0;
+          const globalWaterAvg = waterDurations.length > 0 ? waterDurations.reduce((s, d) => s + d.avg_duration_minutes * d.total_resolved, 0) / waterDurations.reduce((s, d) => s + d.total_resolved, 0) : 0;
+          const globalElecMax = elecDurations.length > 0 ? Math.max(...elecDurations.map((d) => d.longest_duration_minutes)) : 0;
+          const globalWaterMax = waterDurations.length > 0 ? Math.max(...waterDurations.map((d) => d.longest_duration_minutes)) : 0;
+
           return (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-8">
               <div className="flex items-center gap-2 mb-4">
                 <Clock className="h-5 w-5 text-muted-foreground" />
                 <h2 className="font-display text-xl font-bold text-foreground">Durée moyenne des coupures</h2>
               </div>
+
+              {/* Global summary */}
+              <div className="mb-4 grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap className="h-4 w-4 text-amber-500" />
+                    <span className="text-xs font-semibold text-foreground">Électricité — toutes communes</span>
+                  </div>
+                  <div className="flex items-baseline gap-4">
+                    <div>
+                      <p className="font-display text-2xl font-extrabold text-amber-500">{globalElecAvg > 0 ? formatMinutes(globalElecAvg) : "—"}</p>
+                      <p className="text-[10px] text-muted-foreground">durée moyenne</p>
+                    </div>
+                    <div>
+                      <p className="font-display text-lg font-bold text-foreground">{globalElecMax > 0 ? formatMinutes(globalElecMax) : "—"}</p>
+                      <p className="text-[10px] text-muted-foreground">la plus longue</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Droplets className="h-4 w-4 text-blue-500" />
+                    <span className="text-xs font-semibold text-foreground">Eau — toutes communes</span>
+                  </div>
+                  <div className="flex items-baseline gap-4">
+                    <div>
+                      <p className="font-display text-2xl font-extrabold text-blue-500">{globalWaterAvg > 0 ? formatMinutes(globalWaterAvg) : "—"}</p>
+                      <p className="text-[10px] text-muted-foreground">durée moyenne</p>
+                    </div>
+                    <div>
+                      <p className="font-display text-lg font-bold text-foreground">{globalWaterMax > 0 ? formatMinutes(globalWaterMax) : "—"}</p>
+                      <p className="text-[10px] text-muted-foreground">la plus longue</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Per commune */}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
                 {communeNames.map((commune) => {
                   const elec = durations.find((d) => d.commune === commune && d.service_type === "electricity");
@@ -170,28 +216,38 @@ const DashboardPage = () => {
 
                   return (
                     <div key={commune} className="rounded-xl border border-border bg-card p-4 shadow-card">
-                      <p className="text-sm font-bold mb-2 text-center" style={{ color: couleur }}>{commune}</p>
-                      <div className="space-y-2">
+                      <p className="text-sm font-bold mb-3 text-center" style={{ color: couleur }}>{commune}</p>
+                      <div className="space-y-3">
                         <div className="flex items-center gap-2">
                           <Zap className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <p className="font-display text-lg font-extrabold text-foreground leading-tight">
                               {elec && elec.total_resolved > 0 ? formatMinutes(elec.avg_duration_minutes) : "—"}
                             </p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {elec && elec.total_resolved > 0 ? `${elec.total_resolved} résolu${elec.total_resolved > 1 ? "s" : ""}` : "Aucune donnée"}
-                            </p>
+                            {elec && elec.total_resolved > 0 && (
+                              <p className="text-[10px] text-muted-foreground">
+                                max {formatMinutes(elec.longest_duration_minutes)} · {elec.total_resolved} résolu{elec.total_resolved > 1 ? "s" : ""}
+                              </p>
+                            )}
+                            {(!elec || elec.total_resolved === 0) && (
+                              <p className="text-[10px] text-muted-foreground">Aucune donnée</p>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <Droplets className="h-3.5 w-3.5 shrink-0 text-blue-500" />
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <p className="font-display text-lg font-extrabold text-foreground leading-tight">
                               {water && water.total_resolved > 0 ? formatMinutes(water.avg_duration_minutes) : "—"}
                             </p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {water && water.total_resolved > 0 ? `${water.total_resolved} résolu${water.total_resolved > 1 ? "s" : ""}` : "Aucune donnée"}
-                            </p>
+                            {water && water.total_resolved > 0 && (
+                              <p className="text-[10px] text-muted-foreground">
+                                max {formatMinutes(water.longest_duration_minutes)} · {water.total_resolved} résolu{water.total_resolved > 1 ? "s" : ""}
+                              </p>
+                            )}
+                            {(!water || water.total_resolved === 0) && (
+                              <p className="text-[10px] text-muted-foreground">Aucune donnée</p>
+                            )}
                           </div>
                         </div>
                       </div>
