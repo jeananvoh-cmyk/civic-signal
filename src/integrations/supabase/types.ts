@@ -155,6 +155,42 @@ export type Database = {
         }
         Relationships: []
       }
+      report_deletions: {
+        Row: {
+          commune: string
+          created_at: string
+          description: string
+          id: string
+          quartier: string
+          reason: string
+          report_id: string
+          service_type: string
+          user_id: string
+        }
+        Insert: {
+          commune?: string
+          created_at?: string
+          description?: string
+          id?: string
+          quartier?: string
+          reason: string
+          report_id: string
+          service_type: string
+          user_id: string
+        }
+        Update: {
+          commune?: string
+          created_at?: string
+          description?: string
+          id?: string
+          quartier?: string
+          reason?: string
+          report_id?: string
+          service_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       reports: {
         Row: {
           commune: string
