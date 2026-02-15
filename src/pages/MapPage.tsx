@@ -199,6 +199,19 @@ const MapPage = () => {
           })}
         </div>
 
+        {/* Légende vérification */}
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-2.5 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border-2 border-success bg-success/10 text-[10px] font-bold text-success">✓</span>
+            <span><strong className="text-foreground">Confirmé</strong> — ≥5 voisins ont vérifié cette coupure</span>
+          </span>
+          <span className="hidden sm:inline text-border">|</span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-3 w-3 rounded-full border-2 border-white shadow" style={{ background: '#888' }} />
+            <span>Non confirmé — en attente de vérifications</span>
+          </span>
+        </div>
+
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="overflow-hidden rounded-xl border border-border shadow-card">
           <div ref={mapRef} className="h-[500px] w-full" />
         </motion.div>
