@@ -12,12 +12,15 @@ import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import MyReports from "@/components/MyReports";
+import { COMMUNES } from "@/lib/communes";
+import { getQuartiers } from "@/lib/quartiers";
 
 interface ProfileData {
   first_name: string;
@@ -304,22 +307,50 @@ const ProfilePage = () => {
 
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold">Commune</Label>
-                  <Input
-                    placeholder="Ex: Cocody, Yopougon, Plateau..."
-                    value={profile.commune}
-                    onChange={(e) => update("commune", e.target.value)}
-                    maxLength={100}
-                  />
+                  <Select value={profile.commune} onValueChange={(v) => { update("commune", v); update("quartier", ""); }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner votre commune" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COMMUNES.map((c) => (
+                        <SelectItem key={c.nom} value={c.nom}>
+                          <span className="flex items-center gap-2">
+                            <span className="h-3 w-3 rounded-full inline-block" style={{ backgroundColor: c.couleur }} />
+                            {c.nom}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold">Quartier *</Label>
-                  <Input
-                    placeholder="Ex: Angré, Selmer, Bingerville..."
-                    value={profile.quartier}
-                    onChange={(e) => update("quartier", e.target.value)}
-                    maxLength={100}
-                  />
+                  {profile.commune ? (
+                    <Select value={profile.quartier} onValueChange={(v) => update("quartier", v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner votre quartier" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {getQuartiers(profile.commune).map((q) => (
+                          <SelectItem key={q} value={q}>{q}</SelectItem>
+                        ))}
+                        <SelectItem value="__other">Autre quartier...</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">Sélectionnez d'abord une commune</p>
+                  )}
+                  {profile.quartier === "__other" && (
+                    <Input
+                      placeholder="Saisissez le nom du quartier"
+                      onChange={(e) => {
+                        if (e.target.value.trim()) update("quartier", e.target.value.trim());
+                      }}
+                      maxLength={100}
+                      autoFocus
+                    />
+                  )}
                   <p className="text-xs text-muted-foreground">
                     Cette information nous aide à vous envoyer les alertes pertinentes
                   </p>

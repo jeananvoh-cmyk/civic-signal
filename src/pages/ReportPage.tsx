@@ -14,6 +14,7 @@ import { getUserFriendlyError } from "@/lib/error-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { COMMUNES, findNearestCommune, type Commune, type CommuneResult } from "@/lib/communes";
+import { getQuartiers } from "@/lib/quartiers";
 import type { ServiceType, UrgencyLevel } from "@/lib/data";
 
 const DAILY_LIMIT = 5;
@@ -25,6 +26,7 @@ const ReportPage = () => {
   const [urgency, setUrgency] = useState<"normal" | "urgent">("normal");
   const [commune, setCommune] = useState("");
   const [quartier, setQuartier] = useState("");
+  const [customQuartier, setCustomQuartier] = useState("");
   const [description, setDescription] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [latitude, setLatitude] = useState<number | null>(null);
@@ -91,6 +93,8 @@ const ReportPage = () => {
   const now = new Date();
   const timeStr = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
+  const resolvedQuartier = quartier === "__other" ? customQuartier.trim() : quartier;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (limitReached) {
@@ -101,7 +105,7 @@ const ReportPage = () => {
       toast.error("Votre position GPS est requise pour signaler. Activez la géolocalisation.");
       return;
     }
-    if (!serviceType || !commune || !quartier.trim()) {
+    if (!serviceType || !commune || !resolvedQuartier) {
       toast.error("Veuillez remplir le type, la commune et le quartier");
       return;
     }
@@ -118,7 +122,7 @@ const ReportPage = () => {
         description: description || `Coupure de ${serviceType === "electricity" ? "courant" : "eau"} à ${commune}`,
         location: commune,
         commune,
-        quartier: quartier.trim(),
+        quartier: resolvedQuartier,
         latitude,
         longitude,
         urgency: urgency === "urgent" ? "high" : "medium",
@@ -241,7 +245,7 @@ const ReportPage = () => {
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-4 text-center">
           <p className="text-sm text-muted-foreground">
-            📍 {commune || "..."}{quartier ? `, ${quartier}` : ""} — [{timeStr}]
+            📍 {commune || "..."}{resolvedQuartier ? `, ${resolvedQuartier}` : ""} — [{timeStr}]
           </p>
         </motion.div>
 
@@ -255,7 +259,7 @@ const ReportPage = () => {
           {/* Commune selector */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">Commune *</Label>
-            <Select value={commune} onValueChange={setCommune}>
+            <Select value={commune} onValueChange={(v) => { setCommune(v); setQuartier(""); setCustomQuartier(""); }}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner la commune" />
               </SelectTrigger>
@@ -275,12 +279,30 @@ const ReportPage = () => {
           {/* Quartier */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">Quartier *</Label>
-            <Input
-              placeholder="Ex: Angré, Riviera 2, Plateau Dokui..."
-              value={quartier}
-              onChange={(e) => setQuartier(e.target.value)}
-              maxLength={100}
-            />
+            {commune ? (
+              <Select value={quartier} onValueChange={setQuartier}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner le quartier" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {getQuartiers(commune).map((q) => (
+                    <SelectItem key={q} value={q}>{q}</SelectItem>
+                  ))}
+                  <SelectItem value="__other">Autre quartier...</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">Sélectionnez d'abord une commune</p>
+            )}
+            {quartier === "__other" && (
+              <Input
+                placeholder="Saisissez le nom du quartier"
+                value={customQuartier}
+                onChange={(e) => setCustomQuartier(e.target.value)}
+                maxLength={100}
+                autoFocus
+              />
+            )}
           </div>
 
           {/* Service type */}
@@ -364,7 +386,7 @@ const ReportPage = () => {
               backgroundColor: selectedCommuneData?.couleur || undefined,
               color: "white",
             }}
-            disabled={submitting || limitReached || !serviceType || !commune || !quartier.trim() || !latitude || !longitude}
+            disabled={submitting || limitReached || !serviceType || !commune || !resolvedQuartier || !latitude || !longitude}
           >
             <Send className="mr-2 h-5 w-5" />
             {submitting ? "Envoi..." : "Confirmer signalement"}
