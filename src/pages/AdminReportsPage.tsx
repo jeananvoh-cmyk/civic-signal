@@ -219,6 +219,16 @@ const AdminReportsPage = () => {
                   <p className="text-muted-foreground text-sm mb-1">Description</p>
                   <p className="text-sm">{selectedReport.description}</p>
                 </div>
+                {selectedReport.photo_url && (
+                  <div>
+                    <p className="text-muted-foreground text-sm mb-1">Photo jointe</p>
+                    <img
+                      src={selectedReport.photo_url}
+                      alt="Photo du signalement"
+                      className="w-full rounded-lg border border-border max-h-60 object-cover"
+                    />
+                  </div>
+                )}
                 {!selectedReport.validated && (
                   <div className="flex gap-2 pt-2">
                     <Button
