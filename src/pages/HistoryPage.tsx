@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { COMMUNE_COLORS } from "@/lib/communes";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import SignedImage from "@/components/SignedImage";
 
 interface HistoryReport {
   id: string;
@@ -149,7 +150,7 @@ const HistoryPage = () => {
                     <p className="text-xs text-muted-foreground mb-3">{r.description}</p>
 
                     {r.photo_url && (
-                      <img src={r.photo_url} alt="Photo" className="w-full h-32 object-cover rounded-lg mb-3" />
+                      <SignedImage storagePath={r.photo_url} alt="Photo" className="w-full h-32 object-cover rounded-lg mb-3" />
                     )}
 
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">

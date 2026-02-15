@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { getUserFriendlyError } from "@/lib/error-utils";
 import { logAudit } from "@/lib/audit";
 import { format } from "date-fns";
+import SignedImage from "@/components/SignedImage";
 import { fr } from "date-fns/locale";
 
 const URGENCY_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -223,8 +224,8 @@ const AdminReportsPage = () => {
                 {selectedReport.photo_url && (
                   <div>
                     <p className="text-muted-foreground text-sm mb-1">Photo jointe</p>
-                    <img
-                      src={selectedReport.photo_url}
+                    <SignedImage
+                      storagePath={selectedReport.photo_url}
                       alt="Photo du signalement"
                       className="w-full rounded-lg border border-border max-h-60 object-cover"
                     />
