@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Zap, Menu, X, LogIn, LogOut, User, Shield, Moon, Sun, Monitor } from "lucide-react";
+import { Zap, Menu, X, LogIn, LogOut, User, Shield, Moon, Sun, Monitor, Heart } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -22,6 +22,7 @@ const Header = () => {
     { to: "/tableau-de-bord", label: "Dashboard" },
     { to: "/carte", label: "Carte" },
     { to: "/verification", label: "Vérifier" },
+    { to: "/dons", label: "♥ Dons" },
   ];
 
   return (
