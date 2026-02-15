@@ -37,18 +37,33 @@ const NotificationBell = () => {
 
     if (!user) return;
 
+    // Batch incoming realtime notifications with a 500ms debounce
+    // to prevent excessive re-renders during high-traffic periods
+    let pendingNotifs: Notification[] = [];
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const flushPending = () => {
+      if (pendingNotifs.length === 0) return;
+      const batch = [...pendingNotifs];
+      pendingNotifs = [];
+      setNotifications((prev) => [...batch, ...prev].slice(0, 20));
+    };
+
     const channel = supabase
       .channel("notifications-realtime")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
         (payload) => {
-          setNotifications((prev) => [payload.new as Notification, ...prev].slice(0, 20));
+          pendingNotifs.push(payload.new as Notification);
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(flushPending, 500);
         }
       )
       .subscribe();
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [user]);
