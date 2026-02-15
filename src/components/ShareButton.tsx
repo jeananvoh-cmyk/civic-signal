@@ -1,6 +1,12 @@
-import { Share2 } from "lucide-react";
+import { Share2, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ShareButtonProps {
   title: string;
@@ -14,7 +20,7 @@ interface ShareButtonProps {
 const ShareButton = ({ title, text, url, className, variant = "outline", size = "sm" }: ShareButtonProps) => {
   const shareUrl = url || window.location.href;
 
-  const handleShare = async () => {
+  const handleNativeShare = async () => {
     if (navigator.share) {
       try {
         await navigator.share({ title, text, url: shareUrl });
@@ -22,21 +28,44 @@ const ShareButton = ({ title, text, url, className, variant = "outline", size = 
         // User cancelled
       }
     } else {
-      // Fallback: copy to clipboard
-      try {
-        await navigator.clipboard.writeText(`${text}\n${shareUrl}`);
-        toast.success("Lien copié dans le presse-papier !");
-      } catch {
-        toast.error("Impossible de partager");
-      }
+      handleCopy();
+    }
+  };
+
+  const handleWhatsApp = () => {
+    const message = `${text}\n\n👉 ${shareUrl}`;
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(`${text}\n${shareUrl}`);
+      toast.success("Lien copié dans le presse-papier !");
+    } catch {
+      toast.error("Impossible de copier");
     }
   };
 
   return (
-    <Button variant={variant} size={size} onClick={handleShare} className={className}>
-      <Share2 className="h-4 w-4 mr-1.5" />
-      Partager
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant={variant} size={size} className={className}>
+          <Share2 className="h-4 w-4 mr-1.5" />
+          Partager
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem onClick={handleWhatsApp} className="cursor-pointer">
+          <MessageCircle className="h-4 w-4 mr-2 text-emerald-500" />
+          WhatsApp
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleNativeShare} className="cursor-pointer">
+          <Share2 className="h-4 w-4 mr-2" />
+          {navigator.share ? "Autres apps" : "Copier le lien"}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 
