@@ -17,6 +17,8 @@ interface CommuneServiceStat {
   eau_actifs: number;
   eau_resolus: number;
   eau_total: number;
+  electricite_verified: number;
+  eau_verified: number;
 }
 
 type ServiceFilter = "all" | "electricity" | "water";
@@ -59,43 +61,64 @@ const MapPage = () => {
 
       const s = stats.find((st) => st.commune.toLowerCase() === c.nom.toLowerCase());
       
-      let actifs = 0, resolus = 0, total = 0;
+      let actifs = 0, resolus = 0, total = 0, verified = 0;
       if (s) {
         if (filter === "electricity") {
-          actifs = s.electricite_actifs; resolus = s.electricite_resolus; total = s.electricite_total;
+          actifs = s.electricite_actifs; resolus = s.electricite_resolus; total = s.electricite_total; verified = s.electricite_verified;
         } else if (filter === "water") {
-          actifs = s.eau_actifs; resolus = s.eau_resolus; total = s.eau_total;
+          actifs = s.eau_actifs; resolus = s.eau_resolus; total = s.eau_total; verified = s.eau_verified;
         } else {
           actifs = s.electricite_actifs + s.eau_actifs;
           resolus = s.electricite_resolus + s.eau_resolus;
           total = s.electricite_total + s.eau_total;
+          verified = s.electricite_verified + s.eau_verified;
         }
       }
 
+      const hasVerified = verified > 0;
+      const verifiedPercent = actifs > 0 ? Math.round((verified / actifs) * 100) : 0;
       const filterEmoji = filter === "electricity" ? "⚡" : filter === "water" ? "💧" : "";
+      const markerSize = total > 0 ? 48 : 36;
       const countIcon = L.divIcon({
         className: "",
         html: `<div style="
+          position:relative;
           background:${c.couleur};color:white;
-          width:${total > 0 ? 48 : 36}px;height:${total > 0 ? 48 : 36}px;
+          width:${markerSize}px;height:${markerSize}px;
           border-radius:50%;display:flex;align-items:center;justify-content:center;
-          border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,.35);
+          border:${hasVerified ? '3px solid #22c55e' : '3px solid white'};
+          box-shadow:${hasVerified ? '0 0 12px rgba(34,197,94,0.6), 0 2px 10px rgba(0,0,0,.35)' : '0 2px 10px rgba(0,0,0,.35)'};
           font-size:${total > 0 ? 16 : 13}px;font-weight:bold;
-        ">${filterEmoji}${total}</div>`,
-        iconSize: [total > 0 ? 48 : 36, total > 0 ? 48 : 36],
-        iconAnchor: [total > 0 ? 24 : 18, total > 0 ? 24 : 18],
+        ">${filterEmoji}${total}${hasVerified ? `<span style="
+          position:absolute;top:-6px;right:-6px;
+          background:linear-gradient(135deg,#22c55e,#16a34a);color:white;
+          width:20px;height:20px;border-radius:50%;
+          display:flex;align-items:center;justify-content:center;
+          font-size:10px;border:2px solid white;
+          box-shadow:0 1px 4px rgba(0,0,0,.3);
+        ">✓</span>` : ''}</div>`,
+        iconSize: [markerSize, markerSize],
+        iconAnchor: [markerSize / 2, markerSize / 2],
       });
 
       const serviceLabel = filter === "electricity" ? "Électricité" : filter === "water" ? "Eau" : "Tous services";
+      const verifiedHtml = hasVerified
+        ? `<div style="margin-top:6px;padding:4px 8px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center">
+            <span style="font-size:11px;color:#16a34a;font-weight:600">✓ ${verified} confirmé${verified > 1 ? 's' : ''} par la communauté</span>
+            ${actifs > 0 ? `<br/><span style="font-size:10px;color:#15803d">${verifiedPercent}% des signalements actifs</span>` : ''}
+          </div>`
+        : '';
+
       L.marker([c.centerLat, c.centerLon], { icon: countIcon })
         .addTo(map)
         .bindPopup(
-          `<div style="min-width:160px;text-align:center">
+          `<div style="min-width:180px;text-align:center">
             <strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/>
             <span style="font-size:11px;color:#666">${serviceLabel}</span><br/>
             <span style="font-size:22px;font-weight:bold">${total}</span>
             <span style="font-size:11px;color:#666"> signalement${total > 1 ? "s" : ""}</span><br/>
             <span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? "s" : ""} · ✅ ${resolus} résolu${resolus > 1 ? "s" : ""}</span>
+            ${verifiedHtml}
           </div>`
         );
     });
@@ -103,16 +126,17 @@ const MapPage = () => {
 
   const getFilteredTotals = () => {
     if (filter === "electricity") {
-      return { total: stats.reduce((s, c) => s + c.electricite_total, 0), actifs: stats.reduce((s, c) => s + c.electricite_actifs, 0) };
+      return { total: stats.reduce((s, c) => s + c.electricite_total, 0), actifs: stats.reduce((s, c) => s + c.electricite_actifs, 0), verified: stats.reduce((s, c) => s + c.electricite_verified, 0) };
     } else if (filter === "water") {
-      return { total: stats.reduce((s, c) => s + c.eau_total, 0), actifs: stats.reduce((s, c) => s + c.eau_actifs, 0) };
+      return { total: stats.reduce((s, c) => s + c.eau_total, 0), actifs: stats.reduce((s, c) => s + c.eau_actifs, 0), verified: stats.reduce((s, c) => s + c.eau_verified, 0) };
     }
     return {
       total: stats.reduce((s, c) => s + c.electricite_total + c.eau_total, 0),
       actifs: stats.reduce((s, c) => s + c.electricite_actifs + c.eau_actifs, 0),
+      verified: stats.reduce((s, c) => s + c.electricite_verified + c.eau_verified, 0),
     };
   };
-  const { total: totalSignalements, actifs: totalActifs } = getFilteredTotals();
+  const { total: totalSignalements, actifs: totalActifs, verified: totalVerified } = getFilteredTotals();
 
   return (
     <div className="min-h-screen bg-background">
@@ -125,6 +149,12 @@ const MapPage = () => {
             <p className="mt-1 text-muted-foreground">
               {loading ? "Chargement..." : `${totalSignalements} signalement(s) dont ${totalActifs} actif(s)`}
             </p>
+            {!loading && totalVerified > 0 && (
+              <p className="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-success">
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-success/10 text-xs">✓</span>
+                {totalVerified} confirmé{totalVerified > 1 ? 's' : ''} par la communauté
+              </p>
+            )}
           </div>
           <ShareButton
             title="Carte SignalÉnergie"
