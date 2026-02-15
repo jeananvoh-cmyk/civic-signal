@@ -104,6 +104,8 @@ const NeighborCorroboration = ({ reportId, onDone }: NeighborCorroborationProps)
       if (msg.includes("déjà confirmé")) {
         setConfirmed(true);
         toast.info("Vous avez déjà confirmé ce signalement.");
+      } else if (msg.includes("Impossible de confirmer")) {
+        setError("Ce signalement a été résolu ou supprimé. La confirmation n'est plus possible.");
       } else {
         toast.error(msg);
       }
@@ -126,13 +128,18 @@ const NeighborCorroboration = ({ reportId, onDone }: NeighborCorroborationProps)
   }
 
   if (error || !report) {
+    const isResolved = error?.includes("résolu ou supprimé");
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="rounded-2xl border border-border bg-card p-8 shadow-card text-center"
       >
-        <AlertTriangle className="mx-auto h-8 w-8 text-urgent mb-3" />
+        {isResolved ? (
+          <CheckCircle2 className="mx-auto h-8 w-8 text-success mb-3" />
+        ) : (
+          <AlertTriangle className="mx-auto h-8 w-8 text-urgent mb-3" />
+        )}
         <p className="text-sm text-muted-foreground">{error || "Signalement introuvable."}</p>
         <Button variant="outline" className="mt-4" onClick={onDone}>
           Retour
