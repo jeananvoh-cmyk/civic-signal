@@ -29,7 +29,7 @@ const Index = () => {
 
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm text-white backdrop-blur-sm">
               <Shield className="h-4 w-4" />
-              Pilote 5 communes — Abidjan
+              05 communes pilotes à Abidjan
             </div>
 
             <h1 className="font-display text-4xl font-extrabold leading-tight text-white md:text-5xl lg:text-6xl">
