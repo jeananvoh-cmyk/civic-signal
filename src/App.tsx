@@ -23,6 +23,7 @@ const AdminStatsPage = lazy(() => import("./pages/AdminStatsPage"));
 const AdminOverviewPage = lazy(() => import("./pages/AdminOverviewPage"));
 const AdminDeletionsPage = lazy(() => import("./pages/AdminDeletionsPage"));
 const AdminAuditPage = lazy(() => import("./pages/AdminAuditPage"));
+const AdminVulnerablePage = lazy(() => import("./pages/AdminVulnerablePage"));
 const CommuneDetailPage = lazy(() => import("./pages/CommuneDetailPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 const HistoryPage = lazy(() => import("./pages/HistoryPage"));
@@ -59,6 +60,7 @@ const App = () => (
                 <Route path="purge" element={<AdminPurgePage />} />
                 <Route path="stats" element={<AdminStatsPage />} />
                 <Route path="journal" element={<AdminAuditPage />} />
+                <Route path="vulnerables" element={<AdminVulnerablePage />} />
               </Route>
               
               <Route path="*" element={<NotFound />} />
