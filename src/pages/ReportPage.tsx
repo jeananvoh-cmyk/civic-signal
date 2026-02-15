@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Zap, Droplets, Send, MapPin, Clock, Navigation, Loader2, Users } from "lucide-react";
+import { Zap, Droplets, Send, MapPin, Clock, Navigation, Loader2, Users, Baby, Heart, UserRound, ChevronDown, Plus, Minus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,14 +23,17 @@ const ReportPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [serviceType, setServiceType] = useState<ServiceType | "">("");
-  const [urgency, setUrgency] = useState<"normal" | "urgent">("normal");
   const [commune, setCommune] = useState("");
   const [quartier, setQuartier] = useState("");
   const [customQuartier, setCustomQuartier] = useState("");
   const [description, setDescription] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [startTime, setStartTime] = useState("");
-  const [impactedPeople, setImpactedPeople] = useState<number | "">("");
+  const [impactedPeople, setImpactedPeople] = useState(1);
+  const [babies, setBabies] = useState(0);
+  const [pregnant, setPregnant] = useState(0);
+  const [elderly, setElderly] = useState(0);
+  const [showVulnerable, setShowVulnerable] = useState(false);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [detectedCommune, setDetectedCommune] = useState<Commune | null>(null);
@@ -128,7 +131,16 @@ const ReportPage = () => {
       }
 
       const baseDesc = description || `Coupure de ${serviceType === "electricity" ? "courant" : "eau"} à ${commune}`;
-      const fullDesc = impactedPeople ? `${baseDesc} [${impactedPeople} personne(s) impactée(s)]` : baseDesc;
+      const vulnParts: string[] = [];
+      if (babies > 0) vulnParts.push(`${babies} bébé(s)`);
+      if (pregnant > 0) vulnParts.push(`${pregnant} femme(s) enceinte(s)`);
+      if (elderly > 0) vulnParts.push(`${elderly} personne(s) âgée(s)`);
+      const impactInfo = `[${impactedPeople} personne(s)${vulnParts.length ? ` dont ${vulnParts.join(", ")}` : ""}]`;
+      const fullDesc = `${baseDesc} ${impactInfo}`;
+
+      // Auto-detect urgency based on vulnerable people
+      const hasVulnerable = babies > 0 || pregnant > 0 || elderly > 0;
+      const urgencyLevel = hasVulnerable ? "high" : "medium";
 
       const { error } = await supabase.from("reports").insert({
         user_id: user.id,
@@ -139,7 +151,7 @@ const ReportPage = () => {
         quartier: resolvedQuartier,
         latitude,
         longitude,
-        urgency: urgency === "urgent" ? "high" : "medium",
+        urgency: urgencyLevel,
         start_time: reportStartTime,
         photo_url: photoUrl || null,
       });
@@ -350,31 +362,6 @@ const ReportPage = () => {
             </div>
           </div>
 
-          {/* Urgency */}
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold">Niveau</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setUrgency("normal")}
-                className={`rounded-xl border-2 p-3 text-sm font-medium transition-all ${
-                  urgency === "normal" ? "border-success bg-success/10 text-success" : "border-border text-muted-foreground"
-                }`}
-              >
-                ✅ Normal
-              </button>
-              <button
-                type="button"
-                onClick={() => setUrgency("urgent")}
-                className={`rounded-xl border-2 p-3 text-sm font-medium transition-all ${
-                  urgency === "urgent" ? "border-urgent bg-urgent/10 text-urgent" : "border-border text-muted-foreground"
-                }`}
-              >
-                🚨 Urgent
-              </button>
-            </div>
-          </div>
-
           {/* Start time */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold flex items-center gap-1.5">
@@ -385,27 +372,112 @@ const ReportPage = () => {
               type="time"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              placeholder="Ex: 14:30"
             />
             <p className="text-xs text-muted-foreground">
               Laissez vide si la coupure vient de commencer
             </p>
           </div>
 
-          {/* Impacted people */}
-          <div className="space-y-2">
+          {/* Impacted people + vulnerable */}
+          <div className="space-y-3">
             <Label className="text-sm font-semibold flex items-center gap-1.5">
               <Users className="h-4 w-4 text-muted-foreground" />
-              Personnes impactées dans le ménage
+              Personnes dans le ménage
             </Label>
-            <Input
-              type="number"
-              min={1}
-              max={50}
-              value={impactedPeople}
-              onChange={(e) => setImpactedPeople(e.target.value ? parseInt(e.target.value) : "")}
-              placeholder="Ex: 4"
-            />
+
+            {/* Counter for total people */}
+            <div className="flex items-center justify-between rounded-xl border border-border bg-background p-3">
+              <span className="text-sm text-foreground">Nombre total</span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setImpactedPeople(Math.max(1, impactedPeople - 1))}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-muted"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+                <span className="w-6 text-center font-bold text-foreground">{impactedPeople}</span>
+                <button
+                  type="button"
+                  onClick={() => setImpactedPeople(Math.min(50, impactedPeople + 1))}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-muted"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Toggle vulnerable section */}
+            <button
+              type="button"
+              onClick={() => setShowVulnerable(!showVulnerable)}
+              className="flex w-full items-center justify-between rounded-xl border border-dashed border-border bg-background px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted/50"
+            >
+              <span className="flex items-center gap-1.5">
+                <Heart className="h-4 w-4" />
+                Personnes vulnérables
+                {(babies + pregnant + elderly > 0) && (
+                  <span className="ml-1 rounded-full bg-urgent/10 px-2 py-0.5 text-xs font-semibold text-urgent">
+                    {babies + pregnant + elderly}
+                  </span>
+                )}
+              </span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${showVulnerable ? "rotate-180" : ""}`} />
+            </button>
+
+            {showVulnerable && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-2 rounded-xl border border-border bg-muted/30 p-3"
+              >
+                {/* Babies */}
+                <div className="flex items-center justify-between py-1">
+                  <span className="flex items-center gap-2 text-sm text-foreground">
+                    <Baby className="h-4 w-4 text-primary" />
+                    Bébés / Nourrissons
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => setBabies(Math.max(0, babies - 1))} className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-background"><Minus className="h-3 w-3" /></button>
+                    <span className="w-5 text-center text-sm font-semibold text-foreground">{babies}</span>
+                    <button type="button" onClick={() => setBabies(Math.min(20, babies + 1))} className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-background"><Plus className="h-3 w-3" /></button>
+                  </div>
+                </div>
+
+                {/* Pregnant */}
+                <div className="flex items-center justify-between py-1">
+                  <span className="flex items-center gap-2 text-sm text-foreground">
+                    <Heart className="h-4 w-4 text-pink-500" />
+                    Femmes enceintes
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => setPregnant(Math.max(0, pregnant - 1))} className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-background"><Minus className="h-3 w-3" /></button>
+                    <span className="w-5 text-center text-sm font-semibold text-foreground">{pregnant}</span>
+                    <button type="button" onClick={() => setPregnant(Math.min(20, pregnant + 1))} className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-background"><Plus className="h-3 w-3" /></button>
+                  </div>
+                </div>
+
+                {/* Elderly */}
+                <div className="flex items-center justify-between py-1">
+                  <span className="flex items-center gap-2 text-sm text-foreground">
+                    <UserRound className="h-4 w-4 text-amber-600" />
+                    Personnes âgées
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => setElderly(Math.max(0, elderly - 1))} className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-background"><Minus className="h-3 w-3" /></button>
+                    <span className="w-5 text-center text-sm font-semibold text-foreground">{elderly}</span>
+                    <button type="button" onClick={() => setElderly(Math.min(20, elderly + 1))} className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-background"><Plus className="h-3 w-3" /></button>
+                  </div>
+                </div>
+
+                {(babies + pregnant + elderly > 0) && (
+                  <p className="text-xs text-urgent font-medium pt-1">
+                    ⚠️ Présence de personnes vulnérables — priorité élevée automatique
+                  </p>
+                )}
+              </motion.div>
+            )}
           </div>
 
           <div className="space-y-2">
