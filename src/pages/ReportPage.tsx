@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Zap, Droplets, Send, MapPin, Clock, Navigation, Loader2 } from "lucide-react";
+import { Zap, Droplets, Send, MapPin, Clock, Navigation, Loader2, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +29,8 @@ const ReportPage = () => {
   const [customQuartier, setCustomQuartier] = useState("");
   const [description, setDescription] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [startTime, setStartTime] = useState("");
+  const [impactedPeople, setImpactedPeople] = useState<number | "">("");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [detectedCommune, setDetectedCommune] = useState<Commune | null>(null);
@@ -116,17 +118,29 @@ const ReportPage = () => {
 
     setSubmitting(true);
     try {
+      // Build start_time from manual input or default to now
+      let reportStartTime = new Date().toISOString();
+      if (startTime) {
+        const [h, m] = startTime.split(":").map(Number);
+        const st = new Date();
+        st.setHours(h, m, 0, 0);
+        reportStartTime = st.toISOString();
+      }
+
+      const baseDesc = description || `Coupure de ${serviceType === "electricity" ? "courant" : "eau"} à ${commune}`;
+      const fullDesc = impactedPeople ? `${baseDesc} [${impactedPeople} personne(s) impactée(s)]` : baseDesc;
+
       const { error } = await supabase.from("reports").insert({
         user_id: user.id,
         service_type: serviceType,
-        description: description || `Coupure de ${serviceType === "electricity" ? "courant" : "eau"} à ${commune}`,
+        description: fullDesc,
         location: commune,
         commune,
         quartier: resolvedQuartier,
         latitude,
         longitude,
         urgency: urgency === "urgent" ? "high" : "medium",
-        start_time: new Date().toISOString(),
+        start_time: reportStartTime,
         photo_url: photoUrl || null,
       });
       if (error) throw error;
@@ -361,7 +375,39 @@ const ReportPage = () => {
             </div>
           </div>
 
-          {/* Photo */}
+          {/* Start time */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold flex items-center gap-1.5">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              Heure de début de la coupure
+            </Label>
+            <Input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              placeholder="Ex: 14:30"
+            />
+            <p className="text-xs text-muted-foreground">
+              Laissez vide si la coupure vient de commencer
+            </p>
+          </div>
+
+          {/* Impacted people */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold flex items-center gap-1.5">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              Personnes impactées dans le ménage
+            </Label>
+            <Input
+              type="number"
+              min={1}
+              max={50}
+              value={impactedPeople}
+              onChange={(e) => setImpactedPeople(e.target.value ? parseInt(e.target.value) : "")}
+              placeholder="Ex: 4"
+            />
+          </div>
+
           <div className="space-y-2">
             <Label className="text-sm font-semibold">Photo</Label>
             <PhotoUpload onPhotoUploaded={setPhotoUrl} photoUrl={photoUrl} />
