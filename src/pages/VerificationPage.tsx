@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, Clock, Power, Zap, Droplets, Loader2, PartyPopper, AlertTriangle, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Header from "@/components/Header";
+import NeighborCorroboration from "@/components/NeighborCorroboration";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { COMMUNE_COLORS } from "@/lib/communes";
@@ -25,6 +27,8 @@ interface MyReport {
 
 const VerificationPage = () => {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const reportIdFromNotif = searchParams.get("report");
   const [reports, setReports] = useState<MyReport[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -106,15 +110,34 @@ const VerificationPage = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container max-w-lg py-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-success/10">
-            <CheckCircle2 className="h-8 w-8 text-success" />
-          </div>
-          <h1 className="font-display text-2xl font-bold text-foreground">Mes signalements actifs</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Confirmez le retour du service ou signalez que la coupure est toujours en cours
-          </p>
-        </motion.div>
+        {/* Corroboration from notification */}
+        {reportIdFromNotif ? (
+          <>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-urgent/10">
+                <AlertTriangle className="h-8 w-8 text-urgent" />
+              </div>
+              <h1 className="font-display text-2xl font-bold text-foreground">Confirmer une coupure</h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Un voisin a signalé une coupure dans votre quartier
+              </p>
+            </motion.div>
+            <NeighborCorroboration
+              reportId={reportIdFromNotif}
+              onDone={() => setSearchParams({})}
+            />
+          </>
+        ) : (
+          <>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-success/10">
+                <CheckCircle2 className="h-8 w-8 text-success" />
+              </div>
+              <h1 className="font-display text-2xl font-bold text-foreground">Mes signalements actifs</h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Confirmez le retour du service ou signalez que la coupure est toujours en cours
+              </p>
+            </motion.div>
 
         {loading ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16">
@@ -285,6 +308,8 @@ const VerificationPage = () => {
             )}
           </DialogContent>
         </Dialog>
+          </>
+        )}
       </main>
     </div>
   );
