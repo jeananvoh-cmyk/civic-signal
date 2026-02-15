@@ -43,6 +43,11 @@ const ReportCard = ({ report, index }: { report: Report; index: number }) => {
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex flex-wrap items-center gap-2">
             <Badge className={urgency.colorClass}>{urgency.label}</Badge>
+            {report.urgency === "critical" && (
+              <Badge className="bg-destructive text-destructive-foreground animate-pulse">
+                🔥 Critique
+              </Badge>
+            )}
             {report.status === "resolved" && (
               <Badge variant="outline" className="border-success text-success">
                 <CheckCircle2 className="mr-1 h-3 w-3" /> Résolu

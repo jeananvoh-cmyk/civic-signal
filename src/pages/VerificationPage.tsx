@@ -205,6 +205,11 @@ const VerificationPage = () => {
                         )}
 
                         <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
+                          {r.urgency === "critical" && (
+                            <span className="flex items-center gap-1 text-destructive font-semibold animate-pulse">
+                              🔥 Critique
+                            </span>
+                          )}
                           <span className="flex items-center gap-1">
                             <CheckCircle2 className="h-3.5 w-3.5" />
                             {r.verifications} confirmation{r.verifications !== 1 ? "s" : ""}
