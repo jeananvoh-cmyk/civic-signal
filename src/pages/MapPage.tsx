@@ -77,18 +77,57 @@ const MapPage = () => {
 
       const hasVerified = verified > 0;
       const verifiedPercent = actifs > 0 ? Math.round((verified / actifs) * 100) : 0;
-      const filterEmoji = filter === "electricity" ? "⚡" : filter === "water" ? "💧" : "";
-      const markerSize = total > 0 ? 48 : 36;
-      const countIcon = L.divIcon({
-        className: "",
-        html: `<div style="
+
+      // Build marker HTML based on filter
+      let markerHtml = '';
+      const markerSize = total > 0 ? 52 : 36;
+
+      if (filter === "all" && s && (s.electricite_actifs > 0 || s.eau_actifs > 0)) {
+        // Split marker showing both service types
+        const elecActive = s.electricite_actifs;
+        const eauActive = s.eau_actifs;
+        markerHtml = `<div style="
+          position:relative;display:flex;align-items:center;gap:2px;
+        ">
+          <div style="
+            background:#f59e0b;color:white;
+            width:${markerSize / 2 + 2}px;height:${markerSize}px;
+            border-radius:${markerSize / 2}px 0 0 ${markerSize / 2}px;
+            display:flex;flex-direction:column;align-items:center;justify-content:center;
+            border:${hasVerified ? '2px solid #22c55e' : '2px solid white'};border-right:1px solid rgba(255,255,255,0.3);
+            font-size:11px;font-weight:bold;
+            box-shadow:${hasVerified ? '0 0 10px rgba(34,197,94,0.5)' : '0 2px 8px rgba(0,0,0,.3)'};
+          "><span style="font-size:10px">⚡</span>${elecActive}</div>
+          <div style="
+            background:#3b82f6;color:white;
+            width:${markerSize / 2 + 2}px;height:${markerSize}px;
+            border-radius:0 ${markerSize / 2}px ${markerSize / 2}px 0;
+            display:flex;flex-direction:column;align-items:center;justify-content:center;
+            border:${hasVerified ? '2px solid #22c55e' : '2px solid white'};border-left:none;
+            font-size:11px;font-weight:bold;
+            box-shadow:${hasVerified ? '0 0 10px rgba(34,197,94,0.5)' : '0 2px 8px rgba(0,0,0,.3)'};
+          "><span style="font-size:10px">💧</span>${eauActive}</div>
+          ${hasVerified ? `<span style="
+            position:absolute;top:-6px;right:-6px;
+            background:linear-gradient(135deg,#22c55e,#16a34a);color:white;
+            width:18px;height:18px;border-radius:50%;
+            display:flex;align-items:center;justify-content:center;
+            font-size:9px;border:2px solid white;
+            box-shadow:0 1px 4px rgba(0,0,0,.3);
+          ">✓</span>` : ''}
+        </div>`;
+      } else {
+        // Single service marker
+        const filterEmoji = filter === "electricity" ? "⚡" : filter === "water" ? "💧" : "";
+        const bgColor = filter === "electricity" ? "#f59e0b" : filter === "water" ? "#3b82f6" : c.couleur;
+        markerHtml = `<div style="
           position:relative;
-          background:${c.couleur};color:white;
+          background:${bgColor};color:white;
           width:${markerSize}px;height:${markerSize}px;
           border-radius:50%;display:flex;align-items:center;justify-content:center;
           border:${hasVerified ? '3px solid #22c55e' : '3px solid white'};
           box-shadow:${hasVerified ? '0 0 12px rgba(34,197,94,0.6), 0 2px 10px rgba(0,0,0,.35)' : '0 2px 10px rgba(0,0,0,.35)'};
-          font-size:${total > 0 ? 16 : 13}px;font-weight:bold;
+          font-size:${total > 0 ? 15 : 13}px;font-weight:bold;
         ">${filterEmoji}${total}${hasVerified ? `<span style="
           position:absolute;top:-6px;right:-6px;
           background:linear-gradient(135deg,#22c55e,#16a34a);color:white;
@@ -96,9 +135,14 @@ const MapPage = () => {
           display:flex;align-items:center;justify-content:center;
           font-size:10px;border:2px solid white;
           box-shadow:0 1px 4px rgba(0,0,0,.3);
-        ">✓</span>` : ''}</div>`,
-        iconSize: [markerSize, markerSize],
-        iconAnchor: [markerSize / 2, markerSize / 2],
+        ">✓</span>` : ''}</div>`;
+      }
+
+      const countIcon = L.divIcon({
+        className: "",
+        html: markerHtml,
+        iconSize: [filter === "all" && s && (s.electricite_actifs > 0 || s.eau_actifs > 0) ? markerSize + 6 : markerSize, markerSize],
+        iconAnchor: [filter === "all" && s && (s.electricite_actifs > 0 || s.eau_actifs > 0) ? (markerSize + 6) / 2 : markerSize / 2, markerSize / 2],
       });
 
       const serviceLabel = filter === "electricity" ? "Électricité" : filter === "water" ? "Eau" : "Tous services";
@@ -106,6 +150,22 @@ const MapPage = () => {
         ? `<div style="margin-top:6px;padding:4px 8px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center">
             <span style="font-size:11px;color:#16a34a;font-weight:600">✓ ${verified} confirmé${verified > 1 ? 's' : ''} par la communauté</span>
             ${actifs > 0 ? `<br/><span style="font-size:10px;color:#15803d">${verifiedPercent}% des signalements actifs</span>` : ''}
+          </div>`
+        : '';
+
+      // Build service breakdown for "all" filter popup
+      const serviceBreakdownHtml = filter === "all" && s
+        ? `<div style="margin-top:6px;display:flex;gap:6px;justify-content:center">
+            <div style="flex:1;padding:4px 6px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;text-align:center">
+              <span style="font-size:12px">⚡</span><br/>
+              <span style="font-size:13px;font-weight:bold;color:#d97706">${s.electricite_actifs}</span>
+              <span style="font-size:9px;color:#92400e"> actif${s.electricite_actifs > 1 ? 's' : ''}</span>
+            </div>
+            <div style="flex:1;padding:4px 6px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;text-align:center">
+              <span style="font-size:12px">💧</span><br/>
+              <span style="font-size:13px;font-weight:bold;color:#2563eb">${s.eau_actifs}</span>
+              <span style="font-size:9px;color:#1e40af"> actif${s.eau_actifs > 1 ? 's' : ''}</span>
+            </div>
           </div>`
         : '';
 
@@ -118,6 +178,7 @@ const MapPage = () => {
             <span style="font-size:22px;font-weight:bold">${total}</span>
             <span style="font-size:11px;color:#666"> signalement${total > 1 ? "s" : ""}</span><br/>
             <span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? "s" : ""} · ✅ ${resolus} résolu${resolus > 1 ? "s" : ""}</span>
+            ${serviceBreakdownHtml}
             ${verifiedHtml}
           </div>`
         );
