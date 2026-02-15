@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_messages: {
+        Row: {
+          commune: string
+          created_at: string
+          id: string
+          message: string
+          quartier: string
+          sender_id: string
+          title: string
+        }
+        Insert: {
+          commune?: string
+          created_at?: string
+          id?: string
+          message: string
+          quartier?: string
+          sender_id: string
+          title: string
+        }
+        Update: {
+          commune?: string
+          created_at?: string
+          id?: string
+          message?: string
+          quartier?: string
+          sender_id?: string
+          title?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -331,6 +361,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      broadcast_admin_message: {
+        Args: {
+          p_commune: string
+          p_message?: string
+          p_quartier?: string
+          p_title?: string
+        }
+        Returns: number
+      }
       corroborate_report: { Args: { p_report_id: string }; Returns: undefined }
       count_user_daily_reports: { Args: { p_user_id: string }; Returns: number }
       find_nearest_commune: {

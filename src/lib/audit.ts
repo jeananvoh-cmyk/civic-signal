@@ -7,9 +7,10 @@ export type AuditAction =
   | "report_purge_commune"
   | "report_purge_all"
   | "role_added"
-  | "role_removed";
+  | "role_removed"
+  | "broadcast_message";
 
-export type AuditTargetType = "report" | "user" | "commune" | "system";
+export type AuditTargetType = "report" | "user" | "commune" | "system" | "notification";
 
 interface AuditEntry {
   action: AuditAction;

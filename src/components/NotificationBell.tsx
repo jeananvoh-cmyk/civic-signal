@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, Zap, Droplets, Check, Trash2 } from "lucide-react";
+import { Bell, Zap, Droplets, Check, Trash2, Megaphone, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
@@ -78,8 +78,22 @@ const NotificationBell = () => {
       setNotifications((prev) => prev.map((notif) => notif.id === n.id ? { ...notif, read: true } : notif));
     }
     setOpen(false);
-    // Navigate to verification page with the report_id
-    navigate(`/verification?report=${n.report_id}`);
+
+    const isBroadcast = n.message.startsWith("📢");
+    const isConfirmation = n.title === "Un voisin confirme votre signalement";
+    const isResolved = n.title === "Service rétabli dans votre quartier";
+
+    if (isBroadcast || isResolved) {
+      // No navigation needed for broadcast or resolved notifications
+      return;
+    }
+
+    if (isConfirmation) {
+      navigate(`/verification?report=${n.report_id}&type=confirmation`);
+    } else {
+      // Neighbor alert → corroboration
+      navigate(`/verification?report=${n.report_id}`);
+    }
   };
 
   const formatTime = (dateStr: string) => {
@@ -132,6 +146,9 @@ const NotificationBell = () => {
             </div>
           ) : (
             notifications.map((n) => {
+              const isBroadcast = n.message.startsWith("📢");
+              const isResolved = n.title === "Service rétabli dans votre quartier";
+              const isConfirmation = n.title === "Un voisin confirme votre signalement";
               const isElec = n.message.includes("Électricité");
               return (
                 <button
@@ -142,9 +159,15 @@ const NotificationBell = () => {
                   }`}
                 >
                   <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                    isBroadcast ? "bg-accent text-accent-foreground" :
+                    isResolved ? "bg-success/10 text-success" :
+                    isConfirmation ? "bg-success/10 text-success" :
                     isElec ? "bg-primary/10 text-primary" : "bg-water/10 text-water"
                   }`}>
-                    {isElec ? <Zap className="h-4 w-4" /> : <Droplets className="h-4 w-4" />}
+                    {isBroadcast ? <Megaphone className="h-4 w-4" /> :
+                     isResolved ? <CheckCircle2 className="h-4 w-4" /> :
+                     isConfirmation ? <Check className="h-4 w-4" /> :
+                     isElec ? <Zap className="h-4 w-4" /> : <Droplets className="h-4 w-4" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground">{n.title}</p>
