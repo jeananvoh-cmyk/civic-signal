@@ -1,19 +1,38 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   FileText, Users, AlertTriangle, CheckCircle2, Clock, TrendingUp,
-  Zap, Droplets, Shield, Trash2, BarChart3, ArrowRight,
+  Zap, Droplets, Shield, Trash2, BarChart3, ArrowRight, Heart,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSiteSetting } from "@/hooks/useSiteSetting";
+import { toast } from "@/hooks/use-toast";
 
 const AdminOverviewPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { data: donationsEnabled = true } = useSiteSetting("donations_enabled");
+
+  const toggleDonations = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const { error } = await supabase
+        .from("site_settings")
+        .update({ value: enabled as unknown as never, updated_at: new Date().toISOString(), updated_by: user?.id })
+        .eq("key", "donations_enabled");
+      if (error) throw error;
+    },
+    onSuccess: (_, enabled) => {
+      queryClient.invalidateQueries({ queryKey: ["site-setting", "donations_enabled"] });
+      toast({ title: enabled ? "Page dons activée" : "Page dons masquée" });
+    },
+  });
 
   // Pending reports count
   const { data: pendingCount = 0 } = useQuery({
@@ -213,6 +232,30 @@ const AdminOverviewPage = () => {
           </motion.div>
         ))}
       </div>
+
+      {/* Donation page toggle */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+        <Card className="mb-8">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary">
+                <Heart className="h-5 w-5 text-destructive" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">Page de dons</p>
+                <p className="text-xs text-muted-foreground">
+                  {donationsEnabled ? "Visible par tous les utilisateurs" : "Masquée — les utilisateurs ne peuvent pas y accéder"}
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={donationsEnabled}
+              onCheckedChange={(checked) => toggleDonations.mutate(checked)}
+              disabled={toggleDonations.isPending}
+            />
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Critical reports alert */}
       {criticalReports.length > 0 && (
