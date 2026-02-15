@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { getUserFriendlyError } from "@/lib/error-utils";
+import { useSignedUrl } from "@/hooks/useSignedUrl";
 
 interface PhotoUploadProps {
   onPhotoUploaded: (url: string) => void;
@@ -15,6 +16,7 @@ const PhotoUpload = ({ onPhotoUploaded, photoUrl }: PhotoUploadProps) => {
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const displayUrl = useSignedUrl(photoUrl);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -39,11 +41,8 @@ const PhotoUpload = ({ onPhotoUploaded, photoUrl }: PhotoUploadProps) => {
         .upload(path, file, { upsert: true });
       if (error) throw error;
 
-      const { data: urlData } = supabase.storage
-        .from("report-photos")
-        .getPublicUrl(path);
-      
-      onPhotoUploaded(urlData.publicUrl);
+      // Store the storage path (not a URL) for private bucket access
+      onPhotoUploaded(path);
       toast.success("Photo ajoutée !");
     } catch (err: any) {
       toast.error(getUserFriendlyError(err, "Erreur lors de l'upload"));
@@ -69,7 +68,7 @@ const PhotoUpload = ({ onPhotoUploaded, photoUrl }: PhotoUploadProps) => {
 
       {photoUrl ? (
         <div className="relative rounded-xl overflow-hidden border border-border">
-          <img src={photoUrl} alt="Photo du signalement" className="w-full h-40 object-cover" />
+          <img src={displayUrl || ""} alt="Photo du signalement" className="w-full h-40 object-cover" />
           <Button
             type="button"
             variant="destructive"
