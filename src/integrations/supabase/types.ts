@@ -412,9 +412,11 @@ export type Database = {
           eau_actifs: number
           eau_resolus: number
           eau_total: number
+          eau_verified: number
           electricite_actifs: number
           electricite_resolus: number
           electricite_total: number
+          electricite_verified: number
           population: number
         }[]
       }
