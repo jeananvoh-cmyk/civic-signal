@@ -49,11 +49,17 @@ const AuthPage = () => {
     try {
       const trimmed = identifier.trim();
       let result;
+      const metadata = {
+        display_name: displayName,
+        user_type: userType,
+        phone: isPhone(trimmed) ? trimmed : phone || undefined,
+      };
+
       if (isPhone(trimmed)) {
         result = await supabase.auth.signUp({
           phone: trimmed,
           password,
-          options: { data: { display_name: displayName } },
+          options: { data: metadata },
         });
       } else {
         result = await supabase.auth.signUp({
@@ -61,19 +67,20 @@ const AuthPage = () => {
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { display_name: displayName },
+            data: metadata,
           },
         });
       }
       if (result.error) throw result.error;
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+      // Update profile if session is available (phone signup or auto-confirm)
+      const newUser = result.data.user;
+      if (newUser && result.data.session) {
         await supabase.from("profiles").update({
           user_type: userType,
           phone: isPhone(trimmed) ? trimmed : phone,
           display_name: displayName,
-        }).eq("user_id", user.id);
+        }).eq("user_id", newUser.id);
       }
 
       toast.success(
