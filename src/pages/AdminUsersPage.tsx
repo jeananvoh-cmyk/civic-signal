@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import { getUserFriendlyError } from "@/lib/error-utils";
+import { logAudit } from "@/lib/audit";
 
 const ROLE_LABELS: Record<string, { label: string; icon: typeof Shield }> = {
   admin: { label: "Administrateur", icon: ShieldCheck },
@@ -61,7 +62,8 @@ const AdminUsersPage = () => {
         .insert({ user_id: email, role }); // email is actually user_id here
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, { email, role }) => {
+      logAudit({ action: "role_added", target_type: "user", target_id: email, details: { role } });
       queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
       toast.success("Rôle attribué avec succès");
       setNewEmail("");
@@ -75,7 +77,8 @@ const AdminUsersPage = () => {
       const { error } = await supabase.from("user_roles").delete().eq("id", roleId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, roleId) => {
+      logAudit({ action: "role_removed", target_type: "user", target_id: roleId });
       queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
       toast.success("Rôle retiré");
     },

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { logAudit } from "@/lib/audit";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -90,7 +91,13 @@ const AdminPurgePage = () => {
       const { error } = await query;
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, filter) => {
+      const actionMap = { user: "report_purge_user", commune: "report_purge_commune", all: "report_purge_all" } as const;
+      logAudit({
+        action: actionMap[filter.type],
+        target_type: filter.type === "user" ? "user" : filter.type === "commune" ? "commune" : "system",
+        target_id: filter.value,
+      });
       queryClient.invalidateQueries({ queryKey: ["admin-purge"] });
       queryClient.invalidateQueries({ queryKey: ["admin-reports"] });
       toast.success("Signalements supprimés avec succès");
