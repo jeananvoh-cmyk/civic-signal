@@ -25,9 +25,9 @@ const Index = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
-            className="max-w-2xl"
-          >
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm text-white backdrop-blur-sm">
+            className="max-w-2xl">
+
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm text-white backdrop-blur-sm">05 communes Pilotes — Abidjan
               <Shield className="h-4 w-4" />
               Pilote 5 communes — Abidjan
             </div>
@@ -39,8 +39,8 @@ const Index = () => {
               <img src={electricityIcon} alt="Électricité" className="inline-block h-10 w-10 md:h-14 md:w-14 drop-shadow-lg" />
             </h1>
 
-            <p className="mt-6 max-w-lg text-xl font-semibold text-white">
-              En <span className="text-electricity">15 Secondes</span> Signales si tu n'as plus d'
+            <p className="mt-6 max-w-lg text-xl font-semibold text-white">En 15 Secondes Signales si tu n'as plus d'eau ou l'électricité. 
+Tes voisins agissent déjà.<span className="text-electricity">15 Secondes</span> Signales si tu n'as plus d'
               <span className="text-water-light">eau</span> ou l'
               <span className="text-electricity">électricité</span>. Tes voisins agissent déjà.
             </p>
@@ -57,15 +57,15 @@ const Index = () => {
 
             {/* 5 communes badges */}
             <div className="mt-8 flex flex-wrap gap-2">
-              {COMMUNES.map((c) => (
-                <span
-                  key={c.nom}
-                  className="rounded-full px-3 py-1 text-xs font-bold text-white"
-                  style={{ backgroundColor: c.couleur }}
-                >
+              {COMMUNES.map((c) =>
+              <span
+                key={c.nom}
+                className="rounded-full px-3 py-1 text-xs font-bold text-white"
+                style={{ backgroundColor: c.couleur }}>
+
                   {c.nom}
                 </span>
-              ))}
+              )}
             </div>
           </motion.div>
         </div>
@@ -77,8 +77,8 @@ const Index = () => {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mb-12 text-center"
-        >
+          className="mb-12 text-center">
+
           <h2 className="font-display text-3xl font-bold text-foreground">
             Comment ça fonctionne
           </h2>
@@ -89,50 +89,50 @@ const Index = () => {
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {[
-            {
-              icon: <MapPin className="h-6 w-6" />,
-              title: "1. Localisation",
-              description: "GPS détecte votre commune automatiquement parmi les 5 pilotes.",
-              bgClass: "bg-electricity-light",
-              iconClass: "text-electricity",
-            },
-            {
-              icon: <Zap className="h-6 w-6" />,
-              title: "2. Signalez",
-              description: "Choisissez Eau ou Électricité, indiquez les personnes impactées et confirmez.",
-              bgClass: "bg-water-light",
-              iconClass: "text-water",
-            },
-            {
-              icon: <Users className="h-6 w-6" />,
-              title: "3. Vérifiez",
-              description: "Les voisins à moins de 200m confirment pour éliminer les faux positifs.",
-              bgClass: "bg-secondary",
-              iconClass: "text-primary",
-            },
-            {
-              icon: <BarChart3 className="h-6 w-6" />,
-              title: "4. Dashboard",
-              description: "Opérateurs et mairies suivent les coupures en temps réel par commune.",
-              bgClass: "bg-muted",
-              iconClass: "text-foreground",
-            },
-          ].map((feature, i) => (
-            <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.12 }}
-              className="rounded-xl border border-border bg-card p-6 shadow-card"
-            >
+          {
+            icon: <MapPin className="h-6 w-6" />,
+            title: "1. Localisation",
+            description: "GPS détecte votre commune automatiquement parmi les 5 pilotes.",
+            bgClass: "bg-electricity-light",
+            iconClass: "text-electricity"
+          },
+          {
+            icon: <Zap className="h-6 w-6" />,
+            title: "2. Signalez",
+            description: "Choisissez Eau ou Électricité, indiquez les personnes impactées et confirmez.",
+            bgClass: "bg-water-light",
+            iconClass: "text-water"
+          },
+          {
+            icon: <Users className="h-6 w-6" />,
+            title: "3. Vérifiez",
+            description: "Les voisins à moins de 200m confirment pour éliminer les faux positifs.",
+            bgClass: "bg-secondary",
+            iconClass: "text-primary"
+          },
+          {
+            icon: <BarChart3 className="h-6 w-6" />,
+            title: "4. Dashboard",
+            description: "Opérateurs et mairies suivent les coupures en temps réel par commune.",
+            bgClass: "bg-muted",
+            iconClass: "text-foreground"
+          }].
+          map((feature, i) =>
+          <motion.div
+            key={feature.title}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: i * 0.12 }}
+            className="rounded-xl border border-border bg-card p-6 shadow-card">
+
               <div className={`mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl ${feature.bgClass}`}>
                 <span className={feature.iconClass}>{feature.icon}</span>
               </div>
               <h3 className="mb-2 font-display text-xl font-bold text-foreground">{feature.title}</h3>
               <p className="text-sm leading-relaxed text-muted-foreground">{feature.description}</p>
             </motion.div>
-          ))}
+          )}
         </div>
       </section>
 
@@ -140,23 +140,23 @@ const Index = () => {
       <section className="gradient-hero py-12">
         <div className="container grid gap-8 text-center sm:grid-cols-3">
           {[
-            { value: "5", label: "Communes pilotes" },
-            { value: "2.58M", label: "Population couverte" },
-            { value: "<200m", label: "Rayon vérification" },
-          ].map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-            >
+          { value: "5", label: "Communes pilotes" },
+          { value: "2.58M", label: "Population couverte" },
+          { value: "<200m", label: "Rayon vérification" }].
+          map((stat, i) =>
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, scale: 0.8 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: i * 0.1 }}>
+
               <p className="font-display text-3xl font-extrabold text-white md:text-4xl">
                 {stat.value}
               </p>
               <p className="mt-1 text-sm text-white/70">{stat.label}</p>
             </motion.div>
-          ))}
+          )}
         </div>
       </section>
 
@@ -181,8 +181,8 @@ const Index = () => {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>);
+
 };
 
 export default Index;
