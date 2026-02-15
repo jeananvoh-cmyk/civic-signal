@@ -182,7 +182,7 @@ const DashboardPage = () => {
             <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-5 py-3 shadow-card hover:bg-secondary/50 transition-colors">
               <div className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-amber-500" />
-                <h2 className="font-display text-xl font-bold text-foreground">Classement des communes</h2>
+                <h2 className="font-display text-xl font-bold text-foreground">Classement des coupures en cours par commune</h2>
               </div>
               <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
             </CollapsibleTrigger>
