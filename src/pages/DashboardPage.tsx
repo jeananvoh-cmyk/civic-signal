@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio } from "lucide-react";
+import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio, Flame } from "lucide-react";
 import Header from "@/components/Header";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import ShareButton from "@/components/ShareButton";
@@ -35,6 +35,16 @@ interface DurationStat {
   service_type: string;
 }
 
+interface QuartierRanking {
+  commune: string;
+  couleur: string;
+  quartier: string;
+  totalActifs: number;
+  elecActifs: number;
+  eauActifs: number;
+  totalAll: number;
+}
+
 function formatMinutes(mins: number): string {
   if (mins < 1) return "—";
   if (mins < 60) return `${Math.round(mins)}min`;
@@ -50,17 +60,46 @@ const DashboardPage = () => {
   const { isAdmin } = useUserRole();
   const [stats, setStats] = useState<CommuneServiceStat[]>([]);
   const [durations, setDurations] = useState<DurationStat[]>([]);
+  const [topQuartiers, setTopQuartiers] = useState<QuartierRanking[]>([]);
   const [loading, setLoading] = useState(true);
   const [realtimeActive, setRealtimeActive] = useState(false);
 
   const fetchAll = useCallback(async () => {
-    const [statsRes, durRes] = await Promise.all([
+    const communeNames = COMMUNES.map((c) => c.nom);
+    const [statsRes, durRes, ...quartierResults] = await Promise.all([
       supabase.rpc("get_commune_service_stats"),
       supabase.rpc("get_commune_duration_stats"),
+      ...communeNames.map((nom) => supabase.rpc("get_commune_quartier_stats", { p_commune: nom })),
     ]);
     if (!statsRes.error && statsRes.data) setStats(statsRes.data as unknown as CommuneServiceStat[]);
     else setStats(COMMUNES.map((c) => ({ commune: c.nom, couleur: c.couleur, population: c.population, electricite_actifs: 0, electricite_resolus: 0, electricite_total: 0, eau_actifs: 0, eau_resolus: 0, eau_total: 0 })));
     if (!durRes.error && durRes.data) setDurations(durRes.data as unknown as DurationStat[]);
+
+    // Build top quartiers ranking
+    const allQuartiers: QuartierRanking[] = [];
+    quartierResults.forEach((res, idx) => {
+      if (!res.error && res.data) {
+        const commune = communeNames[idx];
+        const couleur = COMMUNES.find((c) => c.nom === commune)?.couleur || "#888";
+        (res.data as any[]).forEach((q) => {
+          const totalActifs = (q.electricite_actifs || 0) + (q.eau_actifs || 0);
+          if (totalActifs > 0 || (q.electricite_total || 0) + (q.eau_total || 0) > 0) {
+            allQuartiers.push({
+              commune,
+              couleur,
+              quartier: q.quartier,
+              totalActifs,
+              elecActifs: q.electricite_actifs || 0,
+              eauActifs: q.eau_actifs || 0,
+              totalAll: (q.electricite_total || 0) + (q.eau_total || 0),
+            });
+          }
+        });
+      }
+    });
+    allQuartiers.sort((a, b) => b.totalActifs - a.totalActifs || b.totalAll - a.totalAll);
+    setTopQuartiers(allQuartiers.slice(0, 10));
+
     setLoading(false);
   }, []);
 
@@ -258,6 +297,53 @@ const DashboardPage = () => {
             </motion.div>
           );
         })()}
+
+        {/* Top quartiers */}
+        {!loading && topQuartiers.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }} className="mb-8">
+            <Collapsible>
+              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-5 py-3 shadow-card hover:bg-secondary/50 transition-colors">
+                <div className="flex items-center gap-2">
+                  <Flame className="h-5 w-5 text-destructive" />
+                  <h2 className="font-display text-xl font-bold text-foreground">Top 10 quartiers les plus touchés</h2>
+                </div>
+                <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="mt-2 rounded-2xl border border-border bg-card shadow-card overflow-hidden divide-y divide-border">
+                  {topQuartiers.map((q, i) => {
+                    const medal = i === 0 ? "🔥" : i === 1 ? "🔥" : i === 2 ? "🔥" : `#${i + 1}`;
+                    return (
+                      <div key={`${q.commune}-${q.quartier}`} className="flex items-center gap-4 px-5 py-3 hover:bg-secondary/50 transition-colors">
+                        <span className="text-lg font-bold w-8 text-center">{medal}</span>
+                        <div className="flex-1 min-w-0">
+                          <button
+                            onClick={() => navigate(`/commune/${encodeURIComponent(q.commune)}`)}
+                            className="font-bold text-sm hover:underline"
+                            style={{ color: q.couleur }}
+                          >
+                            {q.quartier}
+                          </button>
+                          <p className="text-[10px] text-muted-foreground">{q.commune}</p>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs">
+                          <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-amber-500" />{q.elecActifs}</span>
+                          <span className="flex items-center gap-1"><Droplets className="h-3 w-3 text-blue-500" />{q.eauActifs}</span>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-display text-lg font-extrabold" style={{ color: q.totalActifs > 0 ? q.couleur : undefined }}>
+                            {q.totalActifs}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">active{q.totalActifs !== 1 ? "s" : ""} / {q.totalAll}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </motion.div>
+        )}
 
         {/* Leaderboard */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-8">
