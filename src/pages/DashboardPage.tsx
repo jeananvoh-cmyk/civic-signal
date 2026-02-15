@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio } from "lucide-react";
 import Header from "@/components/Header";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -46,6 +47,7 @@ function formatMinutes(mins: number): string {
 
 const DashboardPage = () => {
   const navigate = useNavigate();
+  const { isAdmin } = useUserRole();
   const [stats, setStats] = useState<CommuneServiceStat[]>([]);
   const [durations, setDurations] = useState<DurationStat[]>([]);
   const [loading, setLoading] = useState(true);
@@ -336,8 +338,8 @@ const DashboardPage = () => {
           )}
         </div>
 
-        {/* Trends chart */}
-        <TrendsChart className="mt-8" />
+        {/* Trends chart - admin only */}
+        {isAdmin && <TrendsChart className="mt-8" />}
       </main>
     </div>
   );
