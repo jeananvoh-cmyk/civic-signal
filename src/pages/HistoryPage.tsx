@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Clock, Zap, Droplets, Loader2, History, Calendar } from "lucide-react";
+import { Clock, Zap, Droplets, Loader2, History, Calendar, ArrowLeft } from "lucide-react";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { COMMUNE_COLORS } from "@/lib/communes";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface HistoryReport {
   id: string;
@@ -35,6 +37,7 @@ function formatDuration(startStr: string, endStr: string): string {
 
 const HistoryPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [reports, setReports] = useState<HistoryReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "active" | "resolved">("all");
@@ -63,13 +66,18 @@ const HistoryPage = () => {
       <main className="container max-w-2xl py-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
-                <History className="h-6 w-6" /> Mon historique
-              </h1>
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={() => navigate("/profil")} aria-label="Retour à Mon espace">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div>
+                <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
+                  <History className="h-6 w-6" /> Mon historique
+                </h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 {reports.length} signalement{reports.length !== 1 ? "s" : ""} au total
               </p>
+              </div>
             </div>
             <ShareButton
               title="Mon impact SignalÉnergie"
