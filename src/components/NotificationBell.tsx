@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 interface Notification {
   id: string;
@@ -16,6 +17,7 @@ interface Notification {
 
 const NotificationBell = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
 
@@ -35,7 +37,6 @@ const NotificationBell = () => {
 
     if (!user) return;
 
-    // Realtime subscription for new notifications
     const channel = supabase
       .channel("notifications-realtime")
       .on(
@@ -68,6 +69,17 @@ const NotificationBell = () => {
     if (!user) return;
     await supabase.from("notifications").delete().eq("user_id", user.id);
     setNotifications([]);
+  };
+
+  const handleNotificationClick = async (n: Notification) => {
+    // Mark as read
+    if (!n.read) {
+      await supabase.from("notifications").update({ read: true }).eq("id", n.id);
+      setNotifications((prev) => prev.map((notif) => notif.id === n.id ? { ...notif, read: true } : notif));
+    }
+    setOpen(false);
+    // Navigate to verification page with the report_id
+    navigate(`/verification?report=${n.report_id}`);
   };
 
   const formatTime = (dateStr: string) => {
@@ -122,9 +134,10 @@ const NotificationBell = () => {
             notifications.map((n) => {
               const isElec = n.message.includes("Électricité");
               return (
-                <div
+                <button
                   key={n.id}
-                  className={`flex items-start gap-3 border-b border-border px-4 py-3 transition-colors ${
+                  onClick={() => handleNotificationClick(n)}
+                  className={`flex w-full items-start gap-3 border-b border-border px-4 py-3 text-left transition-colors hover:bg-secondary/50 ${
                     !n.read ? "bg-primary/5" : ""
                   }`}
                 >
@@ -141,7 +154,7 @@ const NotificationBell = () => {
                   {!n.read && (
                     <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
                   )}
-                </div>
+                </button>
               );
             })
           )}
