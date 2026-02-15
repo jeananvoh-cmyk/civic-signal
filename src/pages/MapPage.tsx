@@ -264,7 +264,7 @@ const MapPage = () => {
         <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-2.5 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border-2 border-success bg-success/10 text-[10px] font-bold text-success">✓</span>
-            <span><strong className="text-foreground">Coupure confirmée</strong> — signalée et confirmée par {!loading && totalActifs > 0 ? <strong className="text-success">{Math.round((totalVerified / totalActifs) * 100)}%</strong> : '…'} des voisins</span>
+            <span>Coupure signalée et confirmée par {!loading && totalActifs > 0 ? <strong className="text-success">{Math.round((totalVerified / totalActifs) * 100)}%</strong> : '…'} des voisins</span>
           </span>
           <span className="hidden sm:inline text-border">|</span>
           <span className="flex items-center gap-1.5">
