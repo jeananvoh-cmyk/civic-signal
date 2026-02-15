@@ -146,12 +146,26 @@ const MapPage = () => {
       });
 
       const serviceLabel = filter === "electricity" ? "Électricité" : filter === "water" ? "Eau" : "Tous services";
-      const verifiedHtml = hasVerified
-        ? `<div style="margin-top:6px;padding:5px 10px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center">
-            <span style="font-size:13px;color:#16a34a;font-weight:700">✓ Confirmé à ${verifiedPercent}%</span>
-            <br/><span style="font-size:10px;color:#15803d">par les voisins de la zone</span>
-          </div>`
-        : '';
+      // Build verified HTML per service
+      let verifiedHtml = '';
+      if (filter === "all" && s) {
+        const elecPercent = s.electricite_actifs > 0 ? Math.round((s.electricite_verified / s.electricite_actifs) * 100) : 0;
+        const eauPercent = s.eau_actifs > 0 ? Math.round((s.eau_verified / s.eau_actifs) * 100) : 0;
+        if (s.electricite_verified > 0 || s.eau_verified > 0) {
+          verifiedHtml = `<div style="margin-top:6px;padding:5px 8px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center">
+            <span style="font-size:11px;color:#16a34a;font-weight:700">✓ Confirmé par les voisins</span>
+            <div style="display:flex;gap:6px;margin-top:4px;justify-content:center">
+              ${s.electricite_verified > 0 ? `<span style="padding:2px 8px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:11px;font-weight:600;color:#d97706">⚡ ${elecPercent}%</span>` : ''}
+              ${s.eau_verified > 0 ? `<span style="padding:2px 8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:11px;font-weight:600;color:#2563eb">💧 ${eauPercent}%</span>` : ''}
+            </div>
+          </div>`;
+        }
+      } else if (hasVerified) {
+        verifiedHtml = `<div style="margin-top:6px;padding:5px 10px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center">
+          <span style="font-size:13px;color:#16a34a;font-weight:700">✓ Confirmé à ${verifiedPercent}%</span>
+          <br/><span style="font-size:10px;color:#15803d">par les voisins de la zone</span>
+        </div>`;
+      }
 
       // Build service breakdown for "all" filter popup
       const serviceBreakdownHtml = filter === "all" && s
@@ -186,18 +200,23 @@ const MapPage = () => {
   }, [stats, loading, filter]);
 
   const getFilteredTotals = () => {
+    const elecActifs = stats.reduce((s, c) => s + c.electricite_actifs, 0);
+    const eauActifs = stats.reduce((s, c) => s + c.eau_actifs, 0);
+    const elecVerified = stats.reduce((s, c) => s + c.electricite_verified, 0);
+    const eauVerified = stats.reduce((s, c) => s + c.eau_verified, 0);
     if (filter === "electricity") {
-      return { total: stats.reduce((s, c) => s + c.electricite_total, 0), actifs: stats.reduce((s, c) => s + c.electricite_actifs, 0), verified: stats.reduce((s, c) => s + c.electricite_verified, 0) };
+      return { total: stats.reduce((s, c) => s + c.electricite_total, 0), actifs: elecActifs, verified: elecVerified, elecActifs, eauActifs, elecVerified, eauVerified };
     } else if (filter === "water") {
-      return { total: stats.reduce((s, c) => s + c.eau_total, 0), actifs: stats.reduce((s, c) => s + c.eau_actifs, 0), verified: stats.reduce((s, c) => s + c.eau_verified, 0) };
+      return { total: stats.reduce((s, c) => s + c.eau_total, 0), actifs: eauActifs, verified: eauVerified, elecActifs, eauActifs, elecVerified, eauVerified };
     }
     return {
       total: stats.reduce((s, c) => s + c.electricite_total + c.eau_total, 0),
-      actifs: stats.reduce((s, c) => s + c.electricite_actifs + c.eau_actifs, 0),
-      verified: stats.reduce((s, c) => s + c.electricite_verified + c.eau_verified, 0),
+      actifs: elecActifs + eauActifs,
+      verified: elecVerified + eauVerified,
+      elecActifs, eauActifs, elecVerified, eauVerified,
     };
   };
-  const { total: totalSignalements, actifs: totalActifs, verified: totalVerified } = getFilteredTotals();
+  const { total: totalSignalements, actifs: totalActifs, verified: totalVerified, elecActifs: totalElecActifs, eauActifs: totalEauActifs, elecVerified: totalElecVerified, eauVerified: totalEauVerified } = getFilteredTotals();
 
   return (
     <div className="min-h-screen bg-background">
@@ -264,12 +283,24 @@ const MapPage = () => {
         <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-2.5 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border-2 border-success bg-success/10 text-[10px] font-bold text-success">✓</span>
-            <span>Coupure signalée et confirmée par {!loading && totalActifs > 0 ? <strong className="text-success">{Math.round((totalVerified / totalActifs) * 100)}%</strong> : '…'} des voisins</span>
+            {!loading && filter === "all" ? (
+              <span className="flex flex-wrap items-center gap-2">
+                <span>Coupure signalée et confirmée par les voisins :</span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                  ⚡ {totalElecActifs > 0 ? `${Math.round((totalElecVerified / totalElecActifs) * 100)}%` : '0%'}
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                  💧 {totalEauActifs > 0 ? `${Math.round((totalEauVerified / totalEauActifs) * 100)}%` : '0%'}
+                </span>
+              </span>
+            ) : (
+              <span>Coupure signalée et confirmée par {!loading && totalActifs > 0 ? <strong className="text-success">{Math.round((totalVerified / totalActifs) * 100)}%</strong> : '…'} des voisins</span>
+            )}
           </span>
           <span className="hidden sm:inline text-border">|</span>
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-3 w-3 rounded-full border-2 border-white shadow" style={{ background: '#888' }} />
-            <span><strong className="text-foreground">En attente</strong> — en cours de vérification par les voisins</span>
+            <span><strong className="text-foreground">En attente</strong> — en cours de vérification</span>
           </span>
         </div>
 
