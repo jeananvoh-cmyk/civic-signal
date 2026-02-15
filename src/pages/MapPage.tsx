@@ -120,7 +120,8 @@ const MapPage = () => {
       <main className="container py-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-4 flex items-start justify-between">
           <div>
-            <h1 className="font-display text-3xl font-bold text-foreground">Carte des 5 communes</h1>
+            <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground uppercase tracking-tight">Cartographie en live des coupures d'eau et d'électricité dans Abidjan</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">05 communes pilotes disponibles</p>
             <p className="mt-1 text-muted-foreground">
               {loading ? "Chargement..." : `${totalSignalements} signalement(s) dont ${totalActifs} actif(s)`}
             </p>
