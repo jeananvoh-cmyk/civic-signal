@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Zap, Droplets, Clock, Trophy, TrendingUp } from "lucide-react";
+import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown } from "lucide-react";
 import Header from "@/components/Header";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import ShareButton from "@/components/ShareButton";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNES } from "@/lib/communes";
@@ -177,66 +178,58 @@ const DashboardPage = () => {
 
         {/* Leaderboard */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <Trophy className="h-5 w-5 text-amber-500" />
-            <h2 className="font-display text-xl font-bold text-foreground">Classement des communes</h2>
-          </div>
-          <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
-            {loading ? (
-              <div className="flex justify-center py-8"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>
-            ) : (
-              <div className="divide-y divide-border">
-                {leaderboard.map((c, i) => {
-                  const totalActifs = c.electricite_actifs + c.eau_actifs;
-                  const totalAll = c.electricite_total + c.eau_total;
-                  const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`;
-                  
-
-                  return (
-                    <div key={c.commune} className="flex items-center gap-4 px-5 py-4 hover:bg-secondary/50 transition-colors">
-                      <span className="text-lg font-bold w-8 text-center">{medal}</span>
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg overflow-hidden" style={{ backgroundColor: c.couleur }}>
-                        {COMMUNE_LOGOS[c.commune] ? (
-                          <img src={COMMUNE_LOGOS[c.commune]} alt={c.commune} className="h-full w-full object-cover" />
-                        ) : (
-                          <span className="text-white font-bold text-xs">{c.commune[0]}</span>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <button onClick={() => navigate(`/commune/${encodeURIComponent(c.commune)}`)} className="font-bold text-foreground hover:underline" style={{ color: c.couleur }}>
-                          {c.commune}
-                        </button>
-                        <div className="flex gap-3 text-xs text-muted-foreground">
-                          <span>⚡ {c.electricite_actifs}</span>
-                          <span>💧 {c.eau_actifs}</span>
-                          {(() => {
-                            const durElec = durations.find((d) => d.commune === c.commune && d.service_type === "electricity");
-                            const durWater = durations.find((d) => d.commune === c.commune && d.service_type === "water");
-                            return (
-                              <>
-                                {durElec && durElec.avg_duration_minutes > 0 && (
-                                  <span className="flex items-center gap-0.5"><Zap className="h-3 w-3 text-amber-500" />~{formatMinutes(durElec.avg_duration_minutes)}</span>
-                                )}
-                                {durWater && durWater.avg_duration_minutes > 0 && (
-                                  <span className="flex items-center gap-0.5"><Droplets className="h-3 w-3 text-blue-500" />~{formatMinutes(durWater.avg_duration_minutes)}</span>
-                                )}
-                              </>
-                            );
-                          })()}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-display text-xl font-extrabold" style={{ color: totalActifs > 0 ? c.couleur : undefined }}>
-                          {totalActifs}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">active{totalActifs !== 1 ? "s" : ""} / {totalAll}</p>
-                      </div>
-                    </div>
-                  );
-                })}
+          <Collapsible>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-5 py-3 shadow-card hover:bg-secondary/50 transition-colors">
+              <div className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-amber-500" />
+                <h2 className="font-display text-xl font-bold text-foreground">Classement des communes</h2>
               </div>
-            )}
-          </div>
+              <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="mt-2 rounded-2xl border border-border bg-card shadow-card overflow-hidden">
+                {loading ? (
+                  <div className="flex justify-center py-8"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {leaderboard.map((c, i) => {
+                      const totalActifs = c.electricite_actifs + c.eau_actifs;
+                      const totalAll = c.electricite_total + c.eau_total;
+                      const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`;
+
+                      return (
+                        <div key={c.commune} className="flex items-center gap-4 px-5 py-4 hover:bg-secondary/50 transition-colors">
+                          <span className="text-lg font-bold w-8 text-center">{medal}</span>
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg overflow-hidden" style={{ backgroundColor: c.couleur }}>
+                            {COMMUNE_LOGOS[c.commune] ? (
+                              <img src={COMMUNE_LOGOS[c.commune]} alt={c.commune} className="h-full w-full object-cover" />
+                            ) : (
+                              <span className="text-white font-bold text-xs">{c.commune[0]}</span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <button onClick={() => navigate(`/commune/${encodeURIComponent(c.commune)}`)} className="font-bold text-foreground hover:underline" style={{ color: c.couleur }}>
+                              {c.commune}
+                            </button>
+                            <div className="flex gap-3 text-xs text-muted-foreground">
+                              <span>⚡ {c.electricite_actifs}</span>
+                              <span>💧 {c.eau_actifs}</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-display text-xl font-extrabold" style={{ color: totalActifs > 0 ? c.couleur : undefined }}>
+                              {totalActifs}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">active{totalActifs !== 1 ? "s" : ""} / {totalAll}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </motion.div>
 
         {/* Per-commune breakdown */}
