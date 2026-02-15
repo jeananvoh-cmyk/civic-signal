@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useTheme } from "@/hooks/useTheme";
+import { useSiteSetting } from "@/hooks/useSiteSetting";
 
 const Header = () => {
   const location = useLocation();
@@ -13,6 +14,7 @@ const Header = () => {
   const { user, signOut } = useAuth();
   const { canValidate } = useUserRole();
   const { theme, toggleTheme } = useTheme();
+  const { data: donationsEnabled = true } = useSiteSetting("donations_enabled");
 
   const themeIcon = theme === "dark" ? <Moon className="h-4 w-4" /> : theme === "light" ? <Sun className="h-4 w-4" /> : <Monitor className="h-4 w-4" />;
 
@@ -22,7 +24,7 @@ const Header = () => {
     { to: "/tableau-de-bord", label: "Dashboard" },
     { to: "/carte", label: "Carte" },
     { to: "/verification", label: "Vérifier" },
-    { to: "/dons", label: "♥ Dons" },
+    ...(donationsEnabled ? [{ to: "/dons", label: "♥ Dons" }] : []),
   ];
 
   return (

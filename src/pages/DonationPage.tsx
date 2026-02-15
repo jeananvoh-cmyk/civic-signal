@@ -4,7 +4,8 @@ import { Heart, Smartphone, CheckCircle2, Users, Zap, Droplets, Copy, Check } fr
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Header from "@/components/Header";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import { useSiteSetting } from "@/hooks/useSiteSetting";
 
 const TIERS = [
   { amount: 500, label: "Soutien", impact: "1 signalement supplémentaire pour la communauté", popular: false },
@@ -26,12 +27,17 @@ const PHONE_NUMBER = "+225 07 00 00 00 00";
 const DonationPage = () => {
   const [selectedTier, setSelectedTier] = useState(2);
   const [copied, setCopied] = useState(false);
+  const { data: donationsEnabled, isLoading } = useSiteSetting("donations_enabled");
 
   const handleCopy = () => {
     navigator.clipboard.writeText(PHONE_NUMBER.replace(/\s/g, ""));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  if (!isLoading && !donationsEnabled) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
