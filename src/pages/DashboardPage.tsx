@@ -122,18 +122,24 @@ const DashboardPage = () => {
     fetchAll();
   }, [fetchAll]);
 
-  // Realtime subscription
+  // Realtime subscription with 3s debounce to handle high-traffic periods
   useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
     const channel = supabase
       .channel("dashboard-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "reports" }, () => {
-        fetchAll();
         setRealtimeActive(true);
-        setTimeout(() => setRealtimeActive(false), 2000);
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          fetchAll();
+          setTimeout(() => setRealtimeActive(false), 2000);
+        }, 3000);
       })
       .subscribe();
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [fetchAll]);

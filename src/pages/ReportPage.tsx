@@ -165,7 +165,12 @@ const ReportPage = () => {
       toast.success("Signalement envoyé !");
       navigate("/");
     } catch (error: any) {
-      toast.error(getUserFriendlyError(error, "Erreur lors de l'envoi"));
+      const msg = error?.message || "";
+      if (msg.includes("Rate limit exceeded")) {
+        toast.error("⏱️ Trop de signalements ! Attendez 1 minute avant de réessayer.");
+      } else {
+        toast.error(getUserFriendlyError(error, "Erreur lors de l'envoi"));
+      }
     } finally {
       setSubmitting(false);
     }
