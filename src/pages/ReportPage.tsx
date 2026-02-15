@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Zap, Droplets, Send, MapPin, Clock, Navigation, Loader2, Users, Baby, Heart, UserRound, ChevronDown, Plus, Minus } from "lucide-react";
+import { Zap, Droplets, Send, MapPin, Clock, Navigation, Loader2, Users, Baby, Heart, UserRound, ChevronDown, Plus, Minus, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import Header from "@/components/Header";
 import PhotoUpload from "@/components/PhotoUpload";
 import { toast } from "sonner";
@@ -380,10 +381,22 @@ const ReportPage = () => {
 
           {/* Impacted people + vulnerable */}
           <div className="space-y-3">
-            <Label className="text-sm font-semibold flex items-center gap-1.5">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              Personnes dans le ménage
-            </Label>
+            <div className="flex items-start gap-2">
+              <Label className="text-sm font-semibold flex items-center gap-1.5">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                Personne(s) impactée(s) dans le ménage
+              </Label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-muted/80 transition-colors">
+                    <Info className="h-3 w-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[260px] text-xs leading-relaxed bg-popover text-popover-foreground border border-border shadow-md z-50">
+                  Merci d'indiquer le nombre réel de personnes concernées. Les données servent à prioriser les interventions. Toute exagération fausse les statistiques et pourrait entraîner une suspension de votre compte.
+                </TooltipContent>
+              </Tooltip>
+            </div>
 
             {/* Counter for total people */}
             <div className="flex items-center justify-between rounded-xl border border-border bg-background p-3">
