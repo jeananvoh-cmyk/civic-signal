@@ -27,7 +27,7 @@ const Index = () => {
             transition={{ duration: 0.7 }}
             className="max-w-2xl">
 
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm text-white backdrop-blur-sm">05 communes Pilotes — Abidjan
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm text-white backdrop-blur-sm">
               <Shield className="h-4 w-4" />
               Pilote 5 communes — Abidjan
             </div>
@@ -39,8 +39,8 @@ const Index = () => {
               <img src={electricityIcon} alt="Électricité" className="inline-block h-10 w-10 md:h-14 md:w-14 drop-shadow-lg" />
             </h1>
 
-            <p className="mt-6 max-w-lg text-xl font-semibold text-white">En 15 Secondes Signales si tu n'as plus d'eau ou l'électricité. 
-Tes voisins agissent déjà.<span className="text-electricity">15 Secondes</span> Signales si tu n'as plus d'
+            <p className="mt-6 max-w-lg text-xl font-semibold text-white">
+              En <span className="text-electricity">15 Secondes</span> Signales si tu n'as plus d'
               <span className="text-water-light">eau</span> ou l'
               <span className="text-electricity">électricité</span>. Tes voisins agissent déjà.
             </p>
