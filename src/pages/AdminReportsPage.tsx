@@ -101,11 +101,6 @@ const AdminReportsPage = () => {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Badge variant={urgency.variant}>{urgency.label}</Badge>
-            {report.latitude && report.longitude && (
-              <Badge variant="outline" className="gap-1">
-                <MapPin className="h-3 w-3" /> GPS
-              </Badge>
-            )}
             {showActions && (
               <div className="flex gap-1 ml-2">
                 <Button
