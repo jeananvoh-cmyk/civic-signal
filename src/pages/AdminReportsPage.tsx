@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { getUserFriendlyError } from "@/lib/error-utils";
+import { logAudit } from "@/lib/audit";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -66,7 +67,12 @@ const AdminReportsPage = () => {
         .eq("id", reportId);
       if (error) throw error;
     },
-    onSuccess: (_, { validated }) => {
+    onSuccess: (_, { reportId, validated }) => {
+      logAudit({
+        action: validated ? "report_validated" : "report_rejected",
+        target_type: "report",
+        target_id: reportId,
+      });
       queryClient.invalidateQueries({ queryKey: ["admin-reports-pending"] });
       queryClient.invalidateQueries({ queryKey: ["admin-reports-validated"] });
       toast.success(validated ? "Signalement validé et visible sur la carte" : "Signalement rejeté");
