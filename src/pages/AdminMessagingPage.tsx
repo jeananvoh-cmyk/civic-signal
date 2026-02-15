@@ -119,12 +119,12 @@ const AdminMessagingPage = () => {
           <label className="text-sm font-medium text-foreground">
             Quartier <span className="text-xs text-muted-foreground">(optionnel — tous si vide)</span>
           </label>
-          <Select value={quartier} onValueChange={setQuartier} disabled={!commune}>
+          <Select value={quartier || "__all__"} onValueChange={(v) => setQuartier(v === "__all__" ? "" : v)} disabled={!commune}>
             <SelectTrigger>
               <SelectValue placeholder={commune ? "Tous les quartiers" : "Choisir d'abord une commune"} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tous les quartiers</SelectItem>
+              <SelectItem value="__all__">Tous les quartiers</SelectItem>
               {quartiers.map((q) => (
                 <SelectItem key={q} value={q}>{q}</SelectItem>
               ))}
