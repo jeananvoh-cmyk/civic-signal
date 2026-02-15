@@ -83,7 +83,7 @@ const AboutPage = () => {
               </li>
               <li className="flex gap-3">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
-                <span><strong className="text-foreground">Signalement rapide</strong> — Choisissez eau ou électricité, ajoutez une photo si nécessaire.</span>
+                <span><strong className="text-foreground">Signalement rapide</strong> — Choisissez eau ou électricité, indiquez les personnes impactées et les éventuelles personnes vulnérables (bébés, femmes enceintes, personnes âgées).</span>
               </li>
               <li className="flex gap-3">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">3</span>
@@ -91,7 +91,7 @@ const AboutPage = () => {
               </li>
               <li className="flex gap-3">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">4</span>
-                <span><strong className="text-foreground">Dashboard en temps réel</strong> — Les opérateurs et mairies suivent les statistiques.</span>
+                <span><strong className="text-foreground">Dashboard en temps réel</strong> — L'urgence est calculée automatiquement selon la présence de personnes vulnérables. Opérateurs et mairies suivent les statistiques par commune.</span>
               </li>
             </ol>
           </section>
@@ -106,7 +106,7 @@ const AboutPage = () => {
             </div>
             <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
               <p><strong className="text-foreground">Données personnelles :</strong> Vos coordonnées GPS exactes ne sont jamais affichées publiquement. Seules les statistiques agrégées par commune sont visibles.</p>
-              <p><strong className="text-foreground">Utilisation responsable :</strong> Les faux signalements sont interdits. Chaque utilisateur est limité à 5 signalements par jour pour garantir la qualité des données.</p>
+              <p><strong className="text-foreground">Utilisation responsable :</strong> Les faux signalements sont interdits. Toute exagération sur le nombre de personnes impactées fausse les statistiques et pourrait entraîner une suspension de votre compte. Chaque utilisateur est limité à 5 signalements par jour.</p>
               <p><strong className="text-foreground">Propriété des données :</strong> Les données collectées sont utilisées exclusivement pour améliorer les services publics d'eau et d'électricité à Abidjan.</p>
               <p><strong className="text-foreground">Contact :</strong> Pour toute question, contactez-nous à signalenergie@civictech.ci</p>
             </div>
