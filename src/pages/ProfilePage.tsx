@@ -150,21 +150,21 @@ const ProfilePage = () => {
           </div>
 
           <Tabs defaultValue="reports" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="reports" className="gap-2">
-                <FileText className="h-4 w-4" /> Signalements
+            <TabsList className="flex w-full overflow-x-auto no-scrollbar">
+              <TabsTrigger value="reports" className="gap-1.5 min-w-0 flex-shrink-0 text-xs sm:text-sm">
+                <FileText className="h-4 w-4 flex-shrink-0" /> <span className="hidden sm:inline">Signalements</span><span className="sm:hidden">Signaler</span>
               </TabsTrigger>
-              <TabsTrigger value="history" className="gap-2" onClick={() => navigate("/historique")}>
-                <Clock className="h-4 w-4" /> Historique
+              <TabsTrigger value="history" className="gap-1.5 min-w-0 flex-shrink-0 text-xs sm:text-sm">
+                <Clock className="h-4 w-4 flex-shrink-0" /> <span className="hidden sm:inline">Historique</span><span className="sm:hidden">Histo.</span>
               </TabsTrigger>
-              <TabsTrigger value="profile" className="gap-2">
-                <User className="h-4 w-4" /> Profil
+              <TabsTrigger value="profile" className="gap-1.5 min-w-0 flex-shrink-0 text-xs sm:text-sm">
+                <User className="h-4 w-4 flex-shrink-0" /> Profil
               </TabsTrigger>
-              <TabsTrigger value="location" className="gap-2">
-                <MapPin className="h-4 w-4" /> Localisation
+              <TabsTrigger value="location" className="gap-1.5 min-w-0 flex-shrink-0 text-xs sm:text-sm">
+                <MapPin className="h-4 w-4 flex-shrink-0" /> <span className="hidden sm:inline">Localisation</span><span className="sm:hidden">Lieu</span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="gap-2">
-                <Shield className="h-4 w-4" /> Paramètres
+              <TabsTrigger value="settings" className="gap-1.5 min-w-0 flex-shrink-0 text-xs sm:text-sm">
+                <Shield className="h-4 w-4 flex-shrink-0" /> <span className="hidden sm:inline">Paramètres</span><span className="sm:hidden">Param.</span>
               </TabsTrigger>
             </TabsList>
 
@@ -173,6 +173,17 @@ const ProfilePage = () => {
               <div className="rounded-xl border border-border bg-card p-6 shadow-card">
                 <h2 className="font-display text-lg font-bold text-foreground mb-4">Mes signalements</h2>
                 <MyReports />
+              </div>
+            </TabsContent>
+
+            {/* ── HISTORIQUE ── */}
+            <TabsContent value="history">
+              <div className="rounded-xl border border-border bg-card p-6 shadow-card">
+                <h2 className="font-display text-lg font-bold text-foreground mb-4">Historique</h2>
+                <p className="text-sm text-muted-foreground mb-4">Consultez l'historique complet de vos signalements et activités.</p>
+                <Button variant="outline" className="gap-2" onClick={() => navigate("/historique")}>
+                  <Clock className="h-4 w-4" /> Voir l'historique complet
+                </Button>
               </div>
             </TabsContent>
 
