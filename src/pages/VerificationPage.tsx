@@ -29,6 +29,7 @@ const VerificationPage = () => {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const reportIdFromNotif = searchParams.get("report");
+  const notifType = searchParams.get("type"); // "confirmation" or null
   const [reports, setReports] = useState<MyReport[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -111,7 +112,7 @@ const VerificationPage = () => {
       <Header />
       <main className="container max-w-lg py-8">
         {/* Corroboration from notification */}
-        {reportIdFromNotif ? (
+        {reportIdFromNotif && notifType !== "confirmation" ? (
           <>
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 text-center">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-urgent/10">
@@ -126,6 +127,34 @@ const VerificationPage = () => {
               reportId={reportIdFromNotif}
               onDone={() => setSearchParams({})}
             />
+          </>
+        ) : reportIdFromNotif && notifType === "confirmation" ? (
+          <>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-success/10">
+                <ThumbsUp className="h-8 w-8 text-success" />
+              </div>
+              <h1 className="font-display text-2xl font-bold text-foreground">Confirmation reçue !</h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Un voisin a confirmé votre signalement de coupure
+              </p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-2xl border border-border bg-card p-6 shadow-card text-center space-y-4"
+            >
+              <div className="rounded-xl bg-success/10 p-5">
+                <CheckCircle2 className="mx-auto h-10 w-10 text-success mb-2" />
+                <p className="font-bold text-foreground">Votre signalement gagne en visibilité</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Plus de voisins confirment, plus le signalement est prioritaire.
+                </p>
+              </div>
+              <Button variant="outline" onClick={() => setSearchParams({})}>
+                Voir mes signalements actifs
+              </Button>
+            </motion.div>
           </>
         ) : (
           <>
