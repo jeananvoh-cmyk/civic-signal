@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { getUserFriendlyError } from "@/lib/error-utils";
 import { COMMUNE_COLORS } from "@/lib/communes";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface Report {
   id: string;
@@ -33,6 +34,8 @@ interface QuartierCount {
 
 const MyReports = () => {
   const { user } = useAuth();
+  const { isAdmin, isModerator } = useUserRole();
+  const canSeeQuartierCounts = isAdmin || isModerator;
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [resolveTarget, setResolveTarget] = useState<Report | null>(null);
@@ -52,7 +55,8 @@ const MyReports = () => {
       .order("created_at", { ascending: false });
     if (!error && data) {
       setReports(data);
-      // Fetch counts of active reports per quartier for user's active reports
+      // Only fetch quartier counts for admins/moderators
+      if (canSeeQuartierCounts) {
       const activeReports = data.filter((r: Report) => r.status === "active" && r.quartier);
       const uniqueKeys = [...new Set(activeReports.map((r: Report) => `${r.commune}|${r.quartier}|${r.service_type}`))];
       if (uniqueKeys.length > 0) {
@@ -72,6 +76,7 @@ const MyReports = () => {
         );
         setQuartierCounts(counts);
       }
+      } // end canSeeQuartierCounts
     }
     setLoading(false);
   };
@@ -189,7 +194,7 @@ const MyReports = () => {
                       ⚡ {r.verifications} confirmations
                     </Badge>
                   )}
-                  {isActive && r.quartier && (() => {
+                  {canSeeQuartierCounts && isActive && r.quartier && (() => {
                     const key = `${r.commune}|${r.quartier}|${r.service_type}`;
                     const count = quartierCounts[key];
                     return count && count > 0 ? (
