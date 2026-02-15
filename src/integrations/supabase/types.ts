@@ -223,14 +223,18 @@ export type Database = {
       }
       reports: {
         Row: {
+          babies: number
           commune: string
           created_at: string
           description: string
+          elderly: number
           id: string
+          impacted_people: number
           latitude: number | null
           location: string
           longitude: number | null
           photo_url: string | null
+          pregnant: number
           quartier: string
           reporter_type: string
           resolved_at: string | null
@@ -246,14 +250,18 @@ export type Database = {
           verifications: number
         }
         Insert: {
+          babies?: number
           commune?: string
           created_at?: string
           description: string
+          elderly?: number
           id?: string
+          impacted_people?: number
           latitude?: number | null
           location: string
           longitude?: number | null
           photo_url?: string | null
+          pregnant?: number
           quartier?: string
           reporter_type?: string
           resolved_at?: string | null
@@ -269,14 +277,18 @@ export type Database = {
           verifications?: number
         }
         Update: {
+          babies?: number
           commune?: string
           created_at?: string
           description?: string
+          elderly?: number
           id?: string
+          impacted_people?: number
           latitude?: number | null
           location?: string
           longitude?: number | null
           photo_url?: string | null
+          pregnant?: number
           quartier?: string
           reporter_type?: string
           resolved_at?: string | null
