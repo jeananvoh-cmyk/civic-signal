@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Shield, ShieldCheck, UserPlus, Trash2 } from "lucide-react";
+import { Shield, ShieldCheck, UserPlus, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,6 +28,14 @@ const AdminUsersPage = () => {
   const [newRole, setNewRole] = useState<"admin" | "moderator">("moderator");
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  // Create user dialog state
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createEmail, setCreateEmail] = useState("");
+  const [createPassword, setCreatePassword] = useState("");
+  const [createFirstName, setCreateFirstName] = useState("");
+  const [createLastName, setCreateLastName] = useState("");
+  const [createRole, setCreateRole] = useState<"" | "admin" | "moderator">("");
+
   const { data: rolesWithProfiles = [], isLoading } = useQuery({
     queryKey: ["admin-user-roles"],
     queryFn: async () => {
@@ -37,7 +45,6 @@ const AdminUsersPage = () => {
         .order("created_at", { ascending: false });
       if (error) throw error;
 
-      // Fetch profiles for these users
       const userIds = roles.map((r) => r.user_id);
       const { data: profiles } = await supabase
         .from("profiles")
@@ -53,13 +60,9 @@ const AdminUsersPage = () => {
 
   const addRoleMutation = useMutation({
     mutationFn: async ({ email, role }: { email: string; role: "admin" | "moderator" }) => {
-      // Look up user by email via profiles — we need an edge function or RPC for this
-      // For now, we'll use the user_id approach: admin enters user_id
-      // Actually let's search by email in auth — not possible from client
-      // Use a simpler approach: admin enters the user_id directly
       const { error } = await supabase
         .from("user_roles")
-        .insert({ user_id: email, role }); // email is actually user_id here
+        .insert({ user_id: email, role });
       if (error) throw error;
     },
     onSuccess: (_, { email, role }) => {
@@ -85,6 +88,36 @@ const AdminUsersPage = () => {
     onError: (err: any) => toast.error(getUserFriendlyError(err)),
   });
 
+  const createUserMutation = useMutation({
+    mutationFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("create-user", {
+        body: {
+          email: createEmail,
+          password: createPassword,
+          first_name: createFirstName,
+          last_name: createLastName,
+          role: createRole || undefined,
+        },
+      });
+      if (res.error) throw new Error(res.error.message);
+      if (res.data?.error) throw new Error(res.data.error);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      logAudit({ action: "role_added", target_type: "user", target_id: data.user_id, details: { created: true, role: createRole || "user" } });
+      queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
+      toast.success("Utilisateur créé avec succès");
+      setCreateOpen(false);
+      setCreateEmail("");
+      setCreatePassword("");
+      setCreateFirstName("");
+      setCreateLastName("");
+      setCreateRole("");
+    },
+    onError: (err: any) => toast.error(err.message || "Erreur lors de la création"),
+  });
+
   if (!isAdmin) {
     return (
       <div className="p-6">
@@ -95,16 +128,73 @@ const AdminUsersPage = () => {
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-3xl font-bold text-foreground">Gestion des rôles</h1>
-            <p className="mt-1 text-muted-foreground">Attribuez des rôles admin ou validateur.</p>
-          </div>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h1 className="font-display text-3xl font-bold text-foreground">Gestion des rôles</h1>
+          <p className="mt-1 text-muted-foreground">Attribuez des rôles admin ou validateur.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Create user dialog */}
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Plus className="mr-2 h-4 w-4" />
+                Créer un utilisateur
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Créer un utilisateur</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Prénom</Label>
+                    <Input value={createFirstName} onChange={(e) => setCreateFirstName(e.target.value)} placeholder="Jean" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Nom</Label>
+                    <Input value={createLastName} onChange={(e) => setCreateLastName(e.target.value)} placeholder="Dupont" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Email *</Label>
+                  <Input type="email" value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} placeholder="email@exemple.com" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Mot de passe *</Label>
+                  <Input type="password" value={createPassword} onChange={(e) => setCreatePassword(e.target.value)} placeholder="Min. 6 caractères" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Rôle (optionnel)</Label>
+                  <Select value={createRole} onValueChange={(v) => setCreateRole(v as "" | "admin" | "moderator")}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Utilisateur standard" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">Utilisateur standard</SelectItem>
+                      <SelectItem value="moderator">Validateur</SelectItem>
+                      <SelectItem value="admin">Administrateur</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  className="w-full"
+                  onClick={() => createUserMutation.mutate()}
+                  disabled={!createEmail || !createPassword || createPassword.length < 6 || createUserMutation.isPending}
+                >
+                  {createUserMutation.isPending ? "Création..." : "Créer l'utilisateur"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Add role dialog */}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <UserPlus className="mr-2 h-4 w-4" />
-                Ajouter
+                Ajouter un rôle
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -145,50 +235,51 @@ const AdminUsersPage = () => {
               </div>
             </DialogContent>
           </Dialog>
-        </motion.div>
-
-        <div className="space-y-3">
-          {isLoading ? (
-            <p className="text-muted-foreground text-sm">Chargement...</p>
-          ) : rolesWithProfiles.length === 0 ? (
-            <p className="text-muted-foreground text-sm">Aucun rôle attribué.</p>
-          ) : (
-            rolesWithProfiles.map((item: any) => {
-              const RoleIcon = ROLE_LABELS[item.role]?.icon || Shield;
-              const displayName = item.profile
-                ? `${item.profile.first_name} ${item.profile.last_name}`.trim() || item.profile.display_name || item.user_id
-                : item.user_id;
-              return (
-                <Card key={item.id}>
-                  <CardContent className="flex items-center justify-between p-4">
-                    <div className="flex items-center gap-3">
-                      <RoleIcon className="h-5 w-5 text-primary" />
-                      <div>
-                        <p className="text-sm font-medium">{displayName}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{item.user_id.slice(0, 8)}...</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={item.role === "admin" ? "default" : "secondary"}>
-                        {ROLE_LABELS[item.role]?.label || item.role}
-                      </Badge>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-destructive"
-                        onClick={() => removeRoleMutation.mutate(item.id)}
-                        disabled={removeRoleMutation.isPending}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
         </div>
+      </motion.div>
+
+      <div className="space-y-3">
+        {isLoading ? (
+          <p className="text-muted-foreground text-sm">Chargement...</p>
+        ) : rolesWithProfiles.length === 0 ? (
+          <p className="text-muted-foreground text-sm">Aucun rôle attribué.</p>
+        ) : (
+          rolesWithProfiles.map((item: any) => {
+            const RoleIcon = ROLE_LABELS[item.role]?.icon || Shield;
+            const displayName = item.profile
+              ? `${item.profile.first_name} ${item.profile.last_name}`.trim() || item.profile.display_name || item.user_id
+              : item.user_id;
+            return (
+              <Card key={item.id}>
+                <CardContent className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-3">
+                    <RoleIcon className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="text-sm font-medium">{displayName}</p>
+                      <p className="text-xs text-muted-foreground font-mono">{item.user_id.slice(0, 8)}...</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={item.role === "admin" ? "default" : "secondary"}>
+                      {ROLE_LABELS[item.role]?.label || item.role}
+                    </Badge>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive"
+                      onClick={() => removeRoleMutation.mutate(item.id)}
+                      disabled={removeRoleMutation.isPending}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
       </div>
+    </div>
   );
 };
 
