@@ -147,9 +147,9 @@ const MapPage = () => {
 
       const serviceLabel = filter === "electricity" ? "Électricité" : filter === "water" ? "Eau" : "Tous services";
       const verifiedHtml = hasVerified
-        ? `<div style="margin-top:6px;padding:4px 8px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center">
-            <span style="font-size:11px;color:#16a34a;font-weight:600">✓ ${verified} confirmé${verified > 1 ? 's' : ''} par la communauté</span>
-            ${actifs > 0 ? `<br/><span style="font-size:10px;color:#15803d">${verifiedPercent}% des signalements actifs</span>` : ''}
+        ? `<div style="margin-top:6px;padding:5px 10px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center">
+            <span style="font-size:13px;color:#16a34a;font-weight:700">✓ Confirmé à ${verifiedPercent}%</span>
+            <br/><span style="font-size:10px;color:#15803d">par les voisins de la zone</span>
           </div>`
         : '';
 
