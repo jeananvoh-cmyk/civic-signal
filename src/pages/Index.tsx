@@ -113,7 +113,7 @@ const Index = () => {
           {
             icon: <BarChart3 className="h-6 w-6" />,
             title: "4. Dashboard",
-            description: "Opérateurs et mairies suivent les coupures en temps réel par commune.",
+            description: "Acteurs majeurs dans la gestion de l'eau et l'électricité en CI suivent les signalements des coupures en temps réel par commune pour y apporter des améliorations à ces services.",
             bgClass: "bg-muted",
             iconClass: "text-foreground"
           }].
