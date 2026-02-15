@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Zap, Droplets, Send, MapPin, Clock, Navigation, Loader2, Users, Baby, Heart, UserRound, ChevronDown, Plus, Minus, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import Header from "@/components/Header";
@@ -43,7 +44,7 @@ const ReportPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [dailyCount, setDailyCount] = useState<number | null>(null);
   const [limitReached, setLimitReached] = useState(false);
-
+  const [gpsConsent, setGpsConsent] = useState(false);
   const captureGPS = (showError = true) => {
     if (!navigator.geolocation) {
       setGpsLoading(false);
@@ -514,6 +515,25 @@ const ReportPage = () => {
             />
           </div>
 
+          {/* GPS Consent */}
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="gps-consent"
+                checked={gpsConsent}
+                onCheckedChange={(checked) => setGpsConsent(checked === true)}
+                className="mt-0.5"
+              />
+              <label htmlFor="gps-consent" className="text-sm text-foreground leading-relaxed cursor-pointer">
+                J'accepte que ma position GPS soit utilisée <strong>uniquement pour géolocaliser ce signalement</strong>. 
+                Mes coordonnées seront <strong>automatiquement supprimées</strong> dès que le signalement sera résolu.
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground pl-7">
+              📍 En savoir plus : <Link to="/confidentialite" className="text-primary underline">Politique de confidentialité</Link>
+            </p>
+          </div>
+
           <Button
             type="submit"
             className="w-full py-6 text-base font-bold"
@@ -521,7 +541,7 @@ const ReportPage = () => {
               backgroundColor: selectedCommuneData?.couleur || undefined,
               color: "white",
             }}
-            disabled={submitting || limitReached || !serviceType || !commune || !resolvedQuartier || !latitude || !longitude}
+            disabled={submitting || limitReached || !serviceType || !commune || !resolvedQuartier || !latitude || !longitude || !gpsConsent}
           >
             <Send className="mr-2 h-5 w-5" />
             {submitting ? "Envoi..." : "Confirmer signalement"}
