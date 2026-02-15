@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Zap, Droplets, Trash2, CheckCircle2, Clock, Loader2 } from "lucide-react";
+import { Zap, Droplets, Trash2, CheckCircle2, Clock, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -32,6 +33,8 @@ const MyReports = () => {
   const [resolveTime, setResolveTime] = useState("");
   const [resolving, setResolving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Report | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
 
   const fetchReports = async () => {
     if (!user) return;
@@ -74,13 +77,16 @@ const MyReports = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    setDeleting(id);
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(deleteTarget.id);
     try {
-      const { error } = await supabase.from("reports").delete().eq("id", id);
+      const { error } = await supabase.from("reports").delete().eq("id", deleteTarget.id);
       if (error) throw error;
-      setReports((prev) => prev.filter((r) => r.id !== id));
+      setReports((prev) => prev.filter((r) => r.id !== deleteTarget.id));
       toast.success("Signalement supprimé");
+      setDeleteTarget(null);
+      setDeleteReason("");
     } catch (err: any) {
       toast.error(getUserFriendlyError(err));
     } finally {
@@ -154,7 +160,7 @@ const MyReports = () => {
                   size="sm"
                   variant="ghost"
                   className="text-xs text-destructive hover:text-destructive"
-                  onClick={() => handleDelete(r.id)}
+                  onClick={() => { setDeleteTarget(r); setDeleteReason(""); }}
                   disabled={deleting === r.id}
                 >
                   <Trash2 className="mr-1 h-3 w-3" />
@@ -194,6 +200,62 @@ const MyReports = () => {
               disabled={resolving || !resolveTime}
             >
               {resolving ? "Envoi..." : "✅ Confirmer le rétablissement"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteReason(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Supprimer ce signalement ?
+            </DialogTitle>
+            <DialogDescription>
+              Cette action est irréversible. Le signalement sera définitivement supprimé.
+            </DialogDescription>
+          </DialogHeader>
+
+          {deleteTarget && (
+            <div className="rounded-lg border border-border bg-muted/50 p-3">
+              <div className="flex items-center gap-2 text-sm">
+                <span>{deleteTarget.service_type === "electricity" ? "⚡" : "💧"}</span>
+                <span className="font-medium">{deleteTarget.commune}</span>
+                {deleteTarget.quartier && <span className="text-muted-foreground">· {deleteTarget.quartier}</span>}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{deleteTarget.description}</p>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="delete-reason">Pourquoi supprimez-vous ce signalement ?</Label>
+            <Textarea
+              id="delete-reason"
+              placeholder="Ex : signalement en double, erreur de saisie, problème résolu autrement…"
+              value={deleteReason}
+              onChange={(e) => setDeleteReason(e.target.value)}
+              className="min-h-[80px] resize-none"
+              maxLength={300}
+            />
+            <p className="text-xs text-muted-foreground text-right">{deleteReason.length}/300</p>
+          </div>
+
+          <div className="flex gap-2 pt-1">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => { setDeleteTarget(null); setDeleteReason(""); }}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              className="flex-1"
+              onClick={handleDelete}
+              disabled={!deleteReason.trim() || !!deleting}
+            >
+              {deleting ? "Suppression..." : "Confirmer la suppression"}
             </Button>
           </div>
         </DialogContent>
