@@ -155,6 +155,10 @@ const ReportPage = () => {
         urgency: urgencyLevel,
         start_time: reportStartTime,
         photo_url: photoUrl || null,
+        impacted_people: impactedPeople,
+        babies,
+        pregnant,
+        elderly,
       });
       if (error) throw error;
       toast.success("Signalement envoyé !");

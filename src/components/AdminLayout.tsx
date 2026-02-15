@@ -1,6 +1,6 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { 
-  FileText, Users, Trash2, BarChart3, Shield, ChevronLeft, ScrollText 
+  FileText, Users, Trash2, BarChart3, Shield, ChevronLeft, ScrollText, Heart 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { label: "Suppressions", path: "/admin/suppressions", icon: Trash2 },
   { label: "Purge données", path: "/admin/purge", icon: Trash2 },
   { label: "Statistiques", path: "/admin/stats", icon: BarChart3 },
+  { label: "Vulnérables", path: "/admin/vulnerables", icon: Heart },
   { label: "Journal", path: "/admin/journal", icon: ScrollText },
 ];
 

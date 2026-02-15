@@ -390,6 +390,20 @@ export type Database = {
           total: number
         }[]
       }
+      get_commune_vulnerable_stats: {
+        Args: never
+        Returns: {
+          commune: string
+          couleur: string
+          population: number
+          total_actifs: number
+          total_babies: number
+          total_elderly: number
+          total_impacted: number
+          total_pregnant: number
+          total_signalements: number
+        }[]
+      }
       get_nearby_reports: {
         Args: { p_lat: number; p_lon: number; p_rayon_m?: number }
         Returns: {
@@ -418,6 +432,17 @@ export type Database = {
           status: string
           urgency: string
           verifications: number
+        }[]
+      }
+      get_quartier_vulnerable_stats: {
+        Args: { p_commune: string }
+        Returns: {
+          quartier: string
+          total_actifs: number
+          total_babies: number
+          total_elderly: number
+          total_impacted: number
+          total_pregnant: number
         }[]
       }
       get_reports_time_series: {
