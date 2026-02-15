@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { COMMUNE_COLORS } from "@/lib/communes";
 import TrendsChart from "@/components/TrendsChart";
 import { format } from "date-fns";
-import * as XLSX from "xlsx";
+
 
 interface CommuneStat {
   commune: string;
@@ -31,19 +31,18 @@ const AdminStatsPage = () => {
   const totalActifs = stats.reduce((s, c) => s + c.actifs, 0);
   const totalResolus = stats.reduce((s, c) => s + c.resolus, 0);
 
-  const exportXLSX = () => {
-    const wsData = [
-      ["Commune", "Total", "Actifs", "Résolus", "Population"],
-      ...stats.map((c) => [c.commune, c.total, c.actifs, c.resolus, c.population]),
-      [],
-      ["Totaux", totalSignalements, totalActifs, totalResolus, stats.reduce((s, c) => s + c.population, 0)],
-    ];
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    // Auto-size columns
-    ws["!cols"] = [{ wch: 18 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 14 }];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Statistiques");
-    XLSX.writeFile(wb, `stats_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+  const exportCSV = () => {
+    const header = "Commune,Total,Actifs,Résolus,Population";
+    const rows = stats.map((c) => `${c.commune},${c.total},${c.actifs},${c.resolus},${c.population}`);
+    const totalsRow = `Totaux,${totalSignalements},${totalActifs},${totalResolus},${stats.reduce((s, c) => s + c.population, 0)}`;
+    const csv = [header, ...rows, "", totalsRow].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `stats_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -53,9 +52,9 @@ const AdminStatsPage = () => {
           <h1 className="font-display text-2xl font-bold text-foreground">Statistiques</h1>
           <p className="mt-1 text-muted-foreground">Vue d'ensemble des signalements par commune.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={exportXLSX} disabled={stats.length === 0}>
+        <Button variant="outline" size="sm" onClick={exportCSV} disabled={stats.length === 0}>
           <Download className="mr-2 h-4 w-4" />
-          Export XLSX
+          Export CSV
         </Button>
       </motion.div>
 
