@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { Zap, Menu, X, LogIn, LogOut, User, Shield, Moon, Sun, Monitor } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -55,7 +56,8 @@ const Header = () => {
           </Button>
 
           {user ? (
-            <div className="ml-1 flex items-center gap-2">
+            <div className="ml-1 flex items-center gap-1">
+              <NotificationBell />
               {canValidate && (
                 <Link
                   to="/admin"
@@ -81,7 +83,8 @@ const Header = () => {
           )}
         </nav>
 
-        <div className="flex items-center gap-1 md:hidden">
+        <div className="flex items-center gap-0.5 md:hidden">
+          {user && <NotificationBell />}
           <Button variant="ghost" size="icon" onClick={toggleTheme}>
             {themeIcon}
           </Button>
