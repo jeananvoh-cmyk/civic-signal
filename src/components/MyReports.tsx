@@ -23,6 +23,7 @@ interface Report {
   created_at: string;
   start_time: string;
   resolved_at: string | null;
+  verifications: number;
 }
 
 const MyReports = () => {
@@ -40,7 +41,7 @@ const MyReports = () => {
     if (!user) return;
     const { data, error } = await supabase
       .from("reports")
-      .select("id, service_type, description, commune, quartier, status, urgency, created_at, start_time, resolved_at")
+      .select("id, service_type, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, verifications")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     if (!error && data) setReports(data);
@@ -150,6 +151,16 @@ const MyReports = () => {
                   <Badge variant={isActive ? "default" : "outline"} className={isActive ? "" : "border-success text-success"}>
                     {isActive ? "Actif" : "Résolu"}
                   </Badge>
+                  {r.urgency === "critical" && (
+                    <Badge className="bg-destructive text-destructive-foreground animate-pulse">
+                      🔥 Critique
+                    </Badge>
+                  )}
+                  {r.verifications >= 3 && r.urgency !== "critical" && (
+                    <Badge variant="outline" className="border-amber-500 text-amber-500">
+                      ⚡ {r.verifications} confirmations
+                    </Badge>
+                  )}
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     {new Date(r.created_at).toLocaleDateString("fr-FR")}

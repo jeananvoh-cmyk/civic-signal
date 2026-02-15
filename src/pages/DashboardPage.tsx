@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown } from "lucide-react";
+import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio } from "lucide-react";
 import Header from "@/components/Header";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import ShareButton from "@/components/ShareButton";
+import TrendsChart from "@/components/TrendsChart";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNES } from "@/lib/communes";
 import { COMMUNE_LOGOS } from "@/lib/commune-logos";
@@ -48,20 +49,38 @@ const DashboardPage = () => {
   const [stats, setStats] = useState<CommuneServiceStat[]>([]);
   const [durations, setDurations] = useState<DurationStat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [realtimeActive, setRealtimeActive] = useState(false);
+
+  const fetchAll = useCallback(async () => {
+    const [statsRes, durRes] = await Promise.all([
+      supabase.rpc("get_commune_service_stats"),
+      supabase.rpc("get_commune_duration_stats"),
+    ]);
+    if (!statsRes.error && statsRes.data) setStats(statsRes.data as unknown as CommuneServiceStat[]);
+    else setStats(COMMUNES.map((c) => ({ commune: c.nom, couleur: c.couleur, population: c.population, electricite_actifs: 0, electricite_resolus: 0, electricite_total: 0, eau_actifs: 0, eau_resolus: 0, eau_total: 0 })));
+    if (!durRes.error && durRes.data) setDurations(durRes.data as unknown as DurationStat[]);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    const fetchAll = async () => {
-      const [statsRes, durRes] = await Promise.all([
-        supabase.rpc("get_commune_service_stats"),
-        supabase.rpc("get_commune_duration_stats"),
-      ]);
-      if (!statsRes.error && statsRes.data) setStats(statsRes.data as unknown as CommuneServiceStat[]);
-      else setStats(COMMUNES.map((c) => ({ commune: c.nom, couleur: c.couleur, population: c.population, electricite_actifs: 0, electricite_resolus: 0, electricite_total: 0, eau_actifs: 0, eau_resolus: 0, eau_total: 0 })));
-      if (!durRes.error && durRes.data) setDurations(durRes.data as unknown as DurationStat[]);
-      setLoading(false);
-    };
     fetchAll();
-  }, []);
+  }, [fetchAll]);
+
+  // Realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel("dashboard-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "reports" }, () => {
+        fetchAll();
+        setRealtimeActive(true);
+        setTimeout(() => setRealtimeActive(false), 2000);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchAll]);
 
   const totalElecActifs = stats.reduce((s, c) => s + c.electricite_actifs, 0);
   const totalElecResolus = stats.reduce((s, c) => s + c.electricite_resolus, 0);
@@ -80,7 +99,13 @@ const DashboardPage = () => {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex items-start justify-between">
           <div>
             <h1 className="font-display text-3xl font-bold text-foreground">Dashboard Opérateur</h1>
-            <p className="mt-1 text-muted-foreground">5 communes pilotes — Abidjan</p>
+            <div className="mt-1 flex items-center gap-2">
+              <p className="text-muted-foreground">5 communes pilotes — Abidjan</p>
+              <span className={`flex items-center gap-1 text-xs font-medium transition-colors ${realtimeActive ? "text-success" : "text-muted-foreground"}`}>
+                <Radio className={`h-3 w-3 ${realtimeActive ? "animate-pulse" : ""}`} />
+                Live
+              </span>
+            </div>
           </div>
           <ShareButton
             title="Dashboard SignalÉnergie"
@@ -310,6 +335,9 @@ const DashboardPage = () => {
             })
           )}
         </div>
+
+        {/* Trends chart */}
+        <TrendsChart className="mt-8" />
       </main>
     </div>
   );
