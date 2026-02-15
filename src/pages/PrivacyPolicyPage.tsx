@@ -67,9 +67,9 @@ const PrivacyPolicyPage = () => {
               </ul>
             </div>
 
-            <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-4">
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
               <p className="font-semibold text-foreground mb-2 flex items-center gap-2">
-                <Trash2 className="h-4 w-4 text-green-600" />
+                <Trash2 className="h-4 w-4 text-primary" />
                 Suppression automatique des coordonnées GPS
               </p>
               <p className="text-sm">

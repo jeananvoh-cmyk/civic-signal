@@ -27,6 +27,7 @@ const AdminVulnerablePage = lazy(() => import("./pages/AdminVulnerablePage"));
 const AdminMessagingPage = lazy(() => import("./pages/AdminMessagingPage"));
 const CommuneDetailPage = lazy(() => import("./pages/CommuneDetailPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
+const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
 const HistoryPage = lazy(() => import("./pages/HistoryPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="/profil" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               <Route path="/historique" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
               <Route path="/a-propos" element={<AboutPage />} />
+              <Route path="/confidentialite" element={<PrivacyPolicyPage />} />
               
               {/* Admin routes */}
               <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>

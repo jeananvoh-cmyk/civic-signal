@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { Shield, Users, MapPin, Zap, Droplets, Heart, ExternalLink } from "lucide-react";
 import Header from "@/components/Header";
 import { COMMUNES } from "@/lib/communes";
@@ -105,10 +106,15 @@ const AboutPage = () => {
               <h2 className="font-display text-xl font-bold text-foreground">Conditions d'utilisation</h2>
             </div>
             <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
-              <p><strong className="text-foreground">Données personnelles :</strong> Vos coordonnées GPS exactes ne sont jamais affichées publiquement. Seules les statistiques agrégées par commune sont visibles.</p>
+              <p><strong className="text-foreground">Données personnelles :</strong> Vos coordonnées GPS exactes ne sont jamais affichées publiquement. Seules les statistiques agrégées par commune sont visibles. Vos coordonnées GPS sont automatiquement supprimées lorsque votre signalement est résolu.</p>
               <p><strong className="text-foreground">Utilisation responsable :</strong> Les faux signalements sont interdits. Toute exagération sur le nombre de personnes impactées fausse les statistiques et pourrait entraîner une suspension de votre compte. Chaque utilisateur est limité à 5 signalements par jour.</p>
               <p><strong className="text-foreground">Propriété des données :</strong> Les données collectées sont utilisées exclusivement pour améliorer les services publics d'eau et d'électricité à Abidjan.</p>
               <p><strong className="text-foreground">Contact :</strong> Pour toute question, contactez-nous à signalenergie@civictech.ci</p>
+              <p className="pt-2">
+                <Link to="/confidentialite" className="text-primary underline flex items-center gap-1">
+                  <Shield className="h-4 w-4" /> Consulter notre politique de confidentialité complète
+                </Link>
+              </p>
             </div>
           </section>
 
