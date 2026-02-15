@@ -29,6 +29,7 @@ interface DurationStat {
   total_resolved: number;
   total_active: number;
   longest_duration_minutes: number;
+  service_type: string;
 }
 
 function formatMinutes(mins: number): string {
@@ -125,27 +126,54 @@ const DashboardPage = () => {
         </motion.div>
 
         {/* Duration stats */}
-        {!loading && durations.some((d) => d.total_resolved > 0) && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-8">
-            <div className="flex items-center gap-2 mb-4">
-              <Clock className="h-5 w-5 text-muted-foreground" />
-              <h2 className="font-display text-xl font-bold text-foreground">Durée moyenne des coupures</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              {durations.map((d) => (
-                <div key={d.commune} className="rounded-xl border border-border bg-card p-4 text-center shadow-card">
-                  <p className="text-sm font-bold mb-1" style={{ color: d.couleur }}>{d.commune}</p>
-                  <p className="font-display text-2xl font-extrabold text-foreground">
-                    {d.total_resolved > 0 ? formatMinutes(d.avg_duration_minutes) : "—"}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {d.total_resolved > 0 ? `${d.total_resolved} résolu${d.total_resolved > 1 ? "s" : ""}` : "Aucune donnée"}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
+        {!loading && durations.some((d) => d.total_resolved > 0) && (() => {
+          const communeNames = [...new Set(durations.map((d) => d.commune))];
+          return (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-8">
+              <div className="flex items-center gap-2 mb-4">
+                <Clock className="h-5 w-5 text-muted-foreground" />
+                <h2 className="font-display text-xl font-bold text-foreground">Durée moyenne des coupures</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                {communeNames.map((commune) => {
+                  const elec = durations.find((d) => d.commune === commune && d.service_type === "electricity");
+                  const water = durations.find((d) => d.commune === commune && d.service_type === "water");
+                  const couleur = elec?.couleur || water?.couleur || "#888";
+
+                  return (
+                    <div key={commune} className="rounded-xl border border-border bg-card p-4 shadow-card">
+                      <p className="text-sm font-bold mb-2 text-center" style={{ color: couleur }}>{commune}</p>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Zap className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                          <div className="min-w-0">
+                            <p className="font-display text-lg font-extrabold text-foreground leading-tight">
+                              {elec && elec.total_resolved > 0 ? formatMinutes(elec.avg_duration_minutes) : "—"}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {elec && elec.total_resolved > 0 ? `${elec.total_resolved} résolu${elec.total_resolved > 1 ? "s" : ""}` : "Aucune donnée"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Droplets className="h-3.5 w-3.5 shrink-0 text-blue-500" />
+                          <div className="min-w-0">
+                            <p className="font-display text-lg font-extrabold text-foreground leading-tight">
+                              {water && water.total_resolved > 0 ? formatMinutes(water.avg_duration_minutes) : "—"}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {water && water.total_resolved > 0 ? `${water.total_resolved} résolu${water.total_resolved > 1 ? "s" : ""}` : "Aucune donnée"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          );
+        })()}
 
         {/* Leaderboard */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-8">
@@ -162,7 +190,7 @@ const DashboardPage = () => {
                   const totalActifs = c.electricite_actifs + c.eau_actifs;
                   const totalAll = c.electricite_total + c.eau_total;
                   const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`;
-                  const dur = durations.find((d) => d.commune === c.commune);
+                  
 
                   return (
                     <div key={c.commune} className="flex items-center gap-4 px-5 py-4 hover:bg-secondary/50 transition-colors">
@@ -181,9 +209,20 @@ const DashboardPage = () => {
                         <div className="flex gap-3 text-xs text-muted-foreground">
                           <span>⚡ {c.electricite_actifs}</span>
                           <span>💧 {c.eau_actifs}</span>
-                          {dur && dur.avg_duration_minutes > 0 && (
-                            <span className="flex items-center gap-0.5"><Clock className="h-3 w-3" /> ~{formatMinutes(dur.avg_duration_minutes)}</span>
-                          )}
+                          {(() => {
+                            const durElec = durations.find((d) => d.commune === c.commune && d.service_type === "electricity");
+                            const durWater = durations.find((d) => d.commune === c.commune && d.service_type === "water");
+                            return (
+                              <>
+                                {durElec && durElec.avg_duration_minutes > 0 && (
+                                  <span className="flex items-center gap-0.5"><Zap className="h-3 w-3 text-amber-500" />~{formatMinutes(durElec.avg_duration_minutes)}</span>
+                                )}
+                                {durWater && durWater.avg_duration_minutes > 0 && (
+                                  <span className="flex items-center gap-0.5"><Droplets className="h-3 w-3 text-blue-500" />~{formatMinutes(durWater.avg_duration_minutes)}</span>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                       <div className="text-right">
