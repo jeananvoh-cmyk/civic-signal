@@ -74,14 +74,15 @@ const AuthPage = () => {
       }
       if (result.error) throw result.error;
 
-      // Update profile if session is available (phone signup or auto-confirm)
+      // Detect fake signup (email already exists — Supabase returns user with empty identities)
       const newUser = result.data.user;
-      if (newUser && result.data.session) {
-        await supabase.from("profiles").update({
-          user_type: userType,
-          phone: isPhone(trimmed) ? trimmed : phone,
-          display_name: displayName,
-        }).eq("user_id", newUser.id);
+      if (newUser && (!newUser.identities || newUser.identities.length === 0)) {
+        toast.info(
+          "😊 Bonne nouvelle, vous avez déjà un compte ! Connectez-vous avec cet identifiant ou cliquez sur « Mot de passe oublié » si besoin.",
+          { duration: 6000 }
+        );
+        setMode("login");
+        return;
       }
 
       toast.success(
