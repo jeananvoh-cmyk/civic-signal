@@ -242,24 +242,47 @@ const AuthPage = () => {
                 </div>
               )}
 
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Mot de passe"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-12 rounded-lg text-base pr-12"
-                  required
-                  minLength={6}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
+              <div className="space-y-2">
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Mot de passe"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="h-12 rounded-lg text-base pr-12"
+                    required
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+                {password.length > 0 && (
+                  <div className="rounded-lg bg-muted/60 px-3 py-2.5 space-y-1.5">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Votre mot de passe doit contenir :</p>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold ${password.length >= 6 ? 'bg-[hsl(135,55%,48%)] text-white' : 'bg-muted-foreground/20 text-muted-foreground'}`}>✓</span>
+                      <span className={password.length >= 6 ? 'text-foreground' : 'text-muted-foreground'}>Au moins 6 caractères</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold ${/[A-Z]/.test(password) ? 'bg-[hsl(135,55%,48%)] text-white' : 'bg-muted-foreground/20 text-muted-foreground'}`}>✓</span>
+                      <span className={/[A-Z]/.test(password) ? 'text-foreground' : 'text-muted-foreground'}>Une lettre majuscule</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold ${/[a-z]/.test(password) ? 'bg-[hsl(135,55%,48%)] text-white' : 'bg-muted-foreground/20 text-muted-foreground'}`}>✓</span>
+                      <span className={/[a-z]/.test(password) ? 'text-foreground' : 'text-muted-foreground'}>Une lettre minuscule</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold ${/[0-9]/.test(password) ? 'bg-[hsl(135,55%,48%)] text-white' : 'bg-muted-foreground/20 text-muted-foreground'}`}>✓</span>
+                      <span className={/[0-9]/.test(password) ? 'text-foreground' : 'text-muted-foreground'}>Un chiffre</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
