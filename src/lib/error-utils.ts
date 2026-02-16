@@ -13,6 +13,7 @@ export function getUserFriendlyError(error: any, fallback = "Une erreur est surv
   if (msg.includes("Email not confirmed")) return "Veuillez confirmer votre email avant de vous connecter";
   if (msg.includes("User already registered")) return "Un compte existe déjà avec cet identifiant";
   if (msg.includes("Password should be at least")) return "Le mot de passe doit contenir au moins 6 caractères";
+  if (code === "weak_password" || msg.includes("Password should contain")) return "Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre";
   if (msg.includes("rate limit") || code === "429") return "Trop de tentatives. Veuillez patienter quelques minutes.";
 
   // DB constraint errors
