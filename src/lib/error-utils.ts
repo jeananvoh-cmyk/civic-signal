@@ -17,7 +17,10 @@ export function getUserFriendlyError(error: any, fallback = "Une erreur est surv
   if (msg.includes("rate limit") || code === "429") return "Trop de tentatives. Veuillez patienter quelques minutes.";
 
   // DB constraint errors
-  if (code === "23505") return "Cette donnée existe déjà";
+  if (code === "23505") {
+    if (msg.includes("phone")) return "Ce numéro de téléphone est déjà associé à un compte.";
+    return "Cette donnée existe déjà";
+  }
   if (code === "23503") return "Référence invalide";
   if (code === "42501" || msg.includes("permission denied")) return "Accès refusé";
   if (code === "PGRST301" || msg.includes("JWT")) return "Session expirée. Veuillez vous reconnecter.";
