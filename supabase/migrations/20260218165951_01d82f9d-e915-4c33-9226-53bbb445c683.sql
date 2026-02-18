@@ -1,0 +1,1 @@
+UPDATE public.communes SET rayon_m = 12000 WHERE nom = 'Yopougon';
