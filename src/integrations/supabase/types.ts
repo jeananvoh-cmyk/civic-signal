@@ -384,10 +384,10 @@ export type Database = {
     Functions: {
       broadcast_admin_message: {
         Args: {
-          p_commune: string
           p_message?: string
-          p_quartier?: string
           p_title?: string
+          target_commune: string
+          target_quartier?: string
         }
         Returns: number
       }

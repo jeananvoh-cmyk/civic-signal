@@ -40,8 +40,8 @@ const AdminMessagingPage = () => {
     setSending(true);
     try {
       const { data, error } = await supabase.rpc("broadcast_admin_message", {
-        p_commune: commune,
-        p_quartier: quartier || "",
+        target_commune: commune,
+        target_quartier: quartier || "",
         p_title: title.trim(),
         p_message: message.trim(),
       });
