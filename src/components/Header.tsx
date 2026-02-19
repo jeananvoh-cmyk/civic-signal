@@ -77,12 +77,26 @@ const Header = () => {
               </Button>
             </div>
           ) : (
-            <Button asChild variant="outline" size="sm" className="ml-2">
-              <Link to="/auth">
-                <LogIn className="mr-1.5 h-4 w-4" />
-                Connexion
-              </Link>
-            </Button>
+            <div className="ml-2 flex items-center gap-2">
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/auth?tab=login">
+                  <LogIn className="mr-1.5 h-4 w-4" />
+                  Connexion
+                </Link>
+              </Button>
+              <div className="relative">
+                <Button asChild size="sm" className="bg-water text-water-foreground hover:bg-water/90 font-semibold animate-fade-in">
+                  <Link to="/auth?tab=signup">
+                    <Heart className="mr-1.5 h-4 w-4" />
+                    Rejoindre
+                  </Link>
+                </Button>
+                <span className="absolute -top-1.5 -right-1.5 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-electricity opacity-75" />
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-electricity" />
+                </span>
+              </div>
+            </div>
           )}
         </nav>
 
@@ -146,16 +160,28 @@ const Header = () => {
               </button>
             </>
           ) : (
-            <Link
-              to="/auth"
-              onClick={() => setMobileOpen(false)}
-              className="mt-2 block rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-secondary"
-            >
-              <LogIn className="mr-2 inline h-4 w-4" />
-              Connexion
-            </Link>
+            <>
+              <Link
+                to="/auth?tab=login"
+                onClick={() => setMobileOpen(false)}
+                className="mt-2 block rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-secondary"
+              >
+                <LogIn className="mr-2 inline h-4 w-4" />
+                Connexion
+              </Link>
+              <Link
+                to="/auth?tab=signup"
+                onClick={() => setMobileOpen(false)}
+                className="mt-1 block rounded-lg bg-water/10 px-4 py-3 text-sm font-semibold text-water hover:bg-water/20 relative"
+              >
+                <Heart className="mr-2 inline h-4 w-4" />
+                Rejoindre SignalÉnergie
+                <span className="ml-2 inline-flex h-2 w-2 rounded-full bg-electricity pulse" />
+              </Link>
+            </>
           )}
         </nav>
+
       )}
     </header>
   );
