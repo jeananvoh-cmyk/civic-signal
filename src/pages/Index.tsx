@@ -1,14 +1,16 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Zap, Droplets, Shield, Users, ArrowRight, BarChart3, MapPin, CheckCircle2 } from "lucide-react";
+import { Zap, Droplets, Shield, Users, ArrowRight, BarChart3, MapPin, CheckCircle2, LogIn, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import { COMMUNES } from "@/lib/communes";
+import { useAuth } from "@/contexts/AuthContext";
 const heroBg = "/images/hero-bg.jpg";
 import waterIcon from "@/assets/water-icon-sm.webp";
 import electricityIcon from "@/assets/electricity-icon-sm.webp";
 
 const Index = () => {
+  const { user } = useAuth();
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -135,6 +137,49 @@ const Index = () => {
           )}
         </div>
       </section>
+
+      {/* Auth CTA inline — only for visitors */}
+      {!user && (
+        <section className="container py-16">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-card p-8 md:p-12 text-center"
+          >
+            {/* Decorative background blobs */}
+            <div className="pointer-events-none absolute -top-10 -left-10 h-40 w-40 rounded-full bg-water/10 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-10 -right-10 h-40 w-40 rounded-full bg-electricity/10 blur-3xl" />
+
+            <div className="relative">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-4 py-1.5 text-xs font-semibold text-muted-foreground">
+                <Shield className="h-3.5 w-3.5" />
+                Gratuit · Sans publicité · Données privées
+              </div>
+              <h2 className="font-display text-2xl font-bold text-foreground md:text-3xl">
+                Rejoins des milliers de citoyens d'Abidjan
+              </h2>
+              <p className="mx-auto mt-3 max-w-md text-muted-foreground">
+                Signale une coupure en <span className="text-electricity font-semibold">15 secondes</span>, aide tes voisins et contribue à améliorer les services publics.
+              </p>
+              <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                <Button asChild size="lg" className="bg-water text-water-foreground hover:bg-water/90 px-8 font-bold">
+                  <Link to="/auth?tab=signup">
+                    <UserPlus className="mr-2 h-5 w-5" />
+                    Créer mon compte gratuitement
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="px-8">
+                  <Link to="/auth?tab=login">
+                    <LogIn className="mr-2 h-5 w-5" />
+                    J'ai déjà un compte
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        </section>
+      )}
 
       {/* Stats bar */}
       <section className="gradient-hero py-12">
