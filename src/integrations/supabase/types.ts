@@ -266,6 +266,7 @@ export type Database = {
           photo_url: string | null
           pregnant: number
           quartier: string
+          report_category: string
           reporter_type: string
           resolved_at: string | null
           service_type: string
@@ -293,6 +294,7 @@ export type Database = {
           photo_url?: string | null
           pregnant?: number
           quartier?: string
+          report_category?: string
           reporter_type?: string
           resolved_at?: string | null
           service_type: string
@@ -320,6 +322,7 @@ export type Database = {
           photo_url?: string | null
           pregnant?: number
           quartier?: string
+          report_category?: string
           reporter_type?: string
           resolved_at?: string | null
           service_type?: string

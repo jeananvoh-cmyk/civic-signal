@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Zap, Droplets, Shield, Users, ArrowRight, BarChart3, MapPin, CheckCircle2, LogIn, UserPlus } from "lucide-react";
+import SOSButtons from "@/components/SOSButtons";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import { COMMUNES } from "@/lib/communes";
@@ -226,6 +227,7 @@ const Index = () => {
           </div>
         </div>
       </footer>
+      <SOSButtons />
     </div>);
 
 };
