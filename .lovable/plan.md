@@ -1,45 +1,29 @@
 
-# Correction de la creation de comptes en double
 
-## Probleme identifie
+## Mise a jour des boutons Header : "S'identifier" et "S'inscrire"
 
-Quand un utilisateur tente de creer un compte avec un email deja utilise, Supabase ne renvoie **pas d'erreur** (par securite, pour eviter l'enumeration d'emails). Il retourne un objet utilisateur "fantome" sans session. L'application affiche alors "Compte cree !" alors que rien ne s'est passe.
+L'image de reference montre deux boutons cote a cote :
+- **"S'identifier"** : bouton outline (bordure arrondie, fond blanc/transparent, texte sombre)
+- **"S'inscrire"** : bouton plein bleu avec texte blanc, coins arrondis
 
-De meme, le champ `phone` dans la table `profiles` n'a pas de contrainte d'unicite, ce qui pourrait permettre des doublons.
+### Modifications prevues
 
-## Plan de correction
+**Fichier : `src/components/Header.tsx`**
 
-### 1. Detection des inscriptions en double cote frontend
+1. **Desktop** (section visible quand `!user`) :
+   - Remplacer le bouton "Connexion" par un bouton outline arrondi avec le label **"S'identifier"** (sans icone, style `rounded-full border`)
+   - Remplacer le bouton "Rejoindre" + badge pulsant par un bouton plein bleu arrondi avec le label **"S'inscrire"** (sans icone, style `rounded-full bg-blue-600 text-white`)
+   - Supprimer le badge jaune pulsant (petit point anime) pour un rendu plus epure comme sur la capture
 
-Dans `AuthPage.tsx`, apres l'appel `signUp`, verifier si l'utilisateur retourne est un "faux" utilisateur (indices : pas de session, et `identities` vide ou `created_at` ancien). Quand c'est le cas, afficher un message convivial au lieu du faux succes.
+2. **Mobile** (menu hamburger) :
+   - Remplacer "Connexion" par **"S'identifier"**
+   - Remplacer "Rejoindre SignalEnergie" par **"S'inscrire"**
+   - Adapter les styles pour correspondre au meme esprit visuel (outline vs plein)
 
-Detection :
-- Si `result.data.user?.identities?.length === 0` : c'est un doublon email
-- Afficher un message du type : "Il semble qu'un compte existe deja avec cet identifiant. Essayez de vous connecter ou utilisez 'Mot de passe oublie'."
+### Details techniques
 
-### 2. Ajout d'une contrainte unique sur le telephone dans `profiles`
+- Bouton "S'identifier" : `className="rounded-full border-2 border-blue-600 bg-transparent text-blue-600 hover:bg-blue-50 px-5 py-2 text-sm font-semibold"`
+- Bouton "S'inscrire" : `className="rounded-full bg-blue-600 text-white hover:bg-blue-700 px-5 py-2 text-sm font-semibold"`
+- Les icones `LogIn` et `Heart` seront retirees des boutons pour correspondre au design epure de la capture
+- Les liens pointent toujours vers `/auth?tab=login` et `/auth?tab=signup`
 
-Migration SQL pour ajouter un index unique partiel sur la colonne `phone` (uniquement pour les valeurs non vides) :
-
-```sql
-CREATE UNIQUE INDEX profiles_phone_unique 
-ON public.profiles (phone) 
-WHERE phone IS NOT NULL AND phone != '';
-```
-
-### 3. Mise a jour du gestionnaire d'erreurs
-
-Dans `error-utils.ts`, ajouter la gestion de l'erreur de contrainte unique sur le telephone (code `23505` avec mention de `phone`) pour afficher : "Ce numero de telephone est deja associe a un compte."
-
-### 4. Message utilisateur convivial
-
-Le message affiche en cas de doublon sera chaleureux et utile :
-- **Email en double** : "Bonne nouvelle, vous avez deja un compte ! Connectez-vous avec cet email ou cliquez sur 'Mot de passe oublie' si necessaire."
-- **Telephone en double** : "Ce numero de telephone est deja utilise par un autre compte."
-
-## Details techniques
-
-Fichiers modifies :
-- `src/pages/AuthPage.tsx` : ajout de la detection `identities.length === 0` dans `handleSignup`
-- `src/lib/error-utils.ts` : ajout du cas specifique pour la contrainte unique sur le telephone
-- Migration SQL : ajout de l'index unique partiel sur `profiles.phone`
