@@ -18,12 +18,39 @@ import { useAuth } from "@/contexts/AuthContext";
 import { COMMUNES, findNearestCommune, type Commune, type CommuneResult } from "@/lib/communes";
 import { getQuartiers } from "@/lib/quartiers";
 import type { ServiceType, UrgencyLevel } from "@/lib/data";
+import SOSButtons from "@/components/SOSButtons";
+
+type ReportCategory = "outage" | "infrastructure";
 
 const DAILY_LIMIT = 5;
+
+const CATEGORY_CONFIG = {
+  outage: {
+    label: "Coupure de service",
+    description: "Signaler une coupure d'eau ou d'électricité",
+    electricityLabel: "Électricité / CIE",
+    waterLabel: "Eau / SODECI",
+    descriptionPlaceholder: "Décrivez la coupure...",
+    defaultDesc: (st: string, commune: string) =>
+      `Coupure de ${st === "electricity" ? "courant" : "eau"} à ${commune}`,
+  },
+  infrastructure: {
+    label: "Problème d'infrastructure",
+    description: "Signaler un lampadaire cassé ou une fuite visible",
+    electricityLabel: "Lampadaire cassé / CIE",
+    waterLabel: "Fuite visible / SODECI",
+    descriptionPlaceholder: "Décrivez le problème d'infrastructure (localisation précise, état...)...",
+    defaultDesc: (st: string, commune: string) =>
+      st === "electricity"
+        ? `Lampadaire cassé/éteint à ${commune}`
+        : `Fuite visible sur le réseau à ${commune}`,
+  },
+};
 
 const ReportPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [reportCategory, setReportCategory] = useState<ReportCategory | "">("");
   const [serviceType, setServiceType] = useState<ServiceType | "">("");
   const [commune, setCommune] = useState("");
   const [quartier, setQuartier] = useState("");
@@ -112,8 +139,8 @@ const ReportPage = () => {
       toast.error("Votre position GPS est requise pour signaler. Activez la géolocalisation.");
       return;
     }
-    if (!serviceType || !commune || !resolvedQuartier) {
-      toast.error("Veuillez remplir le type, la commune et le quartier");
+    if (!reportCategory || !serviceType || !commune || !resolvedQuartier) {
+      toast.error("Veuillez remplir la catégorie, le type, la commune et le quartier");
       return;
     }
     if (!user) {
@@ -132,7 +159,8 @@ const ReportPage = () => {
         reportStartTime = st.toISOString();
       }
 
-      const baseDesc = description || `Coupure de ${serviceType === "electricity" ? "courant" : "eau"} à ${commune}`;
+      const catConfig = CATEGORY_CONFIG[reportCategory as ReportCategory];
+      const baseDesc = description || catConfig.defaultDesc(serviceType, commune);
       const vulnParts: string[] = [];
       if (babies > 0) vulnParts.push(`${babies} bébé(s)`);
       if (pregnant > 0) vulnParts.push(`${pregnant} femme(s) enceinte(s)`);
@@ -147,6 +175,7 @@ const ReportPage = () => {
       const { error } = await supabase.from("reports").insert({
         user_id: user.id,
         service_type: serviceType,
+        report_category: reportCategory,
         description: fullDesc,
         location: commune,
         commune,
@@ -160,7 +189,7 @@ const ReportPage = () => {
         babies,
         pregnant,
         elderly,
-      });
+      } as any);
       if (error) throw error;
       toast.success("Signalement envoyé !");
       navigate("/");
@@ -293,6 +322,39 @@ const ReportPage = () => {
           onSubmit={handleSubmit}
           className="space-y-5 rounded-xl border border-border bg-card p-6 shadow-card"
         >
+          {/* Report category selector */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Type de signalement *</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => { setReportCategory("outage"); setServiceType(""); }}
+                className={`flex flex-col items-center gap-1.5 rounded-xl border-2 p-4 transition-all ${
+                  reportCategory === "outage"
+                    ? "border-destructive bg-destructive/5"
+                    : "border-border hover:border-destructive/50"
+                }`}
+              >
+                <span className="text-2xl">🔴</span>
+                <span className="font-medium text-sm">Coupure</span>
+                <span className="text-[10px] text-muted-foreground text-center">Pas d'eau ou d'électricité</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setReportCategory("infrastructure"); setServiceType(""); }}
+                className={`flex flex-col items-center gap-1.5 rounded-xl border-2 p-4 transition-all ${
+                  reportCategory === "infrastructure"
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                <span className="text-2xl">🔧</span>
+                <span className="font-medium text-sm">Infrastructure</span>
+                <span className="text-[10px] text-muted-foreground text-center">Lampadaire ou fuite</span>
+              </button>
+            </div>
+          </div>
+
           {/* Commune selector */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">Commune *</Label>
@@ -343,35 +405,43 @@ const ReportPage = () => {
           </div>
 
           {/* Service type */}
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold">Type de coupure *</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setServiceType("electricity")}
-                className={`flex items-center justify-center gap-2 rounded-xl border-2 p-4 transition-all ${
-                  serviceType === "electricity"
-                    ? "border-electricity bg-electricity-light"
-                    : "border-border hover:border-electricity/50"
-                }`}
-              >
-                <Zap className={`h-5 w-5 ${serviceType === "electricity" ? "text-electricity" : "text-muted-foreground"}`} />
-                <span className="font-medium text-sm">Électricité</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setServiceType("water")}
-                className={`flex items-center justify-center gap-2 rounded-xl border-2 p-4 transition-all ${
-                  serviceType === "water"
-                    ? "border-water bg-water-light"
-                    : "border-border hover:border-water/50"
-                }`}
-              >
-                <Droplets className={`h-5 w-5 ${serviceType === "water" ? "text-water" : "text-muted-foreground"}`} />
-                <span className="font-medium text-sm">Eau</span>
-              </button>
+          {reportCategory && (
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">
+                {reportCategory === "outage" ? "Type de coupure *" : "Type d'infrastructure *"}
+              </Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setServiceType("electricity")}
+                  className={`flex items-center justify-center gap-2 rounded-xl border-2 p-4 transition-all ${
+                    serviceType === "electricity"
+                      ? "border-electricity bg-electricity-light"
+                      : "border-border hover:border-electricity/50"
+                  }`}
+                >
+                  <Zap className={`h-5 w-5 ${serviceType === "electricity" ? "text-electricity" : "text-muted-foreground"}`} />
+                  <span className="font-medium text-sm">
+                    {CATEGORY_CONFIG[reportCategory]?.electricityLabel || "Électricité"}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setServiceType("water")}
+                  className={`flex items-center justify-center gap-2 rounded-xl border-2 p-4 transition-all ${
+                    serviceType === "water"
+                      ? "border-water bg-water-light"
+                      : "border-border hover:border-water/50"
+                  }`}
+                >
+                  <Droplets className={`h-5 w-5 ${serviceType === "water" ? "text-water" : "text-muted-foreground"}`} />
+                  <span className="font-medium text-sm">
+                    {CATEGORY_CONFIG[reportCategory]?.waterLabel || "Eau"}
+                  </span>
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Start time */}
           <div className="space-y-2">
@@ -512,7 +582,7 @@ const ReportPage = () => {
           <div className="space-y-2">
             <Label className="text-sm font-semibold">Description (optionnelle)</Label>
             <Textarea
-              placeholder="Décrivez la situation..."
+              placeholder={reportCategory ? CATEGORY_CONFIG[reportCategory as ReportCategory]?.descriptionPlaceholder : "Décrivez la situation..."}
               value={description}
               onChange={(e) => setDescription(e.target.value.slice(0, 500))}
               maxLength={500}
@@ -546,12 +616,15 @@ const ReportPage = () => {
               backgroundColor: selectedCommuneData?.couleur || undefined,
               color: "white",
             }}
-            disabled={submitting || limitReached || !serviceType || !commune || !resolvedQuartier || !latitude || !longitude || !gpsConsent}
+            disabled={submitting || limitReached || !reportCategory || !serviceType || !commune || !resolvedQuartier || !latitude || !longitude || !gpsConsent}
           >
             <Send className="mr-2 h-5 w-5" />
             {submitting ? "Envoi..." : "Confirmer signalement"}
           </Button>
         </motion.form>
+
+        {/* SOS Buttons */}
+        <SOSButtons />
       </main>
     </div>
   );
