@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, Zap, Droplets, Check, Trash2, Megaphone, CheckCircle2 } from "lucide-react";
+import { Bell, Zap, Droplets, Check, Trash2, Megaphone, CheckCircle2, Clock, AlertTriangle, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
@@ -97,16 +97,19 @@ const NotificationBell = () => {
     const isBroadcast = n.message.startsWith("📢");
     const isConfirmation = n.title === "Un voisin confirme votre signalement";
     const isResolved = n.title === "Service rétabli dans votre quartier";
+    const isReminder = n.title.startsWith("⏰");
+    const isArchived = n.title === "Signalement archivé — 24h sans réponse";
+    const isCriticalEscalation = n.title === "🔴 Coupure critique — 24h sans réponse";
 
-    if (isBroadcast || isResolved) {
-      // No navigation needed for broadcast or resolved notifications
+    if (isBroadcast || isResolved || isArchived) {
       return;
     }
 
-    if (isConfirmation) {
+    if (isReminder || isCriticalEscalation) {
+      navigate(`/verification?report=${n.report_id}`);
+    } else if (isConfirmation) {
       navigate(`/verification?report=${n.report_id}&type=confirmation`);
     } else {
-      // Neighbor alert → corroboration
       navigate(`/verification?report=${n.report_id}`);
     }
   };
@@ -164,22 +167,31 @@ const NotificationBell = () => {
               const isBroadcast = n.message.startsWith("📢");
               const isResolved = n.title === "Service rétabli dans votre quartier";
               const isConfirmation = n.title === "Un voisin confirme votre signalement";
+              const isReminder = n.title.startsWith("⏰");
+              const isArchived = n.title === "Signalement archivé — 24h sans réponse";
+              const isCriticalEscalation = n.title === "🔴 Coupure critique — 24h sans réponse";
               const isElec = n.message.includes("Électricité");
               return (
                 <button
                   key={n.id}
                   onClick={() => handleNotificationClick(n)}
                   className={`flex w-full items-start gap-3 border-b border-border px-4 py-3 text-left transition-colors hover:bg-secondary/50 ${
-                    !n.read ? "bg-primary/5" : ""
+                    !n.read ? (isCriticalEscalation ? "bg-destructive/10" : isReminder ? "bg-warning/10" : "bg-primary/5") : ""
                   }`}
                 >
                   <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                    isCriticalEscalation ? "bg-destructive/10 text-destructive" :
+                    isArchived ? "bg-muted text-muted-foreground" :
+                    isReminder ? "bg-warning/10 text-warning" :
                     isBroadcast ? "bg-accent text-accent-foreground" :
                     isResolved ? "bg-success/10 text-success" :
                     isConfirmation ? "bg-success/10 text-success" :
                     isElec ? "bg-primary/10 text-primary" : "bg-water/10 text-water"
                   }`}>
-                    {isBroadcast ? <Megaphone className="h-4 w-4" /> :
+                    {isCriticalEscalation ? <AlertTriangle className="h-4 w-4" /> :
+                     isArchived ? <Archive className="h-4 w-4" /> :
+                     isReminder ? <Clock className="h-4 w-4" /> :
+                     isBroadcast ? <Megaphone className="h-4 w-4" /> :
                      isResolved ? <CheckCircle2 className="h-4 w-4" /> :
                      isConfirmation ? <Check className="h-4 w-4" /> :
                      isElec ? <Zap className="h-4 w-4" /> : <Droplets className="h-4 w-4" />}

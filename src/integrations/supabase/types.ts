@@ -260,12 +260,14 @@ export type Database = {
           elderly: number
           id: string
           impacted_people: number
+          last_reminder_at: string | null
           latitude: number | null
           location: string
           longitude: number | null
           photo_url: string | null
           pregnant: number
           quartier: string
+          reminder_count: number
           report_category: string
           reporter_type: string
           resolved_at: string | null
@@ -288,12 +290,14 @@ export type Database = {
           elderly?: number
           id?: string
           impacted_people?: number
+          last_reminder_at?: string | null
           latitude?: number | null
           location: string
           longitude?: number | null
           photo_url?: string | null
           pregnant?: number
           quartier?: string
+          reminder_count?: number
           report_category?: string
           reporter_type?: string
           resolved_at?: string | null
@@ -316,12 +320,14 @@ export type Database = {
           elderly?: number
           id?: string
           impacted_people?: number
+          last_reminder_at?: string | null
           latitude?: number | null
           location?: string
           longitude?: number | null
           photo_url?: string | null
           pregnant?: number
           quartier?: string
+          reminder_count?: number
           report_category?: string
           reporter_type?: string
           resolved_at?: string | null
