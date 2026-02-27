@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio, Flame, AlertTriangle, AlertCircle, MapPin } from "lucide-react";
+import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio, Flame, AlertTriangle, AlertCircle, MapPin, Siren, CalendarDays } from "lucide-react";
 import Header from "@/components/Header";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import ShareButton from "@/components/ShareButton";
@@ -67,6 +67,49 @@ function formatMinutes(mins: number): string {
   return `${d}j ${h % 24}h`;
 }
 
+type Period = "7d" | "30d" | "all";
+
+const PERIOD_LABELS: Record<Period, string> = {
+  "7d": "7 jours",
+  "30d": "30 jours",
+  "all": "Tout",
+};
+
+// Skeleton card for loading state
+const SkeletonCard = () => (
+  <div className="rounded-2xl border border-border bg-card p-6 shadow-card animate-pulse">
+    <div className="flex items-center gap-3 mb-4">
+      <div className="h-10 w-10 rounded-xl bg-muted" />
+      <div className="h-5 w-28 rounded bg-muted" />
+    </div>
+    <div className="grid grid-cols-3 gap-4">
+      {[1, 2, 3].map((k) => (
+        <div key={k} className="text-center space-y-2">
+          <div className="h-8 w-12 rounded bg-muted mx-auto" />
+          <div className="h-3 w-10 rounded bg-muted mx-auto" />
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const SkeletonCommune = () => (
+  <div className="rounded-2xl border border-border bg-card p-5 shadow-card animate-pulse">
+    <div className="flex items-center gap-3 mb-4">
+      <div className="h-14 w-14 rounded-xl bg-muted shrink-0" />
+      <div className="flex-1 space-y-2">
+        <div className="h-5 w-24 rounded bg-muted" />
+        <div className="h-3 w-16 rounded bg-muted" />
+      </div>
+    </div>
+    <div className="h-2 w-full rounded-full bg-muted mb-4" />
+    <div className="grid grid-cols-2 gap-3">
+      <div className="h-20 rounded-xl bg-muted" />
+      <div className="h-20 rounded-xl bg-muted" />
+    </div>
+  </div>
+);
+
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { isAdmin } = useUserRole();
@@ -76,6 +119,7 @@ const DashboardPage = () => {
   const [priorityReports, setPriorityReports] = useState<PriorityReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [realtimeActive, setRealtimeActive] = useState(false);
+  const [period, setPeriod] = useState<Period>("all");
 
   const fetchAll = useCallback(async () => {
     const communeNames = COMMUNES.map((c) => c.nom);
@@ -159,11 +203,33 @@ const DashboardPage = () => {
   const highPriorityReports = activeReports.filter((r) => r.urgency === "critical" || r.urgency === "high");
   const mediumPriorityReports = activeReports.filter((r) => r.urgency === "medium");
 
+  const totalActifs = totalElecActifs + totalEauActifs;
+  const isCrisis = totalActifs >= 10;
+  const isEmpty = !loading && totalActifs === 0 && totalElecTotal + totalEauTotal === 0;
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
+
+      {/* Bannière de crise */}
+      {isCrisis && !loading && (
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-destructive/10 border-b border-destructive/30 py-2.5"
+        >
+          <div className="container flex items-center justify-center gap-2 text-sm font-semibold text-destructive">
+            <Siren className="h-4 w-4 animate-pulse" />
+            <span>
+              Situation critique — {totalActifs} coupures actives en ce moment sur les 5 communes pilotes
+            </span>
+            <Siren className="h-4 w-4 animate-pulse" />
+          </div>
+        </motion.div>
+      )}
+
       <main className="container py-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex items-start justify-between">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="font-display text-3xl font-bold text-foreground">Dashboard Opérateur</h1>
             <div className="mt-1 flex items-center gap-2">
@@ -174,48 +240,86 @@ const DashboardPage = () => {
               </span>
             </div>
           </div>
-          <ShareButton
-            title="Dashboard SignalÉnergie"
-            text={`📊 ${totalElecActifs + totalEauActifs} coupures actives sur les 5 communes pilotes d'Abidjan`}
-          />
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Filtre période */}
+            <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1 shadow-sm">
+              <CalendarDays className="h-4 w-4 text-muted-foreground ml-1.5" />
+              {(["7d", "30d", "all"] as Period[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    period === p
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  }`}
+                >
+                  {PERIOD_LABELS[p]}
+                </button>
+              ))}
+            </div>
+            <ShareButton
+              title="Dashboard SignalÉnergie"
+              text={`📊 ${totalActifs} coupures actives sur les 5 communes pilotes d'Abidjan`}
+            />
+          </div>
         </motion.div>
 
         {/* Global totals */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {/* Electricity card */}
-          <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
-            <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
-              <img src={electricityIcon} alt="" className="h-full w-full object-contain" />
-            </div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/15">
-                <Zap className="h-5 w-5 text-amber-500" />
+          {loading ? (
+            <>
+              <SkeletonCard />
+              <SkeletonCard />
+            </>
+          ) : isEmpty ? (
+            <div className="col-span-2 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card py-16 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary mb-4">
+                <Zap className="h-7 w-7 text-muted-foreground" />
               </div>
-              <h2 className="font-display text-lg font-bold text-foreground">Électricité</h2>
+              <p className="font-display text-lg font-bold text-foreground">Aucune coupure active</p>
+              <p className="mt-2 text-sm text-muted-foreground max-w-xs">
+                Tout est normal pour le moment dans les 5 communes pilotes. Les signalements apparaîtront ici en temps réel.
+              </p>
             </div>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div><p className="font-display text-2xl font-extrabold text-amber-500">{loading ? "..." : totalElecActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
-              <div><p className="font-display text-2xl font-extrabold text-emerald-500">{loading ? "..." : totalElecResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
-              <div><p className="font-display text-2xl font-extrabold text-foreground">{loading ? "..." : totalElecTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
-            </div>
-          </div>
-          {/* Water card */}
-          <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
-            <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
-              <img src={waterIcon} alt="" className="h-full w-full object-contain" />
-            </div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/15">
-                <Droplets className="h-5 w-5 text-blue-500" />
+          ) : null}
+          {/* Electricity + Water cards — visible when loaded and has data */}
+          {!loading && !isEmpty && (
+            <>
+              <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
+                <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
+                  <img src={electricityIcon} alt="" className="h-full w-full object-contain" />
+                </div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/15">
+                    <Zap className="h-5 w-5 text-amber-500" />
+                  </div>
+                  <h2 className="font-display text-lg font-bold text-foreground">Électricité</h2>
+                </div>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div><p className="font-display text-2xl font-extrabold text-amber-500">{totalElecActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
+                  <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalElecResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
+                  <div><p className="font-display text-2xl font-extrabold text-foreground">{totalElecTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
+                </div>
               </div>
-              <h2 className="font-display text-lg font-bold text-foreground">Eau</h2>
-            </div>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div><p className="font-display text-2xl font-extrabold text-blue-500">{loading ? "..." : totalEauActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
-              <div><p className="font-display text-2xl font-extrabold text-emerald-500">{loading ? "..." : totalEauResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
-              <div><p className="font-display text-2xl font-extrabold text-foreground">{loading ? "..." : totalEauTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
-            </div>
-          </div>
+              <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
+                <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
+                  <img src={waterIcon} alt="" className="h-full w-full object-contain" />
+                </div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/15">
+                    <Droplets className="h-5 w-5 text-blue-500" />
+                  </div>
+                  <h2 className="font-display text-lg font-bold text-foreground">Eau</h2>
+                </div>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div><p className="font-display text-2xl font-extrabold text-blue-500">{totalEauActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
+                  <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalEauResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
+                  <div><p className="font-display text-2xl font-extrabold text-foreground">{totalEauTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
+                </div>
+              </div>
+            </>
+          )}
         </motion.div>
 
         {/* Duration stats */}
@@ -338,7 +442,7 @@ const DashboardPage = () => {
               <CollapsibleContent>
                 <div className="mt-2 rounded-2xl border border-border bg-card shadow-card overflow-hidden divide-y divide-border">
                   {topQuartiers.map((q, i) => {
-                    const medal = i === 0 ? "🔥" : i === 1 ? "🔥" : i === 2 ? "🔥" : `#${i + 1}`;
+                    const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`;
                     return (
                       <div key={`${q.commune}-${q.quartier}`} className="flex items-center gap-4 px-5 py-3 hover:bg-secondary/50 transition-colors">
                         <span className="text-lg font-bold w-8 text-center">{medal}</span>
@@ -470,7 +574,19 @@ const DashboardPage = () => {
             <CollapsibleContent>
               <div className="mt-2 rounded-2xl border border-border bg-card shadow-card overflow-hidden">
                 {loading ? (
-                  <div className="flex justify-center py-8"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>
+                  <div className="divide-y divide-border animate-pulse">
+                    {[1,2,3,4,5].map((k) => (
+                      <div key={k} className="flex items-center gap-4 px-5 py-4">
+                        <div className="h-6 w-8 rounded bg-muted" />
+                        <div className="h-10 w-10 rounded-lg bg-muted shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 w-24 rounded bg-muted" />
+                          <div className="h-3 w-16 rounded bg-muted" />
+                        </div>
+                        <div className="h-7 w-8 rounded bg-muted" />
+                      </div>
+                    ))}
+                  </div>
                 ) : (
                   <div className="divide-y divide-border">
                     {leaderboard.map((c, i) => {
@@ -517,7 +633,9 @@ const DashboardPage = () => {
         <h2 className="font-display text-xl font-bold text-foreground mb-4">Détail par commune</h2>
         <div className="space-y-4">
           {loading ? (
-            <div className="flex justify-center py-8"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>
+            <>
+              {[1, 2, 3, 4, 5].map((k) => <SkeletonCommune key={k} />)}
+            </>
           ) : (
             stats.map((c, i) => {
               const pctPop = c.population > 0 ? ((c.electricite_total + c.eau_total) / c.population) * 100 : 0;
