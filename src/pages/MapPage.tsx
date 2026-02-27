@@ -269,7 +269,7 @@ const MapPage = () => {
             const s = stats.find((st) => st.commune.toLowerCase() === c.nom.toLowerCase());
             let count = 0;
             if (s) {
-              count = filter === "electricity" ? s.electricite_total : filter === "water" ? s.eau_total : s.electricite_total + s.eau_total;
+              count = filter === "electricity" ? s.electricite_actifs : filter === "water" ? s.eau_actifs : s.electricite_actifs + s.eau_actifs;
             }
             return (
               <span key={c.nom} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-white" style={{ backgroundColor: c.couleur }}>
