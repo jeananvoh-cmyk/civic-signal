@@ -146,8 +146,10 @@ const ReportPage = () => {
   const [babies, setBabies] = useState(0);
   const [pregnant, setPregnant] = useState(0);
   const [elderly, setElderly] = useState(0);
-  const [showVulnerable, setShowVulnerable] = useState(false);
-  const [showExtras, setShowExtras] = useState(false);
+  const [showDesc, setShowDesc] = useState(false);
+  const [showPhoto, setShowPhoto] = useState(false);
+  const [showTime, setShowTime] = useState(false);
+  const [showPeople, setShowPeople] = useState(false);
   const [gpsConsent, setGpsConsent] = useState(false);
 
   // GPS
@@ -592,134 +594,197 @@ const ReportPage = () => {
                 </div>
               </div>
 
-              {/* Détails optionnels (accordéon) */}
-              <button
-                type="button"
-                onClick={() => setShowExtras(!showExtras)}
-                className="flex w-full items-center justify-between rounded-xl border border-dashed border-border bg-card px-4 py-3 text-sm text-muted-foreground hover:bg-muted/40 transition-colors"
-              >
-                <span className="font-medium">Ajouter des détails (optionnel)</span>
-                <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showExtras ? "rotate-180" : ""}`} />
-              </button>
+              {/* ── Détails optionnels : pills ── */}
+              <div className="space-y-3">
+                <p className="text-xs text-center text-muted-foreground">Optionnel — enrichissez votre signalement</p>
 
-              {showExtras && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="rounded-xl border border-border bg-card p-4 space-y-4 overflow-hidden"
-                >
-                  {/* Description */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold flex items-center gap-1.5">
-                      <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                      Description
-                    </label>
-                    <Textarea
-                      placeholder="Décrivez la situation..."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value.slice(0, 500))}
-                      rows={3}
-                    />
-                    <p className="text-xs text-muted-foreground text-right">{description.length}/500</p>
-                  </div>
-
-                  {/* Heure de début (coupures uniquement) */}
-                  {selectedType.reportCategory === "outage" && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold flex items-center gap-1.5">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        Heure de début
-                      </label>
-                      <Input
-                        type="time"
-                        value={startTime}
-                        onChange={(e) => setStartTime(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">Laissez vide si ça vient de commencer</p>
-                    </div>
-                  )}
+                {/* Pills */}
+                <div className="flex flex-wrap gap-2">
+                  {/* Note */}
+                  <button
+                    type="button"
+                    onClick={() => setShowDesc(!showDesc)}
+                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
+                      showDesc
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                    }`}
+                  >
+                    <MessageSquare className="h-3.5 w-3.5" />
+                    Note
+                    {description && <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-current opacity-70" />}
+                  </button>
 
                   {/* Photo */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold flex items-center gap-1.5">
-                      <Camera className="h-4 w-4 text-muted-foreground" />
-                      Photo
-                    </label>
-                    <PhotoUpload onPhotoUploaded={setPhotoUrl} photoUrl={photoUrl} />
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPhoto(!showPhoto)}
+                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
+                      showPhoto
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                    }`}
+                  >
+                    <Camera className="h-3.5 w-3.5" />
+                    Photo
+                    {photoUrl && <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-current opacity-70" />}
+                  </button>
 
-                  {/* Personnes impactées — uniquement pour les coupures eau/élec */}
-                  {selectedType.reportCategory === "outage" && <div className="space-y-3">
-                    <label className="text-sm font-semibold flex items-center gap-1.5">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      Personnes impactées
-                    </label>
-                    <div className="flex items-center justify-between rounded-xl border border-border bg-background p-3">
-                      <span className="text-sm">Nombre total</span>
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setImpactedPeople(Math.max(1, impactedPeople - 1))}
-                          className="flex h-8 w-8 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
-                        >
-                          <Minus className="h-4 w-4" />
-                        </button>
-                        <span className="w-6 text-center font-bold">{impactedPeople}</span>
-                        <button
-                          type="button"
-                          onClick={() => setImpactedPeople(Math.min(50, impactedPeople + 1))}
-                          className="flex h-8 w-8 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Personnes vulnérables */}
+                  {/* Heure — coupures uniquement */}
+                  {selectedType.reportCategory === "outage" && (
                     <button
                       type="button"
-                      onClick={() => setShowVulnerable(!showVulnerable)}
-                      className="flex w-full items-center justify-between rounded-xl border border-dashed border-border px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
+                      onClick={() => setShowTime(!showTime)}
+                      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
+                        showTime
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                      }`}
                     >
-                      <span className="flex items-center gap-1.5">
-                        <Heart className="h-4 w-4" />
-                        Personnes vulnérables
-                        {(babies + pregnant + elderly > 0) && (
-                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-600">
-                            {babies + pregnant + elderly}
-                          </span>
-                        )}
-                      </span>
-                      <ChevronDown className={`h-4 w-4 transition-transform ${showVulnerable ? "rotate-180" : ""}`} />
+                      <Clock className="h-3.5 w-3.5" />
+                      Heure
+                      {startTime && <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-current opacity-70" />}
                     </button>
+                  )}
 
-                    {showVulnerable && (
-                      <div className="space-y-2 rounded-xl border border-border bg-muted/30 p-3">
+                  {/* Personnes — coupures uniquement */}
+                  {selectedType.reportCategory === "outage" && (
+                    <button
+                      type="button"
+                      onClick={() => setShowPeople(!showPeople)}
+                      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
+                        showPeople
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                      }`}
+                    >
+                      <Users className="h-3.5 w-3.5" />
+                      Personnes
+                      {(impactedPeople > 1 || babies + pregnant + elderly > 0) && (
+                        <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+                      )}
+                    </button>
+                  )}
+                </div>
+
+                {/* Panneau Note */}
+                <AnimatePresence>
+                  {showDesc && (
+                    <motion.div
+                      key="desc"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="rounded-xl border border-border bg-card p-3 space-y-2">
+                        <Textarea
+                          placeholder="Décrivez la situation en quelques mots..."
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value.slice(0, 300))}
+                          rows={3}
+                          autoFocus
+                        />
+                        <p className="text-xs text-muted-foreground text-right">{description.length}/300</p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Panneau Photo */}
+                <AnimatePresence>
+                  {showPhoto && (
+                    <motion.div
+                      key="photo"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="rounded-xl border border-border bg-card p-3">
+                        <PhotoUpload onPhotoUploaded={setPhotoUrl} photoUrl={photoUrl} />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Panneau Heure */}
+                <AnimatePresence>
+                  {showTime && selectedType.reportCategory === "outage" && (
+                    <motion.div
+                      key="time"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">Début de la coupure</p>
+                          <p className="text-xs text-muted-foreground">Laissez vide si ça vient de commencer</p>
+                        </div>
+                        <Input
+                          type="time"
+                          value={startTime}
+                          onChange={(e) => setStartTime(e.target.value)}
+                          className="w-28 text-center"
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Panneau Personnes */}
+                <AnimatePresence>
+                  {showPeople && selectedType.reportCategory === "outage" && (
+                    <motion.div
+                      key="people"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="rounded-xl border border-border bg-card p-3 space-y-1">
                         {[
-                          { label: "Bébés / Nourrissons", icon: <Baby className="h-4 w-4 text-blue-500" />, val: babies, set: setBabies },
-                          { label: "Femmes enceintes", icon: <Heart className="h-4 w-4 text-pink-500" />, val: pregnant, set: setPregnant },
-                          { label: "Personnes âgées", icon: <UserRound className="h-4 w-4 text-amber-600" />, val: elderly, set: setElderly },
-                        ].map(({ label, icon, val, set }) => (
-                          <div key={label} className="flex items-center justify-between py-1">
-                            <span className="flex items-center gap-2 text-sm">{icon} {label}</span>
-                            <div className="flex items-center gap-2">
-                              <button type="button" onClick={() => set(Math.max(0, val - 1))} className="flex h-7 w-7 items-center justify-center rounded-full border border-border hover:bg-background transition-colors"><Minus className="h-3 w-3" /></button>
-                              <span className="w-5 text-center text-sm font-semibold">{val}</span>
-                              <button type="button" onClick={() => set(Math.min(20, val + 1))} className="flex h-7 w-7 items-center justify-center rounded-full border border-border hover:bg-background transition-colors"><Plus className="h-3 w-3" /></button>
+                          { label: "Total impactés", emoji: "👥", val: impactedPeople, set: setImpactedPeople, min: 1, max: 50 },
+                          { label: "Bébés / Nourrissons", emoji: "👶", val: babies, set: setBabies, min: 0, max: 20 },
+                          { label: "Femmes enceintes", emoji: "🤰", val: pregnant, set: setPregnant, min: 0, max: 20 },
+                          { label: "Personnes âgées", emoji: "👴", val: elderly, set: setElderly, min: 0, max: 20 },
+                        ].map(({ label, emoji, val, set, min, max }) => (
+                          <div key={label} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
+                            <span className="text-sm flex items-center gap-2">
+                              <span className="text-base">{emoji}</span>
+                              {label}
+                            </span>
+                            <div className="flex items-center gap-2.5">
+                              <button
+                                type="button"
+                                onClick={() => set(Math.max(min, val - 1))}
+                                className="flex h-7 w-7 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
+                              >
+                                <Minus className="h-3 w-3" />
+                              </button>
+                              <span className="w-5 text-center text-sm font-bold tabular-nums">{val}</span>
+                              <button
+                                type="button"
+                                onClick={() => set(Math.min(max, val + 1))}
+                                className="flex h-7 w-7 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </button>
                             </div>
                           </div>
                         ))}
                         {(babies + pregnant + elderly > 0) && (
                           <p className="text-xs text-red-600 font-medium pt-1">
-                            ⚠️ Présence de personnes vulnérables — priorité élevée automatique
+                            ⚠️ Personnes vulnérables — priorité élevée automatique
                           </p>
                         )}
                       </div>
-                    )}
-                  </div>}
-                </motion.div>
-              )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
               {/* Consentement GPS */}
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
