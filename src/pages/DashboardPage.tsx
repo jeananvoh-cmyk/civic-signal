@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
-import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio, Flame, AlertTriangle, AlertCircle, MapPin, Siren, CalendarDays } from "lucide-react";
+import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio, Flame, AlertTriangle, MapPin, Siren, CalendarDays } from "lucide-react";
 import Header from "@/components/Header";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import ShareButton from "@/components/ShareButton";
@@ -306,9 +306,6 @@ const DashboardPage = () => {
 
   const maxHighDuration = highPriorityReports.length > 0
     ? Math.max(...highPriorityReports.map((r) => r.start_time ? (Date.now() - new Date(r.start_time).getTime()) / 60000 : 0))
-    : 0;
-  const maxMediumDuration = mediumPriorityReports.length > 0
-    ? Math.max(...mediumPriorityReports.map((r) => r.start_time ? (Date.now() - new Date(r.start_time).getTime()) / 60000 : 0))
     : 0;
 
   const dashboardTitle = isAdmin
@@ -615,35 +612,6 @@ const DashboardPage = () => {
           </motion.div>
         )}
 
-        {/* Medium priority reports */}
-        {!loading && mediumPriorityReports.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }} className="mb-8">
-            <Collapsible>
-              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl border border-warning/30 bg-warning/5 px-5 py-3 shadow-card hover:bg-warning/10 transition-colors">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <AlertCircle className="h-5 w-5 text-warning" />
-                  <h2 className="font-display text-xl font-bold text-foreground">Priorités moyennes</h2>
-                  <span className="rounded-full bg-warning px-2 py-0.5 text-xs font-bold text-warning-foreground">{mediumPriorityReports.length}</span>
-                  {maxMediumDuration > 0 && (
-                    <span className="flex items-center gap-1 rounded-lg bg-warning/10 border border-warning/20 px-2 py-0.5 text-xs font-semibold text-warning">
-                      <Clock className="h-3 w-3" />
-                      La plus longue : {formatMinutes(maxMediumDuration)}
-                    </span>
-                  )}
-                </div>
-                <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="mt-2 rounded-2xl border border-warning/20 bg-card shadow-card overflow-hidden divide-y divide-border">
-                  {mediumPriorityReports.slice(0, 15).map((r) => (
-                    <ReportRow key={r.id} r={r} variant="medium" />
-                  ))}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          </motion.div>
-        )}
-
         {/* Leaderboard */}
         {canValidate && (<motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-8">
           <Collapsible>
@@ -787,6 +755,46 @@ const DashboardPage = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* Active reports for this commune */}
+                  {(() => {
+                    const communeReports = activeReports
+                      .filter((r) => r.location.toLowerCase() === c.commune.toLowerCase())
+                      .sort((a, b) => {
+                        const order: Record<string, number> = { critical: 0, high: 1, medium: 2 };
+                        return (order[a.urgency] ?? 3) - (order[b.urgency] ?? 3);
+                      });
+                    if (communeReports.length === 0) return null;
+                    const hasCritical = communeReports.some((r) => r.urgency === "critical");
+                    const hasHigh = communeReports.some((r) => r.urgency === "high");
+                    return (
+                      <div className="mt-4 border-t border-border pt-3">
+                        <Collapsible defaultOpen={hasCritical || hasHigh}>
+                          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg px-1 py-1 hover:bg-muted/30 transition-colors mb-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold text-muted-foreground">
+                                {communeReports.length} signalement{communeReports.length > 1 ? "s" : ""} actif{communeReports.length > 1 ? "s" : ""}
+                              </span>
+                              {hasCritical && <span className="rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-destructive-foreground">🔥 Critique</span>}
+                              {!hasCritical && hasHigh && <span className="rounded-full bg-urgent px-1.5 py-0.5 text-[10px] font-bold text-urgent-foreground">⚠️ Élevé</span>}
+                            </div>
+                            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="rounded-xl border border-border overflow-hidden divide-y divide-border">
+                              {communeReports.map((r) => (
+                                <ReportRow
+                                  key={r.id}
+                                  r={r}
+                                  variant={r.urgency === "critical" ? "critical" : r.urgency === "high" ? "high" : "medium"}
+                                />
+                              ))}
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </div>
+                    );
+                  })()}
                 </motion.div>
               );
             })
