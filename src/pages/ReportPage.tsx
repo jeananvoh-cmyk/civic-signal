@@ -1,60 +1,144 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Zap, Droplets, Send, MapPin, Clock, Navigation, Loader2, Users, Baby, Heart, UserRound, ChevronDown, Plus, Minus, Info } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Send, MapPin, Navigation, Loader2, Users, Baby, Heart, UserRound,
+  ChevronDown, Plus, Minus, ArrowLeft, Camera, MessageSquare, Clock,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import Header from "@/components/Header";
 import PhotoUpload from "@/components/PhotoUpload";
 import { toast } from "sonner";
 import { getUserFriendlyError } from "@/lib/error-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { COMMUNES, findNearestCommune, type Commune, type CommuneResult } from "@/lib/communes";
+import { COMMUNES, findNearestCommune, type Commune } from "@/lib/communes";
 import { getQuartiers } from "@/lib/quartiers";
-import type { ServiceType, UrgencyLevel } from "@/lib/data";
+import type { ServiceType } from "@/lib/data";
 import SOSButtons from "@/components/SOSButtons";
 
-type ReportCategory = "outage" | "infrastructure";
+// ─── Types de signalement ────────────────────────────────────────────────────
+
+type ReportTypeId =
+  | "electricity_outage"
+  | "water_outage"
+  | "street_light"
+  | "water_leak"
+  | "drain_blocked"
+  | "pothole"
+  | "illegal_dump"
+  | "other";
+
+interface ReportTypeConfig {
+  id: ReportTypeId;
+  emoji: string;
+  label: string;
+  color: string;
+  serviceType: ServiceType;
+  reportCategory: "outage" | "infrastructure";
+  defaultDesc: (commune: string) => string;
+}
+
+const REPORT_TYPES: ReportTypeConfig[] = [
+  {
+    id: "electricity_outage",
+    emoji: "⚡",
+    label: "Coupure d'électricité",
+    color: "#F59E0B",
+    serviceType: "electricity",
+    reportCategory: "outage",
+    defaultDesc: (c) => `Coupure d'électricité à ${c}`,
+  },
+  {
+    id: "water_outage",
+    emoji: "💧",
+    label: "Coupure d'eau",
+    color: "#3B82F6",
+    serviceType: "water",
+    reportCategory: "outage",
+    defaultDesc: (c) => `Coupure d'eau à ${c}`,
+  },
+  {
+    id: "street_light",
+    emoji: "💡",
+    label: "Lampadaire cassé",
+    color: "#EAB308",
+    serviceType: "electricity",
+    reportCategory: "infrastructure",
+    defaultDesc: (c) => `Lampadaire cassé / éteint à ${c}`,
+  },
+  {
+    id: "water_leak",
+    emoji: "🚿",
+    label: "Fuite d'eau",
+    color: "#06B6D4",
+    serviceType: "water",
+    reportCategory: "infrastructure",
+    defaultDesc: (c) => `Fuite sur le réseau d'eau à ${c}`,
+  },
+  {
+    id: "drain_blocked",
+    emoji: "🚧",
+    label: "Caniveau bouché",
+    color: "#6B7280",
+    serviceType: "water",
+    reportCategory: "infrastructure",
+    defaultDesc: (c) => `Caniveau bouché / débordement à ${c}`,
+  },
+  {
+    id: "pothole",
+    emoji: "🛣️",
+    label: "Nid de poule",
+    color: "#7C3AED",
+    serviceType: "water",
+    reportCategory: "infrastructure",
+    defaultDesc: (c) => `Nid de poule / route dégradée à ${c}`,
+  },
+  {
+    id: "illegal_dump",
+    emoji: "🗑️",
+    label: "Dépôt sauvage",
+    color: "#16A34A",
+    serviceType: "water",
+    reportCategory: "infrastructure",
+    defaultDesc: (c) => `Dépôt sauvage d'ordures à ${c}`,
+  },
+  {
+    id: "other",
+    emoji: "➕",
+    label: "Autre",
+    color: "#64748B",
+    serviceType: "water",
+    reportCategory: "infrastructure",
+    defaultDesc: (c) => `Signalement à ${c}`,
+  },
+];
 
 const DAILY_LIMIT = 5;
 
-const CATEGORY_CONFIG = {
-  outage: {
-    label: "Coupure de service",
-    description: "Signaler une coupure d'eau ou d'électricité",
-    electricityLabel: "Électricité / CIE",
-    waterLabel: "Eau / SODECI",
-    descriptionPlaceholder: "Décrivez la coupure...",
-    defaultDesc: (st: string, commune: string) =>
-      `Coupure de ${st === "electricity" ? "courant" : "eau"} à ${commune}`,
-  },
-  infrastructure: {
-    label: "Problème d'infrastructure",
-    description: "Signaler un lampadaire cassé ou une fuite visible",
-    electricityLabel: "Lampadaire cassé / CIE",
-    waterLabel: "Fuite visible / SODECI",
-    descriptionPlaceholder: "Décrivez le problème d'infrastructure (localisation précise, état...)...",
-    defaultDesc: (st: string, commune: string) =>
-      st === "electricity"
-        ? `Lampadaire cassé/éteint à ${commune}`
-        : `Fuite visible sur le réseau à ${commune}`,
-  },
-};
+// ─── Composant ────────────────────────────────────────────────────────────────
 
 const ReportPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [reportCategory, setReportCategory] = useState<ReportCategory | "">("");
-  const [serviceType, setServiceType] = useState<ServiceType | "">("");
+
+  // Wizard
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+
+  // Étape 1
+  const [selectedType, setSelectedType] = useState<ReportTypeConfig | null>(null);
+  const [customTypeDesc, setCustomTypeDesc] = useState("");
+
+  // Étape 2
   const [commune, setCommune] = useState("");
   const [quartier, setQuartier] = useState("");
   const [customQuartier, setCustomQuartier] = useState("");
+
+  // Étape 3 (détails optionnels)
   const [description, setDescription] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [startTime, setStartTime] = useState("");
@@ -63,19 +147,25 @@ const ReportPage = () => {
   const [pregnant, setPregnant] = useState(0);
   const [elderly, setElderly] = useState(0);
   const [showVulnerable, setShowVulnerable] = useState(false);
+  const [showExtras, setShowExtras] = useState(false);
+  const [gpsConsent, setGpsConsent] = useState(false);
+
+  // GPS
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [detectedCommune, setDetectedCommune] = useState<Commune | null>(null);
   const [outsidePilotZone, setOutsidePilotZone] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(true);
+
+  // Misc
   const [submitting, setSubmitting] = useState(false);
   const [dailyCount, setDailyCount] = useState<number | null>(null);
   const [limitReached, setLimitReached] = useState(false);
-  const [gpsConsent, setGpsConsent] = useState(false);
+
   const captureGPS = (showError = true) => {
     if (!navigator.geolocation) {
       setGpsLoading(false);
-      if (showError) toast.error("La géolocalisation n'est pas supportée par votre appareil");
+      if (showError) toast.error("Géolocalisation non supportée");
       return;
     }
     setGpsLoading(true);
@@ -96,7 +186,7 @@ const ReportPage = () => {
           setOutsidePilotZone(true);
         }
         setGpsLoading(false);
-        toast.success("Position GPS capturée !");
+        if (showError) toast.success("Position GPS capturée !");
       },
       () => {
         setGpsLoading(false);
@@ -106,51 +196,47 @@ const ReportPage = () => {
     );
   };
 
-  useEffect(() => {
-    captureGPS(false);
-  }, []);
+  useEffect(() => { captureGPS(false); }, []);
 
-  // Check daily limit
   useEffect(() => {
     if (!user) return;
-    const checkLimit = async () => {
-      const { data, error } = await supabase.rpc("count_user_daily_reports", { p_user_id: user.id });
+    supabase.rpc("count_user_daily_reports", { p_user_id: user.id }).then(({ data, error }) => {
       if (!error && data !== null) {
         const count = data as number;
         setDailyCount(count);
         setLimitReached(count >= DAILY_LIMIT);
       }
-    };
-    checkLimit();
+    });
   }, [user]);
-
-  const now = new Date();
-  const timeStr = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
   const resolvedQuartier = quartier === "__other" ? customQuartier.trim() : quartier;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (limitReached) {
-      toast.error(`Vous avez atteint la limite de ${DAILY_LIMIT} signalements par jour`);
+  const handleTypeSelect = (type: ReportTypeConfig) => {
+    setSelectedType(type);
+    setStep(2);
+  };
+
+  const handleLocationNext = () => {
+    if (!commune || !resolvedQuartier) {
+      toast.error("Sélectionnez la commune et le quartier");
       return;
     }
     if (!latitude || !longitude) {
-      toast.error("Votre position GPS est requise pour signaler. Activez la géolocalisation.");
+      toast.error("Position GPS requise. Activez la géolocalisation.");
       return;
     }
-    if (!reportCategory || !serviceType || !commune || !resolvedQuartier) {
-      toast.error("Veuillez remplir la catégorie, le type, la commune et le quartier");
-      return;
-    }
-    if (!user) {
-      toast.error("Vous devez être connecté");
-      return;
-    }
+    setStep(3);
+  };
+
+  const handleSubmit = async () => {
+    if (limitReached) { toast.error(`Limite de ${DAILY_LIMIT} signalements / jour atteinte`); return; }
+    if (!latitude || !longitude) { toast.error("Position GPS requise"); return; }
+    if (!selectedType || !commune || !resolvedQuartier) { toast.error("Informations incomplètes"); return; }
+    if (!user) { toast.error("Vous devez être connecté"); return; }
+    if (!gpsConsent) { toast.error("Acceptez l'utilisation de votre position GPS"); return; }
 
     setSubmitting(true);
     try {
-      // Build start_time from manual input or default to now
       let reportStartTime = new Date().toISOString();
       if (startTime) {
         const [h, m] = startTime.split(":").map(Number);
@@ -159,30 +245,29 @@ const ReportPage = () => {
         reportStartTime = st.toISOString();
       }
 
-      const catConfig = CATEGORY_CONFIG[reportCategory as ReportCategory];
-      const baseDesc = description || catConfig.defaultDesc(serviceType, commune);
+      const typeLabel =
+        selectedType.id === "other" && customTypeDesc ? customTypeDesc : selectedType.label;
+      const baseDesc = description || selectedType.defaultDesc(commune);
+      const fullBaseDesc = `[${typeLabel}] ${baseDesc}`;
       const vulnParts: string[] = [];
       if (babies > 0) vulnParts.push(`${babies} bébé(s)`);
       if (pregnant > 0) vulnParts.push(`${pregnant} femme(s) enceinte(s)`);
       if (elderly > 0) vulnParts.push(`${elderly} personne(s) âgée(s)`);
       const impactInfo = `[${impactedPeople} personne(s)${vulnParts.length ? ` dont ${vulnParts.join(", ")}` : ""}]`;
-      const fullDesc = `${baseDesc} ${impactInfo}`;
-
-      // Auto-detect urgency based on vulnerable people
+      const fullDesc = `${fullBaseDesc} ${impactInfo}`;
       const hasVulnerable = babies > 0 || pregnant > 0 || elderly > 0;
-      const urgencyLevel = hasVulnerable ? "high" : "medium";
 
       const { error } = await supabase.from("reports").insert({
         user_id: user.id,
-        service_type: serviceType,
-        report_category: reportCategory,
+        service_type: selectedType.serviceType,
+        report_category: selectedType.reportCategory,
         description: fullDesc,
         location: commune,
         commune,
         quartier: resolvedQuartier,
         latitude,
         longitude,
-        urgency: urgencyLevel,
+        urgency: hasVulnerable ? "high" : "medium",
         start_time: reportStartTime,
         photo_url: photoUrl || null,
         impacted_people: impactedPeople,
@@ -190,13 +275,14 @@ const ReportPage = () => {
         pregnant,
         elderly,
       } as any);
+
       if (error) throw error;
-      toast.success("Signalement envoyé !");
+      toast.success("✅ Signalement envoyé !");
       navigate("/");
     } catch (error: any) {
       const msg = error?.message || "";
       if (msg.includes("Rate limit exceeded")) {
-        toast.error("⏱️ Trop de signalements ! Attendez 1 minute avant de réessayer.");
+        toast.error("⏱️ Trop de signalements ! Attendez 1 minute.");
       } else {
         toast.error(getUserFriendlyError(error, "Erreur lors de l'envoi"));
       }
@@ -207,424 +293,471 @@ const ReportPage = () => {
 
   const selectedCommuneData = COMMUNES.find((c) => c.nom === commune);
 
+  // ─── Render ─────────────────────────────────────────────────────────────────
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container max-w-md py-8">
-        {/* GPS detection banner */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 rounded-xl p-4 text-center"
-          style={{
-            backgroundColor: detectedCommune ? `${detectedCommune.couleur}15` : undefined,
-            borderColor: detectedCommune?.couleur,
-            borderWidth: detectedCommune ? 2 : 1,
-          }}
-        >
-          <div className="flex flex-col items-center gap-2">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" style={{ color: detectedCommune?.couleur }} />
-              {gpsLoading ? (
-                <span className="text-muted-foreground text-sm animate-pulse flex items-center gap-1">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Détection GPS...
-                </span>
-              ) : outsidePilotZone ? (
-                <span className="text-sm font-medium text-destructive">
-                  ⚠️ Vous n'êtes pas dans une commune pilote
-                </span>
-              ) : detectedCommune ? (
-                <span className="font-bold" style={{ color: detectedCommune.couleur }}>
-                  📍 {detectedCommune.nom} détecté ✓
-                </span>
-              ) : (
-                <span className="text-muted-foreground text-sm">GPS non disponible — sélectionnez manuellement</span>
-              )}
-            </div>
+      <main className="container max-w-md py-6 px-4">
 
-            {latitude && longitude && (
-              <p className="text-xs text-muted-foreground font-mono">
-                {latitude.toFixed(5)}, {longitude.toFixed(5)}
-              </p>
-            )}
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => captureGPS(true)}
-              disabled={gpsLoading}
-              className="mt-1 gap-1.5"
-            >
-              {gpsLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Navigation className="h-4 w-4" />
-              )}
-              {latitude ? "Recapturer ma position" : "Capturer ma position GPS"}
-            </Button>
-          </div>
-        </motion.div>
-
-        {outsidePilotZone && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-4 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-center"
-          >
-            <p className="text-sm font-medium text-destructive">
-              🚧 Votre position actuelle ne se trouve pas dans l'une des 5 communes pilotes (Yopougon, Cocody, Abobo, Adjamé, Bingerville).
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Les signalements pour les autres communes seront disponibles ultérieurement. Vous pouvez tout de même sélectionner manuellement une commune pilote.
-            </p>
-          </motion.div>
-        )}
-
-        {/* Daily limit counter */}
-        {dailyCount !== null && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`mb-4 rounded-xl border p-3 text-center ${
-              limitReached
-                ? "border-destructive/30 bg-destructive/5"
-                : "border-border bg-card"
-            }`}
-          >
-            {limitReached ? (
-              <>
-                <p className="text-sm font-bold text-destructive">
-                  🚫 Limite atteinte : {dailyCount}/{DAILY_LIMIT} signalements aujourd'hui
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Vous pourrez signaler à nouveau demain. L'abonnement premium sera bientôt disponible.
-                </p>
-              </>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                📊 {dailyCount}/{DAILY_LIMIT} signalements utilisés aujourd'hui
-              </p>
-            )}
-          </motion.div>
-        )}
-
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-4 text-center">
-          <p className="text-sm text-muted-foreground">
-            📍 {commune || "..."}{resolvedQuartier ? `, ${resolvedQuartier}` : ""} — [{timeStr}]
-          </p>
-        </motion.div>
-
-        <motion.form
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          onSubmit={handleSubmit}
-          className="space-y-5 rounded-xl border border-border bg-card p-6 shadow-card"
-        >
-          {/* Report category selector */}
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold">Type de signalement *</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => { setReportCategory("outage"); setServiceType(""); }}
-                className={`flex flex-col items-center gap-1.5 rounded-xl border-2 p-4 transition-all ${
-                  reportCategory === "outage"
-                    ? "border-destructive bg-destructive/5"
-                    : "border-border hover:border-destructive/50"
-                }`}
-              >
-                <span className="text-2xl">🔴</span>
-                <span className="font-medium text-sm">Coupure</span>
-                <span className="text-[10px] text-muted-foreground text-center">Pas d'eau ou d'électricité</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => { setReportCategory("infrastructure"); setServiceType(""); }}
-                className={`flex flex-col items-center gap-1.5 rounded-xl border-2 p-4 transition-all ${
-                  reportCategory === "infrastructure"
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50"
-                }`}
-              >
-                <span className="text-2xl">🔧</span>
-                <span className="font-medium text-sm">Infrastructure</span>
-                <span className="text-[10px] text-muted-foreground text-center">Lampadaire ou fuite</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Commune selector */}
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold">Commune *</Label>
-            <Select value={commune} onValueChange={(v) => { setCommune(v); setQuartier(""); setCustomQuartier(""); }}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner la commune" />
-              </SelectTrigger>
-              <SelectContent>
-                {COMMUNES.map((c) => (
-                  <SelectItem key={c.nom} value={c.nom}>
-                    <span className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-full inline-block" style={{ backgroundColor: c.couleur }} />
-                      {c.nom}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Quartier */}
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold">Quartier *</Label>
-            {commune ? (
-              <Select value={quartier} onValueChange={setQuartier}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner le quartier" />
-                </SelectTrigger>
-                <SelectContent className="max-h-60">
-                  {getQuartiers(commune).map((q) => (
-                    <SelectItem key={q} value={q}>{q}</SelectItem>
-                  ))}
-                  <SelectItem value="__other">Autre quartier...</SelectItem>
-                </SelectContent>
-              </Select>
-            ) : (
-              <p className="text-sm text-muted-foreground italic">Sélectionnez d'abord une commune</p>
-            )}
-            {quartier === "__other" && (
-              <Input
-                placeholder="Saisissez le nom du quartier"
-                value={customQuartier}
-                onChange={(e) => setCustomQuartier(e.target.value)}
-                maxLength={100}
-                autoFocus
-              />
-            )}
-          </div>
-
-          {/* Service type */}
-          {reportCategory && (
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">
-                {reportCategory === "outage" ? "Type de coupure *" : "Type d'infrastructure *"}
-              </Label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setServiceType("electricity")}
-                  className={`flex items-center justify-center gap-2 rounded-xl border-2 p-4 transition-all ${
-                    serviceType === "electricity"
-                      ? "border-electricity bg-electricity-light"
-                      : "border-border hover:border-electricity/50"
-                  }`}
-                >
-                  <Zap className={`h-5 w-5 ${serviceType === "electricity" ? "text-electricity" : "text-muted-foreground"}`} />
-                  <span className="font-medium text-sm">
-                    {CATEGORY_CONFIG[reportCategory]?.electricityLabel || "Électricité"}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setServiceType("water")}
-                  className={`flex items-center justify-center gap-2 rounded-xl border-2 p-4 transition-all ${
-                    serviceType === "water"
-                      ? "border-water bg-water-light"
-                      : "border-border hover:border-water/50"
-                  }`}
-                >
-                  <Droplets className={`h-5 w-5 ${serviceType === "water" ? "text-water" : "text-muted-foreground"}`} />
-                  <span className="font-medium text-sm">
-                    {CATEGORY_CONFIG[reportCategory]?.waterLabel || "Eau"}
-                  </span>
-                </button>
+        {/* Indicateur de progression */}
+        <div className="mb-6 flex items-center gap-2">
+          {([1, 2, 3] as const).map((s) => (
+            <div key={s} className="flex items-center gap-2 flex-1 last:flex-none">
+              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all ${
+                step === s
+                  ? "bg-primary text-primary-foreground shadow-md"
+                  : step > s
+                  ? "bg-green-500 text-white"
+                  : "bg-muted text-muted-foreground"
+              }`}>
+                {step > s ? "✓" : s}
               </div>
+              <span className={`text-xs hidden sm:block ${step === s ? "text-foreground font-semibold" : "text-muted-foreground"}`}>
+                {s === 1 ? "Type" : s === 2 ? "Lieu" : "Confirmer"}
+              </span>
+              {s < 3 && <div className={`flex-1 h-0.5 ${step > s ? "bg-green-500" : "bg-muted"}`} />}
             </div>
+          ))}
+        </div>
+
+        {/* Compteur journalier */}
+        {dailyCount !== null && (
+          <div className={`mb-4 rounded-xl border p-2.5 text-center text-xs font-medium ${
+            limitReached
+              ? "border-destructive/30 bg-destructive/5 text-destructive"
+              : "border-border bg-card text-muted-foreground"
+          }`}>
+            {limitReached
+              ? `🚫 Limite atteinte : ${dailyCount}/${DAILY_LIMIT} signalements aujourd'hui`
+              : `📊 ${dailyCount}/${DAILY_LIMIT} signalements utilisés aujourd'hui`}
+          </div>
+        )}
+
+        <AnimatePresence mode="wait">
+
+          {/* ═══════════════════════════════════════════════
+              ÉTAPE 1 — Choisir le type
+          ═══════════════════════════════════════════════ */}
+          {step === 1 && (
+            <motion.div
+              key="step1"
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -30 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="mb-5 text-center">
+                <h1 className="text-xl font-bold">Que se passe-t-il ?</h1>
+                <p className="text-sm text-muted-foreground mt-1">Touchez un type pour continuer</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {REPORT_TYPES.map((type) => (
+                  <motion.button
+                    key={type.id}
+                    type="button"
+                    whileTap={{ scale: 0.94 }}
+                    onClick={() => handleTypeSelect(type)}
+                    className="group flex flex-col items-center gap-2.5 rounded-2xl border-2 border-border bg-card p-5 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    style={{ "--hover-color": type.color } as any}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = type.color;
+                      e.currentTarget.style.backgroundColor = type.color + "10";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "";
+                      e.currentTarget.style.backgroundColor = "";
+                    }}
+                  >
+                    <span className="text-4xl leading-none">{type.emoji}</span>
+                    <span className="text-xs font-semibold leading-tight text-foreground">{type.label}</span>
+                  </motion.button>
+                ))}
+              </div>
+
+              <div className="mt-6">
+                <SOSButtons />
+              </div>
+            </motion.div>
           )}
 
-          {/* Start time */}
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold flex items-center gap-1.5">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              Heure de début de la coupure
-            </Label>
-            <Input
-              type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Laissez vide si la coupure vient de commencer
-            </p>
-          </div>
-
-          {/* Impacted people + vulnerable */}
-          <div className="space-y-3">
-            <div className="flex items-start gap-2">
-              <Label className="text-sm font-semibold flex items-center gap-1.5">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                Personne(s) impactée(s) dans le ménage
-              </Label>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button type="button" className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-muted/80 transition-colors">
-                    <Info className="h-3 w-3" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-[260px] text-xs leading-relaxed bg-popover text-popover-foreground border border-border shadow-md z-50">
-                  Merci d'indiquer le nombre réel de personnes concernées. Les données servent à prioriser les interventions. Toute exagération fausse les statistiques et pourrait entraîner une suspension de votre compte.
-                </TooltipContent>
-              </Tooltip>
-            </div>
-
-            {/* Counter for total people */}
-            <div className="flex items-center justify-between rounded-xl border border-border bg-background p-3">
-              <span className="text-sm text-foreground">Nombre total</span>
+          {/* ═══════════════════════════════════════════════
+              ÉTAPE 2 — Localisation
+          ═══════════════════════════════════════════════ */}
+          {step === 2 && selectedType && (
+            <motion.div
+              key="step2"
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -30 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-4"
+            >
+              {/* En-tête */}
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => setImpactedPeople(Math.max(1, impactedPeople - 1))}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-muted"
+                  onClick={() => setStep(1)}
+                  className="rounded-full p-2 hover:bg-muted transition-colors"
                 >
-                  <Minus className="h-4 w-4" />
+                  <ArrowLeft className="h-4 w-4" />
                 </button>
-                <span className="w-6 text-center font-bold text-foreground">{impactedPeople}</span>
-                <button
-                  type="button"
-                  onClick={() => setImpactedPeople(Math.min(50, impactedPeople + 1))}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-muted"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-2xl"
+                    style={{ backgroundColor: selectedType.color + "20" }}
+                  >
+                    {selectedType.emoji}
+                  </span>
+                  <div>
+                    <p className="font-bold text-sm leading-tight">{selectedType.label}</p>
+                    <p className="text-xs text-muted-foreground">Confirmez votre localisation</p>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {/* Toggle vulnerable section */}
-            <button
-              type="button"
-              onClick={() => setShowVulnerable(!showVulnerable)}
-              className="flex w-full items-center justify-between rounded-xl border border-dashed border-border bg-background px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted/50"
-            >
-              <span className="flex items-center gap-1.5">
-                <Heart className="h-4 w-4" />
-                Personnes vulnérables
-                {(babies + pregnant + elderly > 0) && (
-                  <span className="ml-1 rounded-full bg-urgent/10 px-2 py-0.5 text-xs font-semibold text-urgent">
-                    {babies + pregnant + elderly}
-                  </span>
-                )}
-              </span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${showVulnerable ? "rotate-180" : ""}`} />
-            </button>
+              {/* Champ libre si "Autre" */}
+              {selectedType.id === "other" && (
+                <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+                  <label className="text-sm font-semibold block">Précisez le problème *</label>
+                  <Input
+                    placeholder="Ex: Arbre tombé, route inondée..."
+                    value={customTypeDesc}
+                    onChange={(e) => setCustomTypeDesc(e.target.value)}
+                    maxLength={80}
+                    autoFocus
+                  />
+                </div>
+              )}
 
-            {showVulnerable && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-2 rounded-xl border border-border bg-muted/30 p-3"
+              {/* Bannière GPS */}
+              <div
+                className="rounded-xl border-2 p-4 transition-colors"
+                style={{ borderColor: detectedCommune?.couleur || "var(--border)" }}
               >
-                {/* Babies */}
-                <div className="flex items-center justify-between py-1">
-                  <span className="flex items-center gap-2 text-sm text-foreground">
-                    <Baby className="h-4 w-4 text-primary" />
-                    Bébés / Nourrissons
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button type="button" onClick={() => setBabies(Math.max(0, babies - 1))} className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-background"><Minus className="h-3 w-3" /></button>
-                    <span className="w-5 text-center text-sm font-semibold text-foreground">{babies}</span>
-                    <button type="button" onClick={() => setBabies(Math.min(20, babies + 1))} className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-background"><Plus className="h-3 w-3" /></button>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <MapPin className="h-4 w-4 shrink-0" style={{ color: detectedCommune?.couleur }} />
+                    {gpsLoading ? (
+                      <span className="text-sm text-muted-foreground flex items-center gap-1">
+                        <Loader2 className="h-3 w-3 animate-spin" /> Détection GPS...
+                      </span>
+                    ) : detectedCommune ? (
+                      <span className="font-bold text-sm truncate" style={{ color: detectedCommune.couleur }}>
+                        {detectedCommune.nom} ✓
+                      </span>
+                    ) : outsidePilotZone ? (
+                      <span className="text-sm text-destructive font-medium">⚠️ Hors zone pilote</span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">GPS non disponible</span>
+                    )}
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => captureGPS(true)}
+                    disabled={gpsLoading}
+                    className="flex shrink-0 items-center gap-1 rounded-lg bg-muted px-3 py-1.5 text-xs font-medium hover:bg-muted/70 transition-colors disabled:opacity-50"
+                  >
+                    <Navigation className="h-3 w-3" />
+                    {latitude ? "Relocaliser" : "Localiser"}
+                  </button>
                 </div>
-
-                {/* Pregnant */}
-                <div className="flex items-center justify-between py-1">
-                  <span className="flex items-center gap-2 text-sm text-foreground">
-                    <Heart className="h-4 w-4 text-pink-500" />
-                    Femmes enceintes
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button type="button" onClick={() => setPregnant(Math.max(0, pregnant - 1))} className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-background"><Minus className="h-3 w-3" /></button>
-                    <span className="w-5 text-center text-sm font-semibold text-foreground">{pregnant}</span>
-                    <button type="button" onClick={() => setPregnant(Math.min(20, pregnant + 1))} className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-background"><Plus className="h-3 w-3" /></button>
-                  </div>
-                </div>
-
-                {/* Elderly */}
-                <div className="flex items-center justify-between py-1">
-                  <span className="flex items-center gap-2 text-sm text-foreground">
-                    <UserRound className="h-4 w-4 text-amber-600" />
-                    Personnes âgées
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button type="button" onClick={() => setElderly(Math.max(0, elderly - 1))} className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-background"><Minus className="h-3 w-3" /></button>
-                    <span className="w-5 text-center text-sm font-semibold text-foreground">{elderly}</span>
-                    <button type="button" onClick={() => setElderly(Math.min(20, elderly + 1))} className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-background"><Plus className="h-3 w-3" /></button>
-                  </div>
-                </div>
-
-                {(babies + pregnant + elderly > 0) && (
-                  <p className="text-xs text-urgent font-medium pt-1">
-                    ⚠️ Présence de personnes vulnérables — priorité élevée automatique
+                {latitude && longitude && (
+                  <p className="mt-1.5 text-xs text-muted-foreground font-mono">
+                    {latitude.toFixed(5)}, {longitude.toFixed(5)}
                   </p>
                 )}
-              </motion.div>
-            )}
-          </div>
+              </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold">Photo</Label>
-            <PhotoUpload onPhotoUploaded={setPhotoUrl} photoUrl={photoUrl} />
-          </div>
+              {outsidePilotZone && (
+                <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive text-center">
+                  🚧 Hors des 5 communes pilotes. Sélectionnez manuellement ci-dessous.
+                </div>
+              )}
 
-          {/* Description */}
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold">Description (optionnelle)</Label>
-            <Textarea
-              placeholder={reportCategory ? CATEGORY_CONFIG[reportCategory as ReportCategory]?.descriptionPlaceholder : "Décrivez la situation..."}
-              value={description}
-              onChange={(e) => setDescription(e.target.value.slice(0, 500))}
-              maxLength={500}
-              rows={3}
-            />
-          </div>
+              {/* Commune */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Commune *</label>
+                <Select
+                  value={commune}
+                  onValueChange={(v) => { setCommune(v); setQuartier(""); setCustomQuartier(""); }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner la commune" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COMMUNES.map((c) => (
+                      <SelectItem key={c.nom} value={c.nom}>
+                        <span className="flex items-center gap-2">
+                          <span className="h-3 w-3 rounded-full inline-block" style={{ backgroundColor: c.couleur }} />
+                          {c.nom}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {/* GPS Consent */}
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
-            <div className="flex items-start gap-3">
-              <Checkbox
-                id="gps-consent"
-                checked={gpsConsent}
-                onCheckedChange={(checked) => setGpsConsent(checked === true)}
-                className="mt-0.5"
-              />
-              <label htmlFor="gps-consent" className="text-sm text-foreground leading-relaxed cursor-pointer">
-                J'accepte que ma position GPS soit utilisée <strong>uniquement pour géolocaliser ce signalement</strong>. 
-                Mes coordonnées seront <strong>automatiquement supprimées</strong> dès que le signalement sera résolu.
-              </label>
-            </div>
-            <p className="text-xs text-muted-foreground pl-7">
-              📍 En savoir plus : <Link to="/confidentialite" className="text-primary underline">Politique de confidentialité</Link>
-            </p>
-          </div>
+              {/* Quartier */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Quartier *</label>
+                {commune ? (
+                  <Select value={quartier} onValueChange={setQuartier}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner le quartier" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {getQuartiers(commune).map((q) => (
+                        <SelectItem key={q} value={q}>{q}</SelectItem>
+                      ))}
+                      <SelectItem value="__other">Autre quartier...</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">Sélectionnez d'abord une commune</p>
+                )}
+                {quartier === "__other" && (
+                  <Input
+                    placeholder="Nom du quartier"
+                    value={customQuartier}
+                    onChange={(e) => setCustomQuartier(e.target.value)}
+                    maxLength={100}
+                    autoFocus
+                  />
+                )}
+              </div>
 
-          <Button
-            type="submit"
-            className="w-full py-6 text-base font-bold"
-            style={{
-              backgroundColor: selectedCommuneData?.couleur || undefined,
-              color: "white",
-            }}
-            disabled={submitting || limitReached || !reportCategory || !serviceType || !commune || !resolvedQuartier || !latitude || !longitude || !gpsConsent}
-          >
-            <Send className="mr-2 h-5 w-5" />
-            {submitting ? "Envoi..." : "Confirmer signalement"}
-          </Button>
-        </motion.form>
+              <Button
+                type="button"
+                className="w-full py-5 text-base font-bold"
+                style={{ backgroundColor: selectedType.color, color: "white" }}
+                onClick={handleLocationNext}
+                disabled={!commune || !resolvedQuartier || !latitude}
+              >
+                Continuer →
+              </Button>
+            </motion.div>
+          )}
 
-        {/* SOS Buttons */}
-        <SOSButtons />
+          {/* ═══════════════════════════════════════════════
+              ÉTAPE 3 — Confirmation + envoi
+          ═══════════════════════════════════════════════ */}
+          {step === 3 && selectedType && (
+            <motion.div
+              key="step3"
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -30 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-4"
+            >
+              {/* En-tête */}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="rounded-full p-2 hover:bg-muted transition-colors"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
+                <h1 className="font-bold text-lg">Confirmer le signalement</h1>
+              </div>
+
+              {/* Carte récapitulative */}
+              <div
+                className="rounded-2xl border-2 p-4"
+                style={{
+                  borderColor: selectedType.color + "60",
+                  backgroundColor: selectedType.color + "0D",
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <span
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-3xl"
+                    style={{ backgroundColor: selectedType.color + "20" }}
+                  >
+                    {selectedType.emoji}
+                  </span>
+                  <div>
+                    <p className="font-bold text-base">{selectedType.label}</p>
+                    {selectedType.id === "other" && customTypeDesc && (
+                      <p className="text-xs text-muted-foreground">"{customTypeDesc}"</p>
+                    )}
+                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <MapPin className="h-3 w-3 shrink-0" />
+                      {commune}, {resolvedQuartier}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Détails optionnels (accordéon) */}
+              <button
+                type="button"
+                onClick={() => setShowExtras(!showExtras)}
+                className="flex w-full items-center justify-between rounded-xl border border-dashed border-border bg-card px-4 py-3 text-sm text-muted-foreground hover:bg-muted/40 transition-colors"
+              >
+                <span className="font-medium">Ajouter des détails (optionnel)</span>
+                <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showExtras ? "rotate-180" : ""}`} />
+              </button>
+
+              {showExtras && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="rounded-xl border border-border bg-card p-4 space-y-4 overflow-hidden"
+                >
+                  {/* Description */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold flex items-center gap-1.5">
+                      <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                      Description
+                    </label>
+                    <Textarea
+                      placeholder="Décrivez la situation..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value.slice(0, 500))}
+                      rows={3}
+                    />
+                    <p className="text-xs text-muted-foreground text-right">{description.length}/500</p>
+                  </div>
+
+                  {/* Heure de début (coupures uniquement) */}
+                  {selectedType.reportCategory === "outage" && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold flex items-center gap-1.5">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        Heure de début
+                      </label>
+                      <Input
+                        type="time"
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">Laissez vide si ça vient de commencer</p>
+                    </div>
+                  )}
+
+                  {/* Photo */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold flex items-center gap-1.5">
+                      <Camera className="h-4 w-4 text-muted-foreground" />
+                      Photo
+                    </label>
+                    <PhotoUpload onPhotoUploaded={setPhotoUrl} photoUrl={photoUrl} />
+                  </div>
+
+                  {/* Personnes impactées */}
+                  <div className="space-y-3">
+                    <label className="text-sm font-semibold flex items-center gap-1.5">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      Personnes impactées
+                    </label>
+                    <div className="flex items-center justify-between rounded-xl border border-border bg-background p-3">
+                      <span className="text-sm">Nombre total</span>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setImpactedPeople(Math.max(1, impactedPeople - 1))}
+                          className="flex h-8 w-8 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <span className="w-6 text-center font-bold">{impactedPeople}</span>
+                        <button
+                          type="button"
+                          onClick={() => setImpactedPeople(Math.min(50, impactedPeople + 1))}
+                          className="flex h-8 w-8 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Personnes vulnérables */}
+                    <button
+                      type="button"
+                      onClick={() => setShowVulnerable(!showVulnerable)}
+                      className="flex w-full items-center justify-between rounded-xl border border-dashed border-border px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <Heart className="h-4 w-4" />
+                        Personnes vulnérables
+                        {(babies + pregnant + elderly > 0) && (
+                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-600">
+                            {babies + pregnant + elderly}
+                          </span>
+                        )}
+                      </span>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${showVulnerable ? "rotate-180" : ""}`} />
+                    </button>
+
+                    {showVulnerable && (
+                      <div className="space-y-2 rounded-xl border border-border bg-muted/30 p-3">
+                        {[
+                          { label: "Bébés / Nourrissons", icon: <Baby className="h-4 w-4 text-blue-500" />, val: babies, set: setBabies },
+                          { label: "Femmes enceintes", icon: <Heart className="h-4 w-4 text-pink-500" />, val: pregnant, set: setPregnant },
+                          { label: "Personnes âgées", icon: <UserRound className="h-4 w-4 text-amber-600" />, val: elderly, set: setElderly },
+                        ].map(({ label, icon, val, set }) => (
+                          <div key={label} className="flex items-center justify-between py-1">
+                            <span className="flex items-center gap-2 text-sm">{icon} {label}</span>
+                            <div className="flex items-center gap-2">
+                              <button type="button" onClick={() => set(Math.max(0, val - 1))} className="flex h-7 w-7 items-center justify-center rounded-full border border-border hover:bg-background transition-colors"><Minus className="h-3 w-3" /></button>
+                              <span className="w-5 text-center text-sm font-semibold">{val}</span>
+                              <button type="button" onClick={() => set(Math.min(20, val + 1))} className="flex h-7 w-7 items-center justify-center rounded-full border border-border hover:bg-background transition-colors"><Plus className="h-3 w-3" /></button>
+                            </div>
+                          </div>
+                        ))}
+                        {(babies + pregnant + elderly > 0) && (
+                          <p className="text-xs text-red-600 font-medium pt-1">
+                            ⚠️ Présence de personnes vulnérables — priorité élevée automatique
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Consentement GPS */}
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="gps-consent"
+                    checked={gpsConsent}
+                    onCheckedChange={(c) => setGpsConsent(c === true)}
+                    className="mt-0.5"
+                  />
+                  <label htmlFor="gps-consent" className="text-sm leading-relaxed cursor-pointer">
+                    J'accepte que ma position GPS soit utilisée <strong>uniquement</strong> pour géolocaliser ce signalement.{" "}
+                    <Link to="/confidentialite" className="text-primary underline text-xs">Politique de confidentialité</Link>
+                  </label>
+                </div>
+              </div>
+
+              {/* Bouton envoyer */}
+              <Button
+                type="button"
+                className="w-full py-6 text-base font-bold"
+                style={{
+                  backgroundColor: selectedCommuneData?.couleur || selectedType.color,
+                  color: "white",
+                }}
+                disabled={submitting || limitReached || !gpsConsent}
+                onClick={handleSubmit}
+              >
+                {submitting ? (
+                  <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Envoi en cours...</>
+                ) : (
+                  <><Send className="mr-2 h-5 w-5" /> Envoyer le signalement</>
+                )}
+              </Button>
+            </motion.div>
+          )}
+
+        </AnimatePresence>
       </main>
     </div>
   );
