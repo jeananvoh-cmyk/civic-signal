@@ -110,6 +110,84 @@ const SkeletonCommune = () => (
   </div>
 );
 
+const ReportRow = ({ r, variant }: { r: PriorityReport; variant: "critical" | "high" | "medium" }) => {
+  const isElec = r.service_type === "electricity";
+  const durationMins = r.start_time ? (Date.now() - new Date(r.start_time).getTime()) / 60000 : 0;
+  const timeSince = durationMins > 0 ? formatMinutes(durationMins) : "";
+
+  // Duration color: green < 1h, orange 1–6h, red 6–24h, bold red > 24h
+  const durTextClass = durationMins >= 1440
+    ? "text-destructive font-extrabold"
+    : durationMins >= 360 ? "text-destructive font-bold"
+    : durationMins >= 60 ? "text-warning font-semibold"
+    : "text-success font-medium";
+  const durBgClass = durationMins >= 1440
+    ? "bg-destructive/10 border border-destructive/30"
+    : durationMins >= 360 ? "bg-destructive/5 border border-destructive/20"
+    : durationMins >= 60 ? "bg-warning/10 border border-warning/20"
+    : "bg-success/10 border border-success/20";
+  const durationAlert = durationMins >= 1440 ? " — Agir maintenant !" : durationMins >= 720 ? " — Non résolu" : "";
+
+  // Extract people count embedded in description "[X personne(s)]"
+  const peopleMatch = r.description.match(/\[(\d+)\s*personne/);
+  const people = peopleMatch ? parseInt(peopleMatch[1]) : null;
+  const cleanDesc = r.description.replace(/\s*\[\d+\s*personne\(s\)\]/g, "").trim();
+
+  const leftBorder = variant === "critical"
+    ? "border-l-4 border-l-destructive"
+    : variant === "high" ? "border-l-4 border-l-orange-500"
+    : "border-l-4 border-l-warning";
+  const badgeClass = variant === "critical"
+    ? "bg-destructive text-destructive-foreground"
+    : variant === "high" ? "bg-urgent text-urgent-foreground"
+    : "bg-warning text-warning-foreground";
+  const badgeLabel = variant === "critical" ? "🔥 Critique" : variant === "high" ? "⚠️ Élevé" : "⚡ Moyen";
+
+  return (
+    <div className={`flex items-start gap-4 px-5 py-4 transition-colors hover:bg-muted/30 ${leftBorder}`}>
+      {/* Service icon */}
+      <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${isElec ? "bg-amber-500/20" : "bg-blue-500/20"}`}>
+        {isElec ? <Zap className="h-5 w-5 text-amber-500" /> : <Droplets className="h-5 w-5 text-blue-500" />}
+      </div>
+
+      {/* Description + meta */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-foreground leading-snug">{cleanDesc}</p>
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground">
+            <MapPin className="h-3 w-3" />{r.location}
+          </span>
+          {people !== null && (
+            <span className="flex items-center gap-0.5 text-[11px] font-semibold text-foreground">
+              👤 {people} personne{people > 1 ? "s" : ""} impactée{people > 1 ? "s" : ""}
+            </span>
+          )}
+          {r.verifications === 0 ? (
+            <span className="text-[10px] italic text-muted-foreground">Pas encore vérifié par les voisins</span>
+          ) : (
+            <span className="flex items-center gap-0.5 text-[10px] font-semibold text-success">
+              ✓ {r.verifications} voisin{r.verifications > 1 ? "s" : ""} confirm{r.verifications > 1 ? "ent" : "e"}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Duration + urgency badge */}
+      <div className="flex flex-col items-end gap-1.5 shrink-0">
+        {timeSince && (
+          <span className={`flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs ${durTextClass} ${durBgClass}`}>
+            <Clock className="h-3 w-3 shrink-0" />
+            {timeSince}{durationAlert}
+          </span>
+        )}
+        <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeClass}`}>
+          {badgeLabel}
+        </span>
+      </div>
+    </div>
+  );
+};
+
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { isAdmin, canValidate } = useUserRole();
@@ -206,6 +284,13 @@ const DashboardPage = () => {
   const totalActifs = totalElecActifs + totalEauActifs;
   const isCrisis = totalActifs >= 10;
   const isEmpty = !loading && totalActifs === 0 && totalElecTotal + totalEauTotal === 0;
+
+  const maxHighDuration = highPriorityReports.length > 0
+    ? Math.max(...highPriorityReports.map((r) => r.start_time ? (Date.now() - new Date(r.start_time).getTime()) / 60000 : 0))
+    : 0;
+  const maxMediumDuration = mediumPriorityReports.length > 0
+    ? Math.max(...mediumPriorityReports.map((r) => r.start_time ? (Date.now() - new Date(r.start_time).getTime()) / 60000 : 0))
+    : 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -481,40 +566,24 @@ const DashboardPage = () => {
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-8">
             <Collapsible defaultOpen>
               <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-3 shadow-card hover:bg-destructive/10 transition-colors">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <AlertTriangle className="h-5 w-5 text-destructive" />
                   <h2 className="font-display text-xl font-bold text-foreground">Priorités hautes</h2>
-                  <span className="ml-1 rounded-full bg-destructive px-2 py-0.5 text-xs font-bold text-destructive-foreground">{highPriorityReports.length}</span>
+                  <span className="rounded-full bg-destructive px-2 py-0.5 text-xs font-bold text-destructive-foreground">{highPriorityReports.length}</span>
+                  {maxHighDuration > 0 && (
+                    <span className="flex items-center gap-1 rounded-lg bg-destructive/10 border border-destructive/20 px-2 py-0.5 text-xs font-semibold text-destructive">
+                      <Clock className="h-3 w-3" />
+                      La plus longue : {formatMinutes(maxHighDuration)}
+                    </span>
+                  )}
                 </div>
                 <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="mt-2 rounded-2xl border border-destructive/20 bg-card shadow-card overflow-hidden divide-y divide-border">
-                  {highPriorityReports.slice(0, 15).map((r) => {
-                    const isElec = r.service_type === "electricity";
-                    const urgencyLabel = r.urgency === "critical" ? "🔥 Critique" : "⚠️ Élevé";
-                    const timeSinceStart = r.start_time ? formatMinutes((Date.now() - new Date(r.start_time).getTime()) / 60000) : "";
-                    return (
-                      <div key={r.id} className="flex items-center gap-4 px-5 py-3 hover:bg-destructive/5 transition-colors">
-                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${isElec ? "bg-amber-500/15" : "bg-blue-500/15"}`}>
-                          {isElec ? <Zap className="h-4 w-4 text-amber-500" /> : <Droplets className="h-4 w-4 text-blue-500" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{r.description}</p>
-                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                            <span className="flex items-center gap-0.5"><MapPin className="h-2.5 w-2.5" />{r.location}</span>
-                            {timeSinceStart && <span className="flex items-center gap-0.5"><Clock className="h-2.5 w-2.5" />depuis {timeSinceStart}</span>}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${r.urgency === "critical" ? "bg-destructive text-destructive-foreground" : "bg-urgent text-urgent-foreground"}`}>
-                            {urgencyLabel}
-                          </span>
-                          <span className="text-xs text-muted-foreground">{r.verifications} ✓</span>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {highPriorityReports.slice(0, 15).map((r) => (
+                    <ReportRow key={r.id} r={r} variant={r.urgency === "critical" ? "critical" : "high"} />
+                  ))}
                 </div>
               </CollapsibleContent>
             </Collapsible>
@@ -526,37 +595,24 @@ const DashboardPage = () => {
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }} className="mb-8">
             <Collapsible>
               <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl border border-warning/30 bg-warning/5 px-5 py-3 shadow-card hover:bg-warning/10 transition-colors">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <AlertCircle className="h-5 w-5 text-warning" />
                   <h2 className="font-display text-xl font-bold text-foreground">Priorités moyennes</h2>
-                  <span className="ml-1 rounded-full bg-warning px-2 py-0.5 text-xs font-bold text-warning-foreground">{mediumPriorityReports.length}</span>
+                  <span className="rounded-full bg-warning px-2 py-0.5 text-xs font-bold text-warning-foreground">{mediumPriorityReports.length}</span>
+                  {maxMediumDuration > 0 && (
+                    <span className="flex items-center gap-1 rounded-lg bg-warning/10 border border-warning/20 px-2 py-0.5 text-xs font-semibold text-warning">
+                      <Clock className="h-3 w-3" />
+                      La plus longue : {formatMinutes(maxMediumDuration)}
+                    </span>
+                  )}
                 </div>
                 <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="mt-2 rounded-2xl border border-warning/20 bg-card shadow-card overflow-hidden divide-y divide-border">
-                  {mediumPriorityReports.slice(0, 15).map((r) => {
-                    const isElec = r.service_type === "electricity";
-                    const timeSinceStart = r.start_time ? formatMinutes((Date.now() - new Date(r.start_time).getTime()) / 60000) : "";
-                    return (
-                      <div key={r.id} className="flex items-center gap-4 px-5 py-3 hover:bg-warning/5 transition-colors">
-                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${isElec ? "bg-amber-500/15" : "bg-blue-500/15"}`}>
-                          {isElec ? <Zap className="h-4 w-4 text-amber-500" /> : <Droplets className="h-4 w-4 text-blue-500" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{r.description}</p>
-                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                            <span className="flex items-center gap-0.5"><MapPin className="h-2.5 w-2.5" />{r.location}</span>
-                            {timeSinceStart && <span className="flex items-center gap-0.5"><Clock className="h-2.5 w-2.5" />depuis {timeSinceStart}</span>}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-warning text-warning-foreground">⚡ Moyen</span>
-                          <span className="text-xs text-muted-foreground">{r.verifications} ✓</span>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {mediumPriorityReports.slice(0, 15).map((r) => (
+                    <ReportRow key={r.id} r={r} variant="medium" />
+                  ))}
                 </div>
               </CollapsibleContent>
             </Collapsible>
