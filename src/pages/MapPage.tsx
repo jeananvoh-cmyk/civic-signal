@@ -227,7 +227,7 @@ const MapPage = () => {
             <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground uppercase tracking-tight">Cartographie en live des coupures d'eau et d'électricité dans Abidjan</h1>
             <p className="text-xs text-muted-foreground mt-0.5">05 communes pilotes disponibles</p>
             <p className="mt-1 text-muted-foreground">
-              {loading ? "Chargement..." : `${totalSignalements} signalement(s) dont ${totalActifs} actif(s)`}
+              {loading ? "Chargement..." : `${totalActifs} coupure${totalActifs > 1 ? "s" : ""} active${totalActifs > 1 ? "s" : ""} en ce moment`}
             </p>
             {!loading && totalVerified > 0 && (
               <p className="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-success">
