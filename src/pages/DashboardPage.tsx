@@ -265,62 +265,64 @@ const DashboardPage = () => {
           </div>
         </motion.div>
 
-        {/* Global totals */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {loading ? (
-            <>
-              <SkeletonCard />
-              <SkeletonCard />
-            </>
-          ) : isEmpty ? (
-            <div className="col-span-2 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card py-16 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary mb-4">
-                <Zap className="h-7 w-7 text-muted-foreground" />
-              </div>
-              <p className="font-display text-lg font-bold text-foreground">Aucune coupure active</p>
-              <p className="mt-2 text-sm text-muted-foreground max-w-xs">
-                Tout est normal pour le moment dans les 5 communes pilotes. Les signalements apparaîtront ici en temps réel.
-              </p>
-            </div>
-          ) : null}
-          {/* Electricity + Water cards — visible when loaded and has data */}
-          {!loading && !isEmpty && (
-            <>
-              <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
-                <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
-                  <img src={electricityIcon} alt="" className="h-full w-full object-contain" />
+        {/* Global totals — admin/moderator only */}
+        {canValidate && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {loading ? (
+              <>
+                <SkeletonCard />
+                <SkeletonCard />
+              </>
+            ) : isEmpty ? (
+              <div className="col-span-2 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card py-16 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary mb-4">
+                  <Zap className="h-7 w-7 text-muted-foreground" />
                 </div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/15">
-                    <Zap className="h-5 w-5 text-amber-500" />
+                <p className="font-display text-lg font-bold text-foreground">Aucune coupure active</p>
+                <p className="mt-2 text-sm text-muted-foreground max-w-xs">
+                  Tout est normal pour le moment dans les 5 communes pilotes. Les signalements apparaîtront ici en temps réel.
+                </p>
+              </div>
+            ) : null}
+            {/* Electricity + Water cards — visible when loaded and has data */}
+            {!loading && !isEmpty && (
+              <>
+                <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
+                  <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
+                    <img src={electricityIcon} alt="" className="h-full w-full object-contain" />
                   </div>
-                  <h2 className="font-display text-lg font-bold text-foreground">Électricité</h2>
-                </div>
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div><p className="font-display text-2xl font-extrabold text-amber-500">{totalElecActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
-                  <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalElecResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
-                  <div><p className="font-display text-2xl font-extrabold text-foreground">{totalElecTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
-                </div>
-              </div>
-              <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
-                <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
-                  <img src={waterIcon} alt="" className="h-full w-full object-contain" />
-                </div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/15">
-                    <Droplets className="h-5 w-5 text-blue-500" />
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/15">
+                      <Zap className="h-5 w-5 text-amber-500" />
+                    </div>
+                    <h2 className="font-display text-lg font-bold text-foreground">Électricité</h2>
                   </div>
-                  <h2 className="font-display text-lg font-bold text-foreground">Eau</h2>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div><p className="font-display text-2xl font-extrabold text-amber-500">{totalElecActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
+                    <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalElecResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
+                    <div><p className="font-display text-2xl font-extrabold text-foreground">{totalElecTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div><p className="font-display text-2xl font-extrabold text-blue-500">{totalEauActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
-                  <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalEauResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
-                  <div><p className="font-display text-2xl font-extrabold text-foreground">{totalEauTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
+                <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
+                  <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
+                    <img src={waterIcon} alt="" className="h-full w-full object-contain" />
+                  </div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/15">
+                      <Droplets className="h-5 w-5 text-blue-500" />
+                    </div>
+                    <h2 className="font-display text-lg font-bold text-foreground">Eau</h2>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div><p className="font-display text-2xl font-extrabold text-blue-500">{totalEauActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
+                    <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalEauResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
+                    <div><p className="font-display text-2xl font-extrabold text-foreground">{totalEauTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
-        </motion.div>
+              </>
+            )}
+          </motion.div>
+        )}
 
         {/* Duration stats */}
         {canValidate && !loading && durations.some((d) => d.total_resolved > 0) && (() => {
