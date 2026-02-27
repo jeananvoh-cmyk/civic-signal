@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Shield, ShieldCheck, UserPlus, Trash2, Plus } from "lucide-react";
+import { Shield, ShieldCheck, UserPlus, Trash2, Plus, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,6 +35,12 @@ const AdminUsersPage = () => {
   const [createFirstName, setCreateFirstName] = useState("");
   const [createLastName, setCreateLastName] = useState("");
   const [createRole, setCreateRole] = useState<"" | "admin" | "moderator">("");
+
+  // Edit name dialog state
+  const [editNameOpen, setEditNameOpen] = useState(false);
+  const [editUserId, setEditUserId] = useState("");
+  const [editFirstName, setEditFirstName] = useState("");
+  const [editLastName, setEditLastName] = useState("");
 
   const { data: rolesWithProfiles = [], isLoading } = useQuery({
     queryKey: ["admin-user-roles"],
@@ -86,6 +92,24 @@ const AdminUsersPage = () => {
       toast.success("Rôle retiré");
     },
     onError: (err: any) => toast.error(getUserFriendlyError(err)),
+  });
+
+  const updateNameMutation = useMutation({
+    mutationFn: async ({ userId, firstName, lastName }: { userId: string; firstName: string; lastName: string }) => {
+      const displayName = `${firstName.trim()} ${lastName.trim()}`.trim();
+      const { error } = await supabase
+        .from("profiles")
+        .update({ first_name: firstName.trim(), last_name: lastName.trim(), display_name: displayName })
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: (_, { userId }) => {
+      logAudit({ action: "profile_updated", target_type: "user", target_id: userId, details: { field: "display_name" } });
+      queryClient.invalidateQueries({ queryKey: ["admin-user-roles"] });
+      toast.success("Nom mis à jour avec succès");
+      setEditNameOpen(false);
+    },
+    onError: (err: any) => toast.error(getUserFriendlyError(err, "Erreur lors de la mise à jour")),
   });
 
   const createUserMutation = useMutation({
@@ -189,6 +213,38 @@ const AdminUsersPage = () => {
             </DialogContent>
           </Dialog>
 
+          {/* Edit name dialog */}
+          <Dialog open={editNameOpen} onOpenChange={setEditNameOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Modifier le nom d'affichage</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Prénom</Label>
+                    <Input value={editFirstName} onChange={(e) => setEditFirstName(e.target.value)} placeholder="Prénom" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Nom</Label>
+                    <Input value={editLastName} onChange={(e) => setEditLastName(e.target.value)} placeholder="Nom" />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Ce nom apparaîtra dans le titre du Tableau de Bord des Signalements des modérateurs :
+                  <br /><strong>« Tableau de Bord des Signalements — vue {editFirstName || "Prénom"} {editLastName || "Nom"} »</strong>
+                </p>
+                <Button
+                  className="w-full"
+                  onClick={() => updateNameMutation.mutate({ userId: editUserId, firstName: editFirstName, lastName: editLastName })}
+                  disabled={(!editFirstName && !editLastName) || updateNameMutation.isPending}
+                >
+                  {updateNameMutation.isPending ? "Enregistrement..." : "Enregistrer le nom"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
           {/* Add role dialog */}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
@@ -263,6 +319,19 @@ const AdminUsersPage = () => {
                     <Badge variant={item.role === "admin" ? "default" : "secondary"}>
                       {ROLE_LABELS[item.role]?.label || item.role}
                     </Badge>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      title="Modifier le nom d'affichage"
+                      onClick={() => {
+                        setEditUserId(item.user_id);
+                        setEditFirstName(item.profile?.first_name || "");
+                        setEditLastName(item.profile?.last_name || "");
+                        setEditNameOpen(true);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                     <Button
                       size="sm"
                       variant="ghost"

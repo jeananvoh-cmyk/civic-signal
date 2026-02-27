@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/contexts/AuthContext";
 import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio, Flame, AlertTriangle, AlertCircle, MapPin, Siren, CalendarDays } from "lucide-react";
 import Header from "@/components/Header";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -190,7 +191,8 @@ const ReportRow = ({ r, variant }: { r: PriorityReport; variant: "critical" | "h
 
 const DashboardPage = () => {
   const navigate = useNavigate();
-  const { isAdmin, canValidate } = useUserRole();
+  const { isAdmin, isModerator, canValidate } = useUserRole();
+  const { user } = useAuth();
   const [stats, setStats] = useState<CommuneServiceStat[]>([]);
   const [durations, setDurations] = useState<DurationStat[]>([]);
   const [topQuartiers, setTopQuartiers] = useState<QuartierRanking[]>([]);
@@ -198,6 +200,7 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [realtimeActive, setRealtimeActive] = useState(false);
   const [period, setPeriod] = useState<Period>("all");
+  const [moderatorName, setModeratorName] = useState<string>("");
 
   const fetchAll = useCallback(async () => {
     const communeNames = COMMUNES.map((c) => c.nom);
@@ -266,6 +269,22 @@ const DashboardPage = () => {
     };
   }, [fetchAll]);
 
+  // Fetch moderator display name from profiles
+  useEffect(() => {
+    if (!isModerator || !user) return;
+    supabase
+      .from("profiles")
+      .select("display_name, first_name, last_name")
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          const name = `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim() || data.display_name || user.email?.split("@")[0] || "";
+          setModeratorName(name);
+        }
+      });
+  }, [isModerator, user]);
+
   const totalElecActifs = stats.reduce((s, c) => s + c.electricite_actifs, 0);
   const totalElecResolus = stats.reduce((s, c) => s + c.electricite_resolus, 0);
   const totalElecTotal = stats.reduce((s, c) => s + c.electricite_total, 0);
@@ -292,6 +311,12 @@ const DashboardPage = () => {
     ? Math.max(...mediumPriorityReports.map((r) => r.start_time ? (Date.now() - new Date(r.start_time).getTime()) / 60000 : 0))
     : 0;
 
+  const dashboardTitle = isAdmin
+    ? "Dashboard Opérateur"
+    : isModerator
+    ? `Tableau de Bord des Signalements — vue ${moderatorName || "Modérateur"}`
+    : "Tableau de Bord des Signalements Publics";
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -316,7 +341,7 @@ const DashboardPage = () => {
       <main className="container py-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="font-display text-3xl font-bold text-foreground">Dashboard Opérateur</h1>
+            <h1 className="font-display text-3xl font-bold text-foreground">{dashboardTitle}</h1>
             <div className="mt-1 flex items-center gap-2">
               <p className="text-muted-foreground">5 communes pilotes — Abidjan</p>
               <span className={`flex items-center gap-1 text-xs font-medium transition-colors ${realtimeActive ? "text-success" : "text-muted-foreground"}`}>
@@ -344,7 +369,7 @@ const DashboardPage = () => {
               ))}
             </div>
             <ShareButton
-              title="Dashboard SignalÉnergie"
+              title="Tableau de Bord SignalÉnergie"
               text={`📊 ${totalActifs} coupures actives sur les 5 communes pilotes d'Abidjan`}
             />
           </div>
