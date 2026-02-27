@@ -649,8 +649,8 @@ const ReportPage = () => {
                     <PhotoUpload onPhotoUploaded={setPhotoUrl} photoUrl={photoUrl} />
                   </div>
 
-                  {/* Personnes impactées */}
-                  <div className="space-y-3">
+                  {/* Personnes impactées — uniquement pour les coupures eau/élec */}
+                  {selectedType.reportCategory === "outage" && <div className="space-y-3">
                     <label className="text-sm font-semibold flex items-center gap-1.5">
                       <Users className="h-4 w-4 text-muted-foreground" />
                       Personnes impactées
@@ -717,7 +717,7 @@ const ReportPage = () => {
                         )}
                       </div>
                     )}
-                  </div>
+                  </div>}
                 </motion.div>
               )}
 
