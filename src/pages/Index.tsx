@@ -301,7 +301,7 @@ const Index = () => {
                   <Zap className="h-3.5 w-3.5" /> Signaler une coupure
                 </Link>
                 <Link to="/tableau-de-bord" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  <BarChart3 className="h-3.5 w-3.5" /> Dashboard
+                  <BarChart3 className="h-3.5 w-3.5" /> Tableau de Bord Public
                 </Link>
                 <Link to="/carte" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
                   <Map className="h-3.5 w-3.5" /> Carte interactive

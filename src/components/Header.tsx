@@ -12,7 +12,7 @@ const Header = () => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, signOut } = useAuth();
-  const { canValidate } = useUserRole();
+  const { canValidate, isAdmin, isModerator } = useUserRole();
   const { theme, toggleTheme } = useTheme();
   const { data: donationsEnabled = true } = useSiteSetting("donations_enabled");
 
@@ -21,7 +21,7 @@ const Header = () => {
   const links = [
     { to: "/", label: "Accueil" },
     { to: "/signaler", label: "Signaler" },
-    { to: "/tableau-de-bord", label: "Dashboard" },
+    { to: "/tableau-de-bord", label: "Tableau de Bord Public" },
     { to: "/carte", label: "Carte" },
     { to: "/verification", label: "Vérifier" },
     ...(donationsEnabled ? [{ to: "/dons", label: "♥ Dons" }] : []),
@@ -61,12 +61,20 @@ const Header = () => {
           {user ? (
             <div className="ml-1 flex items-center gap-1">
               <NotificationBell />
-              {canValidate && (
+              {isAdmin && (
                 <Link
                   to="/admin"
                   className="rounded-lg px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 flex items-center gap-1"
                 >
                   <Shield className="h-4 w-4" /> Admin
+                </Link>
+              )}
+              {!isAdmin && isModerator && (
+                <Link
+                  to="/admin"
+                  className="rounded-lg px-3 py-2 text-sm font-medium text-amber-600 hover:bg-amber-500/10 flex items-center gap-1"
+                >
+                  <Shield className="h-4 w-4" /> Modérateur
                 </Link>
               )}
               <Link to="/profil" className="text-sm text-muted-foreground hover:text-foreground">
@@ -127,7 +135,7 @@ const Header = () => {
           ))}
           {user ? (
             <>
-              {canValidate && (
+              {isAdmin && (
                 <Link
                   to="/admin"
                   onClick={() => setMobileOpen(false)}
@@ -135,6 +143,16 @@ const Header = () => {
                 >
                   <Shield className="mr-2 inline h-4 w-4" />
                   Administration
+                </Link>
+              )}
+              {!isAdmin && isModerator && (
+                <Link
+                  to="/admin"
+                  onClick={() => setMobileOpen(false)}
+                  className="block rounded-lg px-4 py-3 text-sm font-medium text-amber-600 hover:bg-amber-500/10"
+                >
+                  <Shield className="mr-2 inline h-4 w-4" />
+                  Modération
                 </Link>
               )}
               <Link
