@@ -112,7 +112,7 @@ const SkeletonCommune = () => (
 
 const DashboardPage = () => {
   const navigate = useNavigate();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, canValidate } = useUserRole();
   const [stats, setStats] = useState<CommuneServiceStat[]>([]);
   const [durations, setDurations] = useState<DurationStat[]>([]);
   const [topQuartiers, setTopQuartiers] = useState<QuartierRanking[]>([]);
@@ -323,7 +323,7 @@ const DashboardPage = () => {
         </motion.div>
 
         {/* Duration stats */}
-        {!loading && durations.some((d) => d.total_resolved > 0) && (() => {
+        {canValidate && !loading && durations.some((d) => d.total_resolved > 0) && (() => {
           const communeNames = [...new Set(durations.map((d) => d.commune))];
           // Global averages
           const elecDurations = durations.filter((d) => d.service_type === "electricity" && d.total_resolved > 0);
@@ -562,7 +562,7 @@ const DashboardPage = () => {
         )}
 
         {/* Leaderboard */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-8">
+        {canValidate && (<motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-8">
           <Collapsible>
             <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-5 py-3 shadow-card hover:bg-secondary/50 transition-colors">
               <div className="flex items-center gap-2">
@@ -627,7 +627,7 @@ const DashboardPage = () => {
               </div>
             </CollapsibleContent>
           </Collapsible>
-        </motion.div>
+        </motion.div>)}
 
         {/* Per-commune breakdown */}
         <h2 className="font-display text-xl font-bold text-foreground mb-4">Détail par commune</h2>
