@@ -80,7 +80,7 @@ const MapPage = () => {
 
       // Build marker HTML based on filter
       let markerHtml = '';
-      const markerSize = total > 0 ? 52 : 36;
+      const markerSize = actifs > 0 ? 52 : 36;
 
       if (filter === "all" && s && (s.electricite_actifs > 0 || s.eau_actifs > 0)) {
         // Split marker showing both service types
@@ -127,8 +127,8 @@ const MapPage = () => {
           border-radius:50%;display:flex;align-items:center;justify-content:center;
           border:${hasVerified ? '3px solid #22c55e' : '3px solid white'};
           box-shadow:${hasVerified ? '0 0 12px rgba(34,197,94,0.6), 0 2px 10px rgba(0,0,0,.35)' : '0 2px 10px rgba(0,0,0,.35)'};
-          font-size:${total > 0 ? 15 : 13}px;font-weight:bold;
-        ">${filterEmoji}${total}${hasVerified ? `<span style="
+          font-size:${actifs > 0 ? 15 : 13}px;font-weight:bold;
+        ">${filterEmoji}${actifs > 0 ? actifs : '·'}${hasVerified ? `<span style="
           position:absolute;top:-6px;right:-6px;
           background:linear-gradient(135deg,#22c55e,#16a34a);color:white;
           width:20px;height:20px;border-radius:50%;
@@ -227,7 +227,21 @@ const MapPage = () => {
             <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground uppercase tracking-tight">Cartographie en live des coupures d'eau et d'électricité dans Abidjan</h1>
             <p className="text-xs text-muted-foreground mt-0.5">05 communes pilotes disponibles</p>
             <p className="mt-1 text-muted-foreground">
-              {loading ? "Chargement..." : `${totalActifs} coupure${totalActifs > 1 ? "s" : ""} active${totalActifs > 1 ? "s" : ""} en ce moment`}
+              {loading ? "Chargement..." : (
+                <>
+                  <strong className={totalActifs > 0 ? "text-destructive" : "text-success"}>{totalActifs} coupure{totalActifs > 1 ? "s" : ""} active{totalActifs > 1 ? "s" : ""}</strong> en ce moment
+                  {filter === "all" && (
+                    <span className="ml-2 inline-flex items-center gap-2 text-sm">
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                        ⚡ {totalElecActifs}
+                      </span>
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                        💧 {totalEauActifs}
+                      </span>
+                    </span>
+                  )}
+                </>
+              )}
             </p>
             {!loading && totalVerified > 0 && (
               <p className="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-success">
