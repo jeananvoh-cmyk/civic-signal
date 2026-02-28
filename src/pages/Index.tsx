@@ -70,10 +70,6 @@ const Index = () => {
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white backdrop-blur-sm">
-                <Shield className="h-4 w-4" />
-                05 communes pilotes à Abidjan
-              </div>
               {liveCount !== null && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
@@ -98,6 +94,10 @@ const Index = () => {
                   </AnimatePresence>
                 </motion.div>
               )}
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white backdrop-blur-sm">
+                <Shield className="h-4 w-4" />
+                05 communes pilotes à Abidjan
+              </div>
             </div>
 
             <div className="mt-6">
