@@ -170,6 +170,14 @@ export default {
   					opacity: '1',
   					transform: 'scale(1)'
   				}
+  			},
+  			'marquee': {
+  				from: { transform: 'translateX(0)' },
+  				to:   { transform: 'translateX(-50%)' }
+  			},
+  			'marquee-reverse': {
+  				from: { transform: 'translateX(-50%)' },
+  				to:   { transform: 'translateX(0)' }
   			}
   		},
   		animation: {
@@ -177,7 +185,9 @@ export default {
   			'accordion-up': 'accordion-up 0.2s ease-out',
   			'fade-in-up': 'fade-in-up 0.6s ease-out forwards',
   			'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
-  			'count-up': 'count-up 0.5s ease-out forwards'
+  			'count-up': 'count-up 0.5s ease-out forwards',
+  			'marquee': 'marquee 32s linear infinite',
+  			'marquee-reverse': 'marquee-reverse 38s linear infinite'
   		},
   		boxShadow: {
   			'2xs': 'var(--shadow-2xs)',

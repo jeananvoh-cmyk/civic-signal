@@ -18,16 +18,15 @@ const Index = () => {
   const [liveActive, setLiveActive] = useState(false);
 
   useEffect(() => {
+    // Uses a SECURITY DEFINER RPC so both authenticated users AND anonymous
+    // visitors can read the count (the reports table itself is blocked for anon).
     const fetchCount = async () => {
-      const { count } = await supabase
-        .from("reports")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "active")
-        .eq("report_category", "outage");
-      setLiveCount(count ?? 0);
+      const { data } = await supabase.rpc("get_active_outage_count");
+      if (data !== null && data !== undefined) setLiveCount(data as number);
     };
     fetchCount();
 
+    // Realtime: delivers fast updates for authenticated users.
     const channel = supabase
       .channel("index-live-count")
       .on("postgres_changes", { event: "*", schema: "public", table: "reports" }, () => {
@@ -37,7 +36,14 @@ const Index = () => {
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    // Polling fallback every 10 s — ensures anonymous visitors also see updates
+    // (realtime postgres_changes is blocked by RLS for the anon role).
+    const poll = setInterval(fetchCount, 10_000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(poll);
+    };
   }, []);
   return (
     <div className="min-h-screen bg-background">
@@ -90,26 +96,43 @@ const Index = () => {
             </div>
 
             <h1 className="font-display text-4xl font-extrabold leading-tight text-white md:text-5xl lg:text-6xl">
-              Plateforme citoyenne pour Signaler les{" "}
-              <span className="text-urgent">Coupures</span>{" "}
-              <img src={waterIcon} alt="Eau" className="inline-block h-10 w-10 md:h-14 md:w-14 drop-shadow-lg" />{" "}
-              <img src={electricityIcon} alt="Électricité" className="inline-block h-10 w-10 md:h-14 md:w-14 drop-shadow-lg" />
+              Plateforme Ivoirienne{" "}
+              pour <span className="text-urgent">Signaler</span>
             </h1>
 
-            <p className="mt-6 max-w-lg text-xl font-semibold text-white">
-              En <span className="text-electricity">15 Secondes</span> Signales si tu n'as plus d'
-              <span className="text-water-light">eau</span> ou l'
-              <span className="text-electricity">électricité</span>. Tes voisins agissent déjà.
+            {/* Problem-type pills */}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-400/40 bg-blue-500/25 px-3 py-1.5 text-xs font-bold text-blue-200 backdrop-blur-sm">
+                <img src={waterIcon} alt="" className="h-4 w-4" /> Coupures d'eau
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-yellow-400/40 bg-yellow-500/25 px-3 py-1.5 text-xs font-bold text-yellow-200 backdrop-blur-sm">
+                <img src={electricityIcon} alt="" className="h-4 w-4" /> Électricité
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-400/30 bg-orange-500/20 px-3 py-1.5 text-xs font-bold text-orange-200 backdrop-blur-sm">
+                💡 Lampadaires cassés
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-400/30 bg-teal-500/20 px-3 py-1.5 text-xs font-bold text-teal-200 backdrop-blur-sm">
+                🌧️ Caniveaux bouchés
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-400/30 bg-gray-500/20 px-3 py-1.5 text-xs font-bold text-gray-200 backdrop-blur-sm">
+                🛣️ Routes dégradées
+              </span>
+            </div>
+
+            <p className="mt-5 text-xl font-extrabold text-white">
+              Vos voisins agissent déjà.
             </p>
 
-            <div className="mt-6">
-              <Button asChild size="lg" className="bg-water text-water-foreground hover:bg-water/90 px-12 py-7 text-lg font-bold">
-                <Link to="/signaler">
-                  <Zap className="mr-2 h-6 w-6" />
-                  Signaler une coupure
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-              </Button>
+            {/* CTA */}
+            <div className="mt-8">
+              <Link
+                to="/signaler"
+                className="group inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-water to-electricity px-10 py-5 text-xl font-extrabold text-white shadow-[0_8px_32px_rgba(14,165,233,0.45)] transition-all duration-200 hover:scale-[1.04] hover:shadow-[0_12px_48px_rgba(14,165,233,0.65)] active:scale-[0.98]"
+              >
+                <Zap className="h-6 w-6 drop-shadow" />
+                Signaler
+                <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
+              </Link>
             </div>
 
             {/* 5 communes badges */}
@@ -125,6 +148,89 @@ const Index = () => {
               )}
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* ── Floating ticker / badges défilants ─────────────────────────── */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-[#0f172a] to-background py-10">
+        {/* Soft glow */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute left-1/4 top-0 h-32 w-64 rounded-full bg-water/10 blur-3xl" />
+          <div className="absolute right-1/4 bottom-0 h-32 w-64 rounded-full bg-electricity/10 blur-3xl" />
+        </div>
+
+        {/* Label centré */}
+        <div className="container mb-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-white/50">
+            <Radio className="h-3 w-3 animate-pulse text-urgent" /> En direct · Messages citoyens
+          </span>
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        </div>
+
+        {/* Row 1 — scroll gauche (avec description) */}
+        <div className="overflow-hidden [mask-image:linear-gradient(to_right,transparent_0%,black_8%,black_92%,transparent_100%)]">
+          <div className="flex w-max animate-marquee gap-5 hover:[animation-play-state:paused]">
+            {[...Array(2)].map((_, rep) => (
+              <div key={rep} className="flex gap-5">
+                <div className="flex w-[360px] shrink-0 items-start gap-3 rounded-2xl border border-orange-400/25 bg-gradient-to-br from-orange-500/15 to-red-600/10 px-5 py-4 backdrop-blur-md">
+                  <span className="mt-0.5 text-2xl leading-none">🇨🇮</span>
+                  <div>
+                    <p className="font-display text-sm font-extrabold leading-snug text-white">
+                      "Abidjan mérite mieux.<br />Commençons par le signaler."
+                    </p>
+                    <p className="mt-1.5 text-xs leading-relaxed text-white/60">
+                      Eau ou Électricité coupée, lampadaire cassé, route dégradée — en 3 clics, votre problème est sur la carte et entre les mains des responsables.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex w-[360px] shrink-0 items-start gap-3 rounded-2xl border border-violet-400/25 bg-gradient-to-br from-violet-500/15 to-purple-700/10 px-5 py-4 backdrop-blur-md">
+                  <span className="mt-0.5 text-2xl leading-none">⚡</span>
+                  <div>
+                    <p className="font-display text-sm font-extrabold leading-snug text-white">
+                      "7 problèmes. 1 app. Et ça change."
+                    </p>
+                    <p className="mt-1.5 text-xs leading-relaxed text-white/60">
+                      Électricité, eau, voirie, caniveaux, fuites, lampadaires et dépôts sauvages d'ordures — signalez, confirmez. Ils verront pour agir.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex w-[360px] shrink-0 items-start gap-3 rounded-2xl border border-cyan-400/25 bg-gradient-to-br from-cyan-500/15 to-blue-700/10 px-5 py-4 backdrop-blur-md">
+                  <span className="mt-0.5 text-2xl leading-none">📍</span>
+                  <div>
+                    <p className="font-display text-sm font-extrabold leading-snug text-white">
+                      "Votre Signalement. Pour votre quartier."
+                    </p>
+                    <p className="mt-1.5 text-xs leading-relaxed text-white/60">
+                      Pour la première fois, chaque Ivoirien peut signaler une coupure d'eau, un lampadaire cassé ou une route abîmée — et être entendu.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Row 2 — scroll droite, compacts */}
+        <div className="mt-4 overflow-hidden [mask-image:linear-gradient(to_right,transparent_0%,black_8%,black_92%,transparent_100%)]">
+          <div className="flex w-max animate-marquee-reverse gap-5 hover:[animation-play-state:paused]">
+            {[...Array(2)].map((_, rep) => (
+              <div key={rep} className="flex gap-5">
+                <div className="flex w-[340px] shrink-0 items-center gap-3 rounded-2xl border border-cyan-400/25 bg-gradient-to-br from-cyan-500/15 to-blue-700/10 px-5 py-3.5 backdrop-blur-md">
+                  <span className="text-xl leading-none">📍</span>
+                  <p className="font-display text-sm font-bold text-white">"Votre Signalement. Pour votre quartier."</p>
+                </div>
+                <div className="flex w-[340px] shrink-0 items-center gap-3 rounded-2xl border border-orange-400/25 bg-gradient-to-br from-orange-500/15 to-red-600/10 px-5 py-3.5 backdrop-blur-md">
+                  <span className="text-xl leading-none">🇨🇮</span>
+                  <p className="font-display text-sm font-bold text-white">"Abidjan mérite mieux. Commençons par le signaler."</p>
+                </div>
+                <div className="flex w-[340px] shrink-0 items-center gap-3 rounded-2xl border border-violet-400/25 bg-gradient-to-br from-violet-500/15 to-purple-700/10 px-5 py-3.5 backdrop-blur-md">
+                  <span className="text-xl leading-none">⚡</span>
+                  <p className="font-display text-sm font-bold text-white">"7 problèmes. 1 app. Et ça change."</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
