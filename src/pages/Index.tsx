@@ -56,8 +56,21 @@ const Index = () => {
             transition={{ duration: 0.7 }}
             className="max-w-2xl">
 
-            <div className="flex flex-wrap items-center gap-3 mb-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm text-white backdrop-blur-sm">
+            <h1 className="font-display text-4xl font-extrabold leading-tight text-white md:text-5xl lg:text-6xl">
+              Plateforme citoyenne pour Signaler les{" "}
+              <span className="text-urgent">Coupures</span>{" "}
+              <img src={waterIcon} alt="Eau" className="inline-block h-10 w-10 md:h-14 md:w-14 drop-shadow-lg" />{" "}
+              <img src={electricityIcon} alt="Électricité" className="inline-block h-10 w-10 md:h-14 md:w-14 drop-shadow-lg" />
+            </h1>
+
+            <p className="mt-6 max-w-lg text-xl font-semibold text-white">
+              En <span className="text-electricity">15 Secondes</span> Signales si tu n'as plus d'
+              <span className="text-water-light">eau</span> ou l'
+              <span className="text-electricity">électricité</span>. Tes voisins agissent déjà.
+            </p>
+
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white backdrop-blur-sm">
                 <Shield className="h-4 w-4" />
                 05 communes pilotes à Abidjan
               </div>
@@ -65,7 +78,7 @@ const Index = () => {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-semibold backdrop-blur-sm transition-colors ${
+                  className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold backdrop-blur-sm transition-colors ${
                     liveCount > 0
                       ? "border-red-400/40 bg-red-500/20 text-red-200"
                       : "border-green-400/40 bg-green-500/20 text-green-200"
@@ -87,20 +100,7 @@ const Index = () => {
               )}
             </div>
 
-            <h1 className="font-display text-4xl font-extrabold leading-tight text-white md:text-5xl lg:text-6xl">
-              Plateforme citoyenne pour Signaler les{" "}
-              <span className="text-urgent">Coupures</span>{" "}
-              <img src={waterIcon} alt="Eau" className="inline-block h-10 w-10 md:h-14 md:w-14 drop-shadow-lg" />{" "}
-              <img src={electricityIcon} alt="Électricité" className="inline-block h-10 w-10 md:h-14 md:w-14 drop-shadow-lg" />
-            </h1>
-
-            <p className="mt-6 max-w-lg text-xl font-semibold text-white">
-              En <span className="text-electricity">15 Secondes</span> Signales si tu n'as plus d'
-              <span className="text-water-light">eau</span> ou l'
-              <span className="text-electricity">électricité</span>. Tes voisins agissent déjà.
-            </p>
-
-            <div className="mt-8">
+            <div className="mt-6">
               <Button asChild size="lg" className="bg-water text-water-foreground hover:bg-water/90 px-12 py-7 text-lg font-bold">
                 <Link to="/signaler">
                   <Zap className="mr-2 h-6 w-6" />
