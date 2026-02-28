@@ -49,10 +49,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, new_password } = await req.json();
+    const { user_id, new_password } = await req.json();
 
-    if (!email || !new_password) {
-      return new Response(JSON.stringify({ error: "Email et nouveau mot de passe requis" }), {
+    if (!user_id || !new_password) {
+      return new Response(JSON.stringify({ error: "ID utilisateur et nouveau mot de passe requis" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -65,20 +65,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Find user by email
-    const { data: { users }, error: listError } = await adminClient.auth.admin.listUsers();
-    if (listError) throw listError;
-
-    const targetUser = users.find((u) => u.email === email);
-    if (!targetUser) {
-      return new Response(JSON.stringify({ error: "Utilisateur introuvable avec cet email" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Update password
-    const { error: updateError } = await adminClient.auth.admin.updateUserById(targetUser.id, {
+    // Update password directly by user_id
+    const { error: updateError } = await adminClient.auth.admin.updateUserById(user_id, {
       password: new_password,
     });
 
@@ -89,7 +77,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ success: true, user_id: targetUser.id }), {
+    return new Response(JSON.stringify({ success: true, user_id }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
