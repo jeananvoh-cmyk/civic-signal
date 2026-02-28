@@ -144,52 +144,82 @@ const Index = () => {
           </p>
         </motion.div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           {[
-          {
-            icon: <MapPin className="h-6 w-6" />,
-            title: "1. Localisation",
-            description: "GPS détecte votre commune automatiquement parmi les 5 pilotes.",
-            bgClass: "bg-electricity-light",
-            iconClass: "text-electricity"
-          },
-          {
-            icon: <Zap className="h-6 w-6" />,
-            title: "2. Signalez",
-            description: "Choisissez Eau ou Électricité, indiquez les personnes impactées et confirmez.",
-            bgClass: "bg-water-light",
-            iconClass: "text-water"
-          },
-          {
-            icon: <Users className="h-6 w-6" />,
-            title: "3. Vérifiez",
-            description: "Les voisins à moins de 200m confirment pour éliminer les faux positifs.",
-            bgClass: "bg-secondary",
-            iconClass: "text-primary"
-          },
-          {
-            icon: <BarChart3 className="h-6 w-6" />,
-            title: "4. Dashboard",
-            description: "Acteurs majeurs dans la gestion de l'eau et l'électricité en CI suivent les signalements des coupures en temps réel par commune pour apporter des améliorations à ces services.",
-            bgClass: "bg-muted",
-            iconClass: "text-foreground"
-          }].
-          map((feature, i) =>
-          <motion.div
-            key={feature.title}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.12 }}
-            className="rounded-xl border border-border bg-card p-6 shadow-card">
+            {
+              step: "01",
+              emoji: "📍",
+              title: "Localisation",
+              headline: "GPS automatique",
+              description: "GPS détecte votre commune automatiquement. Votre signalement est en ligne en moins de 2 minutes.",
+              gradient: "from-amber-500/20 to-yellow-500/10",
+              border: "border-amber-500/30",
+              stepColor: "text-amber-500",
+              badge: "bg-amber-500/10 text-amber-600",
+            },
+            {
+              step: "02",
+              emoji: "⚡",
+              title: "Signalez",
+              headline: "3 clics suffisent",
+              description: "Choisissez le type de problème, confirmez votre quartier et envoyez.",
+              gradient: "from-blue-500/20 to-cyan-500/10",
+              border: "border-blue-500/30",
+              stepColor: "text-blue-500",
+              badge: "bg-blue-500/10 text-blue-600",
+            },
+            {
+              step: "03",
+              emoji: "🤝",
+              title: "Vérifiez",
+              headline: "Voisins solidaires",
+              description: "Les voisins à moins de 200 m confirment le signalement pour éliminer les faux positifs.",
+              gradient: "from-green-500/20 to-emerald-500/10",
+              border: "border-green-500/30",
+              stepColor: "text-green-500",
+              badge: "bg-green-500/10 text-green-600",
+            },
+            {
+              step: "04",
+              emoji: "📊",
+              title: "Dashboard",
+              headline: "Impact décideur",
+              description: "CIE, SODECI et autorités suivent les coupures en temps réel par commune pour améliorer les services.",
+              gradient: "from-purple-500/20 to-violet-500/10",
+              border: "border-purple-500/30",
+              stepColor: "text-purple-500",
+              badge: "bg-purple-500/10 text-purple-600",
+            },
+          ].map((feature, i) => (
+            <motion.div
+              key={feature.title}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1, duration: 0.5 }}
+              className={`relative overflow-hidden rounded-2xl border ${feature.border} bg-gradient-to-br ${feature.gradient} p-6 backdrop-blur-sm`}
+            >
+              {/* Step number watermark */}
+              <span className={`absolute -right-2 -top-3 font-display text-7xl font-extrabold opacity-[0.06] select-none ${feature.stepColor}`}>
+                {feature.step}
+              </span>
 
-              <div className={`mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl ${feature.bgClass}`}>
-                <span className={feature.iconClass}>{feature.icon}</span>
+              {/* Icon + step badge */}
+              <div className="mb-4 flex items-center justify-between">
+                <span className="text-4xl leading-none">{feature.emoji}</span>
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${feature.badge}`}>
+                  Étape {feature.step}
+                </span>
               </div>
-              <h3 className="mb-2 font-display text-xl font-bold text-foreground">{feature.title}</h3>
-              <p className="text-sm leading-relaxed text-muted-foreground">{feature.description}</p>
+
+              {/* Text */}
+              <h3 className="font-display text-lg font-extrabold text-foreground">{feature.title}</h3>
+              <p className={`mt-0.5 text-xs font-semibold uppercase tracking-wider ${feature.stepColor}`}>
+                {feature.headline}
+              </p>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{feature.description}</p>
             </motion.div>
-          )}
+          ))}
         </div>
       </section>
 
