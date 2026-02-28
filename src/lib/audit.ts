@@ -8,7 +8,9 @@ export type AuditAction =
   | "report_purge_all"
   | "role_added"
   | "role_removed"
-  | "broadcast_message";
+  | "broadcast_message"
+  | "profile_updated"
+  | "password_reset";
 
 export type AuditTargetType = "report" | "user" | "commune" | "system" | "notification";
 
