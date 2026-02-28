@@ -22,7 +22,8 @@ const Index = () => {
       const { count } = await supabase
         .from("reports")
         .select("*", { count: "exact", head: true })
-        .eq("status", "active");
+        .eq("status", "active")
+        .eq("report_category", "outage");
       setLiveCount(count ?? 0);
     };
     fetchCount();
@@ -56,20 +57,8 @@ const Index = () => {
             transition={{ duration: 0.7 }}
             className="max-w-2xl">
 
-            <h1 className="font-display text-4xl font-extrabold leading-tight text-white md:text-5xl lg:text-6xl">
-              Plateforme citoyenne pour Signaler les{" "}
-              <span className="text-urgent">Coupures</span>{" "}
-              <img src={waterIcon} alt="Eau" className="inline-block h-10 w-10 md:h-14 md:w-14 drop-shadow-lg" />{" "}
-              <img src={electricityIcon} alt="Électricité" className="inline-block h-10 w-10 md:h-14 md:w-14 drop-shadow-lg" />
-            </h1>
-
-            <p className="mt-6 max-w-lg text-xl font-semibold text-white">
-              En <span className="text-electricity">15 Secondes</span> Signales si tu n'as plus d'
-              <span className="text-water-light">eau</span> ou l'
-              <span className="text-electricity">électricité</span>. Tes voisins agissent déjà.
-            </p>
-
-            <div className="mt-6 flex flex-wrap items-center gap-3">
+            {/* Badges au-dessus du titre */}
+            <div className="mb-5 flex flex-wrap items-center gap-3">
               {liveCount !== null && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
@@ -99,6 +88,19 @@ const Index = () => {
                 05 communes pilotes à Abidjan
               </div>
             </div>
+
+            <h1 className="font-display text-4xl font-extrabold leading-tight text-white md:text-5xl lg:text-6xl">
+              Plateforme citoyenne pour Signaler les{" "}
+              <span className="text-urgent">Coupures</span>{" "}
+              <img src={waterIcon} alt="Eau" className="inline-block h-10 w-10 md:h-14 md:w-14 drop-shadow-lg" />{" "}
+              <img src={electricityIcon} alt="Électricité" className="inline-block h-10 w-10 md:h-14 md:w-14 drop-shadow-lg" />
+            </h1>
+
+            <p className="mt-6 max-w-lg text-xl font-semibold text-white">
+              En <span className="text-electricity">15 Secondes</span> Signales si tu n'as plus d'
+              <span className="text-water-light">eau</span> ou l'
+              <span className="text-electricity">électricité</span>. Tes voisins agissent déjà.
+            </p>
 
             <div className="mt-6">
               <Button asChild size="lg" className="bg-water text-water-foreground hover:bg-water/90 px-12 py-7 text-lg font-bold">
