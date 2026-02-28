@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Shield, ShieldCheck, UserPlus, Trash2, Plus, Pencil } from "lucide-react";
+import { Shield, ShieldCheck, UserPlus, Trash2, Plus, Pencil, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -41,6 +41,12 @@ const AdminUsersPage = () => {
   const [editUserId, setEditUserId] = useState("");
   const [editFirstName, setEditFirstName] = useState("");
   const [editLastName, setEditLastName] = useState("");
+
+  // Reset password dialog state
+  const [resetPwOpen, setResetPwOpen] = useState(false);
+  const [resetPwUserId, setResetPwUserId] = useState("");
+  const [resetPwEmail, setResetPwEmail] = useState("");
+  const [resetPwNew, setResetPwNew] = useState("");
 
   const { data: rolesWithProfiles = [], isLoading } = useQuery({
     queryKey: ["admin-user-roles"],
@@ -110,6 +116,24 @@ const AdminUsersPage = () => {
       setEditNameOpen(false);
     },
     onError: (err: any) => toast.error(getUserFriendlyError(err, "Erreur lors de la mise à jour")),
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ userId, newPassword }: { userId: string; newPassword: string }) => {
+      const res = await supabase.functions.invoke("reset-password", {
+        body: { user_id: userId, new_password: newPassword },
+      });
+      if (res.error) throw new Error(res.error.message);
+      if (res.data?.error) throw new Error(res.data.error);
+      return res.data;
+    },
+    onSuccess: (_, { userId }) => {
+      logAudit({ action: "password_reset", target_type: "user", target_id: userId });
+      toast.success("Mot de passe réinitialisé avec succès");
+      setResetPwOpen(false);
+      setResetPwNew("");
+    },
+    onError: (err: any) => toast.error(err.message || "Erreur lors de la réinitialisation"),
   });
 
   const createUserMutation = useMutation({
@@ -245,6 +269,36 @@ const AdminUsersPage = () => {
             </DialogContent>
           </Dialog>
 
+          {/* Reset password dialog */}
+          <Dialog open={resetPwOpen} onOpenChange={setResetPwOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Réinitialiser le mot de passe</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Utilisateur : <strong>{resetPwEmail}</strong> <span className="font-mono text-xs">({resetPwUserId.slice(0, 8)}...)</span>
+                </p>
+                <div className="space-y-2">
+                  <Label>Nouveau mot de passe</Label>
+                  <Input
+                    type="password"
+                    value={resetPwNew}
+                    onChange={(e) => setResetPwNew(e.target.value)}
+                    placeholder="Min. 6 caractères"
+                  />
+                </div>
+                <Button
+                  className="w-full"
+                  onClick={() => resetPasswordMutation.mutate({ userId: resetPwUserId, newPassword: resetPwNew })}
+                  disabled={!resetPwNew || resetPwNew.length < 6 || resetPasswordMutation.isPending}
+                >
+                  {resetPasswordMutation.isPending ? "Réinitialisation..." : "Réinitialiser le mot de passe"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
           {/* Add role dialog */}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
@@ -331,6 +385,19 @@ const AdminUsersPage = () => {
                       }}
                     >
                       <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      title="Réinitialiser le mot de passe"
+                      onClick={() => {
+                        setResetPwUserId(item.user_id);
+                        setResetPwEmail(displayName);
+                        setResetPwNew("");
+                        setResetPwOpen(true);
+                      }}
+                    >
+                      <KeyRound className="h-4 w-4" />
                     </Button>
                     <Button
                       size="sm"
