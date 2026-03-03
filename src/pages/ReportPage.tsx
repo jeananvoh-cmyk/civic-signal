@@ -239,6 +239,10 @@ const ReportPage = () => {
       toast.error("Position GPS requise. Activez la géolocalisation.");
       return;
     }
+    // Auto-ouvrir le panel photo pour les signalements infrastructure (photo obligatoire)
+    if (selectedType?.reportCategory === "infrastructure") {
+      setShowPhoto(true);
+    }
     setStep(3);
   };
 
@@ -248,6 +252,11 @@ const ReportPage = () => {
     if (!selectedType || !commune || !resolvedQuartier) { toast.error("Informations incomplètes"); return; }
     if (!user) { toast.error("Vous devez être connecté"); return; }
     if (!gpsConsent) { toast.error("Acceptez l'utilisation de votre position GPS"); return; }
+    if (selectedType.reportCategory === "infrastructure" && !photoUrl) {
+      toast.error("📸 Une photo est obligatoire pour ce type de signalement");
+      setShowPhoto(true);
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -606,9 +615,15 @@ const ReportPage = () => {
                 </div>
               </div>
 
-              {/* ── Détails optionnels : pills ── */}
+              {/* ── Détails : pills ── */}
               <div className="space-y-3">
-                <p className="text-xs text-center text-muted-foreground">Optionnel — enrichissez votre signalement</p>
+                {selectedType.reportCategory === "infrastructure" ? (
+                  <p className="text-xs text-center font-medium text-orange-600 dark:text-orange-400">
+                    📸 Une photo est obligatoire pour ce type de signalement
+                  </p>
+                ) : (
+                  <p className="text-xs text-center text-muted-foreground">Optionnel — enrichissez votre signalement</p>
+                )}
 
                 {/* Pills */}
                 <div className="flex flex-wrap gap-2">
@@ -634,11 +649,13 @@ const ReportPage = () => {
                     className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
                       showPhoto
                         ? "border-primary bg-primary text-primary-foreground"
+                        : selectedType.reportCategory === "infrastructure" && !photoUrl
+                        ? "border-orange-400 bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400"
                         : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
                     }`}
                   >
                     <Camera className="h-3.5 w-3.5" />
-                    Photo
+                    Photo{selectedType.reportCategory === "infrastructure" && <span className="text-orange-500"> *</span>}
                     {photoUrl && <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-current opacity-70" />}
                   </button>
 
