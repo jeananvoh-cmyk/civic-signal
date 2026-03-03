@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Droplets, Shield, Users, ArrowRight, BarChart3, MapPin, Radio, LogIn, UserPlus, Map, History, Info, Heart } from "lucide-react";
 import SOSButtons from "@/components/SOSButtons";
-import NewsTicker from "@/components/NewsTicker";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import { COMMUNES } from "@/lib/communes";
@@ -157,20 +156,6 @@ const Index = () => {
           </motion.div>
         </div>
       </section>
-
-      {/* ── MSN-style news ticker ─────────────────────────────────────── */}
-      <NewsTicker
-        label="SIGNALEMENTS"
-        speed={22}
-        items={[
-          { icon: "🇨🇮", text: "Abidjan mérite mieux — Commençons par le signaler" },
-          { icon: "⚡", text: "7 problèmes couverts : Électricité · Eau · Voirie · Caniveaux · Fuites · Lampadaires · Déchets", category: "PLATEFORME" },
-          { icon: "📍", text: "Votre signalement. Pour votre quartier. En 3 clics." },
-          { icon: "🤝", text: "Les voisins à moins de 200 m confirment vos signalements — ensemble on change les choses", category: "COMMUNAUTÉ" },
-          { icon: "📊", text: "Tableau de bord public : suivez les coupures par commune en temps réel" },
-          { icon: "🗺️", text: "Carte interactive : voir les zones actives à Cocody, Yopougon, Plateau, Marcory, Abobo" },
-        ]}
-      />
 
       {/* Features */}
       <section className="container py-20">
