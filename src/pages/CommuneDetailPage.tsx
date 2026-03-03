@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Zap, Droplets, MapPin, Clock } from "lucide-react";
+import { ArrowLeft, ArrowRight, Zap, Droplets, MapPin, Clock } from "lucide-react";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
 import { Button } from "@/components/ui/button";
@@ -127,7 +127,10 @@ const CommuneDetailPage = () => {
           transition={{ delay: 0.1 }}
           className="mb-6 grid grid-cols-2 gap-3"
         >
-          <div className="flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+          <button
+            onClick={() => navigate("/carte?service=electricity")}
+            className="flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-left transition-all hover:border-amber-500/40 hover:bg-amber-500/10 hover:shadow-md cursor-pointer"
+          >
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/15">
               <Zap className="h-5 w-5 text-amber-500" />
             </div>
@@ -137,8 +140,12 @@ const CommuneDetailPage = () => {
                 coupure{totalElecActifs !== 1 ? "s" : ""} élec. active{totalElecActifs !== 1 ? "s" : ""} · {totalElecTotal} total
               </p>
             </div>
-          </div>
-          <div className="flex items-center gap-3 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
+            <ArrowRight className="ml-auto h-4 w-4 text-amber-500/50" />
+          </button>
+          <button
+            onClick={() => navigate("/carte?service=water")}
+            className="flex items-center gap-3 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 text-left transition-all hover:border-blue-500/40 hover:bg-blue-500/10 hover:shadow-md cursor-pointer"
+          >
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/15">
               <Droplets className="h-5 w-5 text-blue-500" />
             </div>
@@ -148,7 +155,8 @@ const CommuneDetailPage = () => {
                 coupure{totalEauActifs !== 1 ? "s" : ""} eau active{totalEauActifs !== 1 ? "s" : ""} · {totalEauTotal} total
               </p>
             </div>
-          </div>
+            <ArrowRight className="ml-auto h-4 w-4 text-blue-500/50" />
+          </button>
         </motion.div>
 
         {/* Duration stats */}

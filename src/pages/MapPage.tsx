@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
@@ -24,9 +25,11 @@ interface CommuneServiceStat {
 type ServiceFilter = "all" | "electricity" | "water";
 
 const MapPage = () => {
+  const [searchParams] = useSearchParams();
+  const initialFilter = (searchParams.get("service") as ServiceFilter) || "all";
   const [stats, setStats] = useState<CommuneServiceStat[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<ServiceFilter>("all");
+  const [filter, setFilter] = useState<ServiceFilter>(initialFilter);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
 
