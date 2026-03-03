@@ -129,9 +129,9 @@ const CommuneDetailPage = () => {
         >
           <button
             onClick={() => navigate("/carte?service=electricity")}
-            className="flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-left transition-all hover:border-amber-500/40 hover:bg-amber-500/10 hover:shadow-md cursor-pointer"
+            className="group flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-left transition-all duration-300 hover:border-amber-500/50 hover:bg-amber-500/15 hover:shadow-lg hover:shadow-amber-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/15">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/15 transition-colors duration-300 group-hover:bg-amber-500/25">
               <Zap className="h-5 w-5 text-amber-500" />
             </div>
             <div>
@@ -140,13 +140,13 @@ const CommuneDetailPage = () => {
                 coupure{totalElecActifs !== 1 ? "s" : ""} élec. active{totalElecActifs !== 1 ? "s" : ""} · {totalElecTotal} total
               </p>
             </div>
-            <ArrowRight className="ml-auto h-4 w-4 text-amber-500/50" />
+            <ArrowRight className="ml-auto h-4 w-4 text-amber-500/50 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-amber-500" />
           </button>
           <button
             onClick={() => navigate("/carte?service=water")}
-            className="flex items-center gap-3 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 text-left transition-all hover:border-blue-500/40 hover:bg-blue-500/10 hover:shadow-md cursor-pointer"
+            className="group flex items-center gap-3 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 text-left transition-all duration-300 hover:border-blue-500/50 hover:bg-blue-500/15 hover:shadow-lg hover:shadow-blue-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/15">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/15 transition-colors duration-300 group-hover:bg-blue-500/25">
               <Droplets className="h-5 w-5 text-blue-500" />
             </div>
             <div>
@@ -155,7 +155,7 @@ const CommuneDetailPage = () => {
                 coupure{totalEauActifs !== 1 ? "s" : ""} eau active{totalEauActifs !== 1 ? "s" : ""} · {totalEauTotal} total
               </p>
             </div>
-            <ArrowRight className="ml-auto h-4 w-4 text-blue-500/50" />
+            <ArrowRight className="ml-auto h-4 w-4 text-blue-500/50 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-blue-500" />
           </button>
         </motion.div>
 
