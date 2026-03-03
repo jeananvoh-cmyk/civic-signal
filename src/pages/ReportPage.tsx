@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Send, MapPin, Navigation, Loader2, Users, Baby, Heart, UserRound,
   ChevronDown, Plus, Minus, ArrowLeft, Camera, MessageSquare, Clock,
+  LogIn, UserPlus,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -815,39 +816,68 @@ const ReportPage = () => {
                 </AnimatePresence>
               </div>
 
-              {/* Consentement GPS */}
-              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-                <div className="flex items-start gap-3">
-                  <Checkbox
-                    id="gps-consent"
-                    checked={gpsConsent}
-                    onCheckedChange={(c) => setGpsConsent(c === true)}
-                    className="mt-0.5"
-                  />
-                  <label htmlFor="gps-consent" className="text-sm leading-relaxed cursor-pointer">
-                    J'accepte que ma position GPS soit utilisée <strong>uniquement</strong> pour géolocaliser ce signalement.{" "}
-                    <Link to="/confidentialite" className="text-primary underline text-xs">Politique de confidentialité</Link>
-                  </label>
+              {/* Visiteur non connecté → Aha moment */}
+              {!user ? (
+                <div className="rounded-2xl border-2 border-primary/30 bg-primary/5 p-5 text-center space-y-3">
+                  <p className="text-2xl">✅</p>
+                  <p className="font-bold text-base text-foreground">Votre signalement est prêt !</p>
+                  <p className="text-sm text-muted-foreground">
+                    Créez un compte gratuit en 30 secondes pour l'envoyer et aider vos voisins.
+                  </p>
+                  <div className="flex flex-col gap-2 pt-1">
+                    <Button
+                      asChild
+                      className="w-full py-5 text-base font-bold"
+                      style={{ backgroundColor: selectedCommuneData?.couleur || selectedType.color, color: "white" }}
+                    >
+                      <Link to={`/auth?tab=signup&redirect=/signaler?type=${selectedType.id}`}>
+                        <UserPlus className="mr-2 h-5 w-5" /> Créer mon compte gratuitement
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" className="w-full py-5 text-base font-bold">
+                      <Link to={`/auth?tab=login&redirect=/signaler?type=${selectedType.id}`}>
+                        <LogIn className="mr-2 h-5 w-5" /> J'ai déjà un compte
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <>
+                  {/* Consentement GPS */}
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        id="gps-consent"
+                        checked={gpsConsent}
+                        onCheckedChange={(c) => setGpsConsent(c === true)}
+                        className="mt-0.5"
+                      />
+                      <label htmlFor="gps-consent" className="text-sm leading-relaxed cursor-pointer">
+                        J'accepte que ma position GPS soit utilisée <strong>uniquement</strong> pour géolocaliser ce signalement.{" "}
+                        <Link to="/confidentialite" className="text-primary underline text-xs">Politique de confidentialité</Link>
+                      </label>
+                    </div>
+                  </div>
 
-              {/* Bouton envoyer */}
-              <Button
-                type="button"
-                className="w-full py-6 text-base font-bold"
-                style={{
-                  backgroundColor: selectedCommuneData?.couleur || selectedType.color,
-                  color: "white",
-                }}
-                disabled={submitting || limitReached || !gpsConsent}
-                onClick={handleSubmit}
-              >
-                {submitting ? (
-                  <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Envoi en cours...</>
-                ) : (
-                  <><Send className="mr-2 h-5 w-5" /> Envoyer le signalement</>
-                )}
-              </Button>
+                  {/* Bouton envoyer */}
+                  <Button
+                    type="button"
+                    className="w-full py-6 text-base font-bold"
+                    style={{
+                      backgroundColor: selectedCommuneData?.couleur || selectedType.color,
+                      color: "white",
+                    }}
+                    disabled={submitting || limitReached || !gpsConsent}
+                    onClick={handleSubmit}
+                  >
+                    {submitting ? (
+                      <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Envoi en cours...</>
+                    ) : (
+                      <><Send className="mr-2 h-5 w-5" /> Envoyer le signalement</>
+                    )}
+                  </Button>
+                </>
+              )}
             </motion.div>
           )}
 
