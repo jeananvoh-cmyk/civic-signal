@@ -103,26 +103,35 @@ const Index = () => {
             {/* Problem-type pills */}
             <div className="mt-4 flex flex-wrap gap-2">
               <Link
-                to="/carte?service=water"
+                to="/signaler?type=water_outage"
                 className="inline-flex items-center gap-1.5 rounded-full border border-blue-400/40 bg-blue-500/25 px-3 py-1.5 text-xs font-bold text-blue-200 backdrop-blur-sm transition-all hover:bg-blue-500/40 hover:scale-105 active:scale-95"
               >
                 <img src={waterIcon} alt="" className="h-4 w-4" /> Coupures d'eau
               </Link>
               <Link
-                to="/carte?service=electricity"
+                to="/signaler?type=electricity_outage"
                 className="inline-flex items-center gap-1.5 rounded-full border border-yellow-400/40 bg-yellow-500/25 px-3 py-1.5 text-xs font-bold text-yellow-200 backdrop-blur-sm transition-all hover:bg-yellow-500/40 hover:scale-105 active:scale-95"
               >
                 <img src={electricityIcon} alt="" className="h-4 w-4" /> Coupures d'électricité
               </Link>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-400/30 bg-orange-500/20 px-3 py-1.5 text-xs font-bold text-orange-200 backdrop-blur-sm">
+              <Link
+                to="/signaler?type=street_light"
+                className="inline-flex items-center gap-1.5 rounded-full border border-orange-400/30 bg-orange-500/20 px-3 py-1.5 text-xs font-bold text-orange-200 backdrop-blur-sm transition-all hover:bg-orange-500/30 hover:scale-105 active:scale-95"
+              >
                 💡 Lampadaires cassés
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-400/30 bg-teal-500/20 px-3 py-1.5 text-xs font-bold text-teal-200 backdrop-blur-sm">
+              </Link>
+              <Link
+                to="/signaler?type=drain_blocked"
+                className="inline-flex items-center gap-1.5 rounded-full border border-teal-400/30 bg-teal-500/20 px-3 py-1.5 text-xs font-bold text-teal-200 backdrop-blur-sm transition-all hover:bg-teal-500/30 hover:scale-105 active:scale-95"
+              >
                 🌧️ Caniveaux bouchés
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-400/30 bg-gray-500/20 px-3 py-1.5 text-xs font-bold text-gray-200 backdrop-blur-sm">
+              </Link>
+              <Link
+                to="/signaler?type=pothole"
+                className="inline-flex items-center gap-1.5 rounded-full border border-gray-400/30 bg-gray-500/20 px-3 py-1.5 text-xs font-bold text-gray-200 backdrop-blur-sm transition-all hover:bg-gray-500/30 hover:scale-105 active:scale-95"
+              >
                 🛣️ Routes dégradées
-              </span>
+              </Link>
             </div>
 
             <p className="mt-5 text-xl font-extrabold text-white">

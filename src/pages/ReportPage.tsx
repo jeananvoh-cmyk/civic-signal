@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Send, MapPin, Navigation, Loader2, Users, Baby, Heart, UserRound,
@@ -124,6 +124,7 @@ const DAILY_LIMIT = 5;
 
 const ReportPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
 
   // Wizard
@@ -199,6 +200,17 @@ const ReportPage = () => {
   };
 
   useEffect(() => { captureGPS(false); }, []);
+
+  // Pré-sélection via ?type=X (depuis les pills de la page d'accueil)
+  useEffect(() => {
+    const typeParam = searchParams.get("type");
+    if (!typeParam) return;
+    const found = REPORT_TYPES.find((t) => t.id === typeParam);
+    if (found) {
+      setSelectedType(found);
+      setStep(2);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!user) return;
