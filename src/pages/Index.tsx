@@ -97,7 +97,7 @@ const Index = () => {
 
             <h1 className="font-display text-4xl font-extrabold leading-tight text-white md:text-5xl lg:text-6xl">
               La Première Plateforme Ivoirienne{" "}
-              pour <span className="text-urgent">Signaler</span>
+              pour <span className="text-urgent">Signaler les </span>
             </h1>
 
             {/* Problem-type pills */}
