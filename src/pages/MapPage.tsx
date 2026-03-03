@@ -27,6 +27,7 @@ type ServiceFilter = "all" | "electricity" | "water";
 const MapPage = () => {
   const [searchParams] = useSearchParams();
   const initialFilter = (searchParams.get("service") as ServiceFilter) || "all";
+
   const [stats, setStats] = useState<CommuneServiceStat[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<ServiceFilter>(initialFilter);

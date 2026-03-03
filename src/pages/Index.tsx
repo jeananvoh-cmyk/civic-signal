@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Droplets, Shield, Users, ArrowRight, BarChart3, MapPin, Radio, LogIn, UserPlus, Map, History, Info, Heart } from "lucide-react";
 import SOSButtons from "@/components/SOSButtons";
+import NewsTicker from "@/components/NewsTicker";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import { COMMUNES } from "@/lib/communes";
@@ -102,12 +103,18 @@ const Index = () => {
 
             {/* Problem-type pills */}
             <div className="mt-4 flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-400/40 bg-blue-500/25 px-3 py-1.5 text-xs font-bold text-blue-200 backdrop-blur-sm">
+              <Link
+                to="/carte?service=water"
+                className="inline-flex items-center gap-1.5 rounded-full border border-blue-400/40 bg-blue-500/25 px-3 py-1.5 text-xs font-bold text-blue-200 backdrop-blur-sm transition-all hover:bg-blue-500/40 hover:scale-105 active:scale-95"
+              >
                 <img src={waterIcon} alt="" className="h-4 w-4" /> Coupures d'eau
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-yellow-400/40 bg-yellow-500/25 px-3 py-1.5 text-xs font-bold text-yellow-200 backdrop-blur-sm">
+              </Link>
+              <Link
+                to="/carte?service=electricity"
+                className="inline-flex items-center gap-1.5 rounded-full border border-yellow-400/40 bg-yellow-500/25 px-3 py-1.5 text-xs font-bold text-yellow-200 backdrop-blur-sm transition-all hover:bg-yellow-500/40 hover:scale-105 active:scale-95"
+              >
                 <img src={electricityIcon} alt="" className="h-4 w-4" /> Électricité
-              </span>
+              </Link>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-400/30 bg-orange-500/20 px-3 py-1.5 text-xs font-bold text-orange-200 backdrop-blur-sm">
                 💡 Lampadaires cassés
               </span>
@@ -151,88 +158,19 @@ const Index = () => {
         </div>
       </section>
 
-      {/* ── Floating ticker / badges défilants ─────────────────────────── */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-[#0f172a] to-background py-10">
-        {/* Soft glow */}
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute left-1/4 top-0 h-32 w-64 rounded-full bg-water/10 blur-3xl" />
-          <div className="absolute right-1/4 bottom-0 h-32 w-64 rounded-full bg-electricity/10 blur-3xl" />
-        </div>
-
-        {/* Label centré */}
-        <div className="container mb-6 flex items-center gap-3">
-          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-white/50">
-            <Radio className="h-3 w-3 animate-pulse text-urgent" /> En direct · Messages citoyens
-          </span>
-          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-        </div>
-
-        {/* Row 1 — scroll gauche (avec description) */}
-        <div className="overflow-hidden [mask-image:linear-gradient(to_right,transparent_0%,black_8%,black_92%,transparent_100%)]">
-          <div className="flex w-max animate-marquee gap-5 hover:[animation-play-state:paused]">
-            {[...Array(2)].map((_, rep) => (
-              <div key={rep} className="flex gap-5">
-                <div className="flex w-[360px] shrink-0 items-start gap-3 rounded-2xl border border-orange-400/25 bg-gradient-to-br from-orange-500/15 to-red-600/10 px-5 py-4 backdrop-blur-md">
-                  <span className="mt-0.5 text-2xl leading-none">🇨🇮</span>
-                  <div>
-                    <p className="font-display text-sm font-extrabold leading-snug text-white">
-                      "Abidjan mérite mieux.<br />Commençons par le signaler."
-                    </p>
-                    <p className="mt-1.5 text-xs leading-relaxed text-white/60">
-                      Eau ou Électricité coupée, lampadaire cassé, route dégradée — en 3 clics, votre problème est sur la carte et entre les mains des responsables.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex w-[360px] shrink-0 items-start gap-3 rounded-2xl border border-violet-400/25 bg-gradient-to-br from-violet-500/15 to-purple-700/10 px-5 py-4 backdrop-blur-md">
-                  <span className="mt-0.5 text-2xl leading-none">⚡</span>
-                  <div>
-                    <p className="font-display text-sm font-extrabold leading-snug text-white">
-                      "7 problèmes. 1 app. Et ça change."
-                    </p>
-                    <p className="mt-1.5 text-xs leading-relaxed text-white/60">
-                      Électricité, eau, voirie, caniveaux, fuites, lampadaires et dépôts sauvages d'ordures — signalez, confirmez. Ils verront pour agir.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex w-[360px] shrink-0 items-start gap-3 rounded-2xl border border-cyan-400/25 bg-gradient-to-br from-cyan-500/15 to-blue-700/10 px-5 py-4 backdrop-blur-md">
-                  <span className="mt-0.5 text-2xl leading-none">📍</span>
-                  <div>
-                    <p className="font-display text-sm font-extrabold leading-snug text-white">
-                      "Votre Signalement. Pour votre quartier."
-                    </p>
-                    <p className="mt-1.5 text-xs leading-relaxed text-white/60">
-                      Pour la première fois, chaque Ivoirien peut signaler une coupure d'eau, un lampadaire cassé ou une route abîmée — et être entendu.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Row 2 — scroll droite, compacts */}
-        <div className="mt-4 overflow-hidden [mask-image:linear-gradient(to_right,transparent_0%,black_8%,black_92%,transparent_100%)]">
-          <div className="flex w-max animate-marquee-reverse gap-5 hover:[animation-play-state:paused]">
-            {[...Array(2)].map((_, rep) => (
-              <div key={rep} className="flex gap-5">
-                <div className="flex w-[340px] shrink-0 items-center gap-3 rounded-2xl border border-cyan-400/25 bg-gradient-to-br from-cyan-500/15 to-blue-700/10 px-5 py-3.5 backdrop-blur-md">
-                  <span className="text-xl leading-none">📍</span>
-                  <p className="font-display text-sm font-bold text-white">"Votre Signalement. Pour votre quartier."</p>
-                </div>
-                <div className="flex w-[340px] shrink-0 items-center gap-3 rounded-2xl border border-orange-400/25 bg-gradient-to-br from-orange-500/15 to-red-600/10 px-5 py-3.5 backdrop-blur-md">
-                  <span className="text-xl leading-none">🇨🇮</span>
-                  <p className="font-display text-sm font-bold text-white">"Abidjan mérite mieux. Commençons par le signaler."</p>
-                </div>
-                <div className="flex w-[340px] shrink-0 items-center gap-3 rounded-2xl border border-violet-400/25 bg-gradient-to-br from-violet-500/15 to-purple-700/10 px-5 py-3.5 backdrop-blur-md">
-                  <span className="text-xl leading-none">⚡</span>
-                  <p className="font-display text-sm font-bold text-white">"7 problèmes. 1 app. Et ça change."</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* ── MSN-style news ticker ─────────────────────────────────────── */}
+      <NewsTicker
+        label="SIGNALEMENTS"
+        speed={22}
+        items={[
+          { icon: "🇨🇮", text: "Abidjan mérite mieux — Commençons par le signaler" },
+          { icon: "⚡", text: "7 problèmes couverts : Électricité · Eau · Voirie · Caniveaux · Fuites · Lampadaires · Déchets", category: "PLATEFORME" },
+          { icon: "📍", text: "Votre signalement. Pour votre quartier. En 3 clics." },
+          { icon: "🤝", text: "Les voisins à moins de 200 m confirment vos signalements — ensemble on change les choses", category: "COMMUNAUTÉ" },
+          { icon: "📊", text: "Tableau de bord public : suivez les coupures par commune en temps réel" },
+          { icon: "🗺️", text: "Carte interactive : voir les zones actives à Cocody, Yopougon, Plateau, Marcory, Abobo" },
+        ]}
+      />
 
       {/* Features */}
       <section className="container py-20">
@@ -419,11 +357,11 @@ const Index = () => {
             {/* Brand */}
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-hero">
-                  <Zap className="h-4 w-4 text-primary-foreground" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+                  <Zap className="h-4 w-4 text-white" />
                 </div>
-                <span className="font-display text-sm font-bold text-foreground">
-                  Signal<span className="text-water">Énergie</span>
+                <span className="font-bold text-sm text-foreground">
+                  Signal<span className="text-primary">Énergie</span>
                 </span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">

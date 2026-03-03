@@ -28,26 +28,26 @@ const Header = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-lg">
-      <div className="container flex h-16 items-center justify-between">
+    <header className="sticky top-0 z-50 border-b border-border bg-card shadow-sm">
+      <div className="container flex h-14 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-hero">
-            <Zap className="h-5 w-5 text-primary-foreground" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+            <Zap className="h-4 w-4 text-white" />
           </div>
-          <span className="font-display text-lg font-bold text-foreground">
-            Signal<span className="text-water">Énergie</span>
+          <span className="font-bold text-base text-foreground">
+            Signal<span className="text-primary">Énergie</span>
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="hidden items-center gap-0.5 md:flex">
           {links.map((link) => (
             <Link
               key={link.to}
               to={link.to}
-              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 location.pathname === link.to
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  ? "bg-primary/10 text-primary font-semibold"
+                  : "text-foreground/70 hover:bg-secondary hover:text-foreground"
               }`}
             >
               {link.label}
@@ -88,13 +88,13 @@ const Header = () => {
             <div className="ml-2 flex items-center gap-2">
               <Link
                 to="/auth?tab=login"
-                className="rounded-full border-2 border-blue-600 bg-transparent text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950 px-5 py-2 text-sm font-semibold transition-colors"
+                className="rounded-md border border-border bg-transparent text-foreground hover:bg-secondary px-4 py-1.5 text-sm font-medium transition-colors"
               >
-                S'identifier
+                Se connecter
               </Link>
               <Link
                 to="/auth?tab=signup"
-                className="rounded-full bg-blue-600 text-white hover:bg-blue-700 px-5 py-2 text-sm font-semibold transition-colors"
+                className="rounded-md bg-primary text-white hover:bg-primary/90 px-4 py-1.5 text-sm font-semibold transition-colors"
               >
                 S'inscrire
               </Link>
@@ -126,8 +126,8 @@ const Header = () => {
               onClick={() => setMobileOpen(false)}
               className={`block rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
                 location.pathname === link.to
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-secondary"
+                  ? "bg-primary/10 text-primary font-semibold"
+                  : "text-foreground/70 hover:bg-secondary"
               }`}
             >
               {link.label}
@@ -176,14 +176,14 @@ const Header = () => {
               <Link
                 to="/auth?tab=login"
                 onClick={() => setMobileOpen(false)}
-                className="mt-2 block rounded-full border-2 border-blue-600 bg-transparent text-blue-600 px-5 py-3 text-sm font-semibold text-center hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors"
+                className="mt-2 block rounded-lg border border-border bg-transparent text-foreground px-5 py-3 text-sm font-medium text-center hover:bg-secondary transition-colors"
               >
-                S'identifier
+                Se connecter
               </Link>
               <Link
                 to="/auth?tab=signup"
                 onClick={() => setMobileOpen(false)}
-                className="mt-2 block rounded-full bg-blue-600 text-white px-5 py-3 text-sm font-semibold text-center hover:bg-blue-700 transition-colors"
+                className="mt-2 block rounded-lg bg-primary text-white px-5 py-3 text-sm font-semibold text-center hover:bg-primary/90 transition-colors"
               >
                 S'inscrire
               </Link>
