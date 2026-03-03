@@ -410,6 +410,7 @@ export type Database = {
           nom: string
         }[]
       }
+      get_active_outage_count: { Args: never; Returns: number }
       get_commune_duration_stats: {
         Args: never
         Returns: {

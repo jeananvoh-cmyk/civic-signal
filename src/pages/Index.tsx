@@ -21,8 +21,8 @@ const Index = () => {
     // Uses a SECURITY DEFINER RPC so both authenticated users AND anonymous
     // visitors can read the count (the reports table itself is blocked for anon).
     const fetchCount = async () => {
-      const { data } = await supabase.rpc("get_active_outage_count");
-      if (data !== null && data !== undefined) setLiveCount(data as number);
+      const { data } = await supabase.rpc("get_active_outage_count" as any);
+      if (data !== null && data !== undefined) setLiveCount(Number(data));
     };
     fetchCount();
 
