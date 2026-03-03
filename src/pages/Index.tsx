@@ -96,7 +96,7 @@ const Index = () => {
             </div>
 
             <h1 className="font-display text-4xl font-extrabold leading-tight text-white md:text-5xl lg:text-6xl">
-              Plateforme Ivoirienne{" "}
+              La Première Plateforme Ivoirienne{" "}
               pour <span className="text-urgent">Signaler</span>
             </h1>
 
@@ -112,7 +112,7 @@ const Index = () => {
                 to="/carte?service=electricity"
                 className="inline-flex items-center gap-1.5 rounded-full border border-yellow-400/40 bg-yellow-500/25 px-3 py-1.5 text-xs font-bold text-yellow-200 backdrop-blur-sm transition-all hover:bg-yellow-500/40 hover:scale-105 active:scale-95"
               >
-                <img src={electricityIcon} alt="" className="h-4 w-4" /> Électricité
+                <img src={electricityIcon} alt="" className="h-4 w-4" /> Coupures d'électricité
               </Link>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-400/30 bg-orange-500/20 px-3 py-1.5 text-xs font-bold text-orange-200 backdrop-blur-sm">
                 💡 Lampadaires cassés
@@ -144,13 +144,14 @@ const Index = () => {
             {/* 5 communes badges */}
             <div className="mt-8 flex flex-wrap gap-2">
               {COMMUNES.map((c) =>
-              <span
+              <Link
                 key={c.nom}
-                className="rounded-full px-3 py-1 text-xs font-bold text-white"
+                to={`/commune/${encodeURIComponent(c.nom)}`}
+                className="rounded-full px-3 py-1 text-xs font-bold text-white transition-all hover:scale-105 hover:opacity-90 active:scale-95"
                 style={{ backgroundColor: c.couleur }}>
 
                   {c.nom}
-                </span>
+                </Link>
               )}
             </div>
           </motion.div>
