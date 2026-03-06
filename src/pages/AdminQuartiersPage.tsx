@@ -43,12 +43,12 @@ const AdminQuartiersPage = () => {
       if (error) throw error;
 
       const quartier = quartiers?.find((q) => q.id === id);
-      await logAudit(
-        validated ? "quartier_validated" : "quartier_rejected",
-        "quartier",
-        id,
-        { commune: quartier?.commune, nom: quartier?.nom }
-      );
+      await logAudit({
+        action: validated ? "quartier_validated" as any : "quartier_rejected" as any,
+        target_type: "quartier" as any,
+        target_id: id,
+        details: { commune: quartier?.commune, nom: quartier?.nom },
+      });
     },
     onSuccess: (_, { validated }) => {
       queryClient.invalidateQueries({ queryKey: ["admin-quartiers"] });
@@ -70,9 +70,11 @@ const AdminQuartiersPage = () => {
       const quartier = quartiers?.find((q) => q.id === id);
       const { error } = await supabase.from("quartiers").delete().eq("id", id);
       if (error) throw error;
-      await logAudit("quartier_deleted", "quartier", id, {
-        commune: quartier?.commune,
-        nom: quartier?.nom,
+      await logAudit({
+        action: "quartier_deleted" as any,
+        target_type: "quartier" as any,
+        target_id: id,
+        details: { commune: quartier?.commune, nom: quartier?.nom },
       });
     },
     onSuccess: () => {
