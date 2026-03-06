@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { COMMUNES } from "@/lib/communes";
 import { COMMUNE_LOGOS } from "@/lib/commune-logos";
 import { getQuartiers } from "@/lib/quartiers";
+import QuartierOutageGrid from "@/components/QuartierOutageGrid";
 
 interface QuartierStat {
   quartier: string;
