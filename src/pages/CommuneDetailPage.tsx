@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNES } from "@/lib/communes";
 import { COMMUNE_LOGOS } from "@/lib/commune-logos";
+import { getQuartiers } from "@/lib/quartiers";
+import QuartierOutageGrid from "@/components/QuartierOutageGrid";
 
 interface QuartierStat {
   quartier: string;
@@ -230,72 +232,13 @@ const CommuneDetailPage = () => {
           </motion.div>
         ) : null}
 
-        {/* Quartier list */}
-        <h2 className="font-display text-lg font-bold text-foreground mb-3">Coupures par quartier</h2>
-
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          </div>
-        ) : stats.length === 0 ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-2xl border border-border bg-card p-8 text-center">
-            <MapPin className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
-            <p className="text-muted-foreground">Aucun signalement enregistré pour cette commune.</p>
-          </motion.div>
-        ) : (
-          <div className="space-y-3">
-            {stats.map((q, i) => {
-              const qTotalActifs = q.electricite_actifs + q.eau_actifs;
-              return (
-                <motion.div
-                  key={q.quartier}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="rounded-2xl border border-border bg-card p-4 shadow-card hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: qTotalActifs > 0 ? couleur : "hsl(var(--muted-foreground))" }} />
-                      <span className="font-semibold text-foreground">{q.quartier}</span>
-                    </div>
-                    {qTotalActifs > 0 && (
-                      <span
-                        className="text-xs font-bold px-2 py-0.5 rounded-full text-white"
-                        style={{ backgroundColor: couleur }}
-                      >
-                        {qTotalActifs} active{qTotalActifs !== 1 ? "s" : ""}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="flex items-center gap-2 rounded-lg bg-amber-500/5 px-3 py-2">
-                      <Zap className="h-3.5 w-3.5 text-amber-500" />
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="font-bold text-amber-500 text-sm">{q.electricite_actifs}</span>
-                        <span className="text-[10px] text-muted-foreground">actif{q.electricite_actifs !== 1 ? "s" : ""}</span>
-                        <span className="text-muted-foreground/40 text-[10px]">·</span>
-                        <span className="font-semibold text-emerald-500 text-xs">{q.electricite_resolus}</span>
-                        <span className="text-[10px] text-muted-foreground">résolu{q.electricite_resolus !== 1 ? "s" : ""}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 rounded-lg bg-blue-500/5 px-3 py-2">
-                      <Droplets className="h-3.5 w-3.5 text-blue-500" />
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="font-bold text-blue-500 text-sm">{q.eau_actifs}</span>
-                        <span className="text-[10px] text-muted-foreground">actif{q.eau_actifs !== 1 ? "s" : ""}</span>
-                        <span className="text-muted-foreground/40 text-[10px]">·</span>
-                        <span className="font-semibold text-emerald-500 text-xs">{q.eau_resolus}</span>
-                        <span className="text-[10px] text-muted-foreground">résolu{q.eau_resolus !== 1 ? "s" : ""}</span>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
+        {/* Quartier grid */}
+        <QuartierOutageGrid
+          communeName={decodedName}
+          stats={stats}
+          loading={loading}
+          couleur={couleur}
+        />
       </main>
     </div>
   );
