@@ -215,6 +215,33 @@ export type Database = {
         }
         Relationships: []
       }
+      quartiers: {
+        Row: {
+          commune: string
+          created_at: string
+          id: string
+          nom: string
+          source: string
+          validated: boolean
+        }
+        Insert: {
+          commune: string
+          created_at?: string
+          id?: string
+          nom: string
+          source?: string
+          validated?: boolean
+        }
+        Update: {
+          commune?: string
+          created_at?: string
+          id?: string
+          nom?: string
+          source?: string
+          validated?: boolean
+        }
+        Relationships: []
+      }
       report_deletions: {
         Row: {
           commune: string

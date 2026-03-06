@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Zap, Droplets, MapPin } from "lucide-react";
-import { getQuartiers } from "@/lib/quartiers";
+import { Zap, Droplets, MapPin, UserPlus } from "lucide-react";
+import { useQuartiers } from "@/hooks/useQuartiers";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface QuartierStat {
   quartier: string;
@@ -21,19 +22,21 @@ interface QuartierOutageGridProps {
 }
 
 const QuartierOutageGrid = ({ communeName, stats, loading, couleur }: QuartierOutageGridProps) => {
-  // Merge all quartiers from the reference list with actual stats
-  const allQuartiers = useMemo(() => {
-    const quartierList = getQuartiers(communeName);
-    const statsMap = new Map(stats.map((s) => [s.quartier, s]));
+  const { data: dbQuartiers = [], isLoading: quartiersLoading } = useQuartiers(communeName);
 
-    // Include quartiers from stats that might not be in the reference list
-    const extraQuartiers = stats
-      .filter((s) => !quartierList.includes(s.quartier))
+  const allQuartiers = useMemo(() => {
+    const statsMap = new Map(stats.map((s) => [s.quartier, s]));
+    const dbNames = new Set(dbQuartiers.map((q) => q.nom));
+    const sourceMap = new Map(dbQuartiers.map((q) => [q.nom, q.source]));
+
+    // Include quartiers from stats not in DB (shouldn't happen often)
+    const extraFromStats = stats
+      .filter((s) => !dbNames.has(s.quartier))
       .map((s) => s.quartier);
 
-    const combined = [...quartierList, ...extraQuartiers];
+    const allNames = [...dbQuartiers.map((q) => q.nom), ...extraFromStats];
 
-    return combined
+    return allNames
       .map((name) => {
         const s = statsMap.get(name);
         return {
@@ -42,20 +45,21 @@ const QuartierOutageGrid = ({ communeName, stats, loading, couleur }: QuartierOu
           eauActifs: s?.eau_actifs || 0,
           elecTotal: s?.electricite_total || 0,
           eauTotal: s?.eau_total || 0,
+          source: sourceMap.get(name) || "user",
         };
       })
       .sort((a, b) => {
-        // Quartiers with active outages first
         const aActive = a.elecActifs + a.eauActifs;
         const bActive = b.elecActifs + b.eauActifs;
         if (bActive !== aActive) return bActive - aActive;
         return a.quartier.localeCompare(b.quartier, "fr");
       });
-  }, [communeName, stats]);
+  }, [dbQuartiers, stats]);
 
   const totalWithOutages = allQuartiers.filter((q) => q.elecActifs + q.eauActifs > 0).length;
+  const userAddedCount = allQuartiers.filter((q) => q.source === "user").length;
 
-  if (loading) {
+  if (loading || quartiersLoading) {
     return (
       <div className="flex justify-center py-12">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -94,6 +98,22 @@ const QuartierOutageGrid = ({ communeName, stats, loading, couleur }: QuartierOu
           {totalWithOutages}
         </span>{" "}
         avec coupure{totalWithOutages !== 1 ? "s" : ""} active{totalWithOutages !== 1 ? "s" : ""}
+        {userAddedCount > 0 && (
+          <>
+            {" "}·{" "}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="flex items-center gap-0.5 text-primary cursor-help">
+                  <UserPlus className="h-3 w-3" />
+                  {userAddedCount} ajouté{userAddedCount > 1 ? "s" : ""}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Quartiers ajoutés par les utilisateurs et validés par l'admin</p>
+              </TooltipContent>
+            </Tooltip>
+          </>
+        )}
       </div>
 
       {/* Grid */}
@@ -110,14 +130,24 @@ const QuartierOutageGrid = ({ communeName, stats, loading, couleur }: QuartierOu
                 hasOutage ? "bg-destructive/[0.03]" : ""
               }`}
             >
-              <span
-                className={`text-xs font-semibold leading-tight truncate ${
-                  hasOutage ? "text-foreground" : "text-muted-foreground"
-                }`}
-                title={q.quartier}
-              >
-                {q.quartier}
-              </span>
+              <div className="flex items-center gap-1">
+                <span
+                  className={`text-xs font-semibold leading-tight truncate ${
+                    hasOutage ? "text-foreground" : "text-muted-foreground"
+                  }`}
+                  title={q.quartier}
+                >
+                  {q.quartier}
+                </span>
+                {q.source === "user" && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <UserPlus className="h-3 w-3 shrink-0 text-primary/60" />
+                    </TooltipTrigger>
+                    <TooltipContent>Quartier ajouté par un utilisateur</TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
               <div className="flex items-center gap-3">
                 <span
                   className={`font-display text-base font-extrabold ${
@@ -137,11 +167,10 @@ const QuartierOutageGrid = ({ communeName, stats, loading, couleur }: QuartierOu
             </motion.div>
           );
         })}
-        {/* Fill last cell if odd number */}
         {allQuartiers.length % 2 !== 0 && <div className="bg-card" />}
       </div>
 
-      {/* Column labels under grid */}
+      {/* Column labels */}
       <div className="mt-2 grid grid-cols-2 gap-px">
         <div className="flex items-center gap-3 px-3">
           <span className="text-[10px] text-amber-500 font-medium flex items-center gap-0.5">
