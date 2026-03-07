@@ -114,7 +114,7 @@ const AdminQuartiersPage = () => {
         )}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap items-center">
         <Button
           variant={filter === "pending" ? "default" : "outline"}
           size="sm"
@@ -130,6 +130,17 @@ const AdminQuartiersPage = () => {
         >
           Tous
         </Button>
+        <Select value={communeFilter} onValueChange={setCommuneFilter}>
+          <SelectTrigger className="w-[180px] h-9">
+            <SelectValue placeholder="Toutes les communes" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes les communes</SelectItem>
+            {COMMUNES.map((c) => (
+              <SelectItem key={c.nom} value={c.nom}>{c.nom}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <Card>
