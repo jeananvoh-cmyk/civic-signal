@@ -5,16 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, XCircle, MapPin, Clock, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { COMMUNES } from "@/lib/communes";
 
 const AdminQuartiersPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<"pending" | "all">("pending");
+  const [communeFilter, setCommuneFilter] = useState<string>("all");
 
   const { data: quartiers, isLoading } = useQuery({
     queryKey: ["admin-quartiers", filter],
