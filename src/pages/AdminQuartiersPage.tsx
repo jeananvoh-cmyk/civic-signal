@@ -20,7 +20,7 @@ const AdminQuartiersPage = () => {
   const [communeFilter, setCommuneFilter] = useState<string>("all");
 
   const { data: quartiers, isLoading } = useQuery({
-    queryKey: ["admin-quartiers", filter],
+    queryKey: ["admin-quartiers", filter, communeFilter],
     queryFn: async () => {
       let query = supabase
         .from("quartiers")
@@ -29,6 +29,10 @@ const AdminQuartiersPage = () => {
 
       if (filter === "pending") {
         query = query.eq("validated", false).eq("source", "user");
+      }
+
+      if (communeFilter !== "all") {
+        query = query.eq("commune", communeFilter);
       }
 
       const { data, error } = await query;
