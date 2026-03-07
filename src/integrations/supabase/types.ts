@@ -165,6 +165,9 @@ export type Database = {
           commune: string
           created_at: string
           display_name: string
+          electricity_client_id: string
+          electricity_meter_number: string
+          electricity_meter_ref: string
           first_name: string
           id: string
           language: string
@@ -176,6 +179,9 @@ export type Database = {
           updated_at: string
           user_id: string
           user_type: string
+          water_client_id: string
+          water_meter_number: string
+          water_meter_ref: string
         }
         Insert: {
           avatar_url?: string | null
@@ -183,6 +189,9 @@ export type Database = {
           commune?: string
           created_at?: string
           display_name?: string
+          electricity_client_id?: string
+          electricity_meter_number?: string
+          electricity_meter_ref?: string
           first_name?: string
           id?: string
           language?: string
@@ -194,6 +203,9 @@ export type Database = {
           updated_at?: string
           user_id: string
           user_type?: string
+          water_client_id?: string
+          water_meter_number?: string
+          water_meter_ref?: string
         }
         Update: {
           avatar_url?: string | null
@@ -201,6 +213,9 @@ export type Database = {
           commune?: string
           created_at?: string
           display_name?: string
+          electricity_client_id?: string
+          electricity_meter_number?: string
+          electricity_meter_ref?: string
           first_name?: string
           id?: string
           language?: string
@@ -212,6 +227,9 @@ export type Database = {
           updated_at?: string
           user_id?: string
           user_type?: string
+          water_client_id?: string
+          water_meter_number?: string
+          water_meter_ref?: string
         }
         Relationships: []
       }
