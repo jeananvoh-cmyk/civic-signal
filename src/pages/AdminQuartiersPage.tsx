@@ -5,19 +5,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, XCircle, MapPin, Clock, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { COMMUNES } from "@/lib/communes";
 
 const AdminQuartiersPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<"pending" | "all">("pending");
+  const [communeFilter, setCommuneFilter] = useState<string>("all");
 
   const { data: quartiers, isLoading } = useQuery({
-    queryKey: ["admin-quartiers", filter],
+    queryKey: ["admin-quartiers", filter, communeFilter],
     queryFn: async () => {
       let query = supabase
         .from("quartiers")
@@ -26,6 +29,10 @@ const AdminQuartiersPage = () => {
 
       if (filter === "pending") {
         query = query.eq("validated", false).eq("source", "user");
+      }
+
+      if (communeFilter !== "all") {
+        query = query.eq("commune", communeFilter);
       }
 
       const { data, error } = await query;
@@ -107,7 +114,7 @@ const AdminQuartiersPage = () => {
         )}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap items-center">
         <Button
           variant={filter === "pending" ? "default" : "outline"}
           size="sm"
@@ -123,6 +130,17 @@ const AdminQuartiersPage = () => {
         >
           Tous
         </Button>
+        <Select value={communeFilter} onValueChange={setCommuneFilter}>
+          <SelectTrigger className="w-[180px] h-9">
+            <SelectValue placeholder="Toutes les communes" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes les communes</SelectItem>
+            {COMMUNES.map((c) => (
+              <SelectItem key={c.nom} value={c.nom}>{c.nom}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <Card>
