@@ -148,21 +148,27 @@ const QuartierOutageGrid = ({ communeName, stats, loading, couleur }: QuartierOu
                   </Tooltip>
                 )}
               </div>
-              <div className="flex items-center gap-3">
-                <span
-                  className={`font-display text-base font-extrabold ${
-                    q.elecActifs > 0 ? "text-destructive" : "text-emerald-500"
-                  }`}
-                >
-                  {q.elecActifs}
-                </span>
-                <span
-                  className={`font-display text-base font-extrabold ${
-                    q.eauActifs > 0 ? "text-destructive" : "text-emerald-500"
-                  }`}
-                >
-                  {q.eauActifs}
-                </span>
+              <div className="flex items-center gap-2">
+                <div className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 ${
+                  q.elecActifs > 0 ? "bg-amber-500/15" : "bg-muted/50"
+                }`}>
+                  <Zap className={`h-3 w-3 ${q.elecActifs > 0 ? "text-amber-500" : "text-muted-foreground/50"}`} />
+                  <span className={`font-display text-sm font-extrabold ${
+                    q.elecActifs > 0 ? "text-amber-500" : "text-muted-foreground/50"
+                  }`}>
+                    {q.elecActifs}
+                  </span>
+                </div>
+                <div className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 ${
+                  q.eauActifs > 0 ? "bg-blue-500/15" : "bg-muted/50"
+                }`}>
+                  <Droplets className={`h-3 w-3 ${q.eauActifs > 0 ? "text-blue-500" : "text-muted-foreground/50"}`} />
+                  <span className={`font-display text-sm font-extrabold ${
+                    q.eauActifs > 0 ? "text-blue-500" : "text-muted-foreground/50"
+                  }`}>
+                    {q.eauActifs}
+                  </span>
+                </div>
               </div>
             </motion.div>
           );
