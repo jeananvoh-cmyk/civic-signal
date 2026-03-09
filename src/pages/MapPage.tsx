@@ -5,10 +5,9 @@ import { Zap, Droplets, Construction, AlertTriangle } from "lucide-react";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
 import { supabase } from "@/integrations/supabase/client";
-import { COMMUNES } from "@/lib/communes";
-import { COMMUNE_COLORS } from "@/lib/communes";
+import { COMMUNES, COMMUNE_COLORS } from "@/lib/communes";
+import { INFRA_CATEGORY_ICONS } from "@/lib/infra-icons";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import "leaflet/dist/leaflet.css";
 
 interface CommuneServiceStat {
@@ -216,30 +215,33 @@ const MapPage = () => {
     const markerSize = actifs > 0 ? 52 : 36;
 
     if (infraFilter === "all" && s && (s.elec_infra_actifs > 0 || s.eau_infra_actifs > 0 || s.mairie_infra_actifs > 0)) {
-      // Triple split marker
+      // Triple split marker with icons
       const segW = Math.round(markerSize / 3) + 2;
+      const imgSize = 16;
       const markerHtml = `<div style="position:relative;display:flex;align-items:center;gap:1px;">
-        <div style="background:#f59e0b;color:white;width:${segW}px;height:${markerSize}px;border-radius:${markerSize / 2}px 0 0 ${markerSize / 2}px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid white;border-right:none;font-size:10px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.3);"><span style="font-size:8px">🔌</span>${s.elec_infra_actifs}</div>
-        <div style="background:#3b82f6;color:white;width:${segW}px;height:${markerSize}px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-top:2px solid white;border-bottom:2px solid white;font-size:10px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.3);"><span style="font-size:8px">🚰</span>${s.eau_infra_actifs}</div>
-        <div style="background:#10b981;color:white;width:${segW}px;height:${markerSize}px;border-radius:0 ${markerSize / 2}px ${markerSize / 2}px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid white;border-left:none;font-size:10px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.3);"><span style="font-size:8px">🏗️</span>${s.mairie_infra_actifs}</div>
+        <div style="background:#f59e0b;color:white;width:${segW}px;height:${markerSize}px;border-radius:${markerSize / 2}px 0 0 ${markerSize / 2}px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid white;border-right:none;font-size:10px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.3);"><img src="${INFRA_CATEGORY_ICONS.cie}" style="width:${imgSize}px;height:${imgSize}px;object-fit:contain;border-radius:2px;" />${s.elec_infra_actifs}</div>
+        <div style="background:#3b82f6;color:white;width:${segW}px;height:${markerSize}px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-top:2px solid white;border-bottom:2px solid white;font-size:10px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.3);"><img src="${INFRA_CATEGORY_ICONS.sodeci}" style="width:${imgSize}px;height:${imgSize}px;object-fit:contain;border-radius:2px;" />${s.eau_infra_actifs}</div>
+        <div style="background:#10b981;color:white;width:${segW}px;height:${markerSize}px;border-radius:0 ${markerSize / 2}px ${markerSize / 2}px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid white;border-left:none;font-size:10px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.3);"><img src="${INFRA_CATEGORY_ICONS.mairie}" style="width:${imgSize}px;height:${imgSize}px;object-fit:contain;border-radius:2px;" />${s.mairie_infra_actifs}</div>
         ${hasVerified ? `<span style="position:absolute;top:-6px;right:-6px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;border:2px solid white;">✓</span>` : ''}
       </div>`;
 
       const icon = L.divIcon({ className: "", html: markerHtml, iconSize: [segW * 3 + 4, markerSize], iconAnchor: [(segW * 3 + 4) / 2, markerSize / 2] });
 
+      const imgS = 20;
       const breakdownHtml = `<div style="margin-top:6px;display:flex;gap:4px;justify-content:center">
-        <div style="flex:1;padding:4px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;text-align:center"><span style="font-size:10px">🔌 CIE</span><br/><span style="font-size:13px;font-weight:bold;color:#d97706">${s.elec_infra_actifs}</span></div>
-        <div style="flex:1;padding:4px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;text-align:center"><span style="font-size:10px">🚰 SODECI</span><br/><span style="font-size:13px;font-weight:bold;color:#2563eb">${s.eau_infra_actifs}</span></div>
-        <div style="flex:1;padding:4px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;text-align:center"><span style="font-size:10px">🏗️ Mairie</span><br/><span style="font-size:13px;font-weight:bold;color:#059669">${s.mairie_infra_actifs}</span></div>
+        <div style="flex:1;padding:4px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;text-align:center"><img src="${INFRA_CATEGORY_ICONS.cie}" style="width:${imgS}px;height:${imgS}px;object-fit:contain;margin:0 auto 2px;" /><br/><span style="font-size:10px;color:#92400e">CIE</span><br/><span style="font-size:13px;font-weight:bold;color:#d97706">${s.elec_infra_actifs}</span></div>
+        <div style="flex:1;padding:4px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;text-align:center"><img src="${INFRA_CATEGORY_ICONS.sodeci}" style="width:${imgS}px;height:${imgS}px;object-fit:contain;margin:0 auto 2px;" /><br/><span style="font-size:10px;color:#1e40af">SODECI</span><br/><span style="font-size:13px;font-weight:bold;color:#2563eb">${s.eau_infra_actifs}</span></div>
+        <div style="flex:1;padding:4px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;text-align:center"><img src="${INFRA_CATEGORY_ICONS.mairie}" style="width:${imgS}px;height:${imgS}px;object-fit:contain;margin:0 auto 2px;" /><br/><span style="font-size:10px;color:#065f46">Mairie</span><br/><span style="font-size:13px;font-weight:bold;color:#059669">${s.mairie_infra_actifs}</span></div>
       </div>`;
 
       L.marker([c.centerLat, c.centerLon], { icon })
         .addTo(map)
         .bindPopup(`<div style="min-width:200px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">Infrastructures</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${breakdownHtml}</div>`);
     } else {
-      const emoji = infraFilter === "cie" ? "🔌" : infraFilter === "sodeci" ? "🚰" : infraFilter === "mairie" ? "🏗️" : "🔧";
+      const infraIcon = infraFilter === "cie" ? INFRA_CATEGORY_ICONS.cie : infraFilter === "sodeci" ? INFRA_CATEGORY_ICONS.sodeci : infraFilter === "mairie" ? INFRA_CATEGORY_ICONS.mairie : "";
       const bg = infraFilter === "cie" ? "#f59e0b" : infraFilter === "sodeci" ? "#3b82f6" : infraFilter === "mairie" ? "#10b981" : "#6b7280";
-      const markerHtml = `<div style="position:relative;background:${bg};color:white;width:${markerSize}px;height:${markerSize}px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,.35);font-size:${actifs > 0 ? 15 : 13}px;font-weight:bold;">${emoji}${actifs > 0 ? actifs : '·'}${hasVerified ? `<span style="position:absolute;top:-6px;right:-6px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;border:2px solid white;">✓</span>` : ''}</div>`;
+      const iconImg = infraIcon ? `<img src="${infraIcon}" style="width:20px;height:20px;object-fit:contain;border-radius:3px;" />` : "🔧";
+      const markerHtml = `<div style="position:relative;background:${bg};color:white;width:${markerSize}px;height:${markerSize}px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,.35);font-size:${actifs > 0 ? 13 : 11}px;font-weight:bold;gap:1px;">${iconImg}<span>${actifs > 0 ? actifs : '·'}</span>${hasVerified ? `<span style="position:absolute;top:-6px;right:-6px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;border:2px solid white;">✓</span>` : ''}</div>`;
 
       const icon = L.divIcon({ className: "", html: markerHtml, iconSize: [markerSize, markerSize], iconAnchor: [markerSize / 2, markerSize / 2] });
       const label = infraFilter === "cie" ? "Infra. CIE" : infraFilter === "sodeci" ? "Infra. SODECI" : infraFilter === "mairie" ? "Infra. Mairie" : "Toutes infrastructures";
@@ -301,9 +303,9 @@ const MapPage = () => {
                   )}
                   {mode === "infrastructures" && infraFilter === "all" && (
                     <span className="ml-2 inline-flex items-center gap-2 text-sm">
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">🔌 {it.cie}</span>
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">🚰 {it.sod}</span>
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">🏗️ {it.mai}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"><img src={INFRA_CATEGORY_ICONS.cie} className="h-3.5 w-3.5 object-contain inline" /> {it.cie}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"><img src={INFRA_CATEGORY_ICONS.sodeci} className="h-3.5 w-3.5 object-contain inline" /> {it.sod}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"><img src={INFRA_CATEGORY_ICONS.mairie} className="h-3.5 w-3.5 object-contain inline" /> {it.mai}</span>
                     </span>
                   )}
                 </>
@@ -373,10 +375,10 @@ const MapPage = () => {
           ) : (
             <>
               {([
-                { key: "all" as InfraFilter, label: "Tous", icon: "🔧" },
-                { key: "cie" as InfraFilter, label: "CIE (Lampadaires)", icon: "🔌" },
-                { key: "sodeci" as InfraFilter, label: "SODECI (Fuites)", icon: "🚰" },
-                { key: "mairie" as InfraFilter, label: "Mairie (Voirie)", icon: "🏗️" },
+                { key: "all" as InfraFilter, label: "Tous", iconSrc: null },
+                { key: "cie" as InfraFilter, label: "CIE (Lampadaires)", iconSrc: INFRA_CATEGORY_ICONS.cie },
+                { key: "sodeci" as InfraFilter, label: "SODECI (Fuites)", iconSrc: INFRA_CATEGORY_ICONS.sodeci },
+                { key: "mairie" as InfraFilter, label: "Mairie (Voirie)", iconSrc: INFRA_CATEGORY_ICONS.mairie },
               ]).map((f) => (
                 <button
                   key={f.key}
@@ -387,7 +389,7 @@ const MapPage = () => {
                       : "bg-secondary text-secondary-foreground hover:bg-accent"
                   }`}
                 >
-                  {f.icon} {f.label}
+                  {f.iconSrc ? <img src={f.iconSrc} className="h-4 w-4 object-contain rounded-sm" alt="" /> : <Construction className="h-3.5 w-3.5" />} {f.label}
                 </button>
               ))}
             </>
@@ -431,17 +433,17 @@ const MapPage = () => {
         {mode === "infrastructures" && (
           <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-2.5 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
-              <span className="inline-block h-3 w-3 rounded-full" style={{ background: '#f59e0b' }} />
+              <img src={INFRA_CATEGORY_ICONS.cie} className="h-5 w-5 object-contain rounded" alt="CIE" />
               <span><strong className="text-foreground">CIE</strong> — Lampadaires, poteaux</span>
             </span>
             <span className="hidden sm:inline text-border">|</span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block h-3 w-3 rounded-full" style={{ background: '#3b82f6' }} />
+              <img src={INFRA_CATEGORY_ICONS.sodeci} className="h-5 w-5 object-contain rounded" alt="SODECI" />
               <span><strong className="text-foreground">SODECI</strong> — Fuites, canalisations</span>
             </span>
             <span className="hidden sm:inline text-border">|</span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block h-3 w-3 rounded-full" style={{ background: '#10b981' }} />
+              <img src={INFRA_CATEGORY_ICONS.mairie} className="h-5 w-5 object-contain rounded" alt="Mairie" />
               <span><strong className="text-foreground">Mairie</strong> — Voirie, caniveaux</span>
             </span>
           </div>
