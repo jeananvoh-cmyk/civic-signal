@@ -26,7 +26,7 @@ interface CommuneServiceStat {
   mairie_verified: number;
 }
 
-type ServiceFilter = "all" | "electricity" | "water";
+type ServiceFilter = "all" | "electricity" | "water" | "mairie";
 
 const MapPage = () => {
   const [searchParams] = useSearchParams();
