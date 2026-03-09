@@ -80,7 +80,7 @@ const AboutPage = () => {
             <ol className="space-y-3 text-sm text-muted-foreground">
               <li className="flex gap-3">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
-                <span><strong className="text-foreground">Géolocalisation automatique</strong> — Le GPS détecte votre commune parmi les 5 pilotes.</span>
+                <span><strong className="text-foreground">Géolocalisation automatique</strong> — Le GPS détecte votre commune parmi les 7 pilotes.</span>
               </li>
               <li className="flex gap-3">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
