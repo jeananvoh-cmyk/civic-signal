@@ -161,12 +161,14 @@ const MapPage = () => {
       if (filter === "all" && s) {
         const elecPercent = s.electricite_actifs > 0 ? Math.round((s.electricite_verified / s.electricite_actifs) * 100) : 0;
         const eauPercent = s.eau_actifs > 0 ? Math.round((s.eau_verified / s.eau_actifs) * 100) : 0;
-        if (s.electricite_verified > 0 || s.eau_verified > 0) {
+        const mairiePercent = s.mairie_actifs > 0 ? Math.round((s.mairie_verified / s.mairie_actifs) * 100) : 0;
+        if (s.electricite_verified > 0 || s.eau_verified > 0 || s.mairie_verified > 0) {
           verifiedHtml = `<div style="margin-top:6px;padding:5px 8px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center">
             <span style="font-size:11px;color:#16a34a;font-weight:700">✓ Confirmé par les voisins</span>
-            <div style="display:flex;gap:6px;margin-top:4px;justify-content:center">
+            <div style="display:flex;gap:6px;margin-top:4px;justify-content:center;flex-wrap:wrap;">
               ${s.electricite_verified > 0 ? `<span style="padding:2px 8px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:11px;font-weight:600;color:#d97706">⚡ ${elecPercent}%</span>` : ''}
               ${s.eau_verified > 0 ? `<span style="padding:2px 8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:11px;font-weight:600;color:#2563eb">💧 ${eauPercent}%</span>` : ''}
+              ${s.mairie_verified > 0 ? `<span style="padding:2px 8px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;font-size:11px;font-weight:600;color:#059669">🏗️ ${mairiePercent}%</span>` : ''}
             </div>
           </div>`;
         }
