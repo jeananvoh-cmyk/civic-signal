@@ -99,18 +99,43 @@ const MapPage = () => {
     const map = mapInstance.current;
     map.eachLayer((layer) => { if (!(layer instanceof L.TileLayer)) map.removeLayer(layer); });
 
-    COMMUNES.forEach((c) => {
-      L.circle([c.centerLat, c.centerLon], {
-        radius: c.rayonM, color: c.couleur, fillColor: c.couleur, fillOpacity: 0.10, weight: 2,
-      }).addTo(map).bindPopup(`<strong>${c.nom}</strong><br/>${(c.population / 1000).toFixed(0)}k habitants`);
+    // Draw commune boundaries from GeoJSON
+    if (boundaries && boundaries.features) {
+      boundaries.features.forEach((feature: any) => {
+        const name = feature.properties?.name;
+        const communeColor = COMMUNE_COLORS[name] || COMMUNE_COLORS[
+          Object.keys(COMMUNE_COLORS).find(k => k.toLowerCase() === name?.toLowerCase()) || ""
+        ] || "#888";
 
+        L.geoJSON(feature, {
+          style: {
+            color: communeColor,
+            fillColor: communeColor,
+            fillOpacity: 0.12,
+            weight: 2.5,
+            opacity: 0.8,
+            dashArray: undefined,
+          },
+        }).addTo(map).bindPopup(`<strong>${name}</strong><br/>${(COMMUNES.find(c => c.nom.toLowerCase() === name?.toLowerCase())?.population || 0) / 1000 | 0}k habitants`);
+      });
+    } else {
+      // Fallback to circles if GeoJSON unavailable
+      COMMUNES.forEach((c) => {
+        L.circle([c.centerLat, c.centerLon], {
+          radius: c.rayonM, color: c.couleur, fillColor: c.couleur, fillOpacity: 0.10, weight: 2,
+        }).addTo(map).bindPopup(`<strong>${c.nom}</strong><br/>${(c.population / 1000).toFixed(0)}k habitants`);
+      });
+    }
+
+    // Add markers
+    COMMUNES.forEach((c) => {
       if (mode === "coupures") {
         renderCoupureMarker(map, c);
       } else {
         renderInfraMarker(map, c);
       }
     });
-  }, [stats, infraStats, loading, mode, coupureFilter, infraFilter]);
+  }, [stats, infraStats, loading, mode, coupureFilter, infraFilter, boundaries]);
 
   const renderCoupureMarker = (map: L.Map, c: typeof COMMUNES[0]) => {
     const s = stats.find((st) => st.commune.toLowerCase() === c.nom.toLowerCase());
