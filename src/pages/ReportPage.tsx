@@ -496,7 +496,7 @@ const ReportPage = () => {
 
               {outsidePilotZone && (
                 <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive text-center">
-                  🚧 Hors des 5 communes pilotes. Sélectionnez manuellement ci-dessous.
+                  🚧 Hors des 7 communes pilotes. Sélectionnez manuellement ci-dessous.
                 </div>
               )}
 
