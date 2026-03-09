@@ -499,104 +499,110 @@ const DashboardPage = () => {
         {/* Duration stats */}
         {canValidate && !loading && durations.some((d) => d.total_resolved > 0) && (() => {
           const communeNames = [...new Set(durations.map((d) => d.commune))];
-          // Global averages
           const elecDurations = durations.filter((d) => d.service_type === "electricity" && d.total_resolved > 0);
           const waterDurations = durations.filter((d) => d.service_type === "water" && d.total_resolved > 0);
           const globalElecAvg = elecDurations.length > 0 ? elecDurations.reduce((s, d) => s + d.avg_duration_minutes * d.total_resolved, 0) / elecDurations.reduce((s, d) => s + d.total_resolved, 0) : 0;
           const globalWaterAvg = waterDurations.length > 0 ? waterDurations.reduce((s, d) => s + d.avg_duration_minutes * d.total_resolved, 0) / waterDurations.reduce((s, d) => s + d.total_resolved, 0) : 0;
           const globalElecMax = elecDurations.length > 0 ? Math.max(...elecDurations.map((d) => d.longest_duration_minutes)) : 0;
           const globalWaterMax = waterDurations.length > 0 ? Math.max(...waterDurations.map((d) => d.longest_duration_minutes)) : 0;
+          const totalElecResolved = elecDurations.reduce((s, d) => s + d.total_resolved, 0);
+          const totalWaterResolved = waterDurations.reduce((s, d) => s + d.total_resolved, 0);
 
           return (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-8">
-              <div className="flex items-center gap-2 mb-4">
-                <Clock className="h-5 w-5 text-muted-foreground" />
-                <h2 className="font-display text-xl font-bold text-foreground">Durée moyenne des coupures</h2>
+              <div className="mb-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Clock className="h-5 w-5 text-muted-foreground" />
+                  <h2 className="font-display text-xl font-bold text-foreground">Durée moyenne des coupures</h2>
+                </div>
+                <p className="text-xs text-muted-foreground ml-7">
+                  Temps écoulé entre le <strong>début de coupure</strong> (déclaré) et la <strong>résolution</strong>. Basé uniquement sur les signalements résolus.
+                </p>
               </div>
 
               {/* Global summary */}
-              <div className="mb-4 grid grid-cols-2 gap-3">
+              <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Zap className="h-4 w-4 text-amber-500" />
-                    <span className="text-xs font-semibold text-foreground">Électricité — toutes communes</span>
+                    <span className="text-xs font-semibold text-foreground">Électricité (CIE)</span>
                   </div>
-                  <div className="flex items-baseline gap-4">
+                  <div className="flex items-baseline gap-4 flex-wrap">
                     <div>
                       <p className="font-display text-2xl font-extrabold text-amber-500">{globalElecAvg > 0 ? formatMinutes(globalElecAvg) : "—"}</p>
-                      <p className="text-[10px] text-muted-foreground">durée moyenne</p>
+                      <p className="text-[10px] text-muted-foreground">durée moy.</p>
                     </div>
                     <div>
                       <p className="font-display text-lg font-bold text-foreground">{globalElecMax > 0 ? formatMinutes(globalElecMax) : "—"}</p>
                       <p className="text-[10px] text-muted-foreground">la plus longue</p>
+                    </div>
+                    <div>
+                      <p className="font-display text-lg font-bold text-muted-foreground">{totalElecResolved}</p>
+                      <p className="text-[10px] text-muted-foreground">résolu{totalElecResolved > 1 ? "s" : ""}</p>
                     </div>
                   </div>
                 </div>
                 <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Droplets className="h-4 w-4 text-blue-500" />
-                    <span className="text-xs font-semibold text-foreground">Eau — toutes communes</span>
+                    <span className="text-xs font-semibold text-foreground">Eau (SODECI)</span>
                   </div>
-                  <div className="flex items-baseline gap-4">
+                  <div className="flex items-baseline gap-4 flex-wrap">
                     <div>
                       <p className="font-display text-2xl font-extrabold text-blue-500">{globalWaterAvg > 0 ? formatMinutes(globalWaterAvg) : "—"}</p>
-                      <p className="text-[10px] text-muted-foreground">durée moyenne</p>
+                      <p className="text-[10px] text-muted-foreground">durée moy.</p>
                     </div>
                     <div>
                       <p className="font-display text-lg font-bold text-foreground">{globalWaterMax > 0 ? formatMinutes(globalWaterMax) : "—"}</p>
                       <p className="text-[10px] text-muted-foreground">la plus longue</p>
                     </div>
+                    <div>
+                      <p className="font-display text-lg font-bold text-muted-foreground">{totalWaterResolved}</p>
+                      <p className="text-[10px] text-muted-foreground">résolu{totalWaterResolved > 1 ? "s" : ""}</p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Per commune */}
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                {communeNames.map((commune) => {
-                  const elec = durations.find((d) => d.commune === commune && d.service_type === "electricity");
-                  const water = durations.find((d) => d.commune === commune && d.service_type === "water");
-                  const couleur = elec?.couleur || water?.couleur || "#888";
-
-                  return (
-                    <div key={commune} className="rounded-xl border border-border bg-card p-4 shadow-card">
-                      <p className="text-sm font-bold mb-3 text-center" style={{ color: couleur }}>{commune}</p>
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <Zap className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-                          <div className="min-w-0 flex-1">
-                            <p className="font-display text-lg font-extrabold text-foreground leading-tight">
-                              {elec && elec.total_resolved > 0 ? formatMinutes(elec.avg_duration_minutes) : "—"}
-                            </p>
-                            {elec && elec.total_resolved > 0 && (
-                              <p className="text-[10px] text-muted-foreground">
-                                max {formatMinutes(elec.longest_duration_minutes)} · {elec.total_resolved} résolu{elec.total_resolved > 1 ? "s" : ""}
-                              </p>
-                            )}
-                            {(!elec || elec.total_resolved === 0) && (
-                              <p className="text-[10px] text-muted-foreground">Aucune donnée</p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Droplets className="h-3.5 w-3.5 shrink-0 text-blue-500" />
-                          <div className="min-w-0 flex-1">
-                            <p className="font-display text-lg font-extrabold text-foreground leading-tight">
-                              {water && water.total_resolved > 0 ? formatMinutes(water.avg_duration_minutes) : "—"}
-                            </p>
-                            {water && water.total_resolved > 0 && (
-                              <p className="text-[10px] text-muted-foreground">
-                                max {formatMinutes(water.longest_duration_minutes)} · {water.total_resolved} résolu{water.total_resolved > 1 ? "s" : ""}
-                              </p>
-                            )}
-                            {(!water || water.total_resolved === 0) && (
-                              <p className="text-[10px] text-muted-foreground">Aucune donnée</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+              {/* Per commune - table format */}
+              <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/30">
+                        <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Commune</th>
+                        <th className="text-center px-3 py-2.5 text-xs font-semibold text-muted-foreground">
+                          <span className="flex items-center justify-center gap-1"><Zap className="h-3 w-3 text-amber-500" />Moy.</span>
+                        </th>
+                        <th className="text-center px-3 py-2.5 text-xs font-semibold text-muted-foreground">
+                          <span className="flex items-center justify-center gap-1"><Zap className="h-3 w-3 text-amber-500" />Max</span>
+                        </th>
+                        <th className="text-center px-3 py-2.5 text-xs font-semibold text-muted-foreground">
+                          <span className="flex items-center justify-center gap-1"><Droplets className="h-3 w-3 text-blue-500" />Moy.</span>
+                        </th>
+                        <th className="text-center px-3 py-2.5 text-xs font-semibold text-muted-foreground">
+                          <span className="flex items-center justify-center gap-1"><Droplets className="h-3 w-3 text-blue-500" />Max</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {communeNames.map((commune) => {
+                        const elec = durations.find((d) => d.commune === commune && d.service_type === "electricity");
+                        const water = durations.find((d) => d.commune === commune && d.service_type === "water");
+                        const couleur = elec?.couleur || water?.couleur || "#888";
+                        return (
+                          <tr key={commune} className="hover:bg-muted/20 transition-colors">
+                            <td className="px-4 py-2.5 font-semibold text-sm" style={{ color: couleur }}>{commune}</td>
+                            <td className="text-center px-3 py-2.5 font-bold text-sm">{elec && elec.total_resolved > 0 ? formatMinutes(elec.avg_duration_minutes) : "—"}</td>
+                            <td className="text-center px-3 py-2.5 text-xs text-muted-foreground">{elec && elec.total_resolved > 0 ? formatMinutes(elec.longest_duration_minutes) : "—"}</td>
+                            <td className="text-center px-3 py-2.5 font-bold text-sm">{water && water.total_resolved > 0 ? formatMinutes(water.avg_duration_minutes) : "—"}</td>
+                            <td className="text-center px-3 py-2.5 text-xs text-muted-foreground">{water && water.total_resolved > 0 ? formatMinutes(water.longest_duration_minutes) : "—"}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </motion.div>
           );
