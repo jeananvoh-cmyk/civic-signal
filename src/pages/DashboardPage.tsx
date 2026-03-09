@@ -296,12 +296,18 @@ const DashboardPage = () => {
   const totalElecActifs = stats.reduce((s, c) => s + c.electricite_actifs, 0);
   const totalElecResolus = stats.reduce((s, c) => s + c.electricite_resolus, 0);
   const totalElecTotal = stats.reduce((s, c) => s + c.electricite_total, 0);
+  const totalElecVerified = stats.reduce((s, c) => s + c.electricite_verified, 0);
   const totalEauActifs = stats.reduce((s, c) => s + c.eau_actifs, 0);
   const totalEauResolus = stats.reduce((s, c) => s + c.eau_resolus, 0);
   const totalEauTotal = stats.reduce((s, c) => s + c.eau_total, 0);
+  const totalEauVerified = stats.reduce((s, c) => s + c.eau_verified, 0);
   const totalMairieActifs = stats.reduce((s, c) => s + c.mairie_actifs, 0);
   const totalMairieResolus = stats.reduce((s, c) => s + c.mairie_resolus, 0);
   const totalMairieTotal = stats.reduce((s, c) => s + c.mairie_total, 0);
+  const totalMairieVerified = stats.reduce((s, c) => s + c.mairie_verified, 0);
+  const elecResolutionRate = totalElecTotal > 0 ? Math.round((totalElecResolus / totalElecTotal) * 100) : 0;
+  const eauResolutionRate = totalEauTotal > 0 ? Math.round((totalEauResolus / totalEauTotal) * 100) : 0;
+  const mairieResolutionRate = totalMairieTotal > 0 ? Math.round((totalMairieResolus / totalMairieTotal) * 100) : 0;
 
   // Leaderboard: sorted by total active (most affected first)
   const leaderboard = [...stats].sort((a, b) => (b.electricite_actifs + b.eau_actifs + b.mairie_actifs) - (a.electricite_actifs + a.eau_actifs + a.mairie_actifs));
