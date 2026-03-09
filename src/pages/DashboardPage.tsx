@@ -209,6 +209,7 @@ const DashboardPage = () => {
   const [realtimeActive, setRealtimeActive] = useState(false);
   const [period, setPeriod] = useState<Period>("all");
   const [moderatorName, setModeratorName] = useState<string>("");
+  const [selectedCommune, setSelectedCommune] = useState<string>("all");
 
   const fetchAll = useCallback(async () => {
     const communeNames = COMMUNES.map((c) => c.nom);
