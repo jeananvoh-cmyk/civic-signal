@@ -1,6 +1,6 @@
-import { Zap, Droplets, LucideIcon } from "lucide-react";
+import { Zap, Droplets, Building2, LucideIcon } from "lucide-react";
 
-export type ServiceType = "electricity" | "water";
+export type ServiceType = "electricity" | "water" | "mairie";
 export type UrgencyLevel = "low" | "medium" | "high" | "critical";
 export type ReportStatus = "active" | "resolved" | "verifying";
 
