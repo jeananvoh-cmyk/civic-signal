@@ -712,8 +712,8 @@ const DashboardPage = () => {
                 ) : (
                   <div className="divide-y divide-border">
                     {leaderboard.map((c, i) => {
-                      const totalActifs = c.electricite_actifs + c.eau_actifs;
-                      const totalAll = c.electricite_total + c.eau_total;
+                      const totalActifs = c.electricite_actifs + c.eau_actifs + c.mairie_actifs;
+                      const totalAll = c.electricite_total + c.eau_total + c.mairie_total;
                       const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`;
 
                       return (
