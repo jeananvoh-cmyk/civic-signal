@@ -336,7 +336,7 @@ const DashboardPage = () => {
           <div className="container flex items-center justify-center gap-2 text-sm font-semibold text-destructive">
             <Siren className="h-4 w-4 animate-pulse" />
             <span>
-              Situation critique — {totalActifs} coupures actives en ce moment sur les 5 communes pilotes
+              Situation critique — {totalActifs} coupures actives en ce moment sur les 7 communes pilotes
             </span>
             <Siren className="h-4 w-4 animate-pulse" />
           </div>
