@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio, Flame, AlertTriangle, MapPin, Siren, CalendarDays, Construction } from "lucide-react";
 import Header from "@/components/Header";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ShareButton from "@/components/ShareButton";
 import TrendsChart from "@/components/TrendsChart";
 import { supabase } from "@/integrations/supabase/client";
