@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Clock, Power, Zap, Droplets, Loader2, PartyPopper, AlertTriangle, ThumbsUp } from "lucide-react";
+import { CheckCircle2, Clock, Power, Zap, Droplets, Loader2, PartyPopper, AlertTriangle, ThumbsUp, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import Header from "@/components/Header";
 import NeighborCorroboration from "@/components/NeighborCorroboration";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +25,7 @@ interface MyReport {
   created_at: string;
   start_time: string;
   verifications: number;
+  last_reminder_at: string | null;
 }
 
 const VerificationPage = () => {
@@ -42,11 +45,16 @@ const VerificationPage = () => {
   // Confirm still ongoing
   const [confirming, setConfirming] = useState<string | null>(null);
 
+  // Delete report
+  const [deleteTarget, setDeleteTarget] = useState<MyReport | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleting, setDeleting] = useState<string | null>(null);
+
   const fetchMyActiveReports = async () => {
     if (!user) return;
     const { data, error } = await supabase
       .from("reports")
-      .select("id, service_type, description, commune, quartier, status, urgency, created_at, start_time, verifications")
+      .select("id, service_type, description, commune, quartier, status, urgency, created_at, start_time, verifications, last_reminder_at")
       .eq("user_id", user.id)
       .eq("status", "active")
       .order("created_at", { ascending: false });
@@ -58,28 +66,46 @@ const VerificationPage = () => {
     fetchMyActiveReports();
   }, [user]);
 
-  const handleConfirmStillOngoing = async (reportId: string) => {
-    setConfirming(reportId);
+  const handleConfirmStillOngoing = async (report: MyReport) => {
+    // Check rate limit: max 1 per hour
+    if (report.last_reminder_at) {
+      const lastReminder = new Date(report.last_reminder_at).getTime();
+      const now = Date.now();
+      const hoursSinceLast = (now - lastReminder) / (1000 * 60 * 60);
+      if (hoursSinceLast < 1) {
+        const minsLeft = Math.ceil((1 - hoursSinceLast) * 60);
+        toast.error(`Veuillez patienter encore ${minsLeft} minute(s) avant de relancer.`);
+        return;
+      }
+    }
+
+    setConfirming(report.id);
     try {
       const { data: currentReport, error: fetchErr } = await supabase
         .from("reports")
         .select("reminder_count")
-        .eq("id", reportId)
+        .eq("id", report.id)
         .single();
         
       if (fetchErr) throw fetchErr;
+
+      const newReminderAt = new Date().toISOString();
 
       const { error } = await supabase
         .from("reports")
         .update({ 
           reminder_count: (currentReport?.reminder_count || 0) + 1,
-          last_reminder_at: new Date().toISOString()
+          last_reminder_at: newReminderAt
         })
-        .eq("id", reportId);
+        .eq("id", report.id);
 
       if (error) throw error;
       
-      toast.success("Coupure confirmée comme toujours en cours (relancée).");
+      setReports(prev => prev.map(r => 
+        r.id === report.id ? { ...r, last_reminder_at: newReminderAt } : r
+      ));
+      
+      toast.success("Signalement relancé avec succès.");
     } catch (err: any) {
       toast.error(err.message || "Erreur");
     } finally {
@@ -117,6 +143,35 @@ const VerificationPage = () => {
       toast.error(err.message || "Erreur");
     } finally {
       setResolving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget || !deleteReason.trim()) return;
+    setDeleting(deleteTarget.id);
+    try {
+      const { error: logError } = await supabase.from("report_deletions").insert({
+        report_id: deleteTarget.id,
+        user_id: user!.id,
+        reason: deleteReason.trim(),
+        service_type: deleteTarget.service_type,
+        commune: deleteTarget.commune,
+        quartier: deleteTarget.quartier,
+        description: deleteTarget.description,
+      });
+      if (logError) throw logError;
+
+      const { error } = await supabase.from("reports").delete().eq("id", deleteTarget.id);
+      if (error) throw error;
+      
+      setReports((prev) => prev.filter((r) => r.id !== deleteTarget.id));
+      toast.success("Signalement supprimé");
+      setDeleteTarget(null);
+      setDeleteReason("");
+    } catch (err: any) {
+      toast.error(err.message || "Erreur");
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -265,7 +320,7 @@ const VerificationPage = () => {
                         {/* Two clear action buttons */}
                         <div className="grid grid-cols-2 gap-3">
                           <Button
-                            onClick={() => handleConfirmStillOngoing(r.id)}
+                            onClick={() => handleConfirmStillOngoing(r)}
                             disabled={confirming === r.id}
                             variant="outline"
                             className="border-urgent text-urgent hover:bg-urgent hover:text-urgent-foreground font-semibold"
@@ -283,6 +338,18 @@ const VerificationPage = () => {
                           >
                             <Power className="mr-1.5 h-4 w-4" />
                             Tout va bien
+                          </Button>
+                        </div>
+                        
+                        <div className="mt-4 flex justify-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => setDeleteTarget(r)}
+                          >
+                            <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                            Supprimer ce signalement
                           </Button>
                         </div>
                       </div>
@@ -353,6 +420,63 @@ const VerificationPage = () => {
                 </Button>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete confirmation dialog */}
+        <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteReason(""); } }}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                Supprimer ce signalement ?
+              </DialogTitle>
+              <DialogDescription>
+                Cette action est irréversible. Le signalement sera définitivement supprimé.
+              </DialogDescription>
+            </DialogHeader>
+
+            {deleteTarget && (
+              <div className="rounded-lg border border-border bg-muted/50 p-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <span>{deleteTarget.service_type === "electricity" ? "⚡" : "💧"}</span>
+                  <span className="font-medium">{deleteTarget.commune}</span>
+                  {deleteTarget.quartier && <span className="text-muted-foreground">· {deleteTarget.quartier}</span>}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{deleteTarget.description}</p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="delete-reason">Pourquoi supprimez-vous ce signalement ?</Label>
+              <Textarea
+                id="delete-reason"
+                placeholder="Ex : signalement en double, erreur de saisie..."
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                className="min-h-[80px] resize-none"
+                maxLength={300}
+              />
+              <p className="text-xs text-muted-foreground text-right">{deleteReason.length}/300</p>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => { setDeleteTarget(null); setDeleteReason(""); }}
+              >
+                Annuler
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={handleDelete}
+                disabled={!deleteReason.trim() || !!deleting}
+              >
+                {deleting ? "Suppression..." : "Confirmer"}
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
           </>
