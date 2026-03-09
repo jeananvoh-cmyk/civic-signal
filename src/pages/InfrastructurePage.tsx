@@ -407,7 +407,9 @@ const InfrastructurePage = () => {
                         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
                           report.service_type === "eau"
                             ? "bg-[hsl(var(--water-light))]"
-                            : "bg-[hsl(var(--electricity-light))]"
+                            : report.service_type === "electricite"
+                            ? "bg-[hsl(var(--electricity-light))]"
+                            : "bg-emerald-500/10"
                         }`}
                       >
                         {serviceIcon(report.service_type)}
