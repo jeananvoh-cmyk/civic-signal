@@ -212,21 +212,20 @@ const ProfilePage = () => {
     if (!finalReason) return;
     setDeleting(true);
     try {
-      // Log the deletion reason before deleting
-      await supabase.from("report_deletions").insert({
-        report_id: "00000000-0000-0000-0000-000000000000",
-        user_id: user.id,
-        reason: `[SUPPRESSION COMPTE] ${finalReason}`,
-        service_type: "account",
-        commune: profile.commune,
-        quartier: profile.quartier,
-        description: "Suppression du compte utilisateur",
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Non authentifié");
+
+      const response = await supabase.functions.invoke("delete-account", {
+        body: { reason: finalReason },
       });
+
+      if (response.error) throw response.error;
+
       await signOut();
-      toast.success("Votre compte a été supprimé. À bientôt.");
+      toast.success("Votre compte et toutes vos données ont été définitivement supprimés.");
       navigate("/");
     } catch (err: any) {
-      toast.error("Erreur lors de la suppression. Contactez le support.");
+      toast.error("Erreur lors de la suppression. Contactez signalenergie@civictech.ci");
     } finally {
       setDeleting(false);
     }
