@@ -639,6 +639,7 @@ const DashboardPage = () => {
                         <div className="flex items-center gap-3 text-xs">
                           <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-amber-500" />{q.elecActifs}</span>
                           <span className="flex items-center gap-1"><Droplets className="h-3 w-3 text-blue-500" />{q.eauActifs}</span>
+                          <span className="flex items-center gap-1"><Construction className="h-3 w-3 text-teal-500" />{q.mairieActifs}</span>
                         </div>
                         <div className="text-right">
                           <p className="font-display text-lg font-extrabold" style={{ color: q.totalActifs > 0 ? q.couleur : undefined }}>
