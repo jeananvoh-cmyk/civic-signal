@@ -303,9 +303,9 @@ const MapPage = () => {
                   )}
                   {mode === "infrastructures" && infraFilter === "all" && (
                     <span className="ml-2 inline-flex items-center gap-2 text-sm">
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">🔌 {it.cie}</span>
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">🚰 {it.sod}</span>
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">🏗️ {it.mai}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"><img src={INFRA_CATEGORY_ICONS.cie} className="h-3.5 w-3.5 object-contain inline" /> {it.cie}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"><img src={INFRA_CATEGORY_ICONS.sodeci} className="h-3.5 w-3.5 object-contain inline" /> {it.sod}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"><img src={INFRA_CATEGORY_ICONS.mairie} className="h-3.5 w-3.5 object-contain inline" /> {it.mai}</span>
                     </span>
                   )}
                 </>
