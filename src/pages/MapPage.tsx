@@ -5,10 +5,9 @@ import { Zap, Droplets, Construction, AlertTriangle } from "lucide-react";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
 import { supabase } from "@/integrations/supabase/client";
-import { COMMUNES } from "@/lib/communes";
-import { COMMUNE_COLORS } from "@/lib/communes";
+import { COMMUNES, COMMUNE_COLORS } from "@/lib/communes";
+import { INFRA_CATEGORY_ICONS } from "@/lib/infra-icons";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import "leaflet/dist/leaflet.css";
 
 interface CommuneServiceStat {
