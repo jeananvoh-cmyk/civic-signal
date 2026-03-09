@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Zap, ArrowLeft, User, Phone, Building2, Home, Eye, EyeOff } from "lucide-react";
+import { Zap, ArrowLeft, User, Phone, Building2, Home, Eye, EyeOff, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
