@@ -305,7 +305,7 @@ const InfrastructurePage = () => {
           ].map(({ key, label, icon: Icon }) => (
             <button
               key={key}
-              onClick={() => setFilter(key)}
+              onClick={() => handleFilterClick(key)}
               className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${
                 filter === key
                   ? "bg-primary text-primary-foreground"
