@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import {
   Zap, Droplets, MapPin, Clock, ThumbsUp, MessageCircle,
-  Filter, TrendingUp, AlertCircle, ChevronDown, Lightbulb, TriangleAlert, Info, MoreHorizontal
+  Filter, TrendingUp, AlertCircle, ChevronDown, Lightbulb, TriangleAlert, Info, MoreHorizontal, Building2, Map, Trash2, Waves
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -32,7 +32,7 @@ type InfraReport = {
   reporter_type: string;
 };
 
-type FilterType = "all" | "eau" | "electricite";
+type FilterType = "all" | "eau" | "electricite" | "mairie";
 
 const PAGE_SIZE = 10;
 
@@ -60,7 +60,7 @@ const InfrastructurePage = () => {
       .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
 
     if (filter !== "all") {
-      query = query.eq("service_type", filter === "eau" ? "eau" : "electricite");
+      query = query.eq("service_type", filter);
     }
 
     if (subFilter) {
@@ -97,7 +97,7 @@ const InfrastructurePage = () => {
 
   const handleFilterClick = (newFilter: FilterType) => {
     setFilter(newFilter);
-    if (newFilter === "all" || (newFilter === "eau" && filter === "electricite") || (newFilter === "electricite" && filter === "eau")) {
+    if (newFilter === "all" || newFilter !== filter) {
       setSubFilter(null);
     }
   };
@@ -128,14 +128,17 @@ const InfrastructurePage = () => {
   const timeAgo = (date: string) =>
     formatDistanceToNow(new Date(date), { addSuffix: true, locale: fr });
 
-  const serviceIcon = (type: string) =>
-    type === "eau" ? (
-      <Droplets className="h-4 w-4 text-[hsl(var(--water))]" />
-    ) : (
-      <Zap className="h-4 w-4 text-[hsl(var(--electricity))]" />
-    );
+  const serviceIcon = (type: string) => {
+    if (type === "eau") return <Droplets className="h-4 w-4 text-[hsl(var(--water))]" />;
+    if (type === "electricite") return <Zap className="h-4 w-4 text-[hsl(var(--electricity))]" />;
+    return <Building2 className="h-4 w-4 text-emerald-500" />;
+  };
 
-  const serviceLabel = (type: string) => (type === "eau" ? "Eau" : "Électricité");
+  const serviceLabel = (type: string) => {
+    if (type === "eau") return "Eau";
+    if (type === "electricite") return "Électricité";
+    return "Mairie";
+  };
 
   const urgencyBadge = (urgency: string) => {
     const map: Record<string, { label: string; className: string }> = {
@@ -290,6 +293,58 @@ const InfrastructurePage = () => {
                 </div>
               </div>
             )}
+
+            {(filter === "all" || filter === "mairie") && (
+              <div>
+                <div className="flex items-center gap-2 mb-3 mt-4">
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Signalements voirie (Mairie)
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div 
+                    onClick={() => handleCategoryClick("Nid de poule", "mairie")}
+                    className={`cursor-pointer bg-emerald-500/10 border ${subFilter === "Nid de poule" ? "border-emerald-500 ring-2 ring-emerald-500/50" : "border-emerald-500/20"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-emerald-500/20`}
+                  >
+                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
+                      <Map className="h-5 w-5 text-emerald-500" />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground leading-tight">Nid de poule / Route</span>
+                  </div>
+                  
+                  <div 
+                    onClick={() => handleCategoryClick("Caniveau bouché", "mairie")}
+                    className={`cursor-pointer bg-emerald-500/10 border ${subFilter === "Caniveau bouché" ? "border-emerald-500 ring-2 ring-emerald-500/50" : "border-emerald-500/20"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-emerald-500/20`}
+                  >
+                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
+                      <Waves className="h-5 w-5 text-emerald-500" />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground leading-tight">Caniveau bouché</span>
+                  </div>
+                  
+                  <div 
+                    onClick={() => handleCategoryClick("Amas d'ordures", "mairie")}
+                    className={`cursor-pointer bg-emerald-500/10 border ${subFilter === "Amas d'ordures" ? "border-emerald-500 ring-2 ring-emerald-500/50" : "border-emerald-500/20"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-emerald-500/20`}
+                  >
+                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
+                      <Trash2 className="h-5 w-5 text-emerald-500" />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground leading-tight">Amas d'ordures</span>
+                  </div>
+                  
+                  <div 
+                    onClick={() => handleCategoryClick("Autres", "mairie")}
+                    className={`cursor-pointer bg-muted border ${subFilter === "Autres" && filter === "mairie" ? "border-primary ring-2 ring-primary/50" : "border-border"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-muted/80`}
+                  >
+                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
+                      <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground">Autres</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -302,6 +357,7 @@ const InfrastructurePage = () => {
             { key: "all" as FilterType, label: "Tous", icon: TrendingUp },
             { key: "eau" as FilterType, label: "Eau", icon: Droplets },
             { key: "electricite" as FilterType, label: "Électricité", icon: Zap },
+            { key: "mairie" as FilterType, label: "Mairie", icon: Building2 },
           ].map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -351,7 +407,9 @@ const InfrastructurePage = () => {
                         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
                           report.service_type === "eau"
                             ? "bg-[hsl(var(--water-light))]"
-                            : "bg-[hsl(var(--electricity-light))]"
+                            : report.service_type === "electricite"
+                            ? "bg-[hsl(var(--electricity-light))]"
+                            : "bg-emerald-500/10"
                         }`}
                       >
                         {serviceIcon(report.service_type)}
