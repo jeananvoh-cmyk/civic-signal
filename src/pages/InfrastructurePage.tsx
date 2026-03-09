@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import {
   Zap, Droplets, MapPin, Clock, ThumbsUp, MessageCircle,
-  Filter, TrendingUp, AlertCircle, ChevronDown,
+  Filter, TrendingUp, AlertCircle, ChevronDown, Lightbulb, TriangleAlert, Info, MoreHorizontal
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
