@@ -41,6 +41,7 @@ const InfrastructurePage = () => {
   const [reports, setReports] = useState<InfraReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>("all");
+  const [subFilter, setSubFilter] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -60,6 +61,10 @@ const InfrastructurePage = () => {
 
     if (filter !== "all") {
       query = query.eq("service_type", filter === "eau" ? "eau" : "electricite");
+    }
+
+    if (subFilter) {
+      query = query.ilike("description", `%${subFilter}%`);
     }
 
     const { data, error } = await query;
