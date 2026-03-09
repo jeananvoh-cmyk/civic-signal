@@ -164,46 +164,88 @@ const InfrastructurePage = () => {
             </p>
           </div>
 
-          {/* Alert Categories Inspired by CIE */}
-          {(filter === "all" || filter === "electricite") && (
-            <div className="mb-2">
-              <div className="flex items-center gap-2 mb-3">
-                <Info className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Types de signalements électriques (CIE)
-                </span>
+          {/* Alert Categories */}
+          <div className="space-y-4 mb-2">
+            {(filter === "all" || filter === "electricite") && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Signalements électriques (CIE)
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-[hsl(var(--electricity))]/10 border border-[hsl(var(--electricity))]/20 rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-[hsl(var(--electricity))]/20">
+                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
+                      <Lightbulb className="h-5 w-5 text-[hsl(var(--electricity))]" />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground">Éclairage public</span>
+                  </div>
+                  
+                  <div className="bg-[hsl(var(--electricity))]/10 border border-[hsl(var(--electricity))]/20 rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-[hsl(var(--electricity))]/20">
+                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
+                      <Zap className="h-5 w-5 text-[hsl(var(--electricity))]" />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground">Poteaux & Pylônes</span>
+                  </div>
+                  
+                  <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-destructive/20">
+                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
+                      <TriangleAlert className="h-5 w-5 text-destructive" />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground leading-tight">Branchements dangereux</span>
+                  </div>
+                  
+                  <div className="bg-muted border border-border rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-muted/80">
+                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
+                      <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground">Autres</span>
+                  </div>
+                </div>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="bg-[hsl(var(--electricity))]/10 border border-[hsl(var(--electricity))]/20 rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-[hsl(var(--electricity))]/20">
-                  <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
-                    <Lightbulb className="h-5 w-5 text-[hsl(var(--electricity))]" />
-                  </div>
-                  <span className="text-xs font-semibold text-foreground">Éclairage public</span>
+            )}
+
+            {(filter === "all" || filter === "eau") && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Signalements eau (SODECI)
+                  </span>
                 </div>
-                
-                <div className="bg-[hsl(var(--electricity))]/10 border border-[hsl(var(--electricity))]/20 rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-[hsl(var(--electricity))]/20">
-                  <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
-                    <Zap className="h-5 w-5 text-[hsl(var(--electricity))]" />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-[hsl(var(--water))]/10 border border-[hsl(var(--water))]/20 rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-[hsl(var(--water))]/20">
+                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
+                      <Droplets className="h-5 w-5 text-[hsl(var(--water))]" />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground leading-tight">Fuite sur voie publique</span>
                   </div>
-                  <span className="text-xs font-semibold text-foreground">Poteaux & Pylônes</span>
-                </div>
-                
-                <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-destructive/20">
-                  <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
-                    <TriangleAlert className="h-5 w-5 text-destructive" />
+                  
+                  <div className="bg-[hsl(var(--water))]/10 border border-[hsl(var(--water))]/20 rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-[hsl(var(--water))]/20">
+                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
+                      <AlertCircle className="h-5 w-5 text-[hsl(var(--water))]" />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground">Regard cassé / ouvert</span>
                   </div>
-                  <span className="text-xs font-semibold text-foreground leading-tight">Branchements dangereux</span>
-                </div>
-                
-                <div className="bg-muted border border-border rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-muted/80">
-                  <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
-                    <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
+                  
+                  <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-destructive/20">
+                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
+                      <TriangleAlert className="h-5 w-5 text-destructive" />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground leading-tight">Manque d'eau / Coupure</span>
                   </div>
-                  <span className="text-xs font-semibold text-foreground">Autres</span>
+                  
+                  <div className="bg-muted border border-border rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-muted/80">
+                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
+                      <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground">Qualité de l'eau / Odeur</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
