@@ -754,14 +754,32 @@ const DashboardPage = () => {
         </motion.div>)}
 
         {/* Per-commune breakdown */}
-        <h2 className="font-display text-xl font-bold text-foreground mb-4">Détail par commune</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-xl font-bold text-foreground">Détail par commune</h2>
+          <Select value={selectedCommune} onValueChange={setSelectedCommune}>
+            <SelectTrigger className="w-[200px] h-9 text-sm">
+              <SelectValue placeholder="Choisir une commune" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes les communes</SelectItem>
+              {stats.map((c) => (
+                <SelectItem key={c.commune} value={c.commune}>
+                  <span className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: c.couleur }} />
+                    {c.commune}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="space-y-4">
           {loading ? (
             <>
               {[1, 2, 3, 4, 5].map((k) => <SkeletonCommune key={k} />)}
             </>
           ) : (
-            stats.map((c, i) => {
+            stats.filter((c) => selectedCommune === "all" || c.commune === selectedCommune).map((c, i) => {
               const totalSignalements = c.electricite_total + c.eau_total + c.mairie_total;
               const pctPop = c.population > 0 ? (totalSignalements / c.population) * 100 : 0;
               const pctPopDisplay = pctPop < 0.01 && totalSignalements > 0 ? "<0.01" : pctPop.toFixed(2);
