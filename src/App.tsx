@@ -9,6 +9,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import AuthCTABar from "@/components/AuthCTABar";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import ProfileCompletionNotifier from "@/components/ProfileCompletionNotifier";
 import Index from "./pages/Index";
 
 const AuthPage = lazy(() => import("./pages/AuthPage"));
@@ -47,6 +48,7 @@ const App = () => (
         <BrowserRouter>
           <AuthCTABar />
           <WhatsAppButton />
+          <ProfileCompletionNotifier />
           <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
             <Routes>
               <Route path="/" element={<Index />} />

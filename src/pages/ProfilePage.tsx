@@ -238,7 +238,7 @@ const ProfilePage = () => {
   };
 
   const conformityFields = [
-    profile.first_name, profile.last_name, profile.commune, profile.quartier,
+    profile.first_name, profile.last_name, profile.phone, profile.commune, profile.quartier,
     profile.electricity_client_id, profile.electricity_meter_ref, profile.electricity_meter_number,
     profile.water_client_id, profile.water_meter_ref, profile.water_meter_number,
   ];
