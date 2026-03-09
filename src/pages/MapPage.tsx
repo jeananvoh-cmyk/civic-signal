@@ -276,9 +276,19 @@ const MapPage = () => {
         <div style="flex:1;padding:4px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;text-align:center"><img src="${INFRA_CATEGORY_ICONS.mairie}" style="width:${imgS}px;height:${imgS}px;object-fit:contain;margin:0 auto 2px;" /><br/><span style="font-size:10px;color:#065f46">Mairie</span><br/><span style="font-size:13px;font-weight:bold;color:#059669">${s.mairie_infra_actifs}</span></div>
       </div>`;
 
+      const verifiedPercent = actifs > 0 ? Math.round((verified / actifs) * 100) : 0;
+      let infraConfirmHtml = '';
+      if (actifs > 0) {
+        if (hasVerified) {
+          infraConfirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center"><span style="font-size:13px;color:#16a34a;font-weight:700">✓ ${verified} confirmé${verified > 1 ? 's' : ''} (${verifiedPercent}%)</span><br/><span style="font-size:10px;color:#15803d">vérifié${verified > 1 ? 's' : ''} par les voisins</span></div>`;
+        } else {
+          infraConfirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;text-align:center"><span style="font-size:11px;color:#92400e">⏳ En attente de confirmation</span></div>`;
+        }
+      }
+
       L.marker(pos, { icon })
         .addTo(map)
-        .bindPopup(`<div style="min-width:200px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">Infrastructures</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${breakdownHtml}</div>`);
+        .bindPopup(`<div style="min-width:200px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">Infrastructures</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${breakdownHtml}${infraConfirmHtml}</div>`);
     } else {
       const infraIcon = infraFilter === "cie" ? INFRA_CATEGORY_ICONS.cie : infraFilter === "sodeci" ? INFRA_CATEGORY_ICONS.sodeci : infraFilter === "mairie" ? INFRA_CATEGORY_ICONS.mairie : "";
       const bg = infraFilter === "cie" ? "#f59e0b" : infraFilter === "sodeci" ? "#3b82f6" : infraFilter === "mairie" ? "#10b981" : "#6b7280";
