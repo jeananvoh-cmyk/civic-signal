@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Download, FileSpreadsheet, FileText, ChevronDown, Users, Baby, Heart, Clock, Shield, Zap, Droplets, Construction } from "lucide-react";
+import { Download, FileSpreadsheet, FileText, FileDown, ChevronDown, Users, Baby, Heart, Clock, Shield, Zap, Droplets, Construction } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
