@@ -32,6 +32,7 @@ const AboutPage = lazy(() => import("./pages/AboutPage"));
 const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
 const HistoryPage = lazy(() => import("./pages/HistoryPage"));
 const DonationPage = lazy(() => import("./pages/DonationPage"));
+const InfrastructurePage = lazy(() => import("./pages/InfrastructurePage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
