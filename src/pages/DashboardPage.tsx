@@ -348,7 +348,7 @@ const DashboardPage = () => {
           <div>
             <h1 className="font-display text-3xl font-bold text-foreground">{dashboardTitle}</h1>
             <div className="mt-1 flex items-center gap-2">
-              <p className="text-muted-foreground">5 communes pilotes — Abidjan</p>
+              <p className="text-muted-foreground">7 communes pilotes — Abidjan</p>
               <span className={`flex items-center gap-1 text-xs font-medium transition-colors ${realtimeActive ? "text-success" : "text-muted-foreground"}`}>
                 <Radio className={`h-3 w-3 ${realtimeActive ? "animate-pulse" : ""}`} />
                 Live
