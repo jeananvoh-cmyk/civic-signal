@@ -63,6 +63,21 @@ export const QUARTIERS: Record<string, string[]> = {
     "M'batto-Bouaké", "Mobio", "Ogriville", "Palmafrique Éloka",
     "Quartier Scierie GIB", "Riviéra 6", "Sebia Yao",
   ],
+
+  Koumassi: [
+    "Biétry", "Camp Commun", "Cité Verte", "Compagnie", "Dépôt",
+    "Koweit", "Koumassi Campement", "Koumassi Extension", "Koumassi Remblai",
+    "Lauriers", "Mairie", "Mosquée", "Orly", "Port Bouët II",
+    "Résidentiel", "Sagbé", "Samaké", "Terminus",
+  ],
+
+  "Port-Bouët": [
+    "Aéroport", "Adjouffou", "Anani", "Attécoubé", "Avocatier",
+    "Banco 1", "Biétry II", "Gonzagueville", "Grand Bassam Route",
+    "Houphouët-Boigny", "Ile de Boulay", "Kennedy", "Koumassi",
+    "Marcory", "Mokotowé", "N'dotré", "Port-Bouët Village",
+    "Quartier Français", "Vridi", "Vridi Canal", "Vridi plage",
+  ],
 };
 
 /** Get quartiers for a given commune, sorted alphabetically */
