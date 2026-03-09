@@ -45,7 +45,7 @@ const AboutPage = () => {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
                 <MapPin className="h-5 w-5 text-primary" />
               </div>
-              <h2 className="font-display text-xl font-bold text-foreground">5 communes pilotes</h2>
+              <h2 className="font-display text-xl font-bold text-foreground">7 communes pilotes</h2>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {COMMUNES.map((c) => (

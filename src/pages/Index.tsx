@@ -91,7 +91,7 @@ const Index = () => {
               )}
               <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white backdrop-blur-sm">
                 <Shield className="h-4 w-4" />
-                05 communes pilotes à Abidjan
+                07 communes pilotes à Abidjan
               </div>
             </div>
 
@@ -309,8 +309,8 @@ const Index = () => {
       <section className="gradient-hero py-12">
         <div className="container grid gap-8 text-center sm:grid-cols-4">
           {[
-            { value: "5", label: "Communes pilotes" },
-            { value: "2.58M", label: "Population couverte" },
+            { value: "7", label: "Communes pilotes" },
+            { value: "4.75M", label: "Population couverte" },
             { value: "<200m", label: "Rayon vérification" },
             {
               value: liveCount !== null ? String(liveCount) : "…",

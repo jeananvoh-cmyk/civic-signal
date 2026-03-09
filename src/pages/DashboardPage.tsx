@@ -336,7 +336,7 @@ const DashboardPage = () => {
           <div className="container flex items-center justify-center gap-2 text-sm font-semibold text-destructive">
             <Siren className="h-4 w-4 animate-pulse" />
             <span>
-              Situation critique — {totalActifs} coupures actives en ce moment sur les 5 communes pilotes
+              Situation critique — {totalActifs} coupures actives en ce moment sur les 7 communes pilotes
             </span>
             <Siren className="h-4 w-4 animate-pulse" />
           </div>
@@ -348,7 +348,7 @@ const DashboardPage = () => {
           <div>
             <h1 className="font-display text-3xl font-bold text-foreground">{dashboardTitle}</h1>
             <div className="mt-1 flex items-center gap-2">
-              <p className="text-muted-foreground">5 communes pilotes — Abidjan</p>
+              <p className="text-muted-foreground">7 communes pilotes — Abidjan</p>
               <span className={`flex items-center gap-1 text-xs font-medium transition-colors ${realtimeActive ? "text-success" : "text-muted-foreground"}`}>
                 <Radio className={`h-3 w-3 ${realtimeActive ? "animate-pulse" : ""}`} />
                 Live
@@ -375,7 +375,7 @@ const DashboardPage = () => {
             </div>
             <ShareButton
               title="Tableau de Bord SignalÉnergie"
-              text={`📊 ${totalActifs} coupures actives sur les 5 communes pilotes d'Abidjan`}
+              text={`📊 ${totalActifs} coupures actives sur les 7 communes pilotes d'Abidjan`}
             />
           </div>
         </motion.div>
@@ -395,7 +395,7 @@ const DashboardPage = () => {
                 </div>
                 <p className="font-display text-lg font-bold text-foreground">Aucune coupure active</p>
                 <p className="mt-2 text-sm text-muted-foreground max-w-xs">
-                  Tout est normal pour le moment dans les 5 communes pilotes. Les signalements apparaîtront ici en temps réel.
+                  Tout est normal pour le moment dans les 7 communes pilotes. Les signalements apparaîtront ici en temps réel.
                 </p>
               </div>
             ) : null}
