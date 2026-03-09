@@ -395,7 +395,7 @@ const TrendsChart = ({ className = "" }: TrendsChartProps) => {
             icon: TrendingUp,
             color: "text-destructive",
             type: "warning",
-            title: "Tendance à la hausse (+${trend}%)",
+            title: `Tendance à la hausse (+${trend}%)`,
             text: `Les signalements augmentent significativement. La 2ème moitié de la période montre une moyenne de ${Math.round(secondHalfAvg)} signalements/${config.groupLabel} contre ${Math.round(firstHalfAvg)} précédemment. Renforcer les équipes d'intervention.`,
           });
         } else if (trend < -15) {
