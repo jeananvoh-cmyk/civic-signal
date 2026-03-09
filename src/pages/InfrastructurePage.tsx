@@ -184,7 +184,7 @@ const InfrastructurePage = () => {
               Fil Infrastructures
             </h1>
             <p className="text-sm text-muted-foreground">
-              Aidez à repérer les pannes d'infrastructures d'eau et d'électricité dans votre commune.
+              Signalez les pannes d'éclairage, fuites d'eau, nids de poule et autres problèmes d'infrastructure dans votre commune.
             </p>
           </div>
 
