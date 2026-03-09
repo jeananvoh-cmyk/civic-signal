@@ -479,10 +479,18 @@ const InfrastructurePage = () => {
 
                 {/* Stats bar */}
                 <div className="px-4 py-2 flex items-center justify-between text-xs text-muted-foreground border-b border-border">
-                  <span className="flex items-center gap-1">
-                    <ThumbsUp className="h-3 w-3" />
-                    {report.verifications} confirmation{report.verifications > 1 ? "s" : ""}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1">
+                      <ThumbsUp className="h-3 w-3" />
+                      {report.verifications}
+                    </span>
+                    {report.repair_verifications > 0 && report.status === "active" && (
+                      <span className="flex items-center gap-1 text-[hsl(var(--success))] font-medium">
+                        <CheckCircle className="h-3 w-3" />
+                        {report.repair_verifications}/3 ont vu que c'est réparé
+                      </span>
+                    )}
+                  </div>
                   <span>
                     Signalé par {report.reporter_type === "individual" ? "un résident" : "un groupe"}
                   </span>
