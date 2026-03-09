@@ -62,18 +62,21 @@ const MapPage = () => {
 
   const [stats, setStats] = useState<CommuneServiceStat[]>([]);
   const [infraStats, setInfraStats] = useState<InfraStats[]>([]);
+  const [boundaries, setBoundaries] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
 
   useEffect(() => {
     const fetchAll = async () => {
-      const [sRes, iRes] = await Promise.all([
+      const [sRes, iRes, geoRes] = await Promise.all([
         supabase.rpc("get_commune_service_stats"),
         supabase.rpc("get_commune_infrastructure_stats" as any),
+        fetch("/data/communes-boundaries.geojson").then(r => r.json()).catch(() => null),
       ]);
       if (!sRes.error && sRes.data) setStats(sRes.data as unknown as CommuneServiceStat[]);
       if (!iRes.error && iRes.data) setInfraStats(iRes.data as unknown as InfraStats[]);
+      if (geoRes) setBoundaries(geoRes);
       setLoading(false);
     };
     fetchAll();
