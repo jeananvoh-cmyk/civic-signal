@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Clock, Power, Zap, Droplets, Loader2, PartyPopper, AlertTriangle, ThumbsUp } from "lucide-react";
+import { CheckCircle2, Clock, Power, Zap, Droplets, Loader2, PartyPopper, AlertTriangle, ThumbsUp, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import Header from "@/components/Header";
 import NeighborCorroboration from "@/components/NeighborCorroboration";
 import { supabase } from "@/integrations/supabase/client";
