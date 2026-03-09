@@ -270,6 +270,18 @@ const AdminReportsPage = () => {
                     </Button>
                   </div>
                 )}
+                {selectedReport.validated && selectedReport.status === "active" && (
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      className="flex-1 bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90 text-white"
+                      onClick={() => resolveMutation.mutate(selectedReport.id)}
+                      disabled={resolveMutation.isPending}
+                    >
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Marquer comme résolu
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </DialogContent>

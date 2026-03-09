@@ -513,13 +513,30 @@ const InfrastructurePage = () => {
                     {corroborated.has(report.id) ? "Confirmé" : "Confirmer"}
                   </Button>
 
+                  {report.status === "active" && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`flex-1 text-sm gap-1.5 ${
+                        repaired.has(report.id)
+                          ? "text-[hsl(var(--success))] font-semibold"
+                          : "text-[hsl(var(--success))]"
+                      }`}
+                      onClick={() => handleConfirmRepair(report.id)}
+                      disabled={repaired.has(report.id)}
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      {repaired.has(report.id) ? "Noté réparé" : "C'est réparé"}
+                    </Button>
+                  )}
+
                   <ShareButton
                     title={`Signalement ${serviceLabel(report.service_type)}`}
                     text={`${report.description} — ${report.quartier}, ${report.commune}`}
                     url={window.location.origin}
                     variant="ghost"
                     size="sm"
-                    className="flex-1 text-sm text-muted-foreground"
+                    className="flex-none px-3 text-muted-foreground"
                   />
                 </div>
               </motion.article>
