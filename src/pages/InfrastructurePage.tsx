@@ -60,7 +60,7 @@ const InfrastructurePage = () => {
       .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
 
     if (filter !== "all") {
-      query = query.eq("service_type", filter === "eau" ? "eau" : "electricite");
+      query = query.eq("service_type", filter);
     }
 
     if (subFilter) {
