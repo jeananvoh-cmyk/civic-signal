@@ -75,11 +75,13 @@ const MapPage = () => {
           actifs = s.electricite_actifs; resolus = s.electricite_resolus; total = s.electricite_total; verified = s.electricite_verified;
         } else if (filter === "water") {
           actifs = s.eau_actifs; resolus = s.eau_resolus; total = s.eau_total; verified = s.eau_verified;
+        } else if (filter === "mairie") {
+          actifs = s.mairie_actifs; resolus = s.mairie_resolus; total = s.mairie_total; verified = s.mairie_verified;
         } else {
-          actifs = s.electricite_actifs + s.eau_actifs;
-          resolus = s.electricite_resolus + s.eau_resolus;
-          total = s.electricite_total + s.eau_total;
-          verified = s.electricite_verified + s.eau_verified;
+          actifs = s.electricite_actifs + s.eau_actifs + s.mairie_actifs;
+          resolus = s.electricite_resolus + s.eau_resolus + s.mairie_resolus;
+          total = s.electricite_total + s.eau_total + s.mairie_total;
+          verified = s.electricite_verified + s.eau_verified + s.mairie_verified;
         }
       }
 
