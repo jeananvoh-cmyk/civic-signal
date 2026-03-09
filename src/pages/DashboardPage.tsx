@@ -794,13 +794,13 @@ const DashboardPage = () => {
                     <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.max(tauxCapacite, 1)}%`, backgroundColor: c.couleur }} />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <div className="rounded-xl bg-amber-500/5 border border-amber-500/20 p-3">
                       <div className="flex items-center gap-2 mb-2">
                         <Zap className="h-4 w-4 text-amber-500" />
-                        <span className="text-xs font-semibold text-foreground">Électricité</span>
+                        <span className="text-xs font-semibold text-foreground">CIE</span>
                       </div>
-                      <div className="flex items-baseline gap-3">
+                      <div className="flex items-baseline gap-2 flex-wrap">
                         <div>
                           <span className="font-display text-xl font-extrabold text-amber-500">{c.electricite_actifs}</span>
                           <span className="text-[10px] text-muted-foreground ml-1">actif{c.electricite_actifs !== 1 ? "s" : ""}</span>
@@ -814,9 +814,9 @@ const DashboardPage = () => {
                     <div className="rounded-xl bg-blue-500/5 border border-blue-500/20 p-3">
                       <div className="flex items-center gap-2 mb-2">
                         <Droplets className="h-4 w-4 text-blue-500" />
-                        <span className="text-xs font-semibold text-foreground">Eau</span>
+                        <span className="text-xs font-semibold text-foreground">SODECI</span>
                       </div>
-                      <div className="flex items-baseline gap-3">
+                      <div className="flex items-baseline gap-2 flex-wrap">
                         <div>
                           <span className="font-display text-xl font-extrabold text-blue-500">{c.eau_actifs}</span>
                           <span className="text-[10px] text-muted-foreground ml-1">actif{c.eau_actifs !== 1 ? "s" : ""}</span>
@@ -824,6 +824,22 @@ const DashboardPage = () => {
                         <div>
                           <span className="font-display text-sm font-bold text-emerald-500">{c.eau_resolus}</span>
                           <span className="text-[10px] text-muted-foreground ml-1">résolu{c.eau_resolus !== 1 ? "s" : ""}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-teal-500/5 border border-teal-500/20 p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Construction className="h-4 w-4 text-teal-500" />
+                        <span className="text-xs font-semibold text-foreground">Mairie</span>
+                      </div>
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <div>
+                          <span className="font-display text-xl font-extrabold text-teal-500">{c.mairie_actifs}</span>
+                          <span className="text-[10px] text-muted-foreground ml-1">actif{c.mairie_actifs !== 1 ? "s" : ""}</span>
+                        </div>
+                        <div>
+                          <span className="font-display text-sm font-bold text-emerald-500">{c.mairie_resolus}</span>
+                          <span className="text-[10px] text-muted-foreground ml-1">résolu{c.mairie_resolus !== 1 ? "s" : ""}</span>
                         </div>
                       </div>
                     </div>
