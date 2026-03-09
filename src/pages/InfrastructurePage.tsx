@@ -151,16 +151,59 @@ const InfrastructurePage = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Page header - compact */}
-      <div className="bg-card border-b border-border">
-        <div className="container max-w-2xl py-4 px-4">
-          <div className="flex items-center gap-2 mb-1">
-            <AlertCircle className="h-5 w-5 text-primary" />
-            <h1 className="text-lg font-bold text-foreground">Fil Infrastructures</h1>
+      {/* Page header */}
+      <div className="bg-card border-b border-border pb-4">
+        <div className="container max-w-2xl pt-6 px-4">
+          <div className="flex flex-col gap-1 mb-6">
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <AlertCircle className="h-6 w-6 text-primary" />
+              Fil Infrastructures
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Aidez à repérer les pannes d'infrastructures d'eau et d'électricité dans votre commune.
+            </p>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Signalements de fuites d'eau et installations électriques défaillantes dans votre commune
-          </p>
+
+          {/* Alert Categories Inspired by CIE */}
+          {(filter === "all" || filter === "electricite") && (
+            <div className="mb-2">
+              <div className="flex items-center gap-2 mb-3">
+                <Info className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Types de signalements électriques (CIE)
+                </span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-[hsl(var(--electricity))]/10 border border-[hsl(var(--electricity))]/20 rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-[hsl(var(--electricity))]/20">
+                  <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
+                    <Lightbulb className="h-5 w-5 text-[hsl(var(--electricity))]" />
+                  </div>
+                  <span className="text-xs font-semibold text-foreground">Éclairage public</span>
+                </div>
+                
+                <div className="bg-[hsl(var(--electricity))]/10 border border-[hsl(var(--electricity))]/20 rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-[hsl(var(--electricity))]/20">
+                  <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
+                    <Zap className="h-5 w-5 text-[hsl(var(--electricity))]" />
+                  </div>
+                  <span className="text-xs font-semibold text-foreground">Poteaux & Pylônes</span>
+                </div>
+                
+                <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-destructive/20">
+                  <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
+                    <TriangleAlert className="h-5 w-5 text-destructive" />
+                  </div>
+                  <span className="text-xs font-semibold text-foreground leading-tight">Branchements dangereux</span>
+                </div>
+                
+                <div className="bg-muted border border-border rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-muted/80">
+                  <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
+                    <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <span className="text-xs font-semibold text-foreground">Autres</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
