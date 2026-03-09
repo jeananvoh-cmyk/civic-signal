@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import {
-  Zap, Droplets, MapPin, Clock, ThumbsUp, MessageCircle,
+  Zap, Droplets, MapPin, Clock, ThumbsUp, MessageCircle, CheckCircle,
   Filter, TrendingUp, AlertCircle, ChevronDown, Lightbulb, TriangleAlert, Info, MoreHorizontal, Building2, Map, Trash2, Waves
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
