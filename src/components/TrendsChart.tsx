@@ -279,9 +279,9 @@ const TrendsChart = ({ className = "" }: TrendsChartProps) => {
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart data={chartData}>
             <defs>
-              <linearGradient id="gradTotal2" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={svcColor} stopOpacity={0.3} />
-                <stop offset="95%" stopColor={svcColor} stopOpacity={0} />
+              <linearGradient id="gradActifs" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="hsl(var(--destructive))" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="hsl(var(--destructive))" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="gradResolus2" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.3} />
@@ -300,30 +300,9 @@ const TrendsChart = ({ className = "" }: TrendsChartProps) => {
               }}
             />
             <Legend wrapperStyle={{ fontSize: "11px" }} />
-            <Area type="monotone" dataKey="total" name="Total" stroke={svcColor} fill="url(#gradTotal2)" strokeWidth={2} />
-            <Area type="monotone" dataKey="resolus" name="Résolus" stroke="hsl(var(--success))" fill="url(#gradResolus2)" strokeWidth={2} />
+            <Area type="monotone" dataKey="actifs" name="🔴 En cours" stroke="hsl(var(--destructive))" fill="url(#gradActifs)" strokeWidth={2} />
+            <Area type="monotone" dataKey="resolus" name="✅ Résolus" stroke="hsl(var(--success))" fill="url(#gradResolus2)" strokeWidth={2} />
           </AreaChart>
-        </ResponsiveContainer>
-      ) : serviceFilter === "all" && communeFilter === "all" ? (
-        /* Stacked bar by service type */
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-            <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" allowDecimals={false} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "hsl(var(--card))",
-                border: "1px solid hsl(var(--border))",
-                borderRadius: "8px",
-                fontSize: "12px",
-              }}
-            />
-            <Legend wrapperStyle={{ fontSize: "11px" }} />
-            <Bar dataKey="elec" name="⚡ CIE" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />
-            <Bar dataKey="eau" name="💧 SODECI" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} />
-            <Bar dataKey="mairie" name="🏗️ Mairie" stackId="a" fill="#14b8a6" radius={[4, 4, 0, 0]} />
-          </BarChart>
         </ResponsiveContainer>
       ) : (
         <ResponsiveContainer width="100%" height={300}>
@@ -340,8 +319,8 @@ const TrendsChart = ({ className = "" }: TrendsChartProps) => {
               }}
             />
             <Legend wrapperStyle={{ fontSize: "11px" }} />
-            <Bar dataKey="actifs" name="Non résolus" fill={svcColor} radius={[4, 4, 0, 0]} />
-            <Bar dataKey="resolus" name="Résolus" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="actifs" name="🔴 En cours (non résolus)" fill="hsl(var(--destructive))" stackId="status" radius={[0, 0, 0, 0]} />
+            <Bar dataKey="resolus" name="✅ Résolus" fill="hsl(var(--success))" stackId="status" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       )}
