@@ -301,7 +301,7 @@ const DashboardPage = () => {
   const totalMairieTotal = stats.reduce((s, c) => s + c.mairie_total, 0);
 
   // Leaderboard: sorted by total active (most affected first)
-  const leaderboard = [...stats].sort((a, b) => (b.electricite_actifs + b.eau_actifs) - (a.electricite_actifs + a.eau_actifs));
+  const leaderboard = [...stats].sort((a, b) => (b.electricite_actifs + b.eau_actifs + b.mairie_actifs) - (a.electricite_actifs + a.eau_actifs + a.mairie_actifs));
 
   // Priority reports
   const activeReports = priorityReports.filter((r) => r.status === "active");
