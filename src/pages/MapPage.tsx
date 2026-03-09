@@ -181,16 +181,18 @@ const MapPage = () => {
 
       // Build service breakdown for "all" filter popup
       const serviceBreakdownHtml = filter === "all" && s
-        ? `<div style="margin-top:6px;display:flex;gap:6px;justify-content:center">
-            <div style="flex:1;padding:4px 6px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;text-align:center">
+        ? `<div style="margin-top:6px;display:flex;gap:4px;justify-content:center;flex-wrap:wrap">
+            <div style="flex:1;min-width:30%;padding:4px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;text-align:center">
               <span style="font-size:12px">⚡</span><br/>
               <span style="font-size:13px;font-weight:bold;color:#d97706">${s.electricite_actifs}</span>
-              <span style="font-size:9px;color:#92400e"> actif${s.electricite_actifs > 1 ? 's' : ''}</span>
             </div>
-            <div style="flex:1;padding:4px 6px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;text-align:center">
+            <div style="flex:1;min-width:30%;padding:4px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;text-align:center">
               <span style="font-size:12px">💧</span><br/>
               <span style="font-size:13px;font-weight:bold;color:#2563eb">${s.eau_actifs}</span>
-              <span style="font-size:9px;color:#1e40af"> actif${s.eau_actifs > 1 ? 's' : ''}</span>
+            </div>
+            <div style="flex:1;min-width:30%;padding:4px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;text-align:center">
+              <span style="font-size:12px">🏗️</span><br/>
+              <span style="font-size:13px;font-weight:bold;color:#059669">${s.mairie_actifs}</span>
             </div>
           </div>`
         : '';
