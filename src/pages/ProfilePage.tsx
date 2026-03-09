@@ -817,6 +817,67 @@ const ProfilePage = () => {
                 <div className="space-y-3 pt-1">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions du compte</p>
 
+                  {/* Export des données */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-between"
+                    onClick={async () => {
+                      if (!user) return;
+                      toast.info("Préparation de l'export...");
+                      try {
+                        const { data: profileData } = await supabase
+                          .from("profiles")
+                          .select("*")
+                          .eq("user_id", user.id)
+                          .single();
+                        const { data: reportsData } = await supabase
+                          .from("reports")
+                          .select("id, service_type, report_category, description, commune, quartier, status, urgency, created_at, resolved_at, start_time, impacted_people, babies, pregnant, elderly, verifications")
+                          .eq("user_id", user.id)
+                          .order("created_at", { ascending: false });
+                        const { data: corroborationsData } = await supabase
+                          .from("corroborations")
+                          .select("report_id, created_at")
+                          .eq("user_id", user.id);
+
+                        const exportData = {
+                          exported_at: new Date().toISOString(),
+                          user_email: user.email,
+                          profile: profileData ? {
+                            first_name: profileData.first_name,
+                            last_name: profileData.last_name,
+                            display_name: profileData.display_name,
+                            phone: profileData.phone,
+                            commune: profileData.commune,
+                            quartier: profileData.quartier,
+                            user_type: profileData.user_type,
+                            created_at: profileData.created_at,
+                          } : null,
+                          reports: reportsData || [],
+                          corroborations: corroborationsData || [],
+                        };
+
+                        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `signalenergie-mes-donnees-${new Date().toISOString().slice(0, 10)}.json`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        toast.success("Export téléchargé !");
+                      } catch {
+                        toast.error("Erreur lors de l'export");
+                      }
+                    }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Download className="h-4 w-4" />
+                      Exporter mes données
+                    </span>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+
                   <Button
                     variant="outline"
                     size="sm"
