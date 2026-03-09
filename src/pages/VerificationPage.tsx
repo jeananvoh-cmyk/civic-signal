@@ -66,28 +66,46 @@ const VerificationPage = () => {
     fetchMyActiveReports();
   }, [user]);
 
-  const handleConfirmStillOngoing = async (reportId: string) => {
-    setConfirming(reportId);
+  const handleConfirmStillOngoing = async (report: MyReport) => {
+    // Check rate limit: max 1 per hour
+    if (report.last_reminder_at) {
+      const lastReminder = new Date(report.last_reminder_at).getTime();
+      const now = Date.now();
+      const hoursSinceLast = (now - lastReminder) / (1000 * 60 * 60);
+      if (hoursSinceLast < 1) {
+        const minsLeft = Math.ceil((1 - hoursSinceLast) * 60);
+        toast.error(`Veuillez patienter encore ${minsLeft} minute(s) avant de relancer.`);
+        return;
+      }
+    }
+
+    setConfirming(report.id);
     try {
       const { data: currentReport, error: fetchErr } = await supabase
         .from("reports")
         .select("reminder_count")
-        .eq("id", reportId)
+        .eq("id", report.id)
         .single();
         
       if (fetchErr) throw fetchErr;
+
+      const newReminderAt = new Date().toISOString();
 
       const { error } = await supabase
         .from("reports")
         .update({ 
           reminder_count: (currentReport?.reminder_count || 0) + 1,
-          last_reminder_at: new Date().toISOString()
+          last_reminder_at: newReminderAt
         })
-        .eq("id", reportId);
+        .eq("id", report.id);
 
       if (error) throw error;
       
-      toast.success("Coupure confirmée comme toujours en cours (relancée).");
+      setReports(prev => prev.map(r => 
+        r.id === report.id ? { ...r, last_reminder_at: newReminderAt } : r
+      ));
+      
+      toast.success("Signalement relancé avec succès.");
     } catch (err: any) {
       toast.error(err.message || "Erreur");
     } finally {
