@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Zap, ArrowLeft, User, Phone, Building2, Home, Eye, EyeOff } from "lucide-react";
+import { Zap, ArrowLeft, User, Phone, Building2, Home, Eye, EyeOff, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -21,6 +22,7 @@ const AuthPage = () => {
   const [userType, setUserType] = useState<"household" | "business">("household");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
   const navigate = useNavigate();
 
   const isPhone = (value: string) => /^\+?\d[\d\s-]{6,}$/.test(value.trim());
@@ -309,9 +311,31 @@ const AuthPage = () => {
                 </RadioGroup>
               </div>
 
+              {/* Consentement politique de confidentialité + âge */}
+              <div className="space-y-3 rounded-xl border border-border bg-muted/50 p-3">
+                <div className="flex items-start gap-2.5">
+                  <Checkbox
+                    id="privacy-consent"
+                    checked={privacyConsent}
+                    onCheckedChange={(c) => setPrivacyConsent(c === true)}
+                    className="mt-0.5"
+                  />
+                  <label htmlFor="privacy-consent" className="text-xs leading-relaxed cursor-pointer text-muted-foreground">
+                    Je certifie avoir <strong className="text-foreground">18 ans ou plus</strong> et j'accepte la{" "}
+                    <Link to="/confidentialite" target="_blank" className="text-primary underline">
+                      politique de confidentialité
+                    </Link>{" "}
+                    et les{" "}
+                    <Link to="/a-propos" target="_blank" className="text-primary underline">
+                      conditions d'utilisation
+                    </Link>.
+                  </label>
+                </div>
+              </div>
+
               <Button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !privacyConsent}
                 className="w-full h-12 rounded-lg bg-[hsl(135,55%,48%)] text-white text-lg font-bold hover:bg-[hsl(135,55%,40%)]"
               >
                 {loading ? "Chargement..." : "Créer mon compte"}

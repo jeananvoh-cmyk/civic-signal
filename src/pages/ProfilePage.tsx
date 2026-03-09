@@ -4,7 +4,7 @@ import {
   User, Mail, Phone, MapPin, Home, Building2, Save, Shield,
   Bell, Globe, Palette, ChevronRight, CheckCircle2, FileText, Clock,
   Zap, Droplets, Info, History, Trash2, AlertTriangle, LogOut,
-  Filter, CalendarDays, XCircle, CheckCheck
+  Filter, CalendarDays, XCircle, CheckCheck, Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -212,21 +212,20 @@ const ProfilePage = () => {
     if (!finalReason) return;
     setDeleting(true);
     try {
-      // Log the deletion reason before deleting
-      await supabase.from("report_deletions").insert({
-        report_id: "00000000-0000-0000-0000-000000000000",
-        user_id: user.id,
-        reason: `[SUPPRESSION COMPTE] ${finalReason}`,
-        service_type: "account",
-        commune: profile.commune,
-        quartier: profile.quartier,
-        description: "Suppression du compte utilisateur",
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Non authentifié");
+
+      const response = await supabase.functions.invoke("delete-account", {
+        body: { reason: finalReason },
       });
+
+      if (response.error) throw response.error;
+
       await signOut();
-      toast.success("Votre compte a été supprimé. À bientôt.");
+      toast.success("Votre compte et toutes vos données ont été définitivement supprimés.");
       navigate("/");
     } catch (err: any) {
-      toast.error("Erreur lors de la suppression. Contactez le support.");
+      toast.error("Erreur lors de la suppression. Contactez signalenergie@civictech.ci");
     } finally {
       setDeleting(false);
     }
@@ -817,6 +816,67 @@ const ProfilePage = () => {
                 {/* Account actions */}
                 <div className="space-y-3 pt-1">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions du compte</p>
+
+                  {/* Export des données */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-between"
+                    onClick={async () => {
+                      if (!user) return;
+                      toast.info("Préparation de l'export...");
+                      try {
+                        const { data: profileData } = await supabase
+                          .from("profiles")
+                          .select("*")
+                          .eq("user_id", user.id)
+                          .single();
+                        const { data: reportsData } = await supabase
+                          .from("reports")
+                          .select("id, service_type, report_category, description, commune, quartier, status, urgency, created_at, resolved_at, start_time, impacted_people, babies, pregnant, elderly, verifications")
+                          .eq("user_id", user.id)
+                          .order("created_at", { ascending: false });
+                        const { data: corroborationsData } = await supabase
+                          .from("corroborations")
+                          .select("report_id, created_at")
+                          .eq("user_id", user.id);
+
+                        const exportData = {
+                          exported_at: new Date().toISOString(),
+                          user_email: user.email,
+                          profile: profileData ? {
+                            first_name: profileData.first_name,
+                            last_name: profileData.last_name,
+                            display_name: profileData.display_name,
+                            phone: profileData.phone,
+                            commune: profileData.commune,
+                            quartier: profileData.quartier,
+                            user_type: profileData.user_type,
+                            created_at: profileData.created_at,
+                          } : null,
+                          reports: reportsData || [],
+                          corroborations: corroborationsData || [],
+                        };
+
+                        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `signalenergie-mes-donnees-${new Date().toISOString().slice(0, 10)}.json`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        toast.success("Export téléchargé !");
+                      } catch {
+                        toast.error("Erreur lors de l'export");
+                      }
+                    }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Download className="h-4 w-4" />
+                      Exporter mes données
+                    </span>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
 
                   <Button
                     variant="outline"
