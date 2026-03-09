@@ -219,28 +219,28 @@ const InfrastructurePage = () => {
                     <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
                       <Droplets className="h-5 w-5 text-[hsl(var(--water))]" />
                     </div>
-                    <span className="text-xs font-semibold text-foreground leading-tight">Fuite sur voie publique</span>
+                    <span className="text-xs font-semibold text-foreground leading-tight">Fuite sur réseau</span>
                   </div>
                   
                   <div className="bg-[hsl(var(--water))]/10 border border-[hsl(var(--water))]/20 rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-[hsl(var(--water))]/20">
                     <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
                       <AlertCircle className="h-5 w-5 text-[hsl(var(--water))]" />
                     </div>
-                    <span className="text-xs font-semibold text-foreground">Regard cassé / ouvert</span>
+                    <span className="text-xs font-semibold text-foreground">Regard ouvert/cassé</span>
                   </div>
                   
                   <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-destructive/20">
                     <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
                       <TriangleAlert className="h-5 w-5 text-destructive" />
                     </div>
-                    <span className="text-xs font-semibold text-foreground leading-tight">Manque d'eau / Coupure</span>
+                    <span className="text-xs font-semibold text-foreground leading-tight">Qualité de l'eau</span>
                   </div>
                   
                   <div className="bg-muted border border-border rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-muted/80">
                     <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
                       <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
                     </div>
-                    <span className="text-xs font-semibold text-foreground">Qualité de l'eau / Odeur</span>
+                    <span className="text-xs font-semibold text-foreground">Autres</span>
                   </div>
                 </div>
               </div>
