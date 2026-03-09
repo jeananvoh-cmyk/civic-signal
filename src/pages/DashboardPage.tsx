@@ -762,9 +762,9 @@ const DashboardPage = () => {
               return (
                 <motion.div key={c.commune} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }} className="rounded-2xl border border-border bg-card p-5 shadow-card">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl overflow-hidden" style={{ backgroundColor: c.couleur }}>
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl overflow-hidden border border-border" style={{ backgroundColor: COMMUNE_LOGOS[c.commune] ? '#fff' : c.couleur }}>
                       {COMMUNE_LOGOS[c.commune] ? (
-                        <img src={COMMUNE_LOGOS[c.commune]} alt={c.commune} className="h-full w-full object-cover" />
+                        <img src={COMMUNE_LOGOS[c.commune]} alt={c.commune} className="h-full w-full object-contain p-1" />
                       ) : (
                         <span className="text-white font-bold text-sm">#{i + 1}</span>
                       )}
