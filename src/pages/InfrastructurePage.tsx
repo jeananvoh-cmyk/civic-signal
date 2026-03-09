@@ -32,7 +32,7 @@ type InfraReport = {
   reporter_type: string;
 };
 
-type FilterType = "all" | "eau" | "electricite";
+type FilterType = "all" | "eau" | "electricite" | "mairie";
 
 const PAGE_SIZE = 10;
 
