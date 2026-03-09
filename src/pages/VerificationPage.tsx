@@ -217,7 +217,7 @@ const VerificationPage = () => {
                 <CheckCircle2 className="mx-auto h-10 w-10 text-success mb-2" />
                 <p className="font-bold text-foreground">Votre signalement gagne en visibilité</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Plus de voisins confirment, plus le signalement est prioritaire.
+                  Chaque confirmation renforce la crédibilité de votre signalement dans nos rapports aux opérateurs.
                 </p>
               </div>
               <Button variant="outline" onClick={() => setSearchParams({})}>
