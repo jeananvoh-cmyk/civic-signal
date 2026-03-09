@@ -433,17 +433,17 @@ const MapPage = () => {
         {mode === "infrastructures" && (
           <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-2.5 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
-              <span className="inline-block h-3 w-3 rounded-full" style={{ background: '#f59e0b' }} />
+              <img src={INFRA_CATEGORY_ICONS.cie} className="h-5 w-5 object-contain rounded" alt="CIE" />
               <span><strong className="text-foreground">CIE</strong> — Lampadaires, poteaux</span>
             </span>
             <span className="hidden sm:inline text-border">|</span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block h-3 w-3 rounded-full" style={{ background: '#3b82f6' }} />
+              <img src={INFRA_CATEGORY_ICONS.sodeci} className="h-5 w-5 object-contain rounded" alt="SODECI" />
               <span><strong className="text-foreground">SODECI</strong> — Fuites, canalisations</span>
             </span>
             <span className="hidden sm:inline text-border">|</span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block h-3 w-3 rounded-full" style={{ background: '#10b981' }} />
+              <img src={INFRA_CATEGORY_ICONS.mairie} className="h-5 w-5 object-contain rounded" alt="Mairie" />
               <span><strong className="text-foreground">Mairie</strong> — Voirie, caniveaux</span>
             </span>
           </div>
