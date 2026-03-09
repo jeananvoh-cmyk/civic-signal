@@ -395,7 +395,7 @@ const DashboardPage = () => {
                 </div>
                 <p className="font-display text-lg font-bold text-foreground">Aucune coupure active</p>
                 <p className="mt-2 text-sm text-muted-foreground max-w-xs">
-                  Tout est normal pour le moment dans les 5 communes pilotes. Les signalements apparaîtront ici en temps réel.
+                  Tout est normal pour le moment dans les 7 communes pilotes. Les signalements apparaîtront ici en temps réel.
                 </p>
               </div>
             ) : null}

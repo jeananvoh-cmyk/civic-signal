@@ -309,8 +309,8 @@ const Index = () => {
       <section className="gradient-hero py-12">
         <div className="container grid gap-8 text-center sm:grid-cols-4">
           {[
-            { value: "5", label: "Communes pilotes" },
-            { value: "2.58M", label: "Population couverte" },
+            { value: "7", label: "Communes pilotes" },
+            { value: "4.75M", label: "Population couverte" },
             { value: "<200m", label: "Rayon vérification" },
             {
               value: liveCount !== null ? String(liveCount) : "…",

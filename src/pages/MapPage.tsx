@@ -271,7 +271,7 @@ const MapPage = () => {
           </div>
           <ShareButton
             title="Carte SignalÉnergie"
-            text={`${totalActifs} coupures actives sur les 5 communes pilotes d'Abidjan 📊`}
+            text={`${totalActifs} coupures actives sur les 7 communes pilotes d'Abidjan 📊`}
           />
         </motion.div>
 
