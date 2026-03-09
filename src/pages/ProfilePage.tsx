@@ -308,7 +308,7 @@ const ProfilePage = () => {
               />
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              Plus votre profil est complet, plus vos signalements sont crédibles et traités en priorité.
+              Un profil complet renforce la crédibilité de vos signalements dans nos rapports transmis aux opérateurs (CIE, SODECI).
             </p>
           </div>
 
