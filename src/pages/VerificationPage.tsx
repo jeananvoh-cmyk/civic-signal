@@ -45,11 +45,16 @@ const VerificationPage = () => {
   // Confirm still ongoing
   const [confirming, setConfirming] = useState<string | null>(null);
 
+  // Delete report
+  const [deleteTarget, setDeleteTarget] = useState<MyReport | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleting, setDeleting] = useState<string | null>(null);
+
   const fetchMyActiveReports = async () => {
     if (!user) return;
     const { data, error } = await supabase
       .from("reports")
-      .select("id, service_type, description, commune, quartier, status, urgency, created_at, start_time, verifications")
+      .select("id, service_type, description, commune, quartier, status, urgency, created_at, start_time, verifications, last_reminder_at")
       .eq("user_id", user.id)
       .eq("status", "active")
       .order("created_at", { ascending: false });
