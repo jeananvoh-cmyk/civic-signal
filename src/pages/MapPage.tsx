@@ -298,9 +298,19 @@ const MapPage = () => {
       const icon = L.divIcon({ className: "", html: markerHtml, iconSize: [markerSize, markerSize], iconAnchor: [markerSize / 2, markerSize / 2] });
       const label = infraFilter === "cie" ? "Infra. CIE" : infraFilter === "sodeci" ? "Infra. SODECI" : infraFilter === "mairie" ? "Infra. Mairie" : "Toutes infrastructures";
 
+      const singleVerifiedPercent = actifs > 0 ? Math.round((verified / actifs) * 100) : 0;
+      let singleConfirmHtml = '';
+      if (actifs > 0) {
+        if (hasVerified) {
+          singleConfirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center"><span style="font-size:13px;color:#16a34a;font-weight:700">✓ ${verified} confirmé${verified > 1 ? 's' : ''} (${singleVerifiedPercent}%)</span><br/><span style="font-size:10px;color:#15803d">vérifié${verified > 1 ? 's' : ''} par les voisins</span></div>`;
+        } else {
+          singleConfirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;text-align:center"><span style="font-size:11px;color:#92400e">⏳ En attente de confirmation</span></div>`;
+        }
+      }
+
       L.marker(pos, { icon })
         .addTo(map)
-        .bindPopup(`<div style="min-width:180px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">${label}</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span></div>`);
+        .bindPopup(`<div style="min-width:180px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">${label}</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${singleConfirmHtml}</div>`);
     }
   };
 
