@@ -732,7 +732,7 @@ const ReportPage = () => {
                       className="overflow-hidden"
                     >
                       <div className="rounded-xl border border-border bg-card p-3">
-                        <PhotoUpload onPhotoUploaded={setPhotoUrl} photoUrl={photoUrl} />
+                        <PhotoUpload onPhotoUploaded={setPhotoUrl} photoUrl={photoUrl} isInfrastructure={selectedType.reportCategory === "infrastructure"} />
                       </div>
                     </motion.div>
                   )}
