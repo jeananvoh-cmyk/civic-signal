@@ -17,6 +17,7 @@ import { getUserFriendlyError } from "@/lib/error-utils";
 import { logAudit } from "@/lib/audit";
 import { format } from "date-fns";
 import SignedImage from "@/components/SignedImage";
+import CorroborationStatus from "@/components/CorroborationStatus";
 import { fr } from "date-fns/locale";
 
 const URGENCY_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
