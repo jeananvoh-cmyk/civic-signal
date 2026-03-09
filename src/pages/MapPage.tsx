@@ -281,6 +281,7 @@ const MapPage = () => {
             { key: "all" as ServiceFilter, label: "Tous", icon: "🔌💧" },
             { key: "electricity" as ServiceFilter, label: "Électricité", icon: "⚡" },
             { key: "water" as ServiceFilter, label: "Eau", icon: "💧" },
+            { key: "mairie" as ServiceFilter, label: "Mairie", icon: "🏗️" },
           ].map((f) => (
             <button
               key={f.key}
