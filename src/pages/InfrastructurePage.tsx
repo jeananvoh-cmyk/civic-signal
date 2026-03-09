@@ -357,6 +357,7 @@ const InfrastructurePage = () => {
             { key: "all" as FilterType, label: "Tous", icon: TrendingUp },
             { key: "eau" as FilterType, label: "Eau", icon: Droplets },
             { key: "electricite" as FilterType, label: "Électricité", icon: Zap },
+            { key: "mairie" as FilterType, label: "Mairie", icon: Building2 },
           ].map(({ key, label, icon: Icon }) => (
             <button
               key={key}
