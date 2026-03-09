@@ -179,8 +179,8 @@ const TrendsChart = ({ className = "" }: TrendsChartProps) => {
           </Select>
           {/* Commune filter */}
           <Select value={communeFilter} onValueChange={setCommuneFilter}>
-            <SelectTrigger className="w-[140px] h-8 text-xs">
-              <SelectValue />
+            <SelectTrigger className="w-[180px] h-8 text-xs">
+              <SelectValue placeholder="Toutes communes" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes communes</SelectItem>
