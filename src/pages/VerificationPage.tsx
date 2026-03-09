@@ -25,6 +25,7 @@ interface MyReport {
   created_at: string;
   start_time: string;
   verifications: number;
+  last_reminder_at: string | null;
 }
 
 const VerificationPage = () => {
