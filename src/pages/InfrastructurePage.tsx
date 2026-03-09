@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import {
-  Zap, Droplets, MapPin, Clock, ThumbsUp, MessageCircle,
+  Zap, Droplets, MapPin, Clock, ThumbsUp, MessageCircle, CheckCircle,
   Filter, TrendingUp, AlertCircle, ChevronDown, Lightbulb, TriangleAlert, Info, MoreHorizontal, Building2, Map, Trash2, Waves
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -30,6 +30,7 @@ type InfraReport = {
   verifications: number;
   impacted_people: number;
   reporter_type: string;
+  repair_verifications: number;
 };
 
 type FilterType = "all" | "eau" | "electricite" | "mairie";
@@ -46,6 +47,7 @@ const InfrastructurePage = () => {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [corroborated, setCorroborated] = useState<Set<string>>(new Set());
+  const [repaired, setRepaired] = useState<Set<string>>(new Set());
 
   const fetchReports = async (pageNum: number, append = false) => {
     const setter = append ? setLoadingMore : setLoading;
@@ -53,7 +55,7 @@ const InfrastructurePage = () => {
 
     let query = supabase
       .from("reports")
-      .select("id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, verifications, impacted_people, reporter_type")
+      .select("id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, verifications, repair_verifications, impacted_people, reporter_type")
       .eq("report_category", "infrastructure")
       .eq("validated", true)
       .order("created_at", { ascending: false })
@@ -124,6 +126,23 @@ const InfrastructurePage = () => {
       prev.map((r) => (r.id === reportId ? { ...r, verifications: r.verifications + 1 } : r))
     );
     toast.success("Merci pour votre confirmation !");
+  };
+
+  const handleConfirmRepair = async (reportId: string) => {
+    if (!user) {
+      toast.info("Connectez-vous pour confirmer la réparation");
+      return;
+    }
+    const { error } = await supabase.rpc("confirm_repair", { p_report_id: reportId });
+    if (error) {
+      toast.error(error.message || "Erreur lors de la confirmation");
+      return;
+    }
+    setRepaired((prev) => new Set(prev).add(reportId));
+    setReports((prev) =>
+      prev.map((r) => (r.id === reportId ? { ...r, repair_verifications: (r.repair_verifications || 0) + 1 } : r))
+    );
+    toast.success("Réparation confirmée ! Merci pour votre contribution.");
   };
 
   const timeAgo = (date: string) =>
@@ -460,10 +479,18 @@ const InfrastructurePage = () => {
 
                 {/* Stats bar */}
                 <div className="px-4 py-2 flex items-center justify-between text-xs text-muted-foreground border-b border-border">
-                  <span className="flex items-center gap-1">
-                    <ThumbsUp className="h-3 w-3" />
-                    {report.verifications} confirmation{report.verifications > 1 ? "s" : ""}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1">
+                      <ThumbsUp className="h-3 w-3" />
+                      {report.verifications}
+                    </span>
+                    {report.repair_verifications > 0 && report.status === "active" && (
+                      <span className="flex items-center gap-1 text-[hsl(var(--success))] font-medium">
+                        <CheckCircle className="h-3 w-3" />
+                        {report.repair_verifications}/3 ont vu que c'est réparé
+                      </span>
+                    )}
+                  </div>
                   <span>
                     Signalé par {report.reporter_type === "individual" ? "un résident" : "un groupe"}
                   </span>
@@ -486,13 +513,30 @@ const InfrastructurePage = () => {
                     {corroborated.has(report.id) ? "Confirmé" : "Confirmer"}
                   </Button>
 
+                  {report.status === "active" && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`flex-1 text-sm gap-1.5 ${
+                        repaired.has(report.id)
+                          ? "text-[hsl(var(--success))] font-semibold"
+                          : "text-[hsl(var(--success))]"
+                      }`}
+                      onClick={() => handleConfirmRepair(report.id)}
+                      disabled={repaired.has(report.id)}
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      {repaired.has(report.id) ? "Noté réparé" : "C'est réparé"}
+                    </Button>
+                  )}
+
                   <ShareButton
                     title={`Signalement ${serviceLabel(report.service_type)}`}
                     text={`${report.description} — ${report.quartier}, ${report.commune}`}
                     url={window.location.origin}
                     variant="ghost"
                     size="sm"
-                    className="flex-1 text-sm text-muted-foreground"
+                    className="flex-none px-3 text-muted-foreground"
                   />
                 </div>
               </motion.article>

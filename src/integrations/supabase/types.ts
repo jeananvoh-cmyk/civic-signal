@@ -260,6 +260,35 @@ export type Database = {
         }
         Relationships: []
       }
+      repair_confirmations: {
+        Row: {
+          created_at: string | null
+          id: string
+          report_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          report_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          report_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repair_confirmations_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       report_deletions: {
         Row: {
           commune: string
@@ -313,6 +342,7 @@ export type Database = {
           pregnant: number
           quartier: string
           reminder_count: number
+          repair_verifications: number | null
           report_category: string
           reporter_type: string
           resolved_at: string | null
@@ -343,6 +373,7 @@ export type Database = {
           pregnant?: number
           quartier?: string
           reminder_count?: number
+          repair_verifications?: number | null
           report_category?: string
           reporter_type?: string
           resolved_at?: string | null
@@ -373,6 +404,7 @@ export type Database = {
           pregnant?: number
           quartier?: string
           reminder_count?: number
+          repair_verifications?: number | null
           report_category?: string
           reporter_type?: string
           resolved_at?: string | null
@@ -436,6 +468,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_resolve_report: {
+        Args: { p_report_id: string }
+        Returns: undefined
+      }
       broadcast_admin_message: {
         Args: {
           p_message?: string
@@ -445,6 +481,7 @@ export type Database = {
         }
         Returns: number
       }
+      confirm_repair: { Args: { p_report_id: string }; Returns: undefined }
       corroborate_report: { Args: { p_report_id: string }; Returns: undefined }
       count_user_daily_reports: { Args: { p_user_id: string }; Returns: number }
       find_nearest_commune: {
