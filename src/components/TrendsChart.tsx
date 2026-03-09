@@ -3,16 +3,17 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Legend,
+  BarChart, Bar, Legend, Cell,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNE_COLORS } from "@/lib/communes";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarDays, TrendingUp, BarChart3 } from "lucide-react";
+import { TrendingUp, BarChart3, Zap, Droplets, Construction, ArrowUpRight, ArrowDownRight, Minus, Target, Clock, ShieldCheck } from "lucide-react";
 
 type Period = "day" | "week" | "month" | "year";
 type ChartType = "area" | "bar";
+type ServiceFilter = "all" | "electricity" | "water" | "mairie";
 
 interface TimeSeriesRow {
   report_date: string;
@@ -23,11 +24,18 @@ interface TimeSeriesRow {
   total: number;
 }
 
-const PERIOD_CONFIG: Record<Period, { label: string; days: number; format: (d: string) => string }> = {
-  day: { label: "Jour", days: 30, format: (d) => new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) },
-  week: { label: "Semaine", days: 90, format: (d) => `S${getWeekNumber(new Date(d))}` },
-  month: { label: "Mois", days: 365, format: (d) => new Date(d).toLocaleDateString("fr-FR", { month: "short", year: "2-digit" }) },
-  year: { label: "Année", days: 1825, format: (d) => new Date(d).getFullYear().toString() },
+const PERIOD_CONFIG: Record<Period, { label: string; days: number; format: (d: string) => string; groupLabel: string }> = {
+  day: { label: "Jour", days: 30, groupLabel: "jour", format: (d) => new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) },
+  week: { label: "Semaine", days: 90, groupLabel: "semaine", format: (d) => `S${getWeekNumber(new Date(d))}` },
+  month: { label: "Mois", days: 365, groupLabel: "mois", format: (d) => new Date(d).toLocaleDateString("fr-FR", { month: "short", year: "2-digit" }) },
+  year: { label: "Année", days: 365, groupLabel: "année", format: (d) => new Date(d).getFullYear().toString() },
+};
+
+const SERVICE_CONFIG: Record<ServiceFilter, { label: string; color: string; icon: typeof Zap }> = {
+  all: { label: "Tous services", color: "hsl(var(--primary))", icon: Target },
+  electricity: { label: "CIE — Électricité", color: "#f59e0b", icon: Zap },
+  water: { label: "SODECI — Eau", color: "#3b82f6", icon: Droplets },
+  mairie: { label: "Mairie — Voirie & Infra", color: "#14b8a6", icon: Construction },
 };
 
 function getWeekNumber(d: Date): number {
@@ -52,9 +60,10 @@ interface TrendsChartProps {
 }
 
 const TrendsChart = ({ className = "" }: TrendsChartProps) => {
-  const [period, setPeriod] = useState<Period>("day");
-  const [chartType, setChartType] = useState<ChartType>("area");
+  const [period, setPeriod] = useState<Period>("week");
+  const [chartType, setChartType] = useState<ChartType>("bar");
   const [communeFilter, setCommuneFilter] = useState<string>("all");
+  const [serviceFilter, setServiceFilter] = useState<ServiceFilter>("all");
 
   const config = PERIOD_CONFIG[period];
 
@@ -73,20 +82,21 @@ const TrendsChart = ({ className = "" }: TrendsChartProps) => {
   }, [rawData]);
 
   const chartData = useMemo(() => {
-    const filtered = communeFilter === "all" ? rawData : rawData.filter((r) => r.commune === communeFilter);
+    let filtered = rawData;
+    if (communeFilter !== "all") filtered = filtered.filter((r) => r.commune === communeFilter);
+    if (serviceFilter !== "all") filtered = filtered.filter((r) => r.service_type === serviceFilter);
 
-    // Group by period
-    const groups = new Map<string, { total: number; actifs: number; resolus: number; [key: string]: number }>();
+    const groups = new Map<string, { total: number; actifs: number; resolus: number; elec: number; eau: number; mairie: number }>();
 
     for (const row of filtered) {
       const key = getGroupKey(row.report_date, period);
-      const existing = groups.get(key) || { total: 0, actifs: 0, resolus: 0 };
+      const existing = groups.get(key) || { total: 0, actifs: 0, resolus: 0, elec: 0, eau: 0, mairie: 0 };
       existing.total += row.total;
       existing.actifs += row.actifs;
       existing.resolus += row.resolus;
-      // Per-commune breakdown
-      const cKey = `c_${row.commune}`;
-      existing[cKey] = (existing[cKey] || 0) + row.total;
+      if (row.service_type === "electricity") existing.elec += row.total;
+      else if (row.service_type === "water") existing.eau += row.total;
+      else if (row.service_type === "mairie") existing.mairie += row.total;
       groups.set(key, existing);
     }
 
@@ -96,14 +106,42 @@ const TrendsChart = ({ className = "" }: TrendsChartProps) => {
         date,
         label: config.format(date),
         ...values,
+        tauxResolution: values.total > 0 ? Math.round((values.resolus / values.total) * 100) : 0,
       }));
-  }, [rawData, period, communeFilter, config]);
+  }, [rawData, period, communeFilter, serviceFilter, config]);
 
   // Summary stats
   const totalPeriod = chartData.reduce((s, d) => s + d.total, 0);
   const totalActifs = chartData.reduce((s, d) => s + d.actifs, 0);
   const totalResolus = chartData.reduce((s, d) => s + d.resolus, 0);
-  const avgPerPeriod = chartData.length > 0 ? (totalPeriod / chartData.length).toFixed(1) : "0";
+  const resolutionRate = totalPeriod > 0 ? Math.round((totalResolus / totalPeriod) * 100) : 0;
+  const avgPerPeriod = chartData.length > 0 ? Math.round(totalPeriod / chartData.length) : 0;
+
+  // Trend: compare last half vs first half
+  const midIdx = Math.floor(chartData.length / 2);
+  const firstHalf = chartData.slice(0, midIdx);
+  const secondHalf = chartData.slice(midIdx);
+  const firstHalfAvg = firstHalf.length > 0 ? firstHalf.reduce((s, d) => s + d.total, 0) / firstHalf.length : 0;
+  const secondHalfAvg = secondHalf.length > 0 ? secondHalf.reduce((s, d) => s + d.total, 0) / secondHalf.length : 0;
+  const trend = firstHalfAvg > 0 ? Math.round(((secondHalfAvg - firstHalfAvg) / firstHalfAvg) * 100) : 0;
+
+  // Per-commune bar data for stacked view
+  const communeBarData = useMemo(() => {
+    if (communeFilter !== "all") return [];
+    let filtered = rawData;
+    if (serviceFilter !== "all") filtered = filtered.filter((r) => r.service_type === serviceFilter);
+
+    const communeTotals = new Map<string, number>();
+    for (const row of filtered) {
+      communeTotals.set(row.commune, (communeTotals.get(row.commune) || 0) + row.total);
+    }
+    return Array.from(communeTotals.entries())
+      .map(([commune, total]) => ({ commune, total, color: COMMUNE_COLORS[commune] || "#888" }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 7);
+  }, [rawData, communeFilter, serviceFilter]);
+
+  const svcColor = SERVICE_CONFIG[serviceFilter].color;
 
   return (
     <motion.div
@@ -113,11 +151,33 @@ const TrendsChart = ({ className = "" }: TrendsChartProps) => {
     >
       {/* Header */}
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-primary" />
-          <h3 className="font-display text-lg font-bold text-foreground">Tendances</h3>
+        <div>
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            <h3 className="font-display text-lg font-bold text-foreground">Tendances & Analyse</h3>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-0.5 ml-7">
+            Évolution des signalements pour orienter les interventions terrain
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {/* Service filter */}
+          <Select value={serviceFilter} onValueChange={(v) => setServiceFilter(v as ServiceFilter)}>
+            <SelectTrigger className="w-[170px] h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(SERVICE_CONFIG).map(([key, cfg]) => (
+                <SelectItem key={key} value={key}>
+                  <span className="flex items-center gap-1.5">
+                    <cfg.icon className="h-3 w-3" style={{ color: cfg.color }} />
+                    {cfg.label}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {/* Commune filter */}
           <Select value={communeFilter} onValueChange={setCommuneFilter}>
             <SelectTrigger className="w-[140px] h-8 text-xs">
               <SelectValue />
@@ -134,6 +194,7 @@ const TrendsChart = ({ className = "" }: TrendsChartProps) => {
               ))}
             </SelectContent>
           </Select>
+          {/* Chart type toggle */}
           <div className="flex rounded-lg border border-border overflow-hidden">
             <button
               onClick={() => setChartType("area")}
@@ -162,44 +223,67 @@ const TrendsChart = ({ className = "" }: TrendsChartProps) => {
         </TabsList>
       </Tabs>
 
-      {/* Summary cards */}
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-lg bg-muted/50 p-3 text-center">
-          <p className="font-display text-xl font-bold text-foreground">{totalPeriod}</p>
-          <p className="text-[10px] text-muted-foreground">Total signalements</p>
+      {/* KPI cards */}
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <div className="rounded-lg bg-muted/50 border border-border p-3 text-center">
+          <p className="font-display text-2xl font-extrabold text-foreground">{totalPeriod}</p>
+          <p className="text-[10px] text-muted-foreground font-medium">Total signalements</p>
         </div>
-        <div className="rounded-lg bg-muted/50 p-3 text-center">
-          <p className="font-display text-xl font-bold text-primary">{totalActifs}</p>
-          <p className="text-[10px] text-muted-foreground">Actifs</p>
+        <div className="rounded-lg bg-muted/50 border border-border p-3 text-center">
+          <p className="font-display text-2xl font-extrabold text-destructive">{totalActifs}</p>
+          <p className="text-[10px] text-muted-foreground font-medium">Non résolus</p>
         </div>
-        <div className="rounded-lg bg-muted/50 p-3 text-center">
-          <p className="font-display text-xl font-bold text-success">{totalResolus}</p>
-          <p className="text-[10px] text-muted-foreground">Résolus</p>
+        <div className="rounded-lg bg-muted/50 border border-border p-3 text-center">
+          <p className="font-display text-2xl font-extrabold text-emerald-500">{totalResolus}</p>
+          <p className="text-[10px] text-muted-foreground font-medium">Résolus</p>
         </div>
-        <div className="rounded-lg bg-muted/50 p-3 text-center">
-          <p className="font-display text-xl font-bold text-foreground">{avgPerPeriod}</p>
-          <p className="text-[10px] text-muted-foreground">Moy/{PERIOD_CONFIG[period].label.toLowerCase()}</p>
+        <div className="rounded-lg bg-muted/50 border border-border p-3 text-center">
+          <div className="flex items-center justify-center gap-1">
+            <ShieldCheck className="h-4 w-4 text-emerald-500" />
+            <p className="font-display text-2xl font-extrabold text-foreground">{resolutionRate}%</p>
+          </div>
+          <p className="text-[10px] text-muted-foreground font-medium">Taux résolution</p>
+        </div>
+        <div className="rounded-lg bg-muted/50 border border-border p-3 text-center">
+          <div className="flex items-center justify-center gap-1">
+            {trend > 5 ? (
+              <ArrowUpRight className="h-4 w-4 text-destructive" />
+            ) : trend < -5 ? (
+              <ArrowDownRight className="h-4 w-4 text-emerald-500" />
+            ) : (
+              <Minus className="h-3.5 w-3.5 text-muted-foreground" />
+            )}
+            <p className="font-display text-2xl font-extrabold text-foreground">{avgPerPeriod}</p>
+          </div>
+          <p className="text-[10px] text-muted-foreground font-medium">
+            Moy/{config.groupLabel}
+            {trend !== 0 && (
+              <span className={`ml-1 ${trend > 5 ? "text-destructive" : trend < -5 ? "text-emerald-500" : ""}`}>
+                ({trend > 0 ? "+" : ""}{trend}%)
+              </span>
+            )}
+          </p>
         </div>
       </div>
 
       {/* Chart */}
       {isLoading ? (
-        <div className="flex h-[250px] items-center justify-center">
+        <div className="flex h-[280px] items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         </div>
       ) : chartData.length === 0 ? (
-        <div className="flex h-[250px] items-center justify-center text-sm text-muted-foreground">
+        <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
           Aucune donnée pour cette période
         </div>
       ) : chartType === "area" ? (
-        <ResponsiveContainer width="100%" height={280}>
+        <ResponsiveContainer width="100%" height={300}>
           <AreaChart data={chartData}>
             <defs>
-              <linearGradient id="gradTotal" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+              <linearGradient id="gradTotal2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={svcColor} stopOpacity={0.3} />
+                <stop offset="95%" stopColor={svcColor} stopOpacity={0} />
               </linearGradient>
-              <linearGradient id="gradResolus" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="gradResolus2" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.3} />
                 <stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0} />
               </linearGradient>
@@ -216,12 +300,13 @@ const TrendsChart = ({ className = "" }: TrendsChartProps) => {
               }}
             />
             <Legend wrapperStyle={{ fontSize: "11px" }} />
-            <Area type="monotone" dataKey="total" name="Total" stroke="hsl(var(--primary))" fill="url(#gradTotal)" strokeWidth={2} />
-            <Area type="monotone" dataKey="resolus" name="Résolus" stroke="hsl(var(--success))" fill="url(#gradResolus)" strokeWidth={2} />
+            <Area type="monotone" dataKey="total" name="Total" stroke={svcColor} fill="url(#gradTotal2)" strokeWidth={2} />
+            <Area type="monotone" dataKey="resolus" name="Résolus" stroke="hsl(var(--success))" fill="url(#gradResolus2)" strokeWidth={2} />
           </AreaChart>
         </ResponsiveContainer>
-      ) : (
-        <ResponsiveContainer width="100%" height={280}>
+      ) : serviceFilter === "all" && communeFilter === "all" ? (
+        /* Stacked bar by service type */
+        <ResponsiveContainer width="100%" height={300}>
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
@@ -235,10 +320,55 @@ const TrendsChart = ({ className = "" }: TrendsChartProps) => {
               }}
             />
             <Legend wrapperStyle={{ fontSize: "11px" }} />
-            <Bar dataKey="actifs" name="Actifs" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="elec" name="⚡ CIE" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />
+            <Bar dataKey="eau" name="💧 SODECI" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} />
+            <Bar dataKey="mairie" name="🏗️ Mairie" stackId="a" fill="#14b8a6" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      ) : (
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+            <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" allowDecimals={false} />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: "hsl(var(--card))",
+                border: "1px solid hsl(var(--border))",
+                borderRadius: "8px",
+                fontSize: "12px",
+              }}
+            />
+            <Legend wrapperStyle={{ fontSize: "11px" }} />
+            <Bar dataKey="actifs" name="Non résolus" fill={svcColor} radius={[4, 4, 0, 0]} />
             <Bar dataKey="resolus" name="Résolus" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
+      )}
+
+      {/* Commune breakdown mini-bar (when viewing all communes) */}
+      {communeBarData.length > 0 && !isLoading && (
+        <div className="mt-5 pt-4 border-t border-border">
+          <p className="text-xs font-semibold text-muted-foreground mb-3">Répartition par commune</p>
+          <div className="space-y-2">
+            {communeBarData.map((c) => {
+              const maxVal = communeBarData[0]?.total || 1;
+              const pct = Math.round((c.total / maxVal) * 100);
+              return (
+                <div key={c.commune} className="flex items-center gap-3">
+                  <span className="text-xs font-semibold w-24 truncate" style={{ color: c.color }}>{c.commune}</span>
+                  <div className="flex-1 h-5 rounded-full bg-muted/50 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${Math.max(pct, 3)}%`, backgroundColor: c.color }}
+                    />
+                  </div>
+                  <span className="text-xs font-bold text-foreground w-8 text-right">{c.total}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
     </motion.div>
   );
