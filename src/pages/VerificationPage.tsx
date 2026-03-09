@@ -340,6 +340,18 @@ const VerificationPage = () => {
                             Tout va bien
                           </Button>
                         </div>
+                        
+                        <div className="mt-4 flex justify-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => setDeleteTarget(r)}
+                          >
+                            <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                            Supprimer ce signalement
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </motion.div>
