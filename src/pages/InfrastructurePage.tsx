@@ -128,6 +128,23 @@ const InfrastructurePage = () => {
     toast.success("Merci pour votre confirmation !");
   };
 
+  const handleConfirmRepair = async (reportId: string) => {
+    if (!user) {
+      toast.info("Connectez-vous pour confirmer la réparation");
+      return;
+    }
+    const { error } = await supabase.rpc("confirm_repair", { p_report_id: reportId });
+    if (error) {
+      toast.error(error.message || "Erreur lors de la confirmation");
+      return;
+    }
+    setRepaired((prev) => new Set(prev).add(reportId));
+    setReports((prev) =>
+      prev.map((r) => (r.id === reportId ? { ...r, repair_verifications: (r.repair_verifications || 0) + 1 } : r))
+    );
+    toast.success("Réparation confirmée ! Merci pour votre contribution.");
+  };
+
   const timeAgo = (date: string) =>
     formatDistanceToNow(new Date(date), { addSuffix: true, locale: fr });
 
