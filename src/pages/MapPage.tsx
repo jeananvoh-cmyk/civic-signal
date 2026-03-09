@@ -212,21 +212,26 @@ const MapPage = () => {
   const getFilteredTotals = () => {
     const elecActifs = stats.reduce((s, c) => s + c.electricite_actifs, 0);
     const eauActifs = stats.reduce((s, c) => s + c.eau_actifs, 0);
+    const mairieActifs = stats.reduce((s, c) => s + c.mairie_actifs, 0);
     const elecVerified = stats.reduce((s, c) => s + c.electricite_verified, 0);
     const eauVerified = stats.reduce((s, c) => s + c.eau_verified, 0);
+    const mairieVerified = stats.reduce((s, c) => s + c.mairie_verified, 0);
+
     if (filter === "electricity") {
-      return { total: stats.reduce((s, c) => s + c.electricite_total, 0), actifs: elecActifs, verified: elecVerified, elecActifs, eauActifs, elecVerified, eauVerified };
+      return { total: stats.reduce((s, c) => s + c.electricite_total, 0), actifs: elecActifs, verified: elecVerified, elecActifs, eauActifs, mairieActifs, elecVerified, eauVerified, mairieVerified };
     } else if (filter === "water") {
-      return { total: stats.reduce((s, c) => s + c.eau_total, 0), actifs: eauActifs, verified: eauVerified, elecActifs, eauActifs, elecVerified, eauVerified };
+      return { total: stats.reduce((s, c) => s + c.eau_total, 0), actifs: eauActifs, verified: eauVerified, elecActifs, eauActifs, mairieActifs, elecVerified, eauVerified, mairieVerified };
+    } else if (filter === "mairie") {
+      return { total: stats.reduce((s, c) => s + c.mairie_total, 0), actifs: mairieActifs, verified: mairieVerified, elecActifs, eauActifs, mairieActifs, elecVerified, eauVerified, mairieVerified };
     }
     return {
-      total: stats.reduce((s, c) => s + c.electricite_total + c.eau_total, 0),
-      actifs: elecActifs + eauActifs,
-      verified: elecVerified + eauVerified,
-      elecActifs, eauActifs, elecVerified, eauVerified,
+      total: stats.reduce((s, c) => s + c.electricite_total + c.eau_total + c.mairie_total, 0),
+      actifs: elecActifs + eauActifs + mairieActifs,
+      verified: elecVerified + eauVerified + mairieVerified,
+      elecActifs, eauActifs, mairieActifs, elecVerified, eauVerified, mairieVerified,
     };
   };
-  const { total: totalSignalements, actifs: totalActifs, verified: totalVerified, elecActifs: totalElecActifs, eauActifs: totalEauActifs, elecVerified: totalElecVerified, eauVerified: totalEauVerified } = getFilteredTotals();
+  const { total: totalSignalements, actifs: totalActifs, verified: totalVerified, elecActifs: totalElecActifs, eauActifs: totalEauActifs, mairieActifs: totalMairieActifs, elecVerified: totalElecVerified, eauVerified: totalEauVerified, mairieVerified: totalMairieVerified } = getFilteredTotals();
 
   return (
     <div className="min-h-screen bg-background">
