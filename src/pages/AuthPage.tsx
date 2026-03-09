@@ -22,6 +22,7 @@ const AuthPage = () => {
   const [userType, setUserType] = useState<"household" | "business">("household");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
   const navigate = useNavigate();
 
   const isPhone = (value: string) => /^\+?\d[\d\s-]{6,}$/.test(value.trim());
