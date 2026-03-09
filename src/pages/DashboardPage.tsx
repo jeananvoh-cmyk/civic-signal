@@ -296,6 +296,9 @@ const DashboardPage = () => {
   const totalEauActifs = stats.reduce((s, c) => s + c.eau_actifs, 0);
   const totalEauResolus = stats.reduce((s, c) => s + c.eau_resolus, 0);
   const totalEauTotal = stats.reduce((s, c) => s + c.eau_total, 0);
+  const totalMairieActifs = stats.reduce((s, c) => s + c.mairie_actifs, 0);
+  const totalMairieResolus = stats.reduce((s, c) => s + c.mairie_resolus, 0);
+  const totalMairieTotal = stats.reduce((s, c) => s + c.mairie_total, 0);
 
   // Leaderboard: sorted by total active (most affected first)
   const leaderboard = [...stats].sort((a, b) => (b.electricite_actifs + b.eau_actifs) - (a.electricite_actifs + a.eau_actifs));
