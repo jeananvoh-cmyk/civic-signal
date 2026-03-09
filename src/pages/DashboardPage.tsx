@@ -215,7 +215,7 @@ const DashboardPage = () => {
       ...communeNames.map((nom) => supabase.rpc("get_commune_quartier_stats", { p_commune: nom })),
     ]);
     if (!statsRes.error && statsRes.data) setStats(statsRes.data as unknown as CommuneServiceStat[]);
-    else setStats(COMMUNES.map((c) => ({ commune: c.nom, couleur: c.couleur, population: c.population, electricite_actifs: 0, electricite_resolus: 0, electricite_total: 0, eau_actifs: 0, eau_resolus: 0, eau_total: 0 })));
+    else setStats(COMMUNES.map((c) => ({ commune: c.nom, couleur: c.couleur, population: c.population, electricite_actifs: 0, electricite_resolus: 0, electricite_total: 0, eau_actifs: 0, eau_resolus: 0, eau_total: 0, mairie_actifs: 0, mairie_resolus: 0, mairie_total: 0 })));
     if (!durRes.error && durRes.data) setDurations(durRes.data as unknown as DurationStat[]);
     if (!reportsRes.error && reportsRes.data) setPriorityReports(reportsRes.data as unknown as PriorityReport[]);
 
