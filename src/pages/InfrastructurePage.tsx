@@ -84,7 +84,23 @@ const InfrastructurePage = () => {
     setPage(0);
     fetchReports(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter]);
+  }, [filter, subFilter]);
+
+  const handleCategoryClick = (category: string, type: FilterType) => {
+    if (subFilter === category) {
+      setSubFilter(null);
+    } else {
+      setFilter(type);
+      setSubFilter(category);
+    }
+  };
+
+  const handleFilterClick = (newFilter: FilterType) => {
+    setFilter(newFilter);
+    if (newFilter === "all" || (newFilter === "eau" && filter === "electricite") || (newFilter === "electricite" && filter === "eau")) {
+      setSubFilter(null);
+    }
+  };
 
   const loadMore = () => {
     const next = page + 1;
