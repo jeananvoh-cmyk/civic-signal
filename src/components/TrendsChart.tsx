@@ -6,7 +6,7 @@ import {
   BarChart, Bar, Legend, Cell,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { COMMUNE_COLORS } from "@/lib/communes";
+import { COMMUNE_COLORS, COMMUNES } from "@/lib/communes";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TrendingUp, BarChart3, Zap, Droplets, Construction, ArrowUpRight, ArrowDownRight, Minus, Target, ShieldCheck, Lightbulb, AlertTriangle, TrendingDown, MapPin, Activity } from "lucide-react";
@@ -76,10 +76,7 @@ const TrendsChart = ({ className = "" }: TrendsChartProps) => {
     },
   });
 
-  const communes = useMemo(() => {
-    const set = new Set(rawData.map((r) => r.commune));
-    return Array.from(set).sort();
-  }, [rawData]);
+  const communes = useMemo(() => COMMUNES.map((c) => c.nom).sort(), []);
 
   const chartData = useMemo(() => {
     let filtered = rawData;
