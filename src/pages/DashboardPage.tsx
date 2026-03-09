@@ -24,6 +24,9 @@ interface CommuneServiceStat {
   eau_actifs: number;
   eau_resolus: number;
   eau_total: number;
+  mairie_actifs: number;
+  mairie_resolus: number;
+  mairie_total: number;
 }
 
 interface DurationStat {
