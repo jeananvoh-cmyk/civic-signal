@@ -128,8 +128,8 @@ const MapPage = () => {
         </div>`;
       } else {
         // Single service marker
-        const filterEmoji = filter === "electricity" ? "⚡" : filter === "water" ? "💧" : "";
-        const bgColor = filter === "electricity" ? "#f59e0b" : filter === "water" ? "#3b82f6" : c.couleur;
+        const filterEmoji = filter === "electricity" ? "⚡" : filter === "water" ? "💧" : filter === "mairie" ? "🏗️" : "";
+        const bgColor = filter === "electricity" ? "#f59e0b" : filter === "water" ? "#3b82f6" : filter === "mairie" ? "#10b981" : c.couleur;
         markerHtml = `<div style="
           position:relative;
           background:${bgColor};color:white;
