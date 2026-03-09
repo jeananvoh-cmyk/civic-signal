@@ -312,6 +312,60 @@ const ProfilePage = () => {
             </p>
           </div>
 
+          {/* Friendly reminder to complete profile */}
+          <AnimatePresence>
+            {conformityPercent < 100 && (
+              <motion.div
+                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                transition={{ duration: 0.3 }}
+                className="mb-6 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 p-4 shadow-sm"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20 text-primary flex-shrink-0">
+                    <Info className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-foreground text-sm mb-1">
+                      👋 Complétez votre profil pour plus de crédibilité !
+                    </h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                      Un profil complet permet un traitement prioritaire de vos signalements. 
+                      Pensez à renseigner :
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {!profile.phone && (
+                        <Badge variant="outline" className="text-xs bg-background border-amber-500/50 text-amber-600 gap-1">
+                          <Phone className="h-3 w-3" />
+                          N° WhatsApp
+                        </Badge>
+                      )}
+                      {(!profile.commune || !profile.quartier) && (
+                        <Badge variant="outline" className="text-xs bg-background border-blue-500/50 text-blue-600 gap-1">
+                          <MapPin className="h-3 w-3" />
+                          Localisation
+                        </Badge>
+                      )}
+                      {(!profile.electricity_client_id && !profile.electricity_meter_number) && (
+                        <Badge variant="outline" className="text-xs bg-background border-yellow-500/50 text-yellow-600 gap-1">
+                          <Zap className="h-3 w-3" />
+                          Compteur CIE
+                        </Badge>
+                      )}
+                      {(!profile.water_client_id && !profile.water_meter_number) && (
+                        <Badge variant="outline" className="text-xs bg-background border-cyan-500/50 text-cyan-600 gap-1">
+                          <Droplets className="h-3 w-3" />
+                          Compteur SODECI
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <Tabs defaultValue="reports" className="space-y-4 sm:space-y-6">
             <TabsList className="flex w-full overflow-x-auto no-scrollbar gap-0.5">
               <TabsTrigger value="reports" className="gap-1 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
