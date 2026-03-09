@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { CheckCircle, XCircle, MapPin, Zap, Droplets, Clock, Eye } from "lucide-react";
+import { CheckCircle, XCircle, MapPin, Zap, Droplets, Clock, Eye, Construction } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -119,6 +119,12 @@ const AdminReportsPage = () => {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {report.report_category === "infrastructure" && (
+              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 gap-1">
+                <Construction className="h-3 w-3" />
+                Infra
+              </Badge>
+            )}
             <Badge variant={urgency.variant}>{urgency.label}</Badge>
             {showActions && (
               <div className="flex gap-1 ml-2">
