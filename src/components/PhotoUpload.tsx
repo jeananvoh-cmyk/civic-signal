@@ -10,9 +10,33 @@ import { useSignedUrl } from "@/hooks/useSignedUrl";
 interface PhotoUploadProps {
   onPhotoUploaded: (url: string) => void;
   photoUrl: string | null;
+  isInfrastructure?: boolean;
 }
 
-const PhotoUpload = ({ onPhotoUploaded, photoUrl }: PhotoUploadProps) => {
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 Mo
+const MIN_INFRA_WIDTH = 800;
+const MIN_INFRA_HEIGHT = 600;
+const MAX_DIMENSION = 5000;
+
+const getImageDimensions = (file: File): Promise<{ width: number; height: number }> =>
+  new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+
+    img.onload = () => {
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      URL.revokeObjectURL(objectUrl);
+    };
+
+    img.onerror = () => {
+      reject(new Error("Impossible de lire les dimensions de l'image"));
+      URL.revokeObjectURL(objectUrl);
+    };
+
+    img.src = objectUrl;
+  });
+
+const PhotoUpload = ({ onPhotoUploaded, photoUrl, isInfrastructure = false }: PhotoUploadProps) => {
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -22,14 +46,33 @@ const PhotoUpload = ({ onPhotoUploaded, photoUrl }: PhotoUploadProps) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    // Validate file
     if (!file.type.startsWith("image/")) {
       toast.error("Seules les images sont acceptées");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
       toast.error("L'image ne doit pas dépasser 5 Mo");
       return;
+    }
+
+    if (isInfrastructure) {
+      try {
+        const { width, height } = await getImageDimensions(file);
+
+        if (width < MIN_INFRA_WIDTH || height < MIN_INFRA_HEIGHT) {
+          toast.error("Photo trop petite : minimum 800x600 pour un signalement infrastructure");
+          return;
+        }
+
+        if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+          toast.error("Photo trop grande : utilisez une image max 5000x5000");
+          return;
+        }
+      } catch {
+        toast.error("Impossible de valider la qualité de l'image");
+        return;
+      }
     }
 
     setUploading(true);
@@ -41,7 +84,6 @@ const PhotoUpload = ({ onPhotoUploaded, photoUrl }: PhotoUploadProps) => {
         .upload(path, file, { upsert: true });
       if (error) throw error;
 
-      // Store the storage path (not a URL) for private bucket access
       onPhotoUploaded(path);
       toast.success("Photo ajoutée !");
     } catch (err: any) {
@@ -100,6 +142,10 @@ const PhotoUpload = ({ onPhotoUploaded, photoUrl }: PhotoUploadProps) => {
           )}
         </Button>
       )}
+
+      <p className="text-xs text-muted-foreground">
+        Formats image acceptés, taille max 5 Mo{isInfrastructure ? " • min 800x600 recommandé pour qualité" : ""}.
+      </p>
     </div>
   );
 };
