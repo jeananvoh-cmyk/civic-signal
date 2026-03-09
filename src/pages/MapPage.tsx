@@ -155,7 +155,7 @@ const MapPage = () => {
         iconAnchor: [filter === "all" && s && (s.electricite_actifs > 0 || s.eau_actifs > 0) ? (markerSize + 6) / 2 : markerSize / 2, markerSize / 2],
       });
 
-      const serviceLabel = filter === "electricity" ? "Électricité" : filter === "water" ? "Eau" : "Tous services";
+      const serviceLabel = filter === "electricity" ? "Électricité" : filter === "water" ? "Eau" : filter === "mairie" ? "Mairie" : "Tous services";
       // Build verified HTML per service
       let verifiedHtml = '';
       if (filter === "all" && s) {
