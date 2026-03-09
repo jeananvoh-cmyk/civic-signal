@@ -61,12 +61,25 @@ const VerificationPage = () => {
   const handleConfirmStillOngoing = async (reportId: string) => {
     setConfirming(reportId);
     try {
-      const { error } = await supabase.rpc("corroborate_report", { p_report_id: reportId });
+      const { data: currentReport, error: fetchErr } = await supabase
+        .from("reports")
+        .select("reminder_count")
+        .eq("id", reportId)
+        .single();
+        
+      if (fetchErr) throw fetchErr;
+
+      const { error } = await supabase
+        .from("reports")
+        .update({ 
+          reminder_count: (currentReport?.reminder_count || 0) + 1,
+          last_reminder_at: new Date().toISOString()
+        })
+        .eq("id", reportId);
+
       if (error) throw error;
-      setReports((prev) =>
-        prev.map((r) => (r.id === reportId ? { ...r, verifications: r.verifications + 1 } : r))
-      );
-      toast.success("Confirmé : la coupure est toujours en cours.");
+      
+      toast.success("Coupure confirmée comme toujours en cours (relancée).");
     } catch (err: any) {
       toast.error(err.message || "Erreur");
     } finally {
