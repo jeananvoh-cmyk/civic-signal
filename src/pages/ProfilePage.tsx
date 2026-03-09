@@ -4,7 +4,7 @@ import {
   User, Mail, Phone, MapPin, Home, Building2, Save, Shield,
   Bell, Globe, Palette, ChevronRight, CheckCircle2, FileText, Clock,
   Zap, Droplets, Info, History, Trash2, AlertTriangle, LogOut,
-  Filter, CalendarDays, XCircle, CheckCheck
+  Filter, CalendarDays, XCircle, CheckCheck, Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
