@@ -128,14 +128,17 @@ const InfrastructurePage = () => {
   const timeAgo = (date: string) =>
     formatDistanceToNow(new Date(date), { addSuffix: true, locale: fr });
 
-  const serviceIcon = (type: string) =>
-    type === "eau" ? (
-      <Droplets className="h-4 w-4 text-[hsl(var(--water))]" />
-    ) : (
-      <Zap className="h-4 w-4 text-[hsl(var(--electricity))]" />
-    );
+  const serviceIcon = (type: string) => {
+    if (type === "eau") return <Droplets className="h-4 w-4 text-[hsl(var(--water))]" />;
+    if (type === "electricite") return <Zap className="h-4 w-4 text-[hsl(var(--electricity))]" />;
+    return <Building2 className="h-4 w-4 text-emerald-500" />;
+  };
 
-  const serviceLabel = (type: string) => (type === "eau" ? "Eau" : "Électricité");
+  const serviceLabel = (type: string) => {
+    if (type === "eau") return "Eau";
+    if (type === "electricite") return "Électricité";
+    return "Mairie";
+  };
 
   const urgencyBadge = (urgency: string) => {
     const map: Record<string, { label: string; className: string }> = {
