@@ -119,6 +119,12 @@ const AdminReportsPage = () => {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {report.report_category === "infrastructure" && (
+              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 gap-1">
+                <Construction className="h-3 w-3" />
+                Infra
+              </Badge>
+            )}
             <Badge variant={urgency.variant}>{urgency.label}</Badge>
             {showActions && (
               <div className="flex gap-1 ml-2">
