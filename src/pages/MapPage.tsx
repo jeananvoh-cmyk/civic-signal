@@ -389,7 +389,7 @@ const MapPage = () => {
                       : "bg-secondary text-secondary-foreground hover:bg-accent"
                   }`}
                 >
-                  {f.icon} {f.label}
+                  {f.iconSrc ? <img src={f.iconSrc} className="h-4 w-4 object-contain rounded-sm" alt="" /> : <Construction className="h-3.5 w-3.5" />} {f.label}
                 </button>
               ))}
             </>
