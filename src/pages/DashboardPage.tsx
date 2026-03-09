@@ -46,6 +46,7 @@ interface QuartierRanking {
   totalActifs: number;
   elecActifs: number;
   eauActifs: number;
+  mairieActifs: number;
   totalAll: number;
 }
 
