@@ -196,28 +196,40 @@ const InfrastructurePage = () => {
                   </span>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="bg-[hsl(var(--electricity))]/10 border border-[hsl(var(--electricity))]/20 rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-[hsl(var(--electricity))]/20">
+                  <div 
+                    onClick={() => handleCategoryClick("Éclairage public", "electricite")}
+                    className={`cursor-pointer bg-[hsl(var(--electricity))]/10 border ${subFilter === "Éclairage public" ? "border-[hsl(var(--electricity))] ring-2 ring-[hsl(var(--electricity))]/50" : "border-[hsl(var(--electricity))]/20"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-[hsl(var(--electricity))]/20`}
+                  >
                     <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
                       <Lightbulb className="h-5 w-5 text-[hsl(var(--electricity))]" />
                     </div>
                     <span className="text-xs font-semibold text-foreground">Éclairage public</span>
                   </div>
                   
-                  <div className="bg-[hsl(var(--electricity))]/10 border border-[hsl(var(--electricity))]/20 rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-[hsl(var(--electricity))]/20">
+                  <div 
+                    onClick={() => handleCategoryClick("Poteaux & Pylônes", "electricite")}
+                    className={`cursor-pointer bg-[hsl(var(--electricity))]/10 border ${subFilter === "Poteaux & Pylônes" ? "border-[hsl(var(--electricity))] ring-2 ring-[hsl(var(--electricity))]/50" : "border-[hsl(var(--electricity))]/20"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-[hsl(var(--electricity))]/20`}
+                  >
                     <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
                       <Zap className="h-5 w-5 text-[hsl(var(--electricity))]" />
                     </div>
                     <span className="text-xs font-semibold text-foreground">Poteaux & Pylônes</span>
                   </div>
                   
-                  <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-destructive/20">
+                  <div 
+                    onClick={() => handleCategoryClick("Branchements dangereux", "electricite")}
+                    className={`cursor-pointer bg-destructive/10 border ${subFilter === "Branchements dangereux" ? "border-destructive ring-2 ring-destructive/50" : "border-destructive/20"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-destructive/20`}
+                  >
                     <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
                       <TriangleAlert className="h-5 w-5 text-destructive" />
                     </div>
                     <span className="text-xs font-semibold text-foreground leading-tight">Branchements dangereux</span>
                   </div>
                   
-                  <div className="bg-muted border border-border rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-muted/80">
+                  <div 
+                    onClick={() => handleCategoryClick("Autres", "electricite")}
+                    className={`cursor-pointer bg-muted border ${subFilter === "Autres" && filter === "electricite" ? "border-primary ring-2 ring-primary/50" : "border-border"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-muted/80`}
+                  >
                     <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
                       <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
                     </div>
