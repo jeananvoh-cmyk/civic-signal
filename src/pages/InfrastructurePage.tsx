@@ -97,7 +97,7 @@ const InfrastructurePage = () => {
 
   const handleFilterClick = (newFilter: FilterType) => {
     setFilter(newFilter);
-    if (newFilter === "all" || (newFilter === "eau" && filter === "electricite") || (newFilter === "electricite" && filter === "eau")) {
+    if (newFilter === "all" || newFilter !== filter) {
       setSubFilter(null);
     }
   };
