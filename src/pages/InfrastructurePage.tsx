@@ -293,6 +293,58 @@ const InfrastructurePage = () => {
                 </div>
               </div>
             )}
+
+            {(filter === "all" || filter === "mairie") && (
+              <div>
+                <div className="flex items-center gap-2 mb-3 mt-4">
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Signalements voirie (Mairie)
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div 
+                    onClick={() => handleCategoryClick("Nid de poule", "mairie")}
+                    className={`cursor-pointer bg-emerald-500/10 border ${subFilter === "Nid de poule" ? "border-emerald-500 ring-2 ring-emerald-500/50" : "border-emerald-500/20"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-emerald-500/20`}
+                  >
+                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
+                      <Map className="h-5 w-5 text-emerald-500" />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground leading-tight">Nid de poule / Route</span>
+                  </div>
+                  
+                  <div 
+                    onClick={() => handleCategoryClick("Caniveau bouché", "mairie")}
+                    className={`cursor-pointer bg-emerald-500/10 border ${subFilter === "Caniveau bouché" ? "border-emerald-500 ring-2 ring-emerald-500/50" : "border-emerald-500/20"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-emerald-500/20`}
+                  >
+                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
+                      <Waves className="h-5 w-5 text-emerald-500" />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground leading-tight">Caniveau bouché</span>
+                  </div>
+                  
+                  <div 
+                    onClick={() => handleCategoryClick("Amas d'ordures", "mairie")}
+                    className={`cursor-pointer bg-emerald-500/10 border ${subFilter === "Amas d'ordures" ? "border-emerald-500 ring-2 ring-emerald-500/50" : "border-emerald-500/20"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-emerald-500/20`}
+                  >
+                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
+                      <Trash2 className="h-5 w-5 text-emerald-500" />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground leading-tight">Amas d'ordures</span>
+                  </div>
+                  
+                  <div 
+                    onClick={() => handleCategoryClick("Autres", "mairie")}
+                    className={`cursor-pointer bg-muted border ${subFilter === "Autres" && filter === "mairie" ? "border-primary ring-2 ring-primary/50" : "border-border"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-muted/80`}
+                  >
+                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
+                      <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <span className="text-xs font-semibold text-foreground">Autres</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
