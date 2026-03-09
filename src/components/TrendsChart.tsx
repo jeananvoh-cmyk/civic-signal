@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { COMMUNE_COLORS } from "@/lib/communes";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TrendingUp, BarChart3, Zap, Droplets, Construction, ArrowUpRight, ArrowDownRight, Minus, Target, Clock, ShieldCheck } from "lucide-react";
+import { TrendingUp, BarChart3, Zap, Droplets, Construction, ArrowUpRight, ArrowDownRight, Minus, Target, ShieldCheck, Lightbulb, AlertTriangle, TrendingDown, MapPin, Activity } from "lucide-react";
 
 type Period = "day" | "week" | "month" | "year";
 type ChartType = "area" | "bar";
