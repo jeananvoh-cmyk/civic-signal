@@ -408,53 +408,88 @@ const DashboardPage = () => {
                 </p>
               </div>
             ) : null}
-            {/* Electricity + Water cards — visible when loaded and has data */}
+            {/* Electricity + Water + Infrastructure cards */}
             {!loading && !isEmpty && (
               <>
+                {/* Électricité */}
                 <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
                   <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
                     <img src={electricityIcon} alt="" className="h-full w-full object-contain" />
                   </div>
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-3 mb-1">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/15">
                       <Zap className="h-5 w-5 text-amber-500" />
                     </div>
-                    <h2 className="font-display text-lg font-bold text-foreground">Électricité</h2>
+                    <div>
+                      <h2 className="font-display text-lg font-bold text-foreground">Électricité</h2>
+                      <p className="text-[10px] text-muted-foreground">Coupures réseau CIE</p>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="grid grid-cols-3 gap-4 text-center mt-4">
                     <div><p className="font-display text-2xl font-extrabold text-amber-500">{totalElecActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
                     <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalElecResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
                     <div><p className="font-display text-2xl font-extrabold text-foreground">{totalElecTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
                   </div>
+                  {totalElecTotal > 0 && (
+                    <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground border-t border-border pt-3">
+                      <span>{totalElecVerified > 0 ? `✓ ${totalElecVerified} confirmé${totalElecVerified > 1 ? "s" : ""} par voisins` : "Aucune confirmation"}</span>
+                      <span className="font-semibold text-foreground">{elecResolutionRate}% résolues</span>
+                    </div>
+                  )}
                 </div>
+
+                {/* Eau */}
                 <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
                   <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
                     <img src={waterIcon} alt="" className="h-full w-full object-contain" />
                   </div>
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-3 mb-1">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/15">
                       <Droplets className="h-5 w-5 text-blue-500" />
                     </div>
-                    <h2 className="font-display text-lg font-bold text-foreground">Eau</h2>
+                    <div>
+                      <h2 className="font-display text-lg font-bold text-foreground">Eau</h2>
+                      <p className="text-[10px] text-muted-foreground">Coupures réseau SODECI</p>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="grid grid-cols-3 gap-4 text-center mt-4">
                     <div><p className="font-display text-2xl font-extrabold text-blue-500">{totalEauActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
                     <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalEauResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
                     <div><p className="font-display text-2xl font-extrabold text-foreground">{totalEauTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
                   </div>
-                </div>
-                <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15">
-                      <AlertTriangle className="h-5 w-5 text-emerald-500" />
+                  {totalEauTotal > 0 && (
+                    <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground border-t border-border pt-3">
+                      <span>{totalEauVerified > 0 ? `✓ ${totalEauVerified} confirmé${totalEauVerified > 1 ? "s" : ""} par voisins` : "Aucune confirmation"}</span>
+                      <span className="font-semibold text-foreground">{eauResolutionRate}% résolues</span>
                     </div>
-                    <h2 className="font-display text-lg font-bold text-foreground">Mairie</h2>
+                  )}
+                </div>
+
+                {/* Voirie & Infrastructure */}
+                <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
+                  <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
+                    <Construction className="h-full w-full text-teal-500" />
                   </div>
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalMairieActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
-                    <div><p className="font-display text-2xl font-extrabold text-success">{totalMairieResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-500/15">
+                      <Construction className="h-5 w-5 text-teal-500" />
+                    </div>
+                    <div>
+                      <h2 className="font-display text-lg font-bold text-foreground">Voirie & Infra</h2>
+                      <p className="text-[10px] text-muted-foreground">Lampadaires · Caniveaux · Routes · Dépôts</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-center mt-4">
+                    <div><p className="font-display text-2xl font-extrabold text-teal-500">{totalMairieActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
+                    <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalMairieResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
                     <div><p className="font-display text-2xl font-extrabold text-foreground">{totalMairieTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
                   </div>
+                  {totalMairieTotal > 0 && (
+                    <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground border-t border-border pt-3">
+                      <span>{totalMairieVerified > 0 ? `✓ ${totalMairieVerified} confirmé${totalMairieVerified > 1 ? "s" : ""} par voisins` : "Aucune confirmation"}</span>
+                      <span className="font-semibold text-foreground">{mairieResolutionRate}% résolues</span>
+                    </div>
+                  )}
                 </div>
               </>
             )}
