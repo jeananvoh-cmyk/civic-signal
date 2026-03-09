@@ -50,6 +50,22 @@ type MapMode = "coupures" | "infrastructures";
 type CoupureFilter = "all" | "electricity" | "water";
 type InfraFilter = "all" | "cie" | "sodeci" | "mairie";
 
+/** Compute centroid of a GeoJSON feature (Polygon / MultiPolygon) */
+const computeCentroid = (feature: any): [number, number] | null => {
+  try {
+    const coords: number[][] = [];
+    const extractCoords = (rings: any) => {
+      if (typeof rings[0] === "number") { coords.push(rings); return; }
+      rings.forEach((r: any) => extractCoords(r));
+    };
+    extractCoords(feature.geometry.coordinates);
+    if (coords.length === 0) return null;
+    const sumLat = coords.reduce((s, c) => s + c[1], 0);
+    const sumLon = coords.reduce((s, c) => s + c[0], 0);
+    return [sumLat / coords.length, sumLon / coords.length];
+  } catch { return null; }
+};
+
 const MapPage = () => {
   const [searchParams] = useSearchParams();
   const initialMode: MapMode = searchParams.get("mode") === "infrastructures" ? "infrastructures" : "coupures";
