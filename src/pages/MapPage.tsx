@@ -142,17 +142,36 @@ const MapPage = () => {
       });
     }
 
+    // Build centroid lookup from GeoJSON boundaries
+    const centroids: Record<string, [number, number]> = {};
+    if (boundaries?.features) {
+      boundaries.features.forEach((f: any) => {
+        const name = f.properties?.name;
+        if (!name) return;
+        const centroid = computeCentroid(f);
+        if (centroid) {
+          // Match by case-insensitive name
+          const matched = COMMUNES.find(c => c.nom.toLowerCase() === name.toLowerCase());
+          if (matched) centroids[matched.nom] = centroid;
+        }
+      });
+    }
+
+    /** Get marker position: centroid from GeoJSON if available, else static center */
+    const getMarkerPos = (c: typeof COMMUNES[0]): [number, number] =>
+      centroids[c.nom] || [c.centerLat, c.centerLon];
+
     // Add markers
     COMMUNES.forEach((c) => {
       if (mode === "coupures") {
-        renderCoupureMarker(map, c);
+        renderCoupureMarker(map, c, getMarkerPos(c));
       } else {
-        renderInfraMarker(map, c);
+        renderInfraMarker(map, c, getMarkerPos(c));
       }
     });
   }, [stats, infraStats, loading, mode, coupureFilter, infraFilter, boundaries]);
 
-  const renderCoupureMarker = (map: L.Map, c: typeof COMMUNES[0]) => {
+  const renderCoupureMarker = (map: L.Map, c: typeof COMMUNES[0], pos: [number, number]) => {
     const s = stats.find((st) => st.commune.toLowerCase() === c.nom.toLowerCase());
     let actifs = 0, resolus = 0, total = 0, verified = 0;
     if (s) {
