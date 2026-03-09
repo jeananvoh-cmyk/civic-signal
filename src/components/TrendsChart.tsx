@@ -76,10 +76,7 @@ const TrendsChart = ({ className = "" }: TrendsChartProps) => {
     },
   });
 
-  const communes = useMemo(() => {
-    const set = new Set(rawData.map((r) => r.commune));
-    return Array.from(set).sort();
-  }, [rawData]);
+  const communes = useMemo(() => COMMUNES.map((c) => c.nom).sort(), []);
 
   const chartData = useMemo(() => {
     let filtered = rawData;
