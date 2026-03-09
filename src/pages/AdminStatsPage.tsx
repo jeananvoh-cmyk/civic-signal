@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Download, FileSpreadsheet, FileText, ChevronDown, Users, Baby, Heart, Clock, Shield, Zap, Droplets, Construction } from "lucide-react";
+import { Download, FileSpreadsheet, FileText, FileDown, ChevronDown, Users, Baby, Heart, Clock, Shield, Zap, Droplets, Construction } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import TrendsChart from "@/components/TrendsChart";
 import { format } from "date-fns";
+import { exportPDF } from "@/lib/export-pdf";
 
 /* ───── types ───── */
 interface CommuneStat {
@@ -224,7 +225,12 @@ const AdminStatsPage = () => {
   const totalResolus = stats.reduce((s, c) => s + c.resolus, 0);
   const totalVulnerables = vulnStats.reduce((s, v) => s + v.total_babies + v.total_pregnant + v.total_elderly, 0);
 
-  const handleExport = (fmt: "csv" | "xls") => {
+  const handleExport = (fmt: "csv" | "xls" | "pdf") => {
+    if (fmt === "pdf") {
+      exportPDF(stats, serviceStats, vulnStats, durationStats);
+      setExportOpen(false);
+      return;
+    }
     const sep = fmt === "csv" ? SEP_CSV : SEP_XLS;
     const content = buildExport(stats, serviceStats, vulnStats, durationStats, sep);
     const dateStr = format(new Date(), "yyyy-MM-dd");
@@ -267,6 +273,14 @@ const AdminStatsPage = () => {
             >
               <FileSpreadsheet className="h-4 w-4 text-success" />
               Export XLS (Excel)
+            </button>
+            <div className="my-1 h-px bg-border" />
+            <button
+              onClick={() => handleExport("pdf")}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-accent transition-colors"
+            >
+              <FileDown className="h-4 w-4 text-destructive" />
+              Export PDF (partenaires)
             </button>
           </PopoverContent>
         </Popover>
