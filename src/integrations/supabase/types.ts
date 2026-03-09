@@ -505,6 +505,26 @@ export type Database = {
           total_resolved: number
         }[]
       }
+      get_commune_infrastructure_stats: {
+        Args: never
+        Returns: {
+          commune: string
+          couleur: string
+          eau_infra_actifs: number
+          eau_infra_resolus: number
+          eau_infra_total: number
+          eau_infra_verified: number
+          elec_infra_actifs: number
+          elec_infra_resolus: number
+          elec_infra_total: number
+          elec_infra_verified: number
+          mairie_infra_actifs: number
+          mairie_infra_resolus: number
+          mairie_infra_total: number
+          mairie_infra_verified: number
+          population: number
+        }[]
+      }
       get_commune_quartier_stats: {
         Args: { p_commune: string }
         Returns: {
