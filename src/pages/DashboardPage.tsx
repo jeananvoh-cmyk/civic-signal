@@ -27,6 +27,9 @@ interface CommuneServiceStat {
   mairie_actifs: number;
   mairie_resolus: number;
   mairie_total: number;
+  electricite_verified: number;
+  eau_verified: number;
+  mairie_verified: number;
 }
 
 interface DurationStat {
