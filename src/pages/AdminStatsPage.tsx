@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { supabase } from "@/integrations/supabase/client";
 import TrendsChart from "@/components/TrendsChart";
 import { format } from "date-fns";
+import { exportPDF } from "@/lib/export-pdf";
 
 /* ───── types ───── */
 interface CommuneStat {
