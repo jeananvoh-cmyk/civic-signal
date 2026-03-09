@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
-import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio, Flame, AlertTriangle, MapPin, Siren, CalendarDays } from "lucide-react";
+import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio, Flame, AlertTriangle, MapPin, Siren, CalendarDays, Construction } from "lucide-react";
 import Header from "@/components/Header";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import ShareButton from "@/components/ShareButton";
@@ -27,6 +27,9 @@ interface CommuneServiceStat {
   mairie_actifs: number;
   mairie_resolus: number;
   mairie_total: number;
+  electricite_verified: number;
+  eau_verified: number;
+  mairie_verified: number;
 }
 
 interface DurationStat {
@@ -215,7 +218,7 @@ const DashboardPage = () => {
       ...communeNames.map((nom) => supabase.rpc("get_commune_quartier_stats", { p_commune: nom })),
     ]);
     if (!statsRes.error && statsRes.data) setStats(statsRes.data as unknown as CommuneServiceStat[]);
-    else setStats(COMMUNES.map((c) => ({ commune: c.nom, couleur: c.couleur, population: c.population, electricite_actifs: 0, electricite_resolus: 0, electricite_total: 0, eau_actifs: 0, eau_resolus: 0, eau_total: 0, mairie_actifs: 0, mairie_resolus: 0, mairie_total: 0 })));
+    else setStats(COMMUNES.map((c) => ({ commune: c.nom, couleur: c.couleur, population: c.population, electricite_actifs: 0, electricite_resolus: 0, electricite_total: 0, eau_actifs: 0, eau_resolus: 0, eau_total: 0, mairie_actifs: 0, mairie_resolus: 0, mairie_total: 0, electricite_verified: 0, eau_verified: 0, mairie_verified: 0 })));
     if (!durRes.error && durRes.data) setDurations(durRes.data as unknown as DurationStat[]);
     if (!reportsRes.error && reportsRes.data) setPriorityReports(reportsRes.data as unknown as PriorityReport[]);
 
@@ -293,12 +296,18 @@ const DashboardPage = () => {
   const totalElecActifs = stats.reduce((s, c) => s + c.electricite_actifs, 0);
   const totalElecResolus = stats.reduce((s, c) => s + c.electricite_resolus, 0);
   const totalElecTotal = stats.reduce((s, c) => s + c.electricite_total, 0);
+  const totalElecVerified = stats.reduce((s, c) => s + c.electricite_verified, 0);
   const totalEauActifs = stats.reduce((s, c) => s + c.eau_actifs, 0);
   const totalEauResolus = stats.reduce((s, c) => s + c.eau_resolus, 0);
   const totalEauTotal = stats.reduce((s, c) => s + c.eau_total, 0);
+  const totalEauVerified = stats.reduce((s, c) => s + c.eau_verified, 0);
   const totalMairieActifs = stats.reduce((s, c) => s + c.mairie_actifs, 0);
   const totalMairieResolus = stats.reduce((s, c) => s + c.mairie_resolus, 0);
   const totalMairieTotal = stats.reduce((s, c) => s + c.mairie_total, 0);
+  const totalMairieVerified = stats.reduce((s, c) => s + c.mairie_verified, 0);
+  const elecResolutionRate = totalElecTotal > 0 ? Math.round((totalElecResolus / totalElecTotal) * 100) : 0;
+  const eauResolutionRate = totalEauTotal > 0 ? Math.round((totalEauResolus / totalEauTotal) * 100) : 0;
+  const mairieResolutionRate = totalMairieTotal > 0 ? Math.round((totalMairieResolus / totalMairieTotal) * 100) : 0;
 
   // Leaderboard: sorted by total active (most affected first)
   const leaderboard = [...stats].sort((a, b) => (b.electricite_actifs + b.eau_actifs + b.mairie_actifs) - (a.electricite_actifs + a.eau_actifs + a.mairie_actifs));
@@ -399,53 +408,88 @@ const DashboardPage = () => {
                 </p>
               </div>
             ) : null}
-            {/* Electricity + Water cards — visible when loaded and has data */}
+            {/* Electricity + Water + Infrastructure cards */}
             {!loading && !isEmpty && (
               <>
+                {/* Électricité */}
                 <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
                   <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
                     <img src={electricityIcon} alt="" className="h-full w-full object-contain" />
                   </div>
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-3 mb-1">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/15">
                       <Zap className="h-5 w-5 text-amber-500" />
                     </div>
-                    <h2 className="font-display text-lg font-bold text-foreground">Électricité</h2>
+                    <div>
+                      <h2 className="font-display text-lg font-bold text-foreground">Électricité</h2>
+                      <p className="text-[10px] text-muted-foreground">Coupures réseau CIE</p>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="grid grid-cols-3 gap-4 text-center mt-4">
                     <div><p className="font-display text-2xl font-extrabold text-amber-500">{totalElecActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
                     <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalElecResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
                     <div><p className="font-display text-2xl font-extrabold text-foreground">{totalElecTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
                   </div>
+                  {totalElecTotal > 0 && (
+                    <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground border-t border-border pt-3">
+                      <span>{totalElecVerified > 0 ? `✓ ${totalElecVerified} confirmé${totalElecVerified > 1 ? "s" : ""} par voisins` : "Aucune confirmation"}</span>
+                      <span className="font-semibold text-foreground">{elecResolutionRate}% résolues</span>
+                    </div>
+                  )}
                 </div>
+
+                {/* Eau */}
                 <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
                   <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
                     <img src={waterIcon} alt="" className="h-full w-full object-contain" />
                   </div>
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-3 mb-1">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/15">
                       <Droplets className="h-5 w-5 text-blue-500" />
                     </div>
-                    <h2 className="font-display text-lg font-bold text-foreground">Eau</h2>
+                    <div>
+                      <h2 className="font-display text-lg font-bold text-foreground">Eau</h2>
+                      <p className="text-[10px] text-muted-foreground">Coupures réseau SODECI</p>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="grid grid-cols-3 gap-4 text-center mt-4">
                     <div><p className="font-display text-2xl font-extrabold text-blue-500">{totalEauActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
                     <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalEauResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
                     <div><p className="font-display text-2xl font-extrabold text-foreground">{totalEauTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
                   </div>
-                </div>
-                <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15">
-                      <AlertTriangle className="h-5 w-5 text-emerald-500" />
+                  {totalEauTotal > 0 && (
+                    <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground border-t border-border pt-3">
+                      <span>{totalEauVerified > 0 ? `✓ ${totalEauVerified} confirmé${totalEauVerified > 1 ? "s" : ""} par voisins` : "Aucune confirmation"}</span>
+                      <span className="font-semibold text-foreground">{eauResolutionRate}% résolues</span>
                     </div>
-                    <h2 className="font-display text-lg font-bold text-foreground">Mairie</h2>
+                  )}
+                </div>
+
+                {/* Voirie & Infrastructure */}
+                <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
+                  <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
+                    <Construction className="h-full w-full text-teal-500" />
                   </div>
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalMairieActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
-                    <div><p className="font-display text-2xl font-extrabold text-success">{totalMairieResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-500/15">
+                      <Construction className="h-5 w-5 text-teal-500" />
+                    </div>
+                    <div>
+                      <h2 className="font-display text-lg font-bold text-foreground">Voirie & Infra</h2>
+                      <p className="text-[10px] text-muted-foreground">Lampadaires · Caniveaux · Routes · Dépôts</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-center mt-4">
+                    <div><p className="font-display text-2xl font-extrabold text-teal-500">{totalMairieActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
+                    <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalMairieResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
                     <div><p className="font-display text-2xl font-extrabold text-foreground">{totalMairieTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
                   </div>
+                  {totalMairieTotal > 0 && (
+                    <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground border-t border-border pt-3">
+                      <span>{totalMairieVerified > 0 ? `✓ ${totalMairieVerified} confirmé${totalMairieVerified > 1 ? "s" : ""} par voisins` : "Aucune confirmation"}</span>
+                      <span className="font-semibold text-foreground">{mairieResolutionRate}% résolues</span>
+                    </div>
+                  )}
                 </div>
               </>
             )}
