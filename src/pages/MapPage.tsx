@@ -281,7 +281,7 @@ const MapPage = () => {
       const icon = L.divIcon({ className: "", html: markerHtml, iconSize: [markerSize, markerSize], iconAnchor: [markerSize / 2, markerSize / 2] });
       const label = infraFilter === "cie" ? "Infra. CIE" : infraFilter === "sodeci" ? "Infra. SODECI" : infraFilter === "mairie" ? "Infra. Mairie" : "Toutes infrastructures";
 
-      L.marker([c.centerLat, c.centerLon], { icon })
+      L.marker(pos, { icon })
         .addTo(map)
         .bindPopup(`<div style="min-width:180px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">${label}</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span></div>`);
     }
