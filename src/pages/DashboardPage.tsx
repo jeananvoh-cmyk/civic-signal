@@ -762,10 +762,11 @@ const DashboardPage = () => {
             </>
           ) : (
             stats.map((c, i) => {
-              const pctPop = c.population > 0 ? ((c.electricite_total + c.eau_total) / c.population) * 100 : 0;
-              const pctPopDisplay = pctPop < 0.01 && (c.electricite_total + c.eau_total) > 0 ? "<0.01" : pctPop.toFixed(2);
+              const totalSignalements = c.electricite_total + c.eau_total + c.mairie_total;
+              const pctPop = c.population > 0 ? (totalSignalements / c.population) * 100 : 0;
+              const pctPopDisplay = pctPop < 0.01 && totalSignalements > 0 ? "<0.01" : pctPop.toFixed(2);
               const capacite = Math.floor(c.population / 2);
-              const tauxCapacite = capacite > 0 ? Math.min(((c.electricite_total + c.eau_total) / capacite) * 100, 100) : 0;
+              const tauxCapacite = capacite > 0 ? Math.min((totalSignalements / capacite) * 100, 100) : 0;
 
               return (
                 <motion.div key={c.commune} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }} className="rounded-2xl border border-border bg-card p-5 shadow-card">
