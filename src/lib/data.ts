@@ -96,6 +96,13 @@ export const SERVICE_CONFIG: Record<ServiceType, { label: string; icon: LucideIc
     bgClass: "bg-water",
     lightBgClass: "bg-water-light",
   },
+  mairie: {
+    label: "Mairie",
+    icon: Building2,
+    colorClass: "text-emerald-500",
+    bgClass: "bg-emerald-500",
+    lightBgClass: "bg-emerald-500/10",
+  },
 };
 
 export const URGENCY_CONFIG: Record<UrgencyLevel, { label: string; colorClass: string }> = {
