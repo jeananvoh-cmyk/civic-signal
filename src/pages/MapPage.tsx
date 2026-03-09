@@ -50,6 +50,22 @@ type MapMode = "coupures" | "infrastructures";
 type CoupureFilter = "all" | "electricity" | "water";
 type InfraFilter = "all" | "cie" | "sodeci" | "mairie";
 
+/** Compute centroid of a GeoJSON feature (Polygon / MultiPolygon) */
+const computeCentroid = (feature: any): [number, number] | null => {
+  try {
+    const coords: number[][] = [];
+    const extractCoords = (rings: any) => {
+      if (typeof rings[0] === "number") { coords.push(rings); return; }
+      rings.forEach((r: any) => extractCoords(r));
+    };
+    extractCoords(feature.geometry.coordinates);
+    if (coords.length === 0) return null;
+    const sumLat = coords.reduce((s, c) => s + c[1], 0);
+    const sumLon = coords.reduce((s, c) => s + c[0], 0);
+    return [sumLat / coords.length, sumLon / coords.length];
+  } catch { return null; }
+};
+
 const MapPage = () => {
   const [searchParams] = useSearchParams();
   const initialMode: MapMode = searchParams.get("mode") === "infrastructures" ? "infrastructures" : "coupures";
@@ -126,17 +142,36 @@ const MapPage = () => {
       });
     }
 
+    // Build centroid lookup from GeoJSON boundaries
+    const centroids: Record<string, [number, number]> = {};
+    if (boundaries?.features) {
+      boundaries.features.forEach((f: any) => {
+        const name = f.properties?.name;
+        if (!name) return;
+        const centroid = computeCentroid(f);
+        if (centroid) {
+          // Match by case-insensitive name
+          const matched = COMMUNES.find(c => c.nom.toLowerCase() === name.toLowerCase());
+          if (matched) centroids[matched.nom] = centroid;
+        }
+      });
+    }
+
+    /** Get marker position: centroid from GeoJSON if available, else static center */
+    const getMarkerPos = (c: typeof COMMUNES[0]): [number, number] =>
+      centroids[c.nom] || [c.centerLat, c.centerLon];
+
     // Add markers
     COMMUNES.forEach((c) => {
       if (mode === "coupures") {
-        renderCoupureMarker(map, c);
+        renderCoupureMarker(map, c, getMarkerPos(c));
       } else {
-        renderInfraMarker(map, c);
+        renderInfraMarker(map, c, getMarkerPos(c));
       }
     });
   }, [stats, infraStats, loading, mode, coupureFilter, infraFilter, boundaries]);
 
-  const renderCoupureMarker = (map: L.Map, c: typeof COMMUNES[0]) => {
+  const renderCoupureMarker = (map: L.Map, c: typeof COMMUNES[0], pos: [number, number]) => {
     const s = stats.find((st) => st.commune.toLowerCase() === c.nom.toLowerCase());
     let actifs = 0, resolus = 0, total = 0, verified = 0;
     if (s) {
@@ -188,12 +223,12 @@ const MapPage = () => {
           <div style="flex:1;padding:4px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;text-align:center"><span style="font-size:12px">💧</span><br/><span style="font-size:13px;font-weight:bold;color:#2563eb">${s.eau_actifs}</span></div>
         </div>` : '';
 
-    L.marker([c.centerLat, c.centerLon], { icon })
+    L.marker(pos, { icon })
       .addTo(map)
       .bindPopup(`<div style="min-width:180px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">${serviceLabel} — Coupures</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${breakdownHtml}${verifiedHtml}</div>`);
   };
 
-  const renderInfraMarker = (map: L.Map, c: typeof COMMUNES[0]) => {
+  const renderInfraMarker = (map: L.Map, c: typeof COMMUNES[0], pos: [number, number]) => {
     const s = infraStats.find((st) => st.commune.toLowerCase() === c.nom.toLowerCase());
     let actifs = 0, resolus = 0, total = 0, verified = 0;
     if (s) {
@@ -234,7 +269,7 @@ const MapPage = () => {
         <div style="flex:1;padding:4px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;text-align:center"><img src="${INFRA_CATEGORY_ICONS.mairie}" style="width:${imgS}px;height:${imgS}px;object-fit:contain;margin:0 auto 2px;" /><br/><span style="font-size:10px;color:#065f46">Mairie</span><br/><span style="font-size:13px;font-weight:bold;color:#059669">${s.mairie_infra_actifs}</span></div>
       </div>`;
 
-      L.marker([c.centerLat, c.centerLon], { icon })
+      L.marker(pos, { icon })
         .addTo(map)
         .bindPopup(`<div style="min-width:200px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">Infrastructures</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${breakdownHtml}</div>`);
     } else {
@@ -246,7 +281,7 @@ const MapPage = () => {
       const icon = L.divIcon({ className: "", html: markerHtml, iconSize: [markerSize, markerSize], iconAnchor: [markerSize / 2, markerSize / 2] });
       const label = infraFilter === "cie" ? "Infra. CIE" : infraFilter === "sodeci" ? "Infra. SODECI" : infraFilter === "mairie" ? "Infra. Mairie" : "Toutes infrastructures";
 
-      L.marker([c.centerLat, c.centerLon], { icon })
+      L.marker(pos, { icon })
         .addTo(map)
         .bindPopup(`<div style="min-width:180px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">${label}</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span></div>`);
     }
