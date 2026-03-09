@@ -248,6 +248,8 @@ const AdminReportsPage = () => {
                   <p className="text-muted-foreground text-sm mb-1">Description</p>
                   <p className="text-sm">{selectedReport.description}</p>
                 </div>
+                {/* Corroboration status in admin detail */}
+                <CorroborationStatus verifications={selectedReport.verifications} />
                 {selectedReport.photo_url && (
                   <div>
                     <p className="text-muted-foreground text-sm mb-1">Photo jointe</p>
