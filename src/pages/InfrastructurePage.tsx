@@ -1,0 +1,346 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import Header from "@/components/Header";
+import SignedImage from "@/components/SignedImage";
+import ShareButton from "@/components/ShareButton";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { motion } from "framer-motion";
+import {
+  Zap, Droplets, MapPin, Clock, ThumbsUp, MessageCircle,
+  Filter, TrendingUp, AlertCircle, ChevronDown,
+} from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { fr } from "date-fns/locale";
+import { toast } from "sonner";
+
+type InfraReport = {
+  id: string;
+  service_type: string;
+  description: string;
+  location: string;
+  commune: string;
+  quartier: string;
+  status: string;
+  urgency: string;
+  created_at: string;
+  photo_url: string | null;
+  verifications: number;
+  impacted_people: number;
+  reporter_type: string;
+};
+
+type FilterType = "all" | "eau" | "electricite";
+
+const PAGE_SIZE = 10;
+
+const InfrastructurePage = () => {
+  const { user } = useAuth();
+  const [reports, setReports] = useState<InfraReport[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<FilterType>("all");
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [corroborated, setCorroborated] = useState<Set<string>>(new Set());
+
+  const fetchReports = async (pageNum: number, append = false) => {
+    const setter = append ? setLoadingMore : setLoading;
+    setter(true);
+
+    let query = supabase
+      .from("reports")
+      .select("id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, verifications, impacted_people, reporter_type")
+      .eq("report_category", "infrastructure")
+      .eq("validated", true)
+      .order("created_at", { ascending: false })
+      .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
+
+    if (filter !== "all") {
+      query = query.eq("service_type", filter === "eau" ? "eau" : "electricite");
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      console.error(error);
+      setter(false);
+      return;
+    }
+
+    const items = (data ?? []) as InfraReport[];
+    setHasMore(items.length === PAGE_SIZE);
+    setReports((prev) => (append ? [...prev, ...items] : items));
+    setter(false);
+  };
+
+  useEffect(() => {
+    setPage(0);
+    fetchReports(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
+
+  const loadMore = () => {
+    const next = page + 1;
+    setPage(next);
+    fetchReports(next, true);
+  };
+
+  const handleCorroborate = async (reportId: string) => {
+    if (!user) {
+      toast.info("Connectez-vous pour confirmer un signalement");
+      return;
+    }
+    const { error } = await supabase.rpc("corroborate_report", { p_report_id: reportId });
+    if (error) {
+      toast.error("Erreur lors de la confirmation");
+      return;
+    }
+    setCorroborated((prev) => new Set(prev).add(reportId));
+    setReports((prev) =>
+      prev.map((r) => (r.id === reportId ? { ...r, verifications: r.verifications + 1 } : r))
+    );
+    toast.success("Merci pour votre confirmation !");
+  };
+
+  const timeAgo = (date: string) =>
+    formatDistanceToNow(new Date(date), { addSuffix: true, locale: fr });
+
+  const serviceIcon = (type: string) =>
+    type === "eau" ? (
+      <Droplets className="h-4 w-4 text-[hsl(var(--water))]" />
+    ) : (
+      <Zap className="h-4 w-4 text-[hsl(var(--electricity))]" />
+    );
+
+  const serviceLabel = (type: string) => (type === "eau" ? "Eau" : "Électricité");
+
+  const urgencyBadge = (urgency: string) => {
+    const map: Record<string, { label: string; className: string }> = {
+      critical: { label: "Urgent", className: "bg-destructive/10 text-destructive border-destructive/20" },
+      high: { label: "Important", className: "bg-warning/10 text-[hsl(var(--warning))] border-warning/20" },
+      medium: { label: "Modéré", className: "bg-primary/10 text-primary border-primary/20" },
+      low: { label: "Faible", className: "bg-muted text-muted-foreground border-border" },
+    };
+    const config = map[urgency] || map.medium;
+    return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
+  };
+
+  const statusIndicator = (status: string) => {
+    if (status === "active") {
+      return (
+        <span className="inline-flex items-center gap-1.5 text-xs text-destructive font-medium">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
+          </span>
+          En cours
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-[hsl(var(--success))] font-medium">
+        <span className="h-2 w-2 rounded-full bg-[hsl(var(--success))]" />
+        Résolu
+      </span>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+
+      {/* Page header - compact */}
+      <div className="bg-card border-b border-border">
+        <div className="container max-w-2xl py-4 px-4">
+          <div className="flex items-center gap-2 mb-1">
+            <AlertCircle className="h-5 w-5 text-primary" />
+            <h1 className="text-lg font-bold text-foreground">Fil Infrastructures</h1>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Signalements de fuites d'eau et installations électriques défaillantes dans votre commune
+          </p>
+        </div>
+      </div>
+
+      {/* Filters - horizontal scroll on mobile */}
+      <div className="sticky top-14 z-40 bg-background border-b border-border">
+        <div className="container max-w-2xl px-4 py-2 flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
+          {[
+            { key: "all" as FilterType, label: "Tous", icon: TrendingUp },
+            { key: "eau" as FilterType, label: "Eau", icon: Droplets },
+            { key: "electricite" as FilterType, label: "Électricité", icon: Zap },
+          ].map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${
+                filter === key
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-muted-foreground hover:bg-secondary border border-border"
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Feed */}
+      <div className="container max-w-2xl px-4 py-4 space-y-3">
+        {loading
+          ? Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="rounded-xl bg-card border border-border p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <div className="space-y-1.5 flex-1">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                </div>
+                <Skeleton className="h-20 w-full rounded-lg" />
+                <Skeleton className="h-40 w-full rounded-lg" />
+              </div>
+            ))
+          : reports.map((report, index) => (
+              <motion.article
+                key={report.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(index * 0.05, 0.3), duration: 0.3 }}
+                className="rounded-xl bg-card border border-border overflow-hidden"
+              >
+                {/* Post header */}
+                <div className="px-4 pt-4 pb-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                          report.service_type === "eau"
+                            ? "bg-[hsl(var(--water-light))]"
+                            : "bg-[hsl(var(--electricity-light))]"
+                        }`}
+                      >
+                        {serviceIcon(report.service_type)}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-semibold text-foreground">
+                            {serviceLabel(report.service_type)}
+                          </span>
+                          {urgencyBadge(report.urgency)}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                          <MapPin className="h-3 w-3" />
+                          <span className="truncate">
+                            {report.quartier}, {report.commune}
+                          </span>
+                          <span>·</span>
+                          <Clock className="h-3 w-3" />
+                          <span>{timeAgo(report.created_at)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    {statusIndicator(report.status)}
+                  </div>
+                </div>
+
+                {/* Post content */}
+                <div className="px-4 pb-3">
+                  <p className="text-sm text-foreground leading-relaxed">{report.description}</p>
+                  {report.impacted_people > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      ~{report.impacted_people} personnes concernées
+                    </p>
+                  )}
+                </div>
+
+                {/* Photo */}
+                {report.photo_url && (
+                  <div className="border-t border-b border-border bg-muted/30">
+                    <SignedImage
+                      storagePath={report.photo_url}
+                      alt={report.description}
+                      className="w-full max-h-80 object-cover"
+                    />
+                  </div>
+                )}
+
+                {/* Stats bar */}
+                <div className="px-4 py-2 flex items-center justify-between text-xs text-muted-foreground border-b border-border">
+                  <span className="flex items-center gap-1">
+                    <ThumbsUp className="h-3 w-3" />
+                    {report.verifications} confirmation{report.verifications > 1 ? "s" : ""}
+                  </span>
+                  <span>
+                    Signalé par {report.reporter_type === "individual" ? "un résident" : "un groupe"}
+                  </span>
+                </div>
+
+                {/* Action buttons */}
+                <div className="px-2 py-1.5 flex items-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`flex-1 text-sm gap-1.5 ${
+                      corroborated.has(report.id)
+                        ? "text-primary font-semibold"
+                        : "text-muted-foreground"
+                    }`}
+                    onClick={() => handleCorroborate(report.id)}
+                    disabled={corroborated.has(report.id)}
+                  >
+                    <ThumbsUp className="h-4 w-4" />
+                    {corroborated.has(report.id) ? "Confirmé" : "Confirmer"}
+                  </Button>
+
+                  <ShareButton
+                    title={`Signalement ${serviceLabel(report.service_type)}`}
+                    text={`${report.description} — ${report.quartier}, ${report.commune}`}
+                    url={window.location.origin}
+                    variant="ghost"
+                    size="sm"
+                    className="flex-1 text-sm text-muted-foreground"
+                  />
+                </div>
+              </motion.article>
+            ))}
+
+        {/* Empty state */}
+        {!loading && reports.length === 0 && (
+          <div className="text-center py-16 px-4">
+            <AlertCircle className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+            <p className="text-muted-foreground font-medium">Aucun signalement d'infrastructure</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Les signalements validés apparaîtront ici
+            </p>
+          </div>
+        )}
+
+        {/* Load more */}
+        {hasMore && reports.length > 0 && (
+          <div className="flex justify-center pt-2 pb-6">
+            <Button
+              variant="outline"
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="gap-2"
+            >
+              {loadingMore ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+              Voir plus
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default InfrastructurePage;
