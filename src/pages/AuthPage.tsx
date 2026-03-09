@@ -311,9 +311,31 @@ const AuthPage = () => {
                 </RadioGroup>
               </div>
 
+              {/* Consentement politique de confidentialité + âge */}
+              <div className="space-y-3 rounded-xl border border-border bg-muted/50 p-3">
+                <div className="flex items-start gap-2.5">
+                  <Checkbox
+                    id="privacy-consent"
+                    checked={privacyConsent}
+                    onCheckedChange={(c) => setPrivacyConsent(c === true)}
+                    className="mt-0.5"
+                  />
+                  <label htmlFor="privacy-consent" className="text-xs leading-relaxed cursor-pointer text-muted-foreground">
+                    Je certifie avoir <strong className="text-foreground">18 ans ou plus</strong> et j'accepte la{" "}
+                    <Link to="/confidentialite" target="_blank" className="text-primary underline">
+                      politique de confidentialité
+                    </Link>{" "}
+                    et les{" "}
+                    <Link to="/a-propos" target="_blank" className="text-primary underline">
+                      conditions d'utilisation
+                    </Link>.
+                  </label>
+                </div>
+              </div>
+
               <Button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !privacyConsent}
                 className="w-full h-12 rounded-lg bg-[hsl(135,55%,48%)] text-white text-lg font-bold hover:bg-[hsl(135,55%,40%)]"
               >
                 {loading ? "Chargement..." : "Créer mon compte"}
