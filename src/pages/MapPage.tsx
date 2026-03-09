@@ -228,7 +228,7 @@ const MapPage = () => {
       .bindPopup(`<div style="min-width:180px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">${serviceLabel} — Coupures</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${breakdownHtml}${verifiedHtml}</div>`);
   };
 
-  const renderInfraMarker = (map: L.Map, c: typeof COMMUNES[0]) => {
+  const renderInfraMarker = (map: L.Map, c: typeof COMMUNES[0], pos: [number, number]) => {
     const s = infraStats.find((st) => st.commune.toLowerCase() === c.nom.toLowerCase());
     let actifs = 0, resolus = 0, total = 0, verified = 0;
     if (s) {
