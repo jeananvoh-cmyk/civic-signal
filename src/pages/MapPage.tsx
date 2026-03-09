@@ -6,7 +6,9 @@ import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNES } from "@/lib/communes";
+import { COMMUNE_COLORS } from "@/lib/communes";
 import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import "leaflet/dist/leaflet.css";
 
 interface CommuneServiceStat {
@@ -60,18 +62,21 @@ const MapPage = () => {
 
   const [stats, setStats] = useState<CommuneServiceStat[]>([]);
   const [infraStats, setInfraStats] = useState<InfraStats[]>([]);
+  const [boundaries, setBoundaries] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
 
   useEffect(() => {
     const fetchAll = async () => {
-      const [sRes, iRes] = await Promise.all([
+      const [sRes, iRes, geoRes] = await Promise.all([
         supabase.rpc("get_commune_service_stats"),
         supabase.rpc("get_commune_infrastructure_stats" as any),
+        fetch("/data/communes-boundaries.geojson").then(r => r.json()).catch(() => null),
       ]);
       if (!sRes.error && sRes.data) setStats(sRes.data as unknown as CommuneServiceStat[]);
       if (!iRes.error && iRes.data) setInfraStats(iRes.data as unknown as InfraStats[]);
+      if (geoRes) setBoundaries(geoRes);
       setLoading(false);
     };
     fetchAll();
@@ -94,18 +99,43 @@ const MapPage = () => {
     const map = mapInstance.current;
     map.eachLayer((layer) => { if (!(layer instanceof L.TileLayer)) map.removeLayer(layer); });
 
-    COMMUNES.forEach((c) => {
-      L.circle([c.centerLat, c.centerLon], {
-        radius: c.rayonM, color: c.couleur, fillColor: c.couleur, fillOpacity: 0.10, weight: 2,
-      }).addTo(map).bindPopup(`<strong>${c.nom}</strong><br/>${(c.population / 1000).toFixed(0)}k habitants`);
+    // Draw commune boundaries from GeoJSON
+    if (boundaries && boundaries.features) {
+      boundaries.features.forEach((feature: any) => {
+        const name = feature.properties?.name;
+        const communeColor = COMMUNE_COLORS[name] || COMMUNE_COLORS[
+          Object.keys(COMMUNE_COLORS).find(k => k.toLowerCase() === name?.toLowerCase()) || ""
+        ] || "#888";
 
+        L.geoJSON(feature, {
+          style: {
+            color: communeColor,
+            fillColor: communeColor,
+            fillOpacity: 0.12,
+            weight: 2.5,
+            opacity: 0.8,
+            dashArray: undefined,
+          },
+        }).addTo(map).bindPopup(`<strong>${name}</strong><br/>${(COMMUNES.find(c => c.nom.toLowerCase() === name?.toLowerCase())?.population || 0) / 1000 | 0}k habitants`);
+      });
+    } else {
+      // Fallback to circles if GeoJSON unavailable
+      COMMUNES.forEach((c) => {
+        L.circle([c.centerLat, c.centerLon], {
+          radius: c.rayonM, color: c.couleur, fillColor: c.couleur, fillOpacity: 0.10, weight: 2,
+        }).addTo(map).bindPopup(`<strong>${c.nom}</strong><br/>${(c.population / 1000).toFixed(0)}k habitants`);
+      });
+    }
+
+    // Add markers
+    COMMUNES.forEach((c) => {
       if (mode === "coupures") {
         renderCoupureMarker(map, c);
       } else {
         renderInfraMarker(map, c);
       }
     });
-  }, [stats, infraStats, loading, mode, coupureFilter, infraFilter]);
+  }, [stats, infraStats, loading, mode, coupureFilter, infraFilter, boundaries]);
 
   const renderCoupureMarker = (map: L.Map, c: typeof COMMUNES[0]) => {
     const s = stats.find((st) => st.commune.toLowerCase() === c.nom.toLowerCase());
