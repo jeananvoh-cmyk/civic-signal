@@ -215,12 +215,13 @@ const MapPage = () => {
     const markerSize = actifs > 0 ? 52 : 36;
 
     if (infraFilter === "all" && s && (s.elec_infra_actifs > 0 || s.eau_infra_actifs > 0 || s.mairie_infra_actifs > 0)) {
-      // Triple split marker
+      // Triple split marker with icons
       const segW = Math.round(markerSize / 3) + 2;
+      const imgSize = 16;
       const markerHtml = `<div style="position:relative;display:flex;align-items:center;gap:1px;">
-        <div style="background:#f59e0b;color:white;width:${segW}px;height:${markerSize}px;border-radius:${markerSize / 2}px 0 0 ${markerSize / 2}px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid white;border-right:none;font-size:10px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.3);"><span style="font-size:8px">🔌</span>${s.elec_infra_actifs}</div>
-        <div style="background:#3b82f6;color:white;width:${segW}px;height:${markerSize}px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-top:2px solid white;border-bottom:2px solid white;font-size:10px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.3);"><span style="font-size:8px">🚰</span>${s.eau_infra_actifs}</div>
-        <div style="background:#10b981;color:white;width:${segW}px;height:${markerSize}px;border-radius:0 ${markerSize / 2}px ${markerSize / 2}px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid white;border-left:none;font-size:10px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.3);"><span style="font-size:8px">🏗️</span>${s.mairie_infra_actifs}</div>
+        <div style="background:#f59e0b;color:white;width:${segW}px;height:${markerSize}px;border-radius:${markerSize / 2}px 0 0 ${markerSize / 2}px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid white;border-right:none;font-size:10px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.3);"><img src="${INFRA_CATEGORY_ICONS.cie}" style="width:${imgSize}px;height:${imgSize}px;object-fit:contain;border-radius:2px;" />${s.elec_infra_actifs}</div>
+        <div style="background:#3b82f6;color:white;width:${segW}px;height:${markerSize}px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-top:2px solid white;border-bottom:2px solid white;font-size:10px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.3);"><img src="${INFRA_CATEGORY_ICONS.sodeci}" style="width:${imgSize}px;height:${imgSize}px;object-fit:contain;border-radius:2px;" />${s.eau_infra_actifs}</div>
+        <div style="background:#10b981;color:white;width:${segW}px;height:${markerSize}px;border-radius:0 ${markerSize / 2}px ${markerSize / 2}px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid white;border-left:none;font-size:10px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.3);"><img src="${INFRA_CATEGORY_ICONS.mairie}" style="width:${imgSize}px;height:${imgSize}px;object-fit:contain;border-radius:2px;" />${s.mairie_infra_actifs}</div>
         ${hasVerified ? `<span style="position:absolute;top:-6px;right:-6px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;border:2px solid white;">✓</span>` : ''}
       </div>`;
 
