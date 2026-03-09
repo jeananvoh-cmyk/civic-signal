@@ -375,7 +375,7 @@ const DashboardPage = () => {
             </div>
             <ShareButton
               title="Tableau de Bord SignalÉnergie"
-              text={`📊 ${totalActifs} coupures actives sur les 5 communes pilotes d'Abidjan`}
+              text={`📊 ${totalActifs} coupures actives sur les 7 communes pilotes d'Abidjan`}
             />
           </div>
         </motion.div>
