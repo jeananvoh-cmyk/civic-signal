@@ -146,6 +146,35 @@ const VerificationPage = () => {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget || !deleteReason.trim()) return;
+    setDeleting(deleteTarget.id);
+    try {
+      const { error: logError } = await supabase.from("report_deletions").insert({
+        report_id: deleteTarget.id,
+        user_id: user!.id,
+        reason: deleteReason.trim(),
+        service_type: deleteTarget.service_type,
+        commune: deleteTarget.commune,
+        quartier: deleteTarget.quartier,
+        description: deleteTarget.description,
+      });
+      if (logError) throw logError;
+
+      const { error } = await supabase.from("reports").delete().eq("id", deleteTarget.id);
+      if (error) throw error;
+      
+      setReports((prev) => prev.filter((r) => r.id !== deleteTarget.id));
+      toast.success("Signalement supprimé");
+      setDeleteTarget(null);
+      setDeleteReason("");
+    } catch (err: any) {
+      toast.error(err.message || "Erreur");
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
