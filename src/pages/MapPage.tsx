@@ -375,10 +375,10 @@ const MapPage = () => {
           ) : (
             <>
               {([
-                { key: "all" as InfraFilter, label: "Tous", icon: "🔧" },
-                { key: "cie" as InfraFilter, label: "CIE (Lampadaires)", icon: "🔌" },
-                { key: "sodeci" as InfraFilter, label: "SODECI (Fuites)", icon: "🚰" },
-                { key: "mairie" as InfraFilter, label: "Mairie (Voirie)", icon: "🏗️" },
+                { key: "all" as InfraFilter, label: "Tous", iconSrc: null },
+                { key: "cie" as InfraFilter, label: "CIE (Lampadaires)", iconSrc: INFRA_CATEGORY_ICONS.cie },
+                { key: "sodeci" as InfraFilter, label: "SODECI (Fuites)", iconSrc: INFRA_CATEGORY_ICONS.sodeci },
+                { key: "mairie" as InfraFilter, label: "Mairie (Voirie)", iconSrc: INFRA_CATEGORY_ICONS.mairie },
               ]).map((f) => (
                 <button
                   key={f.key}
