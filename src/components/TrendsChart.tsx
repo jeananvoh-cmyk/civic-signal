@@ -370,6 +370,126 @@ const TrendsChart = ({ className = "" }: TrendsChartProps) => {
           </div>
         </div>
       )}
+
+      {/* ── Insights automatiques ── */}
+      {!isLoading && totalPeriod > 0 && (() => {
+        const insights: { icon: typeof Lightbulb; color: string; title: string; text: string; type: "warning" | "success" | "info" }[] = [];
+
+        // 1. Peak detection — find the period with highest total
+        if (chartData.length >= 3) {
+          const peak = chartData.reduce((max, d) => d.total > max.total ? d : max, chartData[0]);
+          if (peak.total > avgPerPeriod * 1.5) {
+            insights.push({
+              icon: Activity,
+              color: "text-destructive",
+              type: "warning",
+              title: `Pic détecté : ${peak.label}`,
+              text: `${peak.total} signalements enregistrés (${Math.round((peak.total / avgPerPeriod - 1) * 100)}% au-dessus de la moyenne). Investiguer les causes possibles sur cette période.`,
+            });
+          }
+        }
+
+        // 2. Trend direction
+        if (trend > 15) {
+          insights.push({
+            icon: TrendingUp,
+            color: "text-destructive",
+            type: "warning",
+            title: "Tendance à la hausse (+${trend}%)",
+            text: `Les signalements augmentent significativement. La 2ème moitié de la période montre une moyenne de ${Math.round(secondHalfAvg)} signalements/${config.groupLabel} contre ${Math.round(firstHalfAvg)} précédemment. Renforcer les équipes d'intervention.`,
+          });
+        } else if (trend < -15) {
+          insights.push({
+            icon: TrendingDown,
+            color: "text-emerald-500",
+            type: "success",
+            title: `Tendance à la baisse (${trend}%)`,
+            text: `Bonne nouvelle : les signalements diminuent. Les interventions récentes semblent porter leurs fruits. Maintenir les efforts actuels.`,
+          });
+        }
+
+        // 3. Resolution rate analysis
+        if (resolutionRate < 30 && totalPeriod >= 5) {
+          insights.push({
+            icon: AlertTriangle,
+            color: "text-destructive",
+            type: "warning",
+            title: `Taux de résolution critique : ${resolutionRate}%`,
+            text: `Seulement ${totalResolus} signalements résolus sur ${totalPeriod}. ${totalActifs} restent actifs. Prioriser les dossiers les plus anciens et mobiliser des ressources supplémentaires.`,
+          });
+        } else if (resolutionRate >= 70) {
+          insights.push({
+            icon: ShieldCheck,
+            color: "text-emerald-500",
+            type: "success",
+            title: `Excellent taux de résolution : ${resolutionRate}%`,
+            text: `${totalResolus} signalements résolus sur ${totalPeriod}. Les équipes de terrain sont efficaces. Capitaliser sur ces bonnes pratiques.`,
+          });
+        } else if (resolutionRate >= 30 && resolutionRate < 70 && totalPeriod >= 5) {
+          insights.push({
+            icon: Target,
+            color: "text-amber-500",
+            type: "info",
+            title: `Taux de résolution moyen : ${resolutionRate}%`,
+            text: `${totalActifs} signalements restent non résolus. Objectif : atteindre 70% de résolution pour assurer la satisfaction des usagers.`,
+          });
+        }
+
+        // 4. Top commune critique
+        if (communeBarData.length > 0 && communeFilter === "all") {
+          const top = communeBarData[0];
+          const topPct = totalPeriod > 0 ? Math.round((top.total / totalPeriod) * 100) : 0;
+          if (topPct >= 30) {
+            insights.push({
+              icon: MapPin,
+              color: "text-amber-500",
+              type: "warning",
+              title: `${top.commune} concentre ${topPct}% des signalements`,
+              text: `Avec ${top.total} signalements, cette commune nécessite une attention prioritaire. Envisager un déploiement ciblé d'équipes d'intervention et une coordination renforcée avec les autorités locales.`,
+            });
+          }
+        }
+
+        // 5. No unresolved = great
+        if (totalActifs === 0 && totalResolus > 0) {
+          insights.push({
+            icon: ShieldCheck,
+            color: "text-emerald-500",
+            type: "success",
+            title: "Tous les signalements sont résolus",
+            text: `${totalResolus} signalements traités avec succès sur cette période. Aucun dossier en attente.`,
+          });
+        }
+
+        if (insights.length === 0) return null;
+
+        const typeStyles = {
+          warning: "border-l-destructive/60 bg-destructive/5",
+          success: "border-l-emerald-500/60 bg-emerald-500/5",
+          info: "border-l-amber-500/60 bg-amber-500/5",
+        };
+
+        return (
+          <div className="mt-5 pt-4 border-t border-border">
+            <div className="flex items-center gap-2 mb-3">
+              <Lightbulb className="h-4 w-4 text-amber-500" />
+              <p className="text-sm font-bold text-foreground">Insights & Recommandations</p>
+              <span className="text-[10px] text-muted-foreground bg-muted rounded-full px-2 py-0.5">Auto-détecté</span>
+            </div>
+            <div className="space-y-2.5">
+              {insights.map((insight, i) => (
+                <div key={i} className={`rounded-lg border-l-4 p-3 ${typeStyles[insight.type]}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <insight.icon className={`h-4 w-4 shrink-0 ${insight.color}`} />
+                    <p className="text-sm font-bold text-foreground">{insight.title}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed ml-6">{insight.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
     </motion.div>
   );
 };
