@@ -51,11 +51,11 @@ const AboutPage = () => {
               {COMMUNES.map((c) => (
                 <div key={c.nom} className="flex items-center gap-3 rounded-xl border border-border p-3">
                   <div
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg overflow-hidden"
-                    style={{ backgroundColor: c.couleur }}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg overflow-hidden border border-border"
+                    style={{ backgroundColor: COMMUNE_LOGOS[c.nom] ? '#fff' : c.couleur }}
                   >
                     {COMMUNE_LOGOS[c.nom] ? (
-                      <img src={COMMUNE_LOGOS[c.nom]} alt={c.nom} className="h-full w-full object-cover" />
+                      <img src={COMMUNE_LOGOS[c.nom]} alt={c.nom} className="h-full w-full object-contain p-0.5" />
                     ) : (
                       <span className="text-white font-bold text-xs">{c.nom[0]}</span>
                     )}

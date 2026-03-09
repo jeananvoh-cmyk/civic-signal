@@ -102,11 +102,11 @@ const CommuneDetailPage = () => {
 
           <div className="flex items-center gap-4">
             <div
-              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl overflow-hidden shadow-md"
-              style={{ backgroundColor: couleur }}
+              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl overflow-hidden shadow-md border border-border"
+              style={{ backgroundColor: logo ? '#fff' : couleur }}
             >
               {logo ? (
-                <img src={logo} alt={decodedName} className="h-full w-full object-cover" />
+                <img src={logo} alt={decodedName} className="h-full w-full object-contain p-1" />
               ) : (
                 <MapPin className="h-6 w-6 text-white" />
               )}
