@@ -35,6 +35,7 @@ const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
 const HistoryPage = lazy(() => import("./pages/HistoryPage"));
 const DonationPage = lazy(() => import("./pages/DonationPage"));
 const InfrastructurePage = lazy(() => import("./pages/InfrastructurePage"));
+const InstallPage = lazy(() => import("./pages/InstallPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -64,6 +65,7 @@ const App = () => (
               <Route path="/confidentialite" element={<PrivacyPolicyPage />} />
               <Route path="/dons" element={<DonationPage />} />
               <Route path="/infrastructures" element={<InfrastructurePage />} />
+              <Route path="/install" element={<InstallPage />} />
               
               {/* Admin routes */}
               <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
