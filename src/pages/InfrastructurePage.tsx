@@ -47,6 +47,7 @@ const InfrastructurePage = () => {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [corroborated, setCorroborated] = useState<Set<string>>(new Set());
+  const [repaired, setRepaired] = useState<Set<string>>(new Set());
 
   const fetchReports = async (pageNum: number, append = false) => {
     const setter = append ? setLoadingMore : setLoading;
