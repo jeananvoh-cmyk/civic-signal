@@ -320,7 +320,7 @@ const VerificationPage = () => {
                         {/* Two clear action buttons */}
                         <div className="grid grid-cols-2 gap-3">
                           <Button
-                            onClick={() => handleConfirmStillOngoing(r.id)}
+                            onClick={() => handleConfirmStillOngoing(r)}
                             disabled={confirming === r.id}
                             variant="outline"
                             className="border-urgent text-urgent hover:bg-urgent hover:text-urgent-foreground font-semibold"
