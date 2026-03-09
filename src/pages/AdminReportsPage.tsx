@@ -82,6 +82,24 @@ const AdminReportsPage = () => {
     onError: (err: any) => toast.error(getUserFriendlyError(err)),
   });
 
+  const resolveMutation = useMutation({
+    mutationFn: async (reportId: string) => {
+      const { error } = await supabase.rpc("admin_resolve_report", { p_report_id: reportId });
+      if (error) throw error;
+    },
+    onSuccess: (_, reportId) => {
+      logAudit({
+        action: "report_resolved",
+        target_type: "report",
+        target_id: reportId,
+      });
+      queryClient.invalidateQueries({ queryKey: ["admin-reports-validated"] });
+      toast.success("Signalement marqué comme résolu.");
+      setSelectedReport(null);
+    },
+    onError: (err: any) => toast.error(getUserFriendlyError(err)),
+  });
+
   const ReportRow = ({ report, showActions }: { report: any; showActions: boolean }) => {
     const urgency = URGENCY_LABELS[report.urgency] || URGENCY_LABELS.low;
     return (
