@@ -63,7 +63,7 @@ const ProfileCompletionNotifier = () => {
     toast("Profil à compléter", {
       id: "profile-completion-reminder",
       description:
-        "Ajoutez votre numéro WhatsApp, votre localisation et vos compteurs pour améliorer la fiabilité de vos signalements.",
+        "Ajoutez votre numéro WhatsApp, localisation et compteurs pour renforcer la crédibilité de nos rapports aux opérateurs.",
       duration: 9000,
       action: {
         label: "Compléter",

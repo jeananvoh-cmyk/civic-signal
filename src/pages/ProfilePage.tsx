@@ -328,10 +328,10 @@ const ProfilePage = () => {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-foreground text-sm mb-1">
-                      👋 Complétez votre profil pour plus de crédibilité !
+                      👋 Renforcez vos signalements !
                     </h3>
                     <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                      Un profil complet permet un traitement prioritaire de vos signalements. 
+                      Un profil complet nous aide à produire des rapports fiables pour les opérateurs (CIE, SODECI, Mairie). 
                       Pensez à renseigner :
                     </p>
                     <div className="flex flex-wrap gap-2">
