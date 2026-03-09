@@ -55,7 +55,7 @@ const InfrastructurePage = () => {
 
     let query = supabase
       .from("reports")
-      .select("id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, verifications, impacted_people, reporter_type")
+      .select("id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, verifications, repair_verifications, impacted_people, reporter_type")
       .eq("report_category", "infrastructure")
       .eq("validated", true)
       .order("created_at", { ascending: false })
