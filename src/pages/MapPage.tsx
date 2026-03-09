@@ -213,19 +213,26 @@ const MapPage = () => {
     });
 
     const serviceLabel = coupureFilter === "electricity" ? "Électricité" : coupureFilter === "water" ? "Eau" : "Eau & Électricité";
-    let verifiedHtml = '';
-    if (hasVerified) {
-      verifiedHtml = `<div style="margin-top:6px;padding:5px 10px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center"><span style="font-size:13px;color:#16a34a;font-weight:700">✓ Confirmé à ${verifiedPercent}%</span><br/><span style="font-size:10px;color:#15803d">par les voisins</span></div>`;
+
+    // Confirmation status HTML
+    let confirmHtml = '';
+    if (actifs > 0) {
+      if (hasVerified) {
+        confirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center"><span style="font-size:13px;color:#16a34a;font-weight:700">✓ ${verified} confirmé${verified > 1 ? 's' : ''} (${verifiedPercent}%)</span><br/><span style="font-size:10px;color:#15803d">${verified} sur ${actifs} signalement${actifs > 1 ? 's' : ''} vérifié${verified > 1 ? 's' : ''} par les voisins</span></div>`;
+      } else {
+        confirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;text-align:center"><span style="font-size:11px;color:#92400e">⏳ En attente de confirmation des voisins</span></div>`;
+      }
     }
+
     const breakdownHtml = coupureFilter === "all" && s
       ? `<div style="margin-top:6px;display:flex;gap:4px;justify-content:center">
-          <div style="flex:1;padding:4px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;text-align:center"><span style="font-size:12px">⚡</span><br/><span style="font-size:13px;font-weight:bold;color:#d97706">${s.electricite_actifs}</span></div>
-          <div style="flex:1;padding:4px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;text-align:center"><span style="font-size:12px">💧</span><br/><span style="font-size:13px;font-weight:bold;color:#2563eb">${s.eau_actifs}</span></div>
+          <div style="flex:1;padding:4px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;text-align:center"><span style="font-size:12px">⚡</span><br/><span style="font-size:13px;font-weight:bold;color:#d97706">${s.electricite_actifs}</span>${s.electricite_verified > 0 ? `<br/><span style="font-size:9px;color:#16a34a">✓ ${s.electricite_verified}</span>` : ''}</div>
+          <div style="flex:1;padding:4px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;text-align:center"><span style="font-size:12px">💧</span><br/><span style="font-size:13px;font-weight:bold;color:#2563eb">${s.eau_actifs}</span>${s.eau_verified > 0 ? `<br/><span style="font-size:9px;color:#16a34a">✓ ${s.eau_verified}</span>` : ''}</div>
         </div>` : '';
 
     L.marker(pos, { icon })
       .addTo(map)
-      .bindPopup(`<div style="min-width:180px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">${serviceLabel} — Coupures</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${breakdownHtml}${verifiedHtml}</div>`);
+      .bindPopup(`<div style="min-width:180px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">${serviceLabel} — Coupures</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${breakdownHtml}${confirmHtml}</div>`);
   };
 
   const renderInfraMarker = (map: L.Map, c: typeof COMMUNES[0], pos: [number, number]) => {
@@ -269,9 +276,19 @@ const MapPage = () => {
         <div style="flex:1;padding:4px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;text-align:center"><img src="${INFRA_CATEGORY_ICONS.mairie}" style="width:${imgS}px;height:${imgS}px;object-fit:contain;margin:0 auto 2px;" /><br/><span style="font-size:10px;color:#065f46">Mairie</span><br/><span style="font-size:13px;font-weight:bold;color:#059669">${s.mairie_infra_actifs}</span></div>
       </div>`;
 
+      const verifiedPercent = actifs > 0 ? Math.round((verified / actifs) * 100) : 0;
+      let infraConfirmHtml = '';
+      if (actifs > 0) {
+        if (hasVerified) {
+          infraConfirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center"><span style="font-size:13px;color:#16a34a;font-weight:700">✓ ${verified} confirmé${verified > 1 ? 's' : ''} (${verifiedPercent}%)</span><br/><span style="font-size:10px;color:#15803d">vérifié${verified > 1 ? 's' : ''} par les voisins</span></div>`;
+        } else {
+          infraConfirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;text-align:center"><span style="font-size:11px;color:#92400e">⏳ En attente de confirmation</span></div>`;
+        }
+      }
+
       L.marker(pos, { icon })
         .addTo(map)
-        .bindPopup(`<div style="min-width:200px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">Infrastructures</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${breakdownHtml}</div>`);
+        .bindPopup(`<div style="min-width:200px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">Infrastructures</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${breakdownHtml}${infraConfirmHtml}</div>`);
     } else {
       const infraIcon = infraFilter === "cie" ? INFRA_CATEGORY_ICONS.cie : infraFilter === "sodeci" ? INFRA_CATEGORY_ICONS.sodeci : infraFilter === "mairie" ? INFRA_CATEGORY_ICONS.mairie : "";
       const bg = infraFilter === "cie" ? "#f59e0b" : infraFilter === "sodeci" ? "#3b82f6" : infraFilter === "mairie" ? "#10b981" : "#6b7280";
@@ -281,9 +298,19 @@ const MapPage = () => {
       const icon = L.divIcon({ className: "", html: markerHtml, iconSize: [markerSize, markerSize], iconAnchor: [markerSize / 2, markerSize / 2] });
       const label = infraFilter === "cie" ? "Infra. CIE" : infraFilter === "sodeci" ? "Infra. SODECI" : infraFilter === "mairie" ? "Infra. Mairie" : "Toutes infrastructures";
 
+      const singleVerifiedPercent = actifs > 0 ? Math.round((verified / actifs) * 100) : 0;
+      let singleConfirmHtml = '';
+      if (actifs > 0) {
+        if (hasVerified) {
+          singleConfirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center"><span style="font-size:13px;color:#16a34a;font-weight:700">✓ ${verified} confirmé${verified > 1 ? 's' : ''} (${singleVerifiedPercent}%)</span><br/><span style="font-size:10px;color:#15803d">vérifié${verified > 1 ? 's' : ''} par les voisins</span></div>`;
+        } else {
+          singleConfirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;text-align:center"><span style="font-size:11px;color:#92400e">⏳ En attente de confirmation</span></div>`;
+        }
+      }
+
       L.marker(pos, { icon })
         .addTo(map)
-        .bindPopup(`<div style="min-width:180px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">${label}</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span></div>`);
+        .bindPopup(`<div style="min-width:180px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">${label}</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${singleConfirmHtml}</div>`);
     }
   };
 
