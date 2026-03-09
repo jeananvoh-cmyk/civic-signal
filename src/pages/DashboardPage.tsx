@@ -733,6 +733,7 @@ const DashboardPage = () => {
                             <div className="flex gap-3 text-xs text-muted-foreground">
                               <span>⚡ {c.electricite_actifs}</span>
                               <span>💧 {c.eau_actifs}</span>
+                              <span>🏗️ {c.mairie_actifs}</span>
                             </div>
                           </div>
                           <div className="text-right">
