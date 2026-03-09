@@ -713,9 +713,9 @@ const DashboardPage = () => {
                       return (
                         <div key={c.commune} className="flex items-center gap-4 px-5 py-4 hover:bg-secondary/50 transition-colors">
                           <span className="text-lg font-bold w-8 text-center">{medal}</span>
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg overflow-hidden" style={{ backgroundColor: c.couleur }}>
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg overflow-hidden border border-border" style={{ backgroundColor: COMMUNE_LOGOS[c.commune] ? '#fff' : c.couleur }}>
                             {COMMUNE_LOGOS[c.commune] ? (
-                              <img src={COMMUNE_LOGOS[c.commune]} alt={c.commune} className="h-full w-full object-cover" />
+                              <img src={COMMUNE_LOGOS[c.commune]} alt={c.commune} className="h-full w-full object-contain p-0.5" />
                             ) : (
                               <span className="text-white font-bold text-xs">{c.commune[0]}</span>
                             )}
