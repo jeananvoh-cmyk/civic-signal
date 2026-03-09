@@ -477,6 +477,9 @@ export type Database = {
           electricite_actifs: number
           electricite_resolus: number
           electricite_total: number
+          mairie_actifs: number
+          mairie_resolus: number
+          mairie_total: number
           quartier: string
         }[]
       }
@@ -493,6 +496,10 @@ export type Database = {
           electricite_resolus: number
           electricite_total: number
           electricite_verified: number
+          mairie_actifs: number
+          mairie_resolus: number
+          mairie_total: number
+          mairie_verified: number
           population: number
         }[]
       }
