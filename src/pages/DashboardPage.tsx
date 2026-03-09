@@ -226,8 +226,8 @@ const DashboardPage = () => {
         const commune = communeNames[idx];
         const couleur = COMMUNES.find((c) => c.nom === commune)?.couleur || "#888";
         (res.data as any[]).forEach((q) => {
-          const totalActifs = (q.electricite_actifs || 0) + (q.eau_actifs || 0);
-          if (totalActifs > 0 || (q.electricite_total || 0) + (q.eau_total || 0) > 0) {
+          const totalActifs = (q.electricite_actifs || 0) + (q.eau_actifs || 0) + (q.mairie_actifs || 0);
+          if (totalActifs > 0 || (q.electricite_total || 0) + (q.eau_total || 0) + (q.mairie_total || 0) > 0) {
             allQuartiers.push({
               commune,
               couleur,
@@ -235,7 +235,8 @@ const DashboardPage = () => {
               totalActifs,
               elecActifs: q.electricite_actifs || 0,
               eauActifs: q.eau_actifs || 0,
-              totalAll: (q.electricite_total || 0) + (q.eau_total || 0),
+              mairieActifs: q.mairie_actifs || 0,
+              totalAll: (q.electricite_total || 0) + (q.eau_total || 0) + (q.mairie_total || 0),
             });
           }
         });
