@@ -150,7 +150,7 @@ const Index = () => {
               </Link>
             </div>
 
-            {/* 5 communes badges */}
+            {/* 7 communes badges */}
             <div className="mt-8 flex flex-wrap gap-2">
               {COMMUNES.map((c) =>
               <Link
