@@ -23,6 +23,7 @@ const Header = () => {
     { to: "/signaler", label: "Signaler" },
     { to: "/tableau-de-bord", label: "Tableau de Bord Public" },
     { to: "/carte", label: "Carte" },
+    { to: "/infrastructures", label: "Infra" },
     { to: "/verification", label: "Vérifier" },
     ...(donationsEnabled ? [{ to: "/dons", label: "♥ Dons" }] : []),
   ];
