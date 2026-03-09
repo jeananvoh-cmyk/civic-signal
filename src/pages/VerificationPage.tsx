@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import Header from "@/components/Header";
 import NeighborCorroboration from "@/components/NeighborCorroboration";
+import CorroborationStatus from "@/components/CorroborationStatus";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { COMMUNE_COLORS } from "@/lib/communes";
@@ -216,7 +217,7 @@ const VerificationPage = () => {
                 <CheckCircle2 className="mx-auto h-10 w-10 text-success mb-2" />
                 <p className="font-bold text-foreground">Votre signalement gagne en visibilité</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Plus de voisins confirment, plus le signalement est prioritaire.
+                  Chaque confirmation renforce la crédibilité de votre signalement dans nos rapports aux opérateurs.
                 </p>
               </div>
               <Button variant="outline" onClick={() => setSearchParams({})}>
@@ -301,21 +302,16 @@ const VerificationPage = () => {
                           <p className="text-xs text-muted-foreground mb-3">📍 {r.quartier}</p>
                         )}
 
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
-                          {r.urgency === "critical" && (
-                            <span className="flex items-center gap-1 text-destructive font-semibold animate-pulse">
-                              🔥 Critique
-                            </span>
-                          )}
-                          <span className="flex items-center gap-1">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            {r.verifications} confirmation{r.verifications !== 1 ? "s" : ""}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3.5 w-3.5" />
-                            Signalé {timeAgo}
-                          </span>
+                        {/* Corroboration status */}
+                        <div className="mb-4">
+                          <CorroborationStatus verifications={r.verifications} />
                         </div>
+
+                        {r.urgency === "critical" && (
+                          <div className="flex items-center gap-1.5 text-xs text-destructive font-semibold animate-pulse mb-3">
+                            🔥 Signalement critique — escalade automatique
+                          </div>
+                        )}
 
                         {/* Two clear action buttons */}
                         <div className="grid grid-cols-2 gap-3">

@@ -15,6 +15,7 @@ import { getUserFriendlyError } from "@/lib/error-utils";
 import { logAudit } from "@/lib/audit";
 import { format } from "date-fns";
 import SignedImage from "@/components/SignedImage";
+import CorroborationStatus from "@/components/CorroborationStatus";
 import { fr } from "date-fns/locale";
 
 const URGENCY_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -245,6 +246,8 @@ const AdminReportsPage = () => {
                   <p className="text-muted-foreground text-sm mb-1">Description</p>
                   <p className="text-sm">{selectedReport.description}</p>
                 </div>
+                {/* Corroboration status in admin detail */}
+                <CorroborationStatus verifications={selectedReport.verifications} />
                 {selectedReport.photo_url && (
                   <div>
                     <p className="text-muted-foreground text-sm mb-1">Photo jointe</p>
