@@ -308,9 +308,9 @@ const DashboardPage = () => {
   const highPriorityReports = activeReports.filter((r) => r.urgency === "critical" || r.urgency === "high");
   const mediumPriorityReports = activeReports.filter((r) => r.urgency === "medium");
 
-  const totalActifs = totalElecActifs + totalEauActifs;
+  const totalActifs = totalElecActifs + totalEauActifs + totalMairieActifs;
   const isCrisis = totalActifs >= 10;
-  const isEmpty = !loading && totalActifs === 0 && totalElecTotal + totalEauTotal === 0;
+  const isEmpty = !loading && totalActifs === 0 && totalElecTotal + totalEauTotal + totalMairieTotal === 0;
 
   const maxHighDuration = highPriorityReports.length > 0
     ? Math.max(...highPriorityReports.map((r) => r.start_time ? (Date.now() - new Date(r.start_time).getTime()) / 60000 : 0))
