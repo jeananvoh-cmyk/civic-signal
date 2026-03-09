@@ -434,6 +434,19 @@ const DashboardPage = () => {
                     <div><p className="font-display text-2xl font-extrabold text-foreground">{totalEauTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
                   </div>
                 </div>
+                <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15">
+                      <AlertTriangle className="h-5 w-5 text-emerald-500" />
+                    </div>
+                    <h2 className="font-display text-lg font-bold text-foreground">Mairie</h2>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalMairieActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
+                    <div><p className="font-display text-2xl font-extrabold text-success">{totalMairieResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
+                    <div><p className="font-display text-2xl font-extrabold text-foreground">{totalMairieTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
+                  </div>
+                </div>
               </>
             )}
           </motion.div>

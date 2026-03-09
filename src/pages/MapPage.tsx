@@ -20,6 +20,10 @@ interface CommuneServiceStat {
   eau_total: number;
   electricite_verified: number;
   eau_verified: number;
+  mairie_actifs: number;
+  mairie_resolus: number;
+  mairie_total: number;
+  mairie_verified: number;
 }
 
 type ServiceFilter = "all" | "electricity" | "water";
