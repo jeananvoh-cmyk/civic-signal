@@ -24,6 +24,9 @@ interface CommuneServiceStat {
   eau_actifs: number;
   eau_resolus: number;
   eau_total: number;
+  mairie_actifs: number;
+  mairie_resolus: number;
+  mairie_total: number;
 }
 
 interface DurationStat {
@@ -43,6 +46,7 @@ interface QuartierRanking {
   totalActifs: number;
   elecActifs: number;
   eauActifs: number;
+  mairieActifs: number;
   totalAll: number;
 }
 
@@ -211,7 +215,7 @@ const DashboardPage = () => {
       ...communeNames.map((nom) => supabase.rpc("get_commune_quartier_stats", { p_commune: nom })),
     ]);
     if (!statsRes.error && statsRes.data) setStats(statsRes.data as unknown as CommuneServiceStat[]);
-    else setStats(COMMUNES.map((c) => ({ commune: c.nom, couleur: c.couleur, population: c.population, electricite_actifs: 0, electricite_resolus: 0, electricite_total: 0, eau_actifs: 0, eau_resolus: 0, eau_total: 0 })));
+    else setStats(COMMUNES.map((c) => ({ commune: c.nom, couleur: c.couleur, population: c.population, electricite_actifs: 0, electricite_resolus: 0, electricite_total: 0, eau_actifs: 0, eau_resolus: 0, eau_total: 0, mairie_actifs: 0, mairie_resolus: 0, mairie_total: 0 })));
     if (!durRes.error && durRes.data) setDurations(durRes.data as unknown as DurationStat[]);
     if (!reportsRes.error && reportsRes.data) setPriorityReports(reportsRes.data as unknown as PriorityReport[]);
 
@@ -222,8 +226,8 @@ const DashboardPage = () => {
         const commune = communeNames[idx];
         const couleur = COMMUNES.find((c) => c.nom === commune)?.couleur || "#888";
         (res.data as any[]).forEach((q) => {
-          const totalActifs = (q.electricite_actifs || 0) + (q.eau_actifs || 0);
-          if (totalActifs > 0 || (q.electricite_total || 0) + (q.eau_total || 0) > 0) {
+          const totalActifs = (q.electricite_actifs || 0) + (q.eau_actifs || 0) + (q.mairie_actifs || 0);
+          if (totalActifs > 0 || (q.electricite_total || 0) + (q.eau_total || 0) + (q.mairie_total || 0) > 0) {
             allQuartiers.push({
               commune,
               couleur,
@@ -231,7 +235,8 @@ const DashboardPage = () => {
               totalActifs,
               elecActifs: q.electricite_actifs || 0,
               eauActifs: q.eau_actifs || 0,
-              totalAll: (q.electricite_total || 0) + (q.eau_total || 0),
+              mairieActifs: q.mairie_actifs || 0,
+              totalAll: (q.electricite_total || 0) + (q.eau_total || 0) + (q.mairie_total || 0),
             });
           }
         });
@@ -291,18 +296,21 @@ const DashboardPage = () => {
   const totalEauActifs = stats.reduce((s, c) => s + c.eau_actifs, 0);
   const totalEauResolus = stats.reduce((s, c) => s + c.eau_resolus, 0);
   const totalEauTotal = stats.reduce((s, c) => s + c.eau_total, 0);
+  const totalMairieActifs = stats.reduce((s, c) => s + c.mairie_actifs, 0);
+  const totalMairieResolus = stats.reduce((s, c) => s + c.mairie_resolus, 0);
+  const totalMairieTotal = stats.reduce((s, c) => s + c.mairie_total, 0);
 
   // Leaderboard: sorted by total active (most affected first)
-  const leaderboard = [...stats].sort((a, b) => (b.electricite_actifs + b.eau_actifs) - (a.electricite_actifs + a.eau_actifs));
+  const leaderboard = [...stats].sort((a, b) => (b.electricite_actifs + b.eau_actifs + b.mairie_actifs) - (a.electricite_actifs + a.eau_actifs + a.mairie_actifs));
 
   // Priority reports
   const activeReports = priorityReports.filter((r) => r.status === "active");
   const highPriorityReports = activeReports.filter((r) => r.urgency === "critical" || r.urgency === "high");
   const mediumPriorityReports = activeReports.filter((r) => r.urgency === "medium");
 
-  const totalActifs = totalElecActifs + totalEauActifs;
+  const totalActifs = totalElecActifs + totalEauActifs + totalMairieActifs;
   const isCrisis = totalActifs >= 10;
-  const isEmpty = !loading && totalActifs === 0 && totalElecTotal + totalEauTotal === 0;
+  const isEmpty = !loading && totalActifs === 0 && totalElecTotal + totalEauTotal + totalMairieTotal === 0;
 
   const maxHighDuration = highPriorityReports.length > 0
     ? Math.max(...highPriorityReports.map((r) => r.start_time ? (Date.now() - new Date(r.start_time).getTime()) / 60000 : 0))
@@ -374,7 +382,7 @@ const DashboardPage = () => {
 
         {/* Global totals — admin/moderator only */}
         {canValidate && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
             {loading ? (
               <>
                 <SkeletonCard />
@@ -424,6 +432,19 @@ const DashboardPage = () => {
                     <div><p className="font-display text-2xl font-extrabold text-blue-500">{totalEauActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
                     <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalEauResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
                     <div><p className="font-display text-2xl font-extrabold text-foreground">{totalEauTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
+                  </div>
+                </div>
+                <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15">
+                      <AlertTriangle className="h-5 w-5 text-emerald-500" />
+                    </div>
+                    <h2 className="font-display text-lg font-bold text-foreground">Mairie</h2>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalMairieActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
+                    <div><p className="font-display text-2xl font-extrabold text-success">{totalMairieResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
+                    <div><p className="font-display text-2xl font-extrabold text-foreground">{totalMairieTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
                   </div>
                 </div>
               </>

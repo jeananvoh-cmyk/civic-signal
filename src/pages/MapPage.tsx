@@ -20,9 +20,13 @@ interface CommuneServiceStat {
   eau_total: number;
   electricite_verified: number;
   eau_verified: number;
+  mairie_actifs: number;
+  mairie_resolus: number;
+  mairie_total: number;
+  mairie_verified: number;
 }
 
-type ServiceFilter = "all" | "electricity" | "water";
+type ServiceFilter = "all" | "electricity" | "water" | "mairie";
 
 const MapPage = () => {
   const [searchParams] = useSearchParams();
@@ -71,11 +75,13 @@ const MapPage = () => {
           actifs = s.electricite_actifs; resolus = s.electricite_resolus; total = s.electricite_total; verified = s.electricite_verified;
         } else if (filter === "water") {
           actifs = s.eau_actifs; resolus = s.eau_resolus; total = s.eau_total; verified = s.eau_verified;
+        } else if (filter === "mairie") {
+          actifs = s.mairie_actifs; resolus = s.mairie_resolus; total = s.mairie_total; verified = s.mairie_verified;
         } else {
-          actifs = s.electricite_actifs + s.eau_actifs;
-          resolus = s.electricite_resolus + s.eau_resolus;
-          total = s.electricite_total + s.eau_total;
-          verified = s.electricite_verified + s.eau_verified;
+          actifs = s.electricite_actifs + s.eau_actifs + s.mairie_actifs;
+          resolus = s.electricite_resolus + s.eau_resolus + s.mairie_resolus;
+          total = s.electricite_total + s.eau_total + s.mairie_total;
+          verified = s.electricite_verified + s.eau_verified + s.mairie_verified;
         }
       }
 
@@ -122,8 +128,8 @@ const MapPage = () => {
         </div>`;
       } else {
         // Single service marker
-        const filterEmoji = filter === "electricity" ? "⚡" : filter === "water" ? "💧" : "";
-        const bgColor = filter === "electricity" ? "#f59e0b" : filter === "water" ? "#3b82f6" : c.couleur;
+        const filterEmoji = filter === "electricity" ? "⚡" : filter === "water" ? "💧" : filter === "mairie" ? "🏗️" : "";
+        const bgColor = filter === "electricity" ? "#f59e0b" : filter === "water" ? "#3b82f6" : filter === "mairie" ? "#10b981" : c.couleur;
         markerHtml = `<div style="
           position:relative;
           background:${bgColor};color:white;
@@ -149,18 +155,20 @@ const MapPage = () => {
         iconAnchor: [filter === "all" && s && (s.electricite_actifs > 0 || s.eau_actifs > 0) ? (markerSize + 6) / 2 : markerSize / 2, markerSize / 2],
       });
 
-      const serviceLabel = filter === "electricity" ? "Électricité" : filter === "water" ? "Eau" : "Tous services";
+      const serviceLabel = filter === "electricity" ? "Électricité" : filter === "water" ? "Eau" : filter === "mairie" ? "Mairie" : "Tous services";
       // Build verified HTML per service
       let verifiedHtml = '';
       if (filter === "all" && s) {
         const elecPercent = s.electricite_actifs > 0 ? Math.round((s.electricite_verified / s.electricite_actifs) * 100) : 0;
         const eauPercent = s.eau_actifs > 0 ? Math.round((s.eau_verified / s.eau_actifs) * 100) : 0;
-        if (s.electricite_verified > 0 || s.eau_verified > 0) {
+        const mairiePercent = s.mairie_actifs > 0 ? Math.round((s.mairie_verified / s.mairie_actifs) * 100) : 0;
+        if (s.electricite_verified > 0 || s.eau_verified > 0 || s.mairie_verified > 0) {
           verifiedHtml = `<div style="margin-top:6px;padding:5px 8px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center">
             <span style="font-size:11px;color:#16a34a;font-weight:700">✓ Confirmé par les voisins</span>
-            <div style="display:flex;gap:6px;margin-top:4px;justify-content:center">
+            <div style="display:flex;gap:6px;margin-top:4px;justify-content:center;flex-wrap:wrap;">
               ${s.electricite_verified > 0 ? `<span style="padding:2px 8px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:11px;font-weight:600;color:#d97706">⚡ ${elecPercent}%</span>` : ''}
               ${s.eau_verified > 0 ? `<span style="padding:2px 8px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:11px;font-weight:600;color:#2563eb">💧 ${eauPercent}%</span>` : ''}
+              ${s.mairie_verified > 0 ? `<span style="padding:2px 8px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;font-size:11px;font-weight:600;color:#059669">🏗️ ${mairiePercent}%</span>` : ''}
             </div>
           </div>`;
         }
@@ -173,16 +181,18 @@ const MapPage = () => {
 
       // Build service breakdown for "all" filter popup
       const serviceBreakdownHtml = filter === "all" && s
-        ? `<div style="margin-top:6px;display:flex;gap:6px;justify-content:center">
-            <div style="flex:1;padding:4px 6px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;text-align:center">
+        ? `<div style="margin-top:6px;display:flex;gap:4px;justify-content:center;flex-wrap:wrap">
+            <div style="flex:1;min-width:30%;padding:4px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;text-align:center">
               <span style="font-size:12px">⚡</span><br/>
               <span style="font-size:13px;font-weight:bold;color:#d97706">${s.electricite_actifs}</span>
-              <span style="font-size:9px;color:#92400e"> actif${s.electricite_actifs > 1 ? 's' : ''}</span>
             </div>
-            <div style="flex:1;padding:4px 6px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;text-align:center">
+            <div style="flex:1;min-width:30%;padding:4px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;text-align:center">
               <span style="font-size:12px">💧</span><br/>
               <span style="font-size:13px;font-weight:bold;color:#2563eb">${s.eau_actifs}</span>
-              <span style="font-size:9px;color:#1e40af"> actif${s.eau_actifs > 1 ? 's' : ''}</span>
+            </div>
+            <div style="flex:1;min-width:30%;padding:4px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;text-align:center">
+              <span style="font-size:12px">🏗️</span><br/>
+              <span style="font-size:13px;font-weight:bold;color:#059669">${s.mairie_actifs}</span>
             </div>
           </div>`
         : '';
@@ -206,21 +216,26 @@ const MapPage = () => {
   const getFilteredTotals = () => {
     const elecActifs = stats.reduce((s, c) => s + c.electricite_actifs, 0);
     const eauActifs = stats.reduce((s, c) => s + c.eau_actifs, 0);
+    const mairieActifs = stats.reduce((s, c) => s + c.mairie_actifs, 0);
     const elecVerified = stats.reduce((s, c) => s + c.electricite_verified, 0);
     const eauVerified = stats.reduce((s, c) => s + c.eau_verified, 0);
+    const mairieVerified = stats.reduce((s, c) => s + c.mairie_verified, 0);
+
     if (filter === "electricity") {
-      return { total: stats.reduce((s, c) => s + c.electricite_total, 0), actifs: elecActifs, verified: elecVerified, elecActifs, eauActifs, elecVerified, eauVerified };
+      return { total: stats.reduce((s, c) => s + c.electricite_total, 0), actifs: elecActifs, verified: elecVerified, elecActifs, eauActifs, mairieActifs, elecVerified, eauVerified, mairieVerified };
     } else if (filter === "water") {
-      return { total: stats.reduce((s, c) => s + c.eau_total, 0), actifs: eauActifs, verified: eauVerified, elecActifs, eauActifs, elecVerified, eauVerified };
+      return { total: stats.reduce((s, c) => s + c.eau_total, 0), actifs: eauActifs, verified: eauVerified, elecActifs, eauActifs, mairieActifs, elecVerified, eauVerified, mairieVerified };
+    } else if (filter === "mairie") {
+      return { total: stats.reduce((s, c) => s + c.mairie_total, 0), actifs: mairieActifs, verified: mairieVerified, elecActifs, eauActifs, mairieActifs, elecVerified, eauVerified, mairieVerified };
     }
     return {
-      total: stats.reduce((s, c) => s + c.electricite_total + c.eau_total, 0),
-      actifs: elecActifs + eauActifs,
-      verified: elecVerified + eauVerified,
-      elecActifs, eauActifs, elecVerified, eauVerified,
+      total: stats.reduce((s, c) => s + c.electricite_total + c.eau_total + c.mairie_total, 0),
+      actifs: elecActifs + eauActifs + mairieActifs,
+      verified: elecVerified + eauVerified + mairieVerified,
+      elecActifs, eauActifs, mairieActifs, elecVerified, eauVerified, mairieVerified,
     };
   };
-  const { total: totalSignalements, actifs: totalActifs, verified: totalVerified, elecActifs: totalElecActifs, eauActifs: totalEauActifs, elecVerified: totalElecVerified, eauVerified: totalEauVerified } = getFilteredTotals();
+  const { total: totalSignalements, actifs: totalActifs, verified: totalVerified, elecActifs: totalElecActifs, eauActifs: totalEauActifs, mairieActifs: totalMairieActifs, elecVerified: totalElecVerified, eauVerified: totalEauVerified, mairieVerified: totalMairieVerified } = getFilteredTotals();
 
   return (
     <div className="min-h-screen bg-background">
@@ -266,6 +281,7 @@ const MapPage = () => {
             { key: "all" as ServiceFilter, label: "Tous", icon: "🔌💧" },
             { key: "electricity" as ServiceFilter, label: "Électricité", icon: "⚡" },
             { key: "water" as ServiceFilter, label: "Eau", icon: "💧" },
+            { key: "mairie" as ServiceFilter, label: "Mairie", icon: "🏗️" },
           ].map((f) => (
             <button
               key={f.key}
