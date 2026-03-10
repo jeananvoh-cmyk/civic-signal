@@ -8,13 +8,13 @@ export interface Commune {
 }
 
 export const COMMUNES: Commune[] = [
-  { nom: "Abobo", centerLat: 5.4167, centerLon: -4.0200, rayonM: 5000, population: 1400000, couleur: "#3B82F6" },
-  { nom: "Adjamé", centerLat: 5.3530, centerLon: -4.0220, rayonM: 2000, population: 422000, couleur: "#F59E0B" },
-  { nom: "Bingerville", centerLat: 5.3550, centerLon: -3.8900, rayonM: 6300, population: 115000, couleur: "#8B5CF6" },
-  { nom: "Cocody", centerLat: 5.3480, centerLon: -3.9750, rayonM: 6500, population: 447055, couleur: "#10B981" },
-  { nom: "Koumassi", centerLat: 5.3050, centerLon: -3.9950, rayonM: 4000, population: 428020, couleur: "#EC4899" },
-  { nom: "Port-Bouët", centerLat: 5.2600, centerLon: -3.9300, rayonM: 7000, population: 365006, couleur: "#F97316" },
-  { nom: "Yopougon", centerLat: 5.3364, centerLon: -4.0833, rayonM: 12000, population: 1571065, couleur: "#DC2626" },
+  { nom: "Abobo", centerLat: 5.4161, centerLon: -4.0159, rayonM: 5000, population: 1400000, couleur: "#3B82F6" },
+  { nom: "Adjamé", centerLat: 5.3360, centerLon: -4.0170, rayonM: 2000, population: 422000, couleur: "#F59E0B" },
+  { nom: "Bingerville", centerLat: 5.3500, centerLon: -3.8830, rayonM: 6300, population: 115000, couleur: "#8B5CF6" },
+  { nom: "Cocody", centerLat: 5.3600, centerLon: -3.9670, rayonM: 6500, population: 447055, couleur: "#10B981" },
+  { nom: "Koumassi", centerLat: 5.3000, centerLon: -3.9500, rayonM: 2500, population: 428020, couleur: "#EC4899" },
+  { nom: "Port-Bouët", centerLat: 5.2500, centerLon: -3.9667, rayonM: 7000, population: 365006, couleur: "#F97316" },
+  { nom: "Yopougon", centerLat: 5.3177, centerLon: -4.0900, rayonM: 12000, population: 1571065, couleur: "#DC2626" },
 ];
 
 export const COMMUNE_COLORS: Record<string, string> = Object.fromEntries(
