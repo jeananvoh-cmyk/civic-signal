@@ -572,15 +572,17 @@ const ReportPage = () => {
                 </>
               )}
 
-              <Button
-                type="button"
-                className="w-full py-5 text-base font-bold"
-                style={{ backgroundColor: selectedType.color, color: "white" }}
-                onClick={handleLocationNext}
-                disabled={!commune || !resolvedQuartier || !latitude}
-              >
-                Continuer →
-              </Button>
+              {canReport && (
+                <Button
+                  type="button"
+                  className="w-full py-5 text-base font-bold"
+                  style={{ backgroundColor: selectedType.color, color: "white" }}
+                  onClick={handleLocationNext}
+                  disabled={!commune || !resolvedQuartier || !latitude}
+                >
+                  Continuer →
+                </Button>
+              )}
             </motion.div>
           )}
 
