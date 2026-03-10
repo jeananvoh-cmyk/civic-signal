@@ -226,6 +226,8 @@ const ReportPage = () => {
 
   const resolvedQuartier = quartier === "__other" ? customQuartier.trim() : quartier;
 
+  const canReport = detectedCommune !== null && !outsidePilotZone && latitude !== null;
+
   const handleTypeSelect = (type: ReportTypeConfig) => {
     setSelectedType(type);
     setStep(2);
@@ -494,73 +496,93 @@ const ReportPage = () => {
                 )}
               </div>
 
-              {outsidePilotZone && (
-                <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive text-center">
-                  🚧 Hors des 7 communes pilotes. Sélectionnez manuellement ci-dessous.
-                </div>
+              {/* Blocage hors zone pilote */}
+              {!gpsLoading && (outsidePilotZone || (!detectedCommune && !gpsLoading)) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="rounded-2xl border-2 border-amber-500/30 bg-amber-500/5 p-5 text-center space-y-3"
+                >
+                  <div className="flex justify-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/15">
+                      <MapPin className="h-6 w-6 text-amber-500" />
+                    </div>
+                  </div>
+                  <h3 className="font-bold text-foreground text-sm">
+                    {outsidePilotZone
+                      ? "Vous êtes en dehors de nos communes pilotes"
+                      : "Position GPS non disponible"}
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {outsidePilotZone
+                      ? "SignalÉnergie est actuellement disponible dans 7 communes d'Abidjan : Abobo, Adjamé, Bingerville, Cocody, Koumassi, Port-Bouët et Yopougon. Nous travaillons à étendre notre couverture très bientôt. Merci pour votre intérêt ! 🙏"
+                      : "Pour signaler un problème, nous avons besoin de votre position GPS afin de vérifier que vous êtes dans une commune pilote. Veuillez autoriser la géolocalisation dans les paramètres de votre navigateur."}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => captureGPS(true)}
+                    disabled={gpsLoading}
+                    className="mx-auto"
+                  >
+                    <Navigation className="h-3.5 w-3.5 mr-1.5" />
+                    Réessayer la localisation
+                  </Button>
+                </motion.div>
               )}
 
-              {/* Commune */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Commune *</label>
-                <Select
-                  value={commune}
-                  onValueChange={(v) => { setCommune(v); setQuartier(""); setCustomQuartier(""); }}
+              {/* Commune & Quartier — uniquement si dans zone pilote */}
+              {canReport && (
+                <>
+                  {/* Commune */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">Commune *</label>
+                    <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/50 px-4 py-3">
+                      <span className="h-3 w-3 rounded-full inline-block" style={{ backgroundColor: detectedCommune?.couleur }} />
+                      <span className="font-semibold text-sm text-foreground">{commune}</span>
+                      <span className="text-xs text-muted-foreground ml-auto">détectée par GPS</span>
+                    </div>
+                  </div>
+
+                  {/* Quartier */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">Quartier *</label>
+                    <Select value={quartier} onValueChange={setQuartier}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner le quartier" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {getQuartiers(commune).map((q) => (
+                          <SelectItem key={q} value={q}>{q}</SelectItem>
+                        ))}
+                        <SelectItem value="__other">Autre quartier...</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {quartier === "__other" && (
+                      <Input
+                        placeholder="Nom du quartier"
+                        value={customQuartier}
+                        onChange={(e) => setCustomQuartier(e.target.value)}
+                        maxLength={100}
+                        autoFocus
+                      />
+                    )}
+                  </div>
+                </>
+              )}
+
+              {canReport && (
+                <Button
+                  type="button"
+                  className="w-full py-5 text-base font-bold"
+                  style={{ backgroundColor: selectedType.color, color: "white" }}
+                  onClick={handleLocationNext}
+                  disabled={!commune || !resolvedQuartier || !latitude}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner la commune" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {COMMUNES.map((c) => (
-                      <SelectItem key={c.nom} value={c.nom}>
-                        <span className="flex items-center gap-2">
-                          <span className="h-3 w-3 rounded-full inline-block" style={{ backgroundColor: c.couleur }} />
-                          {c.nom}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Quartier */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Quartier *</label>
-                {commune ? (
-                  <Select value={quartier} onValueChange={setQuartier}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner le quartier" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-60">
-                      {getQuartiers(commune).map((q) => (
-                        <SelectItem key={q} value={q}>{q}</SelectItem>
-                      ))}
-                      <SelectItem value="__other">Autre quartier...</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">Sélectionnez d'abord une commune</p>
-                )}
-                {quartier === "__other" && (
-                  <Input
-                    placeholder="Nom du quartier"
-                    value={customQuartier}
-                    onChange={(e) => setCustomQuartier(e.target.value)}
-                    maxLength={100}
-                    autoFocus
-                  />
-                )}
-              </div>
-
-              <Button
-                type="button"
-                className="w-full py-5 text-base font-bold"
-                style={{ backgroundColor: selectedType.color, color: "white" }}
-                onClick={handleLocationNext}
-                disabled={!commune || !resolvedQuartier || !latitude}
-              >
-                Continuer →
-              </Button>
+                  Continuer →
+                </Button>
+              )}
             </motion.div>
           )}
 
