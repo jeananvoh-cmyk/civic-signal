@@ -711,7 +711,7 @@ const ReportPage = () => {
                       }`}
                     >
                       <Users className="h-3.5 w-3.5" />
-                      Personnes
+                      Personnes impactées
                       {(impactedPeople > 1 || babies + pregnant + elderly > 0) && (
                         <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-current opacity-70" />
                       )}
@@ -797,11 +797,14 @@ const ReportPage = () => {
                       className="overflow-hidden"
                     >
                       <div className="rounded-xl border border-border bg-card p-3 space-y-1">
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Combien de personnes dans votre ménage sont touchées par cette coupure ?
+                        </p>
                         {[
-                          { label: "Total impactés", emoji: "👥", val: impactedPeople, set: setImpactedPeople, min: 1, max: 50 },
-                          { label: "Bébés / Nourrissons", emoji: "👶", val: babies, set: setBabies, min: 0, max: 20 },
+                          { label: "Personnes impactées dans le ménage", emoji: "👥", val: impactedPeople, set: setImpactedPeople, min: 1, max: 50 },
+                          { label: "Bébés / Nourrissons (0-2 ans)", emoji: "👶", val: babies, set: setBabies, min: 0, max: 20 },
                           { label: "Femmes enceintes", emoji: "🤰", val: pregnant, set: setPregnant, min: 0, max: 20 },
-                          { label: "Personnes âgées", emoji: "👴", val: elderly, set: setElderly, min: 0, max: 20 },
+                          { label: "Personnes âgées (65+ ans)", emoji: "👴", val: elderly, set: setElderly, min: 0, max: 20 },
                         ].map(({ label, emoji, val, set, min, max }) => (
                           <div key={label} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
                             <span className="text-sm flex items-center gap-2">
