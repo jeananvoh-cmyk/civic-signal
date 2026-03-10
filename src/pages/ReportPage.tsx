@@ -638,48 +638,46 @@ const ReportPage = () => {
                 </div>
               </div>
 
-              {/* ── Détails : pills ── */}
+              {/* ── Détails ── */}
               <div className="space-y-3">
-                {selectedType.reportCategory === "infrastructure" ? (
-                  <p className="text-xs text-center font-medium text-orange-600 dark:text-orange-400">
-                    📸 Une photo est obligatoire pour ce type de signalement
-                  </p>
-                ) : (
-                  <p className="text-xs text-center text-muted-foreground">Optionnel — enrichissez votre signalement</p>
-                )}
+                <p className="text-xs text-center text-muted-foreground">
+                  {selectedType.reportCategory === "infrastructure"
+                    ? "📸 Une photo est obligatoire pour ce type de signalement"
+                    : "Enrichissez votre signalement (optionnel)"}
+                </p>
 
-                {/* Pills */}
-                <div className="flex flex-wrap gap-2">
+                {/* Grille de boutons */}
+                <div className={`grid gap-2 ${selectedType.reportCategory === "outage" ? "grid-cols-2" : "grid-cols-2"}`}>
                   {/* Note */}
                   <button
                     type="button"
                     onClick={() => setShowDesc(!showDesc)}
-                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
+                    className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
                       showDesc
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
                     }`}
                   >
-                    <MessageSquare className="h-3.5 w-3.5" />
+                    <MessageSquare className="h-4 w-4" />
                     Note
-                    {description && <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-current opacity-70" />}
+                    {description && <span className="h-2 w-2 rounded-full bg-primary" />}
                   </button>
 
                   {/* Photo */}
                   <button
                     type="button"
                     onClick={() => setShowPhoto(!showPhoto)}
-                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
+                    className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
                       showPhoto
-                        ? "border-primary bg-primary text-primary-foreground"
+                        ? "border-primary bg-primary/10 text-primary"
                         : selectedType.reportCategory === "infrastructure" && !photoUrl
-                        ? "border-orange-400 bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400"
-                        : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                        ? "border-amber-400 bg-amber-500/10 text-amber-600 dark:text-amber-400 animate-pulse"
+                        : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
                     }`}
                   >
-                    <Camera className="h-3.5 w-3.5" />
-                    Photo{selectedType.reportCategory === "infrastructure" && <span className="text-orange-500"> *</span>}
-                    {photoUrl && <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-current opacity-70" />}
+                    <Camera className="h-4 w-4" />
+                    Photo{selectedType.reportCategory === "infrastructure" ? " *" : ""}
+                    {photoUrl && <span className="h-2 w-2 rounded-full bg-primary" />}
                   </button>
 
                   {/* Heure — coupures uniquement */}
@@ -687,15 +685,15 @@ const ReportPage = () => {
                     <button
                       type="button"
                       onClick={() => setShowTime(!showTime)}
-                      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
+                      className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
                         showTime
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
                       }`}
                     >
-                      <Clock className="h-3.5 w-3.5" />
-                      Heure
-                      {startTime && <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-current opacity-70" />}
+                      <Clock className="h-4 w-4" />
+                      Heure début
+                      {startTime && <span className="h-2 w-2 rounded-full bg-primary" />}
                     </button>
                   )}
 
@@ -704,16 +702,16 @@ const ReportPage = () => {
                     <button
                       type="button"
                       onClick={() => setShowPeople(!showPeople)}
-                      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
+                      className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
                         showPeople
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
                       }`}
                     >
-                      <Users className="h-3.5 w-3.5" />
-                      Personnes impactées
+                      <Users className="h-4 w-4" />
+                      Ménage
                       {(impactedPeople > 1 || babies + pregnant + elderly > 0) && (
-                        <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+                        <span className="h-2 w-2 rounded-full bg-primary" />
                       )}
                     </button>
                   )}
