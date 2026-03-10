@@ -226,6 +226,8 @@ const ReportPage = () => {
 
   const resolvedQuartier = quartier === "__other" ? customQuartier.trim() : quartier;
 
+  const canReport = detectedCommune !== null && !outsidePilotZone && latitude !== null;
+
   const handleTypeSelect = (type: ReportTypeConfig) => {
     setSelectedType(type);
     setStep(2);
