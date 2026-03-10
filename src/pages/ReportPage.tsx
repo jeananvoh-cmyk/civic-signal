@@ -711,7 +711,7 @@ const ReportPage = () => {
                       }`}
                     >
                       <Users className="h-3.5 w-3.5" />
-                      Personnes
+                      Personnes impactées
                       {(impactedPeople > 1 || babies + pregnant + elderly > 0) && (
                         <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-current opacity-70" />
                       )}
