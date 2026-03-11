@@ -141,7 +141,7 @@ const AuthPage = () => {
             <Zap className="h-5 w-5 text-primary-foreground" />
           </div>
           <span className="font-display text-xl font-bold text-foreground">
-            Signal<span className="text-water">Énergie</span>
+            SIGNA<span className="text-water">-CI</span>
           </span>
         </div>
 
