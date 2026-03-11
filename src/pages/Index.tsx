@@ -356,7 +356,7 @@ const Index = () => {
                   <Zap className="h-4 w-4 text-white" />
                 </div>
                 <span className="font-bold text-sm text-foreground">
-                  Signal<span className="text-primary">Énergie</span>
+                  SIGNA<span className="text-primary">-CI</span>
                 </span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
