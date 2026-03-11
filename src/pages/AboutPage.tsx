@@ -109,7 +109,7 @@ const AboutPage = () => {
               <p><strong className="text-foreground">Données personnelles :</strong> Vos coordonnées GPS exactes ne sont jamais affichées publiquement. Seules les statistiques agrégées par commune sont visibles. Vos coordonnées GPS sont automatiquement supprimées lorsque votre signalement est résolu.</p>
               <p><strong className="text-foreground">Utilisation responsable :</strong> Les faux signalements sont interdits. Toute exagération sur le nombre de personnes impactées fausse les statistiques et pourrait entraîner une suspension de votre compte. Chaque utilisateur est limité à 5 signalements par jour.</p>
               <p><strong className="text-foreground">Propriété des données :</strong> Les données collectées sont utilisées exclusivement pour améliorer les services publics d'eau et d'électricité à Abidjan.</p>
-              <p><strong className="text-foreground">Contact :</strong> Pour toute question, contactez-nous à signalenergie@civictech.ci</p>
+              <p><strong className="text-foreground">Contact :</strong> Pour toute question, contactez-nous à signaci@civictech.ci</p>
               <p className="pt-2">
                 <Link to="/confidentialite" className="text-primary underline flex items-center gap-1">
                   <Shield className="h-4 w-4" /> Consulter notre politique de confidentialité complète
