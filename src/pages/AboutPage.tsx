@@ -16,7 +16,7 @@ const AboutPage = () => {
               <Zap className="h-8 w-8 text-primary-foreground" />
             </div>
             <h1 className="font-display text-3xl font-bold text-foreground">
-              Signal<span className="text-water">Énergie</span>
+              SIGNA<span className="text-water">-CI</span>
             </h1>
             <p className="mt-2 text-muted-foreground">
               Plateforme citoyenne de signalement des coupures d'eau et d'électricité
@@ -32,7 +32,7 @@ const AboutPage = () => {
               <h2 className="font-display text-xl font-bold text-foreground">Notre mission</h2>
             </div>
             <p className="text-muted-foreground leading-relaxed">
-              SignalÉnergie est une initiative CivicTech qui permet aux habitants d'Abidjan de signaler 
+              SIGNA-CI est une initiative CivicTech qui permet aux habitants d'Abidjan de signaler 
               les coupures d'eau et d'électricité en temps réel. En collectant ces données citoyennes, 
               nous aidons les opérateurs (CIE, SODECI) et les autorités locales à mieux comprendre 
               et résoudre les problèmes d'accès aux services essentiels.
@@ -51,11 +51,11 @@ const AboutPage = () => {
               {COMMUNES.map((c) => (
                 <div key={c.nom} className="flex items-center gap-3 rounded-xl border border-border p-3">
                   <div
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg overflow-hidden"
-                    style={{ backgroundColor: c.couleur }}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg overflow-hidden border border-border"
+                    style={{ backgroundColor: COMMUNE_LOGOS[c.nom] ? '#fff' : c.couleur }}
                   >
                     {COMMUNE_LOGOS[c.nom] ? (
-                      <img src={COMMUNE_LOGOS[c.nom]} alt={c.nom} className="h-full w-full object-cover" />
+                      <img src={COMMUNE_LOGOS[c.nom]} alt={c.nom} className="h-full w-full object-contain p-0.5" />
                     ) : (
                       <span className="text-white font-bold text-xs">{c.nom[0]}</span>
                     )}
@@ -109,7 +109,7 @@ const AboutPage = () => {
               <p><strong className="text-foreground">Données personnelles :</strong> Vos coordonnées GPS exactes ne sont jamais affichées publiquement. Seules les statistiques agrégées par commune sont visibles. Vos coordonnées GPS sont automatiquement supprimées lorsque votre signalement est résolu.</p>
               <p><strong className="text-foreground">Utilisation responsable :</strong> Les faux signalements sont interdits. Toute exagération sur le nombre de personnes impactées fausse les statistiques et pourrait entraîner une suspension de votre compte. Chaque utilisateur est limité à 5 signalements par jour.</p>
               <p><strong className="text-foreground">Propriété des données :</strong> Les données collectées sont utilisées exclusivement pour améliorer les services publics d'eau et d'électricité à Abidjan.</p>
-              <p><strong className="text-foreground">Contact :</strong> Pour toute question, contactez-nous à signalenergie@civictech.ci</p>
+              <p><strong className="text-foreground">Contact :</strong> Pour toute question, contactez-nous à signaci@civictech.ci</p>
               <p className="pt-2">
                 <Link to="/confidentialite" className="text-primary underline flex items-center gap-1">
                   <Shield className="h-4 w-4" /> Consulter notre politique de confidentialité complète
@@ -119,7 +119,7 @@ const AboutPage = () => {
           </section>
 
           <div className="text-center text-xs text-muted-foreground">
-            © 2026 SignalÉnergie — CivicTech Abidjan · Version pilote
+            © 2026 SIGNA-CI — CivicTech Abidjan · Version pilote
           </div>
         </motion.div>
       </main>

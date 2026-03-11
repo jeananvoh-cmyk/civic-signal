@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export type AuditAction =
   | "report_validated"
   | "report_rejected"
+  | "report_resolved"
   | "report_purge_user"
   | "report_purge_commune"
   | "report_purge_all"

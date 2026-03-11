@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { CheckCircle, XCircle, MapPin, Zap, Droplets, Clock, Eye } from "lucide-react";
+import { CheckCircle, XCircle, MapPin, Zap, Droplets, Clock, Eye, Construction } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,7 @@ import { getUserFriendlyError } from "@/lib/error-utils";
 import { logAudit } from "@/lib/audit";
 import { format } from "date-fns";
 import SignedImage from "@/components/SignedImage";
+import CorroborationStatus from "@/components/CorroborationStatus";
 import { fr } from "date-fns/locale";
 
 const URGENCY_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -82,6 +83,24 @@ const AdminReportsPage = () => {
     onError: (err: any) => toast.error(getUserFriendlyError(err)),
   });
 
+  const resolveMutation = useMutation({
+    mutationFn: async (reportId: string) => {
+      const { error } = await supabase.rpc("admin_resolve_report", { p_report_id: reportId });
+      if (error) throw error;
+    },
+    onSuccess: (_, reportId) => {
+      logAudit({
+        action: "report_resolved",
+        target_type: "report",
+        target_id: reportId,
+      });
+      queryClient.invalidateQueries({ queryKey: ["admin-reports-validated"] });
+      toast.success("Signalement marqué comme résolu.");
+      setSelectedReport(null);
+    },
+    onError: (err: any) => toast.error(getUserFriendlyError(err)),
+  });
+
   const ReportRow = ({ report, showActions }: { report: any; showActions: boolean }) => {
     const urgency = URGENCY_LABELS[report.urgency] || URGENCY_LABELS.low;
     return (
@@ -101,6 +120,12 @@ const AdminReportsPage = () => {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {report.report_category === "infrastructure" && (
+              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 gap-1">
+                <Construction className="h-3 w-3" />
+                Infra
+              </Badge>
+            )}
             <Badge variant={urgency.variant}>{urgency.label}</Badge>
             {showActions && (
               <div className="flex gap-1 ml-2">
@@ -221,6 +246,8 @@ const AdminReportsPage = () => {
                   <p className="text-muted-foreground text-sm mb-1">Description</p>
                   <p className="text-sm">{selectedReport.description}</p>
                 </div>
+                {/* Corroboration status in admin detail */}
+                <CorroborationStatus verifications={selectedReport.verifications} />
                 {selectedReport.photo_url && (
                   <div>
                     <p className="text-muted-foreground text-sm mb-1">Photo jointe</p>
@@ -249,6 +276,18 @@ const AdminReportsPage = () => {
                     >
                       <XCircle className="mr-2 h-4 w-4" />
                       Rejeter
+                    </Button>
+                  </div>
+                )}
+                {selectedReport.validated && selectedReport.status === "active" && (
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      className="flex-1 bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90 text-white"
+                      onClick={() => resolveMutation.mutate(selectedReport.id)}
+                      disabled={resolveMutation.isPending}
+                    >
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Marquer comme résolu
                     </Button>
                   </div>
                 )}

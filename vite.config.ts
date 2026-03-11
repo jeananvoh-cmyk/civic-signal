@@ -24,8 +24,8 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,webp,woff2}"],
       },
       manifest: {
-        name: "SignalÉnergie — Coupures Abidjan",
-        short_name: "SignalÉnergie",
+        name: "SIGNA-CI — Coupures Abidjan",
+        short_name: "SIGNA-CI",
         description: "Signalez les coupures d'eau et d'électricité à Abidjan",
         theme_color: "#1a2744",
         background_color: "#f8fafc",

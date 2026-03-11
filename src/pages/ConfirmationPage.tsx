@@ -1,0 +1,206 @@
+import { useEffect, useState } from "react";
+import { useSearchParams, Link } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { CheckCircle2, Radio, Users, Share2, BarChart3, Zap, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Header from "@/components/Header";
+import ShareButton from "@/components/ShareButton";
+import { supabase } from "@/integrations/supabase/client";
+import { COMMUNES } from "@/lib/communes";
+
+const POLL_INTERVAL = 5000;
+
+const ConfirmationPage = () => {
+  const [searchParams] = useSearchParams();
+  const reportId = searchParams.get("id");
+  const commune = searchParams.get("commune") || "";
+  const typeLabel = searchParams.get("type") || "Signalement";
+  const typeEmoji = searchParams.get("emoji") || "⚡";
+
+  const [verifications, setVerifications] = useState(0);
+  const [prevVerifications, setPrevVerifications] = useState(0);
+  const [pulse, setPulse] = useState(false);
+
+  const communeData = COMMUNES.find((c) => c.nom === commune);
+  const accentColor = communeData?.couleur || "#0ea5e9";
+
+  useEffect(() => {
+    if (!reportId) return;
+
+    const fetchVerifications = async () => {
+      const { data } = await supabase
+        .from("reports")
+        .select("verifications")
+        .eq("id", reportId)
+        .single();
+      if (data !== null && data !== undefined) {
+        const newCount = (data as any).verifications ?? 0;
+        setVerifications((prev) => {
+          if (newCount > prev) {
+            setPulse(true);
+            setPrevVerifications(prev);
+            setTimeout(() => setPulse(false), 1200);
+          }
+          return newCount;
+        });
+      }
+    };
+
+    fetchVerifications();
+    const interval = setInterval(fetchVerifications, POLL_INTERVAL);
+    return () => clearInterval(interval);
+  }, [reportId]);
+
+  const shareText = `${typeEmoji} ${typeLabel} signalé à ${commune || "Abidjan"} — Aidez vos voisins à confirmer sur SignalÉnergie !`;
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <main className="container max-w-md py-10 px-4">
+
+        {/* Icône succès */}
+        <motion.div
+          initial={{ scale: 0.6, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 200, damping: 18 }}
+          className="mb-6 flex justify-center"
+        >
+          <div
+            className="flex h-20 w-20 items-center justify-center rounded-full"
+            style={{ backgroundColor: accentColor + "20", border: `3px solid ${accentColor}40` }}
+          >
+            <CheckCircle2 className="h-10 w-10" style={{ color: accentColor }} />
+          </div>
+        </motion.div>
+
+        {/* Titre */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="mb-8 text-center"
+        >
+          <h1 className="font-display text-2xl font-extrabold text-foreground">
+            Signalement envoyé !
+          </h1>
+          <p className="mt-2 text-muted-foreground">
+            {typeEmoji} <span className="font-semibold">{typeLabel}</span>
+            {commune && (
+              <> — <span className="font-semibold" style={{ color: accentColor }}>{commune}</span></>
+            )}
+          </p>
+        </motion.div>
+
+        {/* Live counter */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="mb-6 overflow-hidden rounded-2xl border-2 bg-card p-6 text-center shadow-card"
+          style={{ borderColor: accentColor + "40" }}
+        >
+          <div className="mb-2 flex items-center justify-center gap-2 text-xs font-semibold text-muted-foreground">
+            <Radio className={`h-3.5 w-3.5 ${pulse ? "animate-pulse" : ""}`} style={{ color: accentColor }} />
+            Confirmations de vos voisins — Live
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={verifications}
+              initial={{ opacity: 0, scale: 0.8, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 1.2, y: 10 }}
+              transition={{ duration: 0.3 }}
+              className="font-display text-6xl font-extrabold"
+              style={{ color: verifications > 0 ? accentColor : undefined }}
+            >
+              {verifications}
+            </motion.div>
+          </AnimatePresence>
+
+          <div className="mt-1 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
+            <Users className="h-4 w-4" />
+            voisin{verifications !== 1 ? "s" : ""} confirm{verifications !== 1 ? "ent" : "e"}
+          </div>
+
+          {verifications === 0 && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              Les voisins dans un rayon de 200 m seront notifiés.
+            </p>
+          )}
+          {verifications >= 1 && verifications < 3 && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-3 text-xs font-medium text-emerald-600 dark:text-emerald-400"
+            >
+              Votre signalement gagne en crédibilité !
+            </motion.p>
+          )}
+          {verifications >= 3 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mt-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 p-3"
+            >
+              <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400">
+                🎯 Signalement fortement confirmé !
+              </p>
+              <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-0.5">
+                Il sera traité en priorité par les autorités.
+              </p>
+            </motion.div>
+          )}
+        </motion.div>
+
+        {/* Actions */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className="space-y-3"
+        >
+          <ShareButton
+            title="SignalÉnergie — Signalement citoyen"
+            text={shareText}
+            className="w-full justify-center py-5 text-base font-bold"
+          />
+
+          <div className="grid grid-cols-2 gap-3">
+            <Button asChild variant="outline" className="py-4 font-semibold">
+              <Link to="/tableau-de-bord">
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Dashboard
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="py-4 font-semibold">
+              <Link to="/signaler">
+                <Zap className="mr-2 h-4 w-4" />
+                Nouveau
+              </Link>
+            </Button>
+          </div>
+
+          <Button asChild className="w-full py-4 font-semibold" style={{ backgroundColor: accentColor }}>
+            <Link to="/">
+              Retour à l'accueil
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </motion.div>
+
+        {/* Tip */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mt-8 text-center text-xs text-muted-foreground"
+        >
+          Le compteur se met à jour automatiquement toutes les 5 secondes.
+        </motion.p>
+      </main>
+    </div>
+  );
+};
+
+export default ConfirmationPage;

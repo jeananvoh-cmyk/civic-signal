@@ -17,12 +17,10 @@ import { toast } from "sonner";
 import { getUserFriendlyError } from "@/lib/error-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { COMMUNES, type Commune } from "@/lib/communes";
-import { resolveCommune, type DetectionSource } from "@/lib/geolocation";
+import { COMMUNES, findNearestCommune, type Commune } from "@/lib/communes";
 import { getQuartiers } from "@/lib/quartiers";
 import type { ServiceType } from "@/lib/data";
 import SOSButtons from "@/components/SOSButtons";
-import { usePendingReports } from "@/hooks/usePendingReports";
 
 // ─── Types de signalement ────────────────────────────────────────────────────
 
@@ -87,8 +85,8 @@ const REPORT_TYPES: ReportTypeConfig[] = [
     id: "drain_blocked",
     emoji: "🚧",
     label: "Caniveau bouché",
-    color: "#6B7280",
-    serviceType: "water",
+    color: "#10B981", // Emerald
+    serviceType: "mairie" as any,
     reportCategory: "infrastructure",
     defaultDesc: (c) => `Caniveau bouché / débordement à ${c}`,
   },
@@ -96,8 +94,8 @@ const REPORT_TYPES: ReportTypeConfig[] = [
     id: "pothole",
     emoji: "🛣️",
     label: "Nid de poule",
-    color: "#7C3AED",
-    serviceType: "water",
+    color: "#10B981",
+    serviceType: "mairie" as any,
     reportCategory: "infrastructure",
     defaultDesc: (c) => `Nid de poule / route dégradée à ${c}`,
   },
@@ -105,8 +103,8 @@ const REPORT_TYPES: ReportTypeConfig[] = [
     id: "illegal_dump",
     emoji: "🗑️",
     label: "Dépôt sauvage",
-    color: "#16A34A",
-    serviceType: "water",
+    color: "#10B981",
+    serviceType: "mairie" as any,
     reportCategory: "infrastructure",
     defaultDesc: (c) => `Dépôt sauvage d'ordures à ${c}`,
   },
@@ -114,8 +112,8 @@ const REPORT_TYPES: ReportTypeConfig[] = [
     id: "other",
     emoji: "➕",
     label: "Autre",
-    color: "#64748B",
-    serviceType: "water",
+    color: "#10B981",
+    serviceType: "mairie" as any,
     reportCategory: "infrastructure",
     defaultDesc: (c) => `Signalement à ${c}`,
   },
@@ -162,11 +160,6 @@ const ReportPage = () => {
   const [detectedCommune, setDetectedCommune] = useState<Commune | null>(null);
   const [outsidePilotZone, setOutsidePilotZone] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(true);
-  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
-  const [detectionSource, setDetectionSource] = useState<DetectionSource>(null);
-
-  // Offline queue
-  const { enqueue } = usePendingReports();
 
   // Misc
   const [submitting, setSubmitting] = useState(false);
@@ -181,47 +174,29 @@ const ReportPage = () => {
     }
     setGpsLoading(true);
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
+      (pos) => {
         const lat = pos.coords.latitude;
         const lon = pos.coords.longitude;
-        const acc = pos.coords.accuracy;
         setLatitude(lat);
         setLongitude(lon);
-        setGpsAccuracy(acc);
-        try {
-          const googleKey = (import.meta.env.VITE_GOOGLE_GEOCODING_KEY as string) || undefined;
-          const detection = await resolveCommune(lat, lon, acc, googleKey);
-          if (detection.commune) {
-            setDetectedCommune(detection.commune);
-            setCommune(detection.commune.nom);
-            setOutsidePilotZone(false);
-            setDetectionSource(detection.source);
-          } else {
-            setDetectedCommune(null);
-            setCommune("");
-            setOutsidePilotZone(detection.outsidePilotZone);
-            setDetectionSource(null);
-          }
-        } catch {
+        const result = findNearestCommune(lat, lon);
+        if (result.isInPilotZone && result.commune) {
+          setDetectedCommune(result.commune);
+          setCommune(result.commune.nom);
+          setOutsidePilotZone(false);
+        } else {
           setDetectedCommune(null);
+          setCommune("");
           setOutsidePilotZone(true);
         }
         setGpsLoading(false);
         if (showError) toast.success("Position GPS capturée !");
       },
-      (err) => {
+      () => {
         setGpsLoading(false);
-        if (showError) {
-          if (err.code === 1) {
-            toast.error("Permission GPS refusée. Activez la géolocalisation dans les paramètres.");
-          } else if (err.code === 3) {
-            toast.error("Délai GPS dépassé. Réessayez en extérieur ou près d'une fenêtre.");
-          } else {
-            toast.error("Impossible d'obtenir votre position. Vérifiez les permissions GPS.");
-          }
-        }
+        if (showError) toast.error("Impossible d'obtenir votre position. Vérifiez les permissions GPS.");
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
+      { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 
@@ -250,6 +225,8 @@ const ReportPage = () => {
   }, [user]);
 
   const resolvedQuartier = quartier === "__other" ? customQuartier.trim() : quartier;
+
+  const canReport = detectedCommune !== null && !outsidePilotZone && latitude !== null;
 
   const handleTypeSelect = (type: ReportTypeConfig) => {
     setSelectedType(type);
@@ -306,7 +283,7 @@ const ReportPage = () => {
       const fullDesc = `${fullBaseDesc} ${impactInfo}`;
       const hasVulnerable = babies > 0 || pregnant > 0 || elderly > 0;
 
-      const reportPayload = {
+      const { error } = await supabase.from("reports").insert({
         user_id: user.id,
         service_type: selectedType.serviceType,
         report_category: selectedType.reportCategory,
@@ -323,30 +300,11 @@ const ReportPage = () => {
         babies,
         pregnant,
         elderly,
-      };
-
-      // Offline : enqueue and show offline confirmation
-      if (!navigator.onLine) {
-        enqueue(reportPayload);
-        toast.success("📶 Hors connexion — signalement sauvegardé, envoi automatique à la reconnexion.");
-        navigate(
-          `/signalement-envoye?commune=${encodeURIComponent(commune)}&type=${encodeURIComponent(typeLabel)}&emoji=${encodeURIComponent(selectedType.emoji)}&offline=1`
-        );
-        return;
-      }
-
-      const { data: inserted, error } = await supabase
-        .from("reports")
-        .insert(reportPayload as any)
-        .select("id")
-        .single();
+      } as any);
 
       if (error) throw error;
-
       toast.success("✅ Signalement envoyé !");
-      navigate(
-        `/signalement-envoye?id=${inserted?.id ?? ""}&commune=${encodeURIComponent(commune)}&type=${encodeURIComponent(typeLabel)}&emoji=${encodeURIComponent(selectedType.emoji)}`
-      );
+      navigate("/");
     } catch (error: any) {
       const msg = error?.message || "";
       if (msg.includes("Rate limit exceeded")) {
@@ -509,8 +467,7 @@ const ReportPage = () => {
                     <MapPin className="h-4 w-4 shrink-0" style={{ color: detectedCommune?.couleur }} />
                     {gpsLoading ? (
                       <span className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        {latitude ? "Identification commune…" : "Détection GPS…"}
+                        <Loader2 className="h-3 w-3 animate-spin" /> Détection GPS...
                       </span>
                     ) : detectedCommune ? (
                       <span className="font-bold text-sm truncate" style={{ color: detectedCommune.couleur }}>
@@ -533,99 +490,99 @@ const ReportPage = () => {
                   </button>
                 </div>
                 {latitude && longitude && (
-                  <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-                    <p className="text-xs text-muted-foreground font-mono">
-                      {latitude.toFixed(5)}, {longitude.toFixed(5)}
-                    </p>
-                    {gpsAccuracy !== null && (
-                      <span
-                        className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold ${
-                          gpsAccuracy <= 20
-                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                            : gpsAccuracy <= 100
-                            ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                            : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
-                        }`}
-                      >
-                        ±{Math.round(gpsAccuracy)} m
-                      </span>
-                    )}
-                    {detectionSource && detectionSource !== "geojson" && (
-                      <span className="inline-block rounded px-1.5 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground">
-                        via {detectionSource}
-                      </span>
-                    )}
-                  </div>
+                  <p className="mt-1.5 text-xs text-muted-foreground font-mono">
+                    {latitude.toFixed(5)}, {longitude.toFixed(5)}
+                  </p>
                 )}
               </div>
 
-              {outsidePilotZone && (
-                <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive text-center">
-                  🚧 Hors des 7 communes pilotes. Sélectionnez manuellement ci-dessous.
-                </div>
+              {/* Blocage hors zone pilote */}
+              {!gpsLoading && (outsidePilotZone || (!detectedCommune && !gpsLoading)) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="rounded-2xl border-2 border-amber-500/30 bg-amber-500/5 p-5 text-center space-y-3"
+                >
+                  <div className="flex justify-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/15">
+                      <MapPin className="h-6 w-6 text-amber-500" />
+                    </div>
+                  </div>
+                  <h3 className="font-bold text-foreground text-sm">
+                    {outsidePilotZone
+                      ? "Vous êtes en dehors de nos communes pilotes"
+                      : "Position GPS non disponible"}
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {outsidePilotZone
+                      ? "SIGNA-CI est actuellement disponible dans 7 communes d'Abidjan : Abobo, Adjamé, Bingerville, Cocody, Koumassi, Port-Bouët et Yopougon. Nous travaillons à étendre notre couverture très bientôt. Merci pour votre intérêt ! 🙏"
+                      : "Pour signaler un problème, nous avons besoin de votre position GPS afin de vérifier que vous êtes dans une commune pilote. Veuillez autoriser la géolocalisation dans les paramètres de votre navigateur."}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => captureGPS(true)}
+                    disabled={gpsLoading}
+                    className="mx-auto"
+                  >
+                    <Navigation className="h-3.5 w-3.5 mr-1.5" />
+                    Réessayer la localisation
+                  </Button>
+                </motion.div>
               )}
 
-              {/* Commune */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Commune *</label>
-                <Select
-                  value={commune}
-                  onValueChange={(v) => { setCommune(v); setQuartier(""); setCustomQuartier(""); }}
+              {/* Commune & Quartier — uniquement si dans zone pilote */}
+              {canReport && (
+                <>
+                  {/* Commune */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">Commune *</label>
+                    <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/50 px-4 py-3">
+                      <span className="h-3 w-3 rounded-full inline-block" style={{ backgroundColor: detectedCommune?.couleur }} />
+                      <span className="font-semibold text-sm text-foreground">{commune}</span>
+                      <span className="text-xs text-muted-foreground ml-auto">détectée par GPS</span>
+                    </div>
+                  </div>
+
+                  {/* Quartier */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">Quartier *</label>
+                    <Select value={quartier} onValueChange={setQuartier}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner le quartier" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {getQuartiers(commune).map((q) => (
+                          <SelectItem key={q} value={q}>{q}</SelectItem>
+                        ))}
+                        <SelectItem value="__other">Autre quartier...</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {quartier === "__other" && (
+                      <Input
+                        placeholder="Nom du quartier"
+                        value={customQuartier}
+                        onChange={(e) => setCustomQuartier(e.target.value)}
+                        maxLength={100}
+                        autoFocus
+                      />
+                    )}
+                  </div>
+                </>
+              )}
+
+              {canReport && (
+                <Button
+                  type="button"
+                  className="w-full py-5 text-base font-bold"
+                  style={{ backgroundColor: selectedType.color, color: "white" }}
+                  onClick={handleLocationNext}
+                  disabled={!commune || !resolvedQuartier || !latitude}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner la commune" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {COMMUNES.map((c) => (
-                      <SelectItem key={c.nom} value={c.nom}>
-                        <span className="flex items-center gap-2">
-                          <span className="h-3 w-3 rounded-full inline-block" style={{ backgroundColor: c.couleur }} />
-                          {c.nom}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Quartier */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Quartier *</label>
-                {commune ? (
-                  <Select value={quartier} onValueChange={setQuartier}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner le quartier" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-60">
-                      {getQuartiers(commune).map((q) => (
-                        <SelectItem key={q} value={q}>{q}</SelectItem>
-                      ))}
-                      <SelectItem value="__other">Autre quartier...</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">Sélectionnez d'abord une commune</p>
-                )}
-                {quartier === "__other" && (
-                  <Input
-                    placeholder="Nom du quartier"
-                    value={customQuartier}
-                    onChange={(e) => setCustomQuartier(e.target.value)}
-                    maxLength={100}
-                    autoFocus
-                  />
-                )}
-              </div>
-
-              <Button
-                type="button"
-                className="w-full py-5 text-base font-bold"
-                style={{ backgroundColor: selectedType.color, color: "white" }}
-                onClick={handleLocationNext}
-                disabled={!commune || !resolvedQuartier || !latitude}
-              >
-                Continuer →
-              </Button>
+                  Continuer →
+                </Button>
+              )}
             </motion.div>
           )}
 
@@ -681,48 +638,46 @@ const ReportPage = () => {
                 </div>
               </div>
 
-              {/* ── Détails : pills ── */}
+              {/* ── Détails ── */}
               <div className="space-y-3">
-                {selectedType.reportCategory === "infrastructure" ? (
-                  <p className="text-xs text-center font-medium text-orange-600 dark:text-orange-400">
-                    📸 Une photo est obligatoire pour ce type de signalement
-                  </p>
-                ) : (
-                  <p className="text-xs text-center text-muted-foreground">Optionnel — enrichissez votre signalement</p>
-                )}
+                <p className="text-xs text-center text-muted-foreground">
+                  {selectedType.reportCategory === "infrastructure"
+                    ? "📸 Une photo est obligatoire pour ce type de signalement"
+                    : "Enrichissez votre signalement (optionnel)"}
+                </p>
 
-                {/* Pills */}
-                <div className="flex flex-wrap gap-2">
+                {/* Grille de boutons */}
+                <div className={`grid gap-2 ${selectedType.reportCategory === "outage" ? "grid-cols-2" : "grid-cols-2"}`}>
                   {/* Note */}
                   <button
                     type="button"
                     onClick={() => setShowDesc(!showDesc)}
-                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
+                    className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
                       showDesc
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
                     }`}
                   >
-                    <MessageSquare className="h-3.5 w-3.5" />
+                    <MessageSquare className="h-4 w-4" />
                     Note
-                    {description && <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-current opacity-70" />}
+                    {description && <span className="h-2 w-2 rounded-full bg-primary" />}
                   </button>
 
                   {/* Photo */}
                   <button
                     type="button"
                     onClick={() => setShowPhoto(!showPhoto)}
-                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
+                    className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
                       showPhoto
-                        ? "border-primary bg-primary text-primary-foreground"
+                        ? "border-primary bg-primary/10 text-primary"
                         : selectedType.reportCategory === "infrastructure" && !photoUrl
-                        ? "border-orange-400 bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400"
-                        : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                        ? "border-amber-400 bg-amber-500/10 text-amber-600 dark:text-amber-400 animate-pulse"
+                        : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
                     }`}
                   >
-                    <Camera className="h-3.5 w-3.5" />
-                    Photo{selectedType.reportCategory === "infrastructure" && <span className="text-orange-500"> *</span>}
-                    {photoUrl && <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-current opacity-70" />}
+                    <Camera className="h-4 w-4" />
+                    Photo{selectedType.reportCategory === "infrastructure" ? " *" : ""}
+                    {photoUrl && <span className="h-2 w-2 rounded-full bg-primary" />}
                   </button>
 
                   {/* Heure — coupures uniquement */}
@@ -730,15 +685,15 @@ const ReportPage = () => {
                     <button
                       type="button"
                       onClick={() => setShowTime(!showTime)}
-                      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
+                      className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
                         showTime
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
                       }`}
                     >
-                      <Clock className="h-3.5 w-3.5" />
-                      Heure
-                      {startTime && <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-current opacity-70" />}
+                      <Clock className="h-4 w-4" />
+                      Heure début
+                      {startTime && <span className="h-2 w-2 rounded-full bg-primary" />}
                     </button>
                   )}
 
@@ -747,16 +702,16 @@ const ReportPage = () => {
                     <button
                       type="button"
                       onClick={() => setShowPeople(!showPeople)}
-                      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
+                      className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
                         showPeople
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
                       }`}
                     >
-                      <Users className="h-3.5 w-3.5" />
-                      Personnes
+                      <Users className="h-4 w-4" />
+                      Ménage
                       {(impactedPeople > 1 || babies + pregnant + elderly > 0) && (
-                        <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+                        <span className="h-2 w-2 rounded-full bg-primary" />
                       )}
                     </button>
                   )}
@@ -797,7 +752,7 @@ const ReportPage = () => {
                       className="overflow-hidden"
                     >
                       <div className="rounded-xl border border-border bg-card p-3">
-                        <PhotoUpload onPhotoUploaded={setPhotoUrl} photoUrl={photoUrl} />
+                        <PhotoUpload onPhotoUploaded={setPhotoUrl} photoUrl={photoUrl} isInfrastructure={selectedType.reportCategory === "infrastructure"} />
                       </div>
                     </motion.div>
                   )}
@@ -840,11 +795,14 @@ const ReportPage = () => {
                       className="overflow-hidden"
                     >
                       <div className="rounded-xl border border-border bg-card p-3 space-y-1">
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Combien de personnes dans votre ménage sont touchées par cette coupure ?
+                        </p>
                         {[
-                          { label: "Total impactés", emoji: "👥", val: impactedPeople, set: setImpactedPeople, min: 1, max: 50 },
-                          { label: "Bébés / Nourrissons", emoji: "👶", val: babies, set: setBabies, min: 0, max: 20 },
+                          { label: "Personnes impactées dans le ménage", emoji: "👥", val: impactedPeople, set: setImpactedPeople, min: 1, max: 50 },
+                          { label: "Bébés / Nourrissons (0-2 ans)", emoji: "👶", val: babies, set: setBabies, min: 0, max: 20 },
                           { label: "Femmes enceintes", emoji: "🤰", val: pregnant, set: setPregnant, min: 0, max: 20 },
-                          { label: "Personnes âgées", emoji: "👴", val: elderly, set: setElderly, min: 0, max: 20 },
+                          { label: "Personnes âgées (65+ ans)", emoji: "👴", val: elderly, set: setElderly, min: 0, max: 20 },
                         ].map(({ label, emoji, val, set, min, max }) => (
                           <div key={label} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
                             <span className="text-sm flex items-center gap-2">
@@ -895,12 +853,12 @@ const ReportPage = () => {
                       className="w-full py-5 text-base font-bold"
                       style={{ backgroundColor: selectedCommuneData?.couleur || selectedType.color, color: "white" }}
                     >
-                      <Link to={`/auth?tab=signup&redirect=${encodeURIComponent(`/signaler?type=${selectedType.id}`)}`}>
+                      <Link to={`/auth?tab=signup&redirect=/signaler?type=${selectedType.id}`}>
                         <UserPlus className="mr-2 h-5 w-5" /> Créer mon compte gratuitement
                       </Link>
                     </Button>
                     <Button asChild variant="outline" className="w-full py-5 text-base font-bold">
-                      <Link to={`/auth?tab=login&redirect=${encodeURIComponent(`/signaler?type=${selectedType.id}`)}`}>
+                      <Link to={`/auth?tab=login&redirect=/signaler?type=${selectedType.id}`}>
                         <LogIn className="mr-2 h-5 w-5" /> J'ai déjà un compte
                       </Link>
                     </Button>

@@ -8,6 +8,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import AuthCTABar from "@/components/AuthCTABar";
+import WhatsAppButton from "@/components/WhatsAppButton";
+import ProfileCompletionNotifier from "@/components/ProfileCompletionNotifier";
 import Index from "./pages/Index";
 
 const AuthPage = lazy(() => import("./pages/AuthPage"));
@@ -26,11 +28,14 @@ const AdminDeletionsPage = lazy(() => import("./pages/AdminDeletionsPage"));
 const AdminAuditPage = lazy(() => import("./pages/AdminAuditPage"));
 const AdminVulnerablePage = lazy(() => import("./pages/AdminVulnerablePage"));
 const AdminMessagingPage = lazy(() => import("./pages/AdminMessagingPage"));
+const AdminQuartiersPage = lazy(() => import("./pages/AdminQuartiersPage"));
 const CommuneDetailPage = lazy(() => import("./pages/CommuneDetailPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
 const HistoryPage = lazy(() => import("./pages/HistoryPage"));
 const DonationPage = lazy(() => import("./pages/DonationPage"));
+const InfrastructurePage = lazy(() => import("./pages/InfrastructurePage"));
+const InstallPage = lazy(() => import("./pages/InstallPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -43,6 +48,8 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthCTABar />
+          <WhatsAppButton />
+          <ProfileCompletionNotifier />
           <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -57,6 +64,8 @@ const App = () => (
               <Route path="/a-propos" element={<AboutPage />} />
               <Route path="/confidentialite" element={<PrivacyPolicyPage />} />
               <Route path="/dons" element={<DonationPage />} />
+              <Route path="/infrastructures" element={<InfrastructurePage />} />
+              <Route path="/install" element={<InstallPage />} />
               
               {/* Admin routes */}
               <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
@@ -69,6 +78,7 @@ const App = () => (
                 <Route path="journal" element={<AdminAuditPage />} />
                 <Route path="vulnerables" element={<AdminVulnerablePage />} />
                 <Route path="messagerie" element={<AdminMessagingPage />} />
+                <Route path="quartiers" element={<AdminQuartiersPage />} />
               </Route>
               
               <Route path="*" element={<NotFound />} />

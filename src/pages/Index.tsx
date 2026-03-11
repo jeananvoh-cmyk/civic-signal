@@ -11,13 +11,11 @@ import { supabase } from "@/integrations/supabase/client";
 const heroBg = "/images/hero-bg.jpg";
 import waterIcon from "@/assets/water-icon-sm.webp";
 import electricityIcon from "@/assets/electricity-icon-sm.webp";
-import { usePendingReports } from "@/hooks/usePendingReports";
 
 const Index = () => {
   const { user } = useAuth();
   const [liveCount, setLiveCount] = useState<number | null>(null);
   const [liveActive, setLiveActive] = useState(false);
-  const { pendingCount, flush } = usePendingReports();
 
   useEffect(() => {
     // Uses a SECURITY DEFINER RPC so both authenticated users AND anonymous
@@ -50,23 +48,6 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-
-      {/* Bannière signalements hors-ligne en attente */}
-      {pendingCount > 0 && (
-        <div className="bg-amber-500/10 border-b border-amber-500/30 py-2.5">
-          <div className="container flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
-              📶 {pendingCount} signalement{pendingCount > 1 ? "s" : ""} hors-ligne en attente d'envoi
-            </p>
-            <button
-              onClick={() => flush()}
-              className="rounded-lg bg-amber-500 px-3 py-1 text-xs font-bold text-white hover:bg-amber-600 transition-colors"
-            >
-              Envoyer maintenant
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Hero */}
       <section className="relative overflow-hidden">
@@ -169,7 +150,7 @@ const Index = () => {
               </Link>
             </div>
 
-            {/* 5 communes badges */}
+            {/* 7 communes badges */}
             <div className="mt-8 flex flex-wrap gap-2">
               {COMMUNES.map((c) =>
               <Link
@@ -329,7 +310,7 @@ const Index = () => {
         <div className="container grid gap-8 text-center sm:grid-cols-4">
           {[
             { value: "7", label: "Communes pilotes" },
-            { value: "4.3M", label: "Population couverte" },
+            { value: "4.75M", label: "Population couverte" },
             { value: "<200m", label: "Rayon vérification" },
             {
               value: liveCount !== null ? String(liveCount) : "…",
@@ -375,7 +356,7 @@ const Index = () => {
                   <Zap className="h-4 w-4 text-white" />
                 </div>
                 <span className="font-bold text-sm text-foreground">
-                  Signal<span className="text-primary">Énergie</span>
+                  SIGNA<span className="text-primary">-CI</span>
                 </span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -424,7 +405,7 @@ const Index = () => {
 
           <div className="border-t border-border pt-6 flex flex-col items-center justify-between gap-2 sm:flex-row">
             <p className="text-xs text-muted-foreground">
-              © 2026 SignalÉnergie — CivicTech Abidjan
+              © 2026 SIGNA-CI — CivicTech Abidjan
             </p>
             <p className="text-xs text-muted-foreground">
               Fait avec ❤️ pour les citoyens d'Abidjan

@@ -23,6 +23,7 @@ const Header = () => {
     { to: "/signaler", label: "Signaler" },
     { to: "/tableau-de-bord", label: "Tableau de Bord Public" },
     { to: "/carte", label: "Carte" },
+    { to: "/infrastructures", label: "Infra" },
     { to: "/verification", label: "Vérifier" },
     ...(donationsEnabled ? [{ to: "/dons", label: "♥ Dons" }] : []),
   ];
@@ -35,7 +36,7 @@ const Header = () => {
             <Zap className="h-4 w-4 text-white" />
           </div>
           <span className="font-bold text-base text-foreground">
-            Signal<span className="text-primary">Énergie</span>
+            SIGNA<span className="text-primary">-CI</span>
           </span>
         </Link>
 

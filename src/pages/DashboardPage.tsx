@@ -3,10 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
-import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio, Flame, AlertTriangle, MapPin, Siren, CalendarDays, Download, Star, FileSpreadsheet, FileText } from "lucide-react";
+import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio, Flame, AlertTriangle, MapPin, Siren, CalendarDays, Construction } from "lucide-react";
 import Header from "@/components/Header";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ShareButton from "@/components/ShareButton";
 import TrendsChart from "@/components/TrendsChart";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +14,6 @@ import { COMMUNES } from "@/lib/communes";
 import { COMMUNE_LOGOS } from "@/lib/commune-logos";
 import electricityIcon from "@/assets/electricity-icon.png";
 import waterIcon from "@/assets/water-icon.png";
-import * as XLSX from "xlsx";
 
 interface CommuneServiceStat {
   commune: string;
@@ -26,6 +25,12 @@ interface CommuneServiceStat {
   eau_actifs: number;
   eau_resolus: number;
   eau_total: number;
+  mairie_actifs: number;
+  mairie_resolus: number;
+  mairie_total: number;
+  electricite_verified: number;
+  eau_verified: number;
+  mairie_verified: number;
 }
 
 interface DurationStat {
@@ -45,6 +50,7 @@ interface QuartierRanking {
   totalActifs: number;
   elecActifs: number;
   eauActifs: number;
+  mairieActifs: number;
   totalAll: number;
 }
 
@@ -203,7 +209,7 @@ const DashboardPage = () => {
   const [realtimeActive, setRealtimeActive] = useState(false);
   const [period, setPeriod] = useState<Period>("all");
   const [moderatorName, setModeratorName] = useState<string>("");
-  const [userCommune, setUserCommune] = useState<string>("");
+  const [selectedCommune, setSelectedCommune] = useState("all");
 
   const fetchAll = useCallback(async () => {
     const communeNames = COMMUNES.map((c) => c.nom);
@@ -214,7 +220,7 @@ const DashboardPage = () => {
       ...communeNames.map((nom) => supabase.rpc("get_commune_quartier_stats", { p_commune: nom })),
     ]);
     if (!statsRes.error && statsRes.data) setStats(statsRes.data as unknown as CommuneServiceStat[]);
-    else setStats(COMMUNES.map((c) => ({ commune: c.nom, couleur: c.couleur, population: c.population, electricite_actifs: 0, electricite_resolus: 0, electricite_total: 0, eau_actifs: 0, eau_resolus: 0, eau_total: 0 })));
+    else setStats(COMMUNES.map((c) => ({ commune: c.nom, couleur: c.couleur, population: c.population, electricite_actifs: 0, electricite_resolus: 0, electricite_total: 0, eau_actifs: 0, eau_resolus: 0, eau_total: 0, mairie_actifs: 0, mairie_resolus: 0, mairie_total: 0, electricite_verified: 0, eau_verified: 0, mairie_verified: 0 })));
     if (!durRes.error && durRes.data) setDurations(durRes.data as unknown as DurationStat[]);
     if (!reportsRes.error && reportsRes.data) setPriorityReports(reportsRes.data as unknown as PriorityReport[]);
 
@@ -225,8 +231,8 @@ const DashboardPage = () => {
         const commune = communeNames[idx];
         const couleur = COMMUNES.find((c) => c.nom === commune)?.couleur || "#888";
         (res.data as any[]).forEach((q) => {
-          const totalActifs = (q.electricite_actifs || 0) + (q.eau_actifs || 0);
-          if (totalActifs > 0 || (q.electricite_total || 0) + (q.eau_total || 0) > 0) {
+          const totalActifs = (q.electricite_actifs || 0) + (q.eau_actifs || 0) + (q.mairie_actifs || 0);
+          if (totalActifs > 0 || (q.electricite_total || 0) + (q.eau_total || 0) + (q.mairie_total || 0) > 0) {
             allQuartiers.push({
               commune,
               couleur,
@@ -234,7 +240,8 @@ const DashboardPage = () => {
               totalActifs,
               elecActifs: q.electricite_actifs || 0,
               eauActifs: q.eau_actifs || 0,
-              totalAll: (q.electricite_total || 0) + (q.eau_total || 0),
+              mairieActifs: q.mairie_actifs || 0,
+              totalAll: (q.electricite_total || 0) + (q.eau_total || 0) + (q.mairie_total || 0),
             });
           }
         });
@@ -272,19 +279,6 @@ const DashboardPage = () => {
     };
   }, [fetchAll]);
 
-  // Fetch user commune from profile (for "Ma commune" section)
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("profiles")
-      .select("commune")
-      .eq("user_id", user.id)
-      .single()
-      .then(({ data }) => {
-        if (data?.commune) setUserCommune(data.commune);
-      });
-  }, [user]);
-
   // Fetch moderator display name from profiles
   useEffect(() => {
     if (!isModerator || !user) return;
@@ -304,140 +298,30 @@ const DashboardPage = () => {
   const totalElecActifs = stats.reduce((s, c) => s + c.electricite_actifs, 0);
   const totalElecResolus = stats.reduce((s, c) => s + c.electricite_resolus, 0);
   const totalElecTotal = stats.reduce((s, c) => s + c.electricite_total, 0);
+  const totalElecVerified = stats.reduce((s, c) => s + c.electricite_verified, 0);
   const totalEauActifs = stats.reduce((s, c) => s + c.eau_actifs, 0);
   const totalEauResolus = stats.reduce((s, c) => s + c.eau_resolus, 0);
   const totalEauTotal = stats.reduce((s, c) => s + c.eau_total, 0);
+  const totalEauVerified = stats.reduce((s, c) => s + c.eau_verified, 0);
+  const totalMairieActifs = stats.reduce((s, c) => s + c.mairie_actifs, 0);
+  const totalMairieResolus = stats.reduce((s, c) => s + c.mairie_resolus, 0);
+  const totalMairieTotal = stats.reduce((s, c) => s + c.mairie_total, 0);
+  const totalMairieVerified = stats.reduce((s, c) => s + c.mairie_verified, 0);
+  const elecResolutionRate = totalElecTotal > 0 ? Math.round((totalElecResolus / totalElecTotal) * 100) : 0;
+  const eauResolutionRate = totalEauTotal > 0 ? Math.round((totalEauResolus / totalEauTotal) * 100) : 0;
+  const mairieResolutionRate = totalMairieTotal > 0 ? Math.round((totalMairieResolus / totalMairieTotal) * 100) : 0;
 
   // Leaderboard: sorted by total active (most affected first)
-  const leaderboard = [...stats].sort((a, b) => (b.electricite_actifs + b.eau_actifs) - (a.electricite_actifs + a.eau_actifs));
+  const leaderboard = [...stats].sort((a, b) => (b.electricite_actifs + b.eau_actifs + b.mairie_actifs) - (a.electricite_actifs + a.eau_actifs + a.mairie_actifs));
 
-  // Period filter applied to individual reports (server-side RPCs don't support period)
-  const periodCutoff: Date | null = period === "7d"
-    ? new Date(Date.now() - 7 * 86400000)
-    : period === "30d"
-    ? new Date(Date.now() - 30 * 86400000)
-    : null;
-
-  const filteredPriorityReports = periodCutoff
-    ? priorityReports.filter((r) => new Date(r.created_at) >= periodCutoff)
-    : priorityReports;
-
-  // Priority reports — filtered by period
-  const activeReports = filteredPriorityReports.filter((r) => r.status === "active");
+  // Priority reports
+  const activeReports = priorityReports.filter((r) => r.status === "active");
   const highPriorityReports = activeReports.filter((r) => r.urgency === "critical" || r.urgency === "high");
   const mediumPriorityReports = activeReports.filter((r) => r.urgency === "medium");
 
-  // ─── Helpers export ──────────────────────────────────────────────────────────
-
-  const dateStr = new Date().toISOString().slice(0, 10);
-  const periodLabel = period === "7d" ? "7j" : period === "30d" ? "30j" : "tout";
-
-  /** Données brutes des signalements (pour CSV et XLSX) */
-  const buildReportRows = () =>
-    filteredPriorityReports.map((r) => ({
-      ID: r.id,
-      Commune: r.location,
-      Service: r.service_type === "electricity" ? "Électricité" : "Eau",
-      Urgence: r.urgency === "critical" ? "Critique" : r.urgency === "high" ? "Élevé" : "Moyen",
-      Statut: r.status === "active" ? "Actif" : "Résolu",
-      Vérifications: r.verifications,
-      "Début coupure": r.start_time ? new Date(r.start_time).toLocaleString("fr-FR") : "",
-      "Créé le": new Date(r.created_at).toLocaleString("fr-FR"),
-      Description: r.description,
-    }));
-
-  /** Données agrégées par commune (pour XLSX) */
-  const buildCommuneRows = () =>
-    stats.map((c) => ({
-      Commune: c.commune,
-      Population: c.population,
-      "Élec — Actifs": c.electricite_actifs,
-      "Élec — Résolus": c.electricite_resolus,
-      "Élec — Total": c.electricite_total,
-      "Eau — Actifs": c.eau_actifs,
-      "Eau — Résolus": c.eau_resolus,
-      "Eau — Total": c.eau_total,
-    }));
-
-  /** Données de durée (pour XLSX) */
-  const buildDurationRows = () =>
-    durations.map((d) => ({
-      Commune: d.commune,
-      Service: d.service_type === "electricity" ? "Électricité" : "Eau",
-      "Durée moy. (min)": Math.round(d.avg_duration_minutes),
-      "Plus longue (min)": Math.round(d.longest_duration_minutes),
-      "Nb résolus": d.total_resolved,
-      "Nb actifs": d.total_active,
-    }));
-
-  // ─── Export CSV ───────────────────────────────────────────────────────────────
-  const exportCSV = () => {
-    const rows = buildReportRows();
-    if (rows.length === 0) return;
-    const headers = Object.keys(rows[0]);
-    const lines = rows.map((r) =>
-      headers.map((h) => {
-        const val = String((r as Record<string, unknown>)[h] ?? "");
-        return val.includes(",") || val.includes('"') || val.includes("\n")
-          ? `"${val.replace(/"/g, '""')}"`
-          : val;
-      }).join(",")
-    );
-    const csv = [headers.join(","), ...lines].join("\n");
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `signalements_${periodLabel}_${dateStr}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  // ─── Export XLSX (multi-feuilles) ─────────────────────────────────────────────
-  const exportXLSX = () => {
-    const wb = XLSX.utils.book_new();
-
-    // Feuille 1 : Signalements
-    const wsReports = XLSX.utils.json_to_sheet(buildReportRows());
-    // Largeurs de colonnes
-    wsReports["!cols"] = [
-      { wch: 38 }, // ID
-      { wch: 14 }, // Commune
-      { wch: 14 }, // Service
-      { wch: 10 }, // Urgence
-      { wch: 10 }, // Statut
-      { wch: 14 }, // Vérifications
-      { wch: 20 }, // Début
-      { wch: 20 }, // Créé le
-      { wch: 60 }, // Description
-    ];
-    XLSX.utils.book_append_sheet(wb, wsReports, "Signalements");
-
-    // Feuille 2 : Stats par commune
-    const wsCommunes = XLSX.utils.json_to_sheet(buildCommuneRows());
-    wsCommunes["!cols"] = [
-      { wch: 14 }, { wch: 12 },
-      { wch: 14 }, { wch: 14 }, { wch: 12 },
-      { wch: 12 }, { wch: 12 }, { wch: 10 },
-    ];
-    XLSX.utils.book_append_sheet(wb, wsCommunes, "Stats Communes");
-
-    // Feuille 3 : Durées
-    const durationRows = buildDurationRows();
-    if (durationRows.length > 0) {
-      const wsDurations = XLSX.utils.json_to_sheet(durationRows);
-      wsDurations["!cols"] = [
-        { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 12 }, { wch: 10 },
-      ];
-      XLSX.utils.book_append_sheet(wb, wsDurations, "Durées Coupures");
-    }
-
-    XLSX.writeFile(wb, `signalements_${periodLabel}_${dateStr}.xlsx`);
-  };
-
-  const totalActifs = totalElecActifs + totalEauActifs;
+  const totalActifs = totalElecActifs + totalEauActifs + totalMairieActifs;
   const isCrisis = totalActifs >= 10;
-  const isEmpty = !loading && totalActifs === 0 && totalElecTotal + totalEauTotal === 0;
+  const isEmpty = !loading && totalActifs === 0 && totalElecTotal + totalEauTotal + totalMairieTotal === 0;
 
   const maxHighDuration = highPriorityReports.length > 0
     ? Math.max(...highPriorityReports.map((r) => r.start_time ? (Date.now() - new Date(r.start_time).getTime()) / 60000 : 0))
@@ -500,38 +384,8 @@ const DashboardPage = () => {
                 </button>
               ))}
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                disabled={filteredPriorityReports.length === 0 && stats.length === 0}
-                className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground shadow-sm hover:bg-secondary hover:text-foreground transition-colors disabled:opacity-40 outline-none"
-              >
-                <Download className="h-3.5 w-3.5" />
-                Exporter
-                <ChevronDown className="h-3 w-3 opacity-60" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-                  {filteredPriorityReports.length} signalement{filteredPriorityReports.length !== 1 ? "s" : ""} — période : {periodLabel}
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={exportCSV} className="cursor-pointer gap-2">
-                  <FileText className="h-4 w-4 text-blue-500" />
-                  <div>
-                    <p className="font-semibold">CSV</p>
-                    <p className="text-[11px] text-muted-foreground">Compatible tous tableurs</p>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={exportXLSX} className="cursor-pointer gap-2">
-                  <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
-                  <div>
-                    <p className="font-semibold">Excel (.xlsx)</p>
-                    <p className="text-[11px] text-muted-foreground">3 feuilles : signalements, stats, durées</p>
-                  </div>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
             <ShareButton
-              title="Tableau de Bord SignalÉnergie"
+              title="Tableau de Bord SIGNA-CI"
               text={`📊 ${totalActifs} coupures actives sur les 7 communes pilotes d'Abidjan`}
             />
           </div>
@@ -539,7 +393,7 @@ const DashboardPage = () => {
 
         {/* Global totals — admin/moderator only */}
         {canValidate && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
             {loading ? (
               <>
                 <SkeletonCard />
@@ -556,40 +410,88 @@ const DashboardPage = () => {
                 </p>
               </div>
             ) : null}
-            {/* Electricity + Water cards — visible when loaded and has data */}
+            {/* Electricity + Water + Infrastructure cards */}
             {!loading && !isEmpty && (
               <>
+                {/* Électricité */}
                 <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
                   <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
                     <img src={electricityIcon} alt="" className="h-full w-full object-contain" />
                   </div>
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-3 mb-1">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/15">
                       <Zap className="h-5 w-5 text-amber-500" />
                     </div>
-                    <h2 className="font-display text-lg font-bold text-foreground">Électricité</h2>
+                    <div>
+                      <h2 className="font-display text-lg font-bold text-foreground">Électricité</h2>
+                      <p className="text-[10px] text-muted-foreground">Coupures réseau CIE</p>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="grid grid-cols-3 gap-4 text-center mt-4">
                     <div><p className="font-display text-2xl font-extrabold text-amber-500">{totalElecActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
                     <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalElecResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
                     <div><p className="font-display text-2xl font-extrabold text-foreground">{totalElecTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
                   </div>
+                  {totalElecTotal > 0 && (
+                    <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground border-t border-border pt-3">
+                      <span>{totalElecVerified > 0 ? `✓ ${totalElecVerified} confirmé${totalElecVerified > 1 ? "s" : ""} par voisins` : "Aucune confirmation"}</span>
+                      <span className="font-semibold text-foreground">{elecResolutionRate}% résolues</span>
+                    </div>
+                  )}
                 </div>
+
+                {/* Eau */}
                 <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
                   <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
                     <img src={waterIcon} alt="" className="h-full w-full object-contain" />
                   </div>
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-3 mb-1">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/15">
                       <Droplets className="h-5 w-5 text-blue-500" />
                     </div>
-                    <h2 className="font-display text-lg font-bold text-foreground">Eau</h2>
+                    <div>
+                      <h2 className="font-display text-lg font-bold text-foreground">Eau</h2>
+                      <p className="text-[10px] text-muted-foreground">Coupures réseau SODECI</p>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="grid grid-cols-3 gap-4 text-center mt-4">
                     <div><p className="font-display text-2xl font-extrabold text-blue-500">{totalEauActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
                     <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalEauResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
                     <div><p className="font-display text-2xl font-extrabold text-foreground">{totalEauTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
                   </div>
+                  {totalEauTotal > 0 && (
+                    <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground border-t border-border pt-3">
+                      <span>{totalEauVerified > 0 ? `✓ ${totalEauVerified} confirmé${totalEauVerified > 1 ? "s" : ""} par voisins` : "Aucune confirmation"}</span>
+                      <span className="font-semibold text-foreground">{eauResolutionRate}% résolues</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Voirie & Infrastructure */}
+                <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
+                  <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
+                    <Construction className="h-full w-full text-teal-500" />
+                  </div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-500/15">
+                      <Construction className="h-5 w-5 text-teal-500" />
+                    </div>
+                    <div>
+                      <h2 className="font-display text-lg font-bold text-foreground">Voirie & Infra</h2>
+                      <p className="text-[10px] text-muted-foreground">Lampadaires · Caniveaux · Routes · Dépôts</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-center mt-4">
+                    <div><p className="font-display text-2xl font-extrabold text-teal-500">{totalMairieActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
+                    <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalMairieResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
+                    <div><p className="font-display text-2xl font-extrabold text-foreground">{totalMairieTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
+                  </div>
+                  {totalMairieTotal > 0 && (
+                    <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground border-t border-border pt-3">
+                      <span>{totalMairieVerified > 0 ? `✓ ${totalMairieVerified} confirmé${totalMairieVerified > 1 ? "s" : ""} par voisins` : "Aucune confirmation"}</span>
+                      <span className="font-semibold text-foreground">{mairieResolutionRate}% résolues</span>
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -599,104 +501,110 @@ const DashboardPage = () => {
         {/* Duration stats */}
         {canValidate && !loading && durations.some((d) => d.total_resolved > 0) && (() => {
           const communeNames = [...new Set(durations.map((d) => d.commune))];
-          // Global averages
           const elecDurations = durations.filter((d) => d.service_type === "electricity" && d.total_resolved > 0);
           const waterDurations = durations.filter((d) => d.service_type === "water" && d.total_resolved > 0);
           const globalElecAvg = elecDurations.length > 0 ? elecDurations.reduce((s, d) => s + d.avg_duration_minutes * d.total_resolved, 0) / elecDurations.reduce((s, d) => s + d.total_resolved, 0) : 0;
           const globalWaterAvg = waterDurations.length > 0 ? waterDurations.reduce((s, d) => s + d.avg_duration_minutes * d.total_resolved, 0) / waterDurations.reduce((s, d) => s + d.total_resolved, 0) : 0;
           const globalElecMax = elecDurations.length > 0 ? Math.max(...elecDurations.map((d) => d.longest_duration_minutes)) : 0;
           const globalWaterMax = waterDurations.length > 0 ? Math.max(...waterDurations.map((d) => d.longest_duration_minutes)) : 0;
+          const totalElecResolved = elecDurations.reduce((s, d) => s + d.total_resolved, 0);
+          const totalWaterResolved = waterDurations.reduce((s, d) => s + d.total_resolved, 0);
 
           return (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-8">
-              <div className="flex items-center gap-2 mb-4">
-                <Clock className="h-5 w-5 text-muted-foreground" />
-                <h2 className="font-display text-xl font-bold text-foreground">Durée moyenne des coupures</h2>
+              <div className="mb-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Clock className="h-5 w-5 text-muted-foreground" />
+                  <h2 className="font-display text-xl font-bold text-foreground">Durée moyenne des coupures</h2>
+                </div>
+                <p className="text-xs text-muted-foreground ml-7">
+                  Temps écoulé entre le <strong>début de coupure</strong> (déclaré) et la <strong>résolution</strong>. Basé uniquement sur les signalements résolus.
+                </p>
               </div>
 
               {/* Global summary */}
-              <div className="mb-4 grid grid-cols-2 gap-3">
+              <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Zap className="h-4 w-4 text-amber-500" />
-                    <span className="text-xs font-semibold text-foreground">Électricité — toutes communes</span>
+                    <span className="text-xs font-semibold text-foreground">Électricité (CIE)</span>
                   </div>
-                  <div className="flex items-baseline gap-4">
+                  <div className="flex items-baseline gap-4 flex-wrap">
                     <div>
                       <p className="font-display text-2xl font-extrabold text-amber-500">{globalElecAvg > 0 ? formatMinutes(globalElecAvg) : "—"}</p>
-                      <p className="text-[10px] text-muted-foreground">durée moyenne</p>
+                      <p className="text-[10px] text-muted-foreground">durée moy.</p>
                     </div>
                     <div>
                       <p className="font-display text-lg font-bold text-foreground">{globalElecMax > 0 ? formatMinutes(globalElecMax) : "—"}</p>
                       <p className="text-[10px] text-muted-foreground">la plus longue</p>
+                    </div>
+                    <div>
+                      <p className="font-display text-lg font-bold text-muted-foreground">{totalElecResolved}</p>
+                      <p className="text-[10px] text-muted-foreground">résolu{totalElecResolved > 1 ? "s" : ""}</p>
                     </div>
                   </div>
                 </div>
                 <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Droplets className="h-4 w-4 text-blue-500" />
-                    <span className="text-xs font-semibold text-foreground">Eau — toutes communes</span>
+                    <span className="text-xs font-semibold text-foreground">Eau (SODECI)</span>
                   </div>
-                  <div className="flex items-baseline gap-4">
+                  <div className="flex items-baseline gap-4 flex-wrap">
                     <div>
                       <p className="font-display text-2xl font-extrabold text-blue-500">{globalWaterAvg > 0 ? formatMinutes(globalWaterAvg) : "—"}</p>
-                      <p className="text-[10px] text-muted-foreground">durée moyenne</p>
+                      <p className="text-[10px] text-muted-foreground">durée moy.</p>
                     </div>
                     <div>
                       <p className="font-display text-lg font-bold text-foreground">{globalWaterMax > 0 ? formatMinutes(globalWaterMax) : "—"}</p>
                       <p className="text-[10px] text-muted-foreground">la plus longue</p>
                     </div>
+                    <div>
+                      <p className="font-display text-lg font-bold text-muted-foreground">{totalWaterResolved}</p>
+                      <p className="text-[10px] text-muted-foreground">résolu{totalWaterResolved > 1 ? "s" : ""}</p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Per commune */}
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                {communeNames.map((commune) => {
-                  const elec = durations.find((d) => d.commune === commune && d.service_type === "electricity");
-                  const water = durations.find((d) => d.commune === commune && d.service_type === "water");
-                  const couleur = elec?.couleur || water?.couleur || "#888";
-
-                  return (
-                    <div key={commune} className="rounded-xl border border-border bg-card p-4 shadow-card">
-                      <p className="text-sm font-bold mb-3 text-center" style={{ color: couleur }}>{commune}</p>
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <Zap className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-                          <div className="min-w-0 flex-1">
-                            <p className="font-display text-lg font-extrabold text-foreground leading-tight">
-                              {elec && elec.total_resolved > 0 ? formatMinutes(elec.avg_duration_minutes) : "—"}
-                            </p>
-                            {elec && elec.total_resolved > 0 && (
-                              <p className="text-[10px] text-muted-foreground">
-                                max {formatMinutes(elec.longest_duration_minutes)} · {elec.total_resolved} résolu{elec.total_resolved > 1 ? "s" : ""}
-                              </p>
-                            )}
-                            {(!elec || elec.total_resolved === 0) && (
-                              <p className="text-[10px] text-muted-foreground">Aucune donnée</p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Droplets className="h-3.5 w-3.5 shrink-0 text-blue-500" />
-                          <div className="min-w-0 flex-1">
-                            <p className="font-display text-lg font-extrabold text-foreground leading-tight">
-                              {water && water.total_resolved > 0 ? formatMinutes(water.avg_duration_minutes) : "—"}
-                            </p>
-                            {water && water.total_resolved > 0 && (
-                              <p className="text-[10px] text-muted-foreground">
-                                max {formatMinutes(water.longest_duration_minutes)} · {water.total_resolved} résolu{water.total_resolved > 1 ? "s" : ""}
-                              </p>
-                            )}
-                            {(!water || water.total_resolved === 0) && (
-                              <p className="text-[10px] text-muted-foreground">Aucune donnée</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+              {/* Per commune - table format */}
+              <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/30">
+                        <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Commune</th>
+                        <th className="text-center px-3 py-2.5 text-xs font-semibold text-muted-foreground">
+                          <span className="flex items-center justify-center gap-1"><Zap className="h-3 w-3 text-amber-500" />Moy.</span>
+                        </th>
+                        <th className="text-center px-3 py-2.5 text-xs font-semibold text-muted-foreground">
+                          <span className="flex items-center justify-center gap-1"><Zap className="h-3 w-3 text-amber-500" />Max</span>
+                        </th>
+                        <th className="text-center px-3 py-2.5 text-xs font-semibold text-muted-foreground">
+                          <span className="flex items-center justify-center gap-1"><Droplets className="h-3 w-3 text-blue-500" />Moy.</span>
+                        </th>
+                        <th className="text-center px-3 py-2.5 text-xs font-semibold text-muted-foreground">
+                          <span className="flex items-center justify-center gap-1"><Droplets className="h-3 w-3 text-blue-500" />Max</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {communeNames.map((commune) => {
+                        const elec = durations.find((d) => d.commune === commune && d.service_type === "electricity");
+                        const water = durations.find((d) => d.commune === commune && d.service_type === "water");
+                        const couleur = elec?.couleur || water?.couleur || "#888";
+                        return (
+                          <tr key={commune} className="hover:bg-muted/20 transition-colors">
+                            <td className="px-4 py-2.5 font-semibold text-sm" style={{ color: couleur }}>{commune}</td>
+                            <td className="text-center px-3 py-2.5 font-bold text-sm">{elec && elec.total_resolved > 0 ? formatMinutes(elec.avg_duration_minutes) : "—"}</td>
+                            <td className="text-center px-3 py-2.5 text-xs text-muted-foreground">{elec && elec.total_resolved > 0 ? formatMinutes(elec.longest_duration_minutes) : "—"}</td>
+                            <td className="text-center px-3 py-2.5 font-bold text-sm">{water && water.total_resolved > 0 ? formatMinutes(water.avg_duration_minutes) : "—"}</td>
+                            <td className="text-center px-3 py-2.5 text-xs text-muted-foreground">{water && water.total_resolved > 0 ? formatMinutes(water.longest_duration_minutes) : "—"}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </motion.div>
           );
@@ -733,6 +641,7 @@ const DashboardPage = () => {
                         <div className="flex items-center gap-3 text-xs">
                           <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-amber-500" />{q.elecActifs}</span>
                           <span className="flex items-center gap-1"><Droplets className="h-3 w-3 text-blue-500" />{q.eauActifs}</span>
+                          <span className="flex items-center gap-1"><Construction className="h-3 w-3 text-teal-500" />{q.mairieActifs}</span>
                         </div>
                         <div className="text-right">
                           <p className="font-display text-lg font-extrabold" style={{ color: q.totalActifs > 0 ? q.couleur : undefined }}>
@@ -806,16 +715,16 @@ const DashboardPage = () => {
                 ) : (
                   <div className="divide-y divide-border">
                     {leaderboard.map((c, i) => {
-                      const totalActifs = c.electricite_actifs + c.eau_actifs;
-                      const totalAll = c.electricite_total + c.eau_total;
+                      const totalActifs = c.electricite_actifs + c.eau_actifs + c.mairie_actifs;
+                      const totalAll = c.electricite_total + c.eau_total + c.mairie_total;
                       const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`;
 
                       return (
                         <div key={c.commune} className="flex items-center gap-4 px-5 py-4 hover:bg-secondary/50 transition-colors">
                           <span className="text-lg font-bold w-8 text-center">{medal}</span>
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg overflow-hidden" style={{ backgroundColor: c.couleur }}>
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg overflow-hidden border border-border" style={{ backgroundColor: COMMUNE_LOGOS[c.commune] ? '#fff' : c.couleur }}>
                             {COMMUNE_LOGOS[c.commune] ? (
-                              <img src={COMMUNE_LOGOS[c.commune]} alt={c.commune} className="h-full w-full object-cover" />
+                              <img src={COMMUNE_LOGOS[c.commune]} alt={c.commune} className="h-full w-full object-contain p-0.5" />
                             ) : (
                               <span className="text-white font-bold text-xs">{c.commune[0]}</span>
                             )}
@@ -827,6 +736,7 @@ const DashboardPage = () => {
                             <div className="flex gap-3 text-xs text-muted-foreground">
                               <span>⚡ {c.electricite_actifs}</span>
                               <span>💧 {c.eau_actifs}</span>
+                              <span>🏗️ {c.mairie_actifs}</span>
                             </div>
                           </div>
                           <div className="text-right">
@@ -845,71 +755,45 @@ const DashboardPage = () => {
           </Collapsible>
         </motion.div>)}
 
-        {/* Ma commune — section personnalisée pour l'utilisateur connecté */}
-        {user && userCommune && !loading && (() => {
-          const mc = stats.find((s) => s.commune === userCommune);
-          const mcData = COMMUNES.find((c) => c.nom === userCommune);
-          if (!mc || !mcData) return null;
-          const totalActifsCommune = mc.electricite_actifs + mc.eau_actifs;
-          return (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="mb-8">
-              <div className="flex items-center gap-2 mb-3">
-                <Star className="h-5 w-5" style={{ color: mcData.couleur }} />
-                <h2 className="font-display text-xl font-bold text-foreground">Ma commune</h2>
-                <span className="text-sm text-muted-foreground">— {userCommune}</span>
-              </div>
-              <div
-                className="rounded-2xl border-2 p-5 shadow-card"
-                style={{ borderColor: mcData.couleur + "50", backgroundColor: mcData.couleur + "08" }}
-              >
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 text-center">
-                  <div>
-                    <p className="font-display text-2xl font-extrabold" style={{ color: mcData.couleur }}>{totalActifsCommune}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Coupures actives</p>
-                  </div>
-                  <div>
-                    <p className="font-display text-2xl font-extrabold text-emerald-500">{mc.electricite_resolus + mc.eau_resolus}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Résolues</p>
-                  </div>
-                  <div>
-                    <p className="font-display text-2xl font-extrabold text-amber-500">{mc.electricite_actifs}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">⚡ Électricité</p>
-                  </div>
-                  <div>
-                    <p className="font-display text-2xl font-extrabold text-blue-500">{mc.eau_actifs}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">💧 Eau</p>
-                  </div>
-                </div>
-                {totalActifsCommune === 0 && (
-                  <p className="mt-4 text-center text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                    ✅ Aucune coupure active à {userCommune} en ce moment
-                  </p>
-                )}
-              </div>
-            </motion.div>
-          );
-        })()}
-
         {/* Per-commune breakdown */}
-        <h2 className="font-display text-xl font-bold text-foreground mb-4">Détail par commune</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-xl font-bold text-foreground">Détail par commune</h2>
+          <Select value={selectedCommune} onValueChange={setSelectedCommune}>
+            <SelectTrigger className="w-[200px] h-9 text-sm">
+              <SelectValue placeholder="Choisir une commune" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes les communes</SelectItem>
+              {stats.map((c) => (
+                <SelectItem key={c.commune} value={c.commune}>
+                  <span className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: c.couleur }} />
+                    {c.commune}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="space-y-4">
           {loading ? (
             <>
               {[1, 2, 3, 4, 5].map((k) => <SkeletonCommune key={k} />)}
             </>
           ) : (
-            stats.map((c, i) => {
-              const pctPop = c.population > 0 ? ((c.electricite_total + c.eau_total) / c.population) * 100 : 0;
-              const pctPopDisplay = pctPop < 0.01 && (c.electricite_total + c.eau_total) > 0 ? "<0.01" : pctPop.toFixed(2);
+            stats.filter((c) => selectedCommune === "all" || c.commune === selectedCommune).map((c, i) => {
+              const totalSignalements = c.electricite_total + c.eau_total + c.mairie_total;
+              const pctPop = c.population > 0 ? (totalSignalements / c.population) * 100 : 0;
+              const pctPopDisplay = pctPop < 0.01 && totalSignalements > 0 ? "<0.01" : pctPop.toFixed(2);
               const capacite = Math.floor(c.population / 2);
-              const tauxCapacite = capacite > 0 ? Math.min(((c.electricite_total + c.eau_total) / capacite) * 100, 100) : 0;
+              const tauxCapacite = capacite > 0 ? Math.min((totalSignalements / capacite) * 100, 100) : 0;
 
               return (
                 <motion.div key={c.commune} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }} className="rounded-2xl border border-border bg-card p-5 shadow-card">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl overflow-hidden" style={{ backgroundColor: c.couleur }}>
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl overflow-hidden border border-border" style={{ backgroundColor: COMMUNE_LOGOS[c.commune] ? '#fff' : c.couleur }}>
                       {COMMUNE_LOGOS[c.commune] ? (
-                        <img src={COMMUNE_LOGOS[c.commune]} alt={c.commune} className="h-full w-full object-cover" />
+                        <img src={COMMUNE_LOGOS[c.commune]} alt={c.commune} className="h-full w-full object-contain p-1" />
                       ) : (
                         <span className="text-white font-bold text-sm">#{i + 1}</span>
                       )}
@@ -931,13 +815,13 @@ const DashboardPage = () => {
                     <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.max(tauxCapacite, 1)}%`, backgroundColor: c.couleur }} />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <div className="rounded-xl bg-amber-500/5 border border-amber-500/20 p-3">
                       <div className="flex items-center gap-2 mb-2">
                         <Zap className="h-4 w-4 text-amber-500" />
-                        <span className="text-xs font-semibold text-foreground">Électricité</span>
+                        <span className="text-xs font-semibold text-foreground">CIE</span>
                       </div>
-                      <div className="flex items-baseline gap-3">
+                      <div className="flex items-baseline gap-2 flex-wrap">
                         <div>
                           <span className="font-display text-xl font-extrabold text-amber-500">{c.electricite_actifs}</span>
                           <span className="text-[10px] text-muted-foreground ml-1">actif{c.electricite_actifs !== 1 ? "s" : ""}</span>
@@ -951,9 +835,9 @@ const DashboardPage = () => {
                     <div className="rounded-xl bg-blue-500/5 border border-blue-500/20 p-3">
                       <div className="flex items-center gap-2 mb-2">
                         <Droplets className="h-4 w-4 text-blue-500" />
-                        <span className="text-xs font-semibold text-foreground">Eau</span>
+                        <span className="text-xs font-semibold text-foreground">SODECI</span>
                       </div>
-                      <div className="flex items-baseline gap-3">
+                      <div className="flex items-baseline gap-2 flex-wrap">
                         <div>
                           <span className="font-display text-xl font-extrabold text-blue-500">{c.eau_actifs}</span>
                           <span className="text-[10px] text-muted-foreground ml-1">actif{c.eau_actifs !== 1 ? "s" : ""}</span>
@@ -961,6 +845,22 @@ const DashboardPage = () => {
                         <div>
                           <span className="font-display text-sm font-bold text-emerald-500">{c.eau_resolus}</span>
                           <span className="text-[10px] text-muted-foreground ml-1">résolu{c.eau_resolus !== 1 ? "s" : ""}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-teal-500/5 border border-teal-500/20 p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Construction className="h-4 w-4 text-teal-500" />
+                        <span className="text-xs font-semibold text-foreground">Mairie</span>
+                      </div>
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <div>
+                          <span className="font-display text-xl font-extrabold text-teal-500">{c.mairie_actifs}</span>
+                          <span className="text-[10px] text-muted-foreground ml-1">actif{c.mairie_actifs !== 1 ? "s" : ""}</span>
+                        </div>
+                        <div>
+                          <span className="font-display text-sm font-bold text-emerald-500">{c.mairie_resolus}</span>
+                          <span className="text-[10px] text-muted-foreground ml-1">résolu{c.mairie_resolus !== 1 ? "s" : ""}</span>
                         </div>
                       </div>
                     </div>

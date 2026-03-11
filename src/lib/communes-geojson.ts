@@ -82,23 +82,24 @@ export const COMMUNE_POLYGONS: CommunePolygon[] = [
     ],
   },
   {
-    // South-central commune between Marcory and Port-Bouët
+    // South-central commune (center: 5.300°N 3.950°W, r=2.5 km)
     nom: "Koumassi",
     polygon: [
-      [-4.022, 5.276],
-      [-3.958, 5.276],
-      [-3.958, 5.342],
-      [-4.022, 5.342],
+      [-3.985, 5.274],
+      [-3.915, 5.274],
+      [-3.915, 5.330],
+      [-3.985, 5.330],
     ],
   },
   {
-    // Southernmost commune: Atlantic coast + airport peninsula (FHB airport ~5.261°N 3.926°W)
+    // Southernmost commune: Atlantic coast + airport peninsula
+    // FHB International Airport: 5.261°N 3.926°W  (center: 5.250°N 3.967°W, r=7 km)
     nom: "Port-Bouët",
     polygon: [
-      [-4.028, 5.198],
-      [-3.868, 5.198],
-      [-3.868, 5.278],
-      [-4.028, 5.278],
+      [-4.040, 5.185],
+      [-3.900, 5.185],
+      [-3.900, 5.310],
+      [-4.040, 5.310],
     ],
   },
 ];

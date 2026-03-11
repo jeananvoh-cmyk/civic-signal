@@ -165,6 +165,9 @@ export type Database = {
           commune: string
           created_at: string
           display_name: string
+          electricity_client_id: string
+          electricity_meter_number: string
+          electricity_meter_ref: string
           first_name: string
           id: string
           language: string
@@ -176,6 +179,9 @@ export type Database = {
           updated_at: string
           user_id: string
           user_type: string
+          water_client_id: string
+          water_meter_number: string
+          water_meter_ref: string
         }
         Insert: {
           avatar_url?: string | null
@@ -183,6 +189,9 @@ export type Database = {
           commune?: string
           created_at?: string
           display_name?: string
+          electricity_client_id?: string
+          electricity_meter_number?: string
+          electricity_meter_ref?: string
           first_name?: string
           id?: string
           language?: string
@@ -194,6 +203,9 @@ export type Database = {
           updated_at?: string
           user_id: string
           user_type?: string
+          water_client_id?: string
+          water_meter_number?: string
+          water_meter_ref?: string
         }
         Update: {
           avatar_url?: string | null
@@ -201,6 +213,9 @@ export type Database = {
           commune?: string
           created_at?: string
           display_name?: string
+          electricity_client_id?: string
+          electricity_meter_number?: string
+          electricity_meter_ref?: string
           first_name?: string
           id?: string
           language?: string
@@ -212,8 +227,67 @@ export type Database = {
           updated_at?: string
           user_id?: string
           user_type?: string
+          water_client_id?: string
+          water_meter_number?: string
+          water_meter_ref?: string
         }
         Relationships: []
+      }
+      quartiers: {
+        Row: {
+          commune: string
+          created_at: string
+          id: string
+          nom: string
+          source: string
+          validated: boolean
+        }
+        Insert: {
+          commune: string
+          created_at?: string
+          id?: string
+          nom: string
+          source?: string
+          validated?: boolean
+        }
+        Update: {
+          commune?: string
+          created_at?: string
+          id?: string
+          nom?: string
+          source?: string
+          validated?: boolean
+        }
+        Relationships: []
+      }
+      repair_confirmations: {
+        Row: {
+          created_at: string | null
+          id: string
+          report_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          report_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          report_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "repair_confirmations_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       report_deletions: {
         Row: {
@@ -268,6 +342,7 @@ export type Database = {
           pregnant: number
           quartier: string
           reminder_count: number
+          repair_verifications: number | null
           report_category: string
           reporter_type: string
           resolved_at: string | null
@@ -298,6 +373,7 @@ export type Database = {
           pregnant?: number
           quartier?: string
           reminder_count?: number
+          repair_verifications?: number | null
           report_category?: string
           reporter_type?: string
           resolved_at?: string | null
@@ -328,6 +404,7 @@ export type Database = {
           pregnant?: number
           quartier?: string
           reminder_count?: number
+          repair_verifications?: number | null
           report_category?: string
           reporter_type?: string
           resolved_at?: string | null
@@ -391,6 +468,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_resolve_report: {
+        Args: { p_report_id: string }
+        Returns: undefined
+      }
       broadcast_admin_message: {
         Args: {
           p_message?: string
@@ -400,6 +481,7 @@ export type Database = {
         }
         Returns: number
       }
+      confirm_repair: { Args: { p_report_id: string }; Returns: undefined }
       corroborate_report: { Args: { p_report_id: string }; Returns: undefined }
       count_user_daily_reports: { Args: { p_user_id: string }; Returns: number }
       find_nearest_commune: {
@@ -423,6 +505,26 @@ export type Database = {
           total_resolved: number
         }[]
       }
+      get_commune_infrastructure_stats: {
+        Args: never
+        Returns: {
+          commune: string
+          couleur: string
+          eau_infra_actifs: number
+          eau_infra_resolus: number
+          eau_infra_total: number
+          eau_infra_verified: number
+          elec_infra_actifs: number
+          elec_infra_resolus: number
+          elec_infra_total: number
+          elec_infra_verified: number
+          mairie_infra_actifs: number
+          mairie_infra_resolus: number
+          mairie_infra_total: number
+          mairie_infra_verified: number
+          population: number
+        }[]
+      }
       get_commune_quartier_stats: {
         Args: { p_commune: string }
         Returns: {
@@ -432,6 +534,9 @@ export type Database = {
           electricite_actifs: number
           electricite_resolus: number
           electricite_total: number
+          mairie_actifs: number
+          mairie_resolus: number
+          mairie_total: number
           quartier: string
         }[]
       }
@@ -448,6 +553,10 @@ export type Database = {
           electricite_resolus: number
           electricite_total: number
           electricite_verified: number
+          mairie_actifs: number
+          mairie_resolus: number
+          mairie_total: number
+          mairie_verified: number
           population: number
         }[]
       }
