@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNES } from "@/lib/communes";
-import { getQuartiers } from "@/lib/quartiers";
+import { useQuartiers } from "@/hooks/useQuartiers";
 import { toast } from "sonner";
 import { logAudit } from "@/lib/audit";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,7 +21,8 @@ const AdminMessagingPage = () => {
   const [sending, setSending] = useState(false);
   const [lastResult, setLastResult] = useState<{ count: number; commune: string; quartier: string } | null>(null);
 
-  const quartiers = commune ? getQuartiers(commune) : [];
+  const { data: quartiersData } = useQuartiers(commune);
+  const quartiers = quartiersData?.map((q) => q.nom) ?? [];
 
   const handleSend = async () => {
     if (!commune || !title.trim() || !message.trim()) {

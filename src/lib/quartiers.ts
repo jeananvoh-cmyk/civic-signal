@@ -52,22 +52,6 @@ export const QUARTIERS: Record<string, string[]> = {
     "Quartier Manguier", "Saint Michel", "Williamsville",
   ],
 
-  Koumassi: [
-    "Biafra", "Belle Côte", "Campement", "Centre", "CFPA", "Clarté",
-    "Coprobich", "Ficgayo", "Grand Campement", "Grand Village",
-    "Koumassi Remblai", "Mahou", "Maroc", "Moossou", "Poto-Poto",
-    "Prodomo", "Résidence Les Lauriers", "Sicogi", "Sogefiha",
-    "Terminal Fruitier", "Zone Industrielle",
-  ],
-
-  "Port-Bouët": [
-    "Anoumabo", "Base ORSTOM", "Belle Vue", "Camp Militaire", "Cité Aéroport",
-    "Cité SIR", "Gondwane", "Gonzagueville", "Île Boulay", "Mermoz",
-    "Nouveau Koumassi", "Port-Bouët 1", "Port-Bouët 2", "Rectorat",
-    "SODECI", "Sogefiha", "Toit Rouge", "Vridi", "Vridi Canal",
-    "Vridi Cité", "Vridi Plage", "Zone 4",
-  ],
-
   Bingerville: [
     "Abatta", "Abatta BCEAO", "Abatta Cité Police", "Abatta Sicta", "Achokoi",
     "Agban", "Aguien", "Akakro", "Akandjé", "Akoué Santé", "Akoue Santé 2",
