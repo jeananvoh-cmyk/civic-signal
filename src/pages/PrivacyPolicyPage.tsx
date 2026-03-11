@@ -255,7 +255,7 @@ const PrivacyPolicyPage = () => {
               <p><strong className="text-foreground">Comment exercer vos droits :</strong></p>
               <ul className="list-disc pl-4 mt-1 space-y-1">
                 <li>Directement depuis votre espace personnel (profil, signalements)</li>
-                <li>Par email à <strong className="text-foreground">signalenergie@civictech.ci</strong></li>
+                <li>Par email à <strong className="text-foreground">signaci@civictech.ci</strong></li>
                 <li>Délai de réponse : <strong className="text-foreground">30 jours maximum</strong></li>
               </ul>
             </div>
