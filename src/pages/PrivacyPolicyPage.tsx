@@ -56,8 +56,8 @@ const PrivacyPolicyPage = () => {
               Conformément à l'<strong className="text-foreground">article 35</strong> de la Loi n°2013-450, le responsable du traitement des données personnelles est :
             </p>
             <div className="mt-3 rounded-xl border border-border bg-muted/50 p-4 text-sm">
-              <p><strong className="text-foreground">Identité :</strong> Équipe SignalÉnergie — Initiative CivicTech</p>
-              <p><strong className="text-foreground">Email :</strong> signalenergie@civictech.ci</p>
+              <p><strong className="text-foreground">Identité :</strong> Équipe SIGNA-CI — Initiative CivicTech</p>
+              <p><strong className="text-foreground">Email :</strong> signaci@civictech.ci</p>
               <p><strong className="text-foreground">Siège :</strong> Abidjan, Côte d'Ivoire</p>
             </div>
             <p className="mt-3">
