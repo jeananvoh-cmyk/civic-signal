@@ -119,7 +119,7 @@ const AboutPage = () => {
           </section>
 
           <div className="text-center text-xs text-muted-foreground">
-            © 2026 SignalÉnergie — CivicTech Abidjan · Version pilote
+            © 2026 SIGNA-CI — CivicTech Abidjan · Version pilote
           </div>
         </motion.div>
       </main>

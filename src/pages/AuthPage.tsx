@@ -212,7 +212,7 @@ const AuthPage = () => {
         {mode === "signup" && (
           <div className="rounded-xl border border-border bg-card p-6 shadow-card">
             <h2 className="mb-1 font-display text-xl font-bold text-foreground">Créer un compte</h2>
-            <p className="mb-5 text-sm text-muted-foreground">Rejoignez la communauté SignalÉnergie</p>
+            <p className="mb-5 text-sm text-muted-foreground">Rejoignez la communauté SIGNA-CI</p>
 
             <form onSubmit={handleSignup} className="space-y-4">
               <div className="relative">

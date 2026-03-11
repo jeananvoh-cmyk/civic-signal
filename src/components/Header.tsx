@@ -36,7 +36,7 @@ const Header = () => {
             <Zap className="h-4 w-4 text-white" />
           </div>
           <span className="font-bold text-base text-foreground">
-            Signal<span className="text-primary">Énergie</span>
+            SIGNA<span className="text-primary">-CI</span>
           </span>
         </Link>
 

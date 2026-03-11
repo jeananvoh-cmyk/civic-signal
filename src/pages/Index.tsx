@@ -405,7 +405,7 @@ const Index = () => {
 
           <div className="border-t border-border pt-6 flex flex-col items-center justify-between gap-2 sm:flex-row">
             <p className="text-xs text-muted-foreground">
-              © 2026 SignalÉnergie — CivicTech Abidjan
+              © 2026 SIGNA-CI — CivicTech Abidjan
             </p>
             <p className="text-xs text-muted-foreground">
               Fait avec ❤️ pour les citoyens d'Abidjan

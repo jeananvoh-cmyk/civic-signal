@@ -81,8 +81,8 @@ const HistoryPage = () => {
               </div>
             </div>
             <ShareButton
-              title="Mon impact SignalÉnergie"
-              text={`J'ai fait ${reports.length} signalement(s) de coupures sur SignalÉnergie ! 🔌💧`}
+              title="Mon impact SIGNA-CI"
+              text={`J'ai fait ${reports.length} signalement(s) de coupures sur SIGNA-CI ! 🔌💧`}
               url={window.location.origin}
             />
           </div>

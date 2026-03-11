@@ -72,7 +72,7 @@ const InstallPage = () => {
               <div>
                 <p className="font-medium text-success">Application installée !</p>
                 <p className="text-sm text-muted-foreground">
-                  SignalÉnergie est sur votre écran d'accueil
+                  SIGNA-CI est sur votre écran d'accueil
                 </p>
               </div>
             </CardContent>

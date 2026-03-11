@@ -213,8 +213,8 @@ const DonationPage = () => {
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
             En cas de difficulté, contactez-nous à{" "}
-            <a href="mailto:support@signalenergie.ci" className="text-primary underline">
-              support@signalenergie.ci
+            <a href="mailto:support@signaci.ci" className="text-primary underline">
+              support@signaci.ci
             </a>
           </p>
         </div>
