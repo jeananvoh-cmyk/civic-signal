@@ -16,7 +16,7 @@ const AboutPage = () => {
               <Zap className="h-8 w-8 text-primary-foreground" />
             </div>
             <h1 className="font-display text-3xl font-bold text-foreground">
-              Signal<span className="text-water">Énergie</span>
+              SIGNA<span className="text-water">-CI</span>
             </h1>
             <p className="mt-2 text-muted-foreground">
               Plateforme citoyenne de signalement des coupures d'eau et d'électricité
