@@ -28,7 +28,7 @@ const AuthCTABar = () => {
             </div>
             <p className="text-sm font-medium text-foreground">
               Rejoins la communauté{" "}
-              <span className="text-water font-semibold">SignalÉnergie</span>
+              <span className="text-water font-semibold">SIGNA-CI</span>
             </p>
           </div>
 

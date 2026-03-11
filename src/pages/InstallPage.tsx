@@ -56,7 +56,7 @@ const InstallPage = () => {
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary/10 mb-4">
             <Download className="h-10 w-10 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold mb-2">Installer SignalÉnergie</h1>
+          <h1 className="text-3xl font-bold mb-2">Installer SIGNA-CI</h1>
           <p className="text-muted-foreground">
             Accédez rapidement à l'application depuis votre écran d'accueil
           </p>
@@ -72,7 +72,7 @@ const InstallPage = () => {
               <div>
                 <p className="font-medium text-success">Application installée !</p>
                 <p className="text-sm text-muted-foreground">
-                  SignalÉnergie est sur votre écran d'accueil
+                  SIGNA-CI est sur votre écran d'accueil
                 </p>
               </div>
             </CardContent>

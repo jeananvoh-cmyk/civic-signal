@@ -225,7 +225,7 @@ const ProfilePage = () => {
       toast.success("Votre compte et toutes vos données ont été définitivement supprimés.");
       navigate("/");
     } catch (err: any) {
-      toast.error("Erreur lors de la suppression. Contactez signalenergie@civictech.ci");
+      toast.error("Erreur lors de la suppression. Contactez signaci@civictech.ci");
     } finally {
       setDeleting(false);
     }
@@ -862,7 +862,7 @@ const ProfilePage = () => {
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement("a");
                         a.href = url;
-                        a.download = `signalenergie-mes-donnees-${new Date().toISOString().slice(0, 10)}.json`;
+                        a.download = `signaci-mes-donnees-${new Date().toISOString().slice(0, 10)}.json`;
                         a.click();
                         URL.revokeObjectURL(url);
                         toast.success("Export téléchargé !");

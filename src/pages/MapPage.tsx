@@ -381,7 +381,7 @@ const MapPage = () => {
             )}
           </div>
           <ShareButton
-            title="Carte SignalÉnergie"
+            title="Carte SIGNA-CI"
             text={`${currentActifs} signalements actifs sur les 7 communes pilotes d'Abidjan 📊`}
           />
         </motion.div>

@@ -56,8 +56,8 @@ const PrivacyPolicyPage = () => {
               Conformément à l'<strong className="text-foreground">article 35</strong> de la Loi n°2013-450, le responsable du traitement des données personnelles est :
             </p>
             <div className="mt-3 rounded-xl border border-border bg-muted/50 p-4 text-sm">
-              <p><strong className="text-foreground">Identité :</strong> Équipe SignalÉnergie — Initiative CivicTech</p>
-              <p><strong className="text-foreground">Email :</strong> signalenergie@civictech.ci</p>
+              <p><strong className="text-foreground">Identité :</strong> Équipe SIGNA-CI — Initiative CivicTech</p>
+              <p><strong className="text-foreground">Email :</strong> signaci@civictech.ci</p>
               <p><strong className="text-foreground">Siège :</strong> Abidjan, Côte d'Ivoire</p>
             </div>
             <p className="mt-3">
@@ -255,7 +255,7 @@ const PrivacyPolicyPage = () => {
               <p><strong className="text-foreground">Comment exercer vos droits :</strong></p>
               <ul className="list-disc pl-4 mt-1 space-y-1">
                 <li>Directement depuis votre espace personnel (profil, signalements)</li>
-                <li>Par email à <strong className="text-foreground">signalenergie@civictech.ci</strong></li>
+                <li>Par email à <strong className="text-foreground">signaci@civictech.ci</strong></li>
                 <li>Délai de réponse : <strong className="text-foreground">30 jours maximum</strong></li>
               </ul>
             </div>
@@ -337,7 +337,7 @@ const PrivacyPolicyPage = () => {
           {/* Mineurs */}
           <Section icon={<AlertTriangle className="h-5 w-5 text-primary" />} title="13. Protection des mineurs">
             <p>
-              SignalÉnergie est destiné aux personnes majeures (18 ans et plus). Nous ne collectons pas sciemment de données personnelles de mineurs. Si nous découvrons qu'un mineur a fourni des données personnelles, celles-ci seront supprimées dans les meilleurs délais.
+              SIGNA-CI est destiné aux personnes majeures (18 ans et plus). Nous ne collectons pas sciemment de données personnelles de mineurs. Si nous découvrons qu'un mineur a fourni des données personnelles, celles-ci seront supprimées dans les meilleurs délais.
             </p>
           </Section>
 
@@ -376,7 +376,7 @@ const PrivacyPolicyPage = () => {
             <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
               <p>Pour toute question relative à la protection de vos données ou pour exercer vos droits :</p>
               <div className="rounded-xl border border-border bg-muted/50 p-4 space-y-2">
-                <p>📧 <strong className="text-foreground">signalenergie@civictech.ci</strong></p>
+                <p>📧 <strong className="text-foreground">signaci@civictech.ci</strong></p>
                 <p>📱 Depuis votre profil dans l'application</p>
               </div>
               
@@ -399,7 +399,7 @@ const PrivacyPolicyPage = () => {
           </div>
 
           <div className="mt-6 text-center text-xs text-muted-foreground">
-            © 2026 SignalÉnergie — CivicTech Abidjan · Version pilote
+            © 2026 SIGNA-CI — CivicTech Abidjan · Version pilote
           </div>
         </motion.div>
       </main>

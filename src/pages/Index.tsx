@@ -356,7 +356,7 @@ const Index = () => {
                   <Zap className="h-4 w-4 text-white" />
                 </div>
                 <span className="font-bold text-sm text-foreground">
-                  Signal<span className="text-primary">Énergie</span>
+                  SIGNA<span className="text-primary">-CI</span>
                 </span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -405,7 +405,7 @@ const Index = () => {
 
           <div className="border-t border-border pt-6 flex flex-col items-center justify-between gap-2 sm:flex-row">
             <p className="text-xs text-muted-foreground">
-              © 2026 SignalÉnergie — CivicTech Abidjan
+              © 2026 SIGNA-CI — CivicTech Abidjan
             </p>
             <p className="text-xs text-muted-foreground">
               Fait avec ❤️ pour les citoyens d'Abidjan

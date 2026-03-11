@@ -95,7 +95,7 @@ const CommuneDetailPage = () => {
               <ArrowLeft className="h-4 w-4 mr-1" /> Retour au dashboard
             </Button>
             <ShareButton
-              title={`SignalÉnergie — ${decodedName}`}
+              title={`SIGNA-CI — ${decodedName}`}
               text={`📊 ${decodedName} : ${totalActifs} coupure${totalActifs !== 1 ? "s" : ""} active${totalActifs !== 1 ? "s" : ""} (⚡${totalElecActifs} 💧${totalEauActifs})`}
             />
           </div>

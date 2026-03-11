@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'app.lovable.c34285241d024d9da6b67fc016d9de59',
-  appName: 'SignalÉnergie',
+  appName: 'SIGNA-CI',
   webDir: 'dist',
   server: {
     url: 'https://c3428524-1d02-4d9d-a6b6-7fc016d9de59.lovableproject.com?forceHideBadge=true',

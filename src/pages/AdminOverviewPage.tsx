@@ -119,7 +119,7 @@ const AdminOverviewPage = () => {
           <div>
             <h1 className="font-display text-2xl font-bold text-foreground">Tableau de bord Admin</h1>
             <p className="text-sm text-muted-foreground">
-              Vue d'ensemble de l'application SignalÉnergie
+              Vue d'ensemble de l'application SIGNA-CI
             </p>
           </div>
         </div>
