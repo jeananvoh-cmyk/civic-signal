@@ -393,7 +393,7 @@ const Index = () => {
                 <Link to="/a-propos" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
                   <Info className="h-3.5 w-3.5" /> À propos & CGU
                 </Link>
-                <Link to="/politique-confidentialite" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                <Link to="/confidentialite" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
                   <Shield className="h-3.5 w-3.5" /> Politique de confidentialité
                 </Link>
                 <Link to="/dons" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
