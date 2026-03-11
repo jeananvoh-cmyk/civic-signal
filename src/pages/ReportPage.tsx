@@ -17,10 +17,12 @@ import { toast } from "sonner";
 import { getUserFriendlyError } from "@/lib/error-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { COMMUNES, findNearestCommune, type Commune } from "@/lib/communes";
+import { COMMUNES, type Commune } from "@/lib/communes";
+import { resolveCommune, type DetectionSource } from "@/lib/geolocation";
 import { getQuartiers } from "@/lib/quartiers";
 import type { ServiceType } from "@/lib/data";
 import SOSButtons from "@/components/SOSButtons";
+import { usePendingReports } from "@/hooks/usePendingReports";
 
 // ─── Types de signalement ────────────────────────────────────────────────────
 
@@ -160,6 +162,11 @@ const ReportPage = () => {
   const [detectedCommune, setDetectedCommune] = useState<Commune | null>(null);
   const [outsidePilotZone, setOutsidePilotZone] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(true);
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
+  const [detectionSource, setDetectionSource] = useState<DetectionSource>(null);
+
+  // Offline queue
+  const { enqueue } = usePendingReports();
 
   // Misc
   const [submitting, setSubmitting] = useState(false);
@@ -174,29 +181,47 @@ const ReportPage = () => {
     }
     setGpsLoading(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         const lat = pos.coords.latitude;
         const lon = pos.coords.longitude;
+        const acc = pos.coords.accuracy;
         setLatitude(lat);
         setLongitude(lon);
-        const result = findNearestCommune(lat, lon);
-        if (result.isInPilotZone && result.commune) {
-          setDetectedCommune(result.commune);
-          setCommune(result.commune.nom);
-          setOutsidePilotZone(false);
-        } else {
+        setGpsAccuracy(acc);
+        try {
+          const googleKey = (import.meta.env.VITE_GOOGLE_GEOCODING_KEY as string) || undefined;
+          const detection = await resolveCommune(lat, lon, acc, googleKey);
+          if (detection.commune) {
+            setDetectedCommune(detection.commune);
+            setCommune(detection.commune.nom);
+            setOutsidePilotZone(false);
+            setDetectionSource(detection.source);
+          } else {
+            setDetectedCommune(null);
+            setCommune("");
+            setOutsidePilotZone(detection.outsidePilotZone);
+            setDetectionSource(null);
+          }
+        } catch {
           setDetectedCommune(null);
-          setCommune("");
           setOutsidePilotZone(true);
         }
         setGpsLoading(false);
         if (showError) toast.success("Position GPS capturée !");
       },
-      () => {
+      (err) => {
         setGpsLoading(false);
-        if (showError) toast.error("Impossible d'obtenir votre position. Vérifiez les permissions GPS.");
+        if (showError) {
+          if (err.code === 1) {
+            toast.error("Permission GPS refusée. Activez la géolocalisation dans les paramètres.");
+          } else if (err.code === 3) {
+            toast.error("Délai GPS dépassé. Réessayez en extérieur ou près d'une fenêtre.");
+          } else {
+            toast.error("Impossible d'obtenir votre position. Vérifiez les permissions GPS.");
+          }
+        }
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
     );
   };
 
@@ -281,7 +306,7 @@ const ReportPage = () => {
       const fullDesc = `${fullBaseDesc} ${impactInfo}`;
       const hasVulnerable = babies > 0 || pregnant > 0 || elderly > 0;
 
-      const { error } = await supabase.from("reports").insert({
+      const reportPayload = {
         user_id: user.id,
         service_type: selectedType.serviceType,
         report_category: selectedType.reportCategory,
@@ -298,11 +323,30 @@ const ReportPage = () => {
         babies,
         pregnant,
         elderly,
-      } as any);
+      };
+
+      // Offline : enqueue and show offline confirmation
+      if (!navigator.onLine) {
+        enqueue(reportPayload);
+        toast.success("📶 Hors connexion — signalement sauvegardé, envoi automatique à la reconnexion.");
+        navigate(
+          `/signalement-envoye?commune=${encodeURIComponent(commune)}&type=${encodeURIComponent(typeLabel)}&emoji=${encodeURIComponent(selectedType.emoji)}&offline=1`
+        );
+        return;
+      }
+
+      const { data: inserted, error } = await supabase
+        .from("reports")
+        .insert(reportPayload as any)
+        .select("id")
+        .single();
 
       if (error) throw error;
+
       toast.success("✅ Signalement envoyé !");
-      navigate("/");
+      navigate(
+        `/signalement-envoye?id=${inserted?.id ?? ""}&commune=${encodeURIComponent(commune)}&type=${encodeURIComponent(typeLabel)}&emoji=${encodeURIComponent(selectedType.emoji)}`
+      );
     } catch (error: any) {
       const msg = error?.message || "";
       if (msg.includes("Rate limit exceeded")) {
@@ -465,7 +509,8 @@ const ReportPage = () => {
                     <MapPin className="h-4 w-4 shrink-0" style={{ color: detectedCommune?.couleur }} />
                     {gpsLoading ? (
                       <span className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Loader2 className="h-3 w-3 animate-spin" /> Détection GPS...
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        {latitude ? "Identification commune…" : "Détection GPS…"}
                       </span>
                     ) : detectedCommune ? (
                       <span className="font-bold text-sm truncate" style={{ color: detectedCommune.couleur }}>
@@ -488,15 +533,35 @@ const ReportPage = () => {
                   </button>
                 </div>
                 {latitude && longitude && (
-                  <p className="mt-1.5 text-xs text-muted-foreground font-mono">
-                    {latitude.toFixed(5)}, {longitude.toFixed(5)}
-                  </p>
+                  <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                    <p className="text-xs text-muted-foreground font-mono">
+                      {latitude.toFixed(5)}, {longitude.toFixed(5)}
+                    </p>
+                    {gpsAccuracy !== null && (
+                      <span
+                        className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                          gpsAccuracy <= 20
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                            : gpsAccuracy <= 100
+                            ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                            : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
+                        }`}
+                      >
+                        ±{Math.round(gpsAccuracy)} m
+                      </span>
+                    )}
+                    {detectionSource && detectionSource !== "geojson" && (
+                      <span className="inline-block rounded px-1.5 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground">
+                        via {detectionSource}
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
 
               {outsidePilotZone && (
                 <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive text-center">
-                  🚧 Hors des 5 communes pilotes. Sélectionnez manuellement ci-dessous.
+                  🚧 Hors des 7 communes pilotes. Sélectionnez manuellement ci-dessous.
                 </div>
               )}
 
@@ -830,12 +895,12 @@ const ReportPage = () => {
                       className="w-full py-5 text-base font-bold"
                       style={{ backgroundColor: selectedCommuneData?.couleur || selectedType.color, color: "white" }}
                     >
-                      <Link to={`/auth?tab=signup&redirect=/signaler?type=${selectedType.id}`}>
+                      <Link to={`/auth?tab=signup&redirect=${encodeURIComponent(`/signaler?type=${selectedType.id}`)}`}>
                         <UserPlus className="mr-2 h-5 w-5" /> Créer mon compte gratuitement
                       </Link>
                     </Button>
                     <Button asChild variant="outline" className="w-full py-5 text-base font-bold">
-                      <Link to={`/auth?tab=login&redirect=/signaler?type=${selectedType.id}`}>
+                      <Link to={`/auth?tab=login&redirect=${encodeURIComponent(`/signaler?type=${selectedType.id}`)}`}>
                         <LogIn className="mr-2 h-5 w-5" /> J'ai déjà un compte
                       </Link>
                     </Button>

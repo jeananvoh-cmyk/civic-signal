@@ -45,7 +45,7 @@ const AboutPage = () => {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
                 <MapPin className="h-5 w-5 text-primary" />
               </div>
-              <h2 className="font-display text-xl font-bold text-foreground">5 communes pilotes</h2>
+              <h2 className="font-display text-xl font-bold text-foreground">7 communes pilotes</h2>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {COMMUNES.map((c) => (
@@ -80,7 +80,7 @@ const AboutPage = () => {
             <ol className="space-y-3 text-sm text-muted-foreground">
               <li className="flex gap-3">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
-                <span><strong className="text-foreground">Géolocalisation automatique</strong> — Le GPS détecte votre commune parmi les 5 pilotes.</span>
+                <span><strong className="text-foreground">Géolocalisation automatique</strong> — Le GPS détecte votre commune parmi les 7 pilotes.</span>
               </li>
               <li className="flex gap-3">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>

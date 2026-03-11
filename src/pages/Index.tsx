@@ -11,11 +11,13 @@ import { supabase } from "@/integrations/supabase/client";
 const heroBg = "/images/hero-bg.jpg";
 import waterIcon from "@/assets/water-icon-sm.webp";
 import electricityIcon from "@/assets/electricity-icon-sm.webp";
+import { usePendingReports } from "@/hooks/usePendingReports";
 
 const Index = () => {
   const { user } = useAuth();
   const [liveCount, setLiveCount] = useState<number | null>(null);
   const [liveActive, setLiveActive] = useState(false);
+  const { pendingCount, flush } = usePendingReports();
 
   useEffect(() => {
     // Uses a SECURITY DEFINER RPC so both authenticated users AND anonymous
@@ -48,6 +50,23 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+
+      {/* Bannière signalements hors-ligne en attente */}
+      {pendingCount > 0 && (
+        <div className="bg-amber-500/10 border-b border-amber-500/30 py-2.5">
+          <div className="container flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+              📶 {pendingCount} signalement{pendingCount > 1 ? "s" : ""} hors-ligne en attente d'envoi
+            </p>
+            <button
+              onClick={() => flush()}
+              className="rounded-lg bg-amber-500 px-3 py-1 text-xs font-bold text-white hover:bg-amber-600 transition-colors"
+            >
+              Envoyer maintenant
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Hero */}
       <section className="relative overflow-hidden">
@@ -91,7 +110,7 @@ const Index = () => {
               )}
               <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white backdrop-blur-sm">
                 <Shield className="h-4 w-4" />
-                05 communes pilotes à Abidjan
+                07 communes pilotes à Abidjan
               </div>
             </div>
 
@@ -309,8 +328,8 @@ const Index = () => {
       <section className="gradient-hero py-12">
         <div className="container grid gap-8 text-center sm:grid-cols-4">
           {[
-            { value: "5", label: "Communes pilotes" },
-            { value: "2.58M", label: "Population couverte" },
+            { value: "7", label: "Communes pilotes" },
+            { value: "4.3M", label: "Population couverte" },
             { value: "<200m", label: "Rayon vérification" },
             {
               value: liveCount !== null ? String(liveCount) : "…",
@@ -393,7 +412,7 @@ const Index = () => {
                 <Link to="/a-propos" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
                   <Info className="h-3.5 w-3.5" /> À propos & CGU
                 </Link>
-                <Link to="/politique-confidentialite" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                <Link to="/confidentialite" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
                   <Shield className="h-3.5 w-3.5" /> Politique de confidentialité
                 </Link>
                 <Link to="/dons" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">

@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
-import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio, Flame, AlertTriangle, MapPin, Siren, CalendarDays } from "lucide-react";
+import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio, Flame, AlertTriangle, MapPin, Siren, CalendarDays, Download, Star, FileSpreadsheet, FileText } from "lucide-react";
 import Header from "@/components/Header";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import ShareButton from "@/components/ShareButton";
 import TrendsChart from "@/components/TrendsChart";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +14,7 @@ import { COMMUNES } from "@/lib/communes";
 import { COMMUNE_LOGOS } from "@/lib/commune-logos";
 import electricityIcon from "@/assets/electricity-icon.png";
 import waterIcon from "@/assets/water-icon.png";
+import * as XLSX from "xlsx";
 
 interface CommuneServiceStat {
   commune: string;
@@ -201,6 +203,7 @@ const DashboardPage = () => {
   const [realtimeActive, setRealtimeActive] = useState(false);
   const [period, setPeriod] = useState<Period>("all");
   const [moderatorName, setModeratorName] = useState<string>("");
+  const [userCommune, setUserCommune] = useState<string>("");
 
   const fetchAll = useCallback(async () => {
     const communeNames = COMMUNES.map((c) => c.nom);
@@ -269,6 +272,19 @@ const DashboardPage = () => {
     };
   }, [fetchAll]);
 
+  // Fetch user commune from profile (for "Ma commune" section)
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("commune")
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.commune) setUserCommune(data.commune);
+      });
+  }, [user]);
+
   // Fetch moderator display name from profiles
   useEffect(() => {
     if (!isModerator || !user) return;
@@ -295,10 +311,129 @@ const DashboardPage = () => {
   // Leaderboard: sorted by total active (most affected first)
   const leaderboard = [...stats].sort((a, b) => (b.electricite_actifs + b.eau_actifs) - (a.electricite_actifs + a.eau_actifs));
 
-  // Priority reports
-  const activeReports = priorityReports.filter((r) => r.status === "active");
+  // Period filter applied to individual reports (server-side RPCs don't support period)
+  const periodCutoff: Date | null = period === "7d"
+    ? new Date(Date.now() - 7 * 86400000)
+    : period === "30d"
+    ? new Date(Date.now() - 30 * 86400000)
+    : null;
+
+  const filteredPriorityReports = periodCutoff
+    ? priorityReports.filter((r) => new Date(r.created_at) >= periodCutoff)
+    : priorityReports;
+
+  // Priority reports — filtered by period
+  const activeReports = filteredPriorityReports.filter((r) => r.status === "active");
   const highPriorityReports = activeReports.filter((r) => r.urgency === "critical" || r.urgency === "high");
   const mediumPriorityReports = activeReports.filter((r) => r.urgency === "medium");
+
+  // ─── Helpers export ──────────────────────────────────────────────────────────
+
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const periodLabel = period === "7d" ? "7j" : period === "30d" ? "30j" : "tout";
+
+  /** Données brutes des signalements (pour CSV et XLSX) */
+  const buildReportRows = () =>
+    filteredPriorityReports.map((r) => ({
+      ID: r.id,
+      Commune: r.location,
+      Service: r.service_type === "electricity" ? "Électricité" : "Eau",
+      Urgence: r.urgency === "critical" ? "Critique" : r.urgency === "high" ? "Élevé" : "Moyen",
+      Statut: r.status === "active" ? "Actif" : "Résolu",
+      Vérifications: r.verifications,
+      "Début coupure": r.start_time ? new Date(r.start_time).toLocaleString("fr-FR") : "",
+      "Créé le": new Date(r.created_at).toLocaleString("fr-FR"),
+      Description: r.description,
+    }));
+
+  /** Données agrégées par commune (pour XLSX) */
+  const buildCommuneRows = () =>
+    stats.map((c) => ({
+      Commune: c.commune,
+      Population: c.population,
+      "Élec — Actifs": c.electricite_actifs,
+      "Élec — Résolus": c.electricite_resolus,
+      "Élec — Total": c.electricite_total,
+      "Eau — Actifs": c.eau_actifs,
+      "Eau — Résolus": c.eau_resolus,
+      "Eau — Total": c.eau_total,
+    }));
+
+  /** Données de durée (pour XLSX) */
+  const buildDurationRows = () =>
+    durations.map((d) => ({
+      Commune: d.commune,
+      Service: d.service_type === "electricity" ? "Électricité" : "Eau",
+      "Durée moy. (min)": Math.round(d.avg_duration_minutes),
+      "Plus longue (min)": Math.round(d.longest_duration_minutes),
+      "Nb résolus": d.total_resolved,
+      "Nb actifs": d.total_active,
+    }));
+
+  // ─── Export CSV ───────────────────────────────────────────────────────────────
+  const exportCSV = () => {
+    const rows = buildReportRows();
+    if (rows.length === 0) return;
+    const headers = Object.keys(rows[0]);
+    const lines = rows.map((r) =>
+      headers.map((h) => {
+        const val = String((r as Record<string, unknown>)[h] ?? "");
+        return val.includes(",") || val.includes('"') || val.includes("\n")
+          ? `"${val.replace(/"/g, '""')}"`
+          : val;
+      }).join(",")
+    );
+    const csv = [headers.join(","), ...lines].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `signalements_${periodLabel}_${dateStr}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ─── Export XLSX (multi-feuilles) ─────────────────────────────────────────────
+  const exportXLSX = () => {
+    const wb = XLSX.utils.book_new();
+
+    // Feuille 1 : Signalements
+    const wsReports = XLSX.utils.json_to_sheet(buildReportRows());
+    // Largeurs de colonnes
+    wsReports["!cols"] = [
+      { wch: 38 }, // ID
+      { wch: 14 }, // Commune
+      { wch: 14 }, // Service
+      { wch: 10 }, // Urgence
+      { wch: 10 }, // Statut
+      { wch: 14 }, // Vérifications
+      { wch: 20 }, // Début
+      { wch: 20 }, // Créé le
+      { wch: 60 }, // Description
+    ];
+    XLSX.utils.book_append_sheet(wb, wsReports, "Signalements");
+
+    // Feuille 2 : Stats par commune
+    const wsCommunes = XLSX.utils.json_to_sheet(buildCommuneRows());
+    wsCommunes["!cols"] = [
+      { wch: 14 }, { wch: 12 },
+      { wch: 14 }, { wch: 14 }, { wch: 12 },
+      { wch: 12 }, { wch: 12 }, { wch: 10 },
+    ];
+    XLSX.utils.book_append_sheet(wb, wsCommunes, "Stats Communes");
+
+    // Feuille 3 : Durées
+    const durationRows = buildDurationRows();
+    if (durationRows.length > 0) {
+      const wsDurations = XLSX.utils.json_to_sheet(durationRows);
+      wsDurations["!cols"] = [
+        { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 12 }, { wch: 10 },
+      ];
+      XLSX.utils.book_append_sheet(wb, wsDurations, "Durées Coupures");
+    }
+
+    XLSX.writeFile(wb, `signalements_${periodLabel}_${dateStr}.xlsx`);
+  };
 
   const totalActifs = totalElecActifs + totalEauActifs;
   const isCrisis = totalActifs >= 10;
@@ -328,7 +463,7 @@ const DashboardPage = () => {
           <div className="container flex items-center justify-center gap-2 text-sm font-semibold text-destructive">
             <Siren className="h-4 w-4 animate-pulse" />
             <span>
-              Situation critique — {totalActifs} coupures actives en ce moment sur les 5 communes pilotes
+              Situation critique — {totalActifs} coupures actives en ce moment sur les 7 communes pilotes
             </span>
             <Siren className="h-4 w-4 animate-pulse" />
           </div>
@@ -340,7 +475,7 @@ const DashboardPage = () => {
           <div>
             <h1 className="font-display text-3xl font-bold text-foreground">{dashboardTitle}</h1>
             <div className="mt-1 flex items-center gap-2">
-              <p className="text-muted-foreground">5 communes pilotes — Abidjan</p>
+              <p className="text-muted-foreground">7 communes pilotes — Abidjan</p>
               <span className={`flex items-center gap-1 text-xs font-medium transition-colors ${realtimeActive ? "text-success" : "text-muted-foreground"}`}>
                 <Radio className={`h-3 w-3 ${realtimeActive ? "animate-pulse" : ""}`} />
                 Live
@@ -365,9 +500,39 @@ const DashboardPage = () => {
                 </button>
               ))}
             </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                disabled={filteredPriorityReports.length === 0 && stats.length === 0}
+                className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground shadow-sm hover:bg-secondary hover:text-foreground transition-colors disabled:opacity-40 outline-none"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Exporter
+                <ChevronDown className="h-3 w-3 opacity-60" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                  {filteredPriorityReports.length} signalement{filteredPriorityReports.length !== 1 ? "s" : ""} — période : {periodLabel}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={exportCSV} className="cursor-pointer gap-2">
+                  <FileText className="h-4 w-4 text-blue-500" />
+                  <div>
+                    <p className="font-semibold">CSV</p>
+                    <p className="text-[11px] text-muted-foreground">Compatible tous tableurs</p>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportXLSX} className="cursor-pointer gap-2">
+                  <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+                  <div>
+                    <p className="font-semibold">Excel (.xlsx)</p>
+                    <p className="text-[11px] text-muted-foreground">3 feuilles : signalements, stats, durées</p>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <ShareButton
               title="Tableau de Bord SignalÉnergie"
-              text={`📊 ${totalActifs} coupures actives sur les 5 communes pilotes d'Abidjan`}
+              text={`📊 ${totalActifs} coupures actives sur les 7 communes pilotes d'Abidjan`}
             />
           </div>
         </motion.div>
@@ -387,7 +552,7 @@ const DashboardPage = () => {
                 </div>
                 <p className="font-display text-lg font-bold text-foreground">Aucune coupure active</p>
                 <p className="mt-2 text-sm text-muted-foreground max-w-xs">
-                  Tout est normal pour le moment dans les 5 communes pilotes. Les signalements apparaîtront ici en temps réel.
+                  Tout est normal pour le moment dans les 7 communes pilotes. Les signalements apparaîtront ici en temps réel.
                 </p>
               </div>
             ) : null}
@@ -679,6 +844,51 @@ const DashboardPage = () => {
             </CollapsibleContent>
           </Collapsible>
         </motion.div>)}
+
+        {/* Ma commune — section personnalisée pour l'utilisateur connecté */}
+        {user && userCommune && !loading && (() => {
+          const mc = stats.find((s) => s.commune === userCommune);
+          const mcData = COMMUNES.find((c) => c.nom === userCommune);
+          if (!mc || !mcData) return null;
+          const totalActifsCommune = mc.electricite_actifs + mc.eau_actifs;
+          return (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="mb-8">
+              <div className="flex items-center gap-2 mb-3">
+                <Star className="h-5 w-5" style={{ color: mcData.couleur }} />
+                <h2 className="font-display text-xl font-bold text-foreground">Ma commune</h2>
+                <span className="text-sm text-muted-foreground">— {userCommune}</span>
+              </div>
+              <div
+                className="rounded-2xl border-2 p-5 shadow-card"
+                style={{ borderColor: mcData.couleur + "50", backgroundColor: mcData.couleur + "08" }}
+              >
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 text-center">
+                  <div>
+                    <p className="font-display text-2xl font-extrabold" style={{ color: mcData.couleur }}>{totalActifsCommune}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Coupures actives</p>
+                  </div>
+                  <div>
+                    <p className="font-display text-2xl font-extrabold text-emerald-500">{mc.electricite_resolus + mc.eau_resolus}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Résolues</p>
+                  </div>
+                  <div>
+                    <p className="font-display text-2xl font-extrabold text-amber-500">{mc.electricite_actifs}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">⚡ Électricité</p>
+                  </div>
+                  <div>
+                    <p className="font-display text-2xl font-extrabold text-blue-500">{mc.eau_actifs}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">💧 Eau</p>
+                  </div>
+                </div>
+                {totalActifsCommune === 0 && (
+                  <p className="mt-4 text-center text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                    ✅ Aucune coupure active à {userCommune} en ce moment
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          );
+        })()}
 
         {/* Per-commune breakdown */}
         <h2 className="font-display text-xl font-bold text-foreground mb-4">Détail par commune</h2>
