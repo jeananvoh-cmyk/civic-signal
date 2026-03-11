@@ -32,7 +32,7 @@ const AboutPage = () => {
               <h2 className="font-display text-xl font-bold text-foreground">Notre mission</h2>
             </div>
             <p className="text-muted-foreground leading-relaxed">
-              SignalÉnergie est une initiative CivicTech qui permet aux habitants d'Abidjan de signaler 
+              SIGNA-CI est une initiative CivicTech qui permet aux habitants d'Abidjan de signaler 
               les coupures d'eau et d'électricité en temps réel. En collectant ces données citoyennes, 
               nous aidons les opérateurs (CIE, SODECI) et les autorités locales à mieux comprendre 
               et résoudre les problèmes d'accès aux services essentiels.
