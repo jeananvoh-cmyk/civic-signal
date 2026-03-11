@@ -225,7 +225,7 @@ const ProfilePage = () => {
       toast.success("Votre compte et toutes vos données ont été définitivement supprimés.");
       navigate("/");
     } catch (err: any) {
-      toast.error("Erreur lors de la suppression. Contactez signalenergie@civictech.ci");
+      toast.error("Erreur lors de la suppression. Contactez signaci@civictech.ci");
     } finally {
       setDeleting(false);
     }
