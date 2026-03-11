@@ -38,16 +38,35 @@ export interface CommuneResult {
 }
 
 export const findNearestCommune = (lat: number, lon: number): CommuneResult => {
-  let best: Commune | null = null;
-  let bestDist = Infinity;
+  // First pass: find all communes whose radius covers this position
+  // Pick the one where the user is deepest inside (smallest distance relative to radius)
+  let bestInside: Commune | null = null;
+  let bestInsideDist = Infinity;
+
+  // Also track absolute nearest for fallback
+  let nearest: Commune | null = null;
+  let nearestDist = Infinity;
+
   for (const c of COMMUNES) {
     const d = haversineDistance(lat, lon, c.centerLat, c.centerLon);
-    if (d < bestDist) {
-      bestDist = d;
-      best = c;
+
+    // Track absolute nearest
+    if (d < nearestDist) {
+      nearestDist = d;
+      nearest = c;
+    }
+
+    // If within this commune's radius, prefer the closest center
+    if (d <= c.rayonM && d < bestInsideDist) {
+      bestInsideDist = d;
+      bestInside = c;
     }
   }
-  // User is in pilot zone only if within the commune's radius
-  const isInPilotZone = best !== null && bestDist <= best.rayonM;
-  return { commune: best, distance: bestDist, isInPilotZone };
+
+  if (bestInside) {
+    return { commune: bestInside, distance: bestInsideDist, isInPilotZone: true };
+  }
+
+  // Not inside any commune's radius
+  return { commune: nearest, distance: nearestDist, isInPilotZone: false };
 };
