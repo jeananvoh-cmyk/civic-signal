@@ -56,7 +56,7 @@ const DonationPage = () => {
               <Heart className="h-8 w-8 text-white" />
             </div>
             <h1 className="font-display text-3xl font-extrabold text-white md:text-5xl">
-              Soutenez <span className="text-electricity">Signal</span><span className="text-water-light">Énergie</span>
+              Soutenez <span className="text-electricity">SIGNA</span><span className="text-water-light">-CI</span>
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-lg text-white/80">
               Chaque don permet d'augmenter la capacité de signalements et d'étendre la couverture
