@@ -337,7 +337,7 @@ const PrivacyPolicyPage = () => {
           {/* Mineurs */}
           <Section icon={<AlertTriangle className="h-5 w-5 text-primary" />} title="13. Protection des mineurs">
             <p>
-              SignalÉnergie est destiné aux personnes majeures (18 ans et plus). Nous ne collectons pas sciemment de données personnelles de mineurs. Si nous découvrons qu'un mineur a fourni des données personnelles, celles-ci seront supprimées dans les meilleurs délais.
+              SIGNA-CI est destiné aux personnes majeures (18 ans et plus). Nous ne collectons pas sciemment de données personnelles de mineurs. Si nous découvrons qu'un mineur a fourni des données personnelles, celles-ci seront supprimées dans les meilleurs délais.
             </p>
           </Section>
 
