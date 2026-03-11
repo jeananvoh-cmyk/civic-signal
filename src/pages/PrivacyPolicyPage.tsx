@@ -376,7 +376,7 @@ const PrivacyPolicyPage = () => {
             <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
               <p>Pour toute question relative à la protection de vos données ou pour exercer vos droits :</p>
               <div className="rounded-xl border border-border bg-muted/50 p-4 space-y-2">
-                <p>📧 <strong className="text-foreground">signalenergie@civictech.ci</strong></p>
+                <p>📧 <strong className="text-foreground">signaci@civictech.ci</strong></p>
                 <p>📱 Depuis votre profil dans l'application</p>
               </div>
               
