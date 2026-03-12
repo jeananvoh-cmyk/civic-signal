@@ -319,6 +319,26 @@ const DashboardPage = () => {
   const highPriorityReports = activeReports.filter((r) => r.urgency === "critical" || r.urgency === "high");
   const mediumPriorityReports = activeReports.filter((r) => r.urgency === "medium");
 
+  // Confirmed zone alerts: reports with 3+ verifications grouped by location
+  const confirmedReports = activeReports.filter((r) => r.verifications >= 3);
+  const confirmedZones = (() => {
+    const zones = new Map<string, { commune: string; quartier: string; serviceType: string; count: number; totalVerifications: number }>();
+    for (const r of confirmedReports) {
+      const parts = r.location.split(", ");
+      const commune = parts[0] || r.location;
+      const quartier = parts[1] || "";
+      const key = `${commune}|${quartier}|${r.service_type}`;
+      const existing = zones.get(key);
+      if (existing) {
+        existing.count++;
+        existing.totalVerifications += r.verifications;
+      } else {
+        zones.set(key, { commune, quartier, serviceType: r.service_type, count: 1, totalVerifications: r.verifications });
+      }
+    }
+    return Array.from(zones.values()).sort((a, b) => b.totalVerifications - a.totalVerifications);
+  })();
+
   const totalActifs = totalElecActifs + totalEauActifs + totalMairieActifs;
   const isCrisis = totalActifs >= 10;
   const isEmpty = !loading && totalActifs === 0 && totalElecTotal + totalEauTotal + totalMairieTotal === 0;
