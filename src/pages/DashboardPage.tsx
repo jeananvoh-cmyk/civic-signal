@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
-import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio, Flame, AlertTriangle, MapPin, Siren, CalendarDays, Construction } from "lucide-react";
+import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio, Flame, AlertTriangle, MapPin, Siren, CalendarDays, Construction, CheckCircle2 } from "lucide-react";
 import Header from "@/components/Header";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
