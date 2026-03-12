@@ -518,6 +518,38 @@ const DashboardPage = () => {
           </motion.div>
         )}
 
+        {/* ═══ Zones de coupure confirmées ═══ */}
+        {!loading && confirmedZones.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="mb-8">
+            <div className="rounded-2xl border-2 border-emerald-500/30 bg-emerald-500/5 p-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/20">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                </div>
+                <div>
+                  <h3 className="font-display text-sm font-bold text-foreground">Zones de coupure confirmées</h3>
+                  <p className="text-[10px] text-muted-foreground">Signalements vérifiés par 3+ voisins — haute fiabilité</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {confirmedZones.slice(0, 6).map((z) => {
+                  const isElec = z.serviceType === "electricity";
+                  return (
+                    <div key={`${z.commune}|${z.quartier}|${z.serviceType}`} className="flex items-center gap-3 rounded-xl bg-card border border-border px-4 py-3">
+                      <span className="text-lg">{isElec ? "⚡" : z.serviceType === "water" ? "💧" : "🏗️"}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{z.quartier || z.commune}</p>
+                        <p className="text-[10px] text-muted-foreground">{z.commune} • {z.totalVerifications} confirmation{z.totalVerifications > 1 ? "s" : ""}</p>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600">✓ Confirmé</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Duration stats */}
         {canValidate && !loading && durations.some((d) => d.total_resolved > 0) && (() => {
           const communeNames = [...new Set(durations.map((d) => d.commune))];
