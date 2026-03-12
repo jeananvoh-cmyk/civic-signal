@@ -237,6 +237,7 @@ export type Database = {
         Row: {
           commune: string
           created_at: string
+          hidden: boolean
           id: string
           nom: string
           source: string
@@ -245,6 +246,7 @@ export type Database = {
         Insert: {
           commune: string
           created_at?: string
+          hidden?: boolean
           id?: string
           nom: string
           source?: string
@@ -253,6 +255,7 @@ export type Database = {
         Update: {
           commune?: string
           created_at?: string
+          hidden?: boolean
           id?: string
           nom?: string
           source?: string

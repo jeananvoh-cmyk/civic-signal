@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
           const match = url.match(/report-photos\/(.+)/);
           return match ? match[1] : null;
         })
-        .filter(Boolean);
+        .filter((p): p is string => p !== null);
 
       if (photoPaths.length > 0) {
         await adminClient.storage.from("report-photos").remove(photoPaths);
