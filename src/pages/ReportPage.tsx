@@ -250,7 +250,7 @@ const ReportPage = () => {
     setStep(2);
   };
 
-  const handleLocationNext = () => {
+  const handleLocationNext = async () => {
     if (!commune || !resolvedQuartier) {
       toast.error("Sélectionnez la commune et le quartier");
       return;
@@ -259,7 +259,68 @@ const ReportPage = () => {
       toast.error("Position GPS requise. Activez la géolocalisation.");
       return;
     }
+
+    // Check for existing similar reports (duplicate detection) — only for outage type
+    if (selectedType?.reportCategory === "outage" && user) {
+      setCheckingDuplicates(true);
+      try {
+        const { data, error } = await supabase.rpc("find_similar_reports", {
+          p_commune: commune,
+          p_quartier: resolvedQuartier,
+          p_service_type: selectedType.serviceType,
+          p_report_category: "outage",
+        });
+        if (!error && data && data.length > 0) {
+          // Filter out own reports
+          const otherReports = (data as SimilarReport[]).filter((r) => r.user_id !== user.id);
+          if (otherReports.length > 0) {
+            setSimilarReports(otherReports);
+            setShowDuplicateDialog(true);
+            setCheckingDuplicates(false);
+            return;
+          }
+        }
+      } catch {
+        // Silently continue if RPC fails
+      }
+      setCheckingDuplicates(false);
+    }
+
     // Auto-ouvrir le panel photo pour les signalements infrastructure (photo obligatoire)
+    if (selectedType?.reportCategory === "infrastructure") {
+      setShowPhoto(true);
+    }
+    setStep(3);
+  };
+
+  const handleCorroborateExisting = async (reportId: string) => {
+    if (!user) return;
+    setCorroborating(reportId);
+    try {
+      const { error } = await supabase.rpc("corroborate_report", { p_report_id: reportId });
+      if (error) throw error;
+      toast.success("✅ Merci ! Votre confirmation a été enregistrée. Le signalement existant est renforcé.");
+      setShowDuplicateDialog(false);
+      navigate("/");
+    } catch (err: any) {
+      const msg = err.message || "";
+      if (msg.includes("déjà confirmé")) {
+        toast.info("Vous avez déjà confirmé ce signalement.");
+        setShowDuplicateDialog(false);
+      } else if (msg.includes("Impossible de confirmer")) {
+        toast.error("Ce signalement n'est plus actif.");
+        setShowDuplicateDialog(false);
+        proceedToStep3();
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setCorroborating(null);
+    }
+  };
+
+  const proceedToStep3 = () => {
+    setShowDuplicateDialog(false);
     if (selectedType?.reportCategory === "infrastructure") {
       setShowPhoto(true);
     }
