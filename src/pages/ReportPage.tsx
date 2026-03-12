@@ -990,6 +990,72 @@ const ReportPage = () => {
           )}
 
         </AnimatePresence>
+
+        {/* ═══════════════════════════════════════════════
+            Dialog — Signalements similaires détectés
+        ═══════════════════════════════════════════════ */}
+        <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-foreground">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                Coupure déjà signalée
+              </DialogTitle>
+              <DialogDescription>
+                Des voisins ont déjà signalé cette coupure dans votre quartier. Vous pouvez confirmer leur signalement pour le renforcer, ou créer un nouveau.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {similarReports.map((r) => {
+                const isElec = r.service_type === "electricity";
+                const timeAgo = (() => {
+                  const mins = (Date.now() - new Date(r.created_at).getTime()) / 60000;
+                  if (mins < 60) return `il y a ${Math.round(mins)}min`;
+                  const h = Math.floor(mins / 60);
+                  if (h < 24) return `il y a ${h}h`;
+                  return `il y a ${Math.floor(h / 24)}j`;
+                })();
+
+                return (
+                  <div key={r.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xl">{isElec ? "⚡" : "💧"}</span>
+                        <div className="min-w-0">
+                          <p className="text-sm text-muted-foreground truncate">{r.description}</p>
+                          <p className="text-xs text-muted-foreground">{timeAgo}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <CorroborationStatus verifications={r.verifications} compact />
+                    <Button
+                      className="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold"
+                      onClick={() => handleCorroborateExisting(r.id)}
+                      disabled={corroborating === r.id}
+                    >
+                      {corroborating === r.id ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Confirmation…</>
+                      ) : (
+                        <><CheckCircle2 className="mr-2 h-4 w-4" /> Oui, je confirme cette coupure</>
+                      )}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="pt-2 border-t border-border">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={proceedToStep3}
+              >
+                Non, c'est un nouveau problème — créer un signalement
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
