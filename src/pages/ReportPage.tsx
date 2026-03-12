@@ -168,6 +168,21 @@ const ReportPage = () => {
   const [dailyCount, setDailyCount] = useState<number | null>(null);
   const [limitReached, setLimitReached] = useState(false);
 
+  // Duplicate detection
+  interface SimilarReport {
+    id: string;
+    service_type: string;
+    description: string;
+    verifications: number;
+    created_at: string;
+    start_time: string;
+    user_id: string;
+  }
+  const [similarReports, setSimilarReports] = useState<SimilarReport[]>([]);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [checkingDuplicates, setCheckingDuplicates] = useState(false);
+  const [corroborating, setCorroborating] = useState<string | null>(null);
+
   const captureGPS = (showError = true) => {
     if (!navigator.geolocation) {
       setGpsLoading(false);
