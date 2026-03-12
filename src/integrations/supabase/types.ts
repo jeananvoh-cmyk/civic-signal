@@ -495,6 +495,23 @@ export type Database = {
           nom: string
         }[]
       }
+      find_similar_reports: {
+        Args: {
+          p_commune: string
+          p_quartier: string
+          p_report_category?: string
+          p_service_type: string
+        }
+        Returns: {
+          created_at: string
+          description: string
+          id: string
+          service_type: string
+          start_time: string
+          user_id: string
+          verifications: number
+        }[]
+      }
       get_active_outage_count: { Args: never; Returns: number }
       get_commune_duration_stats: {
         Args: never
