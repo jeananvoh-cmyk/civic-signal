@@ -656,9 +656,16 @@ const ReportPage = () => {
                   className="w-full py-5 text-base font-bold"
                   style={{ backgroundColor: selectedType.color, color: "white" }}
                   onClick={handleLocationNext}
-                  disabled={!commune || !resolvedQuartier || !latitude}
+                  disabled={!commune || !resolvedQuartier || !latitude || checkingDuplicates}
                 >
-                  Continuer →
+                  {checkingDuplicates ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Vérification…
+                    </>
+                  ) : (
+                    "Continuer →"
+                  )}
                 </Button>
               )}
             </motion.div>
