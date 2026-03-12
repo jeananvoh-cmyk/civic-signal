@@ -4,15 +4,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Send, MapPin, Navigation, Loader2, Users, Baby, Heart, UserRound,
   ChevronDown, Plus, Minus, ArrowLeft, Camera, MessageSquare, Clock,
-  LogIn, UserPlus,
+  LogIn, UserPlus, AlertTriangle, CheckCircle2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import Header from "@/components/Header";
 import PhotoUpload from "@/components/PhotoUpload";
+import CorroborationStatus from "@/components/CorroborationStatus";
 import { toast } from "sonner";
 import { getUserFriendlyError } from "@/lib/error-utils";
 import { supabase } from "@/integrations/supabase/client";
