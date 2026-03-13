@@ -220,13 +220,13 @@ const Index = () => {
               <motion.div
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.97 }}
-                animate={{ boxShadow: ["0 8px 32px rgba(14,165,233,0.35)", "0 8px 48px rgba(14,165,233,0.6)", "0 8px 32px rgba(14,165,233,0.35)"] }}
+                animate={{ boxShadow: ["0 8px 32px hsl(43 96% 56% / 0.3)", "0 8px 48px hsl(43 96% 56% / 0.55)", "0 8px 32px hsl(43 96% 56% / 0.3)"] }}
                 transition={{ boxShadow: { duration: 2.5, repeat: Infinity, ease: "easeInOut" }, scale: { duration: 0.2 } }}
                 className="inline-block rounded-2xl"
               >
                 <Link
                   to="/signaler"
-                  className="group inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-water to-electricity px-10 py-5 text-xl font-extrabold text-white"
+                  className="group inline-flex items-center gap-3 rounded-2xl bg-primary px-10 py-5 text-xl font-extrabold text-primary-foreground"
                 >
                   <Zap className="h-6 w-6 drop-shadow" />
                   Signaler
