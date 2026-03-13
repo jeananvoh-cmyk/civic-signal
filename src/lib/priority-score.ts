@@ -44,7 +44,19 @@ export interface PriorityInput {
   pregnant?: number | null;
   elderly?: number | null;
   urgency?: string;
+  /** Contexte de zone (quartier) — pour activation du scoring avancé */
+  zoneContext?: {
+    /** Nombre total de signalements actifs dans ce quartier */
+    totalReportsInQuartier: number;
+    /** Nombre de signalements confirmés (≥1 vérification) dans ce quartier */
+    confirmedReportsInQuartier: number;
+  };
 }
+
+// ── Seuils d'activation zone ──
+/** Le scoring avancé (zone crisis) s'active quand un quartier atteint ces seuils */
+const ZONE_ACTIVATION_THRESHOLD = 50;
+const ZONE_CONFIRMATION_RATE_THRESHOLD = 0.5; // 50%
 
 // ────────────────────────── Constantes ──────────────────────────
 
