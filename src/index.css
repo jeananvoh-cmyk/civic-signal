@@ -100,48 +100,48 @@
   }
 
   .dark {
-    /* Facebook dark mode palette */
-    --background: 0 0% 10%;     /* #1A1A1A */
-    --foreground: 216 18% 90%;  /* #E4E6EB */
-    --card: 0 0% 14%;           /* #242526 */
-    --card-foreground: 216 18% 90%;
-    --popover: 0 0% 14%;
-    --popover-foreground: 216 18% 90%;
-    --primary: 214 89% 52%;     /* keep Facebook blue */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 24%;      /* #3A3B3C */
-    --secondary-foreground: 216 18% 90%;
-    --muted: 0 0% 24%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 214 89% 20%;
-    --accent-foreground: 214 89% 70%;
+    /* Ushahidi-inspired dark mode — charcoal + amber */
+    --background: 0 0% 9%;        /* #171717 */
+    --foreground: 40 10% 90%;     /* warm off-white */
+    --card: 0 0% 13%;             /* #212121 */
+    --card-foreground: 40 10% 90%;
+    --popover: 0 0% 13%;
+    --popover-foreground: 40 10% 90%;
+    --primary: 43 96% 56%;        /* keep amber/gold */
+    --primary-foreground: 0 0% 7%;
+    --secondary: 0 0% 18%;
+    --secondary-foreground: 40 10% 90%;
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 55%;
+    --accent: 43 40% 18%;
+    --accent-foreground: 43 80% 70%;
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 25%;         /* #3E4042 */
-    --input: 0 0% 25%;
-    --ring: 214 89% 52%;
-    --sidebar-background: 0 0% 9%;
-    --sidebar-foreground: 216 18% 90%;
-    --sidebar-primary: 214 89% 52%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 18%;
-    --sidebar-accent-foreground: 216 18% 90%;
-    --sidebar-border: 0 0% 25%;
-    --sidebar-ring: 214 89% 52%;
-    --chart-1: 214 89% 62%;
-    --chart-2: 192 70% 55%;
-    --chart-3: 150 60% 50%;
-    --chart-4: 40 90% 55%;
+    --border: 0 0% 22%;
+    --input: 0 0% 22%;
+    --ring: 43 96% 56%;
+    --sidebar-background: 0 0% 8%;
+    --sidebar-foreground: 40 10% 90%;
+    --sidebar-primary: 43 96% 56%;
+    --sidebar-primary-foreground: 0 0% 7%;
+    --sidebar-accent: 0 0% 16%;
+    --sidebar-accent-foreground: 40 10% 90%;
+    --sidebar-border: 0 0% 22%;
+    --sidebar-ring: 43 96% 56%;
+    --chart-1: 43 96% 60%;
+    --chart-2: 200 65% 55%;
+    --chart-3: 152 50% 50%;
+    --chart-4: 30 85% 58%;
     --chart-5: 0 72% 60%;
-    --sidebar: 0 0% 9%;
-    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+    --sidebar: 0 0% 8%;
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.15);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.15);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.2), 0 1px 2px -1px hsl(0 0% 0% / 0.2);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.2), 0 1px 2px -1px hsl(0 0% 0% / 0.2);
+    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.25), 0 2px 4px -1px hsl(0 0% 0% / 0.2);
+    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.3), 0 4px 6px -1px hsl(0 0% 0% / 0.2);
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.3), 0 8px 10px -1px hsl(0 0% 0% / 0.2);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.4);
   }
 }
 
