@@ -1,12 +1,15 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Clock, Users, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, Users, CheckCircle2, Info } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
 import SignedImage from "@/components/SignedImage";
+import PriorityBadge from "@/components/PriorityBadge";
+import { calculatePriority, getNormReference } from "@/lib/priority-score";
+import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 
 const NEGLECTED_DAYS = 7;
