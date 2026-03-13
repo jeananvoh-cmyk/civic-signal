@@ -88,12 +88,14 @@ function getTypeLabel(serviceType: string, reportCategory: string | null): strin
 const SignalementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
 
+  const { canValidate } = useUserRole();
+
   const { data: report, isLoading, isError } = useQuery({
     queryKey: ["signalement-detail", id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reports")
-        .select("id, status, urgency, service_type, report_category, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, photo_url")
+        .select("id, status, urgency, service_type, report_category, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, photo_url, babies, pregnant, elderly")
         .eq("id", id!)
         .single();
       if (error) throw error;
