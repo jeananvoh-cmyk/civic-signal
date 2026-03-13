@@ -87,13 +87,15 @@ const SuiviPage = () => {
   const [filterCommune, setFilterCommune] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [sortBy, setSortBy] = useState<"priority" | "date">("priority");
+  const { canValidate } = useUserRole();
 
   const { data: reports = [], isLoading, dataUpdatedAt } = useQuery({
     queryKey: ["suivi-reports"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reports")
-        .select("id, status, urgency, service_type, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people")
+        .select("id, status, urgency, service_type, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, babies, pregnant, elderly")
         .order("created_at", { ascending: false })
         .limit(300);
       if (error) throw error;
