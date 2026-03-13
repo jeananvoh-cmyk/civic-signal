@@ -359,7 +359,7 @@ const Index = () => {
                 transition={{ delay: 0.35 }}
                 className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row"
               >
-                <Button asChild size="lg" className="bg-water text-water-foreground hover:bg-water/90 px-8 font-bold">
+                <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 font-bold">
                   <Link to="/auth?tab=signup">
                     <UserPlus className="mr-2 h-5 w-5" />
                     Créer mon compte gratuitement
