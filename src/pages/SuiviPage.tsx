@@ -366,6 +366,16 @@ const SuiviPage = () => {
           </motion.div>
         </div>
 
+        {/* Norm reference banner */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.28 }} className="mb-4 rounded-xl border border-border bg-card px-4 py-3 flex items-start gap-2">
+          <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+          <div className="text-[11px] text-muted-foreground leading-relaxed">
+            <span className="font-semibold text-foreground">Priorisation basée sur les normes internationales</span> — 
+            OMS (eau potable, seuil 24h en climat tropical) • IEEE 1366 (fiabilité électrique) • Sphère Handbook (populations vulnérables). 
+            Pondéré pour le contexte d'Abidjan.
+          </div>
+        </motion.div>
+
         {/* Filters + report list */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <div className="flex flex-wrap gap-2 mb-4">
@@ -404,6 +414,26 @@ const SuiviPage = () => {
                 ))}
               </SelectContent>
             </Select>
+
+            {/* Sort toggle */}
+            <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1 shadow-sm ml-auto">
+              <button
+                onClick={() => setSortBy("priority")}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  sortBy === "priority" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
+                }`}
+              >
+                🎯 Priorité
+              </button>
+              <button
+                onClick={() => setSortBy("date")}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  sortBy === "date" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
+                }`}
+              >
+                📅 Date
+              </button>
+            </div>
           </div>
 
           {isLoading ? (
@@ -419,17 +449,25 @@ const SuiviPage = () => {
           ) : (
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground mb-3">
-                {filteredReports.length} signalement{filteredReports.length > 1 ? "s" : ""}
+                {filteredReports.length} signalement{filteredReports.length > 1 ? "s" : ""} — trié{sortBy === "priority" ? " par priorité (normes OMS/IEEE)" : " par date"}
               </p>
               {filteredReports.map((r) => {
                 const meta = STATUS_META[r.computedStatus];
                 const isElec = r.service_type === "electricity";
                 const age = formatAge(r.created_at);
                 return (
-                  <Card key={r.id} className={`border-l-4 ${getUrgencyBorderClass(r.urgency)}`}>
+                  <Card key={r.id} className={`border-l-4 ${getUrgencyBorderClass(r.urgency)} hover:shadow-md transition-shadow cursor-pointer`}
+                    onClick={() => window.location.href = `/signalement/${r.id}`}
+                  >
                     <CardContent className="p-3 flex items-start gap-3">
                       <span className="text-xl shrink-0 mt-0.5">{isElec ? "⚡" : "💧"}</span>
                       <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <PriorityBadge priority={r.priority} showScore={canValidate} showFactors={canValidate} />
+                          <span className={`inline-flex items-center gap-1 text-[10px] font-medium rounded-full px-2 py-0.5 ${meta.pill}`}>
+                            {meta.emoji} {meta.label}
+                          </span>
+                        </div>
                         <p className="text-sm font-medium text-foreground line-clamp-1">{r.description}</p>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
@@ -444,9 +482,6 @@ const SuiviPage = () => {
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">
-                        <span className={`inline-flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5 ${meta.pill}`}>
-                          {meta.emoji} {meta.label}
-                        </span>
                         <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
                           <Clock className="h-3 w-3" />
                           {age}
