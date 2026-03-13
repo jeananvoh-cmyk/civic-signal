@@ -214,7 +214,44 @@ export function calculatePriority(input: PriorityInput): PriorityResult {
     factors.push(neg.label);
   }
 
-  // 6. Apply service weight
+  // 6. Zone crisis bonus — activé quand le quartier atteint les seuils
+  if (input.zoneContext) {
+    const { totalReportsInQuartier, confirmedReportsInQuartier } = input.zoneContext;
+    const confirmationRate = totalReportsInQuartier > 0
+      ? confirmedReportsInQuartier / totalReportsInQuartier
+      : 0;
+
+    if (
+      totalReportsInQuartier >= ZONE_ACTIVATION_THRESHOLD &&
+      confirmationRate >= ZONE_CONFIRMATION_RATE_THRESHOLD
+    ) {
+      // Zone en crise confirmée — bonus massif
+      const zonePts = 25;
+      rawScore += zonePts;
+      factors.push(
+        `🚨 Zone en crise : ${totalReportsInQuartier} signalements, ${Math.round(confirmationRate * 100)}% confirmés (+${zonePts}pts)`
+      );
+    } else if (totalReportsInQuartier >= ZONE_ACTIVATION_THRESHOLD) {
+      // Beaucoup de signalements mais pas assez confirmés
+      const zonePts = 10;
+      rawScore += zonePts;
+      factors.push(
+        `Zone dense : ${totalReportsInQuartier} signalements, ${Math.round(confirmationRate * 100)}% confirmés (+${zonePts}pts)`
+      );
+    } else if (
+      totalReportsInQuartier >= 20 &&
+      confirmationRate >= ZONE_CONFIRMATION_RATE_THRESHOLD
+    ) {
+      // Seuil intermédiaire — zone à surveiller
+      const zonePts = 5;
+      rawScore += zonePts;
+      factors.push(
+        `Zone à surveiller : ${totalReportsInQuartier} signalements, ${Math.round(confirmationRate * 100)}% confirmés (+${zonePts}pts)`
+      );
+    }
+  }
+
+  // 7. Apply service weight
   const weight = SERVICE_WEIGHT[input.service_type] ?? 1.0;
   const finalScore = Math.round(rawScore * weight);
 
