@@ -381,6 +381,20 @@ const ReportPage = () => {
       } as any);
 
       if (error) throw error;
+
+      // Si l'utilisateur a saisi un quartier personnalisé, le soumettre
+      // comme proposition en attente de validation admin.
+      if (quartier === "__other" && customQuartier.trim()) {
+        await supabase.from("quartiers").insert({
+          nom: customQuartier.trim(),
+          commune,
+          source: "user",
+          validated: false,
+          submitted_by: user.id,
+          aliases: [],
+        } as any).then(() => {}); // erreur silencieuse (doublon déjà existant → ignoré)
+      }
+
       toast.success("✅ Signalement envoyé !");
       navigate("/");
     } catch (error: any) {

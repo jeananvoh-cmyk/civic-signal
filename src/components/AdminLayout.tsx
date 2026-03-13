@@ -1,97 +1,294 @@
+import { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { 
-  FileText, Users, Trash2, BarChart3, Shield, ChevronLeft, ScrollText, Heart, Megaphone, MapPin 
+import {
+  FileText, Users, Trash2, BarChart3, Shield, ScrollText, Heart, Megaphone, MapPin,
+  ArrowLeft, Zap, ChevronDown, Menu, X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 
-const NAV_ITEMS = [
+// ─── Structure de navigation ──────────────────────────────────────────────────
+const NAV_FLAT = [
   { label: "Vue d'ensemble", path: "/admin", icon: Shield },
-  { label: "Signalements", path: "/admin/signalements", icon: FileText },
-  { label: "Utilisateurs", path: "/admin/utilisateurs", icon: Users },
-  { label: "Suppressions", path: "/admin/suppressions", icon: Trash2 },
-  { label: "Purge données", path: "/admin/purge", icon: Trash2 },
-  { label: "Statistiques", path: "/admin/stats", icon: BarChart3 },
-  { label: "Vulnérables", path: "/admin/vulnerables", icon: Heart },
-  { label: "Messagerie", path: "/admin/messagerie", icon: Megaphone },
-  { label: "Quartiers", path: "/admin/quartiers", icon: MapPin },
-  { label: "Journal", path: "/admin/journal", icon: ScrollText },
 ];
 
+const NAV_GROUPS = [
+  {
+    label: "Contenu",
+    items: [
+      { label: "Signalements", path: "/admin/signalements", icon: FileText },
+      { label: "Quartiers", path: "/admin/quartiers", icon: MapPin },
+      { label: "Vulnérables", path: "/admin/vulnerables", icon: Heart },
+    ],
+  },
+  {
+    label: "Utilisateurs",
+    items: [
+      { label: "Utilisateurs", path: "/admin/utilisateurs", icon: Users },
+      { label: "Suppressions", path: "/admin/suppressions", icon: Trash2 },
+      { label: "Purge données", path: "/admin/purge", icon: Trash2 },
+    ],
+  },
+  {
+    label: "Analyse",
+    items: [
+      { label: "Statistiques", path: "/admin/stats", icon: BarChart3 },
+      { label: "Journal d'audit", path: "/admin/journal", icon: ScrollText },
+    ],
+  },
+];
+
+const NAV_SOLO = [
+  { label: "Messagerie", path: "/admin/messagerie", icon: Megaphone },
+];
+
+// Tous les items à plat (pour le sheet mobile et la détection active)
+const ALL_ITEMS = [
+  ...NAV_FLAT,
+  ...NAV_GROUPS.flatMap((g) => g.items),
+  ...NAV_SOLO,
+];
+
+// ─── Composant principal ──────────────────────────────────────────────────────
 const AdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const isActive = (path: string) => location.pathname === path;
+  const currentLabel = ALL_ITEMS.find((n) => n.path === location.pathname)?.label ?? "Admin";
+
+  const goTo = (path: string) => {
+    navigate(path);
+    setMobileOpen(false);
+  };
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-      <aside className="w-64 shrink-0 border-r border-border bg-card hidden md:flex flex-col">
-        <div className="p-4 border-b border-border">
-          <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
-            <h2 className="font-display text-lg font-bold text-foreground">Admin</h2>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">Panneau d'administration</p>
-        </div>
+    <div className="min-h-screen bg-background flex flex-col">
 
-        <nav className="flex-1 p-3 space-y-1">
-          {NAV_ITEMS.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
+      {/* ══════════════════════════════════════════════════════
+          NAVBAR HORIZONTALE (desktop + mobile)
+      ══════════════════════════════════════════════════════ */}
+      <header className="sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur">
+        <div className="flex items-center h-14 px-4 md:px-6 gap-4">
+
+          {/* ── Logo ── */}
+          <button
+            onClick={() => navigate("/admin")}
+            className="flex items-center gap-2.5 shrink-0 mr-2"
+          >
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+              <Shield className="h-3.5 w-3.5 text-primary" />
+            </div>
+            <span className="font-display text-sm font-bold text-foreground hidden sm:block">
+              Admin
+            </span>
+          </button>
+
+          {/* ── Nav desktop ── */}
+          <nav className="hidden md:flex items-center gap-0.5 flex-1">
+
+            {/* Items plats */}
+            {NAV_FLAT.map((item) => (
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
                 className={cn(
-                  "w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors text-left",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                  isActive(item.path)
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
               >
-                <item.icon className="h-4 w-4 shrink-0" />
                 {item.label}
               </button>
-            );
-          })}
-        </nav>
+            ))}
 
-        <div className="p-3 border-t border-border">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start gap-2 text-muted-foreground"
-            onClick={() => navigate("/")}
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Retour à l'app
-          </Button>
-        </div>
-      </aside>
+            {/* Groupes avec dropdown */}
+            {NAV_GROUPS.map((group) => {
+              const groupActive = group.items.some((i) => isActive(i.path));
+              return (
+                <DropdownMenu key={group.label}>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className={cn(
+                        "flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                        groupActive
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      )}
+                    >
+                      {group.label}
+                      <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="min-w-[180px]">
+                    {group.items.map((item) => (
+                      <DropdownMenuItem
+                        key={item.path}
+                        onClick={() => navigate(item.path)}
+                        className={cn(
+                          "flex items-center gap-2 cursor-pointer",
+                          isActive(item.path) && "text-primary font-medium"
+                        )}
+                      >
+                        <item.icon className="h-3.5 w-3.5 shrink-0" />
+                        {item.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              );
+            })}
 
-      {/* Mobile nav */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur">
-        <div className="flex justify-around py-2">
-          {NAV_ITEMS.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
+            {/* Items solo */}
+            {NAV_SOLO.map((item) => (
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 px-3 py-1 text-xs rounded-lg transition-colors",
-                  isActive ? "text-primary" : "text-muted-foreground"
+                  "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                  isActive(item.path)
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
               >
-                <item.icon className="h-5 w-5" />
-                {item.label.split(" ")[0]}
+                {item.label}
               </button>
-            );
-          })}
-        </div>
-      </div>
+            ))}
+          </nav>
 
-      {/* Main content */}
-      <main className="flex-1 overflow-auto pb-20 md:pb-0">
+          {/* ── Spacer mobile ── */}
+          <div className="flex-1 md:hidden">
+            <span className="text-xs font-medium text-muted-foreground">{currentLabel}</span>
+          </div>
+
+          {/* ── CTA : Retour à l'app ── */}
+          <button
+            onClick={() => navigate("/")}
+            className="group hidden md:flex items-center gap-2 rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md hover:gap-2.5 shrink-0"
+          >
+            <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+            SIGNA-CI
+          </button>
+
+          {/* ── Hamburger mobile ── */}
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="md:hidden flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            aria-label="Menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        </div>
+      </header>
+
+      {/* ══════════════════════════════════════════════════════
+          SHEET MOBILE
+      ══════════════════════════════════════════════════════ */}
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent side="left" className="w-72 p-0 flex flex-col">
+          <SheetHeader className="px-4 py-4 border-b border-border">
+            <SheetTitle className="flex items-center gap-2.5 text-left">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                <Shield className="h-3.5 w-3.5 text-primary" />
+              </div>
+              Administration
+            </SheetTitle>
+          </SheetHeader>
+
+          <nav className="flex-1 overflow-y-auto p-3 space-y-4">
+            {/* Items plats */}
+            <div className="space-y-0.5">
+              {NAV_FLAT.map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => goTo(item.path)}
+                  className={cn(
+                    "w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors text-left",
+                    isActive(item.path)
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Groupes */}
+            {NAV_GROUPS.map((group) => (
+              <div key={group.label}>
+                <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  {group.label}
+                </p>
+                <div className="space-y-0.5">
+                  {group.items.map((item) => (
+                    <button
+                      key={item.path}
+                      onClick={() => goTo(item.path)}
+                      className={cn(
+                        "w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors text-left",
+                        isActive(item.path)
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )}
+                    >
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            {/* Items solo */}
+            <div>
+              <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Communication
+              </p>
+              <div className="space-y-0.5">
+                {NAV_SOLO.map((item) => (
+                  <button
+                    key={item.path}
+                    onClick={() => goTo(item.path)}
+                    className={cn(
+                      "w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors text-left",
+                      isActive(item.path)
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}
+                  >
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </nav>
+
+          {/* CTA retour dans le sheet */}
+          <div className="p-3 border-t border-border">
+            <button
+              onClick={() => navigate("/")}
+              className="group w-full flex items-center gap-3 rounded-full bg-primary px-4 py-2.5 font-semibold text-sm text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
+            >
+              <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+              <span className="flex-1 text-left">Retour à SIGNA-CI</span>
+              <Zap className="h-4 w-4 opacity-70" />
+            </button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* ══════════════════════════════════════════════════════
+          CONTENU PRINCIPAL
+      ══════════════════════════════════════════════════════ */}
+      <main className="flex-1 overflow-auto">
         <Outlet />
       </main>
     </div>

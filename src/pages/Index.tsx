@@ -310,7 +310,15 @@ const Index = () => {
         <div className="container grid gap-8 text-center sm:grid-cols-4">
           {[
             { value: "7", label: "Communes pilotes" },
-            { value: "4.75M", label: "Population couverte" },
+            {
+              value: (() => {
+                const total = COMMUNES.reduce((sum, c) => sum + c.population, 0);
+                return total >= 1_000_000
+                  ? `${(total / 1_000_000).toFixed(2)}M`
+                  : `${(total / 1_000).toFixed(0)}k`;
+              })(),
+              label: "Population couverte",
+            },
             { value: "<200m", label: "Rayon vérification" },
             {
               value: liveCount !== null ? String(liveCount) : "…",
