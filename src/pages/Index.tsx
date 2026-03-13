@@ -92,11 +92,11 @@ const AnimatedCounter = ({ value, className }: { value: string; className?: stri
 };
 
 const PILLS = [
-  { to: "/signaler?type=water_outage", border: "border-water/40", bg: "bg-water/20", hoverBg: "hover:bg-water/35", text: "text-white", icon: <img src={waterIcon} alt="" className="h-4 w-4" />, label: "Coupures d'eau" },
-  { to: "/signaler?type=electricity_outage", border: "border-primary/40", bg: "bg-primary/20", hoverBg: "hover:bg-primary/35", text: "text-white", icon: <img src={electricityIcon} alt="" className="h-4 w-4" />, label: "Coupures d'électricité" },
-  { to: "/signaler?type=street_light", border: "border-warning/30", bg: "bg-warning/20", hoverBg: "hover:bg-warning/30", text: "text-white", icon: "💡", label: "Lampadaires cassés" },
-  { to: "/signaler?type=drain_blocked", border: "border-water/30", bg: "bg-water/15", hoverBg: "hover:bg-water/25", text: "text-white", icon: "🌧️", label: "Caniveaux bouchés" },
-  { to: "/signaler?type=pothole", border: "border-white/20", bg: "bg-white/10", hoverBg: "hover:bg-white/20", text: "text-white", icon: "🛣️", label: "Routes dégradées" },
+  { to: "/signaler?type=water_outage", border: "border-blue-400/40", bg: "bg-blue-500/25", hoverBg: "hover:bg-blue-500/40", text: "text-blue-200", icon: <img src={waterIcon} alt="" className="h-4 w-4" />, label: "Coupures d'eau" },
+  { to: "/signaler?type=electricity_outage", border: "border-yellow-400/40", bg: "bg-yellow-500/25", hoverBg: "hover:bg-yellow-500/40", text: "text-yellow-200", icon: <img src={electricityIcon} alt="" className="h-4 w-4" />, label: "Coupures d'électricité" },
+  { to: "/signaler?type=street_light", border: "border-orange-400/30", bg: "bg-orange-500/20", hoverBg: "hover:bg-orange-500/30", text: "text-orange-200", icon: "💡", label: "Lampadaires cassés" },
+  { to: "/signaler?type=drain_blocked", border: "border-teal-400/30", bg: "bg-teal-500/20", hoverBg: "hover:bg-teal-500/30", text: "text-teal-200", icon: "🌧️", label: "Caniveaux bouchés" },
+  { to: "/signaler?type=pothole", border: "border-gray-400/30", bg: "bg-gray-500/20", hoverBg: "hover:bg-gray-500/30", text: "text-gray-200", icon: "🛣️", label: "Routes dégradées" },
 ];
 
 const Index = () => {
@@ -220,13 +220,13 @@ const Index = () => {
               <motion.div
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.97 }}
-                animate={{ boxShadow: ["0 8px 32px hsl(43 96% 56% / 0.3)", "0 8px 48px hsl(43 96% 56% / 0.55)", "0 8px 32px hsl(43 96% 56% / 0.3)"] }}
+                animate={{ boxShadow: ["0 8px 32px rgba(14,165,233,0.35)", "0 8px 48px rgba(14,165,233,0.6)", "0 8px 32px rgba(14,165,233,0.35)"] }}
                 transition={{ boxShadow: { duration: 2.5, repeat: Infinity, ease: "easeInOut" }, scale: { duration: 0.2 } }}
                 className="inline-block rounded-2xl"
               >
                 <Link
                   to="/signaler"
-                  className="group inline-flex items-center gap-3 rounded-2xl bg-primary px-10 py-5 text-xl font-extrabold text-primary-foreground"
+                  className="group inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-water to-electricity px-10 py-5 text-xl font-extrabold text-white"
                 >
                   <Zap className="h-6 w-6 drop-shadow" />
                   Signaler
@@ -276,10 +276,10 @@ const Index = () => {
 
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           {[
-            { step: "01", emoji: "📍", title: "Localisation", headline: "GPS automatique", description: "GPS détecte votre commune automatiquement. Votre signalement est en ligne en moins de 2 minutes.", gradient: "from-primary/15 to-primary/5", border: "border-primary/25", stepColor: "text-primary", badge: "bg-primary/10 text-primary" },
-            { step: "02", emoji: "⚡", title: "Signalez", headline: "3 clics suffisent", description: "Choisissez le type de problème, confirmez votre quartier et envoyez.", gradient: "from-water/15 to-water/5", border: "border-water/25", stepColor: "text-water", badge: "bg-water/10 text-water" },
-            { step: "03", emoji: "🤝", title: "Vérifiez", headline: "Voisins solidaires", description: "Les voisins à moins de 200 m confirment le signalement pour éliminer les faux positifs.", gradient: "from-success/15 to-success/5", border: "border-success/25", stepColor: "text-success", badge: "bg-success/10 text-success" },
-            { step: "04", emoji: "📊", title: "Dashboard", headline: "Impact décideur", description: "CIE, SODECI et autorités suivent les coupures en temps réel par commune pour améliorer les services.", gradient: "from-foreground/5 to-foreground/[0.02]", border: "border-foreground/10", stepColor: "text-foreground/70", badge: "bg-foreground/5 text-foreground/70" },
+            { step: "01", emoji: "📍", title: "Localisation", headline: "GPS automatique", description: "GPS détecte votre commune automatiquement. Votre signalement est en ligne en moins de 2 minutes.", gradient: "from-amber-500/20 to-yellow-500/10", border: "border-amber-500/30", stepColor: "text-amber-500", badge: "bg-amber-500/10 text-amber-600" },
+            { step: "02", emoji: "⚡", title: "Signalez", headline: "3 clics suffisent", description: "Choisissez le type de problème, confirmez votre quartier et envoyez.", gradient: "from-blue-500/20 to-cyan-500/10", border: "border-blue-500/30", stepColor: "text-blue-500", badge: "bg-blue-500/10 text-blue-600" },
+            { step: "03", emoji: "🤝", title: "Vérifiez", headline: "Voisins solidaires", description: "Les voisins à moins de 200 m confirment le signalement pour éliminer les faux positifs.", gradient: "from-green-500/20 to-emerald-500/10", border: "border-green-500/30", stepColor: "text-green-500", badge: "bg-green-500/10 text-green-600" },
+            { step: "04", emoji: "📊", title: "Dashboard", headline: "Impact décideur", description: "CIE, SODECI et autorités suivent les coupures en temps réel par commune pour améliorer les services.", gradient: "from-purple-500/20 to-violet-500/10", border: "border-purple-500/30", stepColor: "text-purple-500", badge: "bg-purple-500/10 text-purple-600" },
           ].map((feature, i) => (
             <motion.div
               key={feature.title}
@@ -350,7 +350,7 @@ const Index = () => {
                 Rejoins des milliers de citoyens d'Abidjan
               </h2>
               <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-                Signale une coupure en <span className="text-primary font-semibold">15 secondes</span>, aide tes voisins et contribue à améliorer les services publics.
+                Signale une coupure en <span className="text-electricity font-semibold">15 secondes</span>, aide tes voisins et contribue à améliorer les services publics.
               </p>
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
@@ -359,7 +359,7 @@ const Index = () => {
                 transition={{ delay: 0.35 }}
                 className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row"
               >
-                <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 font-bold">
+                <Button asChild size="lg" className="bg-water text-water-foreground hover:bg-water/90 px-8 font-bold">
                   <Link to="/auth?tab=signup">
                     <UserPlus className="mr-2 h-5 w-5" />
                     Créer mon compte gratuitement

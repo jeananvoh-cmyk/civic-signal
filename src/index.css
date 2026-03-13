@@ -14,47 +14,47 @@
 
 @layer base {
   :root {
-    /* Hybrid Ushahidi + Uber — Amber/Gold accent, clean white */
-    --background: 0 0% 98%;       /* #FAFAFA near-white */
-    --foreground: 0 0% 7%;        /* #121212 near-black */
+    /* Facebook/Instagram-inspired theme */
+    --background: 216 20% 95%;   /* #F0F2F5 page background */
+    --foreground: 0 0% 2%;       /* #050505 */
 
-    --card: 0 0% 100%;            /* pure white cards */
-    --card-foreground: 0 0% 7%;
+    --card: 0 0% 100%;           /* white cards */
+    --card-foreground: 0 0% 2%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 7%;
+    --popover-foreground: 0 0% 2%;
 
-    --primary: 43 96% 56%;        /* #F5C344 Ushahidi gold */
-    --primary-foreground: 0 0% 7%;
+    --primary: 214 89% 52%;      /* #1877F2 Facebook blue */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 40 10% 93%;      /* warm light gray */
-    --secondary-foreground: 0 0% 7%;
+    --secondary: 216 10% 90%;    /* #E4E6E9 */
+    --secondary-foreground: 0 0% 2%;
 
-    --muted: 40 6% 90%;
-    --muted-foreground: 0 0% 40%;
+    --muted: 216 10% 90%;
+    --muted-foreground: 220 3% 41%; /* #65676B */
 
-    --accent: 43 50% 95%;
-    --accent-foreground: 43 80% 30%;
+    --accent: 214 89% 96%;
+    --accent-foreground: 214 89% 35%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 72% 51%;    /* red */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 40 6% 85%;
-    --input: 40 6% 85%;
-    --ring: 43 96% 56%;
+    --border: 219 6% 82%;        /* #CED0D4 */
+    --input: 219 6% 82%;
+    --ring: 214 89% 52%;
 
-    --radius: 0.625rem;
+    --radius: 0.5rem;            /* 8px - slightly rounder */
 
-    /* Service tokens */
-    --water: 200 75% 45%;
+    /* Custom tokens */
+    --water: 192 80% 45%;
     --water-foreground: 0 0% 100%;
-    --water-light: 200 50% 93%;
+    --water-light: 192 60% 92%;
 
-    --electricity: 43 96% 56%;
-    --electricity-foreground: 0 0% 7%;
-    --electricity-light: 43 60% 93%;
+    --electricity: 40 95% 50%;
+    --electricity-foreground: 40 90% 10%;
+    --electricity-light: 40 70% 92%;
 
-    --success: 152 55% 42%;
+    --success: 150 60% 40%;
     --success-foreground: 0 0% 100%;
 
     --warning: 30 90% 55%;
@@ -63,25 +63,25 @@
     --urgent: 0 75% 55%;
     --urgent-foreground: 0 0% 100%;
 
-    --gradient-hero: linear-gradient(135deg, hsl(0 0% 7%), hsl(0 0% 12%), hsl(43 30% 15%));
-    --gradient-water: linear-gradient(135deg, hsl(200 75% 45%), hsl(200 60% 52%));
-    --gradient-electricity: linear-gradient(135deg, hsl(43 96% 56%), hsl(38 90% 50%));
+    --gradient-hero: linear-gradient(135deg, hsl(220 60% 18%), hsl(250 50% 28%), hsl(192 70% 28%));
+    --gradient-water: linear-gradient(135deg, hsl(192 80% 45%), hsl(192 60% 55%));
+    --gradient-electricity: linear-gradient(135deg, hsl(40 95% 50%), hsl(35 90% 55%));
 
-    --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.06), 0 0 0 1px hsl(0 0% 0% / 0.04);
-    --shadow-elevated: 0 4px 16px hsl(0 0% 0% / 0.1);
+    --shadow-card: 0 1px 2px hsl(219 6% 82% / 0.8), 0 0 0 1px hsl(219 6% 82% / 0.4);
+    --shadow-elevated: 0 4px 12px hsl(219 6% 82% / 0.9);
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 7%;
-    --sidebar-primary: 43 96% 56%;
-    --sidebar-primary-foreground: 0 0% 7%;
-    --sidebar-accent: 40 10% 93%;
-    --sidebar-accent-foreground: 0 0% 7%;
-    --sidebar-border: 40 6% 85%;
-    --sidebar-ring: 43 96% 56%;
-    --chart-1: 43 96% 56%;
-    --chart-2: 200 75% 45%;
-    --chart-3: 152 55% 42%;
-    --chart-4: 30 90% 55%;
+    --sidebar-foreground: 0 0% 2%;
+    --sidebar-primary: 214 89% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 216 10% 90%;
+    --sidebar-accent-foreground: 0 0% 2%;
+    --sidebar-border: 219 6% 82%;
+    --sidebar-ring: 214 89% 52%;
+    --chart-1: 214 89% 52%;
+    --chart-2: 192 80% 45%;
+    --chart-3: 150 60% 40%;
+    --chart-4: 40 95% 50%;
     --chart-5: 0 72% 51%;
     --sidebar: 0 0% 100%;
     --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
@@ -100,48 +100,48 @@
   }
 
   .dark {
-    /* Ushahidi-inspired dark mode — charcoal + amber */
-    --background: 0 0% 9%;        /* #171717 */
-    --foreground: 40 10% 90%;     /* warm off-white */
-    --card: 0 0% 13%;             /* #212121 */
-    --card-foreground: 40 10% 90%;
-    --popover: 0 0% 13%;
-    --popover-foreground: 40 10% 90%;
-    --primary: 43 96% 56%;        /* keep amber/gold */
-    --primary-foreground: 0 0% 7%;
-    --secondary: 0 0% 18%;
-    --secondary-foreground: 40 10% 90%;
-    --muted: 0 0% 20%;
-    --muted-foreground: 0 0% 55%;
-    --accent: 43 40% 18%;
-    --accent-foreground: 43 80% 70%;
+    /* Facebook dark mode palette */
+    --background: 0 0% 10%;     /* #1A1A1A */
+    --foreground: 216 18% 90%;  /* #E4E6EB */
+    --card: 0 0% 14%;           /* #242526 */
+    --card-foreground: 216 18% 90%;
+    --popover: 0 0% 14%;
+    --popover-foreground: 216 18% 90%;
+    --primary: 214 89% 52%;     /* keep Facebook blue */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 24%;      /* #3A3B3C */
+    --secondary-foreground: 216 18% 90%;
+    --muted: 0 0% 24%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 214 89% 20%;
+    --accent-foreground: 214 89% 70%;
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 22%;
-    --input: 0 0% 22%;
-    --ring: 43 96% 56%;
-    --sidebar-background: 0 0% 8%;
-    --sidebar-foreground: 40 10% 90%;
-    --sidebar-primary: 43 96% 56%;
-    --sidebar-primary-foreground: 0 0% 7%;
-    --sidebar-accent: 0 0% 16%;
-    --sidebar-accent-foreground: 40 10% 90%;
-    --sidebar-border: 0 0% 22%;
-    --sidebar-ring: 43 96% 56%;
-    --chart-1: 43 96% 60%;
-    --chart-2: 200 65% 55%;
-    --chart-3: 152 50% 50%;
-    --chart-4: 30 85% 58%;
+    --border: 0 0% 25%;         /* #3E4042 */
+    --input: 0 0% 25%;
+    --ring: 214 89% 52%;
+    --sidebar-background: 0 0% 9%;
+    --sidebar-foreground: 216 18% 90%;
+    --sidebar-primary: 214 89% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 18%;
+    --sidebar-accent-foreground: 216 18% 90%;
+    --sidebar-border: 0 0% 25%;
+    --sidebar-ring: 214 89% 52%;
+    --chart-1: 214 89% 62%;
+    --chart-2: 192 70% 55%;
+    --chart-3: 150 60% 50%;
+    --chart-4: 40 90% 55%;
     --chart-5: 0 72% 60%;
-    --sidebar: 0 0% 8%;
-    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.15);
-    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.15);
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.2), 0 1px 2px -1px hsl(0 0% 0% / 0.2);
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.2), 0 1px 2px -1px hsl(0 0% 0% / 0.2);
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.25), 0 2px 4px -1px hsl(0 0% 0% / 0.2);
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.3), 0 4px 6px -1px hsl(0 0% 0% / 0.2);
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.3), 0 8px 10px -1px hsl(0 0% 0% / 0.2);
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.4);
+    --sidebar: 0 0% 9%;
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
   }
 }
 
