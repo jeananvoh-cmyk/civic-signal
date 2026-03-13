@@ -322,18 +322,39 @@ const DashboardPage = () => {
   const leaderboard = [...stats].sort((a, b) => (b.electricite_actifs + b.eau_actifs + b.mairie_actifs) - (a.electricite_actifs + a.eau_actifs + a.mairie_actifs));
 
   const activeReports = priorityReports.filter((r) => r.status === "active");
-  // Priority reports — scored using international norms
-  const scoredActiveReports = activeReports.map((r) => ({
-    ...r,
-    priority: calculatePriority({
-      service_type: r.service_type,
-      start_time: r.start_time,
-      created_at: r.created_at,
-      status: r.status,
-      verifications: r.verifications,
-      urgency: r.urgency,
-    }),
-  })).sort((a, b) => b.priority.score - a.priority.score);
+
+  // Compute zone stats for priority scoring
+  const dashZoneStats = (() => {
+    const stats = new Map<string, { total: number; confirmed: number }>();
+    for (const r of activeReports) {
+      const loc = r.location.toLowerCase();
+      const existing = stats.get(loc) || { total: 0, confirmed: 0 };
+      existing.total++;
+      if (r.verifications > 0) existing.confirmed++;
+      stats.set(loc, existing);
+    }
+    return stats;
+  })();
+
+  // Priority reports — scored using international norms + zone context
+  const scoredActiveReports = activeReports.map((r) => {
+    const zone = dashZoneStats.get(r.location.toLowerCase());
+    return {
+      ...r,
+      priority: calculatePriority({
+        service_type: r.service_type,
+        start_time: r.start_time,
+        created_at: r.created_at,
+        status: r.status,
+        verifications: r.verifications,
+        urgency: r.urgency,
+        zoneContext: zone ? {
+          totalReportsInQuartier: zone.total,
+          confirmedReportsInQuartier: zone.confirmed,
+        } : undefined,
+      }),
+    };
+  }).sort((a, b) => b.priority.score - a.priority.score);
   const highPriorityReports = scoredActiveReports.filter((r) => r.priority.level === "P1" || r.priority.level === "P2");
   const mediumPriorityReports = scoredActiveReports.filter((r) => r.priority.level === "P3");
 
