@@ -92,11 +92,11 @@ const AnimatedCounter = ({ value, className }: { value: string; className?: stri
 };
 
 const PILLS = [
-  { to: "/signaler?type=water_outage", border: "border-blue-400/40", bg: "bg-blue-500/25", hoverBg: "hover:bg-blue-500/40", text: "text-blue-200", icon: <img src={waterIcon} alt="" className="h-4 w-4" />, label: "Coupures d'eau" },
-  { to: "/signaler?type=electricity_outage", border: "border-yellow-400/40", bg: "bg-yellow-500/25", hoverBg: "hover:bg-yellow-500/40", text: "text-yellow-200", icon: <img src={electricityIcon} alt="" className="h-4 w-4" />, label: "Coupures d'électricité" },
-  { to: "/signaler?type=street_light", border: "border-orange-400/30", bg: "bg-orange-500/20", hoverBg: "hover:bg-orange-500/30", text: "text-orange-200", icon: "💡", label: "Lampadaires cassés" },
-  { to: "/signaler?type=drain_blocked", border: "border-teal-400/30", bg: "bg-teal-500/20", hoverBg: "hover:bg-teal-500/30", text: "text-teal-200", icon: "🌧️", label: "Caniveaux bouchés" },
-  { to: "/signaler?type=pothole", border: "border-gray-400/30", bg: "bg-gray-500/20", hoverBg: "hover:bg-gray-500/30", text: "text-gray-200", icon: "🛣️", label: "Routes dégradées" },
+  { to: "/signaler?type=water_outage", border: "border-water/40", bg: "bg-water/20", hoverBg: "hover:bg-water/35", text: "text-white", icon: <img src={waterIcon} alt="" className="h-4 w-4" />, label: "Coupures d'eau" },
+  { to: "/signaler?type=electricity_outage", border: "border-primary/40", bg: "bg-primary/20", hoverBg: "hover:bg-primary/35", text: "text-white", icon: <img src={electricityIcon} alt="" className="h-4 w-4" />, label: "Coupures d'électricité" },
+  { to: "/signaler?type=street_light", border: "border-warning/30", bg: "bg-warning/20", hoverBg: "hover:bg-warning/30", text: "text-white", icon: "💡", label: "Lampadaires cassés" },
+  { to: "/signaler?type=drain_blocked", border: "border-water/30", bg: "bg-water/15", hoverBg: "hover:bg-water/25", text: "text-white", icon: "🌧️", label: "Caniveaux bouchés" },
+  { to: "/signaler?type=pothole", border: "border-white/20", bg: "bg-white/10", hoverBg: "hover:bg-white/20", text: "text-white", icon: "🛣️", label: "Routes dégradées" },
 ];
 
 const Index = () => {
