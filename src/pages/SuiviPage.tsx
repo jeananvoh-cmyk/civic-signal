@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Zap, Droplets, Clock, MapPin, TrendingUp, RefreshCw } from "lucide-react";
+import { Zap, Droplets, Clock, MapPin, TrendingUp, RefreshCw, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import NewsTicker from "@/components/NewsTicker";
+import PriorityBadge from "@/components/PriorityBadge";
+import { calculatePriority, getNormReference } from "@/lib/priority-score";
+import { useUserRole } from "@/hooks/useUserRole";
 
 // After this many days without any verification, a report is considered "non pris en charge"
 const NEGLECTED_DAYS = 7;
