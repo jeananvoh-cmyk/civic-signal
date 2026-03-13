@@ -163,13 +163,18 @@ const SuiviPage = () => {
     new Set(reportsWithStatus.map((r) => r.communeLabel).filter((c) => c !== "Inconnu"))
   ).sort();
 
-  // Filtered reports list
-  const filteredReports = reportsWithStatus.filter((r) => {
-    if (filterCommune !== "all" && r.communeLabel !== filterCommune) return false;
-    if (filterCategory !== "all" && r.service_type !== filterCategory) return false;
-    if (filterStatus !== "all" && r.computedStatus !== filterStatus) return false;
-    return true;
-  });
+  // Filtered reports list, sorted by priority or date
+  const filteredReports = reportsWithStatus
+    .filter((r) => {
+      if (filterCommune !== "all" && r.communeLabel !== filterCommune) return false;
+      if (filterCategory !== "all" && r.service_type !== filterCategory) return false;
+      if (filterStatus !== "all" && r.computedStatus !== filterStatus) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === "priority") return b.priority.score - a.priority.score;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
   const lastUpdate = dataUpdatedAt
     ? new Date(dataUpdatedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
