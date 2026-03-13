@@ -235,6 +235,7 @@ export type Database = {
       }
       quartiers: {
         Row: {
+          aliases: string[]
           commune: string
           created_at: string
           hidden: boolean
@@ -244,6 +245,7 @@ export type Database = {
           validated: boolean
         }
         Insert: {
+          aliases?: string[]
           commune: string
           created_at?: string
           hidden?: boolean
@@ -253,6 +255,7 @@ export type Database = {
           validated?: boolean
         }
         Update: {
+          aliases?: string[]
           commune?: string
           created_at?: string
           hidden?: boolean
