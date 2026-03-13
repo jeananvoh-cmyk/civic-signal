@@ -168,6 +168,7 @@ const SignalementDetailPage = () => {
     pregnant: report.pregnant,
     elderly: report.elderly,
     urgency: report.urgency,
+    zoneContext: zoneContext || undefined,
   });
   const normRef = getNormReference(report.service_type);
 
