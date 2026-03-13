@@ -148,11 +148,16 @@ const ReportRow = ({ r, variant }: { r: PriorityReport; variant: "critical" | "h
     ? "border-l-4 border-l-destructive"
     : variant === "high" ? "border-l-4 border-l-orange-500"
     : "border-l-4 border-l-warning";
-  const badgeClass = variant === "critical"
-    ? "bg-destructive text-destructive-foreground"
-    : variant === "high" ? "bg-urgent text-urgent-foreground"
-    : "bg-warning text-warning-foreground";
-  const badgeLabel = variant === "critical" ? "🔥 Critique" : variant === "high" ? "⚠️ Élevé" : "⚡ Moyen";
+
+  // Compute priority for this report
+  const priority = calculatePriority({
+    service_type: r.service_type,
+    start_time: r.start_time,
+    created_at: r.created_at,
+    status: r.status,
+    verifications: r.verifications,
+    urgency: r.urgency,
+  });
 
   return (
     <div className={`flex items-start gap-4 px-5 py-4 transition-colors hover:bg-muted/30 ${leftBorder}`}>
@@ -163,6 +168,9 @@ const ReportRow = ({ r, variant }: { r: PriorityReport; variant: "critical" | "h
 
       {/* Description + meta */}
       <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <PriorityBadge priority={priority} showScore showFactors />
+        </div>
         <p className="text-sm font-semibold text-foreground leading-snug">{cleanDesc}</p>
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
           <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground">
@@ -183,7 +191,7 @@ const ReportRow = ({ r, variant }: { r: PriorityReport; variant: "critical" | "h
         </div>
       </div>
 
-      {/* Duration + urgency badge */}
+      {/* Duration */}
       <div className="flex flex-col items-end gap-1.5 shrink-0">
         {timeSince && (
           <span className={`flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs ${durTextClass} ${durBgClass}`}>
@@ -191,9 +199,6 @@ const ReportRow = ({ r, variant }: { r: PriorityReport; variant: "critical" | "h
             {timeSince}{durationAlert}
           </span>
         )}
-        <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeClass}`}>
-          {badgeLabel}
-        </span>
       </div>
     </div>
   );
