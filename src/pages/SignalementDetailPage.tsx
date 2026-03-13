@@ -104,6 +104,25 @@ const SignalementDetailPage = () => {
     enabled: !!id,
   });
 
+  // Zone context: count active reports in same quartier
+  const { data: zoneContext } = useQuery({
+    queryKey: ["zone-context", report?.commune, report?.quartier],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("reports")
+        .select("id, verifications")
+        .eq("commune", report!.commune!)
+        .eq("quartier", report!.quartier!)
+        .eq("status", "active")
+        .eq("validated", true);
+      if (error) return { totalReportsInQuartier: 0, confirmedReportsInQuartier: 0 };
+      const total = data.length;
+      const confirmed = data.filter((r) => (r.verifications ?? 0) > 0).length;
+      return { totalReportsInQuartier: total, confirmedReportsInQuartier: confirmed };
+    },
+    enabled: !!report?.commune && !!report?.quartier,
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
