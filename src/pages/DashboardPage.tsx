@@ -955,38 +955,36 @@ const DashboardPage = () => {
                     </div>
                   </div>
 
-                  {/* Active reports for this commune */}
+                  {/* Active reports summary for this commune */}
                   {(() => {
                     const communeReports = scoredActiveReports
                       .filter((r) => r.location.toLowerCase() === c.commune.toLowerCase());
                     if (communeReports.length === 0) return null;
-                    const hasCritical = communeReports.some((r) => r.priority.level === "P1");
-                    const hasHigh = communeReports.some((r) => r.priority.level === "P2");
+                    const elecCount = communeReports.filter((r) => r.service_type === "electricity").length;
+                    const eauCount = communeReports.filter((r) => r.service_type === "water").length;
+                    const mairieCount = communeReports.filter((r) => r.service_type === "mairie").length;
+                    const verifiedCount = communeReports.filter((r) => r.verifications > 0).length;
                     return (
                       <div className="mt-4 border-t border-border pt-3">
-                        <Collapsible defaultOpen={hasCritical || hasHigh}>
-                          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg px-1 py-1 hover:bg-muted/30 transition-colors mb-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-semibold text-muted-foreground">
-                                {communeReports.length} signalement{communeReports.length > 1 ? "s" : ""} actif{communeReports.length > 1 ? "s" : ""}
-                              </span>
-                              {hasCritical && <span className="rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-destructive-foreground">🔥 Critique</span>}
-                              {!hasCritical && hasHigh && <span className="rounded-full bg-urgent px-1.5 py-0.5 text-[10px] font-bold text-urgent-foreground">⚠️ Élevé</span>}
+                        <button
+                          onClick={() => navigate(`/commune/${encodeURIComponent(c.commune)}`)}
+                          className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 bg-muted/30 hover:bg-muted/50 transition-colors group"
+                        >
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <span className="text-xs font-bold text-foreground">
+                              {communeReports.length} signalement{communeReports.length > 1 ? "s" : ""} actif{communeReports.length > 1 ? "s" : ""}
+                            </span>
+                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                              {elecCount > 0 && <span className="flex items-center gap-0.5"><Zap className="h-3 w-3 text-amber-500" />{elecCount}</span>}
+                              {eauCount > 0 && <span className="flex items-center gap-0.5"><Droplets className="h-3 w-3 text-blue-500" />{eauCount}</span>}
+                              {mairieCount > 0 && <span className="flex items-center gap-0.5"><Construction className="h-3 w-3 text-teal-500" />{mairieCount}</span>}
                             </div>
-                            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
-                          </CollapsibleTrigger>
-                          <CollapsibleContent>
-                            <div className="rounded-xl border border-border overflow-hidden divide-y divide-border">
-                              {communeReports.map((r) => (
-                                <ReportRow
-                                  key={r.id}
-                                  r={r}
-                                  variant={r.priority.level === "P1" ? "critical" : r.priority.level === "P2" ? "high" : "medium"}
-                                />
-                              ))}
-                            </div>
-                          </CollapsibleContent>
-                        </Collapsible>
+                            {verifiedCount > 0 && (
+                              <span className="text-[10px] font-semibold text-emerald-500">✓ {verifiedCount} confirmé{verifiedCount > 1 ? "s" : ""}</span>
+                            )}
+                          </div>
+                          <span className="text-[10px] font-semibold text-primary group-hover:underline">Voir détails →</span>
+                        </button>
                       </div>
                     );
                   })()}
