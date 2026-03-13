@@ -138,6 +138,19 @@ const SignalementDetailPage = () => {
   const locationLabel = `${communeLabel}${report.quartier ? `, ${report.quartier}` : ""}`;
   const typeEmoji = getTypeEmoji(report.service_type, report.report_category);
   const typeLabel = getTypeLabel(report.service_type, report.report_category);
+  const priority = calculatePriority({
+    service_type: report.service_type,
+    start_time: report.start_time,
+    created_at: report.created_at,
+    status: report.status,
+    verifications: report.verifications,
+    impacted_people: report.impacted_people,
+    babies: report.babies,
+    pregnant: report.pregnant,
+    elderly: report.elderly,
+    urgency: report.urgency,
+  });
+  const normRef = getNormReference(report.service_type);
 
   const shareUrl = `${window.location.origin}/signalement/${report.id}`;
   const daysText = report.status !== "resolved" && daysSince > 0
