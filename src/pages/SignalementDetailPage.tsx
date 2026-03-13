@@ -175,15 +175,24 @@ const SignalementDetailPage = () => {
         </Link>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          {/* En-tête type */}
-          <div className="flex items-center gap-3 mb-4">
+          {/* En-tête type + priorité */}
+          <div className="flex items-center gap-3 mb-2">
             <span className="text-4xl">{typeEmoji}</span>
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{typeLabel}</p>
-              <span className={`inline-flex items-center gap-1 text-xs font-medium rounded-full px-2.5 py-0.5 mt-1 ${meta.pill}`}>
-                {meta.emoji} {meta.label}
-              </span>
+              <div className="flex items-center gap-2 mt-1">
+                <PriorityBadge priority={priority} showScore={canValidate} showFactors={canValidate} />
+                <span className={`inline-flex items-center gap-1 text-xs font-medium rounded-full px-2.5 py-0.5 ${meta.pill}`}>
+                  {meta.emoji} {meta.label}
+                </span>
+              </div>
             </div>
+          </div>
+
+          {/* Référence normative */}
+          <div className="mb-4 flex items-start gap-1.5 text-[10px] text-muted-foreground">
+            <Info className="h-3 w-3 shrink-0 mt-0.5" />
+            <span>Priorité calculée selon : {normRef}</span>
           </div>
 
           {/* Compteur jours — critique */}
