@@ -29,6 +29,9 @@ interface Report {
   verifications: number;
   validated: boolean | null;
   impacted_people: number | null;
+  babies: number | null;
+  pregnant: number | null;
+  elderly: number | null;
 }
 
 type ComputedStatus = "nouveau" | "en_cours" | "resolu" | "non_pris";
