@@ -104,7 +104,23 @@ const SuiviPage = () => {
     refetchInterval: 30000,
   });
 
+  // Compute zone context per quartier for priority scoring
+  const zoneStats = (() => {
+    const stats = new Map<string, { total: number; confirmed: number }>();
+    for (const r of reports) {
+      if (r.status !== "active") continue;
+      const key = `${(r.commune || "").toLowerCase()}|${(r.quartier || "").toLowerCase()}`;
+      const existing = stats.get(key) || { total: 0, confirmed: 0 };
+      existing.total++;
+      if ((r.verifications ?? 0) > 0) existing.confirmed++;
+      stats.set(key, existing);
+    }
+    return stats;
+  })();
+
   const reportsWithStatus = reports.map((r) => {
+    const zoneKey = `${(r.commune || "").toLowerCase()}|${(r.quartier || "").toLowerCase()}`;
+    const zone = zoneStats.get(zoneKey);
     const priority = calculatePriority({
       service_type: r.service_type,
       start_time: r.start_time,
@@ -116,6 +132,10 @@ const SuiviPage = () => {
       pregnant: r.pregnant,
       elderly: r.elderly,
       urgency: r.urgency,
+      zoneContext: zone ? {
+        totalReportsInQuartier: zone.total,
+        confirmedReportsInQuartier: zone.confirmed,
+      } : undefined,
     });
     return {
       ...r,
