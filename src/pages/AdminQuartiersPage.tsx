@@ -259,11 +259,11 @@ const AdminQuartiersPage = () => {
       if (pendingIds.length === 0) return {};
       const { data } = await supabase
         .from("profiles")
-        .select("id, full_name, username")
-        .in("id", pendingIds);
+        .select("user_id, display_name, first_name, last_name")
+        .in("user_id", pendingIds);
       const map: Record<string, string> = {};
       for (const p of data ?? []) {
-        map[p.id] = p.full_name || p.username || "Utilisateur inconnu";
+        map[p.user_id] = p.display_name || `${p.first_name} ${p.last_name}`.trim() || "Utilisateur inconnu";
       }
       return map;
     },
