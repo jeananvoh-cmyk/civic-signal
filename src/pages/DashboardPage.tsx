@@ -727,28 +727,26 @@ const DashboardPage = () => {
             </Collapsible>
           </motion.div>
         )}
-        {/* High priority reports */}
+        {/* Priority reports — international norms */}
         {!loading && highPriorityReports.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-8">
             <Collapsible defaultOpen>
               <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-3 shadow-card hover:bg-destructive/10 transition-colors">
                 <div className="flex items-center gap-2 flex-wrap">
                   <AlertTriangle className="h-5 w-5 text-destructive" />
-                  <h2 className="font-display text-xl font-bold text-foreground">Priorités hautes</h2>
+                  <h2 className="font-display text-xl font-bold text-foreground">Priorités critiques</h2>
                   <span className="rounded-full bg-destructive px-2 py-0.5 text-xs font-bold text-destructive-foreground">{highPriorityReports.length}</span>
-                  {maxHighDuration > 0 && (
-                    <span className="flex items-center gap-1 rounded-lg bg-destructive/10 border border-destructive/20 px-2 py-0.5 text-xs font-semibold text-destructive">
-                      <Clock className="h-3 w-3" />
-                      La plus longue : {formatMinutes(maxHighDuration)}
-                    </span>
-                  )}
+                  <span className="hidden sm:flex items-center gap-1 text-[10px] text-muted-foreground bg-secondary rounded-full px-2 py-0.5">
+                    <Info className="h-3 w-3" />
+                    Score OMS / IEEE / Sphère
+                  </span>
                 </div>
                 <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="mt-2 rounded-2xl border border-destructive/20 bg-card shadow-card overflow-hidden divide-y divide-border">
                   {highPriorityReports.slice(0, 15).map((r) => (
-                    <ReportRow key={r.id} r={r} variant={r.urgency === "critical" ? "critical" : "high"} />
+                    <ReportRow key={r.id} r={r} variant={r.priority.level === "P1" ? "critical" : "high"} />
                   ))}
                 </div>
               </CollapsibleContent>
