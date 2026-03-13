@@ -321,10 +321,20 @@ const DashboardPage = () => {
   // Leaderboard: sorted by total active (most affected first)
   const leaderboard = [...stats].sort((a, b) => (b.electricite_actifs + b.eau_actifs + b.mairie_actifs) - (a.electricite_actifs + a.eau_actifs + a.mairie_actifs));
 
-  // Priority reports
-  const activeReports = priorityReports.filter((r) => r.status === "active");
-  const highPriorityReports = activeReports.filter((r) => r.urgency === "critical" || r.urgency === "high");
-  const mediumPriorityReports = activeReports.filter((r) => r.urgency === "medium");
+  // Priority reports — scored using international norms
+  const scoredActiveReports = activeReports.map((r) => ({
+    ...r,
+    priority: calculatePriority({
+      service_type: r.service_type,
+      start_time: r.start_time,
+      created_at: r.created_at,
+      status: r.status,
+      verifications: r.verifications,
+      urgency: r.urgency,
+    }),
+  })).sort((a, b) => b.priority.score - a.priority.score);
+  const highPriorityReports = scoredActiveReports.filter((r) => r.priority.level === "P1" || r.priority.level === "P2");
+  const mediumPriorityReports = scoredActiveReports.filter((r) => r.priority.level === "P3");
 
   // Confirmed zone alerts: reports with 3+ verifications grouped by location
   const confirmedReports = activeReports.filter((r) => r.verifications >= 3);
