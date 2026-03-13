@@ -350,7 +350,7 @@ const Index = () => {
                 Rejoins des milliers de citoyens d'Abidjan
               </h2>
               <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-                Signale une coupure en <span className="text-electricity font-semibold">15 secondes</span>, aide tes voisins et contribue à améliorer les services publics.
+                Signale une coupure en <span className="text-primary font-semibold">15 secondes</span>, aide tes voisins et contribue à améliorer les services publics.
               </p>
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
