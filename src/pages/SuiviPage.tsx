@@ -104,11 +104,26 @@ const SuiviPage = () => {
     refetchInterval: 30000,
   });
 
-  const reportsWithStatus = reports.map((r) => ({
-    ...r,
-    computedStatus: getComputedStatus(r),
-    communeLabel: r.commune || r.location || "Inconnu",
-  }));
+  const reportsWithStatus = reports.map((r) => {
+    const priority = calculatePriority({
+      service_type: r.service_type,
+      start_time: r.start_time,
+      created_at: r.created_at,
+      status: r.status,
+      verifications: r.verifications,
+      impacted_people: r.impacted_people,
+      babies: r.babies,
+      pregnant: r.pregnant,
+      elderly: r.elderly,
+      urgency: r.urgency,
+    });
+    return {
+      ...r,
+      computedStatus: getComputedStatus(r),
+      communeLabel: r.commune || r.location || "Inconnu",
+      priority,
+    };
+  });
 
   // Stats by status
   const countByStatus: Record<ComputedStatus, number> = {
