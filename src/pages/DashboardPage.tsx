@@ -936,12 +936,8 @@ const DashboardPage = () => {
 
                   {/* Active reports for this commune */}
                   {(() => {
-                    const communeReports = activeReports
-                      .filter((r) => r.location.toLowerCase() === c.commune.toLowerCase())
-                      .sort((a, b) => {
-                        const order: Record<string, number> = { critical: 0, high: 1, medium: 2 };
-                        return (order[a.urgency] ?? 3) - (order[b.urgency] ?? 3);
-                      });
+                    const communeReports = scoredActiveReports
+                      .filter((r) => r.location.toLowerCase() === c.commune.toLowerCase());
                     if (communeReports.length === 0) return null;
                     const hasCritical = communeReports.some((r) => r.urgency === "critical");
                     const hasHigh = communeReports.some((r) => r.urgency === "high");
