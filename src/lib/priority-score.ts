@@ -156,8 +156,43 @@ export function calculatePriority(input: PriorityInput): PriorityResult {
     return { score: 0, level: "P4", ...PRIORITY_META.P4, factors: ["Résolu"] };
   }
 
+  // ── Gate : le scoring avancé ne s'active que si la zone atteint les seuils ──
+  // Sans contexte de zone OU si les seuils ne sont pas atteints → P4 par défaut
+  if (!input.zoneContext) {
+    return { score: 0, level: "P4", ...PRIORITY_META.P4, factors: ["Scoring inactif — contexte de zone manquant"] };
+  }
+
+  const { totalReportsInQuartier, confirmedReportsInQuartier } = input.zoneContext;
+  const confirmationRate = totalReportsInQuartier > 0
+    ? confirmedReportsInQuartier / totalReportsInQuartier
+    : 0;
+
+  if (
+    totalReportsInQuartier < ZONE_ACTIVATION_THRESHOLD ||
+    confirmationRate < ZONE_CONFIRMATION_RATE_THRESHOLD
+  ) {
+    const reasons: string[] = [];
+    if (totalReportsInQuartier < ZONE_ACTIVATION_THRESHOLD) {
+      reasons.push(`${totalReportsInQuartier}/${ZONE_ACTIVATION_THRESHOLD} signalements requis`);
+    }
+    if (confirmationRate < ZONE_CONFIRMATION_RATE_THRESHOLD) {
+      reasons.push(`${Math.round(confirmationRate * 100)}% confirmés (min ${Math.round(ZONE_CONFIRMATION_RATE_THRESHOLD * 100)}%)`);
+    }
+    return {
+      score: 0,
+      level: "P4",
+      ...PRIORITY_META.P4,
+      factors: [`Scoring inactif — ${reasons.join(", ")}`],
+    };
+  }
+
+  // ── Zone activée : calcul complet ──
   const factors: string[] = [];
   let rawScore = 0;
+
+  factors.push(
+    `🚨 Zone activée : ${totalReportsInQuartier} signalements, ${Math.round(confirmationRate * 100)}% confirmés`
+  );
 
   // 1. Duration score
   const refTime = input.start_time || input.created_at;
@@ -214,41 +249,13 @@ export function calculatePriority(input: PriorityInput): PriorityResult {
     factors.push(neg.label);
   }
 
-  // 6. Zone crisis bonus — activé quand le quartier atteint les seuils
-  if (input.zoneContext) {
-    const { totalReportsInQuartier, confirmedReportsInQuartier } = input.zoneContext;
-    const confirmationRate = totalReportsInQuartier > 0
-      ? confirmedReportsInQuartier / totalReportsInQuartier
-      : 0;
-
-    if (
-      totalReportsInQuartier >= ZONE_ACTIVATION_THRESHOLD &&
-      confirmationRate >= ZONE_CONFIRMATION_RATE_THRESHOLD
-    ) {
-      // Zone en crise confirmée — bonus massif
-      const zonePts = 25;
-      rawScore += zonePts;
-      factors.push(
-        `🚨 Zone en crise : ${totalReportsInQuartier} signalements, ${Math.round(confirmationRate * 100)}% confirmés (+${zonePts}pts)`
-      );
-    } else if (totalReportsInQuartier >= ZONE_ACTIVATION_THRESHOLD) {
-      // Beaucoup de signalements mais pas assez confirmés
-      const zonePts = 10;
-      rawScore += zonePts;
-      factors.push(
-        `Zone dense : ${totalReportsInQuartier} signalements, ${Math.round(confirmationRate * 100)}% confirmés (+${zonePts}pts)`
-      );
-    } else if (
-      totalReportsInQuartier >= 20 &&
-      confirmationRate >= ZONE_CONFIRMATION_RATE_THRESHOLD
-    ) {
-      // Seuil intermédiaire — zone à surveiller
-      const zonePts = 5;
-      rawScore += zonePts;
-      factors.push(
-        `Zone à surveiller : ${totalReportsInQuartier} signalements, ${Math.round(confirmationRate * 100)}% confirmés (+${zonePts}pts)`
-      );
-    }
+  // 6. Zone crisis intensity bonus
+  if (totalReportsInQuartier >= 100) {
+    rawScore += 15;
+    factors.push(`Crise majeure : ${totalReportsInQuartier} signalements (+15pts)`);
+  } else if (totalReportsInQuartier >= 75) {
+    rawScore += 10;
+    factors.push(`Crise élevée : ${totalReportsInQuartier} signalements (+10pts)`);
   }
 
   // 7. Apply service weight
