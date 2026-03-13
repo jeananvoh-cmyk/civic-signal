@@ -960,7 +960,7 @@ const DashboardPage = () => {
                                 <ReportRow
                                   key={r.id}
                                   r={r}
-                                  variant={r.urgency === "critical" ? "critical" : r.urgency === "high" ? "high" : "medium"}
+                                  variant={r.priority.level === "P1" ? "critical" : r.priority.level === "P2" ? "high" : "medium"}
                                 />
                               ))}
                             </div>
