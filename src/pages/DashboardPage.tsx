@@ -939,8 +939,8 @@ const DashboardPage = () => {
                     const communeReports = scoredActiveReports
                       .filter((r) => r.location.toLowerCase() === c.commune.toLowerCase());
                     if (communeReports.length === 0) return null;
-                    const hasCritical = communeReports.some((r) => r.urgency === "critical");
-                    const hasHigh = communeReports.some((r) => r.urgency === "high");
+                    const hasCritical = communeReports.some((r) => r.priority.level === "P1");
+                    const hasHigh = communeReports.some((r) => r.priority.level === "P2");
                     return (
                       <div className="mt-4 border-t border-border pt-3">
                         <Collapsible defaultOpen={hasCritical || hasHigh}>
