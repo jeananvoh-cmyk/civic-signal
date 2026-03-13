@@ -16,16 +16,6 @@ import { COMMUNES } from "@/lib/communes";
 import { COMMUNE_LOGOS } from "@/lib/commune-logos";
 import electricityIcon from "@/assets/electricity-icon.png";
 import waterIcon from "@/assets/water-icon.png";
-import Header from "@/components/Header";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import ShareButton from "@/components/ShareButton";
-import TrendsChart from "@/components/TrendsChart";
-import { supabase } from "@/integrations/supabase/client";
-import { COMMUNES } from "@/lib/communes";
-import { COMMUNE_LOGOS } from "@/lib/commune-logos";
-import electricityIcon from "@/assets/electricity-icon.png";
-import waterIcon from "@/assets/water-icon.png";
 
 interface CommuneServiceStat {
   commune: string;
