@@ -321,6 +321,7 @@ const DashboardPage = () => {
   // Leaderboard: sorted by total active (most affected first)
   const leaderboard = [...stats].sort((a, b) => (b.electricite_actifs + b.eau_actifs + b.mairie_actifs) - (a.electricite_actifs + a.eau_actifs + a.mairie_actifs));
 
+  const activeReports = priorityReports.filter((r) => r.status === "active");
   // Priority reports — scored using international norms
   const scoredActiveReports = activeReports.map((r) => ({
     ...r,
