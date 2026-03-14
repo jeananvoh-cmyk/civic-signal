@@ -1493,6 +1493,8 @@ function reloadFile(){
   if(hReload)hReload.style.display='none';
   A=[];sel=new Set();hSel=new Set();grps=[];actG=null;gN=0;updates=[];
   document.getElementById('fi').value='';
+  var pa=document.getElementById('pasteArea');if(pa)pa.value='';
+  var ps=document.getElementById('pasteStatus');if(ps)ps.innerHTML='';
 }
 
 // ── OOS Filter Mode ───────────────────────────────────
