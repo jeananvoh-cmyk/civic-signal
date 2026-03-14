@@ -387,6 +387,33 @@ header{padding:14px 24px;border-bottom:1px solid var(--brd);display:flex;align-i
       <div class="u-title">Charger CurrentAlarms</div>
       <div class="u-sub">Cliquer ou glisser un fichier .xlsx</div>
     </label>
+
+    <div style="text-align:center;margin:14px 0 8px;font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.1em">— ou coller les données —</div>
+
+    <div class="card">
+      <div class="card-head" style="cursor:pointer" onclick="togglePasteZone()">
+        <span class="card-title">📋 Coller les alarmes (3 formats supportés)</span>
+        <span id="pasteToggleIcon" style="font-size:11px;color:var(--txt3)">▼</span>
+      </div>
+      <div id="pasteBody" class="card-body">
+        <div style="margin-bottom:10px">
+          <div style="font-size:10px;color:var(--mut);line-height:1.7;margin-bottom:8px">
+            <b style="color:var(--acc)">Format 1</b> — AUTIN2 avec TT (tab-séparé) :<br>
+            <code style="font-size:9px;color:var(--txt3);background:var(--sur2);padding:2px 6px;border-radius:3px">OSL_TONKOLILI⇥3G_0410_MASUMBIRI⇥2026-03-14 17:12:42⇥INC-20260314-00010925⇥...</code><br><br>
+            <b style="color:var(--ora)">Format 2</b> — NCE (NodeB Name=) :<br>
+            <code style="font-size:9px;color:var(--txt3);background:var(--sur2);padding:2px 6px;border-radius:3px">NodeB Name=3G_0388_BARMOI_MUNU, LogicRNCID=11⇥2026-03-14 17:19:37</code><br><br>
+            <b style="color:var(--grn)">Format 3</b> — AUTIN Severity :<br>
+            <code style="font-size:9px;color:var(--txt3);background:var(--sur2);padding:2px 6px;border-radius:3px">⇥Major⇥2026-03-14 17:08:23⇥2G_0486_OBA_FUNKIA</code>
+          </div>
+          <p style="font-size:10px;color:var(--yel);margin-bottom:8px">💡 Les 3 formats peuvent être mélangés. Les TT (INC-...) sont automatiquement inclus dans le NS.</p>
+        </div>
+        <div class="fg" style="margin-bottom:10px">
+          <textarea id="pasteArea" style="min-height:160px;font-size:11px;line-height:1.6" placeholder="Coller ici les lignes d'alarmes depuis Excel, NCE ou AUTIN...&#10;&#10;Formats acceptés :&#10;Region⇥MO_Name⇥DateTime⇥TT_ID⇥...&#10;NodeB Name=3G_0388_SITE, LogicRNCID=11⇥DateTime&#10;⇥Severity⇥DateTime⇥MO_Name"></textarea>
+        </div>
+        <button class="gbtn b" onclick="parsePastedData()">⚡ Charger les alarmes collées</button>
+        <div id="pasteStatus" style="margin-top:8px;font-size:11px;color:var(--mut)"></div>
+      </div>
+    </div>
   </div>
 
 
@@ -955,7 +982,7 @@ function buildAlarm(id,mo,occ){
   var reg=db?db.region:'', dis=db?db.district:'';
   var op=db?db.shared_op.replace('/BASE','').replace('/base','').trim():'';
   if(db&&db.name)name=db.name;
-  A.push({id:id,mo:mo,slid:slid,name:name,occ:occ,reg:reg,dis:dis,op:op});
+  A.push({id:id,mo:mo,slid:slid,name:name,occ:occ,reg:reg,dis:dis,op:op,tt:''});
 }
 
 // ── Helpers ────────────────────────────────────────────
@@ -1300,11 +1327,17 @@ function mkLine(sites,bsc,action){
   if(p.op){tpl=document.getElementById('tplShared').value||TPL_SHARED_DEFAULT;}
   else if(isRelief(p.mo)){tpl=document.getElementById('tplRelief').value||TPL_RELIEF_DEFAULT;}
   else{tpl=document.getElementById('tplIpt').value||TPL_IPT_DEFAULT;}
-  return tpl
+  var line=tpl
     .replace(/\{\{bsc\}\}/g,bsc).replace(/\{\{chain\}\}/g,chain)
     .replace(/\{\{date\}\}/g,dt.ds).replace(/\{\{time\}\}/g,dt.ts)
     .replace(/\{\{name\}\}/g,pName).replace(/\{\{op\}\}/g,p.op||'')
     .replace(/\{\{action\}\}/g,action);
+  // Insert TT after the closing )* if present
+  var tt=p.tt||'';
+  if(tt){
+    line=line.replace(/\)\*/, ')* TT-'+tt);
+  }
+  return line;
 }
 
 // ── Group Memory ──────────────────────────────────────
@@ -1460,6 +1493,8 @@ function reloadFile(){
   if(hReload)hReload.style.display='none';
   A=[];sel=new Set();hSel=new Set();grps=[];actG=null;gN=0;updates=[];
   document.getElementById('fi').value='';
+  var pa=document.getElementById('pasteArea');if(pa)pa.value='';
+  var ps=document.getElementById('pasteStatus');if(ps)ps.innerHTML='';
 }
 
 // ── OOS Filter Mode ───────────────────────────────────
@@ -1881,6 +1916,146 @@ genHourly=function(){
   loadHistory();
   renderHistory();
 })();
+// ── Paste Zone Toggle ─────────────────────────────────
+var pasteOpen = true;
+function togglePasteZone(){
+  pasteOpen=!pasteOpen;
+  var body=document.getElementById('pasteBody');
+  var icon=document.getElementById('pasteToggleIcon');
+  if(body)body.style.display=pasteOpen?'':'none';
+  if(icon)icon.textContent=pasteOpen?'▼':'▶';
+}
+
+// ── Parse Pasted Data ─────────────────────────────────
+function parsePastedData(){
+  var text=document.getElementById('pasteArea').value.trim();
+  var status=document.getElementById('pasteStatus');
+  if(!text){status.innerHTML='<span style="color:var(--red)">Aucune donnée collée.</span>';return;}
+
+  var lines=text.split('\n');
+  A=[];sel=new Set();hSel=new Set();grps=[];actG=null;gN=0;updates=[];
+  var seen={};
+  var idCounter=1;
+  var ttMap={};  // mo -> tt
+
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i].trim();
+    if(!line)continue;
+
+    var cols=line.split('\t');
+
+    // Skip header rows
+    var lineLC=line.toLowerCase();
+    if(lineLC.indexOf('mo name')>=0||lineLC.indexOf('operation')>=0||lineLC.indexOf('severity')>=0&&lineLC.indexOf('last occurred')>=0||lineLC.indexOf('alarm source')>=0)continue;
+
+    var mo='',occ='',tt='';
+
+    // Detect format
+    if(line.indexOf('NodeB Name=')>=0){
+      // FORMAT 2: NCE — NodeB Name=3G_0388_BARMOI_MUNU, LogicRNCID=11 \t datetime
+      var moMatch=line.match(/NodeB Name=([^,\s]+)/);
+      mo=moMatch?moMatch[1].trim():'';
+      // Find datetime in columns
+      for(var j=0;j<cols.length;j++){
+        var cv=cols[j].trim();
+        if(cv.match(/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/)){occ=cv;break;}
+      }
+      // Check for TT
+      for(var j=0;j<cols.length;j++){
+        var cv=cols[j].trim();
+        if(cv.match(/INC-\d{8}-\d+/)){tt=cv.match(/INC-\d{8}-\d+/)[0];break;}
+      }
+    } else if(cols.length>=3){
+      // Check if FORMAT 3: [empty|Operation] \t Severity \t DateTime \t MO_Name
+      var isSeverityFmt=false;
+      for(var j=0;j<Math.min(cols.length,4);j++){
+        var cv=cols[j].trim().toLowerCase();
+        if(cv==='major'||cv==='minor'||cv==='critical'||cv==='warning'){isSeverityFmt=true;break;}
+      }
+
+      if(isSeverityFmt){
+        // FORMAT 3: AUTIN Severity
+        // Find MO (contains underscore pattern like 2G_0486_)
+        for(var j=0;j<cols.length;j++){
+          var cv=cols[j].trim();
+          if(cv.match(/^[234]G_\d{3,4}_/)||cv.match(/^LTE_\d{3,4}_/)){mo=cv;break;}
+        }
+        // Find datetime
+        for(var j=0;j<cols.length;j++){
+          var cv=cols[j].trim();
+          if(cv.match(/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/)){occ=cv;break;}
+        }
+        // Check for TT
+        for(var j=0;j<cols.length;j++){
+          var cv=cols[j].trim();
+          if(cv.match(/INC-\d{8}-\d+/)){tt=cv.match(/INC-\d{8}-\d+/)[0];break;}
+        }
+      } else {
+        // FORMAT 1: AUTIN2 with TT — Region \t MO_Name \t DateTime \t TT_ID \t ...
+        // Find MO (underscore pattern)
+        for(var j=0;j<cols.length;j++){
+          var cv=cols[j].trim();
+          if(cv.match(/^[234]G_\d{3,4}_/)||cv.match(/^LTE_\d{3,4}_/)){mo=cv;break;}
+        }
+        // Find datetime
+        for(var j=0;j<cols.length;j++){
+          var cv=cols[j].trim();
+          if(cv.match(/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/)){occ=cv;break;}
+        }
+        // Find TT
+        for(var j=0;j<cols.length;j++){
+          var cv=cols[j].trim();
+          if(cv.match(/INC-\d{8}-\d+/)){tt=cv.match(/INC-\d{8}-\d+/)[0];break;}
+        }
+      }
+    }
+
+    if(!mo)continue;
+    mo=extractMO(mo);
+    if(!mo||seen[mo])continue;
+    seen[mo]=true;
+
+    buildAlarm(idCounter,mo,occ);
+    // Attach TT to the alarm we just pushed
+    if(tt){
+      A[A.length-1].tt=tt;
+    }
+    idCounter++;
+  }
+
+  if(!A.length){
+    status.innerHTML='<span style="color:var(--red)">0 alarmes détectées. Vérifie le format collé.</span>';
+    return;
+  }
+
+  // Show app
+  document.getElementById('upWrap').style.display='none';
+  var hMeta=document.getElementById('hMeta');
+  var hMetaSites=document.getElementById('hMetaSites');
+  var hMetaTime=document.getElementById('hMetaTime');
+  var hReload=document.getElementById('hReload');
+  if(hMeta)hMeta.style.display='flex';
+  if(hMetaSites)hMetaSites.textContent=A.length+' sites';
+  if(hMetaTime)hMetaTime.textContent='Collé';
+  if(hReload)hReload.style.display='block';
+
+  document.getElementById('app').style.display='block';
+
+  var now=new Date();
+  document.getElementById('t1').value=p2(now.getDate())+'/'+p2(now.getMonth()+1)+'/'+now.getFullYear();
+  var old=oldest(A.map(function(a){return a.id;}));
+  if(old)document.getElementById('t0').value=old;
+
+  // Auto-fill TT if only one unique TT
+  var tts=[...new Set(A.map(function(a){return a.tt;}).filter(Boolean))];
+  if(tts.length===1)document.getElementById('ttId').value=tts[0];
+
+  hSel=new Set();grps=[];actG=null;gN=0;
+  document.getElementById('hSelN').textContent='0';
+  mkFilters();renderIL();buildAG();renderHL();renderHGrpList();renderGrps();renderSavedGrps();
+
+  showToast(A.length+' alarmes chargées depuis le texte collé','success');
+}
 
 </script>
 </body>
