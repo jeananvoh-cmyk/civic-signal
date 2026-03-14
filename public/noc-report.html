@@ -1327,11 +1327,17 @@ function mkLine(sites,bsc,action){
   if(p.op){tpl=document.getElementById('tplShared').value||TPL_SHARED_DEFAULT;}
   else if(isRelief(p.mo)){tpl=document.getElementById('tplRelief').value||TPL_RELIEF_DEFAULT;}
   else{tpl=document.getElementById('tplIpt').value||TPL_IPT_DEFAULT;}
-  return tpl
+  var line=tpl
     .replace(/\{\{bsc\}\}/g,bsc).replace(/\{\{chain\}\}/g,chain)
     .replace(/\{\{date\}\}/g,dt.ds).replace(/\{\{time\}\}/g,dt.ts)
     .replace(/\{\{name\}\}/g,pName).replace(/\{\{op\}\}/g,p.op||'')
     .replace(/\{\{action\}\}/g,action);
+  // Insert TT after the closing )* if present
+  var tt=p.tt||'';
+  if(tt){
+    line=line.replace(/\)\*/, ')* TT-'+tt);
+  }
+  return line;
 }
 
 // ── Group Memory ──────────────────────────────────────
