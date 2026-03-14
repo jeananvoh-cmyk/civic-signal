@@ -387,6 +387,33 @@ header{padding:14px 24px;border-bottom:1px solid var(--brd);display:flex;align-i
       <div class="u-title">Charger CurrentAlarms</div>
       <div class="u-sub">Cliquer ou glisser un fichier .xlsx</div>
     </label>
+
+    <div style="text-align:center;margin:14px 0 8px;font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.1em">— ou coller les données —</div>
+
+    <div class="card">
+      <div class="card-head" style="cursor:pointer" onclick="togglePasteZone()">
+        <span class="card-title">📋 Coller les alarmes (3 formats supportés)</span>
+        <span id="pasteToggleIcon" style="font-size:11px;color:var(--txt3)">▼</span>
+      </div>
+      <div id="pasteBody" class="card-body">
+        <div style="margin-bottom:10px">
+          <div style="font-size:10px;color:var(--mut);line-height:1.7;margin-bottom:8px">
+            <b style="color:var(--acc)">Format 1</b> — AUTIN2 avec TT (tab-séparé) :<br>
+            <code style="font-size:9px;color:var(--txt3);background:var(--sur2);padding:2px 6px;border-radius:3px">OSL_TONKOLILI⇥3G_0410_MASUMBIRI⇥2026-03-14 17:12:42⇥INC-20260314-00010925⇥...</code><br><br>
+            <b style="color:var(--ora)">Format 2</b> — NCE (NodeB Name=) :<br>
+            <code style="font-size:9px;color:var(--txt3);background:var(--sur2);padding:2px 6px;border-radius:3px">NodeB Name=3G_0388_BARMOI_MUNU, LogicRNCID=11⇥2026-03-14 17:19:37</code><br><br>
+            <b style="color:var(--grn)">Format 3</b> — AUTIN Severity :<br>
+            <code style="font-size:9px;color:var(--txt3);background:var(--sur2);padding:2px 6px;border-radius:3px">⇥Major⇥2026-03-14 17:08:23⇥2G_0486_OBA_FUNKIA</code>
+          </div>
+          <p style="font-size:10px;color:var(--yel);margin-bottom:8px">💡 Les 3 formats peuvent être mélangés. Les TT (INC-...) sont automatiquement inclus dans le NS.</p>
+        </div>
+        <div class="fg" style="margin-bottom:10px">
+          <textarea id="pasteArea" style="min-height:160px;font-size:11px;line-height:1.6" placeholder="Coller ici les lignes d'alarmes depuis Excel, NCE ou AUTIN...&#10;&#10;Formats acceptés :&#10;Region⇥MO_Name⇥DateTime⇥TT_ID⇥...&#10;NodeB Name=3G_0388_SITE, LogicRNCID=11⇥DateTime&#10;⇥Severity⇥DateTime⇥MO_Name"></textarea>
+        </div>
+        <button class="gbtn b" onclick="parsePastedData()">⚡ Charger les alarmes collées</button>
+        <div id="pasteStatus" style="margin-top:8px;font-size:11px;color:var(--mut)"></div>
+      </div>
+    </div>
   </div>
 
 
