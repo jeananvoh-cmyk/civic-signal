@@ -1752,6 +1752,116 @@ function importConfig(inp){
   r.readAsText(f);
 }
 
+// ── Theme Toggle ──────────────────────────────────────
+function toggleTheme(){
+  var html=document.documentElement;
+  var cur=html.getAttribute('data-theme')||'dark';
+  var next=cur==='dark'?'light':'dark';
+  html.setAttribute('data-theme',next);
+  document.getElementById('themeToggle').textContent=next==='dark'?'🌙':'☀️';
+  try{localStorage.setItem('noc_theme',next);}catch(e){}
+}
+(function initTheme(){
+  var saved=localStorage.getItem('noc_theme')||'dark';
+  document.documentElement.setAttribute('data-theme',saved);
+  var btn=document.getElementById('themeToggle');
+  if(btn)btn.textContent=saved==='dark'?'🌙':'☀️';
+})();
+
+// ── Toast Notifications ───────────────────────────────
+function showToast(msg,type){
+  type=type||'info';
+  var el=document.createElement('div');
+  el.className='toast '+type;
+  el.textContent=msg;
+  document.body.appendChild(el);
+  setTimeout(function(){el.style.opacity='0';el.style.transform='translateY(10px)';setTimeout(function(){el.remove();},300);},2500);
+}
+
+// ── Report History ────────────────────────────────────
+var reportHistory=[];
+var histFilter='all';
+
+function loadHistory(){
+  try{var s=localStorage.getItem('noc_report_history');if(s)reportHistory=JSON.parse(s);}catch(e){reportHistory=[];}
+}
+function saveHistory(){
+  try{localStorage.setItem('noc_report_history',JSON.stringify(reportHistory.slice(0,100)));}catch(e){}
+}
+function addToHistory(type,content){
+  reportHistory.unshift({
+    id:Date.now(),
+    type:type,
+    content:content,
+    date:new Date().toISOString(),
+    sites:sel.size||hSel.size||0
+  });
+  saveHistory();
+  renderHistory();
+  showToast('Rapport '+type+' sauvegardé','success');
+}
+function deleteHistItem(id){
+  reportHistory=reportHistory.filter(function(h){return h.id!==id;});
+  saveHistory();renderHistory();
+  showToast('Rapport supprimé','info');
+}
+function copyHistItem(id,btn){
+  var item=reportHistory.find(function(h){return h.id===id;});
+  if(!item)return;
+  navigator.clipboard.writeText(item.content).then(function(){
+    btn.textContent='✓';setTimeout(function(){btn.textContent='Copier';},1500);
+    showToast('Copié !','success');
+  });
+}
+function clearHistory(){
+  if(!confirm('Supprimer tout l\'historique ?'))return;
+  reportHistory=[];saveHistory();renderHistory();
+  showToast('Historique vidé','info');
+}
+function filterHist(type,btn){
+  histFilter=type;
+  document.querySelectorAll('#p7 .chip').forEach(function(c){c.classList.remove('on');});
+  if(btn)btn.classList.add('on');
+  renderHistory();
+}
+function renderHistory(){
+  var c=document.getElementById('histList');
+  var cnt=document.getElementById('histCount');
+  if(!c)return;
+  var items=histFilter==='all'?reportHistory:reportHistory.filter(function(h){return h.type===histFilter;});
+  if(cnt)cnt.textContent=items.length;
+  if(!items.length){c.innerHTML='<div class="hint">Aucun rapport '+(histFilter==='all'?'':'de type '+histFilter)+' enregistré</div>';return;}
+  c.innerHTML=items.map(function(h,i){
+    var d=new Date(h.date);
+    var ds=String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+    var preview=h.content.substring(0,120).replace(/</g,'&lt;');
+    return '<div class="hist-item" style="animation-delay:'+(.04*i)+'s">'
+      +'<div class="hist-head"><span class="hist-type '+h.type+'">'+h.type+'</span><span class="hist-date">'+ds+(h.sites?' · '+h.sites+' sites':'')+'</span></div>'
+      +'<div class="hist-preview">'+preview+'…</div>'
+      +'<div class="hist-actions">'
+      +'<button class="hist-btn copy" onclick="event.stopPropagation();copyHistItem('+h.id+',this)">Copier</button>'
+      +'<button class="hist-btn del" onclick="event.stopPropagation();deleteHistItem('+h.id+')">Supprimer</button>'
+      +'</div></div>';
+  }).join('');
+}
+
+// ── Patch genInc to save to history ───────────────────
+var _origGenInc=genInc;
+genInc=function(type){
+  _origGenInc(type);
+  var outId=type==='OOS'?'iOut':type==='UPDATE'?'updOut':'endOut';
+  var content=document.getElementById(outId).textContent;
+  if(content&&content!=='—')addToHistory(type,content);
+};
+
+// ── Patch genHourly to save to history ────────────────
+var _origGenHourly=genHourly;
+genHourly=function(){
+  _origGenHourly();
+  var content=document.getElementById('hOut').textContent;
+  if(content&&content.indexOf('// NS')!==0)addToHistory('NS',content);
+};
+
 // ── Startup ───────────────────────────────────────────
 (function(){
   try{
@@ -1768,6 +1878,8 @@ function importConfig(inp){
   }catch(e){}
   loadSavedGroups();
   renderSavedGrps();
+  loadHistory();
+  renderHistory();
 })();
 
 </script>
