@@ -368,6 +368,12 @@ header{padding:14px 24px;border-bottom:1px solid var(--brd);display:flex;align-i
   <div class="h-dot"></div>
   <div class="h-logo">NOC · <em>Reports</em></div>
   <div class="h-file-info" id="hFileInfo">fichier: <span id="hFileName">—</span></div>
+  <div id="hMeta" style="display:none;align-items:center;gap:8px">
+    <span class="pill acc" id="hMetaSites">—</span>
+    <span class="pill n" id="hMetaTime">—</span>
+    <button class="act-btn rst" id="hReload" style="display:none" onclick="reloadFile()">⟳</button>
+  </div>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Changer le thème">🌙</button>
   <div class="h-clock" id="clk">--:--</div>
 </header>
 
