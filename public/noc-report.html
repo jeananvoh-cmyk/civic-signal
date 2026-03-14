@@ -693,6 +693,28 @@ header{padding:14px 24px;border-bottom:1px solid var(--brd);display:flex;align-i
       </div>
     </div>
 
+    <!-- ══ HISTORY ══════════════════════════════════════ -->
+    <div class="pane" id="p7">
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">Historique des rapports</span>
+          <span class="hist-count" id="histCount">0</span>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+            <button class="chip on" onclick="filterHist('all',this)">Tous</button>
+            <button class="chip" onclick="filterHist('OOS',this)">OOS</button>
+            <button class="chip" onclick="filterHist('UPDATE',this)">UPDATE</button>
+            <button class="chip" onclick="filterHist('INS',this)">INS</button>
+            <button class="chip" onclick="filterHist('NS',this)">NS</button>
+            <span style="flex:1"></span>
+            <button class="btn btn-danger btn-sm" onclick="clearHistory()">Tout supprimer</button>
+          </div>
+          <div id="histList"><div class="hint">Aucun rapport enregistré</div></div>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /app -->
 </div><!-- /wrap -->
 
