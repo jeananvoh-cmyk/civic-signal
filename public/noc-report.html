@@ -982,7 +982,7 @@ function buildAlarm(id,mo,occ){
   var reg=db?db.region:'', dis=db?db.district:'';
   var op=db?db.shared_op.replace('/BASE','').replace('/base','').trim():'';
   if(db&&db.name)name=db.name;
-  A.push({id:id,mo:mo,slid:slid,name:name,occ:occ,reg:reg,dis:dis,op:op});
+  A.push({id:id,mo:mo,slid:slid,name:name,occ:occ,reg:reg,dis:dis,op:op,tt:''});
 }
 
 // ── Helpers ────────────────────────────────────────────
