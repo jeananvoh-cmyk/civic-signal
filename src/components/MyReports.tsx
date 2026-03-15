@@ -52,6 +52,7 @@ const MyReports = () => {
       .from("reports")
       .select("id, service_type, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, verifications")
       .eq("user_id", user.id)
+      .eq("status", "active")
       .order("created_at", { ascending: false });
     if (!error && data) {
       setReports(data);
