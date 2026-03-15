@@ -28,16 +28,8 @@ interface HistoryReport {
   verifications: number;
 }
 
-function formatDuration(startStr: string, endStr: string): string {
-  const ms = new Date(endStr).getTime() - new Date(startStr).getTime();
-  const mins = Math.floor(ms / 60000);
-  if (mins < 60) return `${mins} min`;
-  const hours = Math.floor(mins / 60);
-  const remMins = mins % 60;
-  if (hours < 24) return `${hours}h${remMins > 0 ? `${remMins}min` : ""}`;
-  const days = Math.floor(hours / 24);
-  return `${days}j ${hours % 24}h`;
-}
+
+
 
 const HistoryPage = () => {
   const { user } = useAuth();
