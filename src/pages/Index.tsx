@@ -8,6 +8,7 @@ import { COMMUNES } from "@/lib/communes";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import FlipCounter from "@/components/FlipCounter";
 const heroBg = "/images/hero-bg.jpg";
 import waterIcon from "@/assets/water-icon-sm.webp";
 import electricityIcon from "@/assets/electricity-icon-sm.webp";
@@ -505,7 +506,11 @@ const Index = () => {
                         transition={{ duration: 0.25 }}
                         className="font-display text-3xl font-extrabold text-white md:text-4xl"
                       >
-                        {stat.live ? stat.value : <AnimatedCounter value={stat.value} />}
+                        {stat.live && liveCount !== null ? (
+                          <FlipCounter value={liveCount} className="text-3xl font-extrabold md:text-4xl" />
+                        ) : (
+                          <AnimatedCounter value={stat.value} />
+                        )}
                       </motion.p>
                     </AnimatePresence>
                   </div>
