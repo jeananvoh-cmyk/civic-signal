@@ -307,8 +307,9 @@ const ProfilePage = () => {
     water_meter_number: "",
   });
 
-  // Active reports count
+  // Active & resolved reports count
   const [activeReportsCount, setActiveReportsCount] = useState<number | null>(null);
+  const [resolvedReportsCount, setResolvedReportsCount] = useState<number>(0);
 
   // History state
   const [history, setHistory] = useState<HistoryReport[]>([]);
