@@ -614,9 +614,6 @@ const ProfilePage = () => {
               </div>
             </div>
           </div>
-              </div>
-            </div>
-          </div>
 
           {/* ═══ Stats bar (Facebook-style) ═══ */}
           <div className="px-4 sm:px-0 mb-5">
