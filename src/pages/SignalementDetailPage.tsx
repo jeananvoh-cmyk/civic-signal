@@ -285,7 +285,17 @@ const SignalementDetailPage = () => {
                     })}
                   </span>
                 )}
-              </div>
+                {/* Duration with confidence label */}
+                <div className="pt-1">
+                  <DurationBadge
+                    status={report.status}
+                    resolved_at={report.resolved_at}
+                    start_time={report.start_time}
+                    created_at={report.created_at}
+                    repair_verifications={report.repair_verifications}
+                    verifications={report.verifications}
+                  />
+                </div>
             </CardContent>
           </Card>
 
