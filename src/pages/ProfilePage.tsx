@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 // ProfilePage - updated
 import {
@@ -285,6 +285,8 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const initialProfileRef = useRef<ProfileData | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
   const [profile, setProfile] = useState<ProfileData>({
     first_name: "",
     last_name: "",
@@ -354,6 +356,25 @@ const ProfilePage = () => {
           water_meter_ref: (data as any).water_meter_ref ?? "",
           water_meter_number: (data as any).water_meter_number ?? "",
         });
+        initialProfileRef.current = {
+          first_name: data.first_name ?? "",
+          last_name: data.last_name ?? "",
+          display_name: data.display_name ?? "",
+          phone: data.phone ?? "",
+          commune: data.commune ?? "",
+          quartier: data.quartier ?? "",
+          user_type: data.user_type ?? "household",
+          bio: data.bio ?? "",
+          notifications_enabled: data.notifications_enabled ?? true,
+          language: data.language ?? "fr",
+          theme: data.theme ?? "system",
+          electricity_client_id: (data as any).electricity_client_id ?? "",
+          electricity_meter_ref: (data as any).electricity_meter_ref ?? "",
+          electricity_meter_number: (data as any).electricity_meter_number ?? "",
+          water_client_id: (data as any).water_client_id ?? "",
+          water_meter_ref: (data as any).water_meter_ref ?? "",
+          water_meter_number: (data as any).water_meter_number ?? "",
+        };
       }
       setLoading(false);
     };
@@ -415,6 +436,8 @@ const ProfilePage = () => {
       toast.error("Erreur lors de la sauvegarde");
     } else {
       setSaved(true);
+      setIsDirty(false);
+      initialProfileRef.current = { ...profile };
       toast.success("Profil mis à jour !");
       setTimeout(() => setSaved(false), 2000);
     }
@@ -446,7 +469,17 @@ const ProfilePage = () => {
   };
 
   const update = (field: keyof ProfileData, value: any) => {
-    setProfile((p) => ({ ...p, [field]: value }));
+    setProfile((p) => {
+      const next = { ...p, [field]: value };
+      // Check dirty
+      if (initialProfileRef.current) {
+        const dirty = (Object.keys(next) as (keyof ProfileData)[]).some(
+          (k) => next[k] !== initialProfileRef.current![k]
+        );
+        setIsDirty(dirty);
+      }
+      return next;
+    });
     setSaved(false);
   };
 
@@ -577,18 +610,6 @@ const ProfilePage = () => {
                       <Clock className="h-3 w-3" />Membre depuis {memberSince}
                     </span>
                   )}
-                </div>
-                {/* Save button */}
-                <div className="mt-3">
-                  <Button
-                    onClick={handleSave}
-                    disabled={saving}
-                    size="sm"
-                    className="gap-2"
-                  >
-                    {saved ? <CheckCircle2 className="h-4 w-4" /> : <Save className="h-4 w-4" />}
-                    {saving ? "..." : saved ? "Sauvegardé" : "Enregistrer"}
-                  </Button>
                 </div>
               </div>
             </div>
@@ -1598,6 +1619,29 @@ const ProfilePage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ═══ Floating Save Button ═══ */}
+      <AnimatePresence>
+        {isDirty && (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
+          >
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              size="lg"
+              className="gap-2 shadow-2xl rounded-full px-8 py-6 text-base font-bold"
+            >
+              {saved ? <CheckCircle2 className="h-5 w-5" /> : <Save className="h-5 w-5" />}
+              {saving ? "Enregistrement..." : saved ? "Sauvegardé !" : "Enregistrer les modifications"}
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
