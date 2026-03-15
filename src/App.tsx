@@ -29,6 +29,7 @@ const AdminAuditPage = lazy(() => import("./pages/AdminAuditPage"));
 const AdminVulnerablePage = lazy(() => import("./pages/AdminVulnerablePage"));
 const AdminMessagingPage = lazy(() => import("./pages/AdminMessagingPage"));
 const AdminQuartiersPage = lazy(() => import("./pages/AdminQuartiersPage"));
+const AdminRightsPage = lazy(() => import("./pages/AdminRightsPage"));
 const CommuneDetailPage = lazy(() => import("./pages/CommuneDetailPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
