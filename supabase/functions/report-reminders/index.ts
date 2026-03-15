@@ -177,6 +177,7 @@ Deno.serve(async (req) => {
         notifications: notificationsInserted,
         archived,
         escalated,
+        expired14d,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
