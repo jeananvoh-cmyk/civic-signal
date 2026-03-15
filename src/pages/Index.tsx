@@ -244,7 +244,7 @@ const Index = () => {
 
             {/* Tagline */}
             <motion.p variants={fadeUp} className="mt-6 text-lg font-medium text-white/70 max-w-lg leading-relaxed">
-              La première plateforme ivoirienne où les citoyens signalent, confirment et résolvent les coupures ensemble.
+              La première plateforme citoyenne ivoirienne où les habitants signalent les coupures d'eau et d'électricité, confirment celles de leurs voisins et suivent le rétablissement du service en temps réel.
             </motion.p>
 
             {/* CTA — with dramatic glow */}
