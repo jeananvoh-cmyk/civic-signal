@@ -296,62 +296,65 @@ const ProfilePage = () => {
       <main className="container max-w-3xl px-0 sm:px-4 py-0 sm:py-6">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
 
-          {/* ═══ Facebook-style Cover + Avatar ═══ */}
-          <div className="relative mb-16 sm:mb-20 sm:rounded-b-2xl overflow-hidden">
-            {/* Cover photo */}
-            <div className="h-28 sm:h-36 gradient-hero relative overflow-hidden">
-              <div className="absolute inset-0" style={{ background: "var(--gradient-hero-radial)" }} />
-              {/* Decorative pattern */}
-              <div className="absolute inset-0 opacity-10" style={{
-                backgroundImage: "radial-gradient(circle at 1px 1px, hsl(var(--primary-foreground)) 1px, transparent 0)",
-                backgroundSize: "24px 24px"
-              }} />
-              {/* Save button on cover */}
-              <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10">
-                <Button
-                  onClick={handleSave}
-                  disabled={saving}
-                  size="sm"
-                  className="bg-white/20 backdrop-blur-md border border-white/30 text-white hover:bg-white/30 gap-2 shadow-lg"
-                >
-                  {saved ? <CheckCircle2 className="h-4 w-4" /> : <Save className="h-4 w-4" />}
-                  {saving ? "..." : saved ? "Sauvegardé" : "Enregistrer"}
-                </Button>
-              </div>
-            </div>
+          {/* ═══ Profile Header with Conformity Circle ═══ */}
+          <div className="relative mb-6 sm:mb-8 px-4 sm:px-6 pt-6">
+            <div className="flex items-center gap-5">
+              {/* Conformity circle */}
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                className="relative flex-shrink-0"
+              >
+                <svg width="96" height="96" viewBox="0 0 96 96" className="sm:w-[112px] sm:h-[112px]">
+                  {/* Background circle */}
+                  <circle cx="48" cy="48" r="42" fill="none" stroke="hsl(var(--muted))" strokeWidth="6" />
+                  {/* Progress arc */}
+                  <circle
+                    cx="48" cy="48" r="42"
+                    fill="none"
+                    stroke={conformityPercent >= 80 ? "hsl(var(--success, 142 71% 45%))" : conformityPercent >= 50 ? "hsl(var(--warning, 38 92% 50%))" : "hsl(var(--destructive))"}
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 42}`}
+                    strokeDashoffset={`${2 * Math.PI * 42 * (1 - conformityPercent / 100)}`}
+                    transform="rotate(-90 48 48)"
+                    className="transition-all duration-700"
+                  />
+                </svg>
+                {/* Center content */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-xl sm:text-2xl font-bold text-foreground">{conformityPercent}%</span>
+                  <span className="text-[9px] sm:text-[10px] text-muted-foreground font-medium">Conformité</span>
+                </div>
+              </motion.div>
 
-            {/* Avatar + name overlay */}
-            <div className="absolute -bottom-16 sm:-bottom-20 left-0 right-0 px-4 sm:px-6">
-              <div className="flex items-end gap-4">
-                {/* Avatar */}
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                  className="relative"
-                >
-                  <div className="h-24 w-24 sm:h-32 sm:w-32 rounded-full border-4 border-background bg-primary flex items-center justify-center text-primary-foreground text-3xl sm:text-4xl font-bold shadow-xl">
-                    {avatarInitial}
-                  </div>
-                  {/* Online indicator */}
-                  <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 h-5 w-5 sm:h-6 sm:w-6 rounded-full bg-green-500 border-[3px] border-background" />
-                </motion.div>
-
-                {/* Name & info */}
-                <div className="pb-1 sm:pb-2 min-w-0 flex-1">
-                  <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground truncate">{displayName}</h1>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
-                    {profile.commune && (
-                      <span className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />{profile.commune}{profile.quartier ? `, ${profile.quartier}` : ""}
-                      </span>
-                    )}
-                    {memberSince && (
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" />Membre depuis {memberSince}
-                      </span>
-                    )}
-                  </div>
+              {/* Name & info */}
+              <div className="min-w-0 flex-1">
+                <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground truncate">{displayName}</h1>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
+                  {profile.commune && (
+                    <span className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />{profile.commune}{profile.quartier ? `, ${profile.quartier}` : ""}
+                    </span>
+                  )}
+                  {memberSince && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-3 w-3" />Membre depuis {memberSince}
+                    </span>
+                  )}
+                </div>
+                {/* Save button */}
+                <div className="mt-3">
+                  <Button
+                    onClick={handleSave}
+                    disabled={saving}
+                    size="sm"
+                    className="gap-2"
+                  >
+                    {saved ? <CheckCircle2 className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+                    {saving ? "..." : saved ? "Sauvegardé" : "Enregistrer"}
+                  </Button>
                 </div>
               </div>
             </div>
