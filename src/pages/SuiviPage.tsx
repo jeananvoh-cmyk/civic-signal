@@ -508,6 +508,15 @@ const SuiviPage = () => {
                           <Clock className="h-3 w-3" />
                           {age}
                         </span>
+                        <DurationBadge
+                          status={r.status}
+                          resolved_at={r.resolved_at}
+                          start_time={r.start_time}
+                          created_at={r.created_at}
+                          repair_verifications={r.repair_verifications}
+                          verifications={r.verifications}
+                          compact
+                        />
                       </div>
                     </CardContent>
                   </Card>
