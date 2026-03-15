@@ -9,6 +9,8 @@ import {
   BookOpen, ExternalLink, Scale, Lightbulb, ShieldCheck
 } from "lucide-react";
 import confetti from "canvas-confetti";
+import waterIconSm from "@/assets/water-icon-sm.webp";
+import electricityIconSm from "@/assets/electricity-icon-sm.webp";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -319,6 +321,7 @@ const ProfilePage = () => {
 
   // Delete account state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showOddDialog, setShowOddDialog] = useState<"odd6" | "odd7" | null>(null);
   const [deleteReason, setDeleteReason] = useState("");
   const [deleteOther, setDeleteOther] = useState("");
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -678,32 +681,32 @@ const ProfilePage = () => {
                     )}
                     {!profile.electricity_client_id && (
                       <Badge variant="outline" className="text-[10px] bg-background border-yellow-500/50 text-yellow-600 gap-1 py-0.5">
-                        <Zap className="h-3 w-3" /> CIE
+                        <img src={electricityIconSm} alt="" className="h-3 w-3" /> CIE
                       </Badge>
                     )}
                     {!profile.electricity_meter_ref && (
                       <Badge variant="outline" className="text-[10px] bg-background border-yellow-500/50 text-yellow-600 gap-1 py-0.5">
-                        <Zap className="h-3 w-3" /> Réf. compteur
+                        <img src={electricityIconSm} alt="" className="h-3 w-3" /> Réf. compteur
                       </Badge>
                     )}
                     {!profile.electricity_meter_number && (
                       <Badge variant="outline" className="text-[10px] bg-background border-yellow-500/50 text-yellow-600 gap-1 py-0.5">
-                        <Zap className="h-3 w-3" /> N° compteur
+                        <img src={electricityIconSm} alt="" className="h-3 w-3" /> N° compteur
                       </Badge>
                     )}
                     {!profile.water_client_id && (
                       <Badge variant="outline" className="text-[10px] bg-background border-cyan-500/50 text-cyan-600 gap-1 py-0.5">
-                        <Droplets className="h-3 w-3" /> SODECI
+                        <img src={waterIconSm} alt="" className="h-3 w-3" /> SODECI
                       </Badge>
                     )}
                     {!profile.water_meter_ref && (
                       <Badge variant="outline" className="text-[10px] bg-background border-cyan-500/50 text-cyan-600 gap-1 py-0.5">
-                        <Droplets className="h-3 w-3" /> Réf. compteur
+                        <img src={waterIconSm} alt="" className="h-3 w-3" /> Réf. compteur
                       </Badge>
                     )}
                     {!profile.water_meter_number && (
                       <Badge variant="outline" className="text-[10px] bg-background border-cyan-500/50 text-cyan-600 gap-1 py-0.5">
-                        <Droplets className="h-3 w-3" /> N° compteur
+                        <img src={waterIconSm} alt="" className="h-3 w-3" /> N° compteur
                       </Badge>
                     )}
                   </div>
@@ -712,20 +715,28 @@ const ProfilePage = () => {
 
               {/* ODD mini cards */}
               <div className={`grid grid-cols-2 gap-2 ${conformityPercent < 100 ? "sm:w-72 flex-shrink-0" : "w-full sm:max-w-md"}`}>
-                <div className="flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 p-2.5">
+                <button
+                  onClick={() => setShowOddDialog("odd6")}
+                  className="flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 p-2.5 hover:bg-blue-500/10 transition-colors text-left cursor-pointer"
+                >
                   <span className="text-lg shrink-0">💧</span>
                   <div className="min-w-0">
                     <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 leading-tight">ODD 6</p>
                     <p className="text-[10px] text-muted-foreground leading-tight">Eau propre</p>
                   </div>
-                </div>
-                <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-2.5">
+                  <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto shrink-0" />
+                </button>
+                <button
+                  onClick={() => setShowOddDialog("odd7")}
+                  className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-2.5 hover:bg-amber-500/10 transition-colors text-left cursor-pointer"
+                >
                   <span className="text-lg shrink-0">⚡</span>
                   <div className="min-w-0">
                     <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 leading-tight">ODD 7</p>
                     <p className="text-[10px] text-muted-foreground leading-tight">Énergie propre</p>
                   </div>
-                </div>
+                  <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto shrink-0" />
+                </button>
               </div>
             </div>
           </div>
@@ -1523,6 +1534,127 @@ const ProfilePage = () => {
           </div>
         </motion.div>
       </main>
+
+      {/* ── ODD DIALOG ── */}
+      <Dialog open={showOddDialog !== null} onOpenChange={(open) => { if (!open) setShowOddDialog(null); }}>
+        <DialogContent className="max-w-lg mx-4 sm:mx-auto max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+              {showOddDialog === "odd6" ? (
+                <><span className="text-xl">💧</span> ODD 6 — Eau propre et assainissement</>
+              ) : (
+                <><span className="text-xl">⚡</span> ODD 7 — Énergie propre et d'un coût abordable</>
+              )}
+            </DialogTitle>
+            <DialogDescription className="text-sm">
+              {showOddDialog === "odd6"
+                ? "Garantir l'accès de tous à des services d'alimentation en eau et d'assainissement gérés de façon durable d'ici 2030."
+                : "Garantir l'accès de tous à des services énergétiques fiables, durables et modernes, à un coût abordable d'ici 2030."
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-2">
+            {showOddDialog === "odd6" ? (
+              <>
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-blue-500" /> Cibles clés
+                  </h3>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <div className="flex gap-2 items-start">
+                      <span className="text-blue-500 font-bold text-xs mt-0.5">6.1</span>
+                      <p>Accès universel et équitable à l'eau potable, à un coût abordable.</p>
+                    </div>
+                    <div className="flex gap-2 items-start">
+                      <span className="text-blue-500 font-bold text-xs mt-0.5">6.2</span>
+                      <p>Accès à des services d'assainissement et d'hygiène adéquats pour tous.</p>
+                    </div>
+                    <div className="flex gap-2 items-start">
+                      <span className="text-blue-500 font-bold text-xs mt-0.5">6.4</span>
+                      <p>Utilisation rationnelle des ressources en eau et réduction de la pénurie.</p>
+                    </div>
+                  </div>
+                </div>
+                <Separator />
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 text-blue-500" /> En Côte d'Ivoire
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    La SODECI assure la distribution d'eau potable. Le taux d'accès à l'eau potable en milieu urbain est d'environ 80%, mais de nombreuses zones périurbaines subissent encore des coupures régulières. Chaque signalement sur SIGNA-CI contribue à identifier ces zones et à améliorer le service.
+                  </p>
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <ExternalLink className="h-4 w-4 text-blue-500" /> Ressources
+                  </h3>
+                  <div className="grid gap-2">
+                    <a href="https://sdgs.un.org/goals/goal6" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <ExternalLink className="h-3.5 w-3.5" /> Nations Unies — ODD 6
+                    </a>
+                    <a href="https://www.sodeci.ci" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <ExternalLink className="h-3.5 w-3.5" /> SODECI — Site officiel
+                    </a>
+                    <a href="https://www.onep.ci" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <ExternalLink className="h-3.5 w-3.5" /> ONEP — Office National de l'Eau Potable
+                    </a>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-amber-500" /> Cibles clés
+                  </h3>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <div className="flex gap-2 items-start">
+                      <span className="text-amber-500 font-bold text-xs mt-0.5">7.1</span>
+                      <p>Accès universel à des services énergétiques fiables et modernes, à un coût abordable.</p>
+                    </div>
+                    <div className="flex gap-2 items-start">
+                      <span className="text-amber-500 font-bold text-xs mt-0.5">7.2</span>
+                      <p>Accroître la part de l'énergie renouvelable dans le bouquet énergétique mondial.</p>
+                    </div>
+                    <div className="flex gap-2 items-start">
+                      <span className="text-amber-500 font-bold text-xs mt-0.5">7.b</span>
+                      <p>Développer l'infrastructure et améliorer la technologie pour fournir des services énergétiques modernes.</p>
+                    </div>
+                  </div>
+                </div>
+                <Separator />
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 text-amber-500" /> En Côte d'Ivoire
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    La CIE (Compagnie Ivoirienne d'Électricité) gère la distribution d'électricité. Le pays produit environ 2 200 MW mais la demande croissante entraîne des délestages fréquents, notamment dans les quartiers populaires. Vos signalements aident à cartographier les zones les plus touchées.
+                  </p>
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <ExternalLink className="h-4 w-4 text-amber-500" /> Ressources
+                  </h3>
+                  <div className="grid gap-2">
+                    <a href="https://sdgs.un.org/goals/goal7" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <ExternalLink className="h-3.5 w-3.5" /> Nations Unies — ODD 7
+                    </a>
+                    <a href="https://www.cie.ci" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <ExternalLink className="h-3.5 w-3.5" /> CIE — Site officiel
+                    </a>
+                    <a href="https://www.anare.ci" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <ExternalLink className="h-3.5 w-3.5" /> ANARE-CI — Autorité de Régulation
+                    </a>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── DELETE ACCOUNT DIALOG ── */}
       <Dialog open={showDeleteDialog} onOpenChange={(open) => { if (!open && !deleting) { setShowDeleteDialog(false); } }}>
