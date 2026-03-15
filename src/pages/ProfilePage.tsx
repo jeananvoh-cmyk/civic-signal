@@ -259,6 +259,21 @@ const ProfilePage = () => {
   ];
   const filledCount = conformityFields.filter((f) => f.trim() !== "").length;
   const conformityPercent = Math.round((filledCount / conformityFields.length) * 100);
+  const isProfileComplete = conformityPercent >= 100;
+  const prevConformityRef = useRef(conformityPercent);
+
+  // Confetti when reaching 100%
+  useEffect(() => {
+    if (isProfileComplete && prevConformityRef.current < 100) {
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.3 },
+        colors: ["#FFD700", "#FFA500", "#22C55E", "#3B82F6", "#8B5CF6"],
+      });
+    }
+    prevConformityRef.current = conformityPercent;
+  }, [conformityPercent, isProfileComplete]);
 
   const filteredHistory = history.filter((r) => {
     const statusOk = historyFilter === "all" || r.status === historyFilter;
