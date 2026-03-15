@@ -169,16 +169,55 @@
   .gradient-hero {
     background: var(--gradient-hero);
   }
+  .gradient-hero-rich {
+    background: var(--gradient-hero);
+  }
+  .gradient-hero-rich::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--gradient-hero-radial);
+    pointer-events: none;
+  }
   .gradient-water {
     background: var(--gradient-water);
   }
   .gradient-electricity {
     background: var(--gradient-electricity);
   }
+  .gradient-glass {
+    background: var(--gradient-glass);
+  }
   .shadow-card {
     box-shadow: var(--shadow-card);
   }
   .shadow-elevated {
     box-shadow: var(--shadow-elevated);
+  }
+  .shadow-glow-water {
+    box-shadow: var(--shadow-glow-water);
+  }
+  .shadow-glow-electricity {
+    box-shadow: var(--shadow-glow-electricity);
+  }
+  .text-gradient-brand {
+    background: linear-gradient(135deg, hsl(192 80% 55%), hsl(40 95% 60%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .glass-card {
+    background: hsl(0 0% 100% / 0.06);
+    backdrop-filter: blur(16px);
+    border: 1px solid hsl(0 0% 100% / 0.1);
+  }
+  .glass-card-light {
+    background: hsl(0 0% 100% / 0.7);
+    backdrop-filter: blur(16px);
+    border: 1px solid hsl(0 0% 0% / 0.06);
+  }
+  .dark .glass-card-light {
+    background: hsl(0 0% 100% / 0.06);
+    border-color: hsl(0 0% 100% / 0.1);
   }
 }
