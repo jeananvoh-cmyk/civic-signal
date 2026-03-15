@@ -233,8 +233,63 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      push_throttle: {
+        Row: {
+          commune: string
+          event_type: string
+          id: string
+          last_sent_at: string
+          quartier: string
+          service_type: string
+        }
+        Insert: {
+          commune: string
+          event_type?: string
+          id?: string
+          last_sent_at?: string
+          quartier: string
+          service_type: string
+        }
+        Update: {
+          commune?: string
+          event_type?: string
+          id?: string
+          last_sent_at?: string
+          quartier?: string
+          service_type?: string
+        }
+        Relationships: []
+      }
       quartiers: {
         Row: {
+          aliases: string[]
           commune: string
           created_at: string
           hidden: boolean
@@ -244,6 +299,7 @@ export type Database = {
           validated: boolean
         }
         Insert: {
+          aliases?: string[]
           commune: string
           created_at?: string
           hidden?: boolean
@@ -253,6 +309,7 @@ export type Database = {
           validated?: boolean
         }
         Update: {
+          aliases?: string[]
           commune?: string
           created_at?: string
           hidden?: boolean

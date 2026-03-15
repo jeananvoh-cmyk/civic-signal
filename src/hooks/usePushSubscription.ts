@@ -2,94 +2,142 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
+// The VAPID public key is fetched from the edge function
+const VAPID_PUBLIC_KEY_STORAGE = "vapid_public_key";
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = atob(base64);
-  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
 }
 
-export type PushStatus = "unsupported" | "blocked" | "subscribed" | "unsubscribed" | "loading";
-
-export function usePushSubscription(commune?: string, quartier?: string) {
+export function usePushSubscription() {
   const { user } = useAuth();
-  const [status, setStatus] = useState<PushStatus>("loading");
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSupported, setIsSupported] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [permission, setPermission] = useState<NotificationPermission>("default");
 
-  const isSupported =
-    "serviceWorker" in navigator && "PushManager" in window && !!VAPID_PUBLIC_KEY;
-
-  const checkStatus = useCallback(async () => {
-    if (!isSupported) { setStatus("unsupported"); return; }
-    if (!user) { setStatus("unsubscribed"); return; }
-
-    const permission = Notification.permission;
-    if (permission === "denied") { setStatus("blocked"); return; }
-
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      const existing = await reg.pushManager.getSubscription();
-      setStatus(existing ? "subscribed" : "unsubscribed");
-    } catch {
-      setStatus("unsubscribed");
+  // Check browser support
+  useEffect(() => {
+    const supported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+    setIsSupported(supported);
+    if (supported) {
+      setPermission(Notification.permission);
     }
+  }, []);
+
+  // Check existing subscription
+  useEffect(() => {
+    if (!isSupported || !user) return;
+
+    (async () => {
+      try {
+        const reg = await navigator.serviceWorker.getRegistration("/sw.js");
+        if (!reg) {
+          setIsSubscribed(false);
+          return;
+        }
+        const sub = await reg.pushManager.getSubscription();
+        setIsSubscribed(!!sub);
+      } catch {
+        setIsSubscribed(false);
+      }
+    })();
   }, [isSupported, user]);
 
-  useEffect(() => { checkStatus(); }, [checkStatus]);
+  const getVapidKey = useCallback(async (): Promise<string> => {
+    // Try cache first
+    const cached = localStorage.getItem(VAPID_PUBLIC_KEY_STORAGE);
+    if (cached) return cached;
+
+    // Fetch from edge function
+    const { data, error } = await supabase.functions.invoke("send-push", {
+      body: { action: "get-vapid-key" },
+    });
+    if (error || !data?.vapidPublicKey) throw new Error("Impossible de récupérer la clé VAPID");
+    localStorage.setItem(VAPID_PUBLIC_KEY_STORAGE, data.vapidPublicKey);
+    return data.vapidPublicKey;
+  }, []);
 
   const subscribe = useCallback(async () => {
-    if (!isSupported || !user || !VAPID_PUBLIC_KEY) return;
+    if (!isSupported || !user) return false;
+    setIsLoading(true);
 
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") { setStatus("blocked"); return; }
-
-    setStatus("loading");
     try {
-      const reg = await navigator.serviceWorker.ready;
+      // Request permission
+      const perm = await Notification.requestPermission();
+      setPermission(perm);
+      if (perm !== "granted") {
+        setIsLoading(false);
+        return false;
+      }
+
+      // Register SW
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+
+      // Get VAPID key
+      const vapidKey = await getVapidKey();
+
+      // Subscribe
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
       });
 
-      const json = sub.toJSON();
-      const keys = json.keys as { p256dh: string; auth: string };
+      const subJson = sub.toJSON();
 
-      await supabase.from("push_subscriptions" as any).upsert({
-        user_id: user.id,
-        endpoint: json.endpoint!,
-        p256dh: keys.p256dh,
-        auth: keys.auth,
-        commune: commune ?? "",
-        quartier: quartier ?? null,
-      }, { onConflict: "user_id,endpoint" });
+      // Store in Supabase
+      await supabase.from("push_subscriptions").upsert(
+        {
+          user_id: user.id,
+          endpoint: sub.endpoint,
+          p256dh: subJson.keys!.p256dh!,
+          auth: subJson.keys!.auth!,
+        },
+        { onConflict: "user_id,endpoint" }
+      );
 
-      setStatus("subscribed");
+      setIsSubscribed(true);
+      setIsLoading(false);
+      return true;
     } catch (err) {
       console.error("Push subscribe error:", err);
-      setStatus("unsubscribed");
+      setIsLoading(false);
+      return false;
     }
-  }, [isSupported, user, commune, quartier]);
+  }, [isSupported, user, getVapidKey]);
 
   const unsubscribe = useCallback(async () => {
-    if (!isSupported || !user) return;
-    setStatus("loading");
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.getSubscription();
-      if (sub) {
-        await supabase
-          .from("push_subscriptions" as any)
-          .delete()
-          .eq("user_id", user.id)
-          .eq("endpoint", sub.endpoint);
-        await sub.unsubscribe();
-      }
-      setStatus("unsubscribed");
-    } catch {
-      setStatus("subscribed");
-    }
-  }, [isSupported, user]);
+    if (!user) return;
+    setIsLoading(true);
 
-  return { status, subscribe, unsubscribe, isSupported };
+    try {
+      const reg = await navigator.serviceWorker.getRegistration("/sw.js");
+      if (reg) {
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          await sub.unsubscribe();
+          await supabase
+            .from("push_subscriptions")
+            .delete()
+            .eq("user_id", user.id)
+            .eq("endpoint", sub.endpoint);
+        }
+      }
+      setIsSubscribed(false);
+    } catch (err) {
+      console.error("Push unsubscribe error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  return { isSupported, isSubscribed, isLoading, permission, subscribe, unsubscribe };
 }

@@ -25,6 +25,7 @@ import { getQuartiers } from "@/lib/quartiers";
 import type { ServiceType } from "@/lib/data";
 import SOSButtons from "@/components/SOSButtons";
 import { fuiteEauIcon } from "@/lib/infra-icons";
+import QuartierSearch from "@/components/QuartierSearch";
 
 // ─── Types de signalement ────────────────────────────────────────────────────
 
@@ -658,15 +659,23 @@ const ReportPage = () => {
                     </div>
                   </div>
 
-                  {/* Quartier */}
+                  {/* Quartier — searchable */}
                   <div className="space-y-2">
                     <label className="text-sm font-semibold">Quartier *</label>
-                    <QuartierCombobox
+                    <QuartierSearch
                       quartiers={getQuartiers(commune)}
                       value={quartier}
                       onChange={setQuartier}
-                      allowCustom={true}
                     />
+                    {quartier === "__other" && (
+                      <Input
+                        placeholder="Nom du quartier"
+                        value={customQuartier}
+                        onChange={(e) => setCustomQuartier(e.target.value)}
+                        maxLength={100}
+                        autoFocus
+                      />
+                    )}
                   </div>
                 </>
               )}

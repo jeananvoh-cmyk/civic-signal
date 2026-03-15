@@ -32,7 +32,7 @@ interface QuartierCount {
   count: number;
 }
 
-const MyReports = () => {
+const MyReports = ({ profileComplete = false }: { profileComplete?: boolean }) => {
   const { user } = useAuth();
   const { isAdmin, isModerator } = useUserRole();
   const canSeeQuartierCounts = isAdmin || isModerator;
@@ -52,6 +52,7 @@ const MyReports = () => {
       .from("reports")
       .select("id, service_type, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, verifications")
       .eq("user_id", user.id)
+      .eq("status", "active")
       .order("created_at", { ascending: false });
     if (!error && data) {
       setReports(data);
@@ -184,6 +185,11 @@ const MyReports = () => {
                   <Badge variant={isActive ? "default" : "outline"} className={isActive ? "" : "border-success text-success"}>
                     {isActive ? "Actif" : "Résolu"}
                   </Badge>
+                  {profileComplete && isActive && (
+                    <Badge variant="outline" className="text-[10px] gap-1" style={{ borderColor: "hsl(45 93% 47%)", color: "hsl(45 93% 47%)" }}>
+                      ✅ Profil vérifié
+                    </Badge>
+                  )}
                   {r.urgency === "critical" && (
                     <Badge className="bg-destructive text-destructive-foreground animate-pulse">
                       🔥 Critique

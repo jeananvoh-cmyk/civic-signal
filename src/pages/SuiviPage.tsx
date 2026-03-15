@@ -1,12 +1,16 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Zap, Droplets, Clock, MapPin, TrendingUp, RefreshCw } from "lucide-react";
+import { Zap, Droplets, Clock, MapPin, TrendingUp, RefreshCw, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import NewsTicker from "@/components/NewsTicker";
+import PriorityBadge from "@/components/PriorityBadge";
+import { calculatePriority, getNormReference } from "@/lib/priority-score";
+import { useUserRole } from "@/hooks/useUserRole";
+import DurationBadge from "@/components/DurationBadge";
 
 // After this many days without any verification, a report is considered "non pris en charge"
 const NEGLECTED_DAYS = 7;
@@ -26,6 +30,10 @@ interface Report {
   verifications: number;
   validated: boolean | null;
   impacted_people: number | null;
+  babies: number | null;
+  pregnant: number | null;
+  elderly: number | null;
+  repair_verifications: number | null;
 }
 
 type ComputedStatus = "nouveau" | "en_cours" | "resolu" | "non_pris";
@@ -81,13 +89,15 @@ const SuiviPage = () => {
   const [filterCommune, setFilterCommune] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [sortBy, setSortBy] = useState<"priority" | "date">("priority");
+  const { canValidate } = useUserRole();
 
   const { data: reports = [], isLoading, dataUpdatedAt } = useQuery({
     queryKey: ["suivi-reports"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reports")
-        .select("id, status, urgency, service_type, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people")
+        .select("id, status, urgency, service_type, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, babies, pregnant, elderly, repair_verifications")
         .order("created_at", { ascending: false })
         .limit(300);
       if (error) throw error;
@@ -96,11 +106,46 @@ const SuiviPage = () => {
     refetchInterval: 30000,
   });
 
-  const reportsWithStatus = reports.map((r) => ({
-    ...r,
-    computedStatus: getComputedStatus(r),
-    communeLabel: r.commune || r.location || "Inconnu",
-  }));
+  // Compute zone context per quartier for priority scoring
+  const zoneStats = (() => {
+    const stats = new Map<string, { total: number; confirmed: number }>();
+    for (const r of reports) {
+      if (r.status !== "active") continue;
+      const key = `${(r.commune || "").toLowerCase()}|${(r.quartier || "").toLowerCase()}`;
+      const existing = stats.get(key) || { total: 0, confirmed: 0 };
+      existing.total++;
+      if ((r.verifications ?? 0) > 0) existing.confirmed++;
+      stats.set(key, existing);
+    }
+    return stats;
+  })();
+
+  const reportsWithStatus = reports.map((r) => {
+    const zoneKey = `${(r.commune || "").toLowerCase()}|${(r.quartier || "").toLowerCase()}`;
+    const zone = zoneStats.get(zoneKey);
+    const priority = calculatePriority({
+      service_type: r.service_type,
+      start_time: r.start_time,
+      created_at: r.created_at,
+      status: r.status,
+      verifications: r.verifications,
+      impacted_people: r.impacted_people,
+      babies: r.babies,
+      pregnant: r.pregnant,
+      elderly: r.elderly,
+      urgency: r.urgency,
+      zoneContext: zone ? {
+        totalReportsInQuartier: zone.total,
+        confirmedReportsInQuartier: zone.confirmed,
+      } : undefined,
+    });
+    return {
+      ...r,
+      computedStatus: getComputedStatus(r),
+      communeLabel: r.commune || r.location || "Inconnu",
+      priority,
+    };
+  });
 
   // Stats by status
   const countByStatus: Record<ComputedStatus, number> = {
@@ -140,13 +185,18 @@ const SuiviPage = () => {
     new Set(reportsWithStatus.map((r) => r.communeLabel).filter((c) => c !== "Inconnu"))
   ).sort();
 
-  // Filtered reports list
-  const filteredReports = reportsWithStatus.filter((r) => {
-    if (filterCommune !== "all" && r.communeLabel !== filterCommune) return false;
-    if (filterCategory !== "all" && r.service_type !== filterCategory) return false;
-    if (filterStatus !== "all" && r.computedStatus !== filterStatus) return false;
-    return true;
-  });
+  // Filtered reports list, sorted by priority or date
+  const filteredReports = reportsWithStatus
+    .filter((r) => {
+      if (filterCommune !== "all" && r.communeLabel !== filterCommune) return false;
+      if (filterCategory !== "all" && r.service_type !== filterCategory) return false;
+      if (filterStatus !== "all" && r.computedStatus !== filterStatus) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === "priority") return b.priority.score - a.priority.score;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
   const lastUpdate = dataUpdatedAt
     ? new Date(dataUpdatedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
@@ -338,6 +388,16 @@ const SuiviPage = () => {
           </motion.div>
         </div>
 
+        {/* Norm reference banner */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.28 }} className="mb-4 rounded-xl border border-border bg-card px-4 py-3 flex items-start gap-2">
+          <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+          <div className="text-[11px] text-muted-foreground leading-relaxed">
+            <span className="font-semibold text-foreground">Priorisation basée sur les normes internationales</span> — 
+            OMS (eau potable, seuil 24h en climat tropical) • IEEE 1366 (fiabilité électrique) • Sphère Handbook (populations vulnérables). 
+            Pondéré pour le contexte d'Abidjan.
+          </div>
+        </motion.div>
+
         {/* Filters + report list */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <div className="flex flex-wrap gap-2 mb-4">
@@ -376,6 +436,26 @@ const SuiviPage = () => {
                 ))}
               </SelectContent>
             </Select>
+
+            {/* Sort toggle */}
+            <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1 shadow-sm ml-auto">
+              <button
+                onClick={() => setSortBy("priority")}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  sortBy === "priority" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
+                }`}
+              >
+                🎯 Priorité
+              </button>
+              <button
+                onClick={() => setSortBy("date")}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  sortBy === "date" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
+                }`}
+              >
+                📅 Date
+              </button>
+            </div>
           </div>
 
           {isLoading ? (
@@ -391,17 +471,25 @@ const SuiviPage = () => {
           ) : (
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground mb-3">
-                {filteredReports.length} signalement{filteredReports.length > 1 ? "s" : ""}
+                {filteredReports.length} signalement{filteredReports.length > 1 ? "s" : ""} — trié{sortBy === "priority" ? " par priorité (normes OMS/IEEE)" : " par date"}
               </p>
               {filteredReports.map((r) => {
                 const meta = STATUS_META[r.computedStatus];
                 const isElec = r.service_type === "electricity";
                 const age = formatAge(r.created_at);
                 return (
-                  <Card key={r.id} className={`border-l-4 ${getUrgencyBorderClass(r.urgency)}`}>
+                  <Card key={r.id} className={`border-l-4 ${getUrgencyBorderClass(r.urgency)} hover:shadow-md transition-shadow cursor-pointer`}
+                    onClick={() => window.location.href = `/signalement/${r.id}`}
+                  >
                     <CardContent className="p-3 flex items-start gap-3">
                       <span className="text-xl shrink-0 mt-0.5">{isElec ? "⚡" : "💧"}</span>
                       <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <PriorityBadge priority={r.priority} showScore={canValidate} showFactors={canValidate} />
+                          <span className={`inline-flex items-center gap-1 text-[10px] font-medium rounded-full px-2 py-0.5 ${meta.pill}`}>
+                            {meta.emoji} {meta.label}
+                          </span>
+                        </div>
                         <p className="text-sm font-medium text-foreground line-clamp-1">{r.description}</p>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
@@ -416,13 +504,19 @@ const SuiviPage = () => {
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">
-                        <span className={`inline-flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5 ${meta.pill}`}>
-                          {meta.emoji} {meta.label}
-                        </span>
                         <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
                           <Clock className="h-3 w-3" />
                           {age}
                         </span>
+                        <DurationBadge
+                          status={r.status}
+                          resolved_at={r.resolved_at}
+                          start_time={r.start_time}
+                          created_at={r.created_at}
+                          repair_verifications={r.repair_verifications}
+                          verifications={r.verifications}
+                          compact
+                        />
                       </div>
                     </CardContent>
                   </Card>

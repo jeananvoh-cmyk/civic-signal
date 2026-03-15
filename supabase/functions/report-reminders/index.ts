@@ -34,10 +34,12 @@ Deno.serve(async (req) => {
     let notificationsInserted = 0;
     let archived = 0;
     let escalated = 0;
+    let expired14d = 0;
 
     for (const report of reports) {
       const ageMs = now - new Date(report.created_at).getTime();
       const ageHours = ageMs / (1000 * 60 * 60);
+      const ageDays = ageHours / 24;
       const lastReminderMs = report.last_reminder_at
         ? now - new Date(report.last_reminder_at).getTime()
         : Infinity;
@@ -49,6 +51,40 @@ Deno.serve(async (req) => {
       let reminderMessage = "";
       const serviceLabel =
         report.service_type === "electricity" ? "⚡ Électricité" : "💧 Eau";
+
+      // ============ 14-DAY AUTO-EXPIRATION ============
+      // Reports older than 14 days without resolution → expired (duration not exploitable)
+      if (ageDays >= 14) {
+        await supabase
+          .from("reports")
+          .update({
+            status: "expired",
+            last_reminder_at: new Date().toISOString(),
+            reminder_count: report.reminder_count + 1,
+            latitude: null,
+            longitude: null,
+          })
+          .eq("id", report.id);
+        expired14d++;
+
+        await supabase.from("notifications").insert({
+          user_id: report.user_id,
+          report_id: report.id,
+          title: "⚫ Signalement expiré — 14 jours sans résolution",
+          message: `${serviceLabel} — ${report.commune}, ${report.quartier} • Votre signalement a expiré après 14 jours. La durée n'est pas exploitable. Créez un nouveau signalement si le problème persiste.`,
+        });
+        notificationsInserted++;
+
+        // Clean up unread neighbor notifications
+        await supabase
+          .from("notifications")
+          .delete()
+          .eq("report_id", report.id)
+          .eq("read", false)
+          .eq("title", "Coupure signalée dans votre quartier");
+
+        continue;
+      }
 
       if (ageHours >= 24) {
         // T=24h: final reminder + archive or escalate
@@ -72,24 +108,20 @@ Deno.serve(async (req) => {
           reminderTitle = "🔴 Coupure critique — 24h sans réponse";
           reminderMessage = `${serviceLabel} — ${report.commune}, ${report.quartier} • Signalement escaladé en urgence critique (${count} signalements dans la zone)`;
         } else {
-          // Archive as expired
+          // Keep active but remind — don't archive at 24h anymore, auto-expire at 14 days
           await supabase
             .from("reports")
             .update({
-              status: "expired",
               last_reminder_at: new Date().toISOString(),
               reminder_count: report.reminder_count + 1,
-              latitude: null,
-              longitude: null,
             })
             .eq("id", report.id);
-          archived++;
 
-          reminderTitle = "Signalement archivé — 24h sans réponse";
-          reminderMessage = `${serviceLabel} — ${report.commune}, ${report.quartier} • Votre signalement a été archivé automatiquement après 24h.`;
+          reminderTitle = "⏰ Toujours sans service ?";
+          reminderMessage = `${serviceLabel} — ${report.commune}, ${report.quartier} • Coupure signalée il y a ${Math.floor(ageHours)}h. Confirmez ou marquez comme résolu.`;
         }
 
-        // Send final notification
+        // Send notification
         await supabase.from("notifications").insert({
           user_id: report.user_id,
           report_id: report.id,
@@ -97,16 +129,6 @@ Deno.serve(async (req) => {
           message: reminderMessage,
         });
         notificationsInserted++;
-
-        // Clean up unread neighbor notifications for archived reports
-        if ((count || 0) < 10) {
-          await supabase
-            .from("notifications")
-            .delete()
-            .eq("report_id", report.id)
-            .eq("read", false)
-            .eq("title", "Coupure signalée dans votre quartier");
-        }
 
         continue;
       }
@@ -155,6 +177,7 @@ Deno.serve(async (req) => {
         notifications: notificationsInserted,
         archived,
         escalated,
+        expired14d,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

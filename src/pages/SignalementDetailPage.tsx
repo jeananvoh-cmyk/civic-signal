@@ -1,12 +1,16 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Clock, Users, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, Users, CheckCircle2, Info } from "lucide-react";
+import DurationBadge from "@/components/DurationBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
 import SignedImage from "@/components/SignedImage";
+import PriorityBadge from "@/components/PriorityBadge";
+import { calculatePriority, getNormReference } from "@/lib/priority-score";
+import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 
 const NEGLECTED_DAYS = 7;
@@ -28,6 +32,10 @@ interface ReportDetail {
   validated: boolean | null;
   impacted_people: number | null;
   photo_url: string | null;
+  babies: number | null;
+  pregnant: number | null;
+  elderly: number | null;
+  repair_verifications: number | null;
 }
 
 type ComputedStatus = "nouveau" | "en_cours" | "resolu" | "non_pris";
@@ -82,18 +90,39 @@ function getTypeLabel(serviceType: string, reportCategory: string | null): strin
 const SignalementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
 
+  const { canValidate } = useUserRole();
+
   const { data: report, isLoading, isError } = useQuery({
     queryKey: ["signalement-detail", id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reports")
-        .select("id, status, urgency, service_type, report_category, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, photo_url")
+        .select("id, status, urgency, service_type, report_category, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, photo_url, babies, pregnant, elderly, repair_verifications")
         .eq("id", id!)
         .single();
       if (error) throw error;
       return data as ReportDetail;
     },
     enabled: !!id,
+  });
+
+  // Zone context: count active reports in same quartier
+  const { data: zoneContext } = useQuery({
+    queryKey: ["zone-context", report?.commune, report?.quartier],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("reports")
+        .select("id, verifications")
+        .eq("commune", report!.commune!)
+        .eq("quartier", report!.quartier!)
+        .eq("status", "active")
+        .eq("validated", true);
+      if (error) return { totalReportsInQuartier: 0, confirmedReportsInQuartier: 0 };
+      const total = data.length;
+      const confirmed = data.filter((r) => (r.verifications ?? 0) > 0).length;
+      return { totalReportsInQuartier: total, confirmedReportsInQuartier: confirmed };
+    },
+    enabled: !!report?.commune && !!report?.quartier,
   });
 
   if (isLoading) {
@@ -130,6 +159,20 @@ const SignalementDetailPage = () => {
   const locationLabel = `${communeLabel}${report.quartier ? `, ${report.quartier}` : ""}`;
   const typeEmoji = getTypeEmoji(report.service_type, report.report_category);
   const typeLabel = getTypeLabel(report.service_type, report.report_category);
+  const priority = calculatePriority({
+    service_type: report.service_type,
+    start_time: report.start_time,
+    created_at: report.created_at,
+    status: report.status,
+    verifications: report.verifications,
+    impacted_people: report.impacted_people,
+    babies: report.babies,
+    pregnant: report.pregnant,
+    elderly: report.elderly,
+    urgency: report.urgency,
+    zoneContext: zoneContext || undefined,
+  });
+  const normRef = getNormReference(report.service_type);
 
   const shareUrl = `${window.location.origin}/signalement/${report.id}`;
   const daysText = report.status !== "resolved" && daysSince > 0
@@ -154,15 +197,24 @@ const SignalementDetailPage = () => {
         </Link>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          {/* En-tête type */}
-          <div className="flex items-center gap-3 mb-4">
+          {/* En-tête type + priorité */}
+          <div className="flex items-center gap-3 mb-2">
             <span className="text-4xl">{typeEmoji}</span>
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{typeLabel}</p>
-              <span className={`inline-flex items-center gap-1 text-xs font-medium rounded-full px-2.5 py-0.5 mt-1 ${meta.pill}`}>
-                {meta.emoji} {meta.label}
-              </span>
+              <div className="flex items-center gap-2 mt-1">
+                <PriorityBadge priority={priority} showScore={canValidate} showFactors={canValidate} />
+                <span className={`inline-flex items-center gap-1 text-xs font-medium rounded-full px-2.5 py-0.5 ${meta.pill}`}>
+                  {meta.emoji} {meta.label}
+                </span>
+              </div>
             </div>
+          </div>
+
+          {/* Référence normative */}
+          <div className="mb-4 flex items-start gap-1.5 text-[10px] text-muted-foreground">
+            <Info className="h-3 w-3 shrink-0 mt-0.5" />
+            <span>Priorité calculée selon : {normRef}</span>
           </div>
 
           {/* Compteur jours — critique */}
@@ -233,6 +285,17 @@ const SignalementDetailPage = () => {
                     })}
                   </span>
                 )}
+                {/* Duration with confidence label */}
+                <div className="pt-1">
+                  <DurationBadge
+                    status={report.status}
+                    resolved_at={report.resolved_at}
+                    start_time={report.start_time}
+                    created_at={report.created_at}
+                    repair_verifications={report.repair_verifications}
+                    verifications={report.verifications}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>

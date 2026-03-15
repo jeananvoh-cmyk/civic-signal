@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
-import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio, Flame, AlertTriangle, MapPin, Siren, CalendarDays, Construction, CheckCircle2 } from "lucide-react";
+import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio, Flame, AlertTriangle, MapPin, Siren, CalendarDays, Construction, CheckCircle2, Info } from "lucide-react";
 import Header from "@/components/Header";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ShareButton from "@/components/ShareButton";
 import TrendsChart from "@/components/TrendsChart";
+import PriorityBadge from "@/components/PriorityBadge";
+import { calculatePriority, type PriorityResult } from "@/lib/priority-score";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNES } from "@/lib/communes";
 import { COMMUNE_LOGOS } from "@/lib/commune-logos";
@@ -146,11 +148,16 @@ const ReportRow = ({ r, variant }: { r: PriorityReport; variant: "critical" | "h
     ? "border-l-4 border-l-destructive"
     : variant === "high" ? "border-l-4 border-l-orange-500"
     : "border-l-4 border-l-warning";
-  const badgeClass = variant === "critical"
-    ? "bg-destructive text-destructive-foreground"
-    : variant === "high" ? "bg-urgent text-urgent-foreground"
-    : "bg-warning text-warning-foreground";
-  const badgeLabel = variant === "critical" ? "🔥 Critique" : variant === "high" ? "⚠️ Élevé" : "⚡ Moyen";
+
+  // Compute priority for this report
+  const priority = calculatePriority({
+    service_type: r.service_type,
+    start_time: r.start_time,
+    created_at: r.created_at,
+    status: r.status,
+    verifications: r.verifications,
+    urgency: r.urgency,
+  });
 
   return (
     <div className={`flex items-start gap-4 px-5 py-4 transition-colors hover:bg-muted/30 ${leftBorder}`}>
@@ -161,6 +168,9 @@ const ReportRow = ({ r, variant }: { r: PriorityReport; variant: "critical" | "h
 
       {/* Description + meta */}
       <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <PriorityBadge priority={priority} showScore showFactors />
+        </div>
         <p className="text-sm font-semibold text-foreground leading-snug">{cleanDesc}</p>
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
           <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground">
@@ -181,7 +191,7 @@ const ReportRow = ({ r, variant }: { r: PriorityReport; variant: "critical" | "h
         </div>
       </div>
 
-      {/* Duration + urgency badge */}
+      {/* Duration */}
       <div className="flex flex-col items-end gap-1.5 shrink-0">
         {timeSince && (
           <span className={`flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs ${durTextClass} ${durBgClass}`}>
@@ -189,9 +199,6 @@ const ReportRow = ({ r, variant }: { r: PriorityReport; variant: "critical" | "h
             {timeSince}{durationAlert}
           </span>
         )}
-        <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeClass}`}>
-          {badgeLabel}
-        </span>
       </div>
     </div>
   );
@@ -314,10 +321,42 @@ const DashboardPage = () => {
   // Leaderboard: sorted by total active (most affected first)
   const leaderboard = [...stats].sort((a, b) => (b.electricite_actifs + b.eau_actifs + b.mairie_actifs) - (a.electricite_actifs + a.eau_actifs + a.mairie_actifs));
 
-  // Priority reports
   const activeReports = priorityReports.filter((r) => r.status === "active");
-  const highPriorityReports = activeReports.filter((r) => r.urgency === "critical" || r.urgency === "high");
-  const mediumPriorityReports = activeReports.filter((r) => r.urgency === "medium");
+
+  // Compute zone stats for priority scoring
+  const dashZoneStats = (() => {
+    const stats = new Map<string, { total: number; confirmed: number }>();
+    for (const r of activeReports) {
+      const loc = r.location.toLowerCase();
+      const existing = stats.get(loc) || { total: 0, confirmed: 0 };
+      existing.total++;
+      if (r.verifications > 0) existing.confirmed++;
+      stats.set(loc, existing);
+    }
+    return stats;
+  })();
+
+  // Priority reports — scored using international norms + zone context
+  const scoredActiveReports = activeReports.map((r) => {
+    const zone = dashZoneStats.get(r.location.toLowerCase());
+    return {
+      ...r,
+      priority: calculatePriority({
+        service_type: r.service_type,
+        start_time: r.start_time,
+        created_at: r.created_at,
+        status: r.status,
+        verifications: r.verifications,
+        urgency: r.urgency,
+        zoneContext: zone ? {
+          totalReportsInQuartier: zone.total,
+          confirmedReportsInQuartier: zone.confirmed,
+        } : undefined,
+      }),
+    };
+  }).sort((a, b) => b.priority.score - a.priority.score);
+  const highPriorityReports = scoredActiveReports.filter((r) => r.priority.level === "P1" || r.priority.level === "P2");
+  const mediumPriorityReports = scoredActiveReports.filter((r) => r.priority.level === "P3");
 
   // Confirmed zone alerts: reports with 3+ verifications grouped by location
   const confirmedReports = activeReports.filter((r) => r.verifications >= 3);
@@ -709,28 +748,26 @@ const DashboardPage = () => {
             </Collapsible>
           </motion.div>
         )}
-        {/* High priority reports */}
+        {/* Priority reports — international norms */}
         {!loading && highPriorityReports.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-8">
             <Collapsible defaultOpen>
               <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-3 shadow-card hover:bg-destructive/10 transition-colors">
                 <div className="flex items-center gap-2 flex-wrap">
                   <AlertTriangle className="h-5 w-5 text-destructive" />
-                  <h2 className="font-display text-xl font-bold text-foreground">Priorités hautes</h2>
+                  <h2 className="font-display text-xl font-bold text-foreground">Priorités critiques</h2>
                   <span className="rounded-full bg-destructive px-2 py-0.5 text-xs font-bold text-destructive-foreground">{highPriorityReports.length}</span>
-                  {maxHighDuration > 0 && (
-                    <span className="flex items-center gap-1 rounded-lg bg-destructive/10 border border-destructive/20 px-2 py-0.5 text-xs font-semibold text-destructive">
-                      <Clock className="h-3 w-3" />
-                      La plus longue : {formatMinutes(maxHighDuration)}
-                    </span>
-                  )}
+                  <span className="hidden sm:flex items-center gap-1 text-[10px] text-muted-foreground bg-secondary rounded-full px-2 py-0.5">
+                    <Info className="h-3 w-3" />
+                    Score OMS / IEEE / Sphère
+                  </span>
                 </div>
                 <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="mt-2 rounded-2xl border border-destructive/20 bg-card shadow-card overflow-hidden divide-y divide-border">
                   {highPriorityReports.slice(0, 15).map((r) => (
-                    <ReportRow key={r.id} r={r} variant={r.urgency === "critical" ? "critical" : "high"} />
+                    <ReportRow key={r.id} r={r} variant={r.priority.level === "P1" ? "critical" : "high"} />
                   ))}
                 </div>
               </CollapsibleContent>
@@ -918,42 +955,36 @@ const DashboardPage = () => {
                     </div>
                   </div>
 
-                  {/* Active reports for this commune */}
+                  {/* Active reports summary for this commune */}
                   {(() => {
-                    const communeReports = activeReports
-                      .filter((r) => r.location.toLowerCase() === c.commune.toLowerCase())
-                      .sort((a, b) => {
-                        const order: Record<string, number> = { critical: 0, high: 1, medium: 2 };
-                        return (order[a.urgency] ?? 3) - (order[b.urgency] ?? 3);
-                      });
+                    const communeReports = scoredActiveReports
+                      .filter((r) => r.location.toLowerCase() === c.commune.toLowerCase());
                     if (communeReports.length === 0) return null;
-                    const hasCritical = communeReports.some((r) => r.urgency === "critical");
-                    const hasHigh = communeReports.some((r) => r.urgency === "high");
+                    const elecCount = communeReports.filter((r) => r.service_type === "electricity").length;
+                    const eauCount = communeReports.filter((r) => r.service_type === "water").length;
+                    const mairieCount = communeReports.filter((r) => r.service_type === "mairie").length;
+                    const verifiedCount = communeReports.filter((r) => r.verifications > 0).length;
                     return (
                       <div className="mt-4 border-t border-border pt-3">
-                        <Collapsible defaultOpen={hasCritical || hasHigh}>
-                          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg px-1 py-1 hover:bg-muted/30 transition-colors mb-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-semibold text-muted-foreground">
-                                {communeReports.length} signalement{communeReports.length > 1 ? "s" : ""} actif{communeReports.length > 1 ? "s" : ""}
-                              </span>
-                              {hasCritical && <span className="rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-destructive-foreground">🔥 Critique</span>}
-                              {!hasCritical && hasHigh && <span className="rounded-full bg-urgent px-1.5 py-0.5 text-[10px] font-bold text-urgent-foreground">⚠️ Élevé</span>}
+                        <button
+                          onClick={() => navigate(`/commune/${encodeURIComponent(c.commune)}`)}
+                          className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 bg-muted/30 hover:bg-muted/50 transition-colors group"
+                        >
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <span className="text-xs font-bold text-foreground">
+                              {communeReports.length} signalement{communeReports.length > 1 ? "s" : ""} actif{communeReports.length > 1 ? "s" : ""}
+                            </span>
+                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                              {elecCount > 0 && <span className="flex items-center gap-0.5"><Zap className="h-3 w-3 text-amber-500" />{elecCount}</span>}
+                              {eauCount > 0 && <span className="flex items-center gap-0.5"><Droplets className="h-3 w-3 text-blue-500" />{eauCount}</span>}
+                              {mairieCount > 0 && <span className="flex items-center gap-0.5"><Construction className="h-3 w-3 text-teal-500" />{mairieCount}</span>}
                             </div>
-                            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
-                          </CollapsibleTrigger>
-                          <CollapsibleContent>
-                            <div className="rounded-xl border border-border overflow-hidden divide-y divide-border">
-                              {communeReports.map((r) => (
-                                <ReportRow
-                                  key={r.id}
-                                  r={r}
-                                  variant={r.urgency === "critical" ? "critical" : r.urgency === "high" ? "high" : "medium"}
-                                />
-                              ))}
-                            </div>
-                          </CollapsibleContent>
-                        </Collapsible>
+                            {verifiedCount > 0 && (
+                              <span className="text-[10px] font-semibold text-emerald-500">✓ {verifiedCount} confirmé{verifiedCount > 1 ? "s" : ""}</span>
+                            )}
+                          </div>
+                          <span className="text-[10px] font-semibold text-primary group-hover:underline">Voir détails →</span>
+                        </button>
                       </div>
                     );
                   })()}

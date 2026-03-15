@@ -198,14 +198,28 @@ const InfrastructurePage = () => {
       {/* Page header */}
       <div className="bg-card border-b border-border pb-4">
         <div className="container max-w-2xl pt-6 px-4">
-          <div className="flex flex-col gap-1 mb-6">
+          <div className="flex flex-col gap-2 mb-6">
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
               <AlertCircle className="h-6 w-6 text-primary" />
               Fil Infrastructures
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Consultez les pannes d'éclairage, fuites d'eau, nids de poule et autres problèmes d'infrastructure dans votre commune.
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Lampadaires en panne, fuites d'eau, routes abîmées… Parcourez les problèmes signalés près de chez vous, confirmez ceux que vous constatez et suivez leur résolution.
             </p>
+            <div className="flex flex-wrap gap-2 mt-1">
+              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted rounded-full px-2.5 py-1">
+                <Lightbulb className="h-3 w-3 text-[hsl(var(--electricity))]" />
+                Éclairage
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted rounded-full px-2.5 py-1">
+                <Droplets className="h-3 w-3 text-[hsl(var(--water))]" />
+                Fuites & canalisations
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted rounded-full px-2.5 py-1">
+                <Map className="h-3 w-3 text-muted-foreground" />
+                Voirie & nids de poule
+              </span>
+            </div>
           </div>
 
           {/* Alert Categories */}

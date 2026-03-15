@@ -1,11 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+// ProfilePage - updated
 import {
   User, Mail, Phone, MapPin, Home, Building2, Save, Shield,
   Bell, Globe, Palette, ChevronRight, CheckCircle2, FileText, Clock,
   Zap, Droplets, Info, History, Trash2, AlertTriangle, LogOut,
-  Filter, CalendarDays, XCircle, CheckCheck, Download
+  Filter, CalendarDays, XCircle, CheckCheck, Download, Award,
+  BookOpen, ExternalLink, Scale, Lightbulb, ShieldCheck
 } from "lucide-react";
+import confetti from "canvas-confetti";
+import waterIconSm from "@/assets/water-icon-sm.webp";
+import electricityIconSm from "@/assets/electricity-icon-sm.webp";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +21,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { QuartierCombobox } from "@/components/QuartierCombobox";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
 } from "@/components/ui/dialog";
@@ -26,9 +30,10 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import MyReports from "@/components/MyReports";
-import PushSubscribeButton from "@/components/PushSubscribeButton";
 import { COMMUNES } from "@/lib/communes";
+import { useRightsContent } from "@/hooks/useRightsContent";
 import { getQuartiers } from "@/lib/quartiers";
+import PushNotificationToggle from "@/components/PushNotificationToggle";
 
 interface ProfileData {
   first_name: string;
@@ -81,12 +86,209 @@ const formatDuration = (start: string, end: string | null) => {
   return `${mins}min`;
 };
 
+const CONTACT_COLORS: Record<string, string> = {
+  electricity: "text-amber-500",
+  water: "text-blue-500",
+  general: "text-primary",
+  emergency: "text-destructive",
+};
+
+const RESOURCE_ICONS: Record<string, React.ReactNode> = {
+  electricity: <Zap className="h-4 w-4 text-amber-500" />,
+  water: <Droplets className="h-4 w-4 text-blue-500" />,
+  general: <Scale className="h-4 w-4 text-primary" />,
+};
+
+const RightsTabContent = () => {
+  const { data: rights, isLoading } = useRightsContent();
+
+  if (isLoading || !rights) {
+    return (
+      <div className="flex justify-center py-10">
+        <div className="h-7 w-7 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Intro + ODD */}
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary flex-shrink-0">
+            <Scale className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="font-display text-lg font-bold text-foreground">Mon Espace Eau & Électricité</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              En tant qu'usager de l'électricité et de l'eau en Côte d'Ivoire, vous êtes protégé par la loi. Retrouvez ici vos droits, devoirs, conseils et ressources officielles.
+            </p>
+          </div>
+        </div>
+
+        {/* ODD Section */}
+        <div className="rounded-lg border border-border bg-muted/30 p-3 sm:p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <ShieldCheck className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <h3 className="text-sm font-semibold text-foreground">Objectifs de Développement Durable (ODD)</h3>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            L'accès à l'eau potable et à l'énergie sont des droits fondamentaux reconnus par les Nations Unies à travers les ODD.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex items-start gap-2 rounded-lg border border-border bg-background p-2.5">
+              <span className="text-xl shrink-0">💧</span>
+              <div>
+                <p className="text-xs font-bold text-blue-600 dark:text-blue-400">ODD 6 — Eau propre</p>
+                <p className="text-[11px] text-muted-foreground">Garantir l'accès de tous à l'eau potable et à l'assainissement d'ici 2030.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2 rounded-lg border border-border bg-background p-2.5">
+              <span className="text-xl shrink-0">⚡</span>
+              <div>
+                <p className="text-xs font-bold text-amber-600 dark:text-amber-400">ODD 7 — Énergie propre</p>
+                <p className="text-[11px] text-muted-foreground">Garantir l'accès de tous à une énergie fiable, durable et à un coût abordable.</p>
+              </div>
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-2 italic">
+            🇨🇮 La Côte d'Ivoire s'est engagée à atteindre ces objectifs. Chaque signalement sur SIGNA-CI contribue à rendre ces services plus fiables.
+          </p>
+        </div>
+      </div>
+
+      {/* ⚡ Droits Électricité */}
+      {rights.electricity_rights.length > 0 && (
+        <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+          <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-amber-500/5">
+            <Zap className="h-4 w-4 text-amber-500" />
+            <h3 className="font-semibold text-sm text-foreground">Électricité — Vos droits</h3>
+          </div>
+          <div className="p-4 sm:p-6 space-y-2.5 text-sm text-muted-foreground">
+            {rights.electricity_rights.map((item, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="shrink-0 mt-0.5">{item.icon}</span>
+                <p><span className="font-semibold text-foreground">{item.title}</span> — {item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 💧 Droits Eau */}
+      {rights.water_rights.length > 0 && (
+        <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+          <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-blue-500/5">
+            <Droplets className="h-4 w-4 text-blue-500" />
+            <h3 className="font-semibold text-sm text-foreground">Eau — Vos droits</h3>
+          </div>
+          <div className="p-4 sm:p-6 space-y-2.5 text-sm text-muted-foreground">
+            {rights.water_rights.map((item, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="shrink-0 mt-0.5">{item.icon}</span>
+                <p><span className="font-semibold text-foreground">{item.title}</span> — {item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 💡 Conseils */}
+      {rights.tips.length > 0 && (
+        <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+          <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-green-500/5">
+            <Lightbulb className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <h3 className="font-semibold text-sm text-foreground">Conseils & bonnes pratiques</h3>
+          </div>
+          <div className="p-4 sm:p-6">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {rights.tips.map((tip, i) => (
+                <div key={i} className="flex items-start gap-2.5 rounded-lg border border-border p-3 bg-background">
+                  <span className="text-lg shrink-0">{tip.icon}</span>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{tip.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{tip.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📄 Ressources */}
+      {rights.resources.length > 0 && (
+        <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+          <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-muted/30">
+            <BookOpen className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold text-sm text-foreground">Textes de loi & ressources officielles</h3>
+          </div>
+          <div className="p-4 sm:p-6 space-y-2">
+            {rights.resources.map((r, i) => (
+              <a
+                key={i}
+                href={r.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-lg border border-border p-3 bg-background hover:bg-accent transition-colors group"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted shrink-0">
+                  {RESOURCE_ICONS[r.type] || RESOURCE_ICONS.general}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{r.title}</p>
+                  <p className="text-xs text-muted-foreground truncate">{r.description}</p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="text-[10px] font-medium text-muted-foreground bg-muted rounded px-1.5 py-0.5">{r.format}</span>
+                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 📞 Contacts */}
+      {rights.contacts.length > 0 && (
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
+          <h3 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
+            <Phone className="h-4 w-4 text-primary" />
+            Numéros utiles
+          </h3>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {rights.contacts.map((c, i) => {
+              const color = CONTACT_COLORS[c.type] || "text-primary";
+              return (
+                <a
+                  key={i}
+                  href={`tel:${c.number.replace(/\s/g, "")}`}
+                  className="flex items-center gap-3 rounded-lg border border-border p-3 bg-background hover:bg-accent transition-colors"
+                >
+                  <Phone className={`h-4 w-4 ${color} shrink-0`} />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{c.name}</p>
+                    <p className={`text-sm font-bold ${color}`}>{c.number}</p>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 const ProfilePage = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const initialProfileRef = useRef<ProfileData | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
   const [profile, setProfile] = useState<ProfileData>({
     first_name: "",
     last_name: "",
@@ -107,6 +309,10 @@ const ProfilePage = () => {
     water_meter_number: "",
   });
 
+  // Active & resolved reports count
+  const [activeReportsCount, setActiveReportsCount] = useState<number | null>(null);
+  const [resolvedReportsCount, setResolvedReportsCount] = useState<number>(0);
+
   // History state
   const [history, setHistory] = useState<HistoryReport[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -115,6 +321,7 @@ const ProfilePage = () => {
 
   // Delete account state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showOddDialog, setShowOddDialog] = useState<"odd6" | "odd7" | null>(null);
   const [deleteReason, setDeleteReason] = useState("");
   const [deleteOther, setDeleteOther] = useState("");
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -153,10 +360,40 @@ const ProfilePage = () => {
           water_meter_ref: (data as any).water_meter_ref ?? "",
           water_meter_number: (data as any).water_meter_number ?? "",
         });
+        initialProfileRef.current = {
+          first_name: data.first_name ?? "",
+          last_name: data.last_name ?? "",
+          display_name: data.display_name ?? "",
+          phone: data.phone ?? "",
+          commune: data.commune ?? "",
+          quartier: data.quartier ?? "",
+          user_type: data.user_type ?? "household",
+          bio: data.bio ?? "",
+          notifications_enabled: data.notifications_enabled ?? true,
+          language: data.language ?? "fr",
+          theme: data.theme ?? "system",
+          electricity_client_id: (data as any).electricity_client_id ?? "",
+          electricity_meter_ref: (data as any).electricity_meter_ref ?? "",
+          electricity_meter_number: (data as any).electricity_meter_number ?? "",
+          water_client_id: (data as any).water_client_id ?? "",
+          water_meter_ref: (data as any).water_meter_ref ?? "",
+          water_meter_number: (data as any).water_meter_number ?? "",
+        };
       }
       setLoading(false);
     };
     fetchProfile();
+
+    // Fetch active & resolved reports count
+    const fetchCounts = async () => {
+      const [{ count: activeCount }, { count: resolvedCount }] = await Promise.all([
+        supabase.from("reports").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "active"),
+        supabase.from("reports").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "resolved"),
+      ]);
+      setActiveReportsCount(activeCount ?? 0);
+      setResolvedReportsCount(resolvedCount ?? 0);
+    };
+    fetchCounts();
   }, [user]);
 
   const fetchHistory = async () => {
@@ -203,6 +440,8 @@ const ProfilePage = () => {
       toast.error("Erreur lors de la sauvegarde");
     } else {
       setSaved(true);
+      setIsDirty(false);
+      initialProfileRef.current = { ...profile };
       toast.success("Profil mis à jour !");
       setTimeout(() => setSaved(false), 2000);
     }
@@ -234,7 +473,17 @@ const ProfilePage = () => {
   };
 
   const update = (field: keyof ProfileData, value: any) => {
-    setProfile((p) => ({ ...p, [field]: value }));
+    setProfile((p) => {
+      const next = { ...p, [field]: value };
+      // Check dirty
+      if (initialProfileRef.current) {
+        const dirty = (Object.keys(next) as (keyof ProfileData)[]).some(
+          (k) => next[k] !== initialProfileRef.current![k]
+        );
+        setIsDirty(dirty);
+      }
+      return next;
+    });
     setSaved(false);
   };
 
@@ -245,6 +494,21 @@ const ProfilePage = () => {
   ];
   const filledCount = conformityFields.filter((f) => f.trim() !== "").length;
   const conformityPercent = Math.round((filledCount / conformityFields.length) * 100);
+  const isProfileComplete = conformityPercent >= 100;
+  const prevConformityRef = useRef(conformityPercent);
+
+  // Confetti when reaching 100%
+  useEffect(() => {
+    if (isProfileComplete && prevConformityRef.current < 100) {
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.3 },
+        colors: ["#FFD700", "#FFA500", "#22C55E", "#3B82F6", "#8B5CF6"],
+      });
+    }
+    prevConformityRef.current = conformityPercent;
+  }, [conformityPercent, isProfileComplete]);
 
   const filteredHistory = history.filter((r) => {
     const statusOk = historyFilter === "all" || r.status === historyFilter;
@@ -266,115 +530,226 @@ const ProfilePage = () => {
     );
   }
 
+  const displayName = profile.first_name || profile.last_name
+    ? `${profile.first_name} ${profile.last_name}`.trim()
+    : user?.email?.split("@")[0] || "Utilisateur";
+
+  const initials = (profile.first_name?.[0] || "") + (profile.last_name?.[0] || "");
+  const avatarInitial = initials || user?.email?.[0]?.toUpperCase() || "?";
+
+  const memberSince = user?.created_at
+    ? new Date(user.created_at).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })
+    : "";
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container max-w-3xl px-4 py-6 sm:py-8">
+      <main className="container max-w-3xl px-0 sm:px-4 py-0 sm:py-6">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-          {/* Header */}
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
-                {profile.first_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "?"}
-              </div>
-              <div>
-                <h1 className="font-display text-xl font-bold text-foreground sm:text-2xl">Mon espace</h1>
-                <p className="text-xs text-muted-foreground sm:text-sm">
-                  {profile.first_name || profile.last_name
-                    ? `${profile.first_name} ${profile.last_name}`
-                    : user?.email}
-                </p>
-              </div>
-            </div>
-            <Button onClick={handleSave} disabled={saving} size="sm" className="gradient-hero text-primary-foreground gap-2 self-end sm:self-auto">
-              {saved ? <CheckCircle2 className="h-4 w-4" /> : <Save className="h-4 w-4" />}
-              {saving ? "Sauvegarde..." : saved ? "Sauvegardé" : "Enregistrer"}
-            </Button>
-          </div>
 
-          {/* Conformity bar */}
-          <div className="mb-6 rounded-xl border border-border bg-card p-4 shadow-card">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Conformité du profil</span>
-              <span className={`text-sm font-bold ${conformityPercent >= 80 ? "text-green-500" : conformityPercent >= 50 ? "text-amber-500" : "text-destructive"}`}>
-                {conformityPercent}%
-              </span>
-            </div>
-            <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+          {/* ═══ Profile Header — Redesigned ═══ */}
+          <div className="relative mb-6 px-4 sm:px-6 pt-6">
+            {/* Row 1: Circle + Name + Counters */}
+            <div className="flex items-start gap-4 sm:gap-5">
+              {/* Conformity circle */}
               <motion.div
-                className={`h-full rounded-full ${conformityPercent >= 80 ? "bg-green-500" : conformityPercent >= 50 ? "bg-amber-500" : "bg-destructive"}`}
-                initial={{ width: 0 }}
-                animate={{ width: `${conformityPercent}%` }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-              />
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Un profil complet renforce la crédibilité de vos signalements dans nos rapports transmis aux opérateurs (CIE, SODECI).
-            </p>
-          </div>
-
-          {/* Friendly reminder to complete profile */}
-          <AnimatePresence>
-            {conformityPercent < 100 && (
-              <motion.div
-                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                transition={{ duration: 0.3 }}
-                className="mb-6 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 p-4 shadow-sm"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                className="relative flex-shrink-0"
               >
-                <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20 text-primary flex-shrink-0">
-                    <Info className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-foreground text-sm mb-1">
-                      👋 Renforcez vos signalements !
-                    </h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                      Un profil complet nous aide à produire des rapports fiables pour les opérateurs (CIE, SODECI, Mairie). 
-                      Pensez à renseigner :
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {!profile.phone && (
-                        <Badge variant="outline" className="text-xs bg-background border-amber-500/50 text-amber-600 gap-1">
-                          <Phone className="h-3 w-3" />
-                          N° WhatsApp
-                        </Badge>
-                      )}
-                      {(!profile.commune || !profile.quartier) && (
-                        <Badge variant="outline" className="text-xs bg-background border-blue-500/50 text-blue-600 gap-1">
-                          <MapPin className="h-3 w-3" />
-                          Localisation
-                        </Badge>
-                      )}
-                      {(!profile.electricity_client_id && !profile.electricity_meter_number) && (
-                        <Badge variant="outline" className="text-xs bg-background border-yellow-500/50 text-yellow-600 gap-1">
-                          <Zap className="h-3 w-3" />
-                          Compteur CIE
-                        </Badge>
-                      )}
-                      {(!profile.water_client_id && !profile.water_meter_number) && (
-                        <Badge variant="outline" className="text-xs bg-background border-cyan-500/50 text-cyan-600 gap-1">
-                          <Droplets className="h-3 w-3" />
-                          Compteur SODECI
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
+                <svg width="120" height="120" viewBox="0 0 96 96" className="sm:w-[140px] sm:h-[140px]">
+                  <circle cx="48" cy="48" r="42" fill="none" stroke={isProfileComplete ? "hsl(45 93% 47% / 0.2)" : "hsl(var(--muted))"} strokeWidth="6" />
+                  <circle
+                    cx="48" cy="48" r="42"
+                    fill="none"
+                    stroke={isProfileComplete ? "hsl(45 93% 47%)" : conformityPercent >= 80 ? "hsl(var(--success, 142 71% 45%))" : conformityPercent >= 50 ? "hsl(var(--warning, 38 92% 50%))" : "hsl(var(--destructive))"}
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 42}`}
+                    strokeDashoffset={`${2 * Math.PI * 42 * (1 - conformityPercent / 100)}`}
+                    transform="rotate(-90 48 48)"
+                    className="transition-all duration-700"
+                  />
+                  {isProfileComplete && (
+                    <circle cx="48" cy="48" r="42" fill="none" stroke="hsl(45 93% 47% / 0.3)" strokeWidth="12" className="animate-pulse" />
+                  )}
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  {isProfileComplete ? (
+                    <>
+                      <Award className="h-6 w-6 sm:h-7 sm:w-7" style={{ color: "hsl(45 93% 47%)" }} />
+                      <span className="text-[8px] sm:text-[9px] font-bold mt-0.5" style={{ color: "hsl(45 93% 47%)" }}>EXEMPLAIRE</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-xl sm:text-2xl font-bold text-foreground">{conformityPercent}%</span>
+                      <span className="text-[9px] sm:text-[10px] text-muted-foreground font-medium">Conformité</span>
+                    </>
+                  )}
                 </div>
               </motion.div>
-            )}
-          </AnimatePresence>
 
-          <Tabs defaultValue="reports" className="space-y-4 sm:space-y-6">
+              {/* Name + info + counters */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground truncate">{displayName}</h1>
+                  {isProfileComplete && (
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border" style={{ borderColor: "hsl(45 93% 47%)", color: "hsl(45 93% 47%)", background: "hsl(45 93% 47% / 0.1)" }}>
+                      ✅ Vérifié
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
+                  {profile.commune && (
+                    <span className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />{profile.commune}{profile.quartier ? `, ${profile.quartier}` : ""}
+                    </span>
+                  )}
+                  {memberSince && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-3 w-3" />Membre depuis {memberSince}
+                    </span>
+                  )}
+                </div>
+
+                {/* Counters row */}
+                <div className="flex items-center gap-3 mt-3">
+                  {/* Active reports counter — only if > 0 */}
+                  {(activeReportsCount ?? 0) > 0 && (
+                    <motion.div
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="flex items-center gap-2 rounded-full border border-destructive/30 bg-destructive/10 px-3 py-1.5"
+                    >
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75 animate-ping" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
+                      </span>
+                      <span className="font-display text-sm font-bold text-destructive">{activeReportsCount}</span>
+                      <span className="text-[10px] text-destructive/80 font-medium">en cours</span>
+                    </motion.div>
+                  )}
+                  {/* Resolved reports counter */}
+                  <div className="flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 py-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                    <span className="font-display text-sm font-bold text-foreground">{resolvedReportsCount}</span>
+                    <span className="text-[10px] text-muted-foreground font-medium">résolu{resolvedReportsCount > 1 ? "s" : ""}</span>
+                  </div>
+                  {/* User type */}
+                  <div className="hidden sm:flex items-center gap-1 rounded-full border border-border bg-muted/50 px-3 py-1.5">
+                    <span className="text-sm">{profile.user_type === "household" ? "🏠" : "🏢"}</span>
+                    <span className="text-[10px] text-muted-foreground font-medium">{profile.user_type === "household" ? "Ménage" : "Entreprise"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Row 2: Missing fields + ODD — aligned with circle */}
+            <div className="mt-4 flex flex-col sm:flex-row gap-3">
+              {/* Missing fields to complete profile */}
+              {conformityPercent < 100 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex-1 rounded-xl border border-primary/20 bg-primary/5 p-3"
+                >
+                  <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                    <Info className="h-3.5 w-3.5 text-primary" />
+                    Complétez votre profil
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {!profile.first_name && (
+                      <Badge variant="outline" className="text-[10px] bg-background border-muted-foreground/30 gap-1 py-0.5">
+                        <User className="h-3 w-3" /> Prénom
+                      </Badge>
+                    )}
+                    {!profile.last_name && (
+                      <Badge variant="outline" className="text-[10px] bg-background border-muted-foreground/30 gap-1 py-0.5">
+                        <User className="h-3 w-3" /> Nom
+                      </Badge>
+                    )}
+                    {!profile.phone && (
+                      <Badge variant="outline" className="text-[10px] bg-background border-amber-500/50 text-amber-600 gap-1 py-0.5">
+                        <Phone className="h-3 w-3" /> WhatsApp
+                      </Badge>
+                    )}
+                    {(!profile.commune || !profile.quartier) && (
+                      <Badge variant="outline" className="text-[10px] bg-background border-blue-500/50 text-blue-600 gap-1 py-0.5">
+                        <MapPin className="h-3 w-3" /> Localisation
+                      </Badge>
+                    )}
+                    {!profile.electricity_client_id && (
+                      <Badge variant="outline" className="text-[10px] bg-background border-yellow-500/50 text-yellow-600 gap-1 py-0.5">
+                        <img src={electricityIconSm} alt="" className="h-3 w-3" /> CIE
+                      </Badge>
+                    )}
+                    {!profile.electricity_meter_ref && (
+                      <Badge variant="outline" className="text-[10px] bg-background border-yellow-500/50 text-yellow-600 gap-1 py-0.5">
+                        <img src={electricityIconSm} alt="" className="h-3 w-3" /> Réf. compteur
+                      </Badge>
+                    )}
+                    {!profile.electricity_meter_number && (
+                      <Badge variant="outline" className="text-[10px] bg-background border-yellow-500/50 text-yellow-600 gap-1 py-0.5">
+                        <img src={electricityIconSm} alt="" className="h-3 w-3" /> N° compteur
+                      </Badge>
+                    )}
+                    {!profile.water_client_id && (
+                      <Badge variant="outline" className="text-[10px] bg-background border-cyan-500/50 text-cyan-600 gap-1 py-0.5">
+                        <img src={waterIconSm} alt="" className="h-3 w-3" /> SODECI
+                      </Badge>
+                    )}
+                    {!profile.water_meter_ref && (
+                      <Badge variant="outline" className="text-[10px] bg-background border-cyan-500/50 text-cyan-600 gap-1 py-0.5">
+                        <img src={waterIconSm} alt="" className="h-3 w-3" /> Réf. compteur
+                      </Badge>
+                    )}
+                    {!profile.water_meter_number && (
+                      <Badge variant="outline" className="text-[10px] bg-background border-cyan-500/50 text-cyan-600 gap-1 py-0.5">
+                        <img src={waterIconSm} alt="" className="h-3 w-3" /> N° compteur
+                      </Badge>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* ODD mini cards */}
+              <div className={`grid grid-cols-2 gap-2 ${conformityPercent < 100 ? "sm:w-72 flex-shrink-0" : "w-full sm:max-w-md"}`}>
+                <button
+                  onClick={() => setShowOddDialog("odd6")}
+                  className="flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 p-2.5 hover:bg-blue-500/10 transition-colors text-left cursor-pointer"
+                >
+                  <span className="text-lg shrink-0">💧</span>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 leading-tight">ODD 6</p>
+                    <p className="text-[10px] text-muted-foreground leading-tight">Eau propre</p>
+                  </div>
+                  <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto shrink-0" />
+                </button>
+                <button
+                  onClick={() => setShowOddDialog("odd7")}
+                  className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-2.5 hover:bg-amber-500/10 transition-colors text-left cursor-pointer"
+                >
+                  <span className="text-lg shrink-0">⚡</span>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 leading-tight">ODD 7</p>
+                    <p className="text-[10px] text-muted-foreground leading-tight">Énergie propre</p>
+                  </div>
+                  <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto shrink-0" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="px-4 sm:px-0">
+          <Tabs defaultValue="rights" className="space-y-4 sm:space-y-6" onValueChange={(v) => { if (v === "history" && history.length === 0) fetchHistory(); }}>
             <TabsList className="flex w-full overflow-x-auto no-scrollbar gap-0.5">
-              <TabsTrigger value="reports" className="gap-1 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
-                <FileText className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="hidden xs:inline sm:inline">Signalements</span>
-                <span className="xs:hidden sm:hidden">Signaler</span>
+              <TabsTrigger value="rights" className="gap-1.5 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
+                <Scale className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="hidden sm:inline">Eau & Énergie Citoyen</span>
+                <span className="sm:hidden">Eau & Énergie</span>
               </TabsTrigger>
-              <TabsTrigger value="history" className="gap-1 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3" onClick={fetchHistory}>
+              <TabsTrigger value="history" className="gap-1 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
                 <History className="h-3.5 w-3.5 flex-shrink-0" />
                 <span>Historique</span>
               </TabsTrigger>
@@ -399,11 +774,216 @@ const ProfilePage = () => {
               </TabsTrigger>
             </TabsList>
 
-            {/* ── MES SIGNALEMENTS ── */}
-            <TabsContent value="reports">
-              <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
-                <h2 className="font-display text-lg font-bold text-foreground mb-4">Mes signalements</h2>
-                <MyReports />
+            {/* ── DROITS & CONSEILS ── */}
+            <TabsContent value="rights">
+              <div className="space-y-5">
+                {/* Intro */}
+                <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary flex-shrink-0">
+                      <Scale className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h2 className="font-display text-lg font-bold text-foreground">Vos droits & devoirs</h2>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        En tant qu'usager de l'électricité et de l'eau en Côte d'Ivoire, vous êtes protégé par la loi. Voici l'essentiel à connaître.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ⚡ Droits Électricité */}
+                <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-amber-500/5">
+                    <Zap className="h-4 w-4 text-amber-500" />
+                    <h3 className="font-semibold text-sm text-foreground">Électricité — Vos droits</h3>
+                  </div>
+                  <div className="p-4 sm:p-6 space-y-3">
+                    <div className="space-y-2.5 text-sm text-muted-foreground">
+                      <div className="flex items-start gap-2">
+                        <ShieldCheck className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                        <p><span className="font-semibold text-foreground">Continuité de service</span> — La CIE est tenue d'assurer un service continu. Toute coupure prolongée sans motif légitime engage sa responsabilité (Art. 24, Code de l'électricité).</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <ShieldCheck className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                        <p><span className="font-semibold text-foreground">Information préalable</span> — La CIE doit informer les usagers avant toute coupure programmée pour maintenance.</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <ShieldCheck className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                        <p><span className="font-semibold text-foreground">Réclamation</span> — Vous pouvez saisir l'ANARE (Autorité Nationale de Régulation du secteur de l'Électricité) en cas de litige non résolu avec la CIE.</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                        <p><span className="font-semibold text-foreground">Vos obligations</span> — Payer vos factures dans les délais, ne pas frauder le compteur, ne pas effectuer de branchements illégaux (passible de sanctions pénales).</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 💧 Droits Eau */}
+                <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-blue-500/5">
+                    <Droplets className="h-4 w-4 text-blue-500" />
+                    <h3 className="font-semibold text-sm text-foreground">Eau — Vos droits</h3>
+                  </div>
+                  <div className="p-4 sm:p-6 space-y-3">
+                    <div className="space-y-2.5 text-sm text-muted-foreground">
+                      <div className="flex items-start gap-2">
+                        <ShieldCheck className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                        <p><span className="font-semibold text-foreground">Droit d'accès à l'eau potable</span> — L'accès à l'eau potable est un droit fondamental reconnu par le Code de l'eau (Loi n°2023-902).</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <ShieldCheck className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                        <p><span className="font-semibold text-foreground">Qualité de l'eau</span> — La SODECI est tenue de fournir une eau conforme aux normes de qualité établies par l'OMS et la réglementation ivoirienne.</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <ShieldCheck className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                        <p><span className="font-semibold text-foreground">Réclamation</span> — En cas de coupure prolongée ou de litige, vous pouvez saisir l'ONEP (Office National de l'Eau Potable) ou les services de la Mairie.</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                        <p><span className="font-semibold text-foreground">Vos obligations</span> — Payer les factures d'eau, signaler les fuites, ne pas gaspiller l'eau potable, ne pas polluer les sources d'eau.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 💡 Conseils & bonnes pratiques */}
+                <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-green-500/5">
+                    <Lightbulb className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <h3 className="font-semibold text-sm text-foreground">Conseils & bonnes pratiques</h3>
+                  </div>
+                  <div className="p-4 sm:p-6">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {[
+                        { emoji: "⚡", title: "Débranchez les appareils", desc: "Débranchez les appareils sensibles pendant les coupures pour éviter les surtensions au retour du courant." },
+                        { emoji: "💧", title: "Stockez l'eau proprement", desc: "Utilisez des récipients propres et couverts pour stocker l'eau. Renouvelez toutes les 24h." },
+                        { emoji: "🔌", title: "Utilisez un parafoudre", desc: "Protégez vos appareils électroniques avec un parafoudre ou un régulateur de tension." },
+                        { emoji: "🚰", title: "Signalez les fuites", desc: "Une fuite d'eau = gaspillage collectif. Signalez-la immédiatement via SIGNA-CI ou au 175 (SODECI)." },
+                        { emoji: "💡", title: "Économisez l'énergie", desc: "Éteignez les lumières inutiles, préférez les ampoules LED. Ça réduit la charge sur le réseau." },
+                        { emoji: "📱", title: "Gardez vos reçus", desc: "Conservez toujours vos reçus de paiement CIE/SODECI. Ils sont votre preuve en cas de litige." },
+                      ].map((tip) => (
+                        <div key={tip.title} className="flex items-start gap-2.5 rounded-lg border border-border p-3 bg-background">
+                          <span className="text-lg shrink-0">{tip.emoji}</span>
+                          <div>
+                            <p className="text-sm font-semibold text-foreground">{tip.title}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{tip.desc}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 📄 Textes de loi & ressources */}
+                <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-muted/30">
+                    <BookOpen className="h-4 w-4 text-primary" />
+                    <h3 className="font-semibold text-sm text-foreground">Textes de loi & ressources officielles</h3>
+                  </div>
+                  <div className="p-4 sm:p-6 space-y-2">
+                    {[
+                      {
+                        title: "Code de l'Électricité (Loi n°2014-132)",
+                        desc: "Loi du 24 mars 2014 portant Code de l'Électricité en Côte d'Ivoire",
+                        url: "https://faolex.fao.org/docs/pdf/ivc146558.pdf",
+                        icon: <Zap className="h-4 w-4 text-amber-500" />,
+                        format: "PDF",
+                      },
+                      {
+                        title: "Code de l'Eau (Loi n°2023-902)",
+                        desc: "Nouveau Code de l'eau adopté en 2023, remplaçant la Loi n°98-755",
+                        url: "https://www.pseau.org/outils/biblio/resume.php?d=12272&l=fr",
+                        icon: <Droplets className="h-4 w-4 text-blue-500" />,
+                        format: "PDF",
+                      },
+                      {
+                        title: "Ancien Code de l'Eau (Loi n°98-755)",
+                        desc: "Loi du 23 décembre 1998 portant Code de l'Eau (toujours applicable en partie)",
+                        url: "https://civ.abidjan.net/images/pdf/code_de%20_eau.pdf",
+                        icon: <Droplets className="h-4 w-4 text-blue-500" />,
+                        format: "PDF",
+                      },
+                      {
+                        title: "ANARE-CI — Droits des consommateurs",
+                        desc: "Autorité de régulation : recours, droits et obligations des usagers de l'électricité",
+                        url: "https://anare.ci/documents/lois-et-reglementation/les-lois/",
+                        icon: <Scale className="h-4 w-4 text-primary" />,
+                        format: "Site web",
+                      },
+                      {
+                        title: "Ma SODECI en ligne — Conditions d'utilisation",
+                        desc: "Termes et conditions d'utilisation des services SODECI en ligne",
+                        url: "https://www.masodecienligne.ci/docs/TermesConditions.pdf",
+                        icon: <Droplets className="h-4 w-4 text-blue-500" />,
+                        format: "PDF",
+                      },
+                      {
+                        title: "CIE — Espace client",
+                        desc: "Portail officiel de la CIE pour les usagers (réclamations, suivi de consommation)",
+                        url: "https://www.cie.ci",
+                        icon: <Zap className="h-4 w-4 text-amber-500" />,
+                        format: "Site web",
+                      },
+                      {
+                        title: "SODECI — Espace client",
+                        desc: "Portail officiel de la SODECI pour les usagers (réclamations, paiements)",
+                        url: "https://www.sodeci.ci",
+                        icon: <Droplets className="h-4 w-4 text-blue-500" />,
+                        format: "Site web",
+                      },
+                    ].map((resource) => (
+                      <a
+                        key={resource.title}
+                        href={resource.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 rounded-lg border border-border p-3 bg-background hover:bg-accent transition-colors group"
+                      >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted shrink-0">
+                          {resource.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{resource.title}</p>
+                          <p className="text-xs text-muted-foreground truncate">{resource.desc}</p>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className="text-[10px] font-medium text-muted-foreground bg-muted rounded px-1.5 py-0.5">{resource.format}</span>
+                          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Numéros utiles */}
+                <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
+                  <h3 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-primary" />
+                    Numéros utiles
+                  </h3>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {[
+                      { name: "CIE (dépannage)", number: "179", color: "text-amber-500" },
+                      { name: "SODECI (urgences)", number: "175", color: "text-blue-500" },
+                      { name: "ANARE-CI (réclamations)", number: "+225 27 20 20 61 16", color: "text-primary" },
+                      { name: "Sapeurs Pompiers", number: "180", color: "text-destructive" },
+                    ].map((contact) => (
+                      <a
+                        key={contact.name}
+                        href={`tel:${contact.number.replace(/\s/g, "")}`}
+                        className="flex items-center gap-3 rounded-lg border border-border p-3 bg-background hover:bg-accent transition-colors"
+                      >
+                        <Phone className={`h-4 w-4 ${contact.color} shrink-0`} />
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{contact.name}</p>
+                          <p className={`text-sm font-bold ${contact.color}`}>{contact.number}</p>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
               </div>
             </TabsContent>
 
@@ -628,63 +1208,88 @@ const ProfilePage = () => {
 
             {/* ── PROFIL ── */}
             <TabsContent value="profile">
-              <div className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground">Prénom</Label>
-                    <Input placeholder="Votre prénom" value={profile.first_name} onChange={(e) => update("first_name", e.target.value)} maxLength={50} className="h-9 text-sm" />
+              <div className="space-y-4">
+                {/* Identity card */}
+                <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-muted/30">
+                    <User className="h-4 w-4 text-primary" />
+                    <h3 className="font-semibold text-sm text-foreground">Identité</h3>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground">Nom</Label>
-                    <Input placeholder="Votre nom" value={profile.last_name} onChange={(e) => update("last_name", e.target.value)} maxLength={50} className="h-9 text-sm" />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input value={user?.email ?? ""} disabled className="pl-10 h-9 text-sm opacity-60" />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Téléphone</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input value={profile.phone || user?.phone || "Non renseigné"} disabled className="pl-10 h-9 text-sm opacity-60" />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Type de profil</Label>
-                  <RadioGroup value={profile.user_type} onValueChange={(v) => update("user_type", v)} className="flex gap-4">
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="household" id="p-household" />
-                      <Label htmlFor="p-household" className="flex items-center gap-1.5 text-sm cursor-pointer">
-                        <Home className="h-4 w-4" /> Ménage
-                      </Label>
+                  <div className="p-4 sm:p-6 space-y-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-muted-foreground">Prénom</Label>
+                        <Input placeholder="Votre prénom" value={profile.first_name} onChange={(e) => update("first_name", e.target.value)} maxLength={50} className="h-10 text-sm" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-muted-foreground">Nom</Label>
+                        <Input placeholder="Votre nom" value={profile.last_name} onChange={(e) => update("last_name", e.target.value)} maxLength={50} className="h-10 text-sm" />
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="business" id="p-business" />
-                      <Label htmlFor="p-business" className="flex items-center gap-1.5 text-sm cursor-pointer">
-                        <Building2 className="h-4 w-4" /> Entreprise
-                      </Label>
-                    </div>
-                  </RadioGroup>
+                  </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Bio</Label>
-                  <Textarea
-                    placeholder="Décrivez-vous en quelques mots (optionnel)"
-                    value={profile.bio}
-                    onChange={(e) => update("bio", e.target.value)}
-                    maxLength={300}
-                    rows={3}
-                    className="text-sm"
-                  />
-                  <p className="text-right text-xs text-muted-foreground">{profile.bio.length}/300</p>
+                {/* Contact card */}
+                <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-muted/30">
+                    <Mail className="h-4 w-4 text-primary" />
+                    <h3 className="font-semibold text-sm text-foreground">Contact</h3>
+                  </div>
+                  <div className="p-4 sm:p-6 space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-foreground">Email</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input value={user?.email ?? ""} disabled className="pl-10 h-10 text-sm opacity-60" />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-foreground">Téléphone</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input value={profile.phone || user?.phone || "Non renseigné"} disabled className="pl-10 h-10 text-sm opacity-60" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* About card */}
+                <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-muted/30">
+                    <Info className="h-4 w-4 text-primary" />
+                    <h3 className="font-semibold text-sm text-foreground">À propos</h3>
+                  </div>
+                  <div className="p-4 sm:p-6 space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-foreground">Type de profil</Label>
+                      <RadioGroup value={profile.user_type} onValueChange={(v) => update("user_type", v)} className="flex gap-4 pt-1">
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="household" id="p-household" />
+                          <Label htmlFor="p-household" className="flex items-center gap-1.5 text-sm cursor-pointer">
+                            <Home className="h-4 w-4" /> Ménage
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="business" id="p-business" />
+                          <Label htmlFor="p-business" className="flex items-center gap-1.5 text-sm cursor-pointer">
+                            <Building2 className="h-4 w-4" /> Entreprise
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-foreground">Bio</Label>
+                      <Textarea
+                        placeholder="Décrivez-vous en quelques mots (optionnel)"
+                        value={profile.bio}
+                        onChange={(e) => update("bio", e.target.value)}
+                        maxLength={300}
+                        rows={3}
+                        className="text-sm"
+                      />
+                      <p className="text-right text-xs text-muted-foreground">{profile.bio.length}/300</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </TabsContent>
@@ -726,15 +1331,28 @@ const ProfilePage = () => {
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-muted-foreground">Quartier</Label>
                   {profile.commune ? (
-                    <QuartierCombobox
-                      quartiers={getQuartiers(profile.commune)}
-                      value={profile.quartier ?? ""}
-                      onChange={(v) => update("quartier", v)}
-                      placeholder="Sélectionner votre quartier"
-                      allowCustom={true}
-                    />
+                    <Select value={profile.quartier} onValueChange={(v) => update("quartier", v)}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="Sélectionner votre quartier" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {getQuartiers(profile.commune).map((q) => (
+                          <SelectItem key={q} value={q}>{q}</SelectItem>
+                        ))}
+                        <SelectItem value="__other">Autre quartier...</SelectItem>
+                      </SelectContent>
+                    </Select>
                   ) : (
                     <p className="text-sm text-muted-foreground italic">Sélectionnez d'abord une commune</p>
+                  )}
+                  {profile.quartier === "__other" && (
+                    <Input
+                      placeholder="Saisissez le nom du quartier"
+                      onChange={(e) => { if (e.target.value.trim()) update("quartier", e.target.value.trim()); }}
+                      maxLength={100}
+                      autoFocus
+                      className="h-9 text-sm"
+                    />
                   )}
                   <p className="text-xs text-muted-foreground">Cette information nous aide à vous envoyer les alertes pertinentes</p>
                 </div>
@@ -744,30 +1362,22 @@ const ProfilePage = () => {
             {/* ── PARAMÈTRES ── */}
             <TabsContent value="settings">
               <div className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
-                {/* Notifications */}
+                {/* Notifications in-app */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary">
                       <Bell className="h-4 w-4 text-secondary-foreground" />
                     </div>
                     <div>
-                      <p className="font-semibold text-sm text-foreground">Notifications</p>
+                      <p className="font-semibold text-sm text-foreground">Notifications in-app</p>
                       <p className="text-xs text-muted-foreground">Alertes de coupure dans votre zone</p>
                     </div>
                   </div>
                   <Switch checked={profile.notifications_enabled} onCheckedChange={(v) => update("notifications_enabled", v)} />
                 </div>
 
-                {/* Web Push (browser push notifications) */}
-                {profile.notifications_enabled && (
-                  <div className="flex items-center justify-between pl-12">
-                    <div>
-                      <p className="text-sm text-foreground font-medium">Alertes push navigateur</p>
-                      <p className="text-xs text-muted-foreground">Notifié même quand l'app est fermée</p>
-                    </div>
-                    <PushSubscribeButton commune={profile.commune} quartier={profile.quartier} />
-                  </div>
-                )}
+                {/* Push notifications */}
+                <PushNotificationToggle />
 
                 <Separator />
 
@@ -921,8 +1531,130 @@ const ProfilePage = () => {
               </div>
             </TabsContent>
           </Tabs>
+          </div>
         </motion.div>
       </main>
+
+      {/* ── ODD DIALOG ── */}
+      <Dialog open={showOddDialog !== null} onOpenChange={(open) => { if (!open) setShowOddDialog(null); }}>
+        <DialogContent className="max-w-lg mx-4 sm:mx-auto max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+              {showOddDialog === "odd6" ? (
+                <><span className="text-xl">💧</span> ODD 6 — Eau propre et assainissement</>
+              ) : (
+                <><span className="text-xl">⚡</span> ODD 7 — Énergie propre et d'un coût abordable</>
+              )}
+            </DialogTitle>
+            <DialogDescription className="text-sm">
+              {showOddDialog === "odd6"
+                ? "Garantir l'accès de tous à des services d'alimentation en eau et d'assainissement gérés de façon durable d'ici 2030."
+                : "Garantir l'accès de tous à des services énergétiques fiables, durables et modernes, à un coût abordable d'ici 2030."
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-2">
+            {showOddDialog === "odd6" ? (
+              <>
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-blue-500" /> Cibles clés
+                  </h3>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <div className="flex gap-2 items-start">
+                      <span className="text-blue-500 font-bold text-xs mt-0.5">6.1</span>
+                      <p>Accès universel et équitable à l'eau potable, à un coût abordable.</p>
+                    </div>
+                    <div className="flex gap-2 items-start">
+                      <span className="text-blue-500 font-bold text-xs mt-0.5">6.2</span>
+                      <p>Accès à des services d'assainissement et d'hygiène adéquats pour tous.</p>
+                    </div>
+                    <div className="flex gap-2 items-start">
+                      <span className="text-blue-500 font-bold text-xs mt-0.5">6.4</span>
+                      <p>Utilisation rationnelle des ressources en eau et réduction de la pénurie.</p>
+                    </div>
+                  </div>
+                </div>
+                <Separator />
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 text-blue-500" /> En Côte d'Ivoire
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    La SODECI assure la distribution d'eau potable. Le taux d'accès à l'eau potable en milieu urbain est d'environ 80%, mais de nombreuses zones périurbaines subissent encore des coupures régulières. Chaque signalement sur SIGNA-CI contribue à identifier ces zones et à améliorer le service.
+                  </p>
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <ExternalLink className="h-4 w-4 text-blue-500" /> Ressources
+                  </h3>
+                  <div className="grid gap-2">
+                    <a href="https://sdgs.un.org/goals/goal6" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <ExternalLink className="h-3.5 w-3.5" /> Nations Unies — ODD 6
+                    </a>
+                    <a href="https://www.sodeci.ci" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <ExternalLink className="h-3.5 w-3.5" /> SODECI — Site officiel
+                    </a>
+                    <a href="https://www.onep.ci" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <ExternalLink className="h-3.5 w-3.5" /> ONEP — Office National de l'Eau Potable
+                    </a>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-amber-500" /> Cibles clés
+                  </h3>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <div className="flex gap-2 items-start">
+                      <span className="text-amber-500 font-bold text-xs mt-0.5">7.1</span>
+                      <p>Accès universel à des services énergétiques fiables et modernes, à un coût abordable.</p>
+                    </div>
+                    <div className="flex gap-2 items-start">
+                      <span className="text-amber-500 font-bold text-xs mt-0.5">7.2</span>
+                      <p>Accroître la part de l'énergie renouvelable dans le bouquet énergétique mondial.</p>
+                    </div>
+                    <div className="flex gap-2 items-start">
+                      <span className="text-amber-500 font-bold text-xs mt-0.5">7.b</span>
+                      <p>Développer l'infrastructure et améliorer la technologie pour fournir des services énergétiques modernes.</p>
+                    </div>
+                  </div>
+                </div>
+                <Separator />
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 text-amber-500" /> En Côte d'Ivoire
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    La CIE (Compagnie Ivoirienne d'Électricité) gère la distribution d'électricité. Le pays produit environ 2 200 MW mais la demande croissante entraîne des délestages fréquents, notamment dans les quartiers populaires. Vos signalements aident à cartographier les zones les plus touchées.
+                  </p>
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <ExternalLink className="h-4 w-4 text-amber-500" /> Ressources
+                  </h3>
+                  <div className="grid gap-2">
+                    <a href="https://sdgs.un.org/goals/goal7" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <ExternalLink className="h-3.5 w-3.5" /> Nations Unies — ODD 7
+                    </a>
+                    <a href="https://www.cie.ci" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <ExternalLink className="h-3.5 w-3.5" /> CIE — Site officiel
+                    </a>
+                    <a href="https://www.anare.ci" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <ExternalLink className="h-3.5 w-3.5" /> ANARE-CI — Autorité de Régulation
+                    </a>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── DELETE ACCOUNT DIALOG ── */}
       <Dialog open={showDeleteDialog} onOpenChange={(open) => { if (!open && !deleting) { setShowDeleteDialog(false); } }}>
@@ -1033,6 +1765,29 @@ const ProfilePage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ═══ Floating Save Button ═══ */}
+      <AnimatePresence>
+        {isDirty && (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
+          >
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              size="lg"
+              className="gap-2 shadow-2xl rounded-full px-8 py-6 text-base font-bold"
+            >
+              {saved ? <CheckCircle2 className="h-5 w-5" /> : <Save className="h-5 w-5" />}
+              {saving ? "Enregistrement..." : saved ? "Sauvegardé !" : "Enregistrer les modifications"}
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
