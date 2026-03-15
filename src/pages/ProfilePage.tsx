@@ -27,6 +27,7 @@ import Header from "@/components/Header";
 import MyReports from "@/components/MyReports";
 import { COMMUNES } from "@/lib/communes";
 import { getQuartiers } from "@/lib/quartiers";
+import PushNotificationToggle from "@/components/PushNotificationToggle";
 
 interface ProfileData {
   first_name: string;
