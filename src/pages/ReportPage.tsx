@@ -23,6 +23,7 @@ import { COMMUNES, findNearestCommune, type Commune } from "@/lib/communes";
 import { getQuartiers } from "@/lib/quartiers";
 import type { ServiceType } from "@/lib/data";
 import SOSButtons from "@/components/SOSButtons";
+import QuartierSearch from "@/components/QuartierSearch";
 
 // ─── Types de signalement ────────────────────────────────────────────────────
 
