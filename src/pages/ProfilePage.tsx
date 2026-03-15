@@ -324,12 +324,12 @@ const ProfilePage = () => {
               >
                 <svg width="96" height="96" viewBox="0 0 96 96" className="sm:w-[112px] sm:h-[112px]">
                   {/* Background circle */}
-                  <circle cx="48" cy="48" r="42" fill="none" stroke="hsl(var(--muted))" strokeWidth="6" />
+                  <circle cx="48" cy="48" r="42" fill="none" stroke={isProfileComplete ? "hsl(45 93% 47% / 0.2)" : "hsl(var(--muted))"} strokeWidth="6" />
                   {/* Progress arc */}
                   <circle
                     cx="48" cy="48" r="42"
                     fill="none"
-                    stroke={conformityPercent >= 80 ? "hsl(var(--success, 142 71% 45%))" : conformityPercent >= 50 ? "hsl(var(--warning, 38 92% 50%))" : "hsl(var(--destructive))"}
+                    stroke={isProfileComplete ? "hsl(45 93% 47%)" : conformityPercent >= 80 ? "hsl(var(--success, 142 71% 45%))" : conformityPercent >= 50 ? "hsl(var(--warning, 38 92% 50%))" : "hsl(var(--destructive))"}
                     strokeWidth="6"
                     strokeLinecap="round"
                     strokeDasharray={`${2 * Math.PI * 42}`}
@@ -337,17 +337,37 @@ const ProfilePage = () => {
                     transform="rotate(-90 48 48)"
                     className="transition-all duration-700"
                   />
+                  {/* Golden glow for 100% */}
+                  {isProfileComplete && (
+                    <circle cx="48" cy="48" r="42" fill="none" stroke="hsl(45 93% 47% / 0.3)" strokeWidth="12" className="animate-pulse" />
+                  )}
                 </svg>
                 {/* Center content */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-xl sm:text-2xl font-bold text-foreground">{conformityPercent}%</span>
-                  <span className="text-[9px] sm:text-[10px] text-muted-foreground font-medium">Conformité</span>
+                  {isProfileComplete ? (
+                    <>
+                      <Award className="h-6 w-6 sm:h-7 sm:w-7" style={{ color: "hsl(45 93% 47%)" }} />
+                      <span className="text-[8px] sm:text-[9px] font-bold mt-0.5" style={{ color: "hsl(45 93% 47%)" }}>EXEMPLAIRE</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-xl sm:text-2xl font-bold text-foreground">{conformityPercent}%</span>
+                      <span className="text-[9px] sm:text-[10px] text-muted-foreground font-medium">Conformité</span>
+                    </>
+                  )}
                 </div>
               </motion.div>
 
               {/* Name & info */}
               <div className="min-w-0 flex-1">
-                <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground truncate">{displayName}</h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground truncate">{displayName}</h1>
+                  {isProfileComplete && (
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border" style={{ borderColor: "hsl(45 93% 47%)", color: "hsl(45 93% 47%)", background: "hsl(45 93% 47% / 0.1)" }}>
+                      ✅ Vérifié
+                    </span>
+                  )}
+                </div>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
                   {profile.commune && (
                     <span className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
