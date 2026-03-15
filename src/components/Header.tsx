@@ -1,8 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
-import { Zap, Menu, X, LogIn, LogOut, User, Shield, Moon, Sun, Monitor, Heart } from "lucide-react";
+import { Zap, Menu, X, LogIn, LogOut, User, Shield, Moon, Sun, Monitor, Heart, Map, Wrench, ChevronDown } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useTheme } from "@/hooks/useTheme";
@@ -11,6 +11,8 @@ import { useSiteSetting } from "@/hooks/useSiteSetting";
 const Header = () => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mapDropdownOpen, setMapDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const { user, signOut } = useAuth();
   const { canValidate, isAdmin, isModerator } = useUserRole();
   const { theme, toggleTheme } = useTheme();
@@ -18,12 +20,23 @@ const Header = () => {
 
   const themeIcon = theme === "dark" ? <Moon className="h-4 w-4" /> : theme === "light" ? <Sun className="h-4 w-4" /> : <Monitor className="h-4 w-4" />;
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setMapDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const isMapActive = location.pathname === "/carte" || location.pathname === "/infrastructures";
+
   const links = [
     { to: "/", label: "Accueil" },
     { to: "/signaler", label: "Signaler" },
     { to: "/tableau-de-bord", label: "Tableau de Bord Public" },
-    { to: "/carte", label: "Carte" },
-    { to: "/infrastructures", label: "Infra" },
     { to: "/verification", label: "Vérifier" },
     ...(donationsEnabled ? [{ to: "/dons", label: "♥ Dons" }] : []),
   ];
@@ -53,6 +66,56 @@ const Header = () => {
             >
               {link.label}
             </Link>
+          ))}
+
+          {/* Carte dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setMapDropdownOpen(!mapDropdownOpen)}
+              className={`flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                isMapActive
+                  ? "bg-primary/10 text-primary font-semibold"
+                  : "text-foreground/70 hover:bg-secondary hover:text-foreground"
+              }`}
+            >
+              <Map className="h-3.5 w-3.5" />
+              Carte
+              <ChevronDown className={`h-3 w-3 transition-transform ${mapDropdownOpen ? "rotate-180" : ""}`} />
+            </button>
+            {mapDropdownOpen && (
+              <div className="absolute top-full left-0 mt-1 w-52 rounded-lg border border-border bg-card shadow-lg py-1 z-50">
+                <Link
+                  to="/carte"
+                  onClick={() => setMapDropdownOpen(false)}
+                  className={`flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors ${
+                    location.pathname === "/carte"
+                      ? "bg-primary/10 text-primary font-semibold"
+                      : "text-foreground/80 hover:bg-secondary"
+                  }`}
+                >
+                  <Map className="h-4 w-4" />
+                  <div>
+                    <p className="font-medium">Carte des coupures</p>
+                    <p className="text-xs text-muted-foreground">Eau & électricité en temps réel</p>
+                  </div>
+                </Link>
+                <Link
+                  to="/infrastructures"
+                  onClick={() => setMapDropdownOpen(false)}
+                  className={`flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors ${
+                    location.pathname === "/infrastructures"
+                      ? "bg-primary/10 text-primary font-semibold"
+                      : "text-foreground/80 hover:bg-secondary"
+                  }`}
+                >
+                  <Wrench className="h-4 w-4" />
+                  <div>
+                    <p className="font-medium">Infrastructures</p>
+                    <p className="text-xs text-muted-foreground">Lampadaires, voirie, fuites…</p>
+                  </div>
+                </Link>
+              </div>
+            )}
           ))}
 
           <Button variant="ghost" size="icon" onClick={toggleTheme} className="ml-1" title={`Thème: ${theme}`}>
