@@ -418,9 +418,11 @@ const ProfilePage = () => {
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-foreground">Conformité du profil</p>
+                <p className="text-xs font-semibold text-foreground">
+                  {isProfileComplete ? "🏆 Profil exemplaire" : "Conformité du profil"}
+                </p>
                 <p className="text-xs text-muted-foreground truncate">
-                  {conformityPercent >= 100 ? "Profil complet ✓" : "Complétez pour renforcer vos signalements"}
+                  {isProfileComplete ? "Vos signalements sont traités en priorité" : "Complétez pour renforcer vos signalements"}
                 </p>
               </div>
               {/* Quick stats */}
