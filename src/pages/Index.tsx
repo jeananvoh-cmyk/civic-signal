@@ -209,27 +209,17 @@ const Index = () => {
                   </AnimatePresence>
                 </motion.div>
               )}
-              <motion.div
-                variants={scaleIn}
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/80 backdrop-blur-md"
-              >
-                <Shield className="h-4 w-4 text-white/60" />
-                07 communes pilotes
-              </motion.div>
             </motion.div>
 
-            {/* Title — large, dramatic */}
+            {/* Title + inline pills */}
             <motion.div variants={fadeUp}>
               <h1 className="font-display text-[2.75rem] font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl">
-                Signalez les{" "}
-                <span className="text-gradient-brand">Coupures</span>
-                <br />
-                <span className="text-white/60">à Abidjan</span>
+                Signalez
               </h1>
             </motion.div>
 
-            {/* Problem-type pills */}
-            <motion.div variants={stagger} className="mt-6 flex flex-wrap gap-2">
+            {/* Problem-type pills — directly under the title */}
+            <motion.div variants={stagger} className="mt-4 flex flex-wrap gap-2">
               {PILLS.map((pill) => (
                 <motion.div key={pill.to} variants={scaleIn} whileHover={{ scale: 1.06, y: -2 }} whileTap={{ scale: 0.96 }}>
                   <Link
