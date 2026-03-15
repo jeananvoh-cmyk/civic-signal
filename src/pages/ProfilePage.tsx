@@ -691,7 +691,7 @@ const ProfilePage = () => {
                     )}
                     {!profile.electricity_meter_number && (
                       <Badge variant="outline" className="text-[10px] bg-background border-yellow-500/50 text-yellow-600 gap-1 py-0.5">
-                        <Zap className="h-3 w-3" /> N° compteur
+                        <img src={electricityIconSm} alt="" className="h-3 w-3" /> N° compteur
                       </Badge>
                     )}
                     {!profile.water_client_id && (
