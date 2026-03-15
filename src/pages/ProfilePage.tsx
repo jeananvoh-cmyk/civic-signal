@@ -1535,6 +1535,127 @@ const ProfilePage = () => {
         </motion.div>
       </main>
 
+      {/* ── ODD DIALOG ── */}
+      <Dialog open={showOddDialog !== null} onOpenChange={(open) => { if (!open) setShowOddDialog(null); }}>
+        <DialogContent className="max-w-lg mx-4 sm:mx-auto max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+              {showOddDialog === "odd6" ? (
+                <><span className="text-xl">💧</span> ODD 6 — Eau propre et assainissement</>
+              ) : (
+                <><span className="text-xl">⚡</span> ODD 7 — Énergie propre et d'un coût abordable</>
+              )}
+            </DialogTitle>
+            <DialogDescription className="text-sm">
+              {showOddDialog === "odd6"
+                ? "Garantir l'accès de tous à des services d'alimentation en eau et d'assainissement gérés de façon durable d'ici 2030."
+                : "Garantir l'accès de tous à des services énergétiques fiables, durables et modernes, à un coût abordable d'ici 2030."
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-2">
+            {showOddDialog === "odd6" ? (
+              <>
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-blue-500" /> Cibles clés
+                  </h3>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <div className="flex gap-2 items-start">
+                      <span className="text-blue-500 font-bold text-xs mt-0.5">6.1</span>
+                      <p>Accès universel et équitable à l'eau potable, à un coût abordable.</p>
+                    </div>
+                    <div className="flex gap-2 items-start">
+                      <span className="text-blue-500 font-bold text-xs mt-0.5">6.2</span>
+                      <p>Accès à des services d'assainissement et d'hygiène adéquats pour tous.</p>
+                    </div>
+                    <div className="flex gap-2 items-start">
+                      <span className="text-blue-500 font-bold text-xs mt-0.5">6.4</span>
+                      <p>Utilisation rationnelle des ressources en eau et réduction de la pénurie.</p>
+                    </div>
+                  </div>
+                </div>
+                <Separator />
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 text-blue-500" /> En Côte d'Ivoire
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    La SODECI assure la distribution d'eau potable. Le taux d'accès à l'eau potable en milieu urbain est d'environ 80%, mais de nombreuses zones périurbaines subissent encore des coupures régulières. Chaque signalement sur SIGNA-CI contribue à identifier ces zones et à améliorer le service.
+                  </p>
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <ExternalLink className="h-4 w-4 text-blue-500" /> Ressources
+                  </h3>
+                  <div className="grid gap-2">
+                    <a href="https://sdgs.un.org/goals/goal6" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <ExternalLink className="h-3.5 w-3.5" /> Nations Unies — ODD 6
+                    </a>
+                    <a href="https://www.sodeci.ci" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <ExternalLink className="h-3.5 w-3.5" /> SODECI — Site officiel
+                    </a>
+                    <a href="https://www.onep.ci" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <ExternalLink className="h-3.5 w-3.5" /> ONEP — Office National de l'Eau Potable
+                    </a>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-amber-500" /> Cibles clés
+                  </h3>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <div className="flex gap-2 items-start">
+                      <span className="text-amber-500 font-bold text-xs mt-0.5">7.1</span>
+                      <p>Accès universel à des services énergétiques fiables et modernes, à un coût abordable.</p>
+                    </div>
+                    <div className="flex gap-2 items-start">
+                      <span className="text-amber-500 font-bold text-xs mt-0.5">7.2</span>
+                      <p>Accroître la part de l'énergie renouvelable dans le bouquet énergétique mondial.</p>
+                    </div>
+                    <div className="flex gap-2 items-start">
+                      <span className="text-amber-500 font-bold text-xs mt-0.5">7.b</span>
+                      <p>Développer l'infrastructure et améliorer la technologie pour fournir des services énergétiques modernes.</p>
+                    </div>
+                  </div>
+                </div>
+                <Separator />
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 text-amber-500" /> En Côte d'Ivoire
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    La CIE (Compagnie Ivoirienne d'Électricité) gère la distribution d'électricité. Le pays produit environ 2 200 MW mais la demande croissante entraîne des délestages fréquents, notamment dans les quartiers populaires. Vos signalements aident à cartographier les zones les plus touchées.
+                  </p>
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <ExternalLink className="h-4 w-4 text-amber-500" /> Ressources
+                  </h3>
+                  <div className="grid gap-2">
+                    <a href="https://sdgs.un.org/goals/goal7" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <ExternalLink className="h-3.5 w-3.5" /> Nations Unies — ODD 7
+                    </a>
+                    <a href="https://www.cie.ci" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <ExternalLink className="h-3.5 w-3.5" /> CIE — Site officiel
+                    </a>
+                    <a href="https://www.anare.ci" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <ExternalLink className="h-3.5 w-3.5" /> ANARE-CI — Autorité de Régulation
+                    </a>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* ── DELETE ACCOUNT DIALOG ── */}
       <Dialog open={showDeleteDialog} onOpenChange={(open) => { if (!open && !deleting) { setShowDeleteDialog(false); } }}>
         <DialogContent className="max-w-md mx-4 sm:mx-auto">
