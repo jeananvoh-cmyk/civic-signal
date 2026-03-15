@@ -185,6 +185,11 @@ const MyReports = ({ profileComplete = false }: { profileComplete?: boolean }) =
                   <Badge variant={isActive ? "default" : "outline"} className={isActive ? "" : "border-success text-success"}>
                     {isActive ? "Actif" : "Résolu"}
                   </Badge>
+                  {profileComplete && isActive && (
+                    <Badge variant="outline" className="text-[10px] gap-1" style={{ borderColor: "hsl(45 93% 47%)", color: "hsl(45 93% 47%)" }}>
+                      ✅ Profil vérifié
+                    </Badge>
+                  )}
                   {r.urgency === "critical" && (
                     <Badge className="bg-destructive text-destructive-foreground animate-pulse">
                       🔥 Critique
