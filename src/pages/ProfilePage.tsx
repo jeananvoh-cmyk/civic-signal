@@ -83,7 +83,171 @@ const formatDuration = (start: string, end: string | null) => {
   return `${mins}min`;
 };
 
-const ProfilePage = () => {
+const CONTACT_COLORS: Record<string, string> = {
+  electricity: "text-amber-500",
+  water: "text-blue-500",
+  general: "text-primary",
+  emergency: "text-destructive",
+};
+
+const RESOURCE_ICONS: Record<string, React.ReactNode> = {
+  electricity: <Zap className="h-4 w-4 text-amber-500" />,
+  water: <Droplets className="h-4 w-4 text-blue-500" />,
+  general: <Scale className="h-4 w-4 text-primary" />,
+};
+
+const RightsTabContent = () => {
+  const { data: rights, isLoading } = useRightsContent();
+
+  if (isLoading || !rights) {
+    return (
+      <div className="flex justify-center py-10">
+        <div className="h-7 w-7 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Intro */}
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary flex-shrink-0">
+            <Scale className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="font-display text-lg font-bold text-foreground">Vos droits & devoirs</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              En tant qu'usager de l'électricité et de l'eau en Côte d'Ivoire, vous êtes protégé par la loi.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ⚡ Droits Électricité */}
+      {rights.electricity_rights.length > 0 && (
+        <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+          <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-amber-500/5">
+            <Zap className="h-4 w-4 text-amber-500" />
+            <h3 className="font-semibold text-sm text-foreground">Électricité — Vos droits</h3>
+          </div>
+          <div className="p-4 sm:p-6 space-y-2.5 text-sm text-muted-foreground">
+            {rights.electricity_rights.map((item, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="shrink-0 mt-0.5">{item.icon}</span>
+                <p><span className="font-semibold text-foreground">{item.title}</span> — {item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 💧 Droits Eau */}
+      {rights.water_rights.length > 0 && (
+        <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+          <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-blue-500/5">
+            <Droplets className="h-4 w-4 text-blue-500" />
+            <h3 className="font-semibold text-sm text-foreground">Eau — Vos droits</h3>
+          </div>
+          <div className="p-4 sm:p-6 space-y-2.5 text-sm text-muted-foreground">
+            {rights.water_rights.map((item, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="shrink-0 mt-0.5">{item.icon}</span>
+                <p><span className="font-semibold text-foreground">{item.title}</span> — {item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 💡 Conseils */}
+      {rights.tips.length > 0 && (
+        <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+          <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-green-500/5">
+            <Lightbulb className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <h3 className="font-semibold text-sm text-foreground">Conseils & bonnes pratiques</h3>
+          </div>
+          <div className="p-4 sm:p-6">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {rights.tips.map((tip, i) => (
+                <div key={i} className="flex items-start gap-2.5 rounded-lg border border-border p-3 bg-background">
+                  <span className="text-lg shrink-0">{tip.icon}</span>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{tip.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{tip.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📄 Ressources */}
+      {rights.resources.length > 0 && (
+        <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+          <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-muted/30">
+            <BookOpen className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold text-sm text-foreground">Textes de loi & ressources officielles</h3>
+          </div>
+          <div className="p-4 sm:p-6 space-y-2">
+            {rights.resources.map((r, i) => (
+              <a
+                key={i}
+                href={r.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-lg border border-border p-3 bg-background hover:bg-accent transition-colors group"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted shrink-0">
+                  {RESOURCE_ICONS[r.type] || RESOURCE_ICONS.general}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{r.title}</p>
+                  <p className="text-xs text-muted-foreground truncate">{r.description}</p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="text-[10px] font-medium text-muted-foreground bg-muted rounded px-1.5 py-0.5">{r.format}</span>
+                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 📞 Contacts */}
+      {rights.contacts.length > 0 && (
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
+          <h3 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
+            <Phone className="h-4 w-4 text-primary" />
+            Numéros utiles
+          </h3>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {rights.contacts.map((c, i) => {
+              const color = CONTACT_COLORS[c.type] || "text-primary";
+              return (
+                <a
+                  key={i}
+                  href={`tel:${c.number.replace(/\s/g, "")}`}
+                  className="flex items-center gap-3 rounded-lg border border-border p-3 bg-background hover:bg-accent transition-colors"
+                >
+                  <Phone className={`h-4 w-4 ${color} shrink-0`} />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{c.name}</p>
+                    <p className={`text-sm font-bold ${color}`}>{c.number}</p>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
