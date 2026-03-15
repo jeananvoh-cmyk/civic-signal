@@ -699,7 +699,8 @@ const ProfilePage = () => {
             <TabsList className="flex w-full overflow-x-auto no-scrollbar gap-0.5">
               <TabsTrigger value="rights" className="gap-1.5 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
                 <Scale className="h-3.5 w-3.5 flex-shrink-0" />
-                <AnimatedTabLabel labels={["Mon Espace Eau & Électricité", "Eau & Énergie Citoyen"]} mobileLabels={["Eau & Élec", "Citoyen"]} />
+                <span className="hidden sm:inline">Eau & Énergie Citoyen</span>
+                <span className="sm:hidden">Eau & Énergie</span>
               </TabsTrigger>
               <TabsTrigger value="history" className="gap-1 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
                 <History className="h-3.5 w-3.5 flex-shrink-0" />
