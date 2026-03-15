@@ -998,6 +998,7 @@ const ProfilePage = () => {
               </div>
             </TabsContent>
           </Tabs>
+          </div>
         </motion.div>
       </main>
 
