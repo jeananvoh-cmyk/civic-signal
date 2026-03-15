@@ -499,17 +499,12 @@ const ProfilePage = () => {
           </div>
 
           <div className="px-4 sm:px-0">
-          <Tabs defaultValue="reports" className="space-y-4 sm:space-y-6" onValueChange={(v) => { if (v === "history" && history.length === 0) fetchHistory(); }}>
+          <Tabs defaultValue="rights" className="space-y-4 sm:space-y-6" onValueChange={(v) => { if (v === "history" && history.length === 0) fetchHistory(); }}>
             <TabsList className="flex w-full overflow-x-auto no-scrollbar gap-0.5">
-              <TabsTrigger value="reports" className="gap-1.5 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
-                <FileText className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="hidden xs:inline sm:inline">Signalements</span>
-                <span className="xs:hidden sm:hidden">Signaler</span>
-                {activeReportsCount !== null && activeReportsCount > 0 && (
-                  <span className="inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
-                    {activeReportsCount}
-                  </span>
-                )}
+              <TabsTrigger value="rights" className="gap-1.5 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
+                <Scale className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="hidden sm:inline">Droits & Conseils</span>
+                <span className="sm:hidden">Droits</span>
               </TabsTrigger>
               <TabsTrigger value="history" className="gap-1 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
                 <History className="h-3.5 w-3.5 flex-shrink-0" />
@@ -536,11 +531,216 @@ const ProfilePage = () => {
               </TabsTrigger>
             </TabsList>
 
-            {/* ── MES SIGNALEMENTS ── */}
-            <TabsContent value="reports">
-              <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
-                <h2 className="font-display text-lg font-bold text-foreground mb-4">Mes signalements</h2>
-                <MyReports profileComplete={isProfileComplete} />
+            {/* ── DROITS & CONSEILS ── */}
+            <TabsContent value="rights">
+              <div className="space-y-5">
+                {/* Intro */}
+                <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary flex-shrink-0">
+                      <Scale className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h2 className="font-display text-lg font-bold text-foreground">Vos droits & devoirs</h2>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        En tant qu'usager de l'électricité et de l'eau en Côte d'Ivoire, vous êtes protégé par la loi. Voici l'essentiel à connaître.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ⚡ Droits Électricité */}
+                <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-amber-500/5">
+                    <Zap className="h-4 w-4 text-amber-500" />
+                    <h3 className="font-semibold text-sm text-foreground">Électricité — Vos droits</h3>
+                  </div>
+                  <div className="p-4 sm:p-6 space-y-3">
+                    <div className="space-y-2.5 text-sm text-muted-foreground">
+                      <div className="flex items-start gap-2">
+                        <ShieldCheck className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                        <p><span className="font-semibold text-foreground">Continuité de service</span> — La CIE est tenue d'assurer un service continu. Toute coupure prolongée sans motif légitime engage sa responsabilité (Art. 24, Code de l'électricité).</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <ShieldCheck className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                        <p><span className="font-semibold text-foreground">Information préalable</span> — La CIE doit informer les usagers avant toute coupure programmée pour maintenance.</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <ShieldCheck className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                        <p><span className="font-semibold text-foreground">Réclamation</span> — Vous pouvez saisir l'ANARE (Autorité Nationale de Régulation du secteur de l'Électricité) en cas de litige non résolu avec la CIE.</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                        <p><span className="font-semibold text-foreground">Vos obligations</span> — Payer vos factures dans les délais, ne pas frauder le compteur, ne pas effectuer de branchements illégaux (passible de sanctions pénales).</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 💧 Droits Eau */}
+                <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-blue-500/5">
+                    <Droplets className="h-4 w-4 text-blue-500" />
+                    <h3 className="font-semibold text-sm text-foreground">Eau — Vos droits</h3>
+                  </div>
+                  <div className="p-4 sm:p-6 space-y-3">
+                    <div className="space-y-2.5 text-sm text-muted-foreground">
+                      <div className="flex items-start gap-2">
+                        <ShieldCheck className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                        <p><span className="font-semibold text-foreground">Droit d'accès à l'eau potable</span> — L'accès à l'eau potable est un droit fondamental reconnu par le Code de l'eau (Loi n°2023-902).</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <ShieldCheck className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                        <p><span className="font-semibold text-foreground">Qualité de l'eau</span> — La SODECI est tenue de fournir une eau conforme aux normes de qualité établies par l'OMS et la réglementation ivoirienne.</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <ShieldCheck className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                        <p><span className="font-semibold text-foreground">Réclamation</span> — En cas de coupure prolongée ou de litige, vous pouvez saisir l'ONEP (Office National de l'Eau Potable) ou les services de la Mairie.</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                        <p><span className="font-semibold text-foreground">Vos obligations</span> — Payer les factures d'eau, signaler les fuites, ne pas gaspiller l'eau potable, ne pas polluer les sources d'eau.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 💡 Conseils & bonnes pratiques */}
+                <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-green-500/5">
+                    <Lightbulb className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <h3 className="font-semibold text-sm text-foreground">Conseils & bonnes pratiques</h3>
+                  </div>
+                  <div className="p-4 sm:p-6">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {[
+                        { emoji: "⚡", title: "Débranchez les appareils", desc: "Débranchez les appareils sensibles pendant les coupures pour éviter les surtensions au retour du courant." },
+                        { emoji: "💧", title: "Stockez l'eau proprement", desc: "Utilisez des récipients propres et couverts pour stocker l'eau. Renouvelez toutes les 24h." },
+                        { emoji: "🔌", title: "Utilisez un parafoudre", desc: "Protégez vos appareils électroniques avec un parafoudre ou un régulateur de tension." },
+                        { emoji: "🚰", title: "Signalez les fuites", desc: "Une fuite d'eau = gaspillage collectif. Signalez-la immédiatement via SIGNA-CI ou au 175 (SODECI)." },
+                        { emoji: "💡", title: "Économisez l'énergie", desc: "Éteignez les lumières inutiles, préférez les ampoules LED. Ça réduit la charge sur le réseau." },
+                        { emoji: "📱", title: "Gardez vos reçus", desc: "Conservez toujours vos reçus de paiement CIE/SODECI. Ils sont votre preuve en cas de litige." },
+                      ].map((tip) => (
+                        <div key={tip.title} className="flex items-start gap-2.5 rounded-lg border border-border p-3 bg-background">
+                          <span className="text-lg shrink-0">{tip.emoji}</span>
+                          <div>
+                            <p className="text-sm font-semibold text-foreground">{tip.title}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{tip.desc}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 📄 Textes de loi & ressources */}
+                <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-muted/30">
+                    <BookOpen className="h-4 w-4 text-primary" />
+                    <h3 className="font-semibold text-sm text-foreground">Textes de loi & ressources officielles</h3>
+                  </div>
+                  <div className="p-4 sm:p-6 space-y-2">
+                    {[
+                      {
+                        title: "Code de l'Électricité (Loi n°2014-132)",
+                        desc: "Loi du 24 mars 2014 portant Code de l'Électricité en Côte d'Ivoire",
+                        url: "https://faolex.fao.org/docs/pdf/ivc146558.pdf",
+                        icon: <Zap className="h-4 w-4 text-amber-500" />,
+                        format: "PDF",
+                      },
+                      {
+                        title: "Code de l'Eau (Loi n°2023-902)",
+                        desc: "Nouveau Code de l'eau adopté en 2023, remplaçant la Loi n°98-755",
+                        url: "https://www.pseau.org/outils/biblio/resume.php?d=12272&l=fr",
+                        icon: <Droplets className="h-4 w-4 text-blue-500" />,
+                        format: "PDF",
+                      },
+                      {
+                        title: "Ancien Code de l'Eau (Loi n°98-755)",
+                        desc: "Loi du 23 décembre 1998 portant Code de l'Eau (toujours applicable en partie)",
+                        url: "https://civ.abidjan.net/images/pdf/code_de%20_eau.pdf",
+                        icon: <Droplets className="h-4 w-4 text-blue-500" />,
+                        format: "PDF",
+                      },
+                      {
+                        title: "ANARE-CI — Droits des consommateurs",
+                        desc: "Autorité de régulation : recours, droits et obligations des usagers de l'électricité",
+                        url: "https://anare.ci/documents/lois-et-reglementation/les-lois/",
+                        icon: <Scale className="h-4 w-4 text-primary" />,
+                        format: "Site web",
+                      },
+                      {
+                        title: "Ma SODECI en ligne — Conditions d'utilisation",
+                        desc: "Termes et conditions d'utilisation des services SODECI en ligne",
+                        url: "https://www.masodecienligne.ci/docs/TermesConditions.pdf",
+                        icon: <Droplets className="h-4 w-4 text-blue-500" />,
+                        format: "PDF",
+                      },
+                      {
+                        title: "CIE — Espace client",
+                        desc: "Portail officiel de la CIE pour les usagers (réclamations, suivi de consommation)",
+                        url: "https://www.cie.ci",
+                        icon: <Zap className="h-4 w-4 text-amber-500" />,
+                        format: "Site web",
+                      },
+                      {
+                        title: "SODECI — Espace client",
+                        desc: "Portail officiel de la SODECI pour les usagers (réclamations, paiements)",
+                        url: "https://www.sodeci.ci",
+                        icon: <Droplets className="h-4 w-4 text-blue-500" />,
+                        format: "Site web",
+                      },
+                    ].map((resource) => (
+                      <a
+                        key={resource.title}
+                        href={resource.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 rounded-lg border border-border p-3 bg-background hover:bg-accent transition-colors group"
+                      >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted shrink-0">
+                          {resource.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{resource.title}</p>
+                          <p className="text-xs text-muted-foreground truncate">{resource.desc}</p>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className="text-[10px] font-medium text-muted-foreground bg-muted rounded px-1.5 py-0.5">{resource.format}</span>
+                          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Numéros utiles */}
+                <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
+                  <h3 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-primary" />
+                    Numéros utiles
+                  </h3>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {[
+                      { name: "CIE (dépannage)", number: "179", color: "text-amber-500" },
+                      { name: "SODECI (urgences)", number: "175", color: "text-blue-500" },
+                      { name: "ANARE-CI (réclamations)", number: "+225 27 20 20 61 16", color: "text-primary" },
+                      { name: "Sapeurs Pompiers", number: "180", color: "text-destructive" },
+                    ].map((contact) => (
+                      <a
+                        key={contact.name}
+                        href={`tel:${contact.number.replace(/\s/g, "")}`}
+                        className="flex items-center gap-3 rounded-lg border border-border p-3 bg-background hover:bg-accent transition-colors"
+                      >
+                        <Phone className={`h-4 w-4 ${contact.color} shrink-0`} />
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{contact.name}</p>
+                          <p className={`text-sm font-bold ${contact.color}`}>{contact.number}</p>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
               </div>
             </TabsContent>
 
