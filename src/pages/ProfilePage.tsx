@@ -715,20 +715,28 @@ const ProfilePage = () => {
 
               {/* ODD mini cards */}
               <div className={`grid grid-cols-2 gap-2 ${conformityPercent < 100 ? "sm:w-72 flex-shrink-0" : "w-full sm:max-w-md"}`}>
-                <div className="flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 p-2.5">
+                <button
+                  onClick={() => setShowOddDialog("odd6")}
+                  className="flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 p-2.5 hover:bg-blue-500/10 transition-colors text-left cursor-pointer"
+                >
                   <span className="text-lg shrink-0">💧</span>
                   <div className="min-w-0">
                     <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 leading-tight">ODD 6</p>
                     <p className="text-[10px] text-muted-foreground leading-tight">Eau propre</p>
                   </div>
-                </div>
-                <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-2.5">
+                  <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto shrink-0" />
+                </button>
+                <button
+                  onClick={() => setShowOddDialog("odd7")}
+                  className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-2.5 hover:bg-amber-500/10 transition-colors text-left cursor-pointer"
+                >
                   <span className="text-lg shrink-0">⚡</span>
                   <div className="min-w-0">
                     <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 leading-tight">ODD 7</p>
                     <p className="text-[10px] text-muted-foreground leading-tight">Énergie propre</p>
                   </div>
-                </div>
+                  <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto shrink-0" />
+                </button>
               </div>
             </div>
           </div>
