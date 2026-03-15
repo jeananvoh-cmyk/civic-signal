@@ -542,7 +542,7 @@ const Index = () => {
                 </span>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Plateforme citoyenne de signalement des coupures d'eau et d'électricité à Abidjan, Côte d'Ivoire.
+                La première plateforme citoyenne ivoirienne où les habitants contribuent à l'amélioration de la qualité des services d'eau, d'électricité et des infrastructures publiques.
               </p>
             </div>
 
