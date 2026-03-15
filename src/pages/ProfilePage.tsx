@@ -109,18 +109,48 @@ const RightsTabContent = () => {
 
   return (
     <div className="space-y-5">
-      {/* Intro */}
-      <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
+      {/* Intro + ODD */}
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card space-y-4">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary flex-shrink-0">
             <Scale className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="font-display text-lg font-bold text-foreground">Vos droits & devoirs</h2>
+            <h2 className="font-display text-lg font-bold text-foreground">Mon Espace Eau & Électricité</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              En tant qu'usager de l'électricité et de l'eau en Côte d'Ivoire, vous êtes protégé par la loi.
+              En tant qu'usager de l'électricité et de l'eau en Côte d'Ivoire, vous êtes protégé par la loi. Retrouvez ici vos droits, devoirs, conseils et ressources officielles.
             </p>
           </div>
+        </div>
+
+        {/* ODD Section */}
+        <div className="rounded-lg border border-border bg-muted/30 p-3 sm:p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <ShieldCheck className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <h3 className="text-sm font-semibold text-foreground">Objectifs de Développement Durable (ODD)</h3>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            L'accès à l'eau potable et à l'énergie sont des droits fondamentaux reconnus par les Nations Unies à travers les ODD.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex items-start gap-2 rounded-lg border border-border bg-background p-2.5">
+              <span className="text-xl shrink-0">💧</span>
+              <div>
+                <p className="text-xs font-bold text-blue-600 dark:text-blue-400">ODD 6 — Eau propre</p>
+                <p className="text-[11px] text-muted-foreground">Garantir l'accès de tous à l'eau potable et à l'assainissement d'ici 2030.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2 rounded-lg border border-border bg-background p-2.5">
+              <span className="text-xl shrink-0">⚡</span>
+              <div>
+                <p className="text-xs font-bold text-amber-600 dark:text-amber-400">ODD 7 — Énergie propre</p>
+                <p className="text-[11px] text-muted-foreground">Garantir l'accès de tous à une énergie fiable, durable et à un coût abordable.</p>
+              </div>
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-2 italic">
+            🇨🇮 La Côte d'Ivoire s'est engagée à atteindre ces objectifs. Chaque signalement sur SIGNA-CI contribue à rendre ces services plus fiables.
+          </p>
         </div>
       </div>
 
