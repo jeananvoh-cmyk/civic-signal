@@ -703,61 +703,90 @@ const ProfilePage = () => {
 
             {/* ── PROFIL ── */}
             <TabsContent value="profile">
-              <div className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground">Prénom</Label>
-                    <Input placeholder="Votre prénom" value={profile.first_name} onChange={(e) => update("first_name", e.target.value)} maxLength={50} className="h-9 text-sm" />
+              <div className="space-y-4">
+                {/* Identity card */}
+                <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-muted/30">
+                    <User className="h-4 w-4 text-primary" />
+                    <h3 className="font-semibold text-sm text-foreground">Identité</h3>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground">Nom</Label>
-                    <Input placeholder="Votre nom" value={profile.last_name} onChange={(e) => update("last_name", e.target.value)} maxLength={50} className="h-9 text-sm" />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input value={user?.email ?? ""} disabled className="pl-10 h-9 text-sm opacity-60" />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Téléphone</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input value={profile.phone || user?.phone || "Non renseigné"} disabled className="pl-10 h-9 text-sm opacity-60" />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Type de profil</Label>
-                  <RadioGroup value={profile.user_type} onValueChange={(v) => update("user_type", v)} className="flex gap-4">
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="household" id="p-household" />
-                      <Label htmlFor="p-household" className="flex items-center gap-1.5 text-sm cursor-pointer">
-                        <Home className="h-4 w-4" /> Ménage
-                      </Label>
+                  <div className="p-4 sm:p-6 space-y-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-muted-foreground">Prénom</Label>
+                        <Input placeholder="Votre prénom" value={profile.first_name} onChange={(e) => update("first_name", e.target.value)} maxLength={50} className="h-10 text-sm" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-muted-foreground">Nom</Label>
+                        <Input placeholder="Votre nom" value={profile.last_name} onChange={(e) => update("last_name", e.target.value)} maxLength={50} className="h-10 text-sm" />
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="business" id="p-business" />
-                      <Label htmlFor="p-business" className="flex items-center gap-1.5 text-sm cursor-pointer">
-                        <Building2 className="h-4 w-4" /> Entreprise
-                      </Label>
-                    </div>
-                  </RadioGroup>
+                  </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Bio</Label>
-                  <Textarea
-                    placeholder="Décrivez-vous en quelques mots (optionnel)"
-                    value={profile.bio}
-                    onChange={(e) => update("bio", e.target.value)}
-                    maxLength={300}
-                    rows={3}
-                    className="text-sm"
+                {/* Contact card */}
+                <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-muted/30">
+                    <Mail className="h-4 w-4 text-primary" />
+                    <h3 className="font-semibold text-sm text-foreground">Contact</h3>
+                  </div>
+                  <div className="p-4 sm:p-6 space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-foreground">Email</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input value={user?.email ?? ""} disabled className="pl-10 h-10 text-sm opacity-60" />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-foreground">Téléphone</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input value={profile.phone || user?.phone || "Non renseigné"} disabled className="pl-10 h-10 text-sm opacity-60" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* About card */}
+                <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-border bg-muted/30">
+                    <Info className="h-4 w-4 text-primary" />
+                    <h3 className="font-semibold text-sm text-foreground">À propos</h3>
+                  </div>
+                  <div className="p-4 sm:p-6 space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-foreground">Type de profil</Label>
+                      <RadioGroup value={profile.user_type} onValueChange={(v) => update("user_type", v)} className="flex gap-4 pt-1">
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="household" id="p-household" />
+                          <Label htmlFor="p-household" className="flex items-center gap-1.5 text-sm cursor-pointer">
+                            <Home className="h-4 w-4" /> Ménage
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="business" id="p-business" />
+                          <Label htmlFor="p-business" className="flex items-center gap-1.5 text-sm cursor-pointer">
+                            <Building2 className="h-4 w-4" /> Entreprise
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-foreground">Bio</Label>
+                      <Textarea
+                        placeholder="Décrivez-vous en quelques mots (optionnel)"
+                        value={profile.bio}
+                        onChange={(e) => update("bio", e.target.value)}
+                        maxLength={300}
+                        rows={3}
+                        className="text-sm"
+                      />
+                      <p className="text-right text-xs text-muted-foreground">{profile.bio.length}/300</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
                   />
                   <p className="text-right text-xs text-muted-foreground">{profile.bio.length}/300</p>
                 </div>
