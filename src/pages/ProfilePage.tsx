@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+// ProfilePage - updated
 import {
   User, Mail, Phone, MapPin, Home, Building2, Save, Shield,
   Bell, Globe, Palette, ChevronRight, CheckCircle2, FileText, Clock,
