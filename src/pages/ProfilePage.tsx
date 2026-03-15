@@ -106,6 +106,9 @@ const ProfilePage = () => {
     water_meter_number: "",
   });
 
+  // Active reports count
+  const [activeReportsCount, setActiveReportsCount] = useState<number | null>(null);
+
   // History state
   const [history, setHistory] = useState<HistoryReport[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -156,6 +159,17 @@ const ProfilePage = () => {
       setLoading(false);
     };
     fetchProfile();
+
+    // Fetch active reports count
+    const fetchActiveCount = async () => {
+      const { count } = await supabase
+        .from("reports")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "active");
+      setActiveReportsCount(count ?? 0);
+    };
+    fetchActiveCount();
   }, [user]);
 
   const fetchHistory = async () => {
@@ -445,10 +459,15 @@ const ProfilePage = () => {
           <div className="px-4 sm:px-0">
           <Tabs defaultValue="reports" className="space-y-4 sm:space-y-6" onValueChange={(v) => { if (v === "history" && history.length === 0) fetchHistory(); }}>
             <TabsList className="flex w-full overflow-x-auto no-scrollbar gap-0.5">
-              <TabsTrigger value="reports" className="gap-1 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
+              <TabsTrigger value="reports" className="gap-1.5 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
                 <FileText className="h-3.5 w-3.5 flex-shrink-0" />
                 <span className="hidden xs:inline sm:inline">Signalements</span>
                 <span className="xs:hidden sm:hidden">Signaler</span>
+                {activeReportsCount !== null && activeReportsCount > 0 && (
+                  <span className="inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
+                    {activeReportsCount}
+                  </span>
+                )}
               </TabsTrigger>
               <TabsTrigger value="history" className="gap-1 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
                 <History className="h-3.5 w-3.5 flex-shrink-0" />
