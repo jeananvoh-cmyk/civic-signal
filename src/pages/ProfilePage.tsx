@@ -405,7 +405,7 @@ const ProfilePage = () => {
                   <circle cx="18" cy="18" r="15.5" fill="none" stroke="hsl(var(--muted))" strokeWidth="3" />
                   <motion.circle
                     cx="18" cy="18" r="15.5" fill="none"
-                    stroke={conformityPercent >= 80 ? "hsl(150 60% 40%)" : conformityPercent >= 50 ? "hsl(40 95% 50%)" : "hsl(var(--destructive))"}
+                    stroke={isProfileComplete ? "hsl(45 93% 47%)" : conformityPercent >= 80 ? "hsl(150 60% 40%)" : conformityPercent >= 50 ? "hsl(40 95% 50%)" : "hsl(var(--destructive))"}
                     strokeWidth="3" strokeLinecap="round"
                     strokeDasharray={`${conformityPercent * 0.9738} 97.38`}
                     initial={{ strokeDasharray: "0 97.38" }}
