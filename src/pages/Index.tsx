@@ -179,7 +179,7 @@ const Index = () => {
         <motion.div style={{ y: heroY, opacity: heroOpacity }} className="container relative z-10 py-20 md:py-28">
           <motion.div variants={stagger} initial="hidden" animate="show" className="max-w-3xl">
 
-            {/* Live badge + communes badge */}
+            {/* Top badges row */}
             <motion.div variants={fadeUp} className="mb-6 flex flex-wrap items-center gap-3">
               {liveCount !== null && (
                 <motion.div
@@ -209,17 +209,16 @@ const Index = () => {
                   </AnimatePresence>
                 </motion.div>
               )}
+              <motion.div
+                variants={scaleIn}
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/80 backdrop-blur-md"
+              >
+                <Shield className="h-4 w-4 text-white/60" />
+                07 communes pilotes
+              </motion.div>
             </motion.div>
 
-            <motion.div
-              variants={scaleIn}
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/80 backdrop-blur-md"
-            >
-              <Shield className="h-4 w-4 text-white/60" />
-              07 communes pilotes
-            </motion.div>
-
-            {/* Title + inline pills */}
+            {/* Title */}
             <motion.div variants={fadeUp}>
               <h1 className="font-display text-[2.75rem] font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl">
                 Signalez
