@@ -32,7 +32,7 @@ interface QuartierCount {
   count: number;
 }
 
-const MyReports = () => {
+const MyReports = ({ profileComplete = false }: { profileComplete?: boolean }) => {
   const { user } = useAuth();
   const { isAdmin, isModerator } = useUserRole();
   const canSeeQuartierCounts = isAdmin || isModerator;
