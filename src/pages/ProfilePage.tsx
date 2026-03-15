@@ -96,32 +96,6 @@ const RESOURCE_ICONS: Record<string, React.ReactNode> = {
   general: <Scale className="h-4 w-4 text-primary" />,
 };
 
-const AnimatedTabLabel = ({ labels, mobileLabels }: { labels: string[]; mobileLabels: string[] }) => {
-  const [index, setIndex] = useState(0);
-  useEffect(() => {
-    const interval = setInterval(() => setIndex((i) => (i + 1) % labels.length), 4000);
-    return () => clearInterval(interval);
-  }, [labels.length]);
-  return (
-    <>
-      <span className="hidden sm:inline">
-        <AnimatePresence mode="wait">
-          <motion.span key={index} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.3 }}>
-            {labels[index]}
-          </motion.span>
-        </AnimatePresence>
-      </span>
-      <span className="sm:hidden">
-        <AnimatePresence mode="wait">
-          <motion.span key={index} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.3 }}>
-            {mobileLabels[index]}
-          </motion.span>
-        </AnimatePresence>
-      </span>
-    </>
-  );
-};
-
 const RightsTabContent = () => {
   const { data: rights, isLoading } = useRightsContent();
 
@@ -725,7 +699,8 @@ const ProfilePage = () => {
             <TabsList className="flex w-full overflow-x-auto no-scrollbar gap-0.5">
               <TabsTrigger value="rights" className="gap-1.5 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
                 <Scale className="h-3.5 w-3.5 flex-shrink-0" />
-                <AnimatedTabLabel labels={["Mon Espace Eau & Électricité", "Eau & Énergie Citoyen"]} mobileLabels={["Eau & Élec", "Citoyen"]} />
+                <span className="hidden sm:inline">Eau & Énergie Citoyen</span>
+                <span className="sm:hidden">Eau & Énergie</span>
               </TabsTrigger>
               <TabsTrigger value="history" className="gap-1 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
                 <History className="h-3.5 w-3.5 flex-shrink-0" />
