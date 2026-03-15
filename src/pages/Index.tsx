@@ -95,9 +95,8 @@ const Index = () => {
               </div>
             </div>
 
-            <h1 className="font-display text-4xl font-extrabold leading-tight text-white md:text-5xl lg:text-6xl">
-              La Première Plateforme Ivoirienne{" "}
-              pour <span className="text-urgent">Signaler les </span>
+            <h1 className="font-display text-5xl font-extrabold leading-tight text-white md:text-6xl lg:text-7xl">
+              Signalez
             </h1>
 
             {/* Problem-type pills */}
@@ -118,35 +117,42 @@ const Index = () => {
                 to="/signaler?type=street_light"
                 className="inline-flex items-center gap-1.5 rounded-full border border-orange-400/30 bg-orange-500/20 px-3 py-1.5 text-xs font-bold text-orange-200 backdrop-blur-sm transition-all hover:bg-orange-500/30 hover:scale-105 active:scale-95"
               >
-                💡 Lampadaires cassés
+                💡 Lampadaires
               </Link>
               <Link
                 to="/signaler?type=drain_blocked"
                 className="inline-flex items-center gap-1.5 rounded-full border border-teal-400/30 bg-teal-500/20 px-3 py-1.5 text-xs font-bold text-teal-200 backdrop-blur-sm transition-all hover:bg-teal-500/30 hover:scale-105 active:scale-95"
               >
-                🌧️ Caniveaux bouchés
+                🌧️ Caniveaux
               </Link>
               <Link
-                to="/signaler?type=pothole"
+                to="/signaler?type=road_damage"
                 className="inline-flex items-center gap-1.5 rounded-full border border-gray-400/30 bg-gray-500/20 px-3 py-1.5 text-xs font-bold text-gray-200 backdrop-blur-sm transition-all hover:bg-gray-500/30 hover:scale-105 active:scale-95"
               >
-                🕳️ Nid de poules
+                🛣️ Routes
               </Link>
             </div>
 
-            <p className="mt-5 text-xl font-extrabold text-white">
-              Vos voisins agissent déjà.
+            <p className="mt-5 max-w-lg text-base text-white/80">
+              La première plateforme citoyenne ivoirienne où les habitants contribuent à l'amélioration de la qualité des services d'eau, d'électricité et des infrastructures publiques.
             </p>
 
             {/* CTA */}
-            <div className="mt-8">
+            <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 to="/signaler"
-                className="group inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-water to-electricity px-10 py-5 text-xl font-extrabold text-white shadow-[0_8px_32px_rgba(14,165,233,0.45)] transition-all duration-200 hover:scale-[1.04] hover:shadow-[0_12px_48px_rgba(14,165,233,0.65)] active:scale-[0.98]"
+                className="group inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-water to-electricity px-8 py-4 text-lg font-extrabold text-white shadow-[0_8px_32px_rgba(14,165,233,0.45)] transition-all duration-200 hover:scale-[1.04] hover:shadow-[0_12px_48px_rgba(14,165,233,0.65)] active:scale-[0.98]"
               >
-                <Zap className="h-6 w-6 drop-shadow" />
-                Signaler
+                <Zap className="h-5 w-5 drop-shadow" />
+                Signaler maintenant
                 <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
+              </Link>
+              <Link
+                to="/tableau-de-bord"
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-8 py-4 text-lg font-bold text-white backdrop-blur-sm transition-all hover:bg-white/20 active:scale-[0.98]"
+              >
+                <BarChart3 className="h-5 w-5" />
+                Voir le dashboard
               </Link>
             </div>
 
