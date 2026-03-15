@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Clock, Zap, Droplets, Loader2, History, Calendar, ArrowLeft } from "lucide-react";
+import { Zap, Droplets, Loader2, History, Calendar, ArrowLeft } from "lucide-react";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { COMMUNE_COLORS } from "@/lib/communes";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import SignedImage from "@/components/SignedImage";
+import DurationBadge from "@/components/DurationBadge";
 
 interface HistoryReport {
   id: string;
@@ -23,6 +24,8 @@ interface HistoryReport {
   start_time: string;
   resolved_at: string | null;
   photo_url: string | null;
+  repair_verifications: number | null;
+  verifications: number;
 }
 
 function formatDuration(startStr: string, endStr: string): string {
