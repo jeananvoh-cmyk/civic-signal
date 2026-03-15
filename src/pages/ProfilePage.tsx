@@ -381,16 +381,16 @@ const ProfilePage = () => {
     };
     fetchProfile();
 
-    // Fetch active reports count
-    const fetchActiveCount = async () => {
-      const { count } = await supabase
-        .from("reports")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("status", "active");
-      setActiveReportsCount(count ?? 0);
+    // Fetch active & resolved reports count
+    const fetchCounts = async () => {
+      const [{ count: activeCount }, { count: resolvedCount }] = await Promise.all([
+        supabase.from("reports").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "active"),
+        supabase.from("reports").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "resolved"),
+      ]);
+      setActiveReportsCount(activeCount ?? 0);
+      setResolvedReportsCount(resolvedCount ?? 0);
     };
-    fetchActiveCount();
+    fetchCounts();
   }, [user]);
 
   const fetchHistory = async () => {
