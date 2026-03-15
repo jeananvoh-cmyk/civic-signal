@@ -264,51 +264,125 @@ const ProfilePage = () => {
     );
   }
 
+  const displayName = profile.first_name || profile.last_name
+    ? `${profile.first_name} ${profile.last_name}`.trim()
+    : user?.email?.split("@")[0] || "Utilisateur";
+
+  const initials = (profile.first_name?.[0] || "") + (profile.last_name?.[0] || "");
+  const avatarInitial = initials || user?.email?.[0]?.toUpperCase() || "?";
+
+  const memberSince = user?.created_at
+    ? new Date(user.created_at).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })
+    : "";
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container max-w-3xl px-4 py-6 sm:py-8">
+      <main className="container max-w-3xl px-0 sm:px-4 py-0 sm:py-6">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-          {/* Header */}
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
-                {profile.first_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "?"}
-              </div>
-              <div>
-                <h1 className="font-display text-xl font-bold text-foreground sm:text-2xl">Mon espace</h1>
-                <p className="text-xs text-muted-foreground sm:text-sm">
-                  {profile.first_name || profile.last_name
-                    ? `${profile.first_name} ${profile.last_name}`
-                    : user?.email}
-                </p>
+
+          {/* ═══ Facebook-style Cover + Avatar ═══ */}
+          <div className="relative mb-20 sm:mb-24 sm:rounded-b-2xl overflow-hidden">
+            {/* Cover photo */}
+            <div className="h-36 sm:h-48 gradient-hero relative overflow-hidden">
+              <div className="absolute inset-0" style={{ background: "var(--gradient-hero-radial)" }} />
+              {/* Decorative pattern */}
+              <div className="absolute inset-0 opacity-10" style={{
+                backgroundImage: "radial-gradient(circle at 1px 1px, hsl(var(--primary-foreground)) 1px, transparent 0)",
+                backgroundSize: "24px 24px"
+              }} />
+              {/* Save button on cover */}
+              <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10">
+                <Button
+                  onClick={handleSave}
+                  disabled={saving}
+                  size="sm"
+                  className="bg-white/20 backdrop-blur-md border border-white/30 text-white hover:bg-white/30 gap-2 shadow-lg"
+                >
+                  {saved ? <CheckCircle2 className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+                  {saving ? "..." : saved ? "Sauvegardé" : "Enregistrer"}
+                </Button>
               </div>
             </div>
-            <Button onClick={handleSave} disabled={saving} size="sm" className="gradient-hero text-primary-foreground gap-2 self-end sm:self-auto">
-              {saved ? <CheckCircle2 className="h-4 w-4" /> : <Save className="h-4 w-4" />}
-              {saving ? "Sauvegarde..." : saved ? "Sauvegardé" : "Enregistrer"}
-            </Button>
+
+            {/* Avatar + name overlay */}
+            <div className="absolute -bottom-16 sm:-bottom-20 left-0 right-0 px-4 sm:px-6">
+              <div className="flex items-end gap-4">
+                {/* Avatar */}
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                  className="relative"
+                >
+                  <div className="h-24 w-24 sm:h-32 sm:w-32 rounded-full border-4 border-background bg-primary flex items-center justify-center text-primary-foreground text-3xl sm:text-4xl font-bold shadow-xl">
+                    {avatarInitial}
+                  </div>
+                  {/* Online indicator */}
+                  <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 h-5 w-5 sm:h-6 sm:w-6 rounded-full bg-green-500 border-[3px] border-background" />
+                </motion.div>
+
+                {/* Name & info */}
+                <div className="pb-1 sm:pb-2 min-w-0 flex-1">
+                  <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground truncate">{displayName}</h1>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+                    {profile.commune && (
+                      <span className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />{profile.commune}{profile.quartier ? `, ${profile.quartier}` : ""}
+                      </span>
+                    )}
+                    {memberSince && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3 w-3" />Membre depuis {memberSince}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Conformity bar */}
-          <div className="mb-6 rounded-xl border border-border bg-card p-4 shadow-card">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Conformité du profil</span>
-              <span className={`text-sm font-bold ${conformityPercent >= 80 ? "text-green-500" : conformityPercent >= 50 ? "text-amber-500" : "text-destructive"}`}>
-                {conformityPercent}%
-              </span>
+          {/* ═══ Stats bar (Facebook-style) ═══ */}
+          <div className="px-4 sm:px-0 mb-5">
+            <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-card">
+              {/* Conformity ring */}
+              <div className="relative flex-shrink-0">
+                <svg className="h-12 w-12 -rotate-90" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="15.5" fill="none" stroke="hsl(var(--muted))" strokeWidth="3" />
+                  <motion.circle
+                    cx="18" cy="18" r="15.5" fill="none"
+                    stroke={conformityPercent >= 80 ? "hsl(150 60% 40%)" : conformityPercent >= 50 ? "hsl(40 95% 50%)" : "hsl(var(--destructive))"}
+                    strokeWidth="3" strokeLinecap="round"
+                    strokeDasharray={`${conformityPercent * 0.9738} 97.38`}
+                    initial={{ strokeDasharray: "0 97.38" }}
+                    animate={{ strokeDasharray: `${conformityPercent * 0.9738} 97.38` }}
+                    transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
+                  />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-foreground">
+                  {conformityPercent}%
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-foreground">Conformité du profil</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {conformityPercent >= 100 ? "Profil complet ✓" : "Complétez pour renforcer vos signalements"}
+                </p>
+              </div>
+              {/* Quick stats */}
+              <div className="hidden sm:flex items-center gap-4 border-l border-border pl-4">
+                <div className="text-center">
+                  <p className="font-display text-lg font-bold text-foreground">{history.length || "—"}</p>
+                  <p className="text-xs text-muted-foreground">Signalements</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-display text-lg font-bold text-foreground">
+                    {profile.user_type === "household" ? "🏠" : "🏢"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{profile.user_type === "household" ? "Ménage" : "Entreprise"}</p>
+                </div>
+              </div>
             </div>
-            <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-              <motion.div
-                className={`h-full rounded-full ${conformityPercent >= 80 ? "bg-green-500" : conformityPercent >= 50 ? "bg-amber-500" : "bg-destructive"}`}
-                initial={{ width: 0 }}
-                animate={{ width: `${conformityPercent}%` }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-              />
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Un profil complet renforce la crédibilité de vos signalements dans nos rapports transmis aux opérateurs (CIE, SODECI).
-            </p>
           </div>
 
           {/* Friendly reminder to complete profile */}
