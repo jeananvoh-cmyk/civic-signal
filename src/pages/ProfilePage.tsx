@@ -27,6 +27,7 @@ import Header from "@/components/Header";
 import MyReports from "@/components/MyReports";
 import { COMMUNES } from "@/lib/communes";
 import { getQuartiers } from "@/lib/quartiers";
+import PushNotificationToggle from "@/components/PushNotificationToggle";
 
 interface ProfileData {
   first_name: string;
@@ -857,19 +858,22 @@ const ProfilePage = () => {
             {/* ── PARAMÈTRES ── */}
             <TabsContent value="settings">
               <div className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
-                {/* Notifications */}
+                {/* Notifications in-app */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary">
                       <Bell className="h-4 w-4 text-secondary-foreground" />
                     </div>
                     <div>
-                      <p className="font-semibold text-sm text-foreground">Notifications</p>
+                      <p className="font-semibold text-sm text-foreground">Notifications in-app</p>
                       <p className="text-xs text-muted-foreground">Alertes de coupure dans votre zone</p>
                     </div>
                   </div>
                   <Switch checked={profile.notifications_enabled} onCheckedChange={(v) => update("notifications_enabled", v)} />
                 </div>
+
+                {/* Push notifications */}
+                <PushNotificationToggle />
 
                 <Separator />
 
