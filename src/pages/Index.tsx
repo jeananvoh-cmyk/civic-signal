@@ -117,19 +117,19 @@ const Index = () => {
                 to="/signaler?type=street_light"
                 className="inline-flex items-center gap-1.5 rounded-full border border-orange-400/30 bg-orange-500/20 px-3 py-1.5 text-xs font-bold text-orange-200 backdrop-blur-sm transition-all hover:bg-orange-500/30 hover:scale-105 active:scale-95"
               >
-                💡 Lampadaires
+                💡 Lampadaires cassés
               </Link>
               <Link
                 to="/signaler?type=drain_blocked"
                 className="inline-flex items-center gap-1.5 rounded-full border border-teal-400/30 bg-teal-500/20 px-3 py-1.5 text-xs font-bold text-teal-200 backdrop-blur-sm transition-all hover:bg-teal-500/30 hover:scale-105 active:scale-95"
               >
-                🌧️ Caniveaux
+                🌧️ Caniveaux bouchés
               </Link>
               <Link
-                to="/signaler?type=road_damage"
+                to="/signaler?type=pothole"
                 className="inline-flex items-center gap-1.5 rounded-full border border-gray-400/30 bg-gray-500/20 px-3 py-1.5 text-xs font-bold text-gray-200 backdrop-blur-sm transition-all hover:bg-gray-500/30 hover:scale-105 active:scale-95"
               >
-                🛣️ Routes
+                🕳️ Nid de poules
               </Link>
             </div>
 
