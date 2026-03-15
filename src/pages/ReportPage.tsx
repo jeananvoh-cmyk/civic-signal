@@ -23,6 +23,7 @@ import { COMMUNES, findNearestCommune, type Commune } from "@/lib/communes";
 import { getQuartiers } from "@/lib/quartiers";
 import type { ServiceType } from "@/lib/data";
 import SOSButtons from "@/components/SOSButtons";
+import QuartierSearch from "@/components/QuartierSearch";
 
 // ─── Types de signalement ────────────────────────────────────────────────────
 
@@ -637,20 +638,14 @@ const ReportPage = () => {
                     </div>
                   </div>
 
-                  {/* Quartier */}
+                  {/* Quartier — searchable */}
                   <div className="space-y-2">
                     <label className="text-sm font-semibold">Quartier *</label>
-                    <Select value={quartier} onValueChange={setQuartier}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner le quartier" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        {getQuartiers(commune).map((q) => (
-                          <SelectItem key={q} value={q}>{q}</SelectItem>
-                        ))}
-                        <SelectItem value="__other">Autre quartier...</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <QuartierSearch
+                      quartiers={getQuartiers(commune)}
+                      value={quartier}
+                      onChange={setQuartier}
+                    />
                     {quartier === "__other" && (
                       <Input
                         placeholder="Nom du quartier"
