@@ -60,28 +60,43 @@ const Header = () => {
           </Button>
 
           {user ? (
-            <div className="ml-1 flex items-center gap-1">
+            <div className="ml-2 flex items-center gap-1.5">
               <NotificationBell />
               {isAdmin && (
                 <Link
                   to="/admin"
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10 flex items-center gap-1"
+                  className="rounded-lg px-2.5 py-1.5 text-sm font-medium text-primary hover:bg-primary/10 flex items-center gap-1"
                 >
-                  <Shield className="h-4 w-4" /> Admin
+                  <Shield className="h-4 w-4" />
+                  <span className="hidden lg:inline">Admin</span>
                 </Link>
               )}
               {!isAdmin && isModerator && (
                 <Link
                   to="/admin"
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-amber-600 hover:bg-amber-500/10 flex items-center gap-1"
+                  className="rounded-lg px-2.5 py-1.5 text-sm font-medium text-amber-600 hover:bg-amber-500/10 flex items-center gap-1"
                 >
-                  <Shield className="h-4 w-4" /> Modérateur
+                  <Shield className="h-4 w-4" />
+                  <span className="hidden lg:inline">Modérateur</span>
                 </Link>
               )}
-              <Link to="/profil" className="text-sm text-muted-foreground hover:text-foreground">
-                {user.email?.split("@")[0]}
+              <div className="h-5 w-px bg-border mx-1" />
+              <Link
+                to="/profil"
+                className="flex items-center gap-2 rounded-full px-2.5 py-1.5 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+              >
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+                  {user.email?.[0]?.toUpperCase() || "?"}
+                </div>
+                <span className="hidden lg:inline max-w-[100px] truncate">{user.email?.split("@")[0]}</span>
               </Link>
-              <Button variant="ghost" size="sm" onClick={signOut}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={signOut}
+                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                title="Déconnexion"
+              >
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
