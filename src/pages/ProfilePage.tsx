@@ -356,6 +356,25 @@ const ProfilePage = () => {
           water_meter_ref: (data as any).water_meter_ref ?? "",
           water_meter_number: (data as any).water_meter_number ?? "",
         });
+        initialProfileRef.current = {
+          first_name: data.first_name ?? "",
+          last_name: data.last_name ?? "",
+          display_name: data.display_name ?? "",
+          phone: data.phone ?? "",
+          commune: data.commune ?? "",
+          quartier: data.quartier ?? "",
+          user_type: data.user_type ?? "household",
+          bio: data.bio ?? "",
+          notifications_enabled: data.notifications_enabled ?? true,
+          language: data.language ?? "fr",
+          theme: data.theme ?? "system",
+          electricity_client_id: (data as any).electricity_client_id ?? "",
+          electricity_meter_ref: (data as any).electricity_meter_ref ?? "",
+          electricity_meter_number: (data as any).electricity_meter_number ?? "",
+          water_client_id: (data as any).water_client_id ?? "",
+          water_meter_ref: (data as any).water_meter_ref ?? "",
+          water_meter_number: (data as any).water_meter_number ?? "",
+        };
       }
       setLoading(false);
     };
