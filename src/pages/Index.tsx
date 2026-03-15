@@ -506,7 +506,11 @@ const Index = () => {
                         transition={{ duration: 0.25 }}
                         className="font-display text-3xl font-extrabold text-white md:text-4xl"
                       >
-                        {stat.live ? stat.value : <AnimatedCounter value={stat.value} />}
+                        {stat.live && liveCount !== null ? (
+                          <FlipCounter value={liveCount} className="text-3xl font-extrabold md:text-4xl" />
+                        ) : (
+                          <AnimatedCounter value={stat.value} />
+                        )}
                       </motion.p>
                     </AnimatePresence>
                   </div>
