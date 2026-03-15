@@ -701,7 +701,7 @@ const ProfilePage = () => {
                     )}
                     {!profile.water_meter_ref && (
                       <Badge variant="outline" className="text-[10px] bg-background border-cyan-500/50 text-cyan-600 gap-1 py-0.5">
-                        <Droplets className="h-3 w-3" /> Réf. compteur
+                        <img src={waterIconSm} alt="" className="h-3 w-3" /> Réf. compteur
                       </Badge>
                     )}
                     {!profile.water_meter_number && (
