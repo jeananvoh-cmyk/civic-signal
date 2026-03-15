@@ -321,6 +321,7 @@ const ProfilePage = () => {
 
   // Delete account state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showOddDialog, setShowOddDialog] = useState<"odd6" | "odd7" | null>(null);
   const [deleteReason, setDeleteReason] = useState("");
   const [deleteOther, setDeleteOther] = useState("");
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
