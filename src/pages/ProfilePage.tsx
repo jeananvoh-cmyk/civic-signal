@@ -436,6 +436,8 @@ const ProfilePage = () => {
       toast.error("Erreur lors de la sauvegarde");
     } else {
       setSaved(true);
+      setIsDirty(false);
+      initialProfileRef.current = { ...profile };
       toast.success("Profil mis à jour !");
       setTimeout(() => setSaved(false), 2000);
     }
