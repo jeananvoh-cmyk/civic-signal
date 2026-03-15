@@ -222,7 +222,8 @@ const AdminRightsPage = () => {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
-              <Scale className="h-6 w-6" /> Droits & Conseils
+              <Scale className="h-6 w-6" /> Mon Espace Eau & Électricité
+            </h1>
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               Gérez le contenu affiché aux utilisateurs dans leur espace personnel.
