@@ -787,10 +787,6 @@ const ProfilePage = () => {
                   </div>
                 </div>
               </div>
-                  />
-                  <p className="text-right text-xs text-muted-foreground">{profile.bio.length}/300</p>
-                </div>
-              </div>
             </TabsContent>
 
             {/* ── LOCALISATION ── */}
