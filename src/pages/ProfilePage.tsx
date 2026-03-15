@@ -539,7 +539,7 @@ const ProfilePage = () => {
             <TabsContent value="reports">
               <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
                 <h2 className="font-display text-lg font-bold text-foreground mb-4">Mes signalements</h2>
-                <MyReports />
+                <MyReports profileComplete={isProfileComplete} />
               </div>
             </TabsContent>
 
