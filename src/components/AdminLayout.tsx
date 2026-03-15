@@ -43,6 +43,7 @@ const NAV_GROUPS = [
 
 const NAV_SOLO = [
   { label: "Messagerie", path: "/admin/messagerie", icon: Megaphone },
+  { label: "Droits & Conseils", path: "/admin/droits", icon: Scale },
 ];
 
 // Tous les items à plat (pour le sheet mobile et la détection active)

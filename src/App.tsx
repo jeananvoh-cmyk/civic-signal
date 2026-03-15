@@ -80,6 +80,7 @@ const App = () => (
                 <Route path="vulnerables" element={<AdminVulnerablePage />} />
                 <Route path="messagerie" element={<AdminMessagingPage />} />
                 <Route path="quartiers" element={<AdminQuartiersPage />} />
+                <Route path="droits" element={<AdminRightsPage />} />
               </Route>
               
               <Route path="*" element={<NotFound />} />
