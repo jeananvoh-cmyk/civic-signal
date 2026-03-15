@@ -283,9 +283,9 @@ const ProfilePage = () => {
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
 
           {/* ═══ Facebook-style Cover + Avatar ═══ */}
-          <div className="relative mb-20 sm:mb-24 sm:rounded-b-2xl overflow-hidden">
+          <div className="relative mb-16 sm:mb-20 sm:rounded-b-2xl overflow-hidden">
             {/* Cover photo */}
-            <div className="h-36 sm:h-48 gradient-hero relative overflow-hidden">
+            <div className="h-28 sm:h-36 gradient-hero relative overflow-hidden">
               <div className="absolute inset-0" style={{ background: "var(--gradient-hero-radial)" }} />
               {/* Decorative pattern */}
               <div className="absolute inset-0 opacity-10" style={{
