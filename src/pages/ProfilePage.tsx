@@ -285,6 +285,8 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const initialProfileRef = useRef<ProfileData | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
   const [profile, setProfile] = useState<ProfileData>({
     first_name: "",
     last_name: "",
