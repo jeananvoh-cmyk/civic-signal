@@ -10,6 +10,7 @@ import NewsTicker from "@/components/NewsTicker";
 import PriorityBadge from "@/components/PriorityBadge";
 import { calculatePriority, getNormReference } from "@/lib/priority-score";
 import { useUserRole } from "@/hooks/useUserRole";
+import DurationBadge from "@/components/DurationBadge";
 
 // After this many days without any verification, a report is considered "non pris en charge"
 const NEGLECTED_DAYS = 7;
