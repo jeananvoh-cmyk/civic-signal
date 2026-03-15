@@ -386,6 +386,7 @@ const ProfilePage = () => {
           </div>
 
           {/* Friendly reminder to complete profile */}
+          <div className="px-4 sm:px-0">
           <AnimatePresence>
             {conformityPercent < 100 && (
               <motion.div
@@ -393,7 +394,7 @@ const ProfilePage = () => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
                 transition={{ duration: 0.3 }}
-                className="mb-6 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 p-4 shadow-sm"
+                className="mb-5 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 p-4 shadow-sm"
               >
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20 text-primary flex-shrink-0">
