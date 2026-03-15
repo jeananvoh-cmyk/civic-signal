@@ -185,13 +185,17 @@ const Header = () => {
           <Button variant="ghost" size="icon" onClick={toggleTheme}>
             {themeIcon}
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
+          <button
             onClick={() => setMobileOpen(!mobileOpen)}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-all border ${
+              mobileOpen
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-primary/10 text-primary border-primary/30 hover:bg-primary/20"
+            }`}
           >
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
+            {mobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            Menu
+          </button>
         </div>
       </div>
 
