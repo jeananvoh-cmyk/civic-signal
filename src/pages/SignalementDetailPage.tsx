@@ -296,6 +296,7 @@ const SignalementDetailPage = () => {
                     verifications={report.verifications}
                   />
                 </div>
+              </div>
             </CardContent>
           </Card>
 
