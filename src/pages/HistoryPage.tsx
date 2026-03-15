@@ -148,17 +148,19 @@ const HistoryPage = () => {
                       <SignedImage storagePath={r.photo_url} alt="Photo" className="w-full h-32 object-cover rounded-lg mb-3" />
                     )}
 
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         {new Date(r.created_at).toLocaleDateString("fr-FR")}
                       </span>
-                      {isResolved && r.resolved_at && (
-                        <span className="flex items-center gap-1 text-success font-semibold">
-                          <Clock className="h-3 w-3" />
-                          Durée : {formatDuration(r.start_time, r.resolved_at)}
-                        </span>
-                      )}
+                      <DurationBadge
+                        status={r.status}
+                        resolved_at={r.resolved_at}
+                        start_time={r.start_time}
+                        created_at={r.created_at}
+                        repair_verifications={r.repair_verifications}
+                        verifications={r.verifications}
+                      />
                     </div>
                   </div>
                 </motion.div>
