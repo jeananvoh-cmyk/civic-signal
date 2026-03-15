@@ -43,7 +43,7 @@ const HistoryPage = () => {
     const fetch = async () => {
       const { data, error } = await supabase
         .from("reports")
-        .select("id, service_type, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, photo_url")
+        .select("id, service_type, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, photo_url, repair_verifications, verifications")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (!error && data) setReports(data);
