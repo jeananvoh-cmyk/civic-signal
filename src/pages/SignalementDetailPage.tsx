@@ -97,7 +97,7 @@ const SignalementDetailPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reports")
-        .select("id, status, urgency, service_type, report_category, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, photo_url, babies, pregnant, elderly")
+        .select("id, status, urgency, service_type, report_category, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, photo_url, babies, pregnant, elderly, repair_verifications")
         .eq("id", id!)
         .single();
       if (error) throw error;
