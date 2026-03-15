@@ -4,7 +4,8 @@ import {
   User, Mail, Phone, MapPin, Home, Building2, Save, Shield,
   Bell, Globe, Palette, ChevronRight, CheckCircle2, FileText, Clock,
   Zap, Droplets, Info, History, Trash2, AlertTriangle, LogOut,
-  Filter, CalendarDays, XCircle, CheckCheck, Download, Award
+  Filter, CalendarDays, XCircle, CheckCheck, Download, Award,
+  BookOpen, ExternalLink, Scale, Lightbulb, ShieldCheck
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { Button } from "@/components/ui/button";
