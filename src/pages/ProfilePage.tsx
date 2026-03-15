@@ -439,7 +439,9 @@ const ProfilePage = () => {
               </motion.div>
             )}
           </AnimatePresence>
+          </div>
 
+          <div className="px-4 sm:px-0">
           <Tabs defaultValue="reports" className="space-y-4 sm:space-y-6">
             <TabsList className="flex w-full overflow-x-auto no-scrollbar gap-0.5">
               <TabsTrigger value="reports" className="gap-1 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
