@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Zap, Menu, X, LogIn, LogOut, User, Shield, Moon, Sun, Monitor, Heart, Map, Wrench, ChevronDown } from "lucide-react";
+import { Zap, Menu, X, LogOut, User, Shield, Moon, Sun, Monitor, Map, Wrench, ChevronDown } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
@@ -20,7 +20,6 @@ const Header = () => {
 
   const themeIcon = theme === "dark" ? <Moon className="h-4 w-4" /> : theme === "light" ? <Sun className="h-4 w-4" /> : <Monitor className="h-4 w-4" />;
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -93,7 +92,7 @@ const Header = () => {
                       : "text-foreground/80 hover:bg-secondary"
                   }`}
                 >
-                  <Map className="h-4 w-4" />
+                  <Map className="h-4 w-4 flex-shrink-0" />
                   <div>
                     <p className="font-medium">Carte des coupures</p>
                     <p className="text-xs text-muted-foreground">Eau & électricité en temps réel</p>
@@ -108,7 +107,7 @@ const Header = () => {
                       : "text-foreground/80 hover:bg-secondary"
                   }`}
                 >
-                  <Wrench className="h-4 w-4" />
+                  <Wrench className="h-4 w-4 flex-shrink-0" />
                   <div>
                     <p className="font-medium">Infrastructures</p>
                     <p className="text-xs text-muted-foreground">Lampadaires, voirie, fuites…</p>
@@ -116,7 +115,7 @@ const Header = () => {
                 </Link>
               </div>
             )}
-          ))}
+          </div>
 
           <Button variant="ghost" size="icon" onClick={toggleTheme} className="ml-1" title={`Thème: ${theme}`}>
             {themeIcon}
@@ -212,6 +211,30 @@ const Header = () => {
               {link.label}
             </Link>
           ))}
+
+          {/* Mobile: Carte sub-links */}
+          <div className="mt-1 mb-1">
+            <p className="px-4 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Carte</p>
+            <Link
+              to="/carte"
+              onClick={() => setMobileOpen(false)}
+              className={`flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
+                location.pathname === "/carte" ? "bg-primary/10 text-primary font-semibold" : "text-foreground/70 hover:bg-secondary"
+              }`}
+            >
+              <Map className="h-4 w-4" /> Carte des coupures
+            </Link>
+            <Link
+              to="/infrastructures"
+              onClick={() => setMobileOpen(false)}
+              className={`flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
+                location.pathname === "/infrastructures" ? "bg-primary/10 text-primary font-semibold" : "text-foreground/70 hover:bg-secondary"
+              }`}
+            >
+              <Wrench className="h-4 w-4" /> Infrastructures
+            </Link>
+          </div>
+
           {user ? (
             <>
               {isAdmin && (
@@ -244,7 +267,7 @@ const Header = () => {
               </Link>
               <button
                 onClick={() => { signOut(); setMobileOpen(false); }}
-                className="mt-2 block w-full rounded-lg px-4 py-3 text-left text-sm font-medium text-muted-foreground hover:bg-secondary"
+                className="mt-2 block w-full rounded-lg px-4 py-3 text-left text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
               >
                 <LogOut className="mr-2 inline h-4 w-4" />
                 Déconnexion
@@ -269,7 +292,6 @@ const Header = () => {
             </>
           )}
         </nav>
-
       )}
     </header>
   );
