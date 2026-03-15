@@ -97,7 +97,7 @@ const SuiviPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reports")
-        .select("id, status, urgency, service_type, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, babies, pregnant, elderly")
+        .select("id, status, urgency, service_type, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, babies, pregnant, elderly, repair_verifications")
         .order("created_at", { ascending: false })
         .limit(300);
       if (error) throw error;
