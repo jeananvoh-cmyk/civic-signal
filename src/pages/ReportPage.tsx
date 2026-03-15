@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { QuartierCombobox } from "@/components/QuartierCombobox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import Header from "@/components/Header";
 import PhotoUpload from "@/components/PhotoUpload";
@@ -23,6 +24,7 @@ import { COMMUNES, findNearestCommune, type Commune } from "@/lib/communes";
 import { getQuartiers } from "@/lib/quartiers";
 import type { ServiceType } from "@/lib/data";
 import SOSButtons from "@/components/SOSButtons";
+import { fuiteEauIcon } from "@/lib/infra-icons";
 
 // ─── Types de signalement ────────────────────────────────────────────────────
 
@@ -40,6 +42,8 @@ interface ReportTypeConfig {
   id: ReportTypeId;
   emoji: string;
   label: string;
+  description?: string;
+  image?: string;
   color: string;
   serviceType: ServiceType;
   reportCategory: "outage" | "infrastructure";
@@ -78,10 +82,12 @@ const REPORT_TYPES: ReportTypeConfig[] = [
     id: "water_leak",
     emoji: "🚿",
     label: "Fuite d'eau",
+    description: "À l'extérieur de votre maison",
+    image: fuiteEauIcon,
     color: "#06B6D4",
     serviceType: "water",
     reportCategory: "infrastructure",
-    defaultDesc: (c) => `Fuite sur le réseau d'eau à ${c}`,
+    defaultDesc: (c) => `Fuite d'eau à l'extérieur d'une maison à ${c}`,
   },
   {
     id: "drain_blocked",
@@ -140,7 +146,6 @@ const ReportPage = () => {
   // Étape 2
   const [commune, setCommune] = useState("");
   const [quartier, setQuartier] = useState("");
-  const [customQuartier, setCustomQuartier] = useState("");
 
   // Étape 3 (détails optionnels)
   const [description, setDescription] = useState("");
@@ -241,7 +246,7 @@ const ReportPage = () => {
     });
   }, [user]);
 
-  const resolvedQuartier = quartier === "__other" ? customQuartier.trim() : quartier;
+  const resolvedQuartier = quartier;
 
   const canReport = detectedCommune !== null && !outsidePilotZone && latitude !== null;
 
@@ -361,7 +366,7 @@ const ReportPage = () => {
       const fullDesc = `${fullBaseDesc} ${impactInfo}`;
       const hasVulnerable = babies > 0 || pregnant > 0 || elderly > 0;
 
-      const { error } = await supabase.from("reports").insert({
+      const { data: insertData, error } = await supabase.from("reports").insert({
         user_id: user.id,
         service_type: selectedType.serviceType,
         report_category: selectedType.reportCategory,
@@ -378,15 +383,16 @@ const ReportPage = () => {
         babies,
         pregnant,
         elderly,
-      } as any);
+      } as any).select("id").single();
 
       if (error) throw error;
 
-      // Si l'utilisateur a saisi un quartier personnalisé, le soumettre
-      // comme proposition en attente de validation admin.
-      if (quartier === "__other" && customQuartier.trim()) {
+      // Si l'utilisateur a saisi un quartier qui n'existe pas dans la liste statique,
+      // le soumettre comme proposition en attente de validation admin.
+      const isCustomQuartier = quartier && !getQuartiers(commune).includes(quartier);
+      if (isCustomQuartier) {
         await supabase.from("quartiers").insert({
-          nom: customQuartier.trim(),
+          nom: quartier,
           commune,
           source: "user",
           validated: false,
@@ -396,7 +402,16 @@ const ReportPage = () => {
       }
 
       toast.success("✅ Signalement envoyé !");
-      navigate("/");
+      const reportId = (insertData as any)?.id;
+      const params = new URLSearchParams({
+        commune,
+        type: selectedType.label,
+        emoji: selectedType.emoji,
+        quartier: resolvedQuartier,
+        service: selectedType.serviceType,
+        ...(reportId ? { id: reportId } : {}),
+      });
+      navigate(`/confirmation?${params.toString()}`);
     } catch (error: any) {
       const msg = error?.message || "";
       if (msg.includes("Rate limit exceeded")) {
@@ -488,8 +503,14 @@ const ReportPage = () => {
                       e.currentTarget.style.backgroundColor = "";
                     }}
                   >
-                    <span className="text-4xl leading-none">{type.emoji}</span>
+                    {type.image
+                      ? <img src={type.image} alt={type.label} className="h-10 w-10 object-contain rounded-lg" />
+                      : <span className="text-4xl leading-none">{type.emoji}</span>
+                    }
                     <span className="text-xs font-semibold leading-tight text-foreground">{type.label}</span>
+                    {type.description && (
+                      <span className="text-[10px] leading-tight text-muted-foreground">{type.description}</span>
+                    )}
                   </motion.button>
                 ))}
               </div>
@@ -640,26 +661,12 @@ const ReportPage = () => {
                   {/* Quartier */}
                   <div className="space-y-2">
                     <label className="text-sm font-semibold">Quartier *</label>
-                    <Select value={quartier} onValueChange={setQuartier}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner le quartier" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        {getQuartiers(commune).map((q) => (
-                          <SelectItem key={q} value={q}>{q}</SelectItem>
-                        ))}
-                        <SelectItem value="__other">Autre quartier...</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {quartier === "__other" && (
-                      <Input
-                        placeholder="Nom du quartier"
-                        value={customQuartier}
-                        onChange={(e) => setCustomQuartier(e.target.value)}
-                        maxLength={100}
-                        autoFocus
-                      />
-                    )}
+                    <QuartierCombobox
+                      quartiers={getQuartiers(commune)}
+                      value={quartier}
+                      onChange={setQuartier}
+                      allowCustom={true}
+                    />
                   </div>
                 </>
               )}

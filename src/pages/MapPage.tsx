@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Zap, Droplets, Construction, AlertTriangle } from "lucide-react";
+import { Zap, Droplets, Construction, AlertTriangle, Flame } from "lucide-react";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,15 @@ import { COMMUNES, COMMUNE_COLORS } from "@/lib/communes";
 import { INFRA_CATEGORY_ICONS } from "@/lib/infra-icons";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+
+interface ActiveReport {
+  id: string;
+  latitude: number;
+  longitude: number;
+  service_type: string;
+  verifications: number;
+  commune: string;
+}
 
 interface CommuneServiceStat {
   commune: string;
@@ -79,6 +88,9 @@ const MapPage = () => {
   const [infraStats, setInfraStats] = useState<InfraStats[]>([]);
   const [boundaries, setBoundaries] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [activeReports, setActiveReports] = useState<ActiveReport[]>([]);
+  const heatmapLayerGroup = useRef<L.LayerGroup | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
 
@@ -107,6 +119,68 @@ const MapPage = () => {
     mapInstance.current = map;
     return () => { map.remove(); mapInstance.current = null; };
   }, []);
+
+  // Fetch active reports for heat-map when toggle is on
+  useEffect(() => {
+    if (!showHeatmap) {
+      setActiveReports([]);
+      return;
+    }
+    supabase
+      .from("reports")
+      .select("id, latitude, longitude, service_type, verifications, commune")
+      .eq("status", "active")
+      .not("latitude", "is", null)
+      .not("longitude", "is", null)
+      .limit(500)
+      .then(({ data }) => {
+        if (data) setActiveReports(data as ActiveReport[]);
+      });
+  }, [showHeatmap]);
+
+  // Render / clear heat-map layer
+  useEffect(() => {
+    if (!mapInstance.current) return;
+    const map = mapInstance.current;
+
+    // Remove existing heat-map layer
+    if (heatmapLayerGroup.current) {
+      heatmapLayerGroup.current.clearLayers();
+      map.removeLayer(heatmapLayerGroup.current);
+      heatmapLayerGroup.current = null;
+    }
+
+    if (!showHeatmap || activeReports.length === 0) return;
+
+    const group = L.layerGroup().addTo(map);
+    heatmapLayerGroup.current = group;
+
+    // Tiny fuzz (~150m) to protect exact user positions
+    const fuzz = () => (Math.random() - 0.5) * 0.003;
+
+    activeReports.forEach((r) => {
+      const isElec = r.service_type === "electricity";
+      const color = isElec ? "#f59e0b" : "#3b82f6";
+      const radius = 6 + Math.min(r.verifications * 3, 18);
+
+      L.circleMarker([r.latitude + fuzz(), r.longitude + fuzz()], {
+        radius,
+        fillColor: color,
+        color: "#fff",
+        weight: 1.5,
+        opacity: 0.9,
+        fillOpacity: 0.65,
+      })
+        .addTo(group)
+        .bindPopup(
+          `<div style="text-align:center;min-width:130px">
+            <span style="font-size:18px">${isElec ? "⚡" : "💧"}</span><br/>
+            <strong style="color:${color}">${r.commune}</strong><br/>
+            <span style="font-size:11px;color:#666">${r.verifications} confirmation${r.verifications !== 1 ? "s" : ""}</span>
+          </div>`
+        );
+    });
+  }, [showHeatmap, activeReports]);
 
   // Update markers
   useEffect(() => {
@@ -412,6 +486,19 @@ const MapPage = () => {
           </button>
         </div>
 
+        {/* Heat-map toggle */}
+        <button
+          onClick={() => setShowHeatmap((v) => !v)}
+          className={`mb-4 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all border ${
+            showHeatmap
+              ? "bg-orange-500 text-white border-orange-500 shadow-md"
+              : "bg-card text-muted-foreground border-border hover:bg-accent"
+          }`}
+        >
+          <Flame className="h-4 w-4" />
+          {showHeatmap ? "Heat-map ON" : "Heat-map signalements"}
+        </button>
+
         {/* Sub-filters */}
         <div className="mb-4 flex flex-wrap gap-2">
           {mode === "coupures" ? (
@@ -516,7 +603,7 @@ const MapPage = () => {
         </motion.div>
 
         <p className="mt-3 text-center text-xs text-muted-foreground">
-          🔒 Les positions exactes des signalements ne sont pas affichées pour protéger la vie privée des utilisateurs.
+          🔒 Les positions affichées sont légèrement décalées (~150 m) pour protéger la vie privée des utilisateurs.
         </p>
       </main>
     </div>

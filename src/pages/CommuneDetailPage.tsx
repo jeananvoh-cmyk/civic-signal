@@ -137,10 +137,11 @@ const CommuneDetailPage = () => {
               <Zap className="h-5 w-5 text-amber-500" />
             </div>
             <div>
-              <p className="font-display text-xl font-extrabold text-amber-500">{loading ? "..." : totalElecActifs}</p>
-              <p className="text-xs text-muted-foreground">
-                coupure{totalElecActifs !== 1 ? "s" : ""} élec. active{totalElecActifs !== 1 ? "s" : ""} · {totalElecTotal} total
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-500/70">Électricité</p>
+              <p className="font-display text-xl font-extrabold text-amber-500">
+                {loading ? "..." : totalElecActifs} <span className="text-sm font-medium">en cours</span>
               </p>
+              <p className="text-[11px] text-muted-foreground">{totalElecTotal} signalement{totalElecTotal !== 1 ? "s" : ""} au total</p>
             </div>
             <ArrowRight className="ml-auto h-4 w-4 text-amber-500/50 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-amber-500" />
           </button>
@@ -152,10 +153,11 @@ const CommuneDetailPage = () => {
               <Droplets className="h-5 w-5 text-blue-500" />
             </div>
             <div>
-              <p className="font-display text-xl font-extrabold text-blue-500">{loading ? "..." : totalEauActifs}</p>
-              <p className="text-xs text-muted-foreground">
-                coupure{totalEauActifs !== 1 ? "s" : ""} eau active{totalEauActifs !== 1 ? "s" : ""} · {totalEauTotal} total
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-500/70">Eau</p>
+              <p className="font-display text-xl font-extrabold text-blue-500">
+                {loading ? "..." : totalEauActifs} <span className="text-sm font-medium">en cours</span>
               </p>
+              <p className="text-[11px] text-muted-foreground">{totalEauTotal} signalement{totalEauTotal !== 1 ? "s" : ""} au total</p>
             </div>
             <ArrowRight className="ml-auto h-4 w-4 text-blue-500/50 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-blue-500" />
           </button>

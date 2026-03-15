@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { QuartierCombobox } from "@/components/QuartierCombobox";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
 } from "@/components/ui/dialog";
@@ -25,6 +26,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import MyReports from "@/components/MyReports";
+import PushSubscribeButton from "@/components/PushSubscribeButton";
 import { COMMUNES } from "@/lib/communes";
 import { getQuartiers } from "@/lib/quartiers";
 
@@ -724,28 +726,15 @@ const ProfilePage = () => {
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-muted-foreground">Quartier</Label>
                   {profile.commune ? (
-                    <Select value={profile.quartier} onValueChange={(v) => update("quartier", v)}>
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Sélectionner votre quartier" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        {getQuartiers(profile.commune).map((q) => (
-                          <SelectItem key={q} value={q}>{q}</SelectItem>
-                        ))}
-                        <SelectItem value="__other">Autre quartier...</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <QuartierCombobox
+                      quartiers={getQuartiers(profile.commune)}
+                      value={profile.quartier ?? ""}
+                      onChange={(v) => update("quartier", v)}
+                      placeholder="Sélectionner votre quartier"
+                      allowCustom={true}
+                    />
                   ) : (
                     <p className="text-sm text-muted-foreground italic">Sélectionnez d'abord une commune</p>
-                  )}
-                  {profile.quartier === "__other" && (
-                    <Input
-                      placeholder="Saisissez le nom du quartier"
-                      onChange={(e) => { if (e.target.value.trim()) update("quartier", e.target.value.trim()); }}
-                      maxLength={100}
-                      autoFocus
-                      className="h-9 text-sm"
-                    />
                   )}
                   <p className="text-xs text-muted-foreground">Cette information nous aide à vous envoyer les alertes pertinentes</p>
                 </div>
@@ -768,6 +757,17 @@ const ProfilePage = () => {
                   </div>
                   <Switch checked={profile.notifications_enabled} onCheckedChange={(v) => update("notifications_enabled", v)} />
                 </div>
+
+                {/* Web Push (browser push notifications) */}
+                {profile.notifications_enabled && (
+                  <div className="flex items-center justify-between pl-12">
+                    <div>
+                      <p className="text-sm text-foreground font-medium">Alertes push navigateur</p>
+                      <p className="text-xs text-muted-foreground">Notifié même quand l'app est fermée</p>
+                    </div>
+                    <PushSubscribeButton commune={profile.commune} quartier={profile.quartier} />
+                  </div>
+                )}
 
                 <Separator />
 

@@ -130,7 +130,7 @@ const Index = () => {
                 to="/signaler?type=pothole"
                 className="inline-flex items-center gap-1.5 rounded-full border border-gray-400/30 bg-gray-500/20 px-3 py-1.5 text-xs font-bold text-gray-200 backdrop-blur-sm transition-all hover:bg-gray-500/30 hover:scale-105 active:scale-95"
               >
-                🛣️ Routes dégradées
+                🕳️ Nid de poules
               </Link>
             </div>
 

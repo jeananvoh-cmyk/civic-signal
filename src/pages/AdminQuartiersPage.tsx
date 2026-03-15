@@ -410,6 +410,15 @@ const AdminQuartiersPage = () => {
         .update({ aliases: newAliases } as any)
         .eq("id", canonicalId);
       if (updateErr) throw updateErr;
+      // Réassigner tous les signalements de l'alias vers le quartier canonique
+      // pour qu'ils apparaissent correctement dans les stats et la carte.
+      const { error: reportsErr } = await supabase
+        .from("reports")
+        .update({ quartier: canonical.nom } as any)
+        .eq("quartier", submission.nom)
+        .eq("commune", submission.commune);
+      if (reportsErr) throw reportsErr;
+
       const { error: deleteErr } = await supabase
         .from("quartiers")
         .delete()

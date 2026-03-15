@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Radio, Users, Share2, BarChart3, Zap, ArrowRight } from "lucide-react";
+import { CheckCircle2, Radio, Users, Share2, BarChart3, Zap, ArrowRight, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
@@ -16,10 +16,13 @@ const ConfirmationPage = () => {
   const commune = searchParams.get("commune") || "";
   const typeLabel = searchParams.get("type") || "Signalement";
   const typeEmoji = searchParams.get("emoji") || "⚡";
+  const quartier = searchParams.get("quartier") || "";
+  const serviceType = searchParams.get("service") || "";
 
   const [verifications, setVerifications] = useState(0);
   const [prevVerifications, setPrevVerifications] = useState(0);
   const [pulse, setPulse] = useState(false);
+  const [neighborCount, setNeighborCount] = useState<number | null>(null);
 
   const communeData = COMMUNES.find((c) => c.nom === commune);
   const accentColor = communeData?.couleur || "#0ea5e9";
@@ -50,6 +53,26 @@ const ConfirmationPage = () => {
     const interval = setInterval(fetchVerifications, POLL_INTERVAL);
     return () => clearInterval(interval);
   }, [reportId]);
+
+  // Fetch count of other active reports in same area
+  useEffect(() => {
+    if (!commune || !serviceType) return;
+
+    const fetchNeighbors = async () => {
+      const { data, error } = await supabase.rpc("find_similar_reports", {
+        p_commune: commune,
+        p_quartier: quartier || "",
+        p_service_type: serviceType,
+        p_report_category: "outage",
+      });
+      if (!error && data) {
+        const others = (data as any[]).filter((r) => r.id !== reportId);
+        setNeighborCount(others.length);
+      }
+    };
+
+    fetchNeighbors();
+  }, [commune, quartier, serviceType, reportId]);
 
   const shareText = `${typeEmoji} ${typeLabel} signalé à ${commune || "Abidjan"} — Aidez vos voisins à confirmer sur SignalÉnergie !`;
 
@@ -90,6 +113,22 @@ const ConfirmationPage = () => {
             )}
           </p>
         </motion.div>
+
+        {/* Voisins qui ont aussi signalé */}
+        {neighborCount !== null && neighborCount > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mb-4 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800/40 dark:bg-amber-900/20"
+          >
+            <MapPin className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <p className="text-sm text-amber-800 dark:text-amber-300">
+              <span className="font-bold">{neighborCount} voisin{neighborCount > 1 ? "s" : ""}</span> ont aussi signalé {typeEmoji} dans{" "}
+              <span className="font-semibold">{quartier || commune}</span>
+            </p>
+          </motion.div>
+        )}
 
         {/* Live counter */}
         <motion.div

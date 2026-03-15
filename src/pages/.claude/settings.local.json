@@ -4,10 +4,13 @@
       "mcp__claude_ai_Vercel__list_projects",
       "mcp__claude_ai_Vercel__list_deployments",
       "Read(//c/Users/Couple ANVOH/Projects/civic-signal/**)",
-      "Bash(git push origin main)"
+      "Bash(git push origin main)",
+      "Bash(npx supabase:*)",
+      "Bash(npx tsc:*)"
     ],
     "additionalDirectories": [
-      "C:\\Users\\Couple ANVOH\\Projects\\civic-signal\\src"
+      "C:\\Users\\Couple ANVOH\\Projects\\civic-signal\\src",
+      "C:\\Users\\Couple ANVOH\\Projects\\civic-signal\\supabase\\functions"
     ]
   }
 }

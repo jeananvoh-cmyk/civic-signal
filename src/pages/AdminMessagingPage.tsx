@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { QuartierCombobox } from "@/components/QuartierCombobox";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNES } from "@/lib/communes";
 import { useQuartiers } from "@/hooks/useQuartiers";
@@ -51,6 +52,18 @@ const AdminMessagingPage = () => {
       const count = data as number;
       setLastResult({ count, commune, quartier });
       toast.success(`📢 Message envoyé à ${count} utilisateur${count > 1 ? "s" : ""}`);
+
+      // Send Web Push notifications to subscribed users
+      supabase.functions.invoke("send-push", {
+        body: {
+          commune,
+          quartier: quartier || undefined,
+          title: title.trim(),
+          message: message.trim(),
+        },
+      }).catch(() => {
+        // Push is best-effort, don't block on errors
+      });
 
       if (user) {
         logAudit({
@@ -120,17 +133,15 @@ const AdminMessagingPage = () => {
           <label className="text-sm font-medium text-foreground">
             Quartier <span className="text-xs text-muted-foreground">(optionnel — tous si vide)</span>
           </label>
-          <Select value={quartier || "__all__"} onValueChange={(v) => setQuartier(v === "__all__" ? "" : v)} disabled={!commune}>
-            <SelectTrigger>
-              <SelectValue placeholder={commune ? "Tous les quartiers" : "Choisir d'abord une commune"} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">Tous les quartiers</SelectItem>
-              {quartiers.map((q) => (
-                <SelectItem key={q} value={q}>{q}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <QuartierCombobox
+            quartiers={quartiers}
+            value={quartier}
+            onChange={setQuartier}
+            placeholder={commune ? "Tous les quartiers" : "Choisir d'abord une commune"}
+            disabled={!commune}
+            allowCustom={false}
+            allOptionLabel="Tous les quartiers"
+          />
         </div>
 
         {/* Title */}
