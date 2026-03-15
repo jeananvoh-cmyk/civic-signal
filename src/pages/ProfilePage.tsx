@@ -248,6 +248,7 @@ const RightsTabContent = () => {
 };
 
 
+const ProfilePage = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
