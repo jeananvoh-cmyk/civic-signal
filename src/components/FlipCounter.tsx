@@ -39,6 +39,7 @@ interface FlipCounterProps {
 
 const FlipCounter = ({ value, className = "", suffix = "", animate = true }: FlipCounterProps) => {
   const [displayValue, setDisplayValue] = useState(0);
+  const [glowing, setGlowing] = useState(false);
   const prevValue = useRef(0);
   const hasAnimated = useRef(false);
 
@@ -68,7 +69,11 @@ const FlipCounter = ({ value, className = "", suffix = "", animate = true }: Fli
       return () => clearInterval(timer);
     }
 
-    // On subsequent updates, flip directly
+    // On subsequent updates, flip directly + trigger glow
+    if (value !== prevValue.current) {
+      setGlowing(true);
+      setTimeout(() => setGlowing(false), 1200);
+    }
     setDisplayValue(value);
     prevValue.current = value;
   }, [value, animate]);
@@ -77,11 +82,27 @@ const FlipCounter = ({ value, className = "", suffix = "", animate = true }: Fli
 
   return (
     <span className={`inline-flex items-center gap-[1px] ${className}`}>
-      <span className="inline-flex items-center rounded-lg bg-white/[0.06] border border-white/[0.08] px-1.5 py-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+      <motion.span
+        animate={glowing ? {
+          boxShadow: [
+            "0 0 0px 0px hsla(40,95%,50%,0)",
+            "0 0 20px 6px hsla(40,95%,50%,0.6)",
+            "0 0 40px 12px hsla(40,95%,50%,0.3)",
+            "0 0 20px 6px hsla(40,95%,50%,0.5)",
+            "0 0 0px 0px hsla(40,95%,50%,0)",
+          ],
+          scale: [1, 1.08, 1.04, 1.06, 1],
+        } : {
+          boxShadow: "0 0 0px 0px hsla(40,95%,50%,0)",
+          scale: 1,
+        }}
+        transition={{ duration: 1.2, ease: "easeOut" }}
+        className="inline-flex items-center rounded-lg bg-white/[0.06] border border-white/[0.08] px-1.5 py-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+      >
         {digits.map((digit, i) => (
           <FlipDigit key={`${i}-${digits.length}`} digit={digit} delay={i * 0.04} />
         ))}
-      </span>
+      </motion.span>
       {suffix && <span className="ml-1 text-[0.5em] font-medium opacity-60">{suffix}</span>}
     </span>
   );
