@@ -2,6 +2,7 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { ArrowLeft, MapPin, Clock, Users, CheckCircle2, Info } from "lucide-react";
+import DurationBadge from "@/components/DurationBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
@@ -34,6 +35,7 @@ interface ReportDetail {
   babies: number | null;
   pregnant: number | null;
   elderly: number | null;
+  repair_verifications: number | null;
 }
 
 type ComputedStatus = "nouveau" | "en_cours" | "resolu" | "non_pris";
@@ -95,7 +97,7 @@ const SignalementDetailPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reports")
-        .select("id, status, urgency, service_type, report_category, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, photo_url, babies, pregnant, elderly")
+        .select("id, status, urgency, service_type, report_category, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, photo_url, babies, pregnant, elderly, repair_verifications")
         .eq("id", id!)
         .single();
       if (error) throw error;
@@ -283,6 +285,17 @@ const SignalementDetailPage = () => {
                     })}
                   </span>
                 )}
+                {/* Duration with confidence label */}
+                <div className="pt-1">
+                  <DurationBadge
+                    status={report.status}
+                    resolved_at={report.resolved_at}
+                    start_time={report.start_time}
+                    created_at={report.created_at}
+                    repair_verifications={report.repair_verifications}
+                    verifications={report.verifications}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>

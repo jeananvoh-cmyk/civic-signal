@@ -10,6 +10,7 @@ import NewsTicker from "@/components/NewsTicker";
 import PriorityBadge from "@/components/PriorityBadge";
 import { calculatePriority, getNormReference } from "@/lib/priority-score";
 import { useUserRole } from "@/hooks/useUserRole";
+import DurationBadge from "@/components/DurationBadge";
 
 // After this many days without any verification, a report is considered "non pris en charge"
 const NEGLECTED_DAYS = 7;
@@ -32,6 +33,7 @@ interface Report {
   babies: number | null;
   pregnant: number | null;
   elderly: number | null;
+  repair_verifications: number | null;
 }
 
 type ComputedStatus = "nouveau" | "en_cours" | "resolu" | "non_pris";
@@ -95,7 +97,7 @@ const SuiviPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reports")
-        .select("id, status, urgency, service_type, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, babies, pregnant, elderly")
+        .select("id, status, urgency, service_type, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, babies, pregnant, elderly, repair_verifications")
         .order("created_at", { ascending: false })
         .limit(300);
       if (error) throw error;
@@ -506,6 +508,15 @@ const SuiviPage = () => {
                           <Clock className="h-3 w-3" />
                           {age}
                         </span>
+                        <DurationBadge
+                          status={r.status}
+                          resolved_at={r.resolved_at}
+                          start_time={r.start_time}
+                          created_at={r.created_at}
+                          repair_verifications={r.repair_verifications}
+                          verifications={r.verifications}
+                          compact
+                        />
                       </div>
                     </CardContent>
                   </Card>
