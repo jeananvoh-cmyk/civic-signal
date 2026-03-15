@@ -159,6 +159,17 @@ const ProfilePage = () => {
       setLoading(false);
     };
     fetchProfile();
+
+    // Fetch active reports count
+    const fetchActiveCount = async () => {
+      const { count } = await supabase
+        .from("reports")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "active");
+      setActiveReportsCount(count ?? 0);
+    };
+    fetchActiveCount();
   }, [user]);
 
   const fetchHistory = async () => {
