@@ -307,8 +307,9 @@ const ProfilePage = () => {
     water_meter_number: "",
   });
 
-  // Active reports count
+  // Active & resolved reports count
   const [activeReportsCount, setActiveReportsCount] = useState<number | null>(null);
+  const [resolvedReportsCount, setResolvedReportsCount] = useState<number>(0);
 
   // History state
   const [history, setHistory] = useState<HistoryReport[]>([]);
@@ -380,16 +381,16 @@ const ProfilePage = () => {
     };
     fetchProfile();
 
-    // Fetch active reports count
-    const fetchActiveCount = async () => {
-      const { count } = await supabase
-        .from("reports")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("status", "active");
-      setActiveReportsCount(count ?? 0);
+    // Fetch active & resolved reports count
+    const fetchCounts = async () => {
+      const [{ count: activeCount }, { count: resolvedCount }] = await Promise.all([
+        supabase.from("reports").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "active"),
+        supabase.from("reports").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "resolved"),
+      ]);
+      setActiveReportsCount(activeCount ?? 0);
+      setResolvedReportsCount(resolvedCount ?? 0);
     };
-    fetchActiveCount();
+    fetchCounts();
   }, [user]);
 
   const fetchHistory = async () => {
@@ -543,9 +544,10 @@ const ProfilePage = () => {
       <main className="container max-w-3xl px-0 sm:px-4 py-0 sm:py-6">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
 
-          {/* ═══ Profile Header with Conformity Circle ═══ */}
-          <div className="relative mb-6 sm:mb-8 px-4 sm:px-6 pt-6">
-            <div className="flex items-center gap-5">
+          {/* ═══ Profile Header — Redesigned ═══ */}
+          <div className="relative mb-6 px-4 sm:px-6 pt-6">
+            {/* Row 1: Circle + Name + Counters */}
+            <div className="flex items-start gap-4 sm:gap-5">
               {/* Conformity circle */}
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
@@ -554,9 +556,7 @@ const ProfilePage = () => {
                 className="relative flex-shrink-0"
               >
                 <svg width="96" height="96" viewBox="0 0 96 96" className="sm:w-[112px] sm:h-[112px]">
-                  {/* Background circle */}
                   <circle cx="48" cy="48" r="42" fill="none" stroke={isProfileComplete ? "hsl(45 93% 47% / 0.2)" : "hsl(var(--muted))"} strokeWidth="6" />
-                  {/* Progress arc */}
                   <circle
                     cx="48" cy="48" r="42"
                     fill="none"
@@ -568,12 +568,10 @@ const ProfilePage = () => {
                     transform="rotate(-90 48 48)"
                     className="transition-all duration-700"
                   />
-                  {/* Golden glow for 100% */}
                   {isProfileComplete && (
                     <circle cx="48" cy="48" r="42" fill="none" stroke="hsl(45 93% 47% / 0.3)" strokeWidth="12" className="animate-pulse" />
                   )}
                 </svg>
-                {/* Center content */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   {isProfileComplete ? (
                     <>
@@ -589,7 +587,7 @@ const ProfilePage = () => {
                 </div>
               </motion.div>
 
-              {/* Name & info */}
+              {/* Name + info + counters */}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground truncate">{displayName}</h1>
@@ -611,109 +609,125 @@ const ProfilePage = () => {
                     </span>
                   )}
                 </div>
+
+                {/* Counters row */}
+                <div className="flex items-center gap-3 mt-3">
+                  {/* Active reports counter — only if > 0 */}
+                  {(activeReportsCount ?? 0) > 0 && (
+                    <motion.div
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="flex items-center gap-2 rounded-full border border-destructive/30 bg-destructive/10 px-3 py-1.5"
+                    >
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75 animate-ping" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
+                      </span>
+                      <span className="font-display text-sm font-bold text-destructive">{activeReportsCount}</span>
+                      <span className="text-[10px] text-destructive/80 font-medium">en cours</span>
+                    </motion.div>
+                  )}
+                  {/* Resolved reports counter */}
+                  <div className="flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 py-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                    <span className="font-display text-sm font-bold text-foreground">{resolvedReportsCount}</span>
+                    <span className="text-[10px] text-muted-foreground font-medium">résolu{resolvedReportsCount > 1 ? "s" : ""}</span>
+                  </div>
+                  {/* User type */}
+                  <div className="hidden sm:flex items-center gap-1 rounded-full border border-border bg-muted/50 px-3 py-1.5">
+                    <span className="text-sm">{profile.user_type === "household" ? "🏠" : "🏢"}</span>
+                    <span className="text-[10px] text-muted-foreground font-medium">{profile.user_type === "household" ? "Ménage" : "Entreprise"}</span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* ═══ Stats bar (Facebook-style) ═══ */}
-          <div className="px-4 sm:px-0 mb-5">
-            <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-card">
-              {/* Conformity ring */}
-              <div className="relative flex-shrink-0">
-                <svg className="h-12 w-12 -rotate-90" viewBox="0 0 36 36">
-                  <circle cx="18" cy="18" r="15.5" fill="none" stroke="hsl(var(--muted))" strokeWidth="3" />
-                  <motion.circle
-                    cx="18" cy="18" r="15.5" fill="none"
-                    stroke={isProfileComplete ? "hsl(45 93% 47%)" : conformityPercent >= 80 ? "hsl(150 60% 40%)" : conformityPercent >= 50 ? "hsl(40 95% 50%)" : "hsl(var(--destructive))"}
-                    strokeWidth="3" strokeLinecap="round"
-                    strokeDasharray={`${conformityPercent * 0.9738} 97.38`}
-                    initial={{ strokeDasharray: "0 97.38" }}
-                    animate={{ strokeDasharray: `${conformityPercent * 0.9738} 97.38` }}
-                    transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
-                  />
-                </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-foreground">
-                  {conformityPercent}%
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-foreground">
-                  {isProfileComplete ? "🏆 Profil exemplaire" : "Conformité du profil"}
-                </p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {isProfileComplete ? "Vos signalements sont traités en priorité" : "Complétez pour renforcer vos signalements"}
-                </p>
-              </div>
-              {/* Quick stats */}
-              <div className="hidden sm:flex items-center gap-4 border-l border-border pl-4">
-                <div className="text-center">
-                  <p className="font-display text-lg font-bold text-foreground">{history.length || "—"}</p>
-                  <p className="text-xs text-muted-foreground">Signalements</p>
-                </div>
-                <div className="text-center">
-                  <p className="font-display text-lg font-bold text-foreground">
-                    {profile.user_type === "household" ? "🏠" : "🏢"}
+            {/* Row 2: Missing fields + ODD — aligned with circle */}
+            <div className="mt-4 flex flex-col sm:flex-row gap-3">
+              {/* Missing fields to complete profile */}
+              {conformityPercent < 100 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex-1 rounded-xl border border-primary/20 bg-primary/5 p-3"
+                >
+                  <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                    <Info className="h-3.5 w-3.5 text-primary" />
+                    Complétez votre profil
                   </p>
-                  <p className="text-xs text-muted-foreground">{profile.user_type === "household" ? "Ménage" : "Entreprise"}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {!profile.first_name && (
+                      <Badge variant="outline" className="text-[10px] bg-background border-muted-foreground/30 gap-1 py-0.5">
+                        <User className="h-3 w-3" /> Prénom
+                      </Badge>
+                    )}
+                    {!profile.last_name && (
+                      <Badge variant="outline" className="text-[10px] bg-background border-muted-foreground/30 gap-1 py-0.5">
+                        <User className="h-3 w-3" /> Nom
+                      </Badge>
+                    )}
+                    {!profile.phone && (
+                      <Badge variant="outline" className="text-[10px] bg-background border-amber-500/50 text-amber-600 gap-1 py-0.5">
+                        <Phone className="h-3 w-3" /> WhatsApp
+                      </Badge>
+                    )}
+                    {(!profile.commune || !profile.quartier) && (
+                      <Badge variant="outline" className="text-[10px] bg-background border-blue-500/50 text-blue-600 gap-1 py-0.5">
+                        <MapPin className="h-3 w-3" /> Localisation
+                      </Badge>
+                    )}
+                    {!profile.electricity_client_id && (
+                      <Badge variant="outline" className="text-[10px] bg-background border-yellow-500/50 text-yellow-600 gap-1 py-0.5">
+                        <Zap className="h-3 w-3" /> CIE
+                      </Badge>
+                    )}
+                    {!profile.electricity_meter_ref && (
+                      <Badge variant="outline" className="text-[10px] bg-background border-yellow-500/50 text-yellow-600 gap-1 py-0.5">
+                        <Zap className="h-3 w-3" /> Réf. compteur
+                      </Badge>
+                    )}
+                    {!profile.electricity_meter_number && (
+                      <Badge variant="outline" className="text-[10px] bg-background border-yellow-500/50 text-yellow-600 gap-1 py-0.5">
+                        <Zap className="h-3 w-3" /> N° compteur
+                      </Badge>
+                    )}
+                    {!profile.water_client_id && (
+                      <Badge variant="outline" className="text-[10px] bg-background border-cyan-500/50 text-cyan-600 gap-1 py-0.5">
+                        <Droplets className="h-3 w-3" /> SODECI
+                      </Badge>
+                    )}
+                    {!profile.water_meter_ref && (
+                      <Badge variant="outline" className="text-[10px] bg-background border-cyan-500/50 text-cyan-600 gap-1 py-0.5">
+                        <Droplets className="h-3 w-3" /> Réf. compteur
+                      </Badge>
+                    )}
+                    {!profile.water_meter_number && (
+                      <Badge variant="outline" className="text-[10px] bg-background border-cyan-500/50 text-cyan-600 gap-1 py-0.5">
+                        <Droplets className="h-3 w-3" /> N° compteur
+                      </Badge>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* ODD mini cards */}
+              <div className={`grid grid-cols-2 gap-2 ${conformityPercent < 100 ? "sm:w-72 flex-shrink-0" : "w-full sm:max-w-md"}`}>
+                <div className="flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 p-2.5">
+                  <span className="text-lg shrink-0">💧</span>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 leading-tight">ODD 6</p>
+                    <p className="text-[10px] text-muted-foreground leading-tight">Eau propre</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-2.5">
+                  <span className="text-lg shrink-0">⚡</span>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 leading-tight">ODD 7</p>
+                    <p className="text-[10px] text-muted-foreground leading-tight">Énergie propre</p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Friendly reminder to complete profile */}
-          <div className="px-4 sm:px-0">
-          <AnimatePresence>
-            {conformityPercent < 100 && (
-              <motion.div
-                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                transition={{ duration: 0.3 }}
-                className="mb-5 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 p-4 shadow-sm"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20 text-primary flex-shrink-0">
-                    <Info className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-foreground text-sm mb-1">
-                      👋 Renforcez vos signalements !
-                    </h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                      Un profil complet nous aide à produire des rapports fiables pour les opérateurs (CIE, SODECI, Mairie). 
-                      Pensez à renseigner :
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {!profile.phone && (
-                        <Badge variant="outline" className="text-xs bg-background border-amber-500/50 text-amber-600 gap-1">
-                          <Phone className="h-3 w-3" />
-                          N° WhatsApp
-                        </Badge>
-                      )}
-                      {(!profile.commune || !profile.quartier) && (
-                        <Badge variant="outline" className="text-xs bg-background border-blue-500/50 text-blue-600 gap-1">
-                          <MapPin className="h-3 w-3" />
-                          Localisation
-                        </Badge>
-                      )}
-                      {(!profile.electricity_client_id && !profile.electricity_meter_number) && (
-                        <Badge variant="outline" className="text-xs bg-background border-yellow-500/50 text-yellow-600 gap-1">
-                          <Zap className="h-3 w-3" />
-                          Compteur CIE
-                        </Badge>
-                      )}
-                      {(!profile.water_client_id && !profile.water_meter_number) && (
-                        <Badge variant="outline" className="text-xs bg-background border-cyan-500/50 text-cyan-600 gap-1">
-                          <Droplets className="h-3 w-3" />
-                          Compteur SODECI
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
           </div>
 
           <div className="px-4 sm:px-0">
