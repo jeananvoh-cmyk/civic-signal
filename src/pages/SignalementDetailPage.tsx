@@ -35,6 +35,7 @@ interface ReportDetail {
   babies: number | null;
   pregnant: number | null;
   elderly: number | null;
+  repair_verifications: number | null;
 }
 
 type ComputedStatus = "nouveau" | "en_cours" | "resolu" | "non_pris";
