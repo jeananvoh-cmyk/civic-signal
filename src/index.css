@@ -63,12 +63,16 @@
     --urgent: 0 75% 55%;
     --urgent-foreground: 0 0% 100%;
 
-    --gradient-hero: linear-gradient(135deg, hsl(220 60% 18%), hsl(250 50% 28%), hsl(192 70% 28%));
+    --gradient-hero: linear-gradient(135deg, hsl(220 60% 12%), hsl(240 45% 16%), hsl(192 60% 14%));
+    --gradient-hero-radial: radial-gradient(ellipse 80% 60% at 20% 40%, hsl(192 80% 25% / 0.4), transparent), radial-gradient(ellipse 60% 50% at 80% 60%, hsl(40 95% 40% / 0.2), transparent);
     --gradient-water: linear-gradient(135deg, hsl(192 80% 45%), hsl(192 60% 55%));
     --gradient-electricity: linear-gradient(135deg, hsl(40 95% 50%), hsl(35 90% 55%));
+    --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.08), hsl(0 0% 100% / 0.02));
 
     --shadow-card: 0 1px 2px hsl(219 6% 82% / 0.8), 0 0 0 1px hsl(219 6% 82% / 0.4);
     --shadow-elevated: 0 4px 12px hsl(219 6% 82% / 0.9);
+    --shadow-glow-water: 0 0 40px hsl(192 80% 45% / 0.3);
+    --shadow-glow-electricity: 0 0 40px hsl(40 95% 50% / 0.3);
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 0 0% 2%;
@@ -165,16 +169,55 @@
   .gradient-hero {
     background: var(--gradient-hero);
   }
+  .gradient-hero-rich {
+    background: var(--gradient-hero);
+  }
+  .gradient-hero-rich::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--gradient-hero-radial);
+    pointer-events: none;
+  }
   .gradient-water {
     background: var(--gradient-water);
   }
   .gradient-electricity {
     background: var(--gradient-electricity);
   }
+  .gradient-glass {
+    background: var(--gradient-glass);
+  }
   .shadow-card {
     box-shadow: var(--shadow-card);
   }
   .shadow-elevated {
     box-shadow: var(--shadow-elevated);
+  }
+  .shadow-glow-water {
+    box-shadow: var(--shadow-glow-water);
+  }
+  .shadow-glow-electricity {
+    box-shadow: var(--shadow-glow-electricity);
+  }
+  .text-gradient-brand {
+    background: linear-gradient(135deg, hsl(192 80% 55%), hsl(40 95% 60%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .glass-card {
+    background: hsl(0 0% 100% / 0.06);
+    backdrop-filter: blur(16px);
+    border: 1px solid hsl(0 0% 100% / 0.1);
+  }
+  .glass-card-light {
+    background: hsl(0 0% 100% / 0.7);
+    backdrop-filter: blur(16px);
+    border: 1px solid hsl(0 0% 0% / 0.06);
+  }
+  .dark .glass-card-light {
+    background: hsl(0 0% 100% / 0.06);
+    border-color: hsl(0 0% 100% / 0.1);
   }
 }
