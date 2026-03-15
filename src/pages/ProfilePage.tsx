@@ -1622,6 +1622,29 @@ const ProfilePage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ═══ Floating Save Button ═══ */}
+      <AnimatePresence>
+        {isDirty && (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
+          >
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              size="lg"
+              className="gap-2 shadow-2xl rounded-full px-8 py-6 text-base font-bold"
+            >
+              {saved ? <CheckCircle2 className="h-5 w-5" /> : <Save className="h-5 w-5" />}
+              {saving ? "Enregistrement..." : saved ? "Sauvegardé !" : "Enregistrer les modifications"}
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
