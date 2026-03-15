@@ -467,7 +467,17 @@ const ProfilePage = () => {
   };
 
   const update = (field: keyof ProfileData, value: any) => {
-    setProfile((p) => ({ ...p, [field]: value }));
+    setProfile((p) => {
+      const next = { ...p, [field]: value };
+      // Check dirty
+      if (initialProfileRef.current) {
+        const dirty = (Object.keys(next) as (keyof ProfileData)[]).some(
+          (k) => next[k] !== initialProfileRef.current![k]
+        );
+        setIsDirty(dirty);
+      }
+      return next;
+    });
     setSaved(false);
   };
 
