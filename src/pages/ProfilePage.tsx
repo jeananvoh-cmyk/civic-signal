@@ -555,7 +555,7 @@ const ProfilePage = () => {
                 transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
                 className="relative flex-shrink-0"
               >
-                <svg width="96" height="96" viewBox="0 0 96 96" className="sm:w-[112px] sm:h-[112px]">
+                <svg width="120" height="120" viewBox="0 0 96 96" className="sm:w-[140px] sm:h-[140px]">
                   <circle cx="48" cy="48" r="42" fill="none" stroke={isProfileComplete ? "hsl(45 93% 47% / 0.2)" : "hsl(var(--muted))"} strokeWidth="6" />
                   <circle
                     cx="48" cy="48" r="42"
