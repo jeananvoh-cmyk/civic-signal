@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   FileText, Users, Trash2, BarChart3, Shield, ScrollText, Heart, Megaphone, MapPin,
-  ArrowLeft, Zap, ChevronDown, Menu, X,
+  ArrowLeft, Zap, ChevronDown, Menu, X, Scale,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
