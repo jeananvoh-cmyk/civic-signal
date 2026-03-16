@@ -34,6 +34,7 @@ interface Report {
   pregnant: number | null;
   elderly: number | null;
   repair_verifications: number | null;
+  report_category: string | null;
 }
 
 type ComputedStatus = "nouveau" | "en_cours" | "resolu" | "non_pris";
@@ -97,7 +98,7 @@ const SuiviPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reports")
-        .select("id, status, urgency, service_type, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, babies, pregnant, elderly, repair_verifications")
+        .select("id, status, urgency, service_type, report_category, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, babies, pregnant, elderly, repair_verifications")
         .order("created_at", { ascending: false })
         .limit(300);
       if (error) throw error;
@@ -125,6 +126,7 @@ const SuiviPage = () => {
     const zone = zoneStats.get(zoneKey);
     const priority = calculatePriority({
       service_type: r.service_type,
+      report_category: r.report_category,
       start_time: r.start_time,
       created_at: r.created_at,
       status: r.status,

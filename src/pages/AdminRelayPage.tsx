@@ -5,7 +5,7 @@ import {
   Send, Clock, CheckCircle2, XCircle, RefreshCw,
   Zap, Droplets, AlertTriangle, MailCheck, MapPin, Users,
   ChevronDown, ChevronUp, ExternalLink, Settings, FlaskConical,
-  ShieldCheck, Save,
+  ShieldCheck, Save, Ban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -40,7 +40,7 @@ interface RelayGroup {
   commune: string;
   email_to: string;
   relayIds: string[];
-  quartiers: { name: string; verifications: number; urgency: string }[];
+  quartiers: { name: string; verifications: number; urgency: string; count?: number }[];
   totalConfirmations: number;
   hasCritical: boolean;
 }
@@ -48,9 +48,10 @@ interface RelayGroup {
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG = {
-  pending: { label: "En attente", icon: Clock,        color: "text-amber-600",   bg: "bg-amber-500/10 border-amber-500/30" },
-  sent:    { label: "Envoyé",     icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-500/10 border-emerald-500/30" },
-  error:   { label: "Erreur",     icon: XCircle,      color: "text-red-600",     bg: "bg-red-500/10 border-red-500/30" },
+  pending:  { label: "En attente", icon: Clock,        color: "text-amber-600",   bg: "bg-amber-500/10 border-amber-500/30" },
+  sent:     { label: "Envoyé",     icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-500/10 border-emerald-500/30" },
+  error:    { label: "Erreur",     icon: XCircle,      color: "text-red-600",     bg: "bg-red-500/10 border-red-500/30" },
+  rejected: { label: "Rejeté",     icon: XCircle,      color: "text-slate-500",   bg: "bg-slate-500/10 border-slate-500/30" },
 };
 
 const OPERATOR_CONFIG = {
@@ -77,13 +78,13 @@ interface RelayConfig {
 }
 
 const MAIRIES_PILOTES = [
-  { slug: "cocody",      label: "Cocody" },
-  { slug: "plateau",     label: "Plateau" },
-  { slug: "yopougon",    label: "Yopougon" },
-  { slug: "adjame",      label: "Adjamé" },
   { slug: "abobo",       label: "Abobo" },
-  { slug: "treichville", label: "Treichville" },
-  { slug: "marcory",     label: "Marcory" },
+  { slug: "adjame",      label: "Adjamé" },
+  { slug: "bingerville", label: "Bingerville" },
+  { slug: "cocody",      label: "Cocody" },
+  { slug: "koumassi",    label: "Koumassi" },
+  { slug: "portbouet",   label: "Port-Bouët" },
+  { slug: "yopougon",    label: "Yopougon" },
 ] as const;
 
 function useRelayConfig() {
@@ -155,11 +156,23 @@ function groupPending(logs: RelayLog[]): RelayGroup[] {
     }
     const g = map.get(key)!;
     g.relayIds.push(log.id);
-    g.quartiers.push({
-      name: log.report.quartier,
-      verifications: log.report.verifications,
-      urgency: log.report.urgency,
-    });
+    // Fusionner par quartier dans l'UI aussi
+    const existing = g.quartiers.find((q) => q.name === log.report!.quartier);
+    if (existing) {
+      existing.verifications += log.report.verifications;
+      existing.count = (existing.count ?? 1) + 1;
+      const urgencyRank: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
+      if ((urgencyRank[log.report.urgency] ?? 0) > (urgencyRank[existing.urgency] ?? 0)) {
+        existing.urgency = log.report.urgency;
+      }
+    } else {
+      g.quartiers.push({
+        name: log.report.quartier,
+        verifications: log.report.verifications,
+        urgency: log.report.urgency,
+        count: 1,
+      });
+    }
     g.totalConfirmations += log.report.verifications;
     if (log.report.urgency === "critical") g.hasCritical = true;
   }
@@ -240,6 +253,27 @@ const AdminRelayPage = () => {
     },
     onError: () => {
       toast({ title: "Erreur de sauvegarde", variant: "destructive" });
+    },
+  });
+
+  // ── Rejeter un groupe de relays ───────────────────────────────────────────
+  const [rejectConfirm, setRejectConfirm] = useState<string | null>(null);
+
+  const rejectGroup = useMutation({
+    mutationFn: async (relay_ids: string[]) => {
+      const { error } = await (supabase as any)
+        .from("relay_logs")
+        .update({ status: "rejected", error_message: "Rejeté par l'administrateur" })
+        .in("id", relay_ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-relay-logs-all"] });
+      setRejectConfirm(null);
+      toast({ title: "Signalement rejeté", description: "Le relay a été rejeté et ne sera pas transmis." });
+    },
+    onError: () => {
+      toast({ title: "Erreur", variant: "destructive" });
     },
   });
 
@@ -453,24 +487,62 @@ const AdminRelayPage = () => {
                       </div>
                     </div>
 
-                    <Button
-                      size="sm"
-                      onClick={() =>
-                        sendGroup.mutate({
-                          relay_ids: group.relayIds,
-                          groupKey: group.key,
-                        })
-                      }
-                      disabled={isSending}
-                      className={`gap-1.5 shrink-0 ${
-                        group.hasCritical
-                          ? "bg-red-600 hover:bg-red-700 text-white"
-                          : "bg-primary text-primary-foreground hover:bg-primary/90"
-                      }`}
-                    >
-                      <Send className="h-3.5 w-3.5" />
-                      {isSending ? "Envoi…" : `Envoyer à ${opCfg.label}`}
-                    </Button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {rejectConfirm === group.key ? (
+                        <>
+                          <span className="text-xs text-muted-foreground hidden sm:block">Confirmer ?</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 text-red-600 border-red-500/40 hover:bg-red-500/10 text-xs h-8"
+                            onClick={() => rejectGroup.mutate(group.relayIds)}
+                            disabled={rejectGroup.isPending}
+                          >
+                            <Ban className="h-3.5 w-3.5" />
+                            Oui, rejeter
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-xs h-8"
+                            onClick={() => setRejectConfirm(null)}
+                          >
+                            Annuler
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setRejectConfirm(group.key)}
+                            disabled={isSending}
+                            className="gap-1.5 text-slate-500 border-slate-400/40 hover:bg-slate-500/10 text-xs h-8"
+                          >
+                            <Ban className="h-3.5 w-3.5" />
+                            Rejeter
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              sendGroup.mutate({
+                                relay_ids: group.relayIds,
+                                groupKey: group.key,
+                              })
+                            }
+                            disabled={isSending}
+                            className={`gap-1.5 ${
+                              group.hasCritical
+                                ? "bg-red-600 hover:bg-red-700 text-white"
+                                : "bg-primary text-primary-foreground hover:bg-primary/90"
+                            }`}
+                          >
+                            <Send className="h-3.5 w-3.5" />
+                            {isSending ? "Envoi…" : `Envoyer à ${opCfg.label}`}
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   {/* Liste des quartiers */}
@@ -485,6 +557,11 @@ const AdminRelayPage = () => {
                           <div className="flex items-center gap-2">
                             <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                             <span className="text-sm text-foreground font-medium">{q.name}</span>
+                            {q.count && q.count > 1 && (
+                              <span className="text-[10px] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5">
+                                {q.count} signalements
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center gap-4">
                             <span className="text-xs text-emerald-600 font-semibold">
@@ -766,20 +843,19 @@ const AdminRelayPage = () => {
                       />
                     </div>
 
-                    {/* Champ email — visible seulement si activé */}
-                    {isEnabled && (
-                      <div className="mt-2.5">
-                        <input
-                          type="email"
-                          value={email}
-                          onChange={(e) =>
-                            setDraftConfig({ ...effectiveConfig, [emailKey]: e.target.value })
-                          }
-                          placeholder={`contact@mairie-${slug}.ci`}
-                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-                        />
-                      </div>
-                    )}
+                    {/* Champ email — toujours visible */}
+                    <div className="mt-2.5">
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) =>
+                          setDraftConfig({ ...effectiveConfig, [emailKey]: e.target.value })
+                        }
+                        placeholder={`contact@mairie-${slug}.ci`}
+                        disabled={!isEnabled}
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-40 disabled:cursor-not-allowed"
+                      />
+                    </div>
                   </div>
                 );
               })}
@@ -787,19 +863,36 @@ const AdminRelayPage = () => {
           </div>
 
           {/* Bouton sauvegarder */}
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">
-              {draftConfig ? "Modifications non sauvegardées" : "Configuration à jour"}
-            </p>
-            <Button
-              onClick={() => draftConfig && saveConfig.mutate(draftConfig)}
-              disabled={!draftConfig || saveConfig.isPending}
-              className="gap-1.5"
-            >
-              <Save className="h-4 w-4" />
-              {saveConfig.isPending ? "Sauvegarde…" : "Sauvegarder"}
-            </Button>
-          </div>
+          {(() => {
+            const testModeBlocked =
+              effectiveConfig.test_mode === "true" &&
+              !effectiveConfig.test_email?.trim();
+            return (
+              <div className="space-y-2">
+                {testModeBlocked && (
+                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                    <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
+                      Mode TEST actif — renseignez l'email de test avant de sauvegarder, sinon les emails partiraient aux vrais opérateurs.
+                    </p>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    {draftConfig ? "Modifications non sauvegardées" : "Configuration à jour"}
+                  </p>
+                  <Button
+                    onClick={() => draftConfig && saveConfig.mutate(draftConfig)}
+                    disabled={!draftConfig || saveConfig.isPending || testModeBlocked}
+                    className="gap-1.5"
+                  >
+                    <Save className="h-4 w-4" />
+                    {saveConfig.isPending ? "Sauvegarde…" : "Sauvegarder"}
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
         </motion.div>
 
       ) : null}

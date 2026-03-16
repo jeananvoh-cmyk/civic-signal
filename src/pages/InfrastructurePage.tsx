@@ -7,10 +7,11 @@ import ShareButton from "@/components/ShareButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
 import {
   Zap, Droplets, MapPin, Clock, ThumbsUp, MessageCircle, CheckCircle,
-  Filter, TrendingUp, AlertCircle, ChevronDown, Lightbulb, TriangleAlert, Info, MoreHorizontal, Building2, Map, Trash2, Waves
+  Filter, TrendingUp, AlertCircle, ChevronDown, Lightbulb, TriangleAlert, Info, MoreHorizontal, Building2, Map, Trash2, Waves, Maximize2, X
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -48,6 +49,7 @@ const InfrastructurePage = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [corroborated, setCorroborated] = useState<Set<string>>(new Set());
   const [repaired, setRepaired] = useState<Set<string>>(new Set());
+  const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
 
   const fetchReports = async (pageNum: number, append = false) => {
     const setter = append ? setLoadingMore : setLoading;
@@ -480,33 +482,51 @@ const InfrastructurePage = () => {
                   )}
                 </div>
 
-                {/* Photo */}
+                {/* Photo cliquable */}
                 {report.photo_url && (
-                  <div className="border-t border-b border-border bg-muted/30">
+                  <div
+                    className="border-t border-b border-border bg-muted/30 relative cursor-pointer group"
+                    onClick={() => setLightboxPhoto(report.photo_url)}
+                  >
                     <SignedImage
                       storagePath={report.photo_url}
                       alt={report.description}
-                      className="w-full max-h-80 object-cover"
+                      className="w-full max-h-72 object-cover"
                     />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors" />
+                    <div className="absolute bottom-2 right-2 bg-black/50 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Maximize2 className="h-3.5 w-3.5" />
+                    </div>
                   </div>
                 )}
 
                 {/* Stats bar */}
-                <div className="px-4 py-2 flex items-center justify-between text-xs text-muted-foreground border-b border-border">
+                <div className="px-4 py-2.5 flex items-center justify-between text-xs border-b border-border">
                   <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1">
-                      <ThumbsUp className="h-3 w-3" />
-                      {report.verifications}
-                    </span>
+                    {report.verifications > 0 ? (
+                      <span className="flex items-center gap-1.5 font-semibold text-foreground">
+                        <span className="flex -space-x-1">
+                          {Array.from({ length: Math.min(report.verifications, 3) }).map((_, i) => (
+                            <span key={i} className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[9px] ring-1 ring-background">👤</span>
+                          ))}
+                        </span>
+                        <span>{report.verifications} voisin{report.verifications > 1 ? "s" : ""} confirment</span>
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <ThumbsUp className="h-3 w-3" />
+                        Pas encore confirmé
+                      </span>
+                    )}
                     {report.repair_verifications > 0 && report.status === "active" && (
                       <span className="flex items-center gap-1 text-[hsl(var(--success))] font-medium">
                         <CheckCircle className="h-3 w-3" />
-                        {report.repair_verifications}/3 ont vu que c'est réparé
+                        {report.repair_verifications}/3 réparé
                       </span>
                     )}
                   </div>
-                  <span>
-                    Signalé par {report.reporter_type === "individual" ? "un résident" : "un groupe"}
+                  <span className="text-muted-foreground">
+                    {report.reporter_type === "individual" ? "un résident" : "un groupe"}
                   </span>
                 </div>
 
@@ -586,6 +606,25 @@ const InfrastructurePage = () => {
           </div>
         )}
       </div>
+
+      {/* Lightbox photo globale */}
+      <Dialog open={!!lightboxPhoto} onOpenChange={(open) => !open && setLightboxPhoto(null)}>
+        <DialogContent className="max-w-screen-md p-0 bg-black border-0 overflow-hidden">
+          <button
+            onClick={() => setLightboxPhoto(null)}
+            className="absolute top-3 right-3 z-10 bg-black/60 text-white rounded-full p-1.5 hover:bg-black/80"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          {lightboxPhoto && (
+            <SignedImage
+              storagePath={lightboxPhoto}
+              alt="Photo du signalement"
+              className="w-full max-h-[90vh] object-contain"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

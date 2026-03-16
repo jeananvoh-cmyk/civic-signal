@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Shield, ShieldCheck, UserPlus, Trash2, Plus, Pencil, KeyRound } from "lucide-react";
+import { Shield, ShieldCheck, UserPlus, Trash2, Plus, Pencil, KeyRound, FlaskConical, Handshake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,13 +19,28 @@ import { logAudit } from "@/lib/audit";
 const ROLE_LABELS: Record<string, { label: string; icon: typeof Shield }> = {
   admin: { label: "Administrateur", icon: ShieldCheck },
   moderator: { label: "Validateur", icon: Shield },
+  test: { label: "Compte test", icon: FlaskConical },
+  partner: { label: "Partenaire", icon: Handshake },
 };
+
+const PARTNER_TYPE_LABELS: Record<string, string> = {
+  cie: "CIE — Énergie",
+  sodeci: "SODECI — Eau",
+  mairie: "Mairie",
+  ngo: "ONG / Association",
+  other: "Autre partenaire",
+};
+
+const COMMUNES_PILOTES = [
+  "Abobo", "Adjamé", "Bingerville", "Cocody", "Koumassi",
+  "Marcory", "Plateau", "Port-Bouët", "Treichville", "Yopougon",
+];
 
 const AdminUsersPage = () => {
   const { isAdmin } = useUserRole();
   const queryClient = useQueryClient();
   const [newEmail, setNewEmail] = useState("");
-  const [newRole, setNewRole] = useState<"admin" | "moderator">("moderator");
+  const [newRole, setNewRole] = useState<"admin" | "moderator" | "test" | "partner">("moderator");
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // Create user dialog state
@@ -34,7 +49,10 @@ const AdminUsersPage = () => {
   const [createPassword, setCreatePassword] = useState("");
   const [createFirstName, setCreateFirstName] = useState("");
   const [createLastName, setCreateLastName] = useState("");
-  const [createRole, setCreateRole] = useState<"" | "admin" | "moderator">("");
+  const [createRole, setCreateRole] = useState<"" | "admin" | "moderator" | "test" | "partner">("");
+  const [createPartnerOrgName, setCreatePartnerOrgName] = useState("");
+  const [createPartnerType, setCreatePartnerType] = useState<"cie" | "sodeci" | "mairie" | "ngo" | "other">("cie");
+  const [createPartnerCommune, setCreatePartnerCommune] = useState("");
 
   // Edit name dialog state
   const [editNameOpen, setEditNameOpen] = useState(false);
@@ -58,14 +76,15 @@ const AdminUsersPage = () => {
       if (error) throw error;
 
       const userIds = roles.map((r) => r.user_id);
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, display_name, first_name, last_name")
-        .in("user_id", userIds);
+      const [{ data: profiles }, { data: partnerProfiles }] = await Promise.all([
+        supabase.from("profiles").select("user_id, display_name, first_name, last_name").in("user_id", userIds),
+        supabase.from("partner_profiles").select("user_id, organization_name, partner_type, commune").in("user_id", userIds),
+      ]);
 
       return roles.map((role) => {
         const profile = profiles?.find((p) => p.user_id === role.user_id);
-        return { ...role, profile };
+        const partnerProfile = partnerProfiles?.find((p) => p.user_id === role.user_id);
+        return { ...role, profile, partnerProfile };
       });
     },
   });
@@ -138,7 +157,6 @@ const AdminUsersPage = () => {
 
   const createUserMutation = useMutation({
     mutationFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
       const res = await supabase.functions.invoke("create-user", {
         body: {
           email: createEmail,
@@ -150,6 +168,17 @@ const AdminUsersPage = () => {
       });
       if (res.error) throw new Error(res.error.message);
       if (res.data?.error) throw new Error(res.data.error);
+
+      if (createRole === "partner") {
+        const { error: partnerError } = await supabase.from("partner_profiles").insert({
+          user_id: res.data.user_id,
+          organization_name: createPartnerOrgName.trim(),
+          partner_type: createPartnerType,
+          commune: createPartnerType === "mairie" ? createPartnerCommune : null,
+        });
+        if (partnerError) throw new Error("Compte créé mais profil partenaire non enregistré : " + partnerError.message);
+      }
+
       return res.data;
     },
     onSuccess: (data) => {
@@ -162,6 +191,9 @@ const AdminUsersPage = () => {
       setCreateFirstName("");
       setCreateLastName("");
       setCreateRole("");
+      setCreatePartnerOrgName("");
+      setCreatePartnerType("cie");
+      setCreatePartnerCommune("");
     },
     onError: (err: any) => toast.error(err.message || "Erreur lors de la création"),
   });
@@ -215,7 +247,7 @@ const AdminUsersPage = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Rôle (optionnel)</Label>
-                  <Select value={createRole} onValueChange={(v) => setCreateRole(v as "" | "admin" | "moderator")}>
+                  <Select value={createRole} onValueChange={(v) => setCreateRole(v as "" | "admin" | "moderator" | "test" | "partner")}>
                     <SelectTrigger>
                       <SelectValue placeholder="Utilisateur standard" />
                     </SelectTrigger>
@@ -223,13 +255,57 @@ const AdminUsersPage = () => {
                       <SelectItem value="user">Utilisateur standard</SelectItem>
                       <SelectItem value="moderator">Validateur</SelectItem>
                       <SelectItem value="admin">Administrateur</SelectItem>
+                      <SelectItem value="test">Compte test (bypass profil)</SelectItem>
+                      <SelectItem value="partner">Partenaire</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+
+                {createRole === "partner" && (
+                  <div className="space-y-3 rounded-lg border border-border bg-muted/40 p-3">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Profil partenaire</p>
+                    <div className="space-y-2">
+                      <Label>Nom de l'organisation *</Label>
+                      <Input
+                        value={createPartnerOrgName}
+                        onChange={(e) => setCreatePartnerOrgName(e.target.value)}
+                        placeholder="ex: CIE — Direction Abobo"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Type de partenaire *</Label>
+                      <Select value={createPartnerType} onValueChange={(v) => setCreatePartnerType(v as typeof createPartnerType)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(PARTNER_TYPE_LABELS).map(([val, lbl]) => (
+                            <SelectItem key={val} value={val}>{lbl}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {createPartnerType === "mairie" && (
+                      <div className="space-y-2">
+                        <Label>Commune *</Label>
+                        <Select value={createPartnerCommune} onValueChange={setCreatePartnerCommune}>
+                          <SelectTrigger><SelectValue placeholder="Sélectionner une commune" /></SelectTrigger>
+                          <SelectContent>
+                            {COMMUNES_PILOTES.map((c) => (
+                              <SelectItem key={c} value={c}>{c}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <Button
                   className="w-full"
                   onClick={() => createUserMutation.mutate()}
-                  disabled={!createEmail || !createPassword || createPassword.length < 6 || createUserMutation.isPending}
+                  disabled={
+                    !createEmail || !createPassword || createPassword.length < 6 || createUserMutation.isPending ||
+                    (createRole === "partner" && (!createPartnerOrgName.trim() || (createPartnerType === "mairie" && !createPartnerCommune)))
+                  }
                 >
                   {createUserMutation.isPending ? "Création..." : "Créer l'utilisateur"}
                 </Button>
@@ -325,13 +401,15 @@ const AdminUsersPage = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Rôle</Label>
-                  <Select value={newRole} onValueChange={(v) => setNewRole(v as "admin" | "moderator")}>
+                  <Select value={newRole} onValueChange={(v) => setNewRole(v as "admin" | "moderator" | "test" | "partner")}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="moderator">Validateur (peut valider les signalements)</SelectItem>
                       <SelectItem value="admin">Administrateur (accès complet)</SelectItem>
+                      <SelectItem value="test">Compte test (bypass contrainte profil)</SelectItem>
+                      <SelectItem value="partner">Partenaire (accès données filtrées)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -366,11 +444,20 @@ const AdminUsersPage = () => {
                     <RoleIcon className="h-5 w-5 text-primary" />
                     <div>
                       <p className="text-sm font-medium">{displayName}</p>
-                      <p className="text-xs text-muted-foreground font-mono">{item.user_id.slice(0, 8)}...</p>
+                      {item.partnerProfile && (
+                        <p className="text-xs text-muted-foreground">
+                          {item.partnerProfile.organization_name} · {PARTNER_TYPE_LABELS[item.partnerProfile.partner_type] || item.partnerProfile.partner_type}
+                          {item.partnerProfile.commune ? ` · ${item.partnerProfile.commune}` : ""}
+                        </p>
+                      )}
+                      {!item.partnerProfile && (
+                        <p className="text-xs text-muted-foreground font-mono">{item.user_id.slice(0, 8)}...</p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={item.role === "admin" ? "default" : "secondary"}>
+                    <Badge variant={item.role === "admin" ? "default" : item.role === "partner" ? "secondary" : item.role === "test" ? "outline" : "secondary"}
+                      className={item.role === "partner" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300" : undefined}>
                       {ROLE_LABELS[item.role]?.label || item.role}
                     </Badge>
                     <Button

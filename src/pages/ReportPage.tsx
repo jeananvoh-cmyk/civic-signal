@@ -173,6 +173,11 @@ const ReportPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [dailyCount, setDailyCount] = useState<number | null>(null);
   const [limitReached, setLimitReached] = useState(false);
+  const [userPhone, setUserPhone] = useState<string | null>(null);
+  const [userProfileCommune, setUserProfileCommune] = useState<string | null>(null);
+  const [userProfileQuartier, setUserProfileQuartier] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isTestAccount, setIsTestAccount] = useState(false);
 
   // Duplicate detection
   interface SimilarReport {
@@ -244,6 +249,17 @@ const ReportPage = () => {
         setDailyCount(count);
         setLimitReached(count >= DAILY_LIMIT);
       }
+    });
+    supabase.from("profiles").select("phone, commune, quartier").eq("user_id", user.id).single().then(({ data }) => {
+      setUserPhone(data?.phone ?? null);
+      setUserProfileCommune(data?.commune ?? null);
+      setUserProfileQuartier(data?.quartier ?? null);
+    });
+    supabase.rpc("has_role", { _user_id: user.id, _role: "admin" }).then(({ data }) => {
+      setIsAdmin(data === true);
+    });
+    supabase.rpc("has_role", { _user_id: user.id, _role: "test" }).then(({ data }) => {
+      setIsTestAccount(data === true);
     });
   }, [user]);
 
@@ -338,6 +354,21 @@ const ReportPage = () => {
     if (!latitude || !longitude) { toast.error("Position GPS requise"); return; }
     if (!selectedType || !commune || !resolvedQuartier) { toast.error("Informations incomplètes"); return; }
     if (!user) { toast.error("Vous devez être connecté"); return; }
+    if (!isAdmin && !isTestAccount) {
+      const missingFields = [
+        !userPhone?.trim() && "téléphone",
+        !userProfileCommune?.trim() && "commune",
+        !userProfileQuartier?.trim() && "quartier",
+      ].filter(Boolean) as string[];
+      if (missingFields.length > 0) {
+        toast.error("Profil incomplet (40%)", {
+          description: `Ajoutez votre ${missingFields.join(", ")} dans votre profil pour pouvoir faire un signalement.`,
+          action: { label: "Compléter mon profil", onClick: () => navigate("/profil") },
+          duration: 8000,
+        });
+        return;
+      }
+    }
     if (!gpsConsent) { toast.error("Acceptez l'utilisation de votre position GPS"); return; }
     if (selectedType.reportCategory === "infrastructure" && !photoUrl) {
       toast.error("📸 Une photo est obligatoire pour ce type de signalement");

@@ -53,57 +53,62 @@ function buildBatchEmailHtml(
   reports: Report[],
 ): string {
   const serviceLabel =
-    operator === "CIE" ? "Coupures d'électricité" : "Coupures d'eau";
-  const serviceIcon = operator === "CIE" ? "⚡" : "💧";
+    operator === "CIE"
+      ? "Coupures d'électricité"
+      : operator === "SODECI"
+        ? "Coupures d'eau"
+        : "Voirie / Infrastructure";
+  const serviceIcon = operator === "CIE" ? "⚡" : operator === "SODECI" ? "💧" : "🏗️";
 
-  const urgencyLabel: Record<string, string> = {
-    low: "Faible",
-    medium: "Moyenne",
-    high: "Élevée",
-    critical: "🔴 CRITIQUE",
-  };
+  const totalCitizens = reports.reduce((sum, r) => sum + r.verifications, 0);
 
-  const totalConfirmations = reports.reduce(
-    (sum, r) => sum + r.verifications,
-    0,
-  );
-  const hasCritical = reports.some((r) => r.urgency === "critical");
+  function signaleSince(createdAt: string): string {
+    const diffH = Math.round((Date.now() - new Date(createdAt).getTime()) / 3_600_000);
+    if (diffH < 1) return "moins d'1h";
+    if (diffH < 24) return `${diffH}h`;
+    const d = Math.floor(diffH / 24);
+    return d === 1 ? "1 jour" : `${d} jours`;
+  }
 
-  const reportRows = reports
-    .map((r) => {
-      const dateStr = new Date(r.created_at).toLocaleString("fr-FR", {
-        timeZone: "Africa/Abidjan",
-        dateStyle: "short",
-        timeStyle: "short",
-      });
-      const mapsLink =
-        r.latitude && r.longitude
-          ? `<a href="https://maps.google.com/?q=${r.latitude},${r.longitude}" style="color:#0ea5e9;text-decoration:none;">Voir →</a>`
-          : "—";
-      const urgColor =
-        r.urgency === "critical"
-          ? "#dc2626"
-          : r.urgency === "high"
-            ? "#ea580c"
-            : "#374151";
+  // Fusionner les signalements par quartier — évite le spam pour le même quartier
+  const urgencyRank: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
+  const byQuartier = new Map<string, { reports: Report[]; maxUrgency: string; totalVerif: number }>();
+  for (const r of reports) {
+    if (!byQuartier.has(r.quartier)) {
+      byQuartier.set(r.quartier, { reports: [], maxUrgency: r.urgency, totalVerif: 0 });
+    }
+    const entry = byQuartier.get(r.quartier)!;
+    entry.reports.push(r);
+    entry.totalVerif += r.verifications;
+    if ((urgencyRank[r.urgency] ?? 0) > (urgencyRank[entry.maxUrgency] ?? 0)) {
+      entry.maxUrgency = r.urgency;
+    }
+  }
+
+  const citizenLabel = operator === "MAIRIE" ? "Citoyens" : "Signalements confirmés";
+
+  const reportRows = [...byQuartier.entries()]
+    .map(([quartier, entry]) => {
+      const oldest = entry.reports.reduce((a, b) =>
+        new Date(a.created_at) < new Date(b.created_at) ? a : b,
+      );
+      const since = signaleSince(oldest.created_at);
+      const withCoords = entry.reports.find((r) => r.latitude && r.longitude);
+      const mapsLink = withCoords
+        ? `<a href="https://maps.google.com/?q=${withCoords.latitude},${withCoords.longitude}" style="color:#0ea5e9;text-decoration:none;">Voir →</a>`
+        : "—";
+      const countBadge = entry.reports.length > 1
+        ? ` <span style="font-size:11px;color:#6b7280;">(${entry.reports.length} signalements)</span>`
+        : "";
       return `
       <tr style="border-top:1px solid #e5e7eb;">
-        <td style="padding:10px 16px;font-size:13px;color:#111827;font-weight:600;">${escapeHtml(r.quartier)}</td>
-        <td style="padding:10px 16px;font-size:13px;color:#16a34a;font-weight:700;">${r.verifications}</td>
-        <td style="padding:10px 16px;font-size:13px;color:${urgColor};font-weight:${r.urgency === "critical" ? "700" : "400"};">${urgencyLabel[r.urgency] ?? r.urgency}</td>
-        <td style="padding:10px 16px;font-size:13px;color:#6b7280;">${dateStr}</td>
+        <td style="padding:10px 16px;font-size:13px;color:#111827;font-weight:600;">${escapeHtml(quartier)}${countBadge}</td>
+        <td style="padding:10px 16px;font-size:13px;color:#16a34a;font-weight:700;">${entry.totalVerif}</td>
+        <td style="padding:10px 16px;font-size:13px;color:#6b7280;">${since}</td>
         <td style="padding:10px 16px;font-size:13px;">${mapsLink}</td>
       </tr>`;
     })
     .join("");
-
-  const criticalBanner = hasCritical
-    ? `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin-bottom:20px;">
-        <p style="margin:0;color:#dc2626;font-weight:700;font-size:13px;">
-          🔴 Situation CRITIQUE — Intervention urgente requise
-        </p>
-      </div>`
-    : "";
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -124,8 +129,8 @@ function buildBatchEmailHtml(
             </h1>
             <p style="margin:8px 0 0;font-size:14px;color:rgba(255,255,255,0.9);">
               Commune de <strong>${escapeHtml(commune)}</strong>
-              &nbsp;·&nbsp;${reports.length} quartier${reports.length > 1 ? "s" : ""} touché${reports.length > 1 ? "s" : ""}
-              &nbsp;·&nbsp;${totalConfirmations} confirmation${totalConfirmations > 1 ? "s" : ""} citoyennes
+              &nbsp;·&nbsp;${byQuartier.size} quartier${byQuartier.size > 1 ? "s" : ""}
+              &nbsp;·&nbsp;${totalCitizens} citoyen${totalCitizens > 1 ? "s" : ""} concerné${totalCitizens > 1 ? "s" : ""}
             </p>
           </td>
         </tr>
@@ -133,21 +138,20 @@ function buildBatchEmailHtml(
         <!-- Body -->
         <tr><td style="padding:28px 32px;">
 
-          ${criticalBanner}
-
           <p style="margin:0 0 20px;color:#6b7280;font-size:14px;line-height:1.6;">
-            Les signalements ci-dessous ont été <strong style="color:#16a34a;">confirmés par plusieurs citoyens</strong>
-            dans la commune de <strong>${escapeHtml(commune)}</strong> via la plateforme SIGNA-CI
-            et ont été validés par l'équipe d'administration avant transmission.
+            Des citoyens de la commune de <strong style="color:#111827;">${escapeHtml(commune)}</strong>
+            ont signalé les situations ci-dessous via la plateforme <strong>SIGNA-CI</strong>.
+            Ces informations ont été vérifiées et validées par notre équipe avant transmission.
+            Nous vous les communiquons afin que vous puissiez <strong style="color:#111827;">planifier une intervention
+            selon vos priorités et disponibilités</strong>.
           </p>
 
           <!-- Tableau des quartiers -->
           <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:24px;">
             <tr style="background:#f9fafb;">
               <th style="padding:10px 16px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;text-align:left;">Quartier</th>
-              <th style="padding:10px 16px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;text-align:left;">Citoyens</th>
-              <th style="padding:10px 16px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;text-align:left;">Urgence</th>
-              <th style="padding:10px 16px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;text-align:left;">Signalé le</th>
+              <th style="padding:10px 16px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;text-align:left;">${citizenLabel}</th>
+              <th style="padding:10px 16px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;text-align:left;">Signalé depuis</th>
               <th style="padding:10px 16px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;text-align:left;">GPS</th>
             </tr>
             ${reportRows}
@@ -356,7 +360,9 @@ Deno.serve(async (req) => {
       const serviceLabel =
         group.operator === "CIE"
           ? "Coupure d'électricité"
-          : "Coupure d'eau";
+          : group.operator === "SODECI"
+            ? "Coupure d'eau"
+            : "Voirie / Infrastructure";
       const quartiersStr = group.reports
         .map((r) => r.quartier)
         .join(", ");
@@ -390,7 +396,11 @@ Deno.serve(async (req) => {
 
         // Notifier automatiquement chaque citoyen concerné
         const operatorName =
-          group.operator === "CIE" ? "CIE (Électricité)" : "SODECI (Eau)";
+          group.operator === "CIE"
+            ? "CIE (Électricité)"
+            : group.operator === "SODECI"
+              ? "SODECI (Eau)"
+              : `la Mairie de ${group.commune}`;
         const notifs = group.reports.map((r) => ({
           user_id: r.user_id,
           report_id: r.id,

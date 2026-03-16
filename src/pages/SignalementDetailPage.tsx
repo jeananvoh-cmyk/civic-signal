@@ -1,17 +1,25 @@
 import { useParams, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Clock, Users, CheckCircle2, Info } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, Users, CheckCircle2, Info, ThumbsUp, Maximize2, X, ExternalLink, MessageSquare, Send } from "lucide-react";
 import DurationBadge from "@/components/DurationBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
 import SignedImage from "@/components/SignedImage";
 import PriorityBadge from "@/components/PriorityBadge";
 import { calculatePriority, getNormReference } from "@/lib/priority-score";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { formatDistanceToNow } from "date-fns";
+import { fr } from "date-fns/locale";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 const NEGLECTED_DAYS = 7;
 
@@ -36,6 +44,8 @@ interface ReportDetail {
   pregnant: number | null;
   elderly: number | null;
   repair_verifications: number | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 type ComputedStatus = "nouveau" | "en_cours" | "resolu" | "non_pris";
@@ -89,6 +99,14 @@ function getTypeLabel(serviceType: string, reportCategory: string | null): strin
 
 const SignalementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [supported, setSupported] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstance = useRef<L.Map | null>(null);
+  const [commentText, setCommentText] = useState("");
+  const [submittingComment, setSubmittingComment] = useState(false);
 
   const { canValidate } = useUserRole();
 
@@ -97,13 +115,32 @@ const SignalementDetailPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reports")
-        .select("id, status, urgency, service_type, report_category, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, photo_url, babies, pregnant, elderly, repair_verifications")
+        .select("id, status, urgency, service_type, report_category, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, photo_url, babies, pregnant, elderly, repair_verifications, latitude, longitude")
         .eq("id", id!)
         .single();
       if (error) throw error;
       return data as ReportDetail;
     },
     enabled: !!id,
+  });
+
+  // GPS corroboration : autres signalements infrastructure du même type aux mêmes coordonnées
+  const { data: gpsCorroborationCount } = useQuery({
+    queryKey: ["gps-corroboration", report?.id, report?.latitude, report?.longitude],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_nearby_reports", {
+        p_lat: report!.latitude!,
+        p_lon: report!.longitude!,
+        p_rayon_m: 50,
+      });
+      if (error) return 0;
+      // Exclure le signalement lui-même, ne garder que le même service_type
+      return (data ?? []).filter(
+        (r: { id: string; service_type: string }) =>
+          r.id !== report!.id && r.service_type === report!.service_type
+      ).length;
+    },
+    enabled: !!report?.latitude && !!report?.longitude && report?.report_category === "infrastructure",
   });
 
   // Zone context: count active reports in same quartier
@@ -124,6 +161,89 @@ const SignalementDetailPage = () => {
     },
     enabled: !!report?.commune && !!report?.quartier,
   });
+
+  const { data: comments = [], refetch: refetchComments } = useQuery({
+    queryKey: ["report-comments", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("report_comments")
+        .select("id, user_id, content, created_at")
+        .eq("report_id", id!)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data as { id: string; user_id: string; content: string; created_at: string }[];
+    },
+    enabled: !!id,
+  });
+
+  const handleAddComment = async () => {
+    if (!user || !commentText.trim()) return;
+    setSubmittingComment(true);
+    const { error } = await supabase
+      .from("report_comments")
+      .insert({ report_id: id, user_id: user.id, content: commentText.trim() });
+    setSubmittingComment(false);
+    if (error) {
+      toast({ title: "Impossible d'envoyer", description: error.message, variant: "destructive" });
+      return;
+    }
+    setCommentText("");
+    refetchComments();
+  };
+
+  const supportReport = useMutation({
+    mutationFn: async () => {
+      const { error } = await (supabase as any).rpc("support_infra_report", { p_report_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setSupported(true);
+      queryClient.invalidateQueries({ queryKey: ["signalement-detail", id] });
+      toast({ title: "Merci pour votre soutien !", description: "La mairie sera informée du nombre de citoyens concernés." });
+    },
+    onError: (err: any) => {
+      toast({ title: "Impossible de soutenir", description: err.message, variant: "destructive" });
+    },
+  });
+
+  // Mini-carte Leaflet — s'initialise quand les coordonnées sont disponibles
+  useEffect(() => {
+    if (!report?.latitude || !report?.longitude || !mapRef.current) return;
+    if (mapInstance.current) return; // déjà initialisé
+
+    const markerColor =
+      report.service_type === "electricity" ? "#F59E0B" :
+      report.service_type === "water" ? "#3B82F6" : "#10B981";
+
+    const map = L.map(mapRef.current, {
+      center: [report.latitude, report.longitude],
+      zoom: 17,
+      zoomControl: false,
+      dragging: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      keyboard: false,
+      tap: false,
+      attributionControl: false,
+    });
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+    const icon = L.divIcon({
+      className: "",
+      html: `<div style="width:20px;height:20px;border-radius:50% 50% 50% 0;background:${markerColor};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.4);transform:rotate(-45deg);"></div>`,
+      iconSize: [20, 20],
+      iconAnchor: [10, 20],
+    });
+
+    L.marker([report.latitude, report.longitude], { icon }).addTo(map);
+    mapInstance.current = map;
+
+    return () => {
+      map.remove();
+      mapInstance.current = null;
+    };
+  }, [report?.latitude, report?.longitude, report?.service_type]);
 
   if (isLoading) {
     return (
@@ -161,11 +281,13 @@ const SignalementDetailPage = () => {
   const typeLabel = getTypeLabel(report.service_type, report.report_category);
   const priority = calculatePriority({
     service_type: report.service_type,
+    report_category: report.report_category,
     start_time: report.start_time,
     created_at: report.created_at,
     status: report.status,
     verifications: report.verifications,
-    impacted_people: report.impacted_people,
+    impacted_people: report.report_category === "infrastructure" ? undefined : report.impacted_people,
+    corroborating_reports: report.report_category === "infrastructure" ? (gpsCorroborationCount ?? 0) : undefined,
     babies: report.babies,
     pregnant: report.pregnant,
     elderly: report.elderly,
@@ -197,6 +319,42 @@ const SignalementDetailPage = () => {
         </Link>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          {/* Photo hero — en premier pour l'impact visuel */}
+          {report.photo_url && (
+            <>
+              <div
+                className="relative mb-5 rounded-xl overflow-hidden cursor-pointer group"
+                onClick={() => setPhotoOpen(true)}
+              >
+                <SignedImage
+                  storagePath={report.photo_url}
+                  alt="Photo du signalement"
+                  className="w-full max-h-64 object-cover"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                <div className="absolute bottom-2 right-2 bg-black/50 text-white rounded-full p-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
+                  <Maximize2 className="h-3.5 w-3.5" />
+                </div>
+              </div>
+
+              <Dialog open={photoOpen} onOpenChange={setPhotoOpen}>
+                <DialogContent className="max-w-screen-md p-0 bg-black border-0 overflow-hidden">
+                  <button
+                    onClick={() => setPhotoOpen(false)}
+                    className="absolute top-3 right-3 z-10 bg-black/60 text-white rounded-full p-1.5 hover:bg-black/80"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                  <SignedImage
+                    storagePath={report.photo_url}
+                    alt="Photo du signalement"
+                    className="w-full max-h-[90vh] object-contain"
+                  />
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
+
           {/* En-tête type + priorité */}
           <div className="flex items-center gap-3 mb-2">
             <span className="text-4xl">{typeEmoji}</span>
@@ -300,15 +458,117 @@ const SignalementDetailPage = () => {
             </CardContent>
           </Card>
 
-          {/* Photo */}
-          {report.photo_url && (
-            <Card className="mb-4 overflow-hidden">
-              <SignedImage
-                storagePath={report.photo_url}
-                alt="Photo du signalement"
-                className="w-full max-h-72 object-cover"
-              />
-            </Card>
+          {/* Mini-carte localisation exacte */}
+          {report.latitude && report.longitude && (
+            <div className="mb-4 rounded-xl overflow-hidden border border-border">
+              <div ref={mapRef} className="h-44 w-full" />
+              <a
+                href={`https://maps.google.com/?q=${report.latitude},${report.longitude}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-primary hover:bg-muted transition-colors bg-card border-t border-border"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Voir sur Google Maps
+              </a>
+            </div>
+          )}
+
+          {/* Commentaires citoyens */}
+          <div className="mb-4 rounded-xl border border-border bg-card overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-semibold text-foreground">
+                Commentaires
+              </span>
+              {comments.length > 0 && (
+                <span className="ml-auto text-xs text-muted-foreground">{comments.length}</span>
+              )}
+            </div>
+
+            {/* Liste des commentaires */}
+            {comments.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-5 px-4">
+                Soyez le premier à commenter — infos utiles, évolution du problème…
+              </p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {comments.map((c) => (
+                  <li key={c.id} className="px-4 py-3 space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-foreground">
+                        {c.user_id === user?.id ? "Vous" : "Un voisin"}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {formatDistanceToNow(new Date(c.created_at), { addSuffix: true, locale: fr })}
+                      </span>
+                    </div>
+                    <p className="text-sm text-foreground leading-relaxed">{c.content}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* Formulaire */}
+            {user ? (
+              <div className="px-4 py-3 border-t border-border space-y-2">
+                <div className="relative">
+                  <textarea
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value.slice(0, 200))}
+                    placeholder="Ajouter une info utile… (max 200 caractères)"
+                    rows={2}
+                    className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary pr-10"
+                  />
+                  <span className="absolute bottom-2.5 right-3 text-[10px] text-muted-foreground">
+                    {commentText.length}/200
+                  </span>
+                </div>
+                <button
+                  onClick={handleAddComment}
+                  disabled={!commentText.trim() || submittingComment}
+                  className="flex items-center gap-1.5 text-xs font-medium text-primary disabled:opacity-40 hover:underline transition-opacity"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  {submittingComment ? "Envoi…" : "Publier"}
+                </button>
+              </div>
+            ) : (
+              <div className="px-4 py-3 border-t border-border">
+                <Link
+                  to="/auth"
+                  className="text-xs text-primary hover:underline"
+                >
+                  Connectez-vous pour commenter
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Soutien citoyen — uniquement pour les infrastructures actives */}
+          {report.report_category === "infrastructure" && report.status === "active" && user && (
+            <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+              <p className="text-sm font-semibold text-foreground">
+                Ce problème vous concerne aussi ?
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Exprimez votre soutien — le nombre de citoyens concernés sera transmis à la mairie.
+              </p>
+              <Button
+                onClick={() => supportReport.mutate()}
+                disabled={supported || supportReport.isPending}
+                variant={supported ? "outline" : "default"}
+                className="w-full gap-2"
+              >
+                <ThumbsUp className="h-4 w-4" />
+                {supported
+                  ? `Soutenu · ${report.verifications} citoyen${report.verifications > 1 ? "s" : ""}`
+                  : supportReport.isPending
+                    ? "En cours…"
+                    : `Je soutiens ce signalement · ${report.verifications} soutien${report.verifications > 1 ? "s" : ""}`
+                }
+              </Button>
+            </div>
           )}
 
           {/* Partage */}
