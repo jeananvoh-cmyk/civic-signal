@@ -573,12 +573,21 @@ const DashboardPage = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {confirmedZones.slice(0, 6).map((z) => {
                   const isElec = z.serviceType === "electricity";
+                  const isWater = z.serviceType === "water";
+                  const operator = isElec ? "CIE" : isWater ? "SODECI" : "Mairie";
+                  const serviceLabel = isElec ? "Coupure électricité" : isWater ? "Coupure d'eau" : "Infrastructure";
+                  const hasQuartier = z.quartier && z.quartier !== z.commune;
                   return (
                     <div key={`${z.commune}|${z.quartier}|${z.serviceType}`} className="flex items-center gap-3 rounded-xl bg-card border border-border px-4 py-3">
-                      <span className="text-lg">{isElec ? "⚡" : z.serviceType === "water" ? "💧" : "🏗️"}</span>
+                      <span className="text-lg">{isElec ? "⚡" : isWater ? "💧" : "🏗️"}</span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground truncate">{z.quartier || z.commune}</p>
-                        <p className="text-[10px] text-muted-foreground">{z.commune} • {z.totalVerifications} confirmation{z.totalVerifications > 1 ? "s" : ""}</p>
+                        <p className="text-sm font-semibold text-foreground truncate">
+                          {hasQuartier ? z.quartier : z.commune}
+                          {hasQuartier && <span className="ml-1 font-normal text-muted-foreground">· {z.commune}</span>}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {serviceLabel} · {z.totalVerifications} confirmation{z.totalVerifications > 1 ? "s" : ""} · transmis à <span className="font-semibold text-foreground">{operator}</span>
+                        </p>
                       </div>
                       <span className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600">✓ Confirmé</span>
                     </div>

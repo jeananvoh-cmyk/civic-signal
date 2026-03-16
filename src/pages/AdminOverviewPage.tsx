@@ -1,9 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import {
   FileText, Users, AlertTriangle, CheckCircle2, Clock, TrendingUp,
-  Zap, Droplets, Shield, Trash2, BarChart3, ArrowRight, Heart,
+  Zap, Droplets, Shield, Trash2, BarChart3, ArrowRight, Heart, MailCheck,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,9 +15,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSiteSetting } from "@/hooks/useSiteSetting";
 import { toast } from "@/hooks/use-toast";
 
+const LAST_ADMIN_PAGE_KEY = "admin_last_page";
+
 const AdminOverviewPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
+
+  // Si l'utilisateur arrive sur /admin directement (pas via navigation interne),
+  // on le redirige vers la dernière page admin qu'il avait visitée.
+  useEffect(() => {
+    // location.state?.internal est mis à true par les liens internes (AdminLayout goTo)
+    const last = localStorage.getItem(LAST_ADMIN_PAGE_KEY);
+    if (last && last !== "/admin" && !(location.state as any)?.internal) {
+      navigate(last, { replace: true, state: { internal: true } });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const queryClient = useQueryClient();
   const { data: donationsEnabled = true } = useSiteSetting("donations_enabled");
 
@@ -85,6 +99,19 @@ const AdminOverviewPage = () => {
       const { count, error } = await supabase
         .from("report_deletions")
         .select("*", { count: "exact", head: true });
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
+  // Pending relay count
+  const { data: pendingRelayCount = 0 } = useQuery({
+    queryKey: ["admin-overview-relay-pending"],
+    queryFn: async () => {
+      const { count, error } = await (supabase as any)
+        .from("relay_logs")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending");
       if (error) throw error;
       return count || 0;
     },
@@ -214,6 +241,7 @@ const AdminOverviewPage = () => {
           { label: "Gérer les rôles", path: "/admin/utilisateurs", icon: Users, color: "text-primary" },
           { label: "Historique suppressions", path: "/admin/suppressions", icon: Trash2, count: deletionsCount, color: "text-destructive" },
           { label: "Statistiques", path: "/admin/stats", icon: BarChart3, color: "text-primary" },
+          { label: "Relais opérateurs", path: "/admin/relay", icon: MailCheck, count: pendingRelayCount, color: "text-amber-500" },
         ].map((action, i) => (
           <motion.div key={action.path} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 + i * 0.05 }}>
             <Button

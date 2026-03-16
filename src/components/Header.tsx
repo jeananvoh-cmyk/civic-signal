@@ -33,11 +33,11 @@ const Header = () => {
   const isMapActive = location.pathname === "/carte" || location.pathname === "/infrastructures";
 
   const links = [
-    { to: "/", label: "Accueil" },
-    { to: "/signaler", label: "Signaler" },
-    { to: "/tableau-de-bord", label: "Tableau de Bord Public" },
-    { to: "/verification", label: "Vérifier" },
-    ...(donationsEnabled ? [{ to: "/dons", label: "♥ Dons" }] : []),
+    { to: "/", label: "Accueil", highlight: false },
+    { to: "/signaler", label: "Signaler", highlight: false },
+    { to: "/tableau-de-bord", label: "Tableau de Bord Public", highlight: false },
+    { to: "/verification", label: "Vérifier", highlight: true },
+    ...(donationsEnabled ? [{ to: "/dons", label: "♥ Dons", highlight: false }] : []),
   ];
 
   return (
@@ -60,6 +60,8 @@ const Header = () => {
               className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 location.pathname === link.to
                   ? "bg-primary/10 text-primary font-semibold"
+                  : link.highlight
+                  ? "border border-primary/40 text-primary hover:bg-primary/10"
                   : "text-foreground/70 hover:bg-secondary hover:text-foreground"
               }`}
             >
@@ -209,6 +211,8 @@ const Header = () => {
               className={`block rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
                 location.pathname === link.to
                   ? "bg-primary/10 text-primary font-semibold"
+                  : link.highlight
+                  ? "border border-primary/40 text-primary hover:bg-primary/10"
                   : "text-foreground/70 hover:bg-secondary"
               }`}
             >

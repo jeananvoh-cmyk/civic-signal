@@ -1,0 +1,810 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
+import { useState } from "react";
+import {
+  Send, Clock, CheckCircle2, XCircle, RefreshCw,
+  Zap, Droplets, AlertTriangle, MailCheck, MapPin, Users,
+  ChevronDown, ChevronUp, ExternalLink, Settings, FlaskConical,
+  ShieldCheck, Save,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface RelayLog {
+  id: string;
+  report_id: string;
+  operator: "CIE" | "SODECI" | "MAIRIE";
+  email_to: string;
+  status: "pending" | "sent" | "error";
+  error_message: string | null;
+  created_at: string;
+  sent_at: string | null;
+  report?: {
+    commune: string;
+    quartier: string;
+    service_type: string;
+    verifications: number;
+    urgency: string;
+  };
+}
+
+interface RelayGroup {
+  key: string;
+  operator: "CIE" | "SODECI" | "MAIRIE";
+  commune: string;
+  email_to: string;
+  relayIds: string[];
+  quartiers: { name: string; verifications: number; urgency: string }[];
+  totalConfirmations: number;
+  hasCritical: boolean;
+}
+
+// ─── Config ───────────────────────────────────────────────────────────────────
+
+const STATUS_CONFIG = {
+  pending: { label: "En attente", icon: Clock,        color: "text-amber-600",   bg: "bg-amber-500/10 border-amber-500/30" },
+  sent:    { label: "Envoyé",     icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-500/10 border-emerald-500/30" },
+  error:   { label: "Erreur",     icon: XCircle,      color: "text-red-600",     bg: "bg-red-500/10 border-red-500/30" },
+};
+
+const OPERATOR_CONFIG = {
+  CIE:    { label: "CIE",    icon: Zap,          color: "text-yellow-600", bg: "bg-yellow-500/10", border: "border-yellow-500/30" },
+  SODECI: { label: "SODECI", icon: Droplets,      color: "text-sky-600",    bg: "bg-sky-500/10",    border: "border-sky-500/30" },
+  MAIRIE: { label: "Mairie", icon: AlertTriangle, color: "text-orange-600", bg: "bg-orange-500/10", border: "border-orange-500/30" },
+};
+
+const URGENCY_CONFIG: Record<string, { label: string; color: string }> = {
+  critical: { label: "CRITIQUE", color: "text-red-600 font-bold" },
+  high:     { label: "Elevée",   color: "text-orange-500 font-semibold" },
+  medium:   { label: "Moyenne",  color: "text-amber-600" },
+  low:      { label: "Faible",   color: "text-muted-foreground" },
+};
+
+// ─── Hook : relay config ──────────────────────────────────────────────────────
+
+interface RelayConfig {
+  test_mode:    string;
+  test_email:   string;
+  email_cie:    string;
+  email_sodeci: string;
+  [key: string]: string; // mairie_<slug>_email / mairie_<slug>_enabled
+}
+
+const MAIRIES_PILOTES = [
+  { slug: "cocody",      label: "Cocody" },
+  { slug: "plateau",     label: "Plateau" },
+  { slug: "yopougon",    label: "Yopougon" },
+  { slug: "adjame",      label: "Adjamé" },
+  { slug: "abobo",       label: "Abobo" },
+  { slug: "treichville", label: "Treichville" },
+  { slug: "marcory",     label: "Marcory" },
+] as const;
+
+function useRelayConfig() {
+  return useQuery({
+    queryKey: ["relay-config"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("relay_config")
+        .select("key, value");
+      if (error) throw error;
+      return Object.fromEntries(
+        (data as { key: string; value: string }[]).map((r) => [r.key, r.value]),
+      ) as RelayConfig;
+    },
+  });
+}
+
+// ─── Hook : chargement ────────────────────────────────────────────────────────
+
+function useRelayLogs() {
+  return useQuery({
+    queryKey: ["admin-relay-logs-all"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("relay_logs")
+        .select("id, report_id, operator, email_to, status, error_message, created_at, sent_at")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+
+      const reportIds = [...new Set((data as any[]).map((r: any) => r.report_id))];
+      if (reportIds.length === 0) return [] as RelayLog[];
+
+      const { data: reports } = await supabase
+        .from("reports")
+        .select("id, commune, quartier, service_type, verifications, urgency")
+        .in("id", reportIds as string[]);
+
+      const reportMap = new Map((reports ?? []).map((r: any) => [r.id, r]));
+
+      return (data as any[]).map((log: any) => ({
+        ...log,
+        report: reportMap.get(log.report_id),
+      })) as RelayLog[];
+    },
+    refetchInterval: 15_000,
+  });
+}
+
+// ─── Groupement des pending ───────────────────────────────────────────────────
+
+function groupPending(logs: RelayLog[]): RelayGroup[] {
+  const map = new Map<string, RelayGroup>();
+
+  for (const log of logs.filter((l) => l.status === "pending")) {
+    if (!log.report) continue;
+    const key = `${log.operator}::${log.report.commune}`;
+    if (!map.has(key)) {
+      map.set(key, {
+        key,
+        operator: log.operator,
+        commune: log.report.commune,
+        email_to: log.email_to,
+        relayIds: [],
+        quartiers: [],
+        totalConfirmations: 0,
+        hasCritical: false,
+      });
+    }
+    const g = map.get(key)!;
+    g.relayIds.push(log.id);
+    g.quartiers.push({
+      name: log.report.quartier,
+      verifications: log.report.verifications,
+      urgency: log.report.urgency,
+    });
+    g.totalConfirmations += log.report.verifications;
+    if (log.report.urgency === "critical") g.hasCritical = true;
+  }
+
+  // Critiques en premier
+  return [...map.values()].sort(
+    (a, b) => (b.hasCritical ? 1 : 0) - (a.hasCritical ? 1 : 0),
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+const AdminRelayPage = () => {
+  const queryClient = useQueryClient();
+  const [tab, setTab] = useState<"pending" | "history" | "settings">("pending");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [sendingGroup, setSendingGroup] = useState<string | null>(null);
+
+  const { data: relayConfig, refetch: refetchConfig } = useRelayConfig();
+  const [draftConfig, setDraftConfig] = useState<RelayConfig | null>(null);
+  const effectiveConfig = draftConfig ?? relayConfig;
+
+  const { data: logs = [], isLoading, dataUpdatedAt } = useRelayLogs();
+
+  const pendingGroups = groupPending(logs);
+  const historyLogs   = logs.filter((l) => l.status !== "pending");
+
+  const stats = {
+    pending: logs.filter((l) => l.status === "pending").length,
+    sent:    logs.filter((l) => l.status === "sent").length,
+    error:   logs.filter((l) => l.status === "error").length,
+    cie:     logs.filter((l) => l.operator === "CIE").length,
+    sodeci:  logs.filter((l) => l.operator === "SODECI").length,
+  };
+
+  // ── Envoi manuel d'un groupe ───────────────────────────────────────────────
+  const sendGroup = useMutation({
+    mutationFn: async ({ relay_ids, groupKey }: { relay_ids: string[]; groupKey: string }) => {
+      setSendingGroup(groupKey);
+      const { data, error } = await supabase.functions.invoke("relay-to-operator", {
+        body: { relay_ids },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-relay-logs-all"] });
+      toast({
+        title: "Email envoyé",
+        description: `${data?.sent ?? 0} signalement(s) transmis. Les citoyens ont été notifiés automatiquement.`,
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Erreur d'envoi",
+        description: err.message ?? "Impossible d'envoyer l'email.",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => setSendingGroup(null),
+  });
+
+  // ── Sauvegarder la config ──────────────────────────────────────────────────
+  const saveConfig = useMutation({
+    mutationFn: async (cfg: RelayConfig) => {
+      const updates = Object.entries(cfg).map(([key, value]) =>
+        (supabase as any)
+          .from("relay_config")
+          .update({ value, updated_at: new Date().toISOString() })
+          .eq("key", key),
+      );
+      await Promise.all(updates);
+    },
+    onSuccess: () => {
+      refetchConfig();
+      setDraftConfig(null);
+      toast({ title: "Configuration sauvegardée" });
+    },
+    onError: () => {
+      toast({ title: "Erreur de sauvegarde", variant: "destructive" });
+    },
+  });
+
+  // ── Réessayer un relay en erreur ───────────────────────────────────────────
+  const retryRelay = useMutation({
+    mutationFn: async (relayId: string) => {
+      const { error } = await (supabase as any)
+        .from("relay_logs")
+        .update({ status: "pending", error_message: null })
+        .eq("id", relayId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-relay-logs-all"] });
+      toast({ title: "Remis en file d'attente" });
+    },
+  });
+
+  return (
+    <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
+
+      {/* En-tête */}
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div>
+          <h1 className="font-display text-xl font-bold text-foreground flex items-center gap-2">
+            <MailCheck className="h-5 w-5 text-primary" />
+            Relais opérateurs
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Validation manuelle avant transmission CIE / SODECI
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {dataUpdatedAt > 0 && (
+            <span className="text-[11px] text-muted-foreground hidden sm:block">
+              {format(new Date(dataUpdatedAt), "HH:mm:ss")}
+            </span>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => queryClient.invalidateQueries({ queryKey: ["admin-relay-logs-all"] })}
+            className="gap-1.5"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Rafraîchir
+          </Button>
+        </div>
+      </motion.div>
+
+      {/* KPI */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="grid grid-cols-2 sm:grid-cols-5 gap-3"
+      >
+        {[
+          { label: "En attente",  value: stats.pending, icon: Clock,        color: "text-amber-600" },
+          { label: "Envoyés",     value: stats.sent,    icon: CheckCircle2, color: "text-emerald-600" },
+          { label: "Erreurs",     value: stats.error,   icon: XCircle,      color: "text-red-600" },
+          { label: "CIE",         value: stats.cie,     icon: Zap,          color: "text-yellow-600" },
+          { label: "SODECI",      value: stats.sodeci,  icon: Droplets,     color: "text-sky-600" },
+        ].map((kpi) => (
+          <div key={kpi.label} className="rounded-xl border border-border bg-card p-4 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <kpi.icon className="h-3.5 w-3.5" />
+              <span className="text-[11px] font-medium">{kpi.label}</span>
+            </div>
+            <p className={`font-display text-2xl font-extrabold ${kpi.color}`}>{kpi.value}</p>
+          </div>
+        ))}
+      </motion.div>
+
+      {/* Pipeline */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.1 }}
+        className="rounded-xl border border-border bg-card/60 p-4"
+      >
+        <p className="text-xs font-semibold text-foreground mb-2">Flux de validation</p>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span className="rounded-full bg-primary/10 text-primary px-2.5 py-1 font-medium">① 2+ voisins confirment</span>
+          <span>→</span>
+          <span className="rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 px-2.5 py-1 font-medium">② File d'attente admin</span>
+          <span>→</span>
+          <span className="rounded-full bg-violet-500/10 text-violet-700 dark:text-violet-400 px-2.5 py-1 font-medium">③ Validation manuelle</span>
+          <span>→</span>
+          <span className="rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-2.5 py-1 font-medium">④ Email groupé CIE/SODECI</span>
+          <span>→</span>
+          <span className="rounded-full bg-sky-500/10 text-sky-700 dark:text-sky-400 px-2.5 py-1 font-medium">⑤ Citoyens notifiés auto</span>
+        </div>
+      </motion.div>
+
+      {/* Onglets */}
+      <div className="flex gap-1 border-b border-border">
+        <button
+          onClick={() => setTab("pending")}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            tab === "pending"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          À envoyer
+          {stats.pending > 0 && (
+            <span className="ml-2 rounded-full bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5">
+              {stats.pending}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setTab("history")}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            tab === "history"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Historique
+          {historyLogs.length > 0 && (
+            <span className="ml-2 text-[11px] text-muted-foreground">
+              ({historyLogs.length})
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => { setTab("settings"); setDraftConfig(relayConfig ?? null); }}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
+            tab === "settings"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Settings className="h-3.5 w-3.5" />
+          Paramètres
+          {relayConfig?.test_mode === "true" && (
+            <span className="rounded-full bg-amber-500/20 text-amber-600 text-[10px] font-bold px-1.5 py-0.5 border border-amber-500/30">
+              TEST
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Contenu */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary" />
+        </div>
+
+      ) : tab === "pending" ? (
+
+        /* ── VUE : À ENVOYER ───────────────────────────────────────────── */
+        pendingGroups.length === 0 ? (
+          <div className="rounded-xl border border-border bg-card p-12 text-center space-y-2">
+            <CheckCircle2 className="h-8 w-8 mx-auto text-emerald-500/40" />
+            <p className="text-muted-foreground text-sm">Aucun signalement en attente d'envoi.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {pendingGroups.map((group) => {
+              const opCfg    = OPERATOR_CONFIG[group.operator] ?? OPERATOR_CONFIG.MAIRIE;
+              const isSending = sendingGroup === group.key;
+
+              return (
+                <motion.div
+                  key={group.key}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`rounded-xl border bg-card overflow-hidden ${
+                    group.hasCritical ? "border-red-500/50" : "border-border"
+                  }`}
+                >
+                  {/* Header du groupe */}
+                  <div className={`flex items-center justify-between gap-4 p-4 ${
+                    group.hasCritical ? "bg-red-500/5" : "bg-muted/20"
+                  }`}>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-xl shrink-0 ${opCfg.bg} border ${opCfg.border}`}>
+                        <opCfg.icon className={`h-5 w-5 ${opCfg.color}`} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`font-bold text-sm ${opCfg.color}`}>{opCfg.label}</span>
+                          <span className="text-muted-foreground text-xs">·</span>
+                          <span className="font-semibold text-sm text-foreground">
+                            Commune de {group.commune}
+                          </span>
+                          {group.hasCritical && (
+                            <span className="rounded-full bg-red-500/10 text-red-600 text-[10px] font-bold px-2 py-0.5 border border-red-500/30">
+                              CRITIQUE
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-0.5 text-[11px] text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {group.quartiers.length} quartier{group.quartiers.length > 1 ? "s" : ""}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Users className="h-3 w-3" />
+                            {group.totalConfirmations} confirmation{group.totalConfirmations > 1 ? "s" : ""}
+                          </span>
+                          <span className="hidden sm:block">{group.email_to}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        sendGroup.mutate({
+                          relay_ids: group.relayIds,
+                          groupKey: group.key,
+                        })
+                      }
+                      disabled={isSending}
+                      className={`gap-1.5 shrink-0 ${
+                        group.hasCritical
+                          ? "bg-red-600 hover:bg-red-700 text-white"
+                          : "bg-primary text-primary-foreground hover:bg-primary/90"
+                      }`}
+                    >
+                      <Send className="h-3.5 w-3.5" />
+                      {isSending ? "Envoi…" : `Envoyer à ${opCfg.label}`}
+                    </Button>
+                  </div>
+
+                  {/* Liste des quartiers */}
+                  <div className="divide-y divide-border">
+                    {group.quartiers.map((q, idx) => {
+                      const urgCfg = URGENCY_CONFIG[q.urgency] ?? URGENCY_CONFIG.low;
+                      return (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between px-4 py-2.5"
+                        >
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-sm text-foreground font-medium">{q.name}</span>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="text-xs text-emerald-600 font-semibold">
+                              {q.verifications} confirmation{q.verifications > 1 ? "s" : ""}
+                            </span>
+                            <span className={`text-xs ${urgCfg.color}`}>{urgCfg.label}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )
+
+      ) : tab === "history" ? (
+
+        /* ── VUE : HISTORIQUE ──────────────────────────────────────────── */
+        historyLogs.length === 0 ? (
+          <div className="rounded-xl border border-border bg-card p-12 text-center text-muted-foreground text-sm">
+            Aucun historique disponible.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {historyLogs.map((log, i) => {
+              const statusCfg  = STATUS_CONFIG[log.status];
+              const opCfg      = OPERATOR_CONFIG[log.operator] ?? OPERATOR_CONFIG.MAIRIE;
+              const isExpanded = expandedId === log.id;
+
+              return (
+                <motion.div
+                  key={log.id}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.02 }}
+                  className="rounded-xl border border-border bg-card overflow-hidden"
+                >
+                  <div
+                    className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/40 transition-colors"
+                    onClick={() => setExpandedId(isExpanded ? null : log.id)}
+                  >
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg shrink-0 ${opCfg.bg}`}>
+                      <opCfg.icon className={`h-4 w-4 ${opCfg.color}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        <span className={`text-sm font-bold ${opCfg.color}`}>{opCfg.label}</span>
+                        {log.report && (
+                          <>
+                            <span className="text-muted-foreground text-xs">·</span>
+                            <span className="text-sm font-semibold text-foreground">
+                              {log.report.quartier}
+                            </span>
+                            <span className="text-muted-foreground text-xs">
+                              · {log.report.commune}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {log.email_to} · {format(new Date(log.created_at), "d MMM yyyy à HH:mm", { locale: fr })}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusCfg.bg} ${statusCfg.color}`}>
+                        <statusCfg.icon className="h-3 w-3" />
+                        {statusCfg.label}
+                      </span>
+                      {isExpanded
+                        ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      }
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="border-t border-border bg-muted/30 px-4 py-3 space-y-3">
+                      {log.status === "error" && log.error_message && (
+                        <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3">
+                          <p className="text-xs font-semibold text-red-600 mb-1 flex items-center gap-1.5">
+                            <XCircle className="h-3.5 w-3.5" /> Détail de l'erreur
+                          </p>
+                          <p className="font-mono text-xs text-red-700 dark:text-red-400 break-all">
+                            {log.error_message}
+                          </p>
+                        </div>
+                      )}
+                      <div className="flex flex-wrap gap-2 items-center">
+                        {log.status === "error" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 text-amber-600 border-amber-500/30 hover:bg-amber-500/10 text-xs h-8"
+                            onClick={() => retryRelay.mutate(log.id)}
+                            disabled={retryRelay.isPending}
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                            Réessayer
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="gap-1.5 text-muted-foreground text-xs h-8"
+                          onClick={() =>
+                            window.open(`/admin/signalements?id=${log.report_id}`, "_blank")
+                          }
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Voir le signalement
+                        </Button>
+                        {log.sent_at && (
+                          <span className="text-xs text-muted-foreground">
+                            Envoyé le {format(new Date(log.sent_at), "d MMM yyyy à HH:mm", { locale: fr })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })}
+          </div>
+        )
+      ) : tab === "settings" && effectiveConfig ? (
+
+        /* ── VUE : PARAMÈTRES ──────────────────────────────────────────── */
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-5"
+        >
+          {/* Mode test / production */}
+          <div className={`rounded-xl border p-5 ${
+            effectiveConfig.test_mode === "true"
+              ? "border-amber-500/40 bg-amber-500/5"
+              : "border-emerald-500/40 bg-emerald-500/5"
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                  effectiveConfig.test_mode === "true"
+                    ? "bg-amber-500/10"
+                    : "bg-emerald-500/10"
+                }`}>
+                  {effectiveConfig.test_mode === "true"
+                    ? <FlaskConical className="h-5 w-5 text-amber-500" />
+                    : <ShieldCheck className="h-5 w-5 text-emerald-600" />
+                  }
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-foreground">
+                    {effectiveConfig.test_mode === "true" ? "Mode TEST actif" : "Mode PRODUCTION actif"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {effectiveConfig.test_mode === "true"
+                      ? "Les emails partent vers l'adresse de test, pas aux opérateurs réels"
+                      : "Les emails partent directement à CIE et SODECI"
+                    }
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={effectiveConfig.test_mode === "true"}
+                onCheckedChange={(checked) =>
+                  setDraftConfig({ ...effectiveConfig, test_mode: checked ? "true" : "false" })
+                }
+              />
+            </div>
+
+            {effectiveConfig.test_mode === "true" && (
+              <div className="mt-4">
+                <label className="text-xs font-semibold text-foreground block mb-1.5">
+                  Email de test — reçoit tous les emails à la place des opérateurs
+                </label>
+                <input
+                  type="email"
+                  value={effectiveConfig.test_email}
+                  onChange={(e) =>
+                    setDraftConfig({ ...effectiveConfig, test_email: e.target.value })
+                  }
+                  placeholder="votre@email.com"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Emails opérateurs réseau */}
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+            <p className="text-sm font-semibold text-foreground">Opérateurs réseau</p>
+            {[
+              { key: "email_cie",    label: "CIE — Électricité", icon: Zap,      color: "text-yellow-600", placeholder: "reclamation@cie.ci" },
+              { key: "email_sodeci", label: "SODECI — Eau",       icon: Droplets, color: "text-sky-600",    placeholder: "reclamation@sodeci.ci" },
+            ].map(({ key, label, icon: Icon, color, placeholder }) => (
+              <div key={key}>
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-foreground mb-1.5">
+                  <Icon className={`h-3.5 w-3.5 ${color}`} />
+                  {label}
+                </label>
+                <input
+                  type="email"
+                  value={effectiveConfig[key]}
+                  onChange={(e) =>
+                    setDraftConfig({ ...effectiveConfig, [key]: e.target.value })
+                  }
+                  placeholder={placeholder}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Mairies pilotes */}
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                Mairies pilotes
+              </p>
+              <span className="text-xs text-muted-foreground">
+                {MAIRIES_PILOTES.filter(
+                  (m) => effectiveConfig[`mairie_${m.slug}_enabled`] === "true"
+                ).length} / {MAIRIES_PILOTES.length} actives
+              </span>
+            </div>
+
+            <p className="text-xs text-muted-foreground -mt-1">
+              Seules les mairies activées <strong>avec un email renseigné</strong> recevront les relais. Les autres sont ignorées.
+            </p>
+
+            <div className="space-y-2">
+              {MAIRIES_PILOTES.map(({ slug, label }) => {
+                const emailKey   = `mairie_${slug}_email`;
+                const enabledKey = `mairie_${slug}_enabled`;
+                const isEnabled  = effectiveConfig[enabledKey] === "true";
+                const email      = effectiveConfig[emailKey] ?? "";
+                const hasEmail   = email.trim().length > 0;
+
+                return (
+                  <div
+                    key={slug}
+                    className={`rounded-lg border p-3 transition-colors ${
+                      isEnabled
+                        ? hasEmail
+                          ? "border-emerald-500/30 bg-emerald-500/5"
+                          : "border-amber-500/30 bg-amber-500/5"
+                        : "border-border bg-muted/20"
+                    }`}
+                  >
+                    {/* Ligne toggle */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className={`h-3.5 w-3.5 ${isEnabled ? "text-orange-500" : "text-muted-foreground/40"}`} />
+                        <span className={`text-sm font-semibold ${isEnabled ? "text-foreground" : "text-muted-foreground"}`}>
+                          {label}
+                        </span>
+                        {isEnabled && hasEmail && (
+                          <span className="rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-bold px-1.5 py-0.5 border border-emerald-500/20">
+                            Actif
+                          </span>
+                        )}
+                        {isEnabled && !hasEmail && (
+                          <span className="rounded-full bg-amber-500/10 text-amber-600 text-[10px] font-bold px-1.5 py-0.5 border border-amber-500/20">
+                            Email manquant
+                          </span>
+                        )}
+                      </div>
+                      <Switch
+                        checked={isEnabled}
+                        onCheckedChange={(checked) =>
+                          setDraftConfig({
+                            ...effectiveConfig,
+                            [enabledKey]: checked ? "true" : "false",
+                          })
+                        }
+                      />
+                    </div>
+
+                    {/* Champ email — visible seulement si activé */}
+                    {isEnabled && (
+                      <div className="mt-2.5">
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) =>
+                            setDraftConfig({ ...effectiveConfig, [emailKey]: e.target.value })
+                          }
+                          placeholder={`contact@mairie-${slug}.ci`}
+                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Bouton sauvegarder */}
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              {draftConfig ? "Modifications non sauvegardées" : "Configuration à jour"}
+            </p>
+            <Button
+              onClick={() => draftConfig && saveConfig.mutate(draftConfig)}
+              disabled={!draftConfig || saveConfig.isPending}
+              className="gap-1.5"
+            >
+              <Save className="h-4 w-4" />
+              {saveConfig.isPending ? "Sauvegarde…" : "Sauvegarder"}
+            </Button>
+          </div>
+        </motion.div>
+
+      ) : null}
+    </div>
+  );
+};
+
+export default AdminRelayPage;

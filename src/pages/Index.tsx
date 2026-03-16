@@ -150,14 +150,14 @@ const Index = () => {
           HERO — full viewport, texte rotatif animé
       ══════════════════════════════════════════════════════════════ */}
       <section className="relative flex min-h-[93vh] items-center overflow-hidden">
-        {/* Background image + overlay */}
-        <div className="absolute inset-0">
+        {/* Background image + overlay — bg-black couvre les bords, brightness assombrit l'image */}
+        <div className="absolute inset-0 bg-black">
           <img
             src={heroBg} alt=""
             className="h-full w-full object-cover"
+            style={{ filter: 'brightness(0.28)' }}
             fetchPriority="high" loading="eager"
           />
-          <div className="absolute inset-0 bg-gradient-to-br from-background/80 via-background/70 to-background/95" />
         </div>
 
         {/* Ambient blobs */}

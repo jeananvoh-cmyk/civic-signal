@@ -30,6 +30,7 @@ const AdminVulnerablePage = lazy(() => import("./pages/AdminVulnerablePage"));
 const AdminMessagingPage = lazy(() => import("./pages/AdminMessagingPage"));
 const AdminQuartiersPage = lazy(() => import("./pages/AdminQuartiersPage"));
 const AdminRightsPage = lazy(() => import("./pages/AdminRightsPage"));
+const AdminRelayPage = lazy(() => import("./pages/AdminRelayPage"));
 const CommuneDetailPage = lazy(() => import("./pages/CommuneDetailPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
@@ -83,6 +84,7 @@ const App = () => (
                 <Route path="messagerie" element={<AdminMessagingPage />} />
                 <Route path="quartiers" element={<AdminQuartiersPage />} />
                 <Route path="droits" element={<AdminRightsPage />} />
+                <Route path="relay" element={<AdminRelayPage />} />
               </Route>
               
               <Route path="*" element={<NotFound />} />
