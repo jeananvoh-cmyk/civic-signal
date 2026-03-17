@@ -33,73 +33,76 @@ export const COMMUNE_POLYGONS: CommunePolygon[] = [
     // Smallest commune — test first to avoid false positives from larger zones
     nom: "Adjamé",
     polygon: [
-      [-4.042, 5.336],
-      [-3.998, 5.336],
-      [-3.996, 5.375],
-      [-4.005, 5.386],
-      [-4.042, 5.379],
+      [-4.035, 5.340],
+      [-4.005, 5.340],
+      [-3.998, 5.360],
+      [-4.005, 5.380],
+      [-4.035, 5.375],
     ],
   },
   {
     // Separate eastern town; tight rectangle avoids collision with Cocody
     nom: "Bingerville",
     polygon: [
-      [-3.926, 5.297],
-      [-3.847, 5.297],
-      [-3.839, 5.413],
-      [-3.921, 5.419],
+      [-3.910, 5.310],
+      [-3.855, 5.310],
+      [-3.850, 5.400],
+      [-3.912, 5.405],
+    ],
+  },
+  {
+    // South-central commune between Marcory and Port-Bouët
+    // Tight box: avoids overlap with Cocody (north) and Port-Bouët (south)
+    nom: "Koumassi",
+    polygon: [
+      [-3.970, 5.280],
+      [-3.920, 5.280],
+      [-3.920, 5.320],
+      [-3.970, 5.320],
     ],
   },
   {
     // Large western commune (NW quadrant of Abidjan)
     nom: "Yopougon",
     polygon: [
-      [-4.186, 5.227],
-      [-4.048, 5.227],
-      [-4.040, 5.382],
-      [-4.052, 5.446],
-      [-4.186, 5.446],
+      [-4.170, 5.290],
+      [-4.050, 5.290],
+      [-4.042, 5.375],
+      [-4.055, 5.440],
+      [-4.170, 5.440],
     ],
   },
   {
     // Large northern commune, starts above Adjamé's northern border
     nom: "Abobo",
     polygon: [
-      [-4.071, 5.375],
-      [-3.967, 5.375],
-      [-3.967, 5.466],
-      [-4.071, 5.466],
+      [-4.060, 5.382],
+      [-3.975, 5.382],
+      [-3.975, 5.460],
+      [-4.060, 5.460],
     ],
   },
   {
     // Eastern residential commune (east of the lagoon)
+    // Western border stops before Plateau/Adjamé; southern border above Koumassi
     nom: "Cocody",
     polygon: [
-      [-3.999, 5.288],
-      [-3.915, 5.288],
-      [-3.915, 5.419],
-      [-3.999, 5.419],
-    ],
-  },
-  {
-    // South-central commune (center: 5.300°N 3.950°W, r=2.5 km)
-    nom: "Koumassi",
-    polygon: [
-      [-3.985, 5.274],
-      [-3.915, 5.274],
-      [-3.915, 5.330],
-      [-3.985, 5.330],
+      [-3.990, 5.322],
+      [-3.920, 5.322],
+      [-3.918, 5.400],
+      [-3.990, 5.400],
     ],
   },
   {
     // Southernmost commune: Atlantic coast + airport peninsula
-    // FHB International Airport: 5.261°N 3.926°W  (center: 5.250°N 3.967°W, r=7 km)
+    // TIGHTENED: northern border at 5.270 to avoid Koumassi/Marcory/Treichville overlap
+    // FHB International Airport: 5.261°N 3.926°W
     nom: "Port-Bouët",
     polygon: [
-      [-4.040, 5.185],
-      [-3.900, 5.185],
-      [-3.900, 5.310],
-      [-4.040, 5.310],
+      [-4.030, 5.195],
+      [-3.905, 5.195],
+      [-3.905, 5.270],
+      [-4.030, 5.270],
     ],
   },
 ];

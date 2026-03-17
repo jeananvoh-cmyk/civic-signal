@@ -158,6 +158,33 @@ export type Database = {
         }
         Relationships: []
       }
+      partner_profiles: {
+        Row: {
+          commune: string | null
+          created_at: string
+          id: string
+          organization_name: string
+          partner_type: string
+          user_id: string
+        }
+        Insert: {
+          commune?: string | null
+          created_at?: string
+          id?: string
+          organization_name: string
+          partner_type: string
+          user_id: string
+        }
+        Update: {
+          commune?: string | null
+          created_at?: string
+          id?: string
+          organization_name?: string
+          partner_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -236,26 +263,32 @@ export type Database = {
       push_subscriptions: {
         Row: {
           auth: string
+          commune: string
           created_at: string
           endpoint: string
           id: string
           p256dh: string
+          quartier: string | null
           user_id: string
         }
         Insert: {
           auth: string
+          commune?: string
           created_at?: string
           endpoint: string
           id?: string
           p256dh: string
+          quartier?: string | null
           user_id: string
         }
         Update: {
           auth?: string
+          commune?: string
           created_at?: string
           endpoint?: string
           id?: string
           p256dh?: string
+          quartier?: string | null
           user_id?: string
         }
         Relationships: []
@@ -320,6 +353,71 @@ export type Database = {
         }
         Relationships: []
       }
+      relay_config: {
+        Row: {
+          key: string
+          label: string
+          updated_at: string
+          updated_by: string | null
+          value: string
+        }
+        Insert: {
+          key: string
+          label: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string
+        }
+        Update: {
+          key?: string
+          label?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
+      relay_logs: {
+        Row: {
+          created_at: string
+          email_to: string
+          error_message: string | null
+          id: string
+          operator: string
+          report_id: string
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          email_to: string
+          error_message?: string | null
+          id?: string
+          operator: string
+          report_id: string
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          email_to?: string
+          error_message?: string | null
+          id?: string
+          operator?: string
+          report_id?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relay_logs_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: true
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       repair_confirmations: {
         Row: {
           created_at: string | null
@@ -342,6 +440,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "repair_confirmations_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          report_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          report_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          report_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_comments_report_id_fkey"
             columns: ["report_id"]
             isOneToOne: false
             referencedRelation: "reports"
@@ -721,13 +851,21 @@ export type Database = {
         }
         Returns: boolean
       }
+      partner_update_report_status: {
+        Args: { p_report_id: string; p_status: string }
+        Returns: undefined
+      }
       resolve_report: {
         Args: { p_report_id: string; p_resolved_at: string }
         Returns: undefined
       }
+      support_infra_report: {
+        Args: { p_report_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "test" | "partner"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -855,7 +993,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "test", "partner"],
     },
   },
 } as const
