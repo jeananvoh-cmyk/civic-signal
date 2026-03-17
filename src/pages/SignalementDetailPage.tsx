@@ -223,7 +223,7 @@ const SignalementDetailPage = () => {
       scrollWheelZoom: false,
       doubleClickZoom: false,
       keyboard: false,
-      tap: false,
+      (tap as any): false,
       attributionControl: false,
     });
 

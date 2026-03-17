@@ -10,9 +10,11 @@ interface PushSubscribeButtonProps {
 }
 
 const PushSubscribeButton = ({ commune, quartier, className }: PushSubscribeButtonProps) => {
-  const { status, subscribe, unsubscribe, isSupported } = usePushSubscription(commune, quartier);
+  const { isSubscribed, isLoading, isSupported, permission, subscribe, unsubscribe } = usePushSubscription();
 
   if (!isSupported) return null;
+
+  const status = isLoading ? "loading" : permission === "denied" ? "blocked" : isSubscribed ? "subscribed" : "idle";
 
   const handleClick = async () => {
     if (status === "subscribed") {
@@ -21,8 +23,8 @@ const PushSubscribeButton = ({ commune, quartier, className }: PushSubscribeButt
     } else if (status === "blocked") {
       toast.error("Notifications bloquées — autorisez-les dans les paramètres de votre navigateur");
     } else {
-      await subscribe();
-      if (status !== "blocked") toast.success("Notifications activées ! Vous serez alerté lors des coupures.");
+      const ok = await subscribe();
+      if (ok) toast.success("Notifications activées ! Vous serez alerté lors des coupures.");
     }
   };
 
