@@ -215,7 +215,7 @@ const SignalementDetailPage = () => {
       report.service_type === "electricity" ? "#F59E0B" :
       report.service_type === "water" ? "#3B82F6" : "#10B981";
 
-    const map = L.map(mapRef.current, {
+    const mapOptions: any = {
       center: [report.latitude, report.longitude],
       zoom: 17,
       zoomControl: false,
@@ -225,7 +225,8 @@ const SignalementDetailPage = () => {
       keyboard: false,
       tap: false,
       attributionControl: false,
-    });
+    };
+    const map = L.map(mapRef.current, mapOptions);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 

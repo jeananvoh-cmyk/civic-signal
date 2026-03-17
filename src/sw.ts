@@ -20,7 +20,7 @@ self.addEventListener("push", (event) => {
   }
 
   const title = data.title ?? "SignalÉnergie";
-  const options: NotificationOptions = {
+  const options: any = {
     body: data.body ?? "",
     icon: "/icons/icon-192.png",
     badge: "/icons/icon-192.png",

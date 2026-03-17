@@ -90,7 +90,7 @@ const AdminUsersPage = () => {
   });
 
   const addRoleMutation = useMutation({
-    mutationFn: async ({ email, role }: { email: string; role: "admin" | "moderator" }) => {
+    mutationFn: async ({ email, role }: { email: string; role: "admin" | "moderator" | "test" | "partner" }) => {
       const { error } = await supabase
         .from("user_roles")
         .insert({ user_id: email, role });

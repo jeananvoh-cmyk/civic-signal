@@ -147,6 +147,7 @@ const ReportPage = () => {
   // Étape 2
   const [commune, setCommune] = useState("");
   const [quartier, setQuartier] = useState("");
+  const [customQuartier, setCustomQuartier] = useState("");
 
   // Étape 3 (détails optionnels)
   const [description, setDescription] = useState("");
