@@ -20,7 +20,8 @@ import { toast } from "sonner";
 import { getUserFriendlyError } from "@/lib/error-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { COMMUNES, findNearestCommune, type Commune } from "@/lib/communes";
+import { COMMUNES, type Commune } from "@/lib/communes";
+import { resolveCommune, type DetectionSource } from "@/lib/geolocation";
 import { getQuartiers } from "@/lib/quartiers";
 import type { ServiceType } from "@/lib/data";
 import SOSButtons from "@/components/SOSButtons";
@@ -169,6 +170,10 @@ const ReportPage = () => {
   const [detectedCommune, setDetectedCommune] = useState<Commune | null>(null);
   const [outsidePilotZone, setOutsidePilotZone] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(true);
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
+  const [gpsSource, setGpsSource] = useState<DetectionSource>(null);
+  const [gpsRetrying, setGpsRetrying] = useState(false);
+  const [gpsWeakSignal, setGpsWeakSignal] = useState(false);
 
   // Misc
   const [submitting, setSubmitting] = useState(false);
@@ -195,38 +200,89 @@ const ReportPage = () => {
   const [checkingDuplicates, setCheckingDuplicates] = useState(false);
   const [corroborating, setCorroborating] = useState<string | null>(null);
 
-  const captureGPS = (showError = true) => {
+  const captureGPS = async (showError = true) => {
     if (!navigator.geolocation) {
       setGpsLoading(false);
       if (showError) toast.error("Géolocalisation non supportée");
       return;
     }
+
     setGpsLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-        setLatitude(lat);
-        setLongitude(lon);
-        const result = findNearestCommune(lat, lon);
-        if (result.isInPilotZone && result.commune) {
-          setDetectedCommune(result.commune);
-          setCommune(result.commune.nom);
-          setOutsidePilotZone(false);
-        } else {
-          setDetectedCommune(null);
-          setCommune("");
-          setOutsidePilotZone(true);
+    setGpsRetrying(false);
+    setGpsWeakSignal(false);
+
+    const getPosition = (): Promise<GeolocationPosition> =>
+      new Promise((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 30000,
+        })
+      );
+
+    // Jusqu'à 3 tentatives — on garde la lecture avec la meilleure précision
+    let bestPos: GeolocationPosition | null = null;
+    const MAX_ATTEMPTS = 3;
+    const GOOD_ACCURACY_M = 80;
+    const WEAK_ACCURACY_M = 300;
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        if (attempt > 1) {
+          setGpsRetrying(true);
+          await new Promise((r) => setTimeout(r, 3000));
         }
-        setGpsLoading(false);
-        if (showError) toast.success("Position GPS capturée !");
-      },
-      () => {
-        setGpsLoading(false);
-        if (showError) toast.error("Impossible d'obtenir votre position. Vérifiez les permissions GPS.");
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+        const pos = await getPosition();
+        if (!bestPos || pos.coords.accuracy < bestPos.coords.accuracy) {
+          bestPos = pos;
+        }
+        if (bestPos.coords.accuracy <= GOOD_ACCURACY_M) break; // assez précis
+      } catch {
+        break;
+      }
+    }
+
+    setGpsRetrying(false);
+
+    if (!bestPos) {
+      setGpsLoading(false);
+      if (showError) toast.error("Impossible d'obtenir votre position. Vérifiez les permissions GPS.");
+      return;
+    }
+
+    const lat = bestPos.coords.latitude;
+    const lon = bestPos.coords.longitude;
+    const accuracy = bestPos.coords.accuracy;
+
+    setLatitude(lat);
+    setLongitude(lon);
+    setGpsAccuracy(accuracy);
+    setGpsWeakSignal(accuracy > WEAK_ACCURACY_M);
+
+    // Résolution 4 tiers (GeoJSON → Nominatim → Google → Haversine)
+    const result = await resolveCommune(lat, lon, accuracy);
+    setGpsSource(result.source);
+
+    if (!result.outsidePilotZone && result.commune) {
+      setDetectedCommune(result.commune);
+      setCommune(result.commune.nom);
+      setOutsidePilotZone(false);
+      if (showError) {
+        const sourceLabel: Record<string, string> = {
+          geojson: "polygone", nominatim: "OSM", google: "Google", radius: "rayon",
+        };
+        toast.success(
+          `Position capturée — ${result.commune.nom}`,
+          { description: `Précision ± ${Math.round(accuracy)} m · source : ${sourceLabel[result.source ?? ""] ?? result.source}` }
+        );
+      }
+    } else {
+      setDetectedCommune(null);
+      setCommune("");
+      setOutsidePilotZone(true);
+    }
+
+    setGpsLoading(false);
   };
 
   useEffect(() => { captureGPS(false); }, []);
@@ -353,6 +409,14 @@ const ReportPage = () => {
   const handleSubmit = async () => {
     if (limitReached) { toast.error(`Limite de ${DAILY_LIMIT} signalements / jour atteinte`); return; }
     if (!latitude || !longitude) { toast.error("Position GPS requise"); return; }
+    if (gpsAccuracy !== null && gpsAccuracy > 300 && !isAdmin && !isTestAccount) {
+      toast.error("Signal GPS trop imprécis", {
+        description: `Précision actuelle : ± ${Math.round(gpsAccuracy)} m. Déplacez-vous près d'une fenêtre et relancez la localisation.`,
+        action: { label: "Relocaliser", onClick: () => captureGPS(true) },
+        duration: 8000,
+      });
+      return;
+    }
     if (!selectedType || !commune || !resolvedQuartier) { toast.error("Informations incomplètes"); return; }
     if (!user) { toast.error("Vous devez être connecté"); return; }
     if (!isAdmin && !isTestAccount) {
@@ -613,7 +677,8 @@ const ReportPage = () => {
                     <MapPin className="h-4 w-4 shrink-0" style={{ color: detectedCommune?.couleur }} />
                     {gpsLoading ? (
                       <span className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Loader2 className="h-3 w-3 animate-spin" /> Détection GPS...
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        {gpsRetrying ? "Amélioration du signal…" : "Détection GPS..."}
                       </span>
                     ) : detectedCommune ? (
                       <span className="font-bold text-sm truncate" style={{ color: detectedCommune.couleur }}>
@@ -636,8 +701,32 @@ const ReportPage = () => {
                   </button>
                 </div>
                 {latitude && longitude && (
-                  <p className="mt-1.5 text-xs text-muted-foreground font-mono">
-                    {latitude.toFixed(5)}, {longitude.toFixed(5)}
+                  <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                    <p className="text-xs text-muted-foreground font-mono">
+                      {latitude.toFixed(5)}, {longitude.toFixed(5)}
+                    </p>
+                    {gpsAccuracy !== null && (
+                      <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium border ${
+                        gpsAccuracy <= 80
+                          ? "bg-green-50 text-green-700 border-green-200"
+                          : gpsAccuracy <= 200
+                          ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                          : "bg-red-50 text-red-700 border-red-200"
+                      }`}>
+                        ± {Math.round(gpsAccuracy)} m
+                      </span>
+                    )}
+                    {gpsSource && (
+                      <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium border bg-muted text-muted-foreground border-border">
+                        {gpsSource === "geojson" ? "polygone" : gpsSource}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {gpsWeakSignal && !outsidePilotZone && detectedCommune && (
+                  <p className="mt-1 text-xs text-amber-600 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3 shrink-0" />
+                    Signal GPS faible — déplacez-vous près d'une fenêtre pour améliorer la précision
                   </p>
                 )}
               </div>

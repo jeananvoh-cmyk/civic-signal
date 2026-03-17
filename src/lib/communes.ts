@@ -9,10 +9,10 @@ export interface Commune {
 
 export const COMMUNES: Commune[] = [
   { nom: "Abobo", centerLat: 5.4161, centerLon: -4.0159, rayonM: 5000, population: 1340083, couleur: "#3B82F6" },
-  { nom: "Adjamé", centerLat: 5.3360, centerLon: -4.0170, rayonM: 2000, population: 340892, couleur: "#F59E0B" },
+  { nom: "Adjamé", centerLat: 5.3360, centerLon: -4.0170, rayonM: 3000, population: 340892, couleur: "#F59E0B" },
   { nom: "Bingerville", centerLat: 5.3500, centerLon: -3.8830, rayonM: 6300, population: 204656, couleur: "#8B5CF6" },
   { nom: "Cocody", centerLat: 5.3600, centerLon: -3.9670, rayonM: 6500, population: 692583, couleur: "#10B981" },
-  { nom: "Koumassi", centerLat: 5.3000, centerLon: -3.9500, rayonM: 2500, population: 412282, couleur: "#EC4899" },
+  { nom: "Koumassi", centerLat: 5.3000, centerLon: -3.9500, rayonM: 4000, population: 412282, couleur: "#EC4899" },
   { nom: "Port-Bouët", centerLat: 5.2350, centerLon: -3.9667, rayonM: 4500, population: 618795, couleur: "#F97316" },
   { nom: "Yopougon", centerLat: 5.3177, centerLon: -4.0900, rayonM: 12000, population: 1571065, couleur: "#DC2626" },
 ];

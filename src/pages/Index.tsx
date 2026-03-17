@@ -12,7 +12,6 @@ import { COMMUNES } from "@/lib/communes";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-const heroBg = "/images/hero-bg.jpg";
 import waterIcon from "@/assets/water-icon-sm.webp";
 import electricityIcon from "@/assets/electricity-icon-sm.webp";
 
@@ -150,19 +149,42 @@ const Index = () => {
           HERO — full viewport, texte rotatif animé
       ══════════════════════════════════════════════════════════════ */}
       <section className="relative flex min-h-[93vh] items-center overflow-hidden">
-        {/* Background image + overlay — bg-black couvre les bords, brightness assombrit l'image */}
-        <div className="absolute inset-0 bg-black">
-          <img
-            src={heroBg} alt=""
-            className="h-full w-full object-cover"
-            style={{ filter: 'brightness(0.28)' }}
-            fetchPriority="high" loading="eager"
-          />
-        </div>
+        {/* ── Fond civic tech moderne ── */}
+        <div className="absolute inset-0">
+          {/* Base : gradient bleu nuit profond — crédible, institutionnel */}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#030d1a] via-[#071929] to-[#0a2236]" />
 
-        {/* Ambient blobs */}
-        <div className="pointer-events-none absolute top-1/3 left-1/2 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-sky-600/8 blur-[120px]" />
-        <div className="pointer-events-none absolute bottom-1/4 right-0 h-80 w-80 rounded-full bg-teal-500/8 blur-[100px]" />
+          {/* Grille de points — data / cartographie */}
+          <div
+            className="absolute inset-0 opacity-[0.09]"
+            style={{
+              backgroundImage: "radial-gradient(circle, #7dd3fc 1.2px, transparent 1.2px)",
+              backgroundSize: "36px 36px",
+            }}
+          />
+
+          {/* Grille orthogonale fine — map grid feel */}
+          <div
+            className="absolute inset-0 opacity-[0.035]"
+            style={{
+              backgroundImage:
+                "linear-gradient(rgba(148,210,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(148,210,255,0.4) 1px, transparent 1px)",
+              backgroundSize: "80px 80px",
+            }}
+          />
+
+          {/* Éclat principal — sky centre-gauche */}
+          <div className="pointer-events-none absolute -top-20 left-1/4 h-[520px] w-[520px] rounded-full bg-sky-500/18 blur-[130px]" />
+          {/* Éclat teal — bas droite */}
+          <div className="pointer-events-none absolute bottom-0 right-0 h-[420px] w-[420px] rounded-full bg-teal-400/14 blur-[110px]" />
+          {/* Accent chaud (électricité) — haut droite */}
+          <div className="pointer-events-none absolute top-0 right-1/3 h-[280px] w-[280px] rounded-full bg-amber-400/8 blur-[90px]" />
+          {/* Profondeur gauche basse */}
+          <div className="pointer-events-none absolute bottom-1/4 -left-10 h-[300px] w-[300px] rounded-full bg-emerald-500/10 blur-[100px]" />
+
+          {/* Vignette bords pour focus sur le contenu */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.55)_100%)]" />
+        </div>
 
         <div className="container relative z-10 py-20">
           <div className="max-w-3xl">

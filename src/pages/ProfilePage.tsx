@@ -1244,11 +1244,20 @@ const ProfilePage = () => {
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-muted-foreground">Téléphone</Label>
+                      <Label className="text-xs font-semibold text-muted-foreground">
+                        Téléphone <span className="text-red-500">*</span>
+                      </Label>
                       <div className="relative">
                         <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input value={profile.phone || user?.phone || "Non renseigné"} disabled className="pl-10 h-10 text-sm opacity-60" />
+                        <Input
+                          placeholder="Ex: 0701234567"
+                          value={profile.phone}
+                          onChange={(e) => update("phone", e.target.value)}
+                          maxLength={20}
+                          className="pl-10 h-10 text-sm"
+                        />
                       </div>
+                      <p className="text-xs text-muted-foreground">Requis pour pouvoir faire un signalement</p>
                     </div>
                   </div>
                 </div>
