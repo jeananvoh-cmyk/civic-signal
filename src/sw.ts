@@ -20,12 +20,12 @@ self.addEventListener("push", (event) => {
   }
 
   const title = data.title ?? "SignalÉnergie";
-  const options: NotificationOptions = {
+  const options: any = {
     body: data.body ?? "",
     icon: "/icons/icon-192.png",
     badge: "/icons/icon-192.png",
     data: data.data ?? {},
-    (vibrate as any): [200, 100, 200],
+    vibrate: [200, 100, 200],
     tag: data.data?.report_id ?? "default",
     renotify: true,
   };
