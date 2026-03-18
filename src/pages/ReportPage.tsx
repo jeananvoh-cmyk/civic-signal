@@ -149,6 +149,7 @@ const ReportPage = () => {
   const [commune, setCommune] = useState("");
   const [quartier, setQuartier] = useState("");
   const [customQuartier, setCustomQuartier] = useState("");
+  const [dbQuartiers, setDbQuartiers] = useState<Record<string, string[]>>({});
 
   // Étape 3 (détails optionnels)
   const [description, setDescription] = useState("");
@@ -320,6 +321,32 @@ const ReportPage = () => {
     });
   }, [user]);
 
+  // Charger les quartiers validés depuis Supabase (enrichit la liste statique)
+  useEffect(() => {
+    supabase
+      .from("quartiers")
+      .select("nom, commune")
+      .eq("validated", true)
+      .eq("hidden", false)
+      .then(({ data }) => {
+        if (!data) return;
+        const map: Record<string, string[]> = {};
+        for (const q of data) {
+          if (!map[q.commune]) map[q.commune] = [];
+          map[q.commune].push(q.nom);
+        }
+        setDbQuartiers(map);
+      });
+  }, []);
+
+  // Liste finale : statique + DB validés, triés, sans doublons
+  const getQuartiersForCommune = (c: string): string[] => {
+    const staticList = getQuartiers(c);
+    const dbList = dbQuartiers[c] ?? [];
+    const merged = Array.from(new Set([...staticList, ...dbList]));
+    return merged.sort((a, b) => a.localeCompare(b, "fr"));
+  };
+
   const resolvedQuartier = quartier;
 
   const canReport = detectedCommune !== null && !outsidePilotZone && latitude !== null;
@@ -486,7 +513,7 @@ const ReportPage = () => {
 
       // Si l'utilisateur a saisi un quartier qui n'existe pas dans la liste statique,
       // le soumettre comme proposition en attente de validation admin.
-      const isCustomQuartier = quartier && !getQuartiers(commune).includes(quartier);
+      const isCustomQuartier = quartier && !getQuartiersForCommune(commune).includes(quartier);
       if (isCustomQuartier) {
         await supabase.from("quartiers").insert({
           nom: quartier,
@@ -784,7 +811,7 @@ const ReportPage = () => {
                   <div className="space-y-2">
                     <label className="text-sm font-semibold">Quartier *</label>
                     <QuartierSearch
-                      quartiers={getQuartiers(commune)}
+                      quartiers={getQuartiersForCommune(commune)}
                       value={quartier}
                       onChange={setQuartier}
                     />
