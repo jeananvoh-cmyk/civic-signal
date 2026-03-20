@@ -245,7 +245,7 @@ export async function resolveCommune(
   // ── Tier 3: Google Geocoding ───────────────────────────────────────────────
   if (googleApiKey) {
     const fromGoogle = await _byGoogle(lat, lon, googleApiKey);
-    if (fromGoogle) {
+    if (fromGoogle && _isPlausible(fromGoogle, lat, lon)) {
       const result: CommuneDetectionResult = {
         commune: fromGoogle,
         source: "google",
