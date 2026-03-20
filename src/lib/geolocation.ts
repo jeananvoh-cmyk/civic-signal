@@ -232,7 +232,7 @@ export async function resolveCommune(
 
   // ── Tier 2: Nominatim ──────────────────────────────────────────────────────
   const fromNominatim = await _byNominatim(lat, lon);
-  if (fromNominatim) {
+  if (fromNominatim && _isPlausible(fromNominatim, lat, lon)) {
     const result: CommuneDetectionResult = {
       commune: fromNominatim,
       source: "nominatim",
