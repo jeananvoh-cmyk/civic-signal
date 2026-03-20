@@ -23,7 +23,7 @@
  * Results are cached in memory with a 5-minute TTL keyed by a ~100 m grid.
  */
 
-import { COMMUNES, findNearestCommune, type Commune } from "./communes";
+import { COMMUNES, findNearestCommune, haversineDistance, type Commune } from "./communes";
 import { findCommuneByPolygon } from "./communes-geojson";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -83,6 +83,17 @@ function _matchCommune(raw: string): Commune | null {
     ) ??
     null
   );
+}
+
+/**
+ * Sanity-check: verify that the point (lat, lon) is within a reasonable
+ * distance of the matched commune's center (1.5× its radius).
+ * Prevents Nominatim/Google from assigning a neighbouring pilot commune
+ * when the user is actually in a non-pilot commune like Marcory.
+ */
+function _isPlausible(commune: Commune, lat: number, lon: number): boolean {
+  const dist = haversineDistance(lat, lon, commune.centerLat, commune.centerLon);
+  return dist <= commune.rayonM * 1.5;
 }
 
 // ── Tier 1: GeoJSON polygon ───────────────────────────────────────────────────
@@ -221,7 +232,7 @@ export async function resolveCommune(
 
   // ── Tier 2: Nominatim ──────────────────────────────────────────────────────
   const fromNominatim = await _byNominatim(lat, lon);
-  if (fromNominatim) {
+  if (fromNominatim && _isPlausible(fromNominatim, lat, lon)) {
     const result: CommuneDetectionResult = {
       commune: fromNominatim,
       source: "nominatim",
@@ -234,7 +245,7 @@ export async function resolveCommune(
   // ── Tier 3: Google Geocoding ───────────────────────────────────────────────
   if (googleApiKey) {
     const fromGoogle = await _byGoogle(lat, lon, googleApiKey);
-    if (fromGoogle) {
+    if (fromGoogle && _isPlausible(fromGoogle, lat, lon)) {
       const result: CommuneDetectionResult = {
         commune: fromGoogle,
         source: "google",
