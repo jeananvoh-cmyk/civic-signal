@@ -85,6 +85,17 @@ function _matchCommune(raw: string): Commune | null {
   );
 }
 
+/**
+ * Sanity-check: verify that the point (lat, lon) is within a reasonable
+ * distance of the matched commune's center (1.5× its radius).
+ * Prevents Nominatim/Google from assigning a neighbouring pilot commune
+ * when the user is actually in a non-pilot commune like Marcory.
+ */
+function _isPlausible(commune: Commune, lat: number, lon: number): boolean {
+  const dist = haversineDistance(lat, lon, commune.centerLat, commune.centerLon);
+  return dist <= commune.rayonM * 1.5;
+}
+
 // ── Tier 1: GeoJSON polygon ───────────────────────────────────────────────────
 
 function _byGeoJSON(lat: number, lon: number): Commune | null {
