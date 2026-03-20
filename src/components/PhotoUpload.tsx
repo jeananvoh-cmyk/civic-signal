@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
-import { Camera, X, Loader2, MapPin, ImageIcon, AlertTriangle } from "lucide-react";
+import { Camera, X, Loader2, MapPin, ImageIcon, AlertTriangle, ChevronDown, ChevronUp, CheckCircle2, XCircle } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -91,6 +92,7 @@ const PhotoUpload = ({
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [gpsSource, setGpsSource] = useState<"photo" | "device" | null>(null);
+  const [showTips, setShowTips] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const displayUrl = useSignedUrl(photoUrl);
 
@@ -237,13 +239,78 @@ const PhotoUpload = ({
 
       <p className="text-xs text-muted-foreground">
         Formats acceptés : JPG, PNG, HEIC, WEBP · Max 5 Mo
-        {isInfrastructure && (
-          <span className="block mt-0.5 text-amber-600 dark:text-amber-400">
-            <AlertTriangle className="inline h-3 w-3 mr-0.5" />
-            Si la photo a été prise sur place, ses coordonnées GPS seront utilisées automatiquement.
-          </span>
-        )}
       </p>
+
+      {/* Recommandations photo — infrastructure uniquement */}
+      {isInfrastructure && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 overflow-hidden">
+          <button
+            type="button"
+            className="w-full flex items-center justify-between px-3 py-2 text-left"
+            onClick={() => setShowTips((v) => !v)}
+          >
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              Comment prendre une bonne photo de signalement ?
+            </span>
+            {showTips
+              ? <ChevronUp className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+              : <ChevronDown className="h-3.5 w-3.5 text-amber-600 shrink-0" />}
+          </button>
+
+          {showTips && (
+            <div className="px-3 pb-3 space-y-3 border-t border-amber-500/20">
+
+              {/* Bonnes pratiques */}
+              <div className="pt-2 space-y-1.5">
+                <p className="text-[11px] font-bold text-green-700 dark:text-green-400 uppercase tracking-wide">
+                  À faire
+                </p>
+                {[
+                  "Prenez la photo directement sur place, au moment du constat",
+                  "Cadrez le problème entièrement (route, trottoir, infrastructure, etc.)",
+                  "Incluez un repère visible : panneau de rue, bâtiment, numéro de maison",
+                  "Prenez plusieurs angles si possible (avant d'upload le meilleur)",
+                  "Activez le GPS de votre téléphone avant de prendre la photo",
+                ].map((tip) => (
+                  <div key={tip} className="flex items-start gap-1.5">
+                    <CheckCircle2 className="h-3 w-3 text-green-600 shrink-0 mt-0.5" />
+                    <span className="text-[11px] text-muted-foreground leading-snug">{tip}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* À éviter */}
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wide">
+                  À éviter
+                </p>
+                {[
+                  "Photos floues, trop sombres ou prises de trop loin",
+                  "Screenshots de Google Maps ou réseaux sociaux (pas de GPS réel)",
+                  "Photos reçues sur WhatsApp — WhatsApp supprime les coordonnées GPS",
+                  "Photos prises depuis chez vous montrant le problème au loin",
+                ].map((tip) => (
+                  <div key={tip} className="flex items-start gap-1.5">
+                    <XCircle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
+                    <span className="text-[11px] text-muted-foreground leading-snug">{tip}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Note GPS */}
+              <div className="flex items-start gap-1.5 rounded-md bg-blue-500/10 border border-blue-500/20 p-2">
+                <MapPin className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-blue-700 dark:text-blue-400 leading-snug">
+                  Si votre photo a été prise <strong>sur les lieux</strong>, ses coordonnées GPS
+                  seront extraites automatiquement et utilisées à la place du GPS de votre appareil —
+                  même si vous êtes rentrés chez vous depuis.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
