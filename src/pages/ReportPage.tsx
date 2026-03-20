@@ -168,6 +168,7 @@ const ReportPage = () => {
   // GPS
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+  const [gpsFromPhoto, setGpsFromPhoto] = useState(false);
   const [detectedCommune, setDetectedCommune] = useState<Commune | null>(null);
   const [outsidePilotZone, setOutsidePilotZone] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(true);
@@ -436,7 +437,7 @@ const ReportPage = () => {
   const handleSubmit = async () => {
     if (limitReached) { toast.error(`Limite de ${DAILY_LIMIT} signalements / jour atteinte`); return; }
     if (!latitude || !longitude) { toast.error("Position GPS requise"); return; }
-    if (gpsAccuracy !== null && gpsAccuracy > 300 && !isAdmin && !isTestAccount) {
+    if (!gpsFromPhoto && gpsAccuracy !== null && gpsAccuracy > 300 && !isAdmin && !isTestAccount) {
       toast.error("Signal GPS trop imprécis", {
         description: `Précision actuelle : ± ${Math.round(gpsAccuracy)} m. Déplacez-vous près d'une fenêtre et relancez la localisation.`,
         action: { label: "Relocaliser", onClick: () => captureGPS(true) },
@@ -1015,7 +1016,16 @@ const ReportPage = () => {
                       className="overflow-hidden"
                     >
                       <div className="rounded-xl border border-border bg-card p-3">
-                        <PhotoUpload onPhotoUploaded={setPhotoUrl} photoUrl={photoUrl} isInfrastructure={selectedType.reportCategory === "infrastructure"} />
+                        <PhotoUpload
+                          onPhotoUploaded={setPhotoUrl}
+                          onGpsFromPhoto={(lat, lng) => {
+                            setLatitude(lat);
+                            setLongitude(lng);
+                            setGpsFromPhoto(true);
+                          }}
+                          photoUrl={photoUrl}
+                          isInfrastructure={selectedType.reportCategory === "infrastructure"}
+                        />
                       </div>
                     </motion.div>
                   )}
