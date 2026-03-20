@@ -23,7 +23,7 @@
  * Results are cached in memory with a 5-minute TTL keyed by a ~100 m grid.
  */
 
-import { COMMUNES, findNearestCommune, type Commune } from "./communes";
+import { COMMUNES, findNearestCommune, haversineDistance, type Commune } from "./communes";
 import { findCommuneByPolygon } from "./communes-geojson";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
