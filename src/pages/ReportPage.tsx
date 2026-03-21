@@ -25,7 +25,7 @@ import { resolveCommune, type DetectionSource } from "@/lib/geolocation";
 import { getQuartiers } from "@/lib/quartiers";
 import type { ServiceType } from "@/lib/data";
 import SOSButtons from "@/components/SOSButtons";
-import { fuiteEauIcon } from "@/lib/infra-icons";
+import { fuiteEauIcon, caniveauIcon, voirieIcon, lampadaireIcon } from "@/lib/infra-icons";
 import QuartierSearch from "@/components/QuartierSearch";
 
 // ─── Types de signalement ────────────────────────────────────────────────────
@@ -95,7 +95,8 @@ const REPORT_TYPES: ReportTypeConfig[] = [
     id: "drain_blocked",
     emoji: "🚧",
     label: "Caniveau bouché",
-    color: "#10B981", // Emerald
+    image: caniveauIcon,
+    color: "#10B981",
     serviceType: "mairie" as any,
     reportCategory: "infrastructure",
     defaultDesc: (c) => `Caniveau bouché / débordement à ${c}`,
@@ -104,6 +105,7 @@ const REPORT_TYPES: ReportTypeConfig[] = [
     id: "pothole",
     emoji: "🛣️",
     label: "Nid de poule",
+    image: voirieIcon,
     color: "#10B981",
     serviceType: "mairie" as any,
     reportCategory: "infrastructure",
@@ -669,10 +671,12 @@ const ReportPage = () => {
                 </button>
                 <div className="flex items-center gap-2.5">
                   <span
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-2xl"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
                     style={{ backgroundColor: selectedType.color + "20" }}
                   >
-                    {selectedType.emoji}
+                    {selectedType.image
+                      ? <img src={selectedType.image} alt={selectedType.label} className="h-7 w-7 object-contain" />
+                      : <span className="text-2xl leading-none">{selectedType.emoji}</span>}
                   </span>
                   <div>
                     <p className="font-bold text-sm leading-tight">{selectedType.label}</p>
@@ -884,10 +888,12 @@ const ReportPage = () => {
               >
                 <div className="flex items-center gap-3">
                   <span
-                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-3xl"
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
                     style={{ backgroundColor: selectedType.color + "20" }}
                   >
-                    {selectedType.emoji}
+                    {selectedType.image
+                      ? <img src={selectedType.image} alt={selectedType.label} className="h-8 w-8 object-contain" />
+                      : <span className="text-3xl leading-none">{selectedType.emoji}</span>}
                   </span>
                   <div>
                     <p className="font-bold text-base">{selectedType.label}</p>
