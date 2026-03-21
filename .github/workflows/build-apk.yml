@@ -56,7 +56,7 @@ jobs:
       - name: Build APK with Bubblewrap
         working-directory: twa
         run: |
-          bubblewrap build --skipPwaValidation
+          yes | bubblewrap build --skipPwaValidation
 
       - name: Find and upload APK
         run: |
