@@ -3,17 +3,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Zap, Shield, Users, ArrowRight, BarChart3, MapPin,
   Radio, LogIn, UserPlus, Map, History, Info, Heart,
-  ChevronDown, CheckCircle2,
+  ChevronDown, CheckCircle2, TrendingUp,
 } from "lucide-react";
 import SOSButtons from "@/components/SOSButtons";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
+import PushPromptBanner from "@/components/PushPromptBanner";
 import { COMMUNES } from "@/lib/communes";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import waterIcon from "@/assets/water-icon-sm.webp";
 import electricityIcon from "@/assets/electricity-icon-sm.webp";
+import { caniveauIcon, voirieIcon, lampadaireIcon } from "@/lib/infra-icons";
 
 const ROTATING_WORDS = [
   { text: "coupures d'eau",         color: "text-sky-400",    bg: "bg-sky-400/10"    },
@@ -46,7 +48,7 @@ const PROBLEM_TYPES = [
   },
   {
     type: "street_light",
-    emoji: "💡",
+    iconImg: lampadaireIcon,
     label: "Lampadaires cassés",
     desc: "Éclairage public en panne ?",
     border: "border-orange-400/30",
@@ -56,7 +58,7 @@ const PROBLEM_TYPES = [
   },
   {
     type: "drain_blocked",
-    emoji: "🌧️",
+    iconImg: caniveauIcon,
     label: "Caniveaux bouchés",
     desc: "Caniveau obstrué ?",
     border: "border-teal-400/30",
@@ -66,7 +68,7 @@ const PROBLEM_TYPES = [
   },
   {
     type: "pothole",
-    emoji: "🕳️",
+    iconImg: voirieIcon,
     label: "Nids de poules",
     desc: "Route dégradée ?",
     border: "border-slate-400/30",
@@ -103,11 +105,41 @@ const STEPS = [
   },
 ];
 
+interface LandingStats {
+  total_reports: number;
+  resolved_reports: number;
+  total_users: number;
+}
+
+const fmtNum = (n: number) =>
+  n >= 10_000 ? `${Math.round(n / 1000)}k`
+  : n >= 1_000 ? `${(n / 1000).toFixed(1)}k`
+  : String(n);
+
+interface ServiceCounts {
+  electricity: number;
+  water: number;
+}
+
 const Index = () => {
   const { user } = useAuth();
   const [liveCount, setLiveCount] = useState<number | null>(null);
   const [liveActive, setLiveActive] = useState(false);
   const [wordIndex, setWordIndex] = useState(0);
+  const [landingStats, setLandingStats] = useState<LandingStats | null>(null);
+  const [serviceCounts, setServiceCounts] = useState<ServiceCounts | null>(null);
+
+  useEffect(() => {
+    supabase.rpc("get_landing_stats" as any).then(({ data }) => {
+      if (data) setLandingStats(data as LandingStats);
+    });
+    Promise.all([
+      supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "active").eq("service_type", "electricity"),
+      supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "active").eq("service_type", "water"),
+    ]).then(([elec, water]) => {
+      setServiceCounts({ electricity: elec.count ?? 0, water: water.count ?? 0 });
+    });
+  }, []);
 
   useEffect(() => {
     const fetchCount = async () => {
@@ -134,16 +166,13 @@ const Index = () => {
     return () => clearInterval(id);
   }, []);
 
-  const totalPop = COMMUNES.reduce((s: number, c: { population: number }) => s + c.population, 0);
-  const popLabel = totalPop >= 1_000_000
-    ? `${(totalPop / 1_000_000).toFixed(2)}M`
-    : `${(totalPop / 1_000).toFixed(0)}k`;
 
   const currentWord = ROTATING_WORDS[wordIndex];
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      <PushPromptBanner />
 
       {/* ══════════════════════════════════════════════════════════════
           HERO — full viewport, texte rotatif animé
@@ -329,9 +358,15 @@ const Index = () => {
         <div className="container">
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
             {[
-              { value: "7",       label: "Communes pilotes",      Icon: MapPin,  live: false },
-              { value: popLabel,  label: "Habitants couverts",     Icon: Users,   live: false },
-              { value: "<200m",   label: "Rayon de vérification",  Icon: Shield,  live: false },
+              { value: "7", label: "Communes pilotes", Icon: MapPin, live: false },
+              {
+                value: landingStats ? fmtNum(landingStats.total_reports) : "…",
+                label: "Signalements soumis", Icon: BarChart3, live: false,
+              },
+              {
+                value: landingStats ? fmtNum(landingStats.resolved_reports) : "…",
+                label: "Problèmes résolus", Icon: TrendingUp, live: false,
+              },
               {
                 value: liveCount !== null ? String(liveCount) : "…",
                 label: "Coupures actives", Icon: Radio, live: true,
@@ -416,6 +451,46 @@ const Index = () => {
             </motion.div>
           ))}
         </div>
+
+        {/* ── État des services en temps réel ── */}
+        {serviceCounts !== null && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mt-8 flex flex-wrap justify-center gap-3"
+          >
+            {[
+              {
+                type: "electricity",
+                icon: "⚡",
+                label: "Électricité",
+                count: serviceCounts.electricity,
+                okColor: "border-green-500/30 bg-green-500/8 text-green-700 dark:text-green-300",
+                alertColor: "border-yellow-500/30 bg-yellow-500/8 text-yellow-700 dark:text-yellow-300",
+              },
+              {
+                type: "water",
+                icon: "💧",
+                label: "Eau",
+                count: serviceCounts.water,
+                okColor: "border-green-500/30 bg-green-500/8 text-green-700 dark:text-green-300",
+                alertColor: "border-sky-500/30 bg-sky-500/8 text-sky-700 dark:text-sky-300",
+              },
+            ].map(({ type, icon, label, count, okColor, alertColor }) => (
+              <Link
+                key={type}
+                to={`/carte`}
+                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-all hover:scale-[1.03] ${count > 0 ? alertColor : okColor}`}
+              >
+                <span>{icon}</span>
+                <span>{label}</span>
+                <span className="opacity-70">·</span>
+                <span>{count > 0 ? `${count} coupure${count > 1 ? "s" : ""} active${count > 1 ? "s" : ""}` : "RAS"}</span>
+              </Link>
+            ))}
+          </motion.div>
+        )}
       </section>
 
       {/* ══════════════════════════════════════════════════════════════
@@ -496,6 +571,11 @@ const Index = () => {
               <h2 className="font-display text-2xl font-bold text-foreground md:text-4xl">
                 Rejoins la communauté SIGNA-CI
               </h2>
+              {landingStats && landingStats.total_users > 0 && (
+                <p className="mt-3 text-sm font-semibold text-water">
+                  {fmtNum(landingStats.total_users)} citoyen{landingStats.total_users > 1 ? "s" : ""} déjà inscrits
+                </p>
+              )}
               <p className="mx-auto mt-4 max-w-md text-muted-foreground">
                 Signale une coupure en{" "}
                 <span className="font-semibold text-electricity">15 secondes</span>,

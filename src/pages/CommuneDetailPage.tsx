@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Zap, Droplets, MapPin, Clock } from "lucide-react";
+import { ArrowLeft, ArrowRight, Zap, Droplets, MapPin, Clock, TrendingUp, TrendingDown, Minus, Wrench, CheckCircle2 } from "lucide-react";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
+import CommuneAlertButton from "@/components/CommuneAlertButton";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNES } from "@/lib/communes";
@@ -19,6 +21,14 @@ interface QuartierStat {
   eau_actifs: number;
   eau_resolus: number;
   eau_total: number;
+}
+
+interface ImpactStats {
+  total_reports: number;
+  resolved_reports: number;
+  infra_reports: number;
+  reports_last_7: number;
+  reports_prev_7: number;
 }
 
 interface DurationStat {
@@ -46,18 +56,25 @@ const CommuneDetailPage = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState<QuartierStat[]>([]);
   const [durations, setDurations] = useState<DurationStat[]>([]);
+  const [impactStats, setImpactStats] = useState<ImpactStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   const decodedName = decodeURIComponent(communeName || "");
   const communeInfo = COMMUNES.find((c) => c.nom.toLowerCase() === decodedName.toLowerCase());
   const couleur = communeInfo?.couleur || "#888";
+
+  usePageMeta({
+    title: `${decodedName} — Signalements`,
+    description: `Coupures d'eau, d'électricité et infrastructures défaillantes signalées à ${decodedName}, Abidjan. Données citoyennes en temps réel.`,
+  });
   const logo = COMMUNE_LOGOS[decodedName] || COMMUNE_LOGOS[communeInfo?.nom || ""];
 
   useEffect(() => {
     const fetchData = async () => {
-      const [quartierRes, durationRes] = await Promise.all([
+      const [quartierRes, durationRes, impactRes] = await Promise.all([
         supabase.rpc("get_commune_quartier_stats", { p_commune: decodedName }),
         supabase.rpc("get_commune_duration_stats"),
+        supabase.rpc("get_commune_impact_stats" as any, { p_commune: decodedName }),
       ]);
       if (!quartierRes.error && quartierRes.data) {
         setStats(quartierRes.data as unknown as QuartierStat[]);
@@ -68,6 +85,9 @@ const CommuneDetailPage = () => {
             (d) => d.commune.toLowerCase() === decodedName.toLowerCase()
           )
         );
+      }
+      if (!impactRes.error && impactRes.data) {
+        setImpactStats(impactRes.data as unknown as ImpactStats);
       }
       setLoading(false);
     };
@@ -111,13 +131,16 @@ const CommuneDetailPage = () => {
                 <MapPin className="h-6 w-6 text-white" />
               )}
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <h1 className="font-display text-2xl font-bold text-foreground">{decodedName}</h1>
               {communeInfo && (
                 <p className="text-sm text-muted-foreground">
                   {(communeInfo.population / 1000).toFixed(0)}k habitants
                 </p>
               )}
+              <div className="mt-2">
+                <CommuneAlertButton commune={decodedName} />
+              </div>
             </div>
           </div>
         </motion.div>
@@ -162,6 +185,56 @@ const CommuneDetailPage = () => {
             <ArrowRight className="ml-auto h-4 w-4 text-blue-500/50 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-blue-500" />
           </button>
         </motion.div>
+
+        {/* Impact & Tendance */}
+        {!loading && impactStats && impactStats.total_reports > 0 && (() => {
+          const resRate = Math.round((impactStats.resolved_reports / impactStats.total_reports) * 100);
+          const delta = impactStats.reports_last_7 - impactStats.reports_prev_7;
+          const TrendIcon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
+          const trendColor = delta > 0 ? "text-red-500" : delta < 0 ? "text-green-500" : "text-muted-foreground";
+          const trendLabel = delta > 0 ? `+${delta} vs sem. préc.` : delta < 0 ? `${delta} vs sem. préc.` : "Stable";
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.12 }}
+              className="mb-6 rounded-2xl border border-border bg-card p-5 shadow-card"
+            >
+              <h2 className="font-display text-base font-bold text-foreground mb-4">Impact & Tendance</h2>
+              <div className="grid grid-cols-3 gap-4">
+                {/* Taux de résolution */}
+                <div className="flex flex-col items-center text-center gap-1">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-500/10">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  </div>
+                  <p className="font-display text-2xl font-extrabold text-green-500">{resRate}%</p>
+                  <p className="text-[11px] text-muted-foreground leading-tight">Taux de résolution</p>
+                  <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden mt-1">
+                    <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${resRate}%` }} />
+                  </div>
+                </div>
+                {/* Infra signalées */}
+                <div className="flex flex-col items-center text-center gap-1">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500/10">
+                    <Wrench className="h-4 w-4 text-orange-500" />
+                  </div>
+                  <p className="font-display text-2xl font-extrabold text-orange-500">{impactStats.infra_reports}</p>
+                  <p className="text-[11px] text-muted-foreground leading-tight">Infra signalées</p>
+                  <p className="text-[10px] text-muted-foreground">(caniveaux, routes…)</p>
+                </div>
+                {/* Tendance 7j */}
+                <div className="flex flex-col items-center text-center gap-1">
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${delta > 0 ? "bg-red-500/10" : delta < 0 ? "bg-green-500/10" : "bg-muted"}`}>
+                    <TrendIcon className={`h-4 w-4 ${trendColor}`} />
+                  </div>
+                  <p className={`font-display text-2xl font-extrabold ${trendColor}`}>{impactStats.reports_last_7}</p>
+                  <p className="text-[11px] text-muted-foreground leading-tight">Cette semaine</p>
+                  <p className={`text-[10px] font-semibold ${trendColor}`}>{trendLabel}</p>
+                </div>
+              </div>
+            </motion.div>
+          );
+        })()}
 
         {/* Duration stats */}
         {!loading && (elecDuration?.total_resolved || waterDuration?.total_resolved) ? (

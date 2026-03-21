@@ -4,11 +4,15 @@ import { motion } from "framer-motion";
 import {
   Zap, Droplets, Building2, Handshake, MapPin, Users,
   Clock, CheckCircle2, Loader2, AlertTriangle, RefreshCw,
+  TrendingUp, MessageSquare, Send, BarChart3,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -25,6 +29,7 @@ interface PartnerProfile {
 
 interface Report {
   id: string;
+  user_id: string;
   service_type: string;
   report_category: string;
   description: string;
@@ -78,6 +83,8 @@ const PartnerDashboardPage = () => {
   const { user, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [actionDialog, setActionDialog] = useState<{ report: Report; newStatus: string } | null>(null);
+  const [actionComment, setActionComment] = useState("");
 
   // Vérifier le rôle partenaire
   const { data: isPartner, isLoading: roleLoading } = useQuery({
@@ -111,7 +118,7 @@ const PartnerDashboardPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reports")
-        .select("id, service_type, report_category, description, commune, quartier, status, urgency, verifications, impacted_people, created_at, resolved_at, photo_url")
+        .select("id, user_id, service_type, report_category, description, commune, quartier, status, urgency, verifications, impacted_people, created_at, resolved_at, photo_url")
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
@@ -122,17 +129,29 @@ const PartnerDashboardPage = () => {
 
   // Mutation : mise à jour du statut
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ reportId, status }: { reportId: string; status: string }) => {
+    mutationFn: async ({ reportId, status, userId }: { reportId: string; status: string; userId?: string }) => {
       setUpdatingId(reportId);
       const { error } = await supabase.rpc("partner_update_report_status", {
         p_report_id: reportId,
         p_status: status,
       });
       if (error) throw error;
+      // Notifier le citoyen quand son signalement est résolu
+      if (status === "resolved" && userId) {
+        supabase.functions.invoke("send-push", {
+          body: {
+            action: "send-to-user",
+            user_id: userId,
+            title: "✅ Signalement résolu",
+            message: "Votre signalement a été pris en compte et le problème est résolu.",
+            url: "/historique",
+          },
+        }).catch(() => {}); // silencieux si push non activé
+      }
     },
     onSuccess: (_, { status }) => {
       queryClient.invalidateQueries({ queryKey: ["partner-reports"] });
-      const msg = status === "processing" ? "Signalement pris en charge" : status === "resolved" ? "Signalement marqué résolu" : "Statut mis à jour";
+      const msg = status === "processing" ? "Signalement pris en charge" : status === "resolved" ? "Signalement marqué résolu ✅" : "Statut mis à jour";
       toast.success(msg);
     },
     onError: (err: any) => toast.error(err.message || "Erreur lors de la mise à jour"),
@@ -157,6 +176,35 @@ const PartnerDashboardPage = () => {
   const active     = reports.filter((r) => r.status === "active");
   const processing = reports.filter((r) => r.status === "processing");
   const resolved   = reports.filter((r) => r.status === "resolved");
+
+  const resolutionRate = reports.length > 0
+    ? Math.round((resolved.length / reports.length) * 100)
+    : 0;
+
+  const avgResolutionHours = (() => {
+    const withTime = resolved.filter((r) => r.resolved_at);
+    if (!withTime.length) return null;
+    const avg = withTime.reduce((sum, r) => {
+      return sum + (new Date(r.resolved_at!).getTime() - new Date(r.created_at).getTime());
+    }, 0) / withTime.length;
+    const h = avg / 3_600_000;
+    return h < 24 ? `${Math.round(h)} h` : `${Math.round(h / 24)} j`;
+  })();
+
+  const handleActionConfirm = async () => {
+    if (!actionDialog) return;
+    const { report, newStatus } = actionDialog;
+    await updateStatusMutation.mutateAsync({ reportId: report.id, status: newStatus, userId: report.user_id });
+    if (actionComment.trim()) {
+      await supabase.from("report_comments").insert({
+        report_id: report.id,
+        user_id: user!.id,
+        content: actionComment.trim(),
+      });
+    }
+    setActionDialog(null);
+    setActionComment("");
+  };
 
   // ─── Sous-composant carte rapport ─────────────────────────────────────────
 
@@ -201,39 +249,26 @@ const PartnerDashboardPage = () => {
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2 pt-1">
+          <div className="flex gap-2 pt-1 flex-wrap">
             {report.status === "active" && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-amber-600 border-amber-300 hover:bg-amber-50"
+              <Button size="sm" variant="outline" className="text-amber-600 border-amber-300 hover:bg-amber-50"
                 disabled={isUpdating}
-                onClick={() => updateStatusMutation.mutate({ reportId: report.id, status: "processing" })}
-              >
+                onClick={() => { setActionDialog({ report, newStatus: "processing" }); setActionComment(""); }}>
                 {isUpdating ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <RefreshCw className="mr-1 h-3 w-3" />}
                 Prendre en charge
               </Button>
             )}
             {report.status !== "resolved" && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-green-600 border-green-300 hover:bg-green-50"
+              <Button size="sm" variant="outline" className="text-green-600 border-green-300 hover:bg-green-50"
                 disabled={isUpdating}
-                onClick={() => updateStatusMutation.mutate({ reportId: report.id, status: "resolved" })}
-              >
+                onClick={() => { setActionDialog({ report, newStatus: "resolved" }); setActionComment(""); }}>
                 {isUpdating ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <CheckCircle2 className="mr-1 h-3 w-3" />}
                 Marquer résolu
               </Button>
             )}
             {report.status === "resolved" && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-muted-foreground"
-                disabled={isUpdating}
-                onClick={() => updateStatusMutation.mutate({ reportId: report.id, status: "active" })}
-              >
+              <Button size="sm" variant="ghost" className="text-muted-foreground" disabled={isUpdating}
+                onClick={() => updateStatusMutation.mutate({ reportId: report.id, status: "active" })}>
                 <RefreshCw className="mr-1 h-3 w-3" /> Rouvrir
               </Button>
             )}
@@ -266,7 +301,7 @@ const PartnerDashboardPage = () => {
           )}
         </motion.div>
 
-        {/* KPIs */}
+        {/* KPIs statut */}
         <div className="grid grid-cols-3 gap-3">
           {[
             { label: "Actifs",    value: active.length,     color: "text-red-600",   bg: "bg-red-50 dark:bg-red-900/20" },
@@ -280,6 +315,28 @@ const PartnerDashboardPage = () => {
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        {/* KPIs performance */}
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="border-border">
+            <CardContent className="p-4 flex items-center gap-3">
+              <BarChart3 className="h-8 w-8 text-primary shrink-0" />
+              <div>
+                <p className="text-2xl font-bold text-foreground">{resolutionRate} %</p>
+                <p className="text-xs text-muted-foreground">Taux de résolution</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border">
+            <CardContent className="p-4 flex items-center gap-3">
+              <TrendingUp className="h-8 w-8 text-primary shrink-0" />
+              <div>
+                <p className="text-2xl font-bold text-foreground">{avgResolutionHours ?? "–"}</p>
+                <p className="text-xs text-muted-foreground">Délai moyen résolution</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Liste des signalements */}
@@ -318,6 +375,61 @@ const PartnerDashboardPage = () => {
           })}
         </Tabs>
       </main>
+
+      {/* Dialog action combinée statut + commentaire */}
+      <Dialog open={!!actionDialog} onOpenChange={(v) => { if (!v) setActionDialog(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {actionDialog?.newStatus === "resolved"
+                ? <><CheckCircle2 className="h-5 w-5 text-green-600" /> Marquer comme résolu</>
+                : <><RefreshCw className="h-5 w-5 text-amber-600" /> Prendre en charge</>}
+            </DialogTitle>
+          </DialogHeader>
+          {actionDialog && (
+            <div className="space-y-4 pt-1">
+              <div className="rounded-xl bg-muted/50 px-3 py-2 text-sm">
+                <p className="font-medium text-foreground">{actionDialog.report.commune} · {actionDialog.report.quartier}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{actionDialog.report.description}</p>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium flex items-center gap-1.5">
+                  <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+                  Message pour le citoyen <span className="text-muted-foreground font-normal">(optionnel)</span>
+                </label>
+                <Textarea
+                  value={actionComment}
+                  onChange={(e) => setActionComment(e.target.value)}
+                  placeholder={actionDialog.newStatus === "resolved"
+                    ? "Ex: Le service a été rétabli suite à l'intervention de nos équipes ce matin."
+                    : "Ex: Votre signalement a été transmis à notre équipe terrain."}
+                  rows={3}
+                  maxLength={200}
+                  className="resize-none text-sm"
+                />
+                {actionComment.length > 150 && (
+                  <p className="text-[10px] text-muted-foreground text-right">{actionComment.length}/200</p>
+                )}
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button variant="outline" className="flex-1" onClick={() => setActionDialog(null)}>
+                  Annuler
+                </Button>
+                <Button
+                  className={`flex-1 gap-2 ${actionDialog.newStatus === "resolved" ? "bg-green-600 hover:bg-green-700 text-white" : "bg-amber-600 hover:bg-amber-700 text-white"}`}
+                  disabled={updateStatusMutation.isPending}
+                  onClick={handleActionConfirm}
+                >
+                  {updateStatusMutation.isPending
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Send className="h-4 w-4" />}
+                  Confirmer
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

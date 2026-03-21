@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -27,6 +27,7 @@ import type { ServiceType } from "@/lib/data";
 import SOSButtons from "@/components/SOSButtons";
 import { fuiteEauIcon, caniveauIcon, voirieIcon, lampadaireIcon } from "@/lib/infra-icons";
 import QuartierSearch from "@/components/QuartierSearch";
+import OnboardingModal from "@/components/OnboardingModal";
 
 // ─── Types de signalement ────────────────────────────────────────────────────
 
@@ -95,7 +96,6 @@ const REPORT_TYPES: ReportTypeConfig[] = [
     id: "drain_blocked",
     emoji: "🚧",
     label: "Caniveau bouché",
-    image: caniveauIcon,
     color: "#10B981",
     serviceType: "mairie" as any,
     reportCategory: "infrastructure",
@@ -105,7 +105,6 @@ const REPORT_TYPES: ReportTypeConfig[] = [
     id: "pothole",
     emoji: "🛣️",
     label: "Nid de poule",
-    image: voirieIcon,
     color: "#10B981",
     serviceType: "mairie" as any,
     reportCategory: "infrastructure",
@@ -188,6 +187,11 @@ const ReportPage = () => {
   const [userProfileQuartier, setUserProfileQuartier] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isTestAccount, setIsTestAccount] = useState(false);
+
+  // Onboarding modal
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingMissingFields, setOnboardingMissingFields] = useState<string[]>([]);
+  const pendingSubmitRef = useRef(false);
 
   // Duplicate detection
   interface SimilarReport {
@@ -324,6 +328,15 @@ const ReportPage = () => {
     });
   }, [user]);
 
+  // Auto-submit after onboarding completion
+  useEffect(() => {
+    if (pendingSubmitRef.current) {
+      pendingSubmitRef.current = false;
+      handleSubmit();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userPhone, userProfileCommune, userProfileQuartier]);
+
   // Charger les quartiers validés depuis Supabase (enrichit la liste statique)
   useEffect(() => {
     supabase
@@ -450,17 +463,14 @@ const ReportPage = () => {
     if (!selectedType || !commune || !resolvedQuartier) { toast.error("Informations incomplètes"); return; }
     if (!user) { toast.error("Vous devez être connecté"); return; }
     if (!isAdmin && !isTestAccount) {
-      const missingFields = [
-        !userPhone?.trim() && "téléphone",
+      const missing = [
+        !userPhone?.trim() && "phone",
         !userProfileCommune?.trim() && "commune",
         !userProfileQuartier?.trim() && "quartier",
       ].filter(Boolean) as string[];
-      if (missingFields.length > 0) {
-        toast.error("Profil incomplet (40%)", {
-          description: `Ajoutez votre ${missingFields.join(", ")} dans votre profil pour pouvoir faire un signalement.`,
-          action: { label: "Compléter mon profil", onClick: () => navigate("/profil?tab=profile") },
-          duration: 8000,
-        });
+      if (missing.length > 0) {
+        setOnboardingMissingFields(missing);
+        setShowOnboarding(true);
         return;
       }
     }
@@ -541,7 +551,9 @@ const ReportPage = () => {
       navigate(`/confirmation?${params.toString()}`);
     } catch (error: any) {
       const msg = error?.message || "";
-      if (msg.includes("Rate limit exceeded")) {
+      if (msg.includes("daily_limit_exceeded")) {
+        toast.error(`🚫 Limite de ${DAILY_LIMIT} signalements / jour atteinte`);
+      } else if (msg.includes("Rate limit exceeded")) {
         toast.error("⏱️ Trop de signalements ! Attendez 1 minute.");
       } else {
         toast.error(getUserFriendlyError(error, "Erreur lors de l'envoi"));
@@ -1250,6 +1262,25 @@ const ReportPage = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* ═══════════════════════════════════════════════
+            Onboarding modal — complétion profil guidée
+        ═══════════════════════════════════════════════ */}
+        <OnboardingModal
+          open={showOnboarding}
+          onClose={() => setShowOnboarding(false)}
+          missingFields={onboardingMissingFields}
+          initialCommune={userProfileCommune}
+          initialQuartier={userProfileQuartier}
+          initialPhone={userPhone}
+          onComplete={({ commune: c, quartier: q, phone: p }) => {
+            pendingSubmitRef.current = true;
+            if (onboardingMissingFields.includes("commune")) setUserProfileCommune(c);
+            if (onboardingMissingFields.includes("quartier")) setUserProfileQuartier(q);
+            if (onboardingMissingFields.includes("phone")) setUserPhone(p);
+            setShowOnboarding(false);
+          }}
+        />
       </main>
     </div>
   );
