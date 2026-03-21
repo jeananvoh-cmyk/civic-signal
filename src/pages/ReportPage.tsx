@@ -458,7 +458,7 @@ const ReportPage = () => {
       if (missingFields.length > 0) {
         toast.error("Profil incomplet (40%)", {
           description: `Ajoutez votre ${missingFields.join(", ")} dans votre profil pour pouvoir faire un signalement.`,
-          action: { label: "Compléter mon profil", onClick: () => navigate("/profil") },
+          action: { label: "Compléter mon profil", onClick: () => navigate("/profil?tab=profile") },
           duration: 8000,
         });
         return;

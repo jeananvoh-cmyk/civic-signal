@@ -27,7 +27,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Header from "@/components/Header";
 import MyReports from "@/components/MyReports";
 import { COMMUNES } from "@/lib/communes";
@@ -284,6 +284,8 @@ const RightsTabContent = () => {
 const ProfilePage = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") ?? "rights";
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -742,7 +744,7 @@ const ProfilePage = () => {
           </div>
 
           <div className="px-4 sm:px-0">
-          <Tabs defaultValue="rights" className="space-y-4 sm:space-y-6" onValueChange={(v) => { if (v === "history" && history.length === 0) fetchHistory(); }}>
+          <Tabs defaultValue={initialTab} className="space-y-4 sm:space-y-6" onValueChange={(v) => { if (v === "history" && history.length === 0) fetchHistory(); }}>
             <TabsList className="flex w-full overflow-x-auto no-scrollbar gap-0.5">
               <TabsTrigger value="rights" className="gap-1.5 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
                 <Scale className="h-3.5 w-3.5 flex-shrink-0" />

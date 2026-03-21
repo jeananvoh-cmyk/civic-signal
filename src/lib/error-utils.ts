@@ -28,6 +28,10 @@ export function getUserFriendlyError(error: any, fallback = "Une erreur est surv
   // Network
   if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) return "Erreur réseau. Vérifiez votre connexion.";
 
+  // Edge Function / Supabase service errors (don't expose internal details)
+  if (msg.includes("Edge Function") || msg.includes("non-2xx")) return "Service temporairement indisponible. Veuillez réessayer.";
+  if (msg.includes("Function not found")) return "Service non disponible. Contactez l'équipe.";
+
   // Log raw error for debugging but return generic message
   console.error("Operation error:", error);
   return fallback;
