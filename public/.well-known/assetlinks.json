@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "ci.signa.app",
+    "sha256_cert_fingerprints": [
+      "69:BB:45:59:3D:B2:71:71:E3:39:90:5D:06:3B:F6:6F:69:80:6A:4A:9D:21:ED:53:80:C3:79:67:F0:41:E8:65"
+    ]
+  }
+}]

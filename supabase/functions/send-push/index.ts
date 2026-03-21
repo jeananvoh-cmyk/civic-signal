@@ -117,28 +117,40 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Get target users' push subscriptions
-      // Join profiles to filter by commune/quartier
-      let query = supabaseAdmin
+      // Get target users from two sources:
+      // 1. profiles with matching commune + notifications_enabled
+      // 2. commune_subscriptions (users following this commune explicitly)
+      let profileQuery = supabaseAdmin
         .from("profiles")
         .select("user_id")
         .eq("notifications_enabled", true)
         .ilike("commune", commune);
 
       if (quartier) {
-        query = query.ilike("quartier", quartier);
+        profileQuery = profileQuery.ilike("quartier", quartier);
       }
 
-      const { data: targetProfiles } = await query.limit(5000);
-      if (!targetProfiles || targetProfiles.length === 0) {
+      const [{ data: targetProfiles }, { data: communeSubUsers }] = await Promise.all([
+        profileQuery.limit(5000),
+        supabaseAdmin
+          .from("commune_subscriptions")
+          .select("user_id")
+          .ilike("commune", commune)
+          .limit(5000),
+      ]);
+
+      // Merge & deduplicate user IDs from both sources
+      const idSet = new Set<string>();
+      (targetProfiles ?? []).forEach((p: { user_id: string }) => idSet.add(p.user_id));
+      (communeSubUsers ?? []).forEach((p: { user_id: string }) => idSet.add(p.user_id));
+
+      if (idSet.size === 0) {
         return new Response(JSON.stringify({ sent: 0 }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const targetUserIds = targetProfiles
-        .map((p) => p.user_id)
-        .filter((id) => !exclude_user_ids.includes(id));
+      const targetUserIds = [...idSet].filter((id) => !exclude_user_ids.includes(id));
 
       if (targetUserIds.length === 0) {
         return new Response(JSON.stringify({ sent: 0 }), {
@@ -210,6 +222,68 @@ Deno.serve(async (req) => {
       );
 
       console.log(`Push sent: ${sent}/${subscriptions.length} for ${throttleKey}`);
+
+      return new Response(JSON.stringify({ sent, total: subscriptions.length }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // action: "send-to-user" — envoie une push à un utilisateur précis (ex: après update statut par partenaire)
+    // Required: user_id, title, message
+    // Optional: url, report_id
+    if (body.action === "send-to-user") {
+      const { user_id, title, message, url = "/", report_id } = body;
+
+      if (!user_id || !title || !message) {
+        return new Response(JSON.stringify({ error: "Missing required fields: user_id, title, message" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: subscriptions } = await supabaseAdmin
+        .from("push_subscriptions")
+        .select("*")
+        .eq("user_id", user_id);
+
+      if (!subscriptions || subscriptions.length === 0) {
+        return new Response(JSON.stringify({ sent: 0, no_subscriptions: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const payload = JSON.stringify({
+        title,
+        body: message,
+        icon: "/icons/icon-192.png",
+        tag: report_id ? `report-status-${report_id}` : "status-update",
+        data: { url, report_id },
+      });
+
+      const vapidSubject = `mailto:contact@signa-ci.app`;
+      let sent = 0;
+      const invalidEndpoints: string[] = [];
+
+      await Promise.allSettled(
+        subscriptions.map(async (sub) => {
+          const ok = await sendWebPush(
+            { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
+            payload,
+            VAPID_PUBLIC_KEY,
+            VAPID_PRIVATE_KEY,
+            vapidSubject,
+          );
+          if (ok) sent++;
+          else invalidEndpoints.push(sub.endpoint);
+        }),
+      );
+
+      if (invalidEndpoints.length > 0) {
+        await supabaseAdmin
+          .from("push_subscriptions")
+          .delete()
+          .in("endpoint", invalidEndpoints);
+      }
 
       return new Response(JSON.stringify({ sent, total: subscriptions.length }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
