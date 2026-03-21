@@ -37,26 +37,32 @@ jobs:
       - name: Install Bubblewrap
         run: npm install -g @bubblewrap/cli
 
+      - name: Pre-configure Bubblewrap (skip JDK prompt)
+        run: |
+          mkdir -p ~/.bubblewrap
+          cat > ~/.bubblewrap/config.json <<EOF
+          {
+            "jdkPath": "$JAVA_HOME",
+            "androidSdkPath": "$ANDROID_HOME"
+          }
+          EOF
+          echo "Bubblewrap config:"
+          cat ~/.bubblewrap/config.json
+
       - name: Decode keystore
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > twa/civic-signal.keystore
 
       - name: Build APK with Bubblewrap
         working-directory: twa
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME }}
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
-          bubblewrap build \
-            --skipPwaValidation \
-            --manifest twa-manifest.json
+          bubblewrap build --skipPwaValidation
 
-      - name: Rename APK
+      - name: Find and upload APK
         run: |
-          find twa -name "*.apk" | head -5
-          cp twa/app-release-signed.apk SIGNA-CI-v1.0.apk 2>/dev/null || \
-          cp twa/app/build/outputs/apk/release/*.apk SIGNA-CI-v1.0.apk 2>/dev/null || \
-          find twa -name "*.apk" -exec cp {} SIGNA-CI-v1.0.apk \; 2>/dev/null || true
+          APK=$(find twa -name "*.apk" | head -1)
+          echo "APK trouvé: $APK"
+          cp "$APK" SIGNA-CI-v1.0.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
