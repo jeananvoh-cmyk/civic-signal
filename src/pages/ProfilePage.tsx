@@ -178,20 +178,14 @@ const RightsTabContent = () => {
         </div>
         {/* ODD compact inline */}
         <div className="flex gap-2 mt-3">
-          <button
-            onClick={() => setShowOddDialog?.("odd6")}
-            className="flex-1 flex items-center gap-2 rounded-lg border border-border bg-background p-2 hover:bg-accent transition-colors text-left"
-          >
+          <div className="flex-1 flex items-center gap-2 rounded-lg border border-border bg-background p-2 text-left">
             <span className="text-base">💧</span>
-            <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400">ODD 6 — Eau</span>
-          </button>
-          <button
-            onClick={() => setShowOddDialog?.("odd7")}
-            className="flex-1 flex items-center gap-2 rounded-lg border border-border bg-background p-2 hover:bg-accent transition-colors text-left"
-          >
+            <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400">ODD 6 — Eau propre</span>
+          </div>
+          <div className="flex-1 flex items-center gap-2 rounded-lg border border-border bg-background p-2 text-left">
             <span className="text-base">⚡</span>
             <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">ODD 7 — Énergie</span>
-          </button>
+          </div>
         </div>
       </div>
 
