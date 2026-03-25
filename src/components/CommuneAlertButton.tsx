@@ -72,8 +72,8 @@ export default function CommuneAlertButton({ commune }: CommuneAlertButtonProps)
         toast.info(`Alertes désactivées pour ${commune}.`);
       }
     } else {
-      const { error } = await supabase
-        .from("commune_subscriptions")
+      const { error } = await (supabase
+        .from("commune_subscriptions") as any)
         .insert({ user_id: user.id, commune });
 
       if (error) {
