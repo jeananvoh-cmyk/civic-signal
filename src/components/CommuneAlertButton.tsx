@@ -27,8 +27,8 @@ export default function CommuneAlertButton({ commune }: CommuneAlertButtonProps)
       setLoading(false);
       return;
     }
-    supabase
-      .from("commune_subscriptions")
+    (supabase
+      .from("commune_subscriptions") as any)
       .select("id")
       .eq("user_id", user.id)
       .eq("commune", commune)
@@ -59,8 +59,8 @@ export default function CommuneAlertButton({ commune }: CommuneAlertButtonProps)
     }
 
     if (subscribed) {
-      const { error } = await supabase
-        .from("commune_subscriptions")
+      const { error } = await (supabase
+        .from("commune_subscriptions") as any)
         .delete()
         .eq("user_id", user.id)
         .eq("commune", commune);
@@ -72,8 +72,8 @@ export default function CommuneAlertButton({ commune }: CommuneAlertButtonProps)
         toast.info(`Alertes désactivées pour ${commune}.`);
       }
     } else {
-      const { error } = await supabase
-        .from("commune_subscriptions")
+      const { error } = await (supabase
+        .from("commune_subscriptions") as any)
         .insert({ user_id: user.id, commune });
 
       if (error) {

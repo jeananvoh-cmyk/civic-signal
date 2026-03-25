@@ -436,9 +436,7 @@ const Index = () => {
                 className={`group flex flex-col items-center gap-4 rounded-2xl border ${pt.border} bg-gradient-to-br ${pt.grad} p-6 text-center transition-all duration-200 hover:scale-[1.04] hover:shadow-xl ${pt.glow} active:scale-[0.97]`}
               >
                 <div className="text-4xl leading-none">
-                  {"iconImg" in pt
-                    ? <img src={pt.iconImg} alt="" className="h-10 w-10" />
-                    : pt.emoji}
+                  <img src={pt.iconImg} alt="" className="h-10 w-10" />
                 </div>
                 <div>
                   <p className={`text-sm font-bold ${pt.text}`}>{pt.label}</p>

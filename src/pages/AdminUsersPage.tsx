@@ -66,6 +66,45 @@ const AdminUsersPage = () => {
   const [resetPwEmail, setResetPwEmail] = useState("");
   const [resetPwNew, setResetPwNew] = useState("");
 
+  // User search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  const handleSearch = async () => {
+    const q = searchQuery.trim();
+    if (!q) return;
+    setSearching(true);
+    setHasSearched(true);
+    try {
+      // Check if it looks like a UUID
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(q);
+
+      let results: any[] = [];
+      if (isUuid) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("user_id, first_name, last_name, display_name, phone, commune")
+          .eq("user_id", q);
+        results = data || [];
+      } else {
+        // Search by name (first_name, last_name, or display_name)
+        const { data } = await supabase
+          .from("profiles")
+          .select("user_id, first_name, last_name, display_name, phone, commune")
+          .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,display_name.ilike.%${q}%`)
+          .limit(20);
+        results = data || [];
+      }
+      setSearchResults(results);
+    } catch {
+      toast.error("Erreur lors de la recherche");
+    } finally {
+      setSearching(false);
+    }
+  };
+
   const { data: rolesWithProfiles = [], isLoading } = useQuery({
     queryKey: ["admin-user-roles"],
     queryFn: async () => {
@@ -425,6 +464,58 @@ const AdminUsersPage = () => {
           </Dialog>
         </div>
       </motion.div>
+
+      {/* User search for password reset */}
+      <Card className="mb-6">
+        <CardContent className="p-4 space-y-4">
+          <h2 className="text-lg font-semibold text-foreground">Rechercher un utilisateur</h2>
+          <p className="text-sm text-muted-foreground">Recherchez par UUID ou par nom pour réinitialiser un mot de passe.</p>
+          <div className="flex gap-2">
+            <Input
+              placeholder="UUID ou nom de l'utilisateur..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            />
+            <Button onClick={handleSearch} disabled={searching || !searchQuery.trim()}>
+              {searching ? "Recherche..." : "Rechercher"}
+            </Button>
+          </div>
+          {hasSearched && (
+            <div className="space-y-2">
+              {searchResults.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-2">Aucun utilisateur trouvé.</p>
+              ) : (
+                searchResults.map((u) => {
+                  const name = `${u.first_name} ${u.last_name}`.trim() || u.display_name || "Sans nom";
+                  return (
+                    <div key={u.user_id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                      <div>
+                        <p className="text-sm font-medium">{name}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{u.user_id}</p>
+                        {u.commune && <p className="text-xs text-muted-foreground">{u.commune}</p>}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setResetPwUserId(u.user_id);
+                          setResetPwEmail(name);
+                          setResetPwNew("");
+                          setResetPwOpen(true);
+                        }}
+                      >
+                        <KeyRound className="mr-2 h-4 w-4" />
+                        Réinitialiser
+                      </Button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="space-y-3">
         {isLoading ? (
