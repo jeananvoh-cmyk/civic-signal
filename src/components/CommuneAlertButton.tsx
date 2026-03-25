@@ -27,8 +27,8 @@ export default function CommuneAlertButton({ commune }: CommuneAlertButtonProps)
       setLoading(false);
       return;
     }
-    supabase
-      .from("commune_subscriptions")
+    (supabase
+      .from("commune_subscriptions") as any)
       .select("id")
       .eq("user_id", user.id)
       .eq("commune", commune)
