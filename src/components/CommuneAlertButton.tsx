@@ -59,8 +59,8 @@ export default function CommuneAlertButton({ commune }: CommuneAlertButtonProps)
     }
 
     if (subscribed) {
-      const { error } = await supabase
-        .from("commune_subscriptions")
+      const { error } = await (supabase
+        .from("commune_subscriptions") as any)
         .delete()
         .eq("user_id", user.id)
         .eq("commune", commune);
