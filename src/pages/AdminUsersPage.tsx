@@ -66,6 +66,45 @@ const AdminUsersPage = () => {
   const [resetPwEmail, setResetPwEmail] = useState("");
   const [resetPwNew, setResetPwNew] = useState("");
 
+  // User search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  const handleSearch = async () => {
+    const q = searchQuery.trim();
+    if (!q) return;
+    setSearching(true);
+    setHasSearched(true);
+    try {
+      // Check if it looks like a UUID
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(q);
+
+      let results: any[] = [];
+      if (isUuid) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("user_id, first_name, last_name, display_name, phone, commune")
+          .eq("user_id", q);
+        results = data || [];
+      } else {
+        // Search by name (first_name, last_name, or display_name)
+        const { data } = await supabase
+          .from("profiles")
+          .select("user_id, first_name, last_name, display_name, phone, commune")
+          .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,display_name.ilike.%${q}%`)
+          .limit(20);
+        results = data || [];
+      }
+      setSearchResults(results);
+    } catch {
+      toast.error("Erreur lors de la recherche");
+    } finally {
+      setSearching(false);
+    }
+  };
+
   const { data: rolesWithProfiles = [], isLoading } = useQuery({
     queryKey: ["admin-user-roles"],
     queryFn: async () => {
