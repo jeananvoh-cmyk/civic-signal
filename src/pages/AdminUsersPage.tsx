@@ -465,6 +465,58 @@ const AdminUsersPage = () => {
         </div>
       </motion.div>
 
+      {/* User search for password reset */}
+      <Card className="mb-6">
+        <CardContent className="p-4 space-y-4">
+          <h2 className="text-lg font-semibold text-foreground">Rechercher un utilisateur</h2>
+          <p className="text-sm text-muted-foreground">Recherchez par UUID ou par nom pour réinitialiser un mot de passe.</p>
+          <div className="flex gap-2">
+            <Input
+              placeholder="UUID ou nom de l'utilisateur..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            />
+            <Button onClick={handleSearch} disabled={searching || !searchQuery.trim()}>
+              {searching ? "Recherche..." : "Rechercher"}
+            </Button>
+          </div>
+          {hasSearched && (
+            <div className="space-y-2">
+              {searchResults.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-2">Aucun utilisateur trouvé.</p>
+              ) : (
+                searchResults.map((u) => {
+                  const name = `${u.first_name} ${u.last_name}`.trim() || u.display_name || "Sans nom";
+                  return (
+                    <div key={u.user_id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                      <div>
+                        <p className="text-sm font-medium">{name}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{u.user_id}</p>
+                        {u.commune && <p className="text-xs text-muted-foreground">{u.commune}</p>}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setResetPwUserId(u.user_id);
+                          setResetPwEmail(name);
+                          setResetPwNew("");
+                          setResetPwOpen(true);
+                        }}
+                      >
+                        <KeyRound className="mr-2 h-4 w-4" />
+                        Réinitialiser
+                      </Button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="space-y-3">
         {isLoading ? (
           <p className="text-muted-foreground text-sm">Chargement...</p>
