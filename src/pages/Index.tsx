@@ -438,7 +438,6 @@ const Index = () => {
                 <div className="text-4xl leading-none">
                   <img src={pt.iconImg} alt="" className="h-10 w-10" />
                 </div>
-                </div>
                 <div>
                   <p className={`text-sm font-bold ${pt.text}`}>{pt.label}</p>
                   <p className="mt-1 text-xs text-muted-foreground">{pt.desc}</p>
