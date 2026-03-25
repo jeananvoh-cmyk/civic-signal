@@ -74,6 +74,27 @@ export type Database = {
         }
         Relationships: []
       }
+      commune_subscriptions: {
+        Row: {
+          commune: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          commune: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          commune?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       communes: {
         Row: {
           center_lat: number
@@ -451,6 +472,7 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          hidden: boolean
           id: string
           report_id: string
           user_id: string
@@ -458,6 +480,7 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          hidden?: boolean
           id?: string
           report_id: string
           user_id: string
@@ -465,6 +488,7 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          hidden?: boolean
           id?: string
           report_id?: string
           user_id?: string
@@ -529,6 +553,7 @@ export type Database = {
           location: string
           longitude: number | null
           photo_url: string | null
+          photo_urls: string[] | null
           pregnant: number
           quartier: string
           reminder_count: number
@@ -560,6 +585,7 @@ export type Database = {
           location: string
           longitude?: number | null
           photo_url?: string | null
+          photo_urls?: string[] | null
           pregnant?: number
           quartier?: string
           reminder_count?: number
@@ -591,6 +617,7 @@ export type Database = {
           location?: string
           longitude?: number | null
           photo_url?: string | null
+          photo_urls?: string[] | null
           pregnant?: number
           quartier?: string
           reminder_count?: number
@@ -712,6 +739,7 @@ export type Database = {
           total_resolved: number
         }[]
       }
+      get_commune_impact_stats: { Args: { p_commune: string }; Returns: Json }
       get_commune_infrastructure_stats: {
         Args: never
         Returns: {
@@ -792,6 +820,8 @@ export type Database = {
           total_signalements: number
         }[]
       }
+      get_landing_stats: { Args: never; Returns: Json }
+      get_my_commune_subscriptions: { Args: never; Returns: string[] }
       get_nearby_reports: {
         Args: { p_lat: number; p_lon: number; p_rayon_m?: number }
         Returns: {
@@ -833,6 +863,18 @@ export type Database = {
           total_pregnant: number
         }[]
       }
+      get_report_comments: {
+        Args: { p_report_id: string }
+        Returns: {
+          content: string
+          created_at: string
+          display_name: string
+          id: string
+          organization_name: string
+          partner_type: string
+          user_id: string
+        }[]
+      }
       get_reports_time_series: {
         Args: { p_days?: number }
         Returns: {
@@ -844,6 +886,7 @@ export type Database = {
           total: number
         }[]
       }
+      get_transparency_stats: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
