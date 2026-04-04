@@ -702,7 +702,7 @@ const ProfilePage = () => {
                       const icon = isElec ? <img src={electricityIconSm} alt="" className="h-3 w-3" /> : isWater ? <img src={waterIconSm} alt="" className="h-3 w-3" /> : isPhone ? <Phone className="h-3 w-3" /> : isLocation ? <MapPin className="h-3 w-3" /> : <User className="h-3 w-3" />;
                       return (
                         <Badge key={f.field} variant="outline" className={`text-[10px] bg-background gap-1 py-0.5 ${borderClass}`}>
-                          {icon} {f.label} <span className="opacity-50">({f.displayWeight})</span>
+                          {icon} {f.label}
                         </Badge>
                       );
                     })}
