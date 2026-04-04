@@ -511,13 +511,22 @@ const ProfilePage = () => {
     setSaved(false);
   };
 
-  const conformityFields = [
-    profile.first_name, profile.last_name, profile.phone, profile.commune, profile.quartier,
-    profile.electricity_client_id, profile.electricity_meter_ref, profile.electricity_meter_number,
-    profile.water_client_id, profile.water_meter_ref, profile.water_meter_number,
+  // Weighted conformity: identity fields = 16% each (5×16=80%), meter fields = 4% each (5×4=20% — client IDs excluded from circle, counted via meter fields)
+  const conformityWeighted: { field: string; value: string; weight: number; label: string }[] = [
+    { field: "first_name", value: profile.first_name, weight: 16, label: "Prénom" },
+    { field: "last_name", value: profile.last_name, weight: 16, label: "Nom" },
+    { field: "phone", value: profile.phone, weight: 16, label: "WhatsApp" },
+    { field: "commune", value: profile.commune, weight: 16, label: "Commune" },
+    { field: "quartier", value: profile.quartier, weight: 16, label: "Quartier" },
+    { field: "electricity_client_id", value: profile.electricity_client_id, weight: 4, label: "N° client CIE" },
+    { field: "electricity_meter_ref", value: profile.electricity_meter_ref, weight: 4, label: "Réf. compteur CIE" },
+    { field: "electricity_meter_number", value: profile.electricity_meter_number, weight: 4, label: "N° compteur CIE" },
+    { field: "water_client_id", value: profile.water_client_id, weight: 4, label: "N° client SODECI" },
+    { field: "water_meter_ref", value: profile.water_meter_ref, weight: 4, label: "Réf. compteur SODECI" },
+    { field: "water_meter_number", value: profile.water_meter_number, weight: 4, label: "N° compteur SODECI" },
   ];
-  const filledCount = conformityFields.filter((f) => f.trim() !== "").length;
-  const conformityPercent = Math.round((filledCount / conformityFields.length) * 100);
+  const conformityPercent = Math.min(100, conformityWeighted.reduce((sum, f) => sum + (f.value.trim() ? f.weight : 0), 0));
+  const missingFields = conformityWeighted.filter((f) => !f.value.trim());
   const isProfileComplete = conformityPercent >= 100;
   const prevConformityRef = useRef(conformityPercent);
 
