@@ -511,13 +511,22 @@ const ProfilePage = () => {
     setSaved(false);
   };
 
-  const conformityFields = [
-    profile.first_name, profile.last_name, profile.phone, profile.commune, profile.quartier,
-    profile.electricity_client_id, profile.electricity_meter_ref, profile.electricity_meter_number,
-    profile.water_client_id, profile.water_meter_ref, profile.water_meter_number,
+  // Weighted conformity: identity fields = 16% each (5×16=80%), meter fields = 4% each (5×4=20% — client IDs excluded from circle, counted via meter fields)
+  const conformityWeighted: { field: string; value: string; weight: number; label: string }[] = [
+    { field: "first_name", value: profile.first_name, weight: 16, label: "Prénom" },
+    { field: "last_name", value: profile.last_name, weight: 16, label: "Nom" },
+    { field: "phone", value: profile.phone, weight: 16, label: "WhatsApp" },
+    { field: "commune", value: profile.commune, weight: 16, label: "Commune" },
+    { field: "quartier", value: profile.quartier, weight: 16, label: "Quartier" },
+    { field: "electricity_client_id", value: profile.electricity_client_id, weight: 4, label: "N° client CIE" },
+    { field: "electricity_meter_ref", value: profile.electricity_meter_ref, weight: 4, label: "Réf. compteur CIE" },
+    { field: "electricity_meter_number", value: profile.electricity_meter_number, weight: 4, label: "N° compteur CIE" },
+    { field: "water_client_id", value: profile.water_client_id, weight: 4, label: "N° client SODECI" },
+    { field: "water_meter_ref", value: profile.water_meter_ref, weight: 4, label: "Réf. compteur SODECI" },
+    { field: "water_meter_number", value: profile.water_meter_number, weight: 4, label: "N° compteur SODECI" },
   ];
-  const filledCount = conformityFields.filter((f) => f.trim() !== "").length;
-  const conformityPercent = Math.round((filledCount / conformityFields.length) * 100);
+  const conformityPercent = Math.min(100, conformityWeighted.reduce((sum, f) => sum + (f.value.trim() ? f.weight : 0), 0));
+  const missingFields = conformityWeighted.filter((f) => !f.value.trim());
   const isProfileComplete = conformityPercent >= 100;
   const prevConformityRef = useRef(conformityPercent);
 
@@ -683,56 +692,19 @@ const ProfilePage = () => {
                     Complétez votre profil
                   </p>
                   <div className="flex flex-wrap gap-1.5">
-                    {!profile.first_name && (
-                      <Badge variant="outline" className="text-[10px] bg-background border-muted-foreground/30 gap-1 py-0.5">
-                        <User className="h-3 w-3" /> Prénom
-                      </Badge>
-                    )}
-                    {!profile.last_name && (
-                      <Badge variant="outline" className="text-[10px] bg-background border-muted-foreground/30 gap-1 py-0.5">
-                        <User className="h-3 w-3" /> Nom
-                      </Badge>
-                    )}
-                    {!profile.phone && (
-                      <Badge variant="outline" className="text-[10px] bg-background border-amber-500/50 text-amber-600 gap-1 py-0.5">
-                        <Phone className="h-3 w-3" /> WhatsApp
-                      </Badge>
-                    )}
-                    {(!profile.commune || !profile.quartier) && (
-                      <Badge variant="outline" className="text-[10px] bg-background border-blue-500/50 text-blue-600 gap-1 py-0.5">
-                        <MapPin className="h-3 w-3" /> Localisation
-                      </Badge>
-                    )}
-                    {!profile.electricity_client_id && (
-                      <Badge variant="outline" className="text-[10px] bg-background border-yellow-500/50 text-yellow-600 gap-1 py-0.5">
-                        <img src={electricityIconSm} alt="" className="h-3 w-3" /> CIE
-                      </Badge>
-                    )}
-                    {!profile.electricity_meter_ref && (
-                      <Badge variant="outline" className="text-[10px] bg-background border-yellow-500/50 text-yellow-600 gap-1 py-0.5">
-                        <img src={electricityIconSm} alt="" className="h-3 w-3" /> Réf. compteur
-                      </Badge>
-                    )}
-                    {!profile.electricity_meter_number && (
-                      <Badge variant="outline" className="text-[10px] bg-background border-yellow-500/50 text-yellow-600 gap-1 py-0.5">
-                        <img src={electricityIconSm} alt="" className="h-3 w-3" /> N° compteur
-                      </Badge>
-                    )}
-                    {!profile.water_client_id && (
-                      <Badge variant="outline" className="text-[10px] bg-background border-cyan-500/50 text-cyan-600 gap-1 py-0.5">
-                        <img src={waterIconSm} alt="" className="h-3 w-3" /> SODECI
-                      </Badge>
-                    )}
-                    {!profile.water_meter_ref && (
-                      <Badge variant="outline" className="text-[10px] bg-background border-cyan-500/50 text-cyan-600 gap-1 py-0.5">
-                        <img src={waterIconSm} alt="" className="h-3 w-3" /> Réf. compteur
-                      </Badge>
-                    )}
-                    {!profile.water_meter_number && (
-                      <Badge variant="outline" className="text-[10px] bg-background border-cyan-500/50 text-cyan-600 gap-1 py-0.5">
-                        <img src={waterIconSm} alt="" className="h-3 w-3" /> N° compteur
-                      </Badge>
-                    )}
+                    {missingFields.map((f) => {
+                      const isElec = f.field.startsWith("electricity");
+                      const isWater = f.field.startsWith("water");
+                      const isPhone = f.field === "phone";
+                      const isLocation = f.field === "commune" || f.field === "quartier";
+                      const borderClass = isElec ? "border-yellow-500/50 text-yellow-600" : isWater ? "border-cyan-500/50 text-cyan-600" : isPhone ? "border-amber-500/50 text-amber-600" : isLocation ? "border-blue-500/50 text-blue-600" : "border-muted-foreground/30";
+                      const icon = isElec ? <img src={electricityIconSm} alt="" className="h-3 w-3" /> : isWater ? <img src={waterIconSm} alt="" className="h-3 w-3" /> : isPhone ? <Phone className="h-3 w-3" /> : isLocation ? <MapPin className="h-3 w-3" /> : <User className="h-3 w-3" />;
+                      return (
+                        <Badge key={f.field} variant="outline" className={`text-[10px] bg-background gap-1 py-0.5 ${borderClass}`}>
+                          {icon} {f.label} <span className="opacity-50">({f.weight}%)</span>
+                        </Badge>
+                      );
+                    })}
                   </div>
                 </motion.div>
               )}
