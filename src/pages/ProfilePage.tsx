@@ -511,21 +511,22 @@ const ProfilePage = () => {
     setSaved(false);
   };
 
-  // Weighted conformity: identity fields = 16% each (5×16=80%), meter fields = 4% each (5×4=20% — client IDs excluded from circle, counted via meter fields)
-  const conformityWeighted: { field: string; value: string; weight: number; label: string }[] = [
-    { field: "first_name", value: profile.first_name, weight: 16, label: "Prénom" },
-    { field: "last_name", value: profile.last_name, weight: 16, label: "Nom" },
-    { field: "phone", value: profile.phone, weight: 16, label: "WhatsApp" },
-    { field: "commune", value: profile.commune, weight: 16, label: "Commune" },
-    { field: "quartier", value: profile.quartier, weight: 16, label: "Quartier" },
-    { field: "electricity_client_id", value: profile.electricity_client_id, weight: 4, label: "N° client CIE" },
-    { field: "electricity_meter_ref", value: profile.electricity_meter_ref, weight: 4, label: "Réf. compteur CIE" },
-    { field: "electricity_meter_number", value: profile.electricity_meter_number, weight: 4, label: "N° compteur CIE" },
-    { field: "water_client_id", value: profile.water_client_id, weight: 4, label: "N° client SODECI" },
-    { field: "water_meter_ref", value: profile.water_meter_ref, weight: 4, label: "Réf. compteur SODECI" },
-    { field: "water_meter_number", value: profile.water_meter_number, weight: 4, label: "N° compteur SODECI" },
+  // Weighted conformity: 5 identity fields = 19% each (95%), 6 meter fields share remaining 5%
+  const METER_WEIGHT = 5 / 6; // ~0.83% each
+  const conformityWeighted: { field: string; value: string; weight: number; label: string; displayWeight: string }[] = [
+    { field: "first_name", value: profile.first_name, weight: 19, label: "Prénom", displayWeight: "19%" },
+    { field: "last_name", value: profile.last_name, weight: 19, label: "Nom", displayWeight: "19%" },
+    { field: "phone", value: profile.phone, weight: 19, label: "WhatsApp", displayWeight: "19%" },
+    { field: "commune", value: profile.commune, weight: 19, label: "Commune", displayWeight: "19%" },
+    { field: "quartier", value: profile.quartier, weight: 19, label: "Quartier", displayWeight: "19%" },
+    { field: "electricity_client_id", value: profile.electricity_client_id, weight: METER_WEIGHT, label: "N° client CIE", displayWeight: "<1%" },
+    { field: "electricity_meter_ref", value: profile.electricity_meter_ref, weight: METER_WEIGHT, label: "Réf. compteur CIE", displayWeight: "<1%" },
+    { field: "electricity_meter_number", value: profile.electricity_meter_number, weight: METER_WEIGHT, label: "N° compteur CIE", displayWeight: "<1%" },
+    { field: "water_client_id", value: profile.water_client_id, weight: METER_WEIGHT, label: "N° client SODECI", displayWeight: "<1%" },
+    { field: "water_meter_ref", value: profile.water_meter_ref, weight: METER_WEIGHT, label: "Réf. compteur SODECI", displayWeight: "<1%" },
+    { field: "water_meter_number", value: profile.water_meter_number, weight: METER_WEIGHT, label: "N° compteur SODECI", displayWeight: "<1%" },
   ];
-  const conformityPercent = Math.min(100, conformityWeighted.reduce((sum, f) => sum + (f.value.trim() ? f.weight : 0), 0));
+  const conformityPercent = Math.min(100, Math.round(conformityWeighted.reduce((sum, f) => sum + (f.value.trim() ? f.weight : 0), 0)));
   const missingFields = conformityWeighted.filter((f) => !f.value.trim());
   const isProfileComplete = conformityPercent >= 100;
   const prevConformityRef = useRef(conformityPercent);
