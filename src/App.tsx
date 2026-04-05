@@ -8,7 +8,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import AuthCTABar from "@/components/AuthCTABar";
-import WhatsAppButton from "@/components/WhatsAppButton";
 import ProfileCompletionNotifier from "@/components/ProfileCompletionNotifier";
 import PWAInstallBanner from "@/components/PWAInstallBanner";
 import Index from "./pages/Index";
@@ -44,6 +43,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const PartnerDashboardPage = lazy(() => import("./pages/PartnerDashboardPage"));
 const ReportDetailPage = lazy(() => import("./pages/ReportDetailPage"));
 const TransparencyPage = lazy(() => import("./pages/TransparencyPage"));
+const UpdatePasswordPage = lazy(() => import("./pages/UpdatePasswordPage"));
 
 const queryClient = new QueryClient();
 
@@ -55,7 +55,6 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthCTABar />
-          <WhatsAppButton />
           <ProfileCompletionNotifier />
           <PWAInstallBanner />
           <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
@@ -77,6 +76,7 @@ const App = () => (
               <Route path="/confirmation" element={<ConfirmationPage />} />
               <Route path="/signalement/:id" element={<ReportDetailPage />} />
               <Route path="/transparence" element={<TransparencyPage />} />
+              <Route path="/update-password" element={<UpdatePasswordPage />} />
               
               {/* Admin routes */}
               <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>

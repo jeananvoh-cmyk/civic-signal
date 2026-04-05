@@ -73,10 +73,7 @@ Deno.serve(async (req) => {
 
       // Envoyer le mail de réinitialisation
       const { error: resetError } = await adminClient.auth.resetPasswordForEmail(user.email, {
-        redirectTo: `${supabaseUrl.replace(".supabase.co", "")}/update-password`.replace(
-          "https://uycoawpbchgznkdbnfc",
-          "https://signa.ci",
-        ),
+        redirectTo: "https://signa.ci/update-password",
       });
 
       // On ignore l'erreur de redirect si le mail part quand même
