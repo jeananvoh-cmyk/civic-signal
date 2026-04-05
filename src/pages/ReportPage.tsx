@@ -154,7 +154,7 @@ const ReportPage = () => {
 
   // Étape 3 (détails optionnels)
   const [description, setDescription] = useState("");
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [startTime, setStartTime] = useState("");
   const [impactedPeople, setImpactedPeople] = useState(1);
   const [babies, setBabies] = useState(0);
@@ -198,6 +198,7 @@ const ReportPage = () => {
     id: string;
     service_type: string;
     description: string;
+    quartier: string;
     verifications: number;
     created_at: string;
     start_time: string;
@@ -475,7 +476,7 @@ const ReportPage = () => {
       }
     }
     if (!gpsConsent) { toast.error("Acceptez l'utilisation de votre position GPS"); return; }
-    if (selectedType.reportCategory === "infrastructure" && !photoUrl) {
+    if (selectedType.reportCategory === "infrastructure" && photoUrls.length === 0) {
       toast.error("📸 Une photo est obligatoire pour ce type de signalement");
       setShowPhoto(true);
       return;
@@ -515,7 +516,8 @@ const ReportPage = () => {
         longitude,
         urgency: hasVulnerable ? "high" : "medium",
         start_time: reportStartTime,
-        photo_url: photoUrl || null,
+        photo_url: photoUrls[0] || null,
+        photo_urls: photoUrls.length > 0 ? photoUrls : null,
         impacted_people: impactedPeople,
         babies,
         pregnant,
@@ -952,14 +954,14 @@ const ReportPage = () => {
                     className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
                       showPhoto
                         ? "border-primary bg-primary/10 text-primary"
-                        : selectedType.reportCategory === "infrastructure" && !photoUrl
+                        : selectedType.reportCategory === "infrastructure" && photoUrls.length === 0
                         ? "border-amber-400 bg-amber-500/10 text-amber-600 dark:text-amber-400 animate-pulse"
                         : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
                     }`}
                   >
                     <Camera className="h-4 w-4" />
                     Photo{selectedType.reportCategory === "infrastructure" ? " *" : ""}
-                    {photoUrl && <span className="h-2 w-2 rounded-full bg-primary" />}
+                    {photoUrls.length > 0 && <span className="h-2 w-2 rounded-full bg-primary" />}
                   </button>
 
                   {/* Heure — coupures uniquement */}
@@ -1035,13 +1037,13 @@ const ReportPage = () => {
                     >
                       <div className="rounded-xl border border-border bg-card p-3">
                         <PhotoUpload
-                          onPhotoUploaded={setPhotoUrl}
+                          onPhotosChanged={setPhotoUrls}
                           onGpsFromPhoto={(lat, lng) => {
                             setLatitude(lat);
                             setLongitude(lng);
                             setGpsFromPhoto(true);
                           }}
-                          photoUrl={photoUrl}
+                          photoUrls={photoUrls}
                           isInfrastructure={selectedType.reportCategory === "infrastructure"}
                         />
                       </div>
@@ -1229,7 +1231,11 @@ const ReportPage = () => {
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-xl">{isElec ? "⚡" : "💧"}</span>
                         <div className="min-w-0">
-                          <p className="text-sm text-muted-foreground truncate">{r.description}</p>
+                          <p className="text-sm font-semibold text-foreground">
+                            {isElec ? "Électricité" : "Eau"}
+                            {r.quartier ? <span className="font-normal text-muted-foreground"> · {r.quartier}</span> : null}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">{r.description}</p>
                           <p className="text-xs text-muted-foreground">{timeAgo}</p>
                         </div>
                       </div>
