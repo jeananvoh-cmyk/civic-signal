@@ -63,8 +63,9 @@ const AdminUsersPage = () => {
   // Reset password dialog state
   const [resetPwOpen, setResetPwOpen] = useState(false);
   const [resetPwUserId, setResetPwUserId] = useState("");
-  const [resetPwEmail, setResetPwEmail] = useState("");
+  const [resetPwDisplayName, setResetPwDisplayName] = useState("");
   const [resetPwNew, setResetPwNew] = useState("");
+  const [resetPwMode, setResetPwMode] = useState<"set" | "email">("set");
 
   // User search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -78,18 +79,36 @@ const AdminUsersPage = () => {
     setSearching(true);
     setHasSearched(true);
     try {
-      // Check if it looks like a UUID
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(q);
+      const isUuid  = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(q);
+      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(q) || (!isUuid && q.includes("@"));
 
       let results: any[] = [];
-      if (isUuid) {
+
+      if (isEmail) {
+        // Recherche par email via Edge Function (accès auth.users)
+        const res = await supabase.functions.invoke("reset-password", {
+          body: { action: "search_by_email", email: q },
+        });
+        if (res.error) throw new Error(res.error.message);
+        const emailUsers: { user_id: string; email: string }[] = res.data?.users ?? [];
+
+        // Enrichir avec les profils
+        if (emailUsers.length > 0) {
+          const ids = emailUsers.map((u) => u.user_id);
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("user_id, first_name, last_name, display_name, commune")
+            .in("user_id", ids);
+          const profileMap = new Map((profiles ?? []).map((p: any) => [p.user_id, p]));
+          results = emailUsers.map((u) => ({ ...profileMap.get(u.user_id), user_id: u.user_id, email: u.email }));
+        }
+      } else if (isUuid) {
         const { data } = await supabase
           .from("profiles")
           .select("user_id, first_name, last_name, display_name, phone, commune")
           .eq("user_id", q);
         results = data || [];
       } else {
-        // Search by name (first_name, last_name, or display_name)
         const { data } = await supabase
           .from("profiles")
           .select("user_id, first_name, last_name, display_name, phone, commune")
@@ -177,17 +196,23 @@ const AdminUsersPage = () => {
   });
 
   const resetPasswordMutation = useMutation({
-    mutationFn: async ({ userId, newPassword }: { userId: string; newPassword: string }) => {
-      const res = await supabase.functions.invoke("reset-password", {
-        body: { user_id: userId, new_password: newPassword },
-      });
+    mutationFn: async ({ userId, newPassword, mode }: { userId: string; newPassword: string; mode: "set" | "email" }) => {
+      const body = mode === "email"
+        ? { action: "send_reset_email", user_id: userId }
+        : { action: "reset_password",  user_id: userId, new_password: newPassword };
+
+      const res = await supabase.functions.invoke("reset-password", { body });
       if (res.error) throw new Error(res.error.message);
       if (res.data?.error) throw new Error(res.data.error);
-      return res.data;
+      return { ...res.data, mode };
     },
-    onSuccess: (_, { userId }) => {
-      logAudit({ action: "password_reset", target_type: "user", target_id: userId });
-      toast.success("Mot de passe réinitialisé avec succès");
+    onSuccess: (data, { userId }) => {
+      logAudit({ action: "password_reset", target_type: "user", target_id: userId, details: { mode: data.mode } });
+      if (data.mode === "email") {
+        toast.success(`Email de réinitialisation envoyé à ${data.email}`);
+      } else {
+        toast.success("Mot de passe réinitialisé avec succès");
+      }
       setResetPwOpen(false);
       setResetPwNew("");
     },
@@ -385,30 +410,84 @@ const AdminUsersPage = () => {
           </Dialog>
 
           {/* Reset password dialog */}
-          <Dialog open={resetPwOpen} onOpenChange={setResetPwOpen}>
+          <Dialog open={resetPwOpen} onOpenChange={(o) => { setResetPwOpen(o); if (!o) setResetPwNew(""); }}>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Réinitialiser le mot de passe</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Utilisateur : <strong>{resetPwEmail}</strong> <span className="font-mono text-xs">({resetPwUserId.slice(0, 8)}...)</span>
+                  Utilisateur : <strong>{resetPwDisplayName}</strong>{" "}
+                  <span className="font-mono text-xs text-muted-foreground/70">({resetPwUserId.slice(0, 8)}…)</span>
                 </p>
-                <div className="space-y-2">
-                  <Label>Nouveau mot de passe</Label>
-                  <Input
-                    type="password"
-                    value={resetPwNew}
-                    onChange={(e) => setResetPwNew(e.target.value)}
-                    placeholder="Min. 6 caractères"
-                  />
+
+                {/* Choix du mode */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setResetPwMode("email")}
+                    className={`rounded-lg border p-3 text-left text-sm transition-colors ${
+                      resetPwMode === "email"
+                        ? "border-primary bg-primary/10 text-primary font-medium"
+                        : "border-border text-muted-foreground hover:border-primary/50"
+                    }`}
+                  >
+                    <div className="font-semibold mb-0.5">📧 Envoyer un email</div>
+                    <div className="text-xs opacity-70">L'utilisateur reçoit un lien de réinitialisation</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setResetPwMode("set")}
+                    className={`rounded-lg border p-3 text-left text-sm transition-colors ${
+                      resetPwMode === "set"
+                        ? "border-primary bg-primary/10 text-primary font-medium"
+                        : "border-border text-muted-foreground hover:border-primary/50"
+                    }`}
+                  >
+                    <div className="font-semibold mb-0.5">🔑 Définir directement</div>
+                    <div className="text-xs opacity-70">Choisir le nouveau mot de passe maintenant</div>
+                  </button>
                 </div>
+
+                {/* Champ mot de passe — uniquement en mode "set" */}
+                {resetPwMode === "set" && (
+                  <div className="space-y-2">
+                    <Label>Nouveau mot de passe</Label>
+                    <Input
+                      type="password"
+                      value={resetPwNew}
+                      onChange={(e) => setResetPwNew(e.target.value)}
+                      placeholder="Min. 6 caractères"
+                      autoFocus
+                    />
+                  </div>
+                )}
+
+                {resetPwMode === "email" && (
+                  <p className="text-xs text-muted-foreground rounded-lg border border-border bg-muted/40 px-3 py-2">
+                    Un email avec un lien de réinitialisation sera envoyé à l'adresse associée à ce compte.
+                  </p>
+                )}
+
                 <Button
                   className="w-full"
-                  onClick={() => resetPasswordMutation.mutate({ userId: resetPwUserId, newPassword: resetPwNew })}
-                  disabled={!resetPwNew || resetPwNew.length < 6 || resetPasswordMutation.isPending}
+                  onClick={() =>
+                    resetPasswordMutation.mutate({
+                      userId: resetPwUserId,
+                      newPassword: resetPwNew,
+                      mode: resetPwMode,
+                    })
+                  }
+                  disabled={
+                    resetPasswordMutation.isPending ||
+                    (resetPwMode === "set" && (!resetPwNew || resetPwNew.length < 6))
+                  }
                 >
-                  {resetPasswordMutation.isPending ? "Réinitialisation..." : "Réinitialiser le mot de passe"}
+                  {resetPasswordMutation.isPending
+                    ? "En cours…"
+                    : resetPwMode === "email"
+                    ? "Envoyer l'email de réinitialisation"
+                    : "Définir le nouveau mot de passe"}
                 </Button>
               </div>
             </DialogContent>
@@ -469,10 +548,10 @@ const AdminUsersPage = () => {
       <Card className="mb-6">
         <CardContent className="p-4 space-y-4">
           <h2 className="text-lg font-semibold text-foreground">Rechercher un utilisateur</h2>
-          <p className="text-sm text-muted-foreground">Recherchez par UUID ou par nom pour réinitialiser un mot de passe.</p>
+          <p className="text-sm text-muted-foreground">Recherchez par email, nom ou UUID.</p>
           <div className="flex gap-2">
             <Input
-              placeholder="UUID ou nom de l'utilisateur..."
+              placeholder="email@exemple.com, nom ou UUID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -492,6 +571,7 @@ const AdminUsersPage = () => {
                     <div key={u.user_id} className="flex items-center justify-between rounded-lg border border-border p-3">
                       <div>
                         <p className="text-sm font-medium">{name}</p>
+                        {u.email && <p className="text-xs text-muted-foreground">{u.email}</p>}
                         <p className="text-xs text-muted-foreground font-mono">{u.user_id}</p>
                         {u.commune && <p className="text-xs text-muted-foreground">{u.commune}</p>}
                       </div>
@@ -500,7 +580,7 @@ const AdminUsersPage = () => {
                         variant="outline"
                         onClick={() => {
                           setResetPwUserId(u.user_id);
-                          setResetPwEmail(name);
+                          setResetPwDisplayName(name);
                           setResetPwNew("");
                           setResetPwOpen(true);
                         }}
@@ -570,7 +650,7 @@ const AdminUsersPage = () => {
                       title="Réinitialiser le mot de passe"
                       onClick={() => {
                         setResetPwUserId(item.user_id);
-                        setResetPwEmail(displayName);
+                        setResetPwDisplayName(displayName);
                         setResetPwNew("");
                         setResetPwOpen(true);
                       }}
