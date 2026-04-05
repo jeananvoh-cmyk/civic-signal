@@ -93,19 +93,44 @@ function buildBatchEmailHtml(
         new Date(a.created_at) < new Date(b.created_at) ? a : b,
       );
       const since = signaleSince(oldest.created_at);
-      const withCoords = entry.reports.find((r) => r.latitude && r.longitude);
-      const mapsLink = withCoords
-        ? `<a href="https://maps.google.com/?q=${withCoords.latitude},${withCoords.longitude}" style="color:#0ea5e9;text-decoration:none;">Voir →</a>`
-        : "—";
+
+      // Tous les points GPS distincts du quartier
+      const coordReports = entry.reports.filter((r) => r.latitude && r.longitude);
+      const uniqueCoords = coordReports.reduce((acc, r) => {
+        const key = `${r.latitude!.toFixed(4)},${r.longitude!.toFixed(4)}`;
+        if (!acc.has(key)) acc.set(key, r);
+        return acc;
+      }, new Map<string, Report>());
+
+      let mapsCell = "—";
+      if (uniqueCoords.size === 1) {
+        const r = [...uniqueCoords.values()][0];
+        mapsCell = `<a href="https://maps.google.com/?q=${r.latitude},${r.longitude}&z=18" style="color:#0ea5e9;text-decoration:none;font-weight:600;">📍 Voir</a>`;
+      } else if (uniqueCoords.size > 1) {
+        const links = [...uniqueCoords.values()].map((r, i) =>
+          `<a href="https://maps.google.com/?q=${r.latitude},${r.longitude}&z=18" style="color:#0ea5e9;text-decoration:none;margin-right:6px;">📍 Point ${i + 1}</a>`
+        ).join("");
+        mapsCell = links;
+      }
+
+      // Descriptions des signalements (max 2, tronquées à 80 caractères)
+      const descLines = entry.reports
+        .slice(0, 2)
+        .map((r) => r.description?.trim())
+        .filter(Boolean)
+        .map((d) => `<div style="font-size:11px;color:#6b7280;margin-top:3px;font-style:italic;">"${escapeHtml(d!.slice(0, 80))}${d!.length > 80 ? "…" : ""}"</div>`)
+        .join("");
+
       const countBadge = entry.reports.length > 1
-        ? ` <span style="font-size:11px;color:#6b7280;">(${entry.reports.length} signalements)</span>`
+        ? ` <span style="font-size:11px;color:#6b7280;font-weight:400;">(${entry.reports.length} signalements)</span>`
         : "";
+
       return `
       <tr style="border-top:1px solid #e5e7eb;">
-        <td style="padding:10px 16px;font-size:13px;color:#111827;font-weight:600;">${escapeHtml(quartier)}${countBadge}</td>
-        <td style="padding:10px 16px;font-size:13px;color:#16a34a;font-weight:700;">${entry.totalVerif}</td>
-        <td style="padding:10px 16px;font-size:13px;color:#6b7280;">${since}</td>
-        <td style="padding:10px 16px;font-size:13px;">${mapsLink}</td>
+        <td style="padding:10px 16px;font-size:13px;color:#111827;font-weight:600;vertical-align:top;">${escapeHtml(quartier)}${countBadge}${descLines}</td>
+        <td style="padding:10px 16px;font-size:13px;color:#16a34a;font-weight:700;vertical-align:top;">${entry.totalVerif}</td>
+        <td style="padding:10px 16px;font-size:13px;color:#6b7280;vertical-align:top;">${since}</td>
+        <td style="padding:10px 16px;font-size:13px;vertical-align:top;">${mapsCell}</td>
       </tr>`;
     })
     .join("");
@@ -138,13 +163,25 @@ function buildBatchEmailHtml(
         <!-- Body -->
         <tr><td style="padding:28px 32px;">
 
-          <p style="margin:0 0 20px;color:#6b7280;font-size:14px;line-height:1.6;">
+          <p style="margin:0 0 12px;color:#374151;font-size:14px;line-height:1.7;">
             Des citoyens de la commune de <strong style="color:#111827;">${escapeHtml(commune)}</strong>
-            ont signalé les situations ci-dessous via la plateforme <strong>SIGNA-CI</strong>.
-            Ces informations ont été vérifiées et validées par notre équipe avant transmission.
-            Nous vous les communiquons afin que vous puissiez <strong style="color:#111827;">planifier une intervention
-            selon vos priorités et disponibilités</strong>.
+            ont signalé les situations ci-dessous via l'application <strong>SIGNA-CI</strong>.
           </p>
+
+          <!-- Ce que SIGNA-CI a vérifié -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;margin-bottom:20px;">
+            <tr><td style="padding:14px 16px;">
+              <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.5px;">Ce que la plateforme a vérifié</p>
+              <ul style="margin:0;padding:0 0 0 18px;font-size:13px;color:#374151;line-height:1.8;">
+                <li><strong>Confirmation par plusieurs voisins :</strong> chaque signalement a été corroboré indépendamment par plusieurs riverains du même quartier (pas un signalement isolé).</li>
+                <li><strong>Dédoublonnage automatique :</strong> les signalements similaires (même zone, même type de panne) ont été détectés et fusionnés pour éviter le bruit.</li>
+                <li><strong>Validation manuelle admin :</strong> un administrateur SIGNA-CI a examiné, approuvé et déclenché manuellement cette transmission.</li>
+              </ul>
+              <p style="margin:8px 0 0;font-size:12px;color:#6b7280;font-style:italic;">
+                Les coordonnées GPS et descriptions ci-dessous proviennent directement des citoyens — elles permettent à vos équipes de terrain de localiser rapidement la zone concernée.
+              </p>
+            </td></tr>
+          </table>
 
           <!-- Tableau des quartiers -->
           <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:24px;">
