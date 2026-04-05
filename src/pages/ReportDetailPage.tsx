@@ -8,7 +8,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
-import SignedImage from "@/components/SignedImage";
+import PhotoGallery from "@/components/PhotoGallery";
 import DurationBadge from "@/components/DurationBadge";
 import ShareButton from "@/components/ShareButton";
 import ReportComments from "@/components/ReportComments";
@@ -31,6 +31,7 @@ interface ReportDetail {
   validated: boolean;
   validated_at: string | null;
   photo_url: string | null;
+  photo_urls: string[] | null;
   verifications: number;
   repair_verifications: number | null;
   impacted_people: number;
@@ -100,7 +101,7 @@ const ReportDetailPage = () => {
     if (!id) return;
     supabase
       .from("reports")
-      .select("id, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, validated, validated_at, photo_url, verifications, repair_verifications, impacted_people, babies, pregnant, elderly, latitude, longitude")
+      .select("id, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, validated, validated_at, photo_url, photo_urls, verifications, repair_verifications, impacted_people, babies, pregnant, elderly, latitude, longitude")
       .eq("id", id)
       .single()
       .then(({ data, error }) => {
@@ -195,14 +196,15 @@ const ReportDetailPage = () => {
               )}
             </div>
 
-            {/* Photo */}
-            {report.photo_url && (
-              <SignedImage
-                storagePath={report.photo_url}
-                alt="Photo du signalement"
-                className="w-full h-48 object-cover rounded-xl"
-              />
-            )}
+            {/* Galerie photos */}
+            <PhotoGallery
+              photos={
+                (report.photo_urls && report.photo_urls.length > 0)
+                  ? report.photo_urls
+                  : report.photo_url ? [report.photo_url] : []
+              }
+              thumbHeight="h-48"
+            />
 
             {/* Stats row */}
             <div className="flex flex-wrap gap-3 text-xs text-muted-foreground border-t border-border pt-3">

@@ -158,3 +158,74 @@ export function findCommuneByPolygon(lat: number, lon: number): string | null {
   }
   return null;
 }
+
+// ── Real OSM boundaries (lazy-loaded from /public/data/communes-boundaries.geojson) ──
+
+type GeoJsonPolygon = [number, number][][]; // [ring[vertex[lon,lat]]]
+
+interface RealBoundary {
+  nom: string;
+  rings: GeoJsonPolygon; // first ring = exterior, others = holes (ignored for point-in-polygon)
+}
+
+let _realBoundaries: RealBoundary[] | null = null;
+let _loadPromise: Promise<RealBoundary[] | null> | null = null;
+
+/** Flatten a GeoJSON Polygon or MultiPolygon geometry into a list of exterior rings. */
+function _extractRings(geometry: any): [number, number][][] {
+  if (!geometry) return [];
+  if (geometry.type === "Polygon") {
+    return [geometry.coordinates[0]]; // exterior ring only
+  }
+  if (geometry.type === "MultiPolygon") {
+    return geometry.coordinates.map((poly: any) => poly[0]); // exterior rings
+  }
+  return [];
+}
+
+/**
+ * Lazily load the real commune boundaries from the GeoJSON file served as a
+ * static asset.  The result is cached so the file is fetched at most once per
+ * page session.
+ */
+export async function loadRealBoundaries(): Promise<RealBoundary[] | null> {
+  if (_realBoundaries !== null) return _realBoundaries;
+  if (_loadPromise) return _loadPromise;
+
+  _loadPromise = fetch("/data/communes-boundaries.geojson", {
+    signal: AbortSignal.timeout(5_000),
+  })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((geojson) => {
+      if (!geojson?.features) return null;
+      const boundaries: RealBoundary[] = geojson.features
+        .map((f: any) => ({
+          nom: f.properties?.name as string,
+          rings: _extractRings(f.geometry) as GeoJsonPolygon,
+        }))
+        .filter((b: RealBoundary) => b.nom && b.rings.length > 0);
+      _realBoundaries = boundaries;
+      return boundaries;
+    })
+    .catch(() => null);
+
+  return _loadPromise;
+}
+
+/**
+ * Returns the commune name using REAL OSM boundaries if loaded, or falls back
+ * to the simplified convex polygons.  Always synchronous for the fallback path
+ * so geolocation.ts can call it without awaiting a second time when boundaries
+ * are already cached.
+ */
+export function findCommuneByRealBoundary(lat: number, lon: number): string | null {
+  if (!_realBoundaries) return null; // not loaded yet → caller must use fallback
+  for (const b of _realBoundaries) {
+    for (const ring of b.rings) {
+      if (pointInPolygon(lat, lon, ring as Polygon)) {
+        return b.nom;
+      }
+    }
+  }
+  return null;
+}

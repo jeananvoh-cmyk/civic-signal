@@ -17,6 +17,7 @@ const Header = () => {
   const { canValidate, isAdmin, isModerator } = useUserRole();
   const { theme, toggleTheme } = useTheme();
   const { data: donationsEnabled = true } = useSiteSetting("donations_enabled");
+  const { data: transparencyEnabled = false } = useSiteSetting("transparency_enabled");
 
   const themeIcon = theme === "dark" ? <Moon className="h-4 w-4" /> : theme === "light" ? <Sun className="h-4 w-4" /> : <Monitor className="h-4 w-4" />;
 
@@ -38,6 +39,7 @@ const Header = () => {
     { to: "/tableau-de-bord", label: "Tableau de Bord Public", highlight: false },
     { to: "/verification", label: "Vérifier", highlight: true },
     ...(donationsEnabled ? [{ to: "/dons", label: "♥ Dons", highlight: false }] : []),
+    ...(transparencyEnabled ? [{ to: "/transparence", label: "Transparence", highlight: false }] : []),
   ];
 
   return (

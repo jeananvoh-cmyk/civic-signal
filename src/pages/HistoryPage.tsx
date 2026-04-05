@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Zap, Droplets, Loader2, History, Calendar, ArrowLeft } from "lucide-react";
+import { Zap, Droplets, Loader2, History, Calendar, ArrowLeft, ChevronRight, CheckCircle2, AlertTriangle } from "lucide-react";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
 import { Badge } from "@/components/ui/badge";
@@ -8,9 +8,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { COMMUNE_COLORS } from "@/lib/communes";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import SignedImage from "@/components/SignedImage";
+import { useNavigate, Link } from "react-router-dom";
+import PhotoGallery from "@/components/PhotoGallery";
 import DurationBadge from "@/components/DurationBadge";
+import { toast } from "sonner";
+
+const FEEDBACK_KEY = "report_resolution_feedback";
 
 interface HistoryReport {
   id: string;
@@ -24,6 +27,7 @@ interface HistoryReport {
   start_time: string;
   resolved_at: string | null;
   photo_url: string | null;
+  photo_urls: string[] | null;
   repair_verifications: number | null;
   verifications: number;
 }
@@ -37,13 +41,22 @@ const HistoryPage = () => {
   const [reports, setReports] = useState<HistoryReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "active" | "resolved">("all");
+  const [feedbacks, setFeedbacks] = useState<Record<string, "confirmed" | "contested">>(() => {
+    try { return JSON.parse(localStorage.getItem(FEEDBACK_KEY) ?? "{}"); } catch { return {}; }
+  });
+
+  const saveFeedback = (reportId: string, value: "confirmed" | "contested") => {
+    const next = { ...feedbacks, [reportId]: value };
+    setFeedbacks(next);
+    localStorage.setItem(FEEDBACK_KEY, JSON.stringify(next));
+  };
 
   useEffect(() => {
     if (!user) return;
     const fetch = async () => {
       const { data, error } = await supabase
         .from("reports")
-        .select("id, service_type, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, photo_url, repair_verifications, verifications")
+        .select("id, service_type, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, photo_url, photo_urls, repair_verifications, verifications")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (!error && data) setReports(data);
@@ -144,9 +157,15 @@ const HistoryPage = () => {
                     </div>
                     <p className="text-xs text-muted-foreground mb-3">{r.description}</p>
 
-                    {r.photo_url && (
-                      <SignedImage storagePath={r.photo_url} alt="Photo" className="w-full h-32 object-cover rounded-lg mb-3" />
-                    )}
+                    <PhotoGallery
+                      photos={
+                        (r.photo_urls && r.photo_urls.length > 0)
+                          ? r.photo_urls
+                          : r.photo_url ? [r.photo_url] : []
+                      }
+                      className="mb-3"
+                      thumbHeight="h-32"
+                    />
 
                     <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
@@ -162,6 +181,63 @@ const HistoryPage = () => {
                         verifications={r.verifications}
                       />
                     </div>
+
+                    {/* Feedback résolution */}
+                    {isResolved && (() => {
+                      const fb = feedbacks[r.id];
+                      if (fb === "confirmed") return (
+                        <div className="mt-3 flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Résolution confirmée — merci !
+                        </div>
+                      );
+                      if (fb === "contested") return (
+                        <div className="mt-3 flex items-center gap-1.5 text-xs text-orange-600 dark:text-orange-400">
+                          <AlertTriangle className="h-3.5 w-3.5" /> Signalé comme toujours actif
+                        </div>
+                      );
+                      return (
+                        <div className="mt-3 pt-3 border-t border-border">
+                          <p className="text-xs text-muted-foreground mb-2">Le problème est-il vraiment résolu ?</p>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs gap-1 border-green-500/40 text-green-700 hover:bg-green-500/10"
+                              onClick={() => {
+                                saveFeedback(r.id, "confirmed");
+                                toast.success("Merci pour votre retour !");
+                              }}
+                            >
+                              <CheckCircle2 className="h-3 w-3" /> Oui, résolu
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs gap-1 border-orange-500/40 text-orange-700 hover:bg-orange-500/10"
+                              onClick={() => {
+                                saveFeedback(r.id, "contested");
+                                toast("Compris. Vous pouvez créer un nouveau signalement.", {
+                                  action: {
+                                    label: "Signaler",
+                                    onClick: () => navigate(`/signaler?type=${r.service_type === "electricity" ? "electricity_outage" : "water_outage"}`),
+                                  },
+                                });
+                              }}
+                            >
+                              <AlertTriangle className="h-3 w-3" /> Non, toujours actif
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Lien vers le détail */}
+                    <Link
+                      to={`/signalement/${r.id}`}
+                      className="mt-2 flex items-center justify-end gap-1 text-xs text-primary hover:underline"
+                    >
+                      Voir le détail <ChevronRight className="h-3.5 w-3.5" />
+                    </Link>
                   </div>
                 </motion.div>
               );

@@ -42,6 +42,7 @@ interface Report {
   created_at: string;
   resolved_at: string | null;
   photo_url: string | null;
+  photo_urls: string[] | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -118,7 +119,7 @@ const PartnerDashboardPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reports")
-        .select("id, user_id, service_type, report_category, description, commune, quartier, status, urgency, verifications, impacted_people, created_at, resolved_at, photo_url")
+        .select("id, user_id, service_type, report_category, description, commune, quartier, status, urgency, verifications, impacted_people, created_at, resolved_at, photo_url, photo_urls")
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;

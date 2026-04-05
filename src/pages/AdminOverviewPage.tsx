@@ -33,6 +33,21 @@ const AdminOverviewPage = () => {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const queryClient = useQueryClient();
   const { data: donationsEnabled = true } = useSiteSetting("donations_enabled");
+  const { data: transparencyEnabled = false } = useSiteSetting("transparency_enabled");
+
+  const toggleTransparency = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const { error } = await supabase
+        .from("site_settings")
+        .update({ value: enabled as unknown as never, updated_at: new Date().toISOString(), updated_by: user?.id })
+        .eq("key", "transparency_enabled");
+      if (error) throw error;
+    },
+    onSuccess: (_, enabled) => {
+      queryClient.invalidateQueries({ queryKey: ["site-setting", "transparency_enabled"] });
+      toast({ title: enabled ? "Page transparence activée" : "Page transparence masquée" });
+    },
+  });
 
   const toggleDonations = useMutation({
     mutationFn: async (enabled: boolean) => {
@@ -280,6 +295,32 @@ const AdminOverviewPage = () => {
               checked={donationsEnabled}
               onCheckedChange={(checked) => toggleDonations.mutate(checked)}
               disabled={toggleDonations.isPending}
+            />
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Transparency page toggle */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+        <Card className="mb-8">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary">
+                <BarChart3 className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">Page de transparence</p>
+                <p className="text-xs text-muted-foreground">
+                  {transparencyEnabled
+                    ? "Visible par tous — lien affiché dans la navigation"
+                    : "Masquée — accessible uniquement sur /transparence directement"}
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={transparencyEnabled}
+              onCheckedChange={(checked) => toggleTransparency.mutate(checked)}
+              disabled={toggleTransparency.isPending}
             />
           </CardContent>
         </Card>

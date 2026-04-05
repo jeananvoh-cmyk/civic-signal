@@ -1,5 +1,3 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -21,12 +19,16 @@ const GREEN: [number, number, number] = [34, 139, 34];
 const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0);
 
 /* ───── main ───── */
-export function exportPDF(
+export async function exportPDF(
   stats: CommuneStat[],
   serviceStats: CommuneServiceStat[],
   vulnStats: VulnerableStat[],
   durationStats: DurationStat[],
 ) {
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();

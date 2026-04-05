@@ -2,7 +2,7 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Clock, Users, CheckCircle2, Info, ThumbsUp, Maximize2, X, ExternalLink, MessageSquare, Send } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, Users, CheckCircle2, Info, ThumbsUp, Maximize2, X, ExternalLink, MessageSquare, Send, ChevronLeft, ChevronRight } from "lucide-react";
 import DurationBadge from "@/components/DurationBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,7 @@ interface ReportDetail {
   validated: boolean | null;
   impacted_people: number | null;
   photo_url: string | null;
+  photo_urls: string[] | null;
   babies: number | null;
   pregnant: number | null;
   elderly: number | null;
@@ -102,7 +103,7 @@ const SignalementDetailPage = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [supported, setSupported] = useState(false);
-  const [photoOpen, setPhotoOpen] = useState(false);
+  const [photoIndex, setPhotoIndex] = useState<number | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
   const [commentText, setCommentText] = useState("");
@@ -115,7 +116,7 @@ const SignalementDetailPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reports")
-        .select("id, status, urgency, service_type, report_category, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, photo_url, babies, pregnant, elderly, repair_verifications, latitude, longitude")
+        .select("id, status, urgency, service_type, report_category, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, photo_url, photo_urls, babies, pregnant, elderly, repair_verifications, latitude, longitude")
         .eq("id", id!)
         .single();
       if (error) throw error;
@@ -320,41 +321,74 @@ const SignalementDetailPage = () => {
         </Link>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          {/* Photo hero — en premier pour l'impact visuel */}
-          {report.photo_url && (
-            <>
-              <div
-                className="relative mb-5 rounded-xl overflow-hidden cursor-pointer group"
-                onClick={() => setPhotoOpen(true)}
-              >
-                <SignedImage
-                  storagePath={report.photo_url}
-                  alt="Photo du signalement"
-                  className="w-full max-h-64 object-cover"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-                <div className="absolute bottom-2 right-2 bg-black/50 text-white rounded-full p-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
-                  <Maximize2 className="h-3.5 w-3.5" />
-                </div>
-              </div>
-
-              <Dialog open={photoOpen} onOpenChange={setPhotoOpen}>
-                <DialogContent className="max-w-screen-md p-0 bg-black border-0 overflow-hidden">
-                  <button
-                    onClick={() => setPhotoOpen(false)}
-                    className="absolute top-3 right-3 z-10 bg-black/60 text-white rounded-full p-1.5 hover:bg-black/80"
+          {/* Galerie photos — en premier pour l'impact visuel */}
+          {(() => {
+            const photos = (report.photo_urls && report.photo_urls.length > 0)
+              ? report.photo_urls
+              : report.photo_url ? [report.photo_url] : [];
+            if (photos.length === 0) return null;
+            return (
+              <>
+                {photos.length === 1 ? (
+                  <div
+                    className="relative mb-5 rounded-xl overflow-hidden cursor-pointer group"
+                    onClick={() => setPhotoIndex(0)}
                   >
-                    <X className="h-4 w-4" />
-                  </button>
-                  <SignedImage
-                    storagePath={report.photo_url}
-                    alt="Photo du signalement"
-                    className="w-full max-h-[90vh] object-contain"
-                  />
-                </DialogContent>
-              </Dialog>
-            </>
-          )}
+                    <SignedImage storagePath={photos[0]} alt="Photo du signalement" className="w-full max-h-64 object-cover" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                    <div className="absolute bottom-2 right-2 bg-black/50 text-white rounded-full p-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
+                      <Maximize2 className="h-3.5 w-3.5" />
+                    </div>
+                  </div>
+                ) : (
+                  <div className={`grid gap-2 mb-5 ${photos.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+                    {photos.map((p, i) => (
+                      <div key={p} className="relative rounded-xl overflow-hidden cursor-pointer group aspect-square" onClick={() => setPhotoIndex(i)}>
+                        <SignedImage storagePath={p} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                        <div className="absolute bottom-1.5 right-1.5 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Maximize2 className="h-3 w-3" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <Dialog open={photoIndex !== null} onOpenChange={(open) => !open && setPhotoIndex(null)}>
+                  <DialogContent className="max-w-screen-md p-0 bg-black border-0 overflow-hidden">
+                    <button
+                      onClick={() => setPhotoIndex(null)}
+                      className="absolute top-3 right-3 z-10 bg-black/60 text-white rounded-full p-1.5 hover:bg-black/80"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                    {photos.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => setPhotoIndex((i) => i !== null ? (i - 1 + photos.length) % photos.length : 0)}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 z-10 bg-black/60 text-white rounded-full p-1.5 hover:bg-black/80"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => setPhotoIndex((i) => i !== null ? (i + 1) % photos.length : 0)}
+                          className="absolute right-12 top-1/2 -translate-y-1/2 z-10 bg-black/60 text-white rounded-full p-1.5 hover:bg-black/80"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 bg-black/60 text-white text-xs rounded-full px-2 py-0.5">
+                          {(photoIndex ?? 0) + 1} / {photos.length}
+                        </div>
+                      </>
+                    )}
+                    {photoIndex !== null && (
+                      <SignedImage storagePath={photos[photoIndex]} alt="Photo du signalement" className="w-full max-h-[90vh] object-contain" />
+                    )}
+                  </DialogContent>
+                </Dialog>
+              </>
+            );
+          })()}
 
           {/* En-tête type + priorité */}
           <div className="flex items-center gap-3 mb-2">

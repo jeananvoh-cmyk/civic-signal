@@ -58,6 +58,7 @@ interface InfraStats {
 type MapMode = "coupures" | "infrastructures";
 type CoupureFilter = "all" | "electricity" | "water";
 type InfraFilter = "all" | "cie" | "sodeci" | "mairie";
+type PeriodFilter = "all" | "today" | "7d" | "30d";
 
 /** Compute centroid of a GeoJSON feature (Polygon / MultiPolygon) */
 const computeCentroid = (feature: any): [number, number] | null => {
@@ -83,6 +84,8 @@ const MapPage = () => {
   const [mode, setMode] = useState<MapMode>(initialMode);
   const [coupureFilter, setCoupureFilter] = useState<CoupureFilter>(initialCoupureFilter);
   const [infraFilter, setInfraFilter] = useState<InfraFilter>("all");
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("all");
+  const [focusedCommune, setFocusedCommune] = useState<string | null>(null);
 
   const [stats, setStats] = useState<CommuneServiceStat[]>([]);
   const [infraStats, setInfraStats] = useState<InfraStats[]>([]);
@@ -120,23 +123,44 @@ const MapPage = () => {
     return () => { map.remove(); mapInstance.current = null; };
   }, []);
 
-  // Fetch active reports for heat-map when toggle is on
+  // Fetch active reports for heat-map when toggle is on (respects period + commune focus)
   useEffect(() => {
     if (!showHeatmap) {
       setActiveReports([]);
       return;
     }
-    supabase
+    let query = supabase
       .from("reports")
-      .select("id, latitude, longitude, service_type, verifications, commune")
+      .select("id, latitude, longitude, service_type, verifications, commune, created_at")
       .eq("status", "active")
       .not("latitude", "is", null)
       .not("longitude", "is", null)
-      .limit(500)
-      .then(({ data }) => {
-        if (data) setActiveReports(data as ActiveReport[]);
-      });
-  }, [showHeatmap]);
+      .limit(500);
+
+    if (periodFilter !== "all") {
+      const now = new Date();
+      if (periodFilter === "today") now.setHours(0, 0, 0, 0);
+      else if (periodFilter === "7d") now.setDate(now.getDate() - 7);
+      else if (periodFilter === "30d") now.setDate(now.getDate() - 30);
+      query = query.gte("created_at", now.toISOString());
+    }
+    if (focusedCommune) {
+      query = query.eq("commune", focusedCommune);
+    }
+
+    query.then(({ data }) => {
+      if (data) setActiveReports(data as ActiveReport[]);
+    });
+  }, [showHeatmap, periodFilter, focusedCommune]);
+
+  // Pan + zoom to focused commune
+  useEffect(() => {
+    if (!mapInstance.current || !focusedCommune) return;
+    const commune = COMMUNES.find((c) => c.nom === focusedCommune);
+    if (commune) {
+      mapInstance.current.flyTo([commune.centerLat, commune.centerLon], 14, { duration: 1 });
+    }
+  }, [focusedCommune]);
 
   // Render / clear heat-map layer
   useEffect(() => {
@@ -306,7 +330,7 @@ const MapPage = () => {
 
     L.marker(pos, { icon })
       .addTo(map)
-      .bindPopup(`<div style="min-width:180px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">${serviceLabel} — Coupures</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${breakdownHtml}${confirmHtml}</div>`);
+      .bindPopup(`<div style="min-width:180px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">${serviceLabel} — Coupures</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${breakdownHtml}${confirmHtml}<div style="margin-top:10px"><a href="/commune/${encodeURIComponent(c.nom)}" style="display:inline-block;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;text-decoration:none;font-size:12px;font-weight:700;padding:7px 16px;border-radius:8px;box-shadow:0 2px 6px rgba(14,165,233,0.3);">Voir les signalements →</a></div></div>`);
   };
 
   const renderInfraMarker = (map: L.Map, c: typeof COMMUNES[0], pos: [number, number]) => {
@@ -362,7 +386,7 @@ const MapPage = () => {
 
       L.marker(pos, { icon })
         .addTo(map)
-        .bindPopup(`<div style="min-width:200px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">Infrastructures</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${breakdownHtml}${infraConfirmHtml}</div>`);
+        .bindPopup(`<div style="min-width:200px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">Infrastructures</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${breakdownHtml}${infraConfirmHtml}<div style="margin-top:10px"><a href="/commune/${encodeURIComponent(c.nom)}" style="display:inline-block;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;text-decoration:none;font-size:12px;font-weight:700;padding:7px 16px;border-radius:8px;box-shadow:0 2px 6px rgba(14,165,233,0.3);">Voir les signalements →</a></div></div>`);
     } else {
       const infraIcon = infraFilter === "cie" ? INFRA_CATEGORY_ICONS.cie : infraFilter === "sodeci" ? INFRA_CATEGORY_ICONS.sodeci : infraFilter === "mairie" ? INFRA_CATEGORY_ICONS.mairie : "";
       const bg = infraFilter === "cie" ? "#f59e0b" : infraFilter === "sodeci" ? "#3b82f6" : infraFilter === "mairie" ? "#10b981" : "#6b7280";
@@ -384,7 +408,7 @@ const MapPage = () => {
 
       L.marker(pos, { icon })
         .addTo(map)
-        .bindPopup(`<div style="min-width:180px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">${label}</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${singleConfirmHtml}</div>`);
+        .bindPopup(`<div style="min-width:180px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">${label}</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${singleConfirmHtml}<div style="margin-top:10px"><a href="/commune/${encodeURIComponent(c.nom)}" style="display:inline-block;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;text-decoration:none;font-size:12px;font-weight:700;padding:7px 16px;border-radius:8px;box-shadow:0 2px 6px rgba(14,165,233,0.3);">Voir les signalements →</a></div></div>`);
     }
   };
 
@@ -499,6 +523,58 @@ const MapPage = () => {
           {showHeatmap ? "Heat-map ON" : "Heat-map signalements"}
         </button>
 
+        {/* Filtre période */}
+        <div className="mb-3 flex flex-wrap gap-2 items-center">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mr-1">Période :</span>
+          {([
+            { key: "all" as PeriodFilter,   label: "Tout" },
+            { key: "today" as PeriodFilter,  label: "Aujourd'hui" },
+            { key: "7d" as PeriodFilter,     label: "7 jours" },
+            { key: "30d" as PeriodFilter,    label: "30 jours" },
+          ]).map((p) => (
+            <button
+              key={p.key}
+              onClick={() => setPeriodFilter(p.key)}
+              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                periodFilter === p.key
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground hover:bg-accent"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Filtre commune */}
+        <div className="mb-4 flex flex-wrap gap-2 items-center">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mr-1">Commune :</span>
+          <button
+            onClick={() => { setFocusedCommune(null); mapInstance.current?.setView([5.36, -4.01], 12); }}
+            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+              focusedCommune === null
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-secondary-foreground hover:bg-accent"
+            }`}
+          >
+            Toutes
+          </button>
+          {COMMUNES.map((c) => (
+            <button
+              key={c.nom}
+              onClick={() => setFocusedCommune(focusedCommune === c.nom ? null : c.nom)}
+              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold transition-colors border ${
+                focusedCommune === c.nom
+                  ? "text-white border-transparent"
+                  : "bg-secondary text-secondary-foreground border-transparent hover:bg-accent"
+              }`}
+              style={focusedCommune === c.nom ? { backgroundColor: c.couleur, borderColor: c.couleur } : {}}
+            >
+              {c.nom}
+            </button>
+          ))}
+        </div>
+
         {/* Sub-filters */}
         <div className="mb-4 flex flex-wrap gap-2">
           {mode === "coupures" ? (
@@ -545,8 +621,8 @@ const MapPage = () => {
           )}
         </div>
 
-        {/* Legend */}
-        <div className="mb-4 flex flex-wrap gap-2">
+        {/* Commune active counts (compact) */}
+        <div className="mb-4 flex flex-wrap gap-1.5">
           {COMMUNES.map((c) => {
             let count = 0;
             if (mode === "coupures") {
@@ -556,9 +632,10 @@ const MapPage = () => {
               const s = infraStats.find((st) => st.commune.toLowerCase() === c.nom.toLowerCase());
               if (s) count = infraFilter === "cie" ? s.elec_infra_actifs : infraFilter === "sodeci" ? s.eau_infra_actifs : infraFilter === "mairie" ? s.mairie_infra_actifs : s.elec_infra_actifs + s.eau_infra_actifs + s.mairie_infra_actifs;
             }
+            if (count === 0) return null;
             return (
-              <span key={c.nom} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-white" style={{ backgroundColor: c.couleur }}>
-                {c.nom} ({count})
+              <span key={c.nom} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-white opacity-80" style={{ backgroundColor: c.couleur }}>
+                {c.nom} · {count}
               </span>
             );
           })}

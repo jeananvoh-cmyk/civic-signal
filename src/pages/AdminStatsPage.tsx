@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo, lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Download, FileSpreadsheet, FileText, FileDown, ChevronDown, Users, Baby, Heart, Clock, Shield, Zap, Droplets, Construction } from "lucide-react";
+import { Download, FileSpreadsheet, FileText, FileDown, ChevronDown, Users, Baby, Heart, Clock, Shield, Zap, Droplets, Construction, Calendar, TrendingUp, Building2, CheckCircle2, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
-import TrendsChart from "@/components/TrendsChart";
+const TrendsChart = lazy(() => import("@/components/TrendsChart"));
 import { format } from "date-fns";
 import { exportPDF } from "@/lib/export-pdf";
 
@@ -179,9 +179,29 @@ function buildExport(
   return lines.join("\n");
 }
 
+type TimePeriod = "7j" | "30j" | "90j" | "all";
+
+interface PartnerPerfRow {
+  id: string;
+  organization_name: string;
+  partner_type: string;
+  commune: string | null;
+  total: number;
+  resolved: number;
+  processing: number;
+  avgDaysToResolve: number | null;
+}
+
 /* ───── component ───── */
 const AdminStatsPage = () => {
   const [exportOpen, setExportOpen] = useState(false);
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>("30j");
+
+  const dateFrom = useMemo(() => {
+    if (timePeriod === "all") return null;
+    const days = timePeriod === "7j" ? 7 : timePeriod === "30j" ? 30 : 90;
+    return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  }, [timePeriod]);
 
   const { data: stats = [], isLoading: loadingStats } = useQuery({
     queryKey: ["admin-stats"],
@@ -219,6 +239,72 @@ const AdminStatsPage = () => {
     },
   });
 
+  // ── Signalements récents filtrés par période
+  const { data: recentReports = [] } = useQuery({
+    queryKey: ["admin-recent-reports", timePeriod],
+    queryFn: async () => {
+      let q = supabase
+        .from("reports")
+        .select("id, status, commune, created_at, resolved_at");
+      if (dateFrom) q = q.gte("created_at", dateFrom);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // ── Performance partenaires
+  const { data: partnerPerf = [] } = useQuery({
+    queryKey: ["admin-partner-perf", timePeriod],
+    queryFn: async () => {
+      const { data: partners } = await supabase
+        .from("partner_profiles")
+        .select("id, organization_name, partner_type, commune");
+      if (!partners || partners.length === 0) return [];
+
+      let q = supabase
+        .from("reports")
+        .select("id, status, commune, service_type, report_category, resolved_at, created_at");
+      if (dateFrom) q = q.gte("created_at", dateFrom);
+      const { data: reports } = await q;
+      const allReports = reports ?? [];
+
+      return partners.map((p: any): PartnerPerfRow => {
+        const relevant = allReports.filter((r: any) => {
+          if (p.partner_type === "cie") return r.service_type === "electricity";
+          if (p.partner_type === "sodeci") return r.service_type === "water";
+          if (p.partner_type === "mairie")
+            return r.report_category === "infrastructure" && r.commune === p.commune;
+          return true;
+        });
+        const resolved = relevant.filter((r: any) => r.status === "resolved");
+        const processing = relevant.filter((r: any) => r.status === "processing");
+        const avgDays =
+          resolved.length > 0
+            ? resolved.reduce((sum: number, r: any) => {
+                if (!r.resolved_at || !r.created_at) return sum;
+                return (
+                  sum +
+                  (new Date(r.resolved_at).getTime() -
+                    new Date(r.created_at).getTime()) /
+                    (1000 * 60 * 60 * 24)
+                );
+              }, 0) / resolved.length
+            : null;
+        return {
+          id: p.id,
+          organization_name: p.organization_name,
+          partner_type: p.partner_type,
+          commune: p.commune,
+          total: relevant.length,
+          resolved: resolved.length,
+          processing: processing.length,
+          avgDaysToResolve: avgDays,
+        };
+      });
+    },
+  });
+
   const isLoading = loadingStats;
   const totalSignalements = stats.reduce((s, c) => s + c.total, 0);
   const totalActifs = stats.reduce((s, c) => s + c.actifs, 0);
@@ -240,6 +326,25 @@ const AdminStatsPage = () => {
       downloadFile(content, `rapport_stats_${dateStr}.xls`, "application/vnd.ms-excel");
     }
     setExportOpen(false);
+  };
+
+  const PERIOD_LABELS: Record<TimePeriod, string> = {
+    "7j": "7 derniers jours",
+    "30j": "30 derniers jours",
+    "90j": "90 derniers jours",
+    "all": "Depuis le début",
+  };
+
+  const recentTotal = recentReports.length;
+  const recentResolus = recentReports.filter((r: any) => r.status === "resolved").length;
+  const recentActifs = recentReports.filter((r: any) => r.status === "active").length;
+
+  const PARTNER_TYPE_LABELS: Record<string, string> = {
+    cie: "CIE",
+    sodeci: "SODECI",
+    mairie: "Mairie",
+    ngo: "ONG",
+    other: "Autre",
   };
 
   return (
@@ -285,6 +390,47 @@ const AdminStatsPage = () => {
           </PopoverContent>
         </Popover>
       </motion.div>
+
+      {/* Sélecteur de période */}
+      <div className="mb-6 flex items-center gap-2 flex-wrap">
+        <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+        <span className="text-sm text-muted-foreground">Période :</span>
+        {(["7j", "30j", "90j", "all"] as TimePeriod[]).map((p) => (
+          <button
+            key={p}
+            onClick={() => setTimePeriod(p)}
+            className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+              timePeriod === p
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground hover:bg-accent"
+            }`}
+          >
+            {PERIOD_LABELS[p]}
+          </button>
+        ))}
+      </div>
+
+      {/* KPIs Activité récente */}
+      <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <TrendingUp className="h-4 w-4 text-primary" />
+          <span className="text-sm font-bold text-foreground">Activité — {PERIOD_LABELS[timePeriod]}</span>
+        </div>
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <p className="text-2xl font-extrabold text-foreground">{recentTotal}</p>
+            <p className="text-xs text-muted-foreground">Signalements soumis</p>
+          </div>
+          <div>
+            <p className="text-2xl font-extrabold text-destructive">{recentActifs}</p>
+            <p className="text-xs text-muted-foreground">Encore actifs</p>
+          </div>
+          <div>
+            <p className="text-2xl font-extrabold text-success">{recentResolus}</p>
+            <p className="text-xs text-muted-foreground">Résolus ({pct(recentResolus, recentTotal)}%)</p>
+          </div>
+        </div>
+      </div>
 
       {isLoading ? (
         <div className="flex justify-center py-12">
@@ -394,7 +540,74 @@ const AdminStatsPage = () => {
           )}
 
           {/* Trends chart */}
-          <TrendsChart className="mb-8" />
+          <Suspense fallback={<div className="mb-8 h-48 rounded-xl border border-border bg-muted/30 animate-pulse" />}>
+            <TrendsChart className="mb-8" />
+          </Suspense>
+
+          {/* Performance partenaires */}
+          {partnerPerf.length > 0 && (
+            <div className="mb-8">
+              <div className="flex items-center gap-2 mb-3">
+                <Building2 className="h-5 w-5 text-primary" />
+                <h2 className="font-display text-lg font-bold text-foreground">Performance partenaires</h2>
+                <span className="text-xs text-muted-foreground">— {PERIOD_LABELS[timePeriod]}</span>
+              </div>
+              <div className="rounded-xl border border-border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-muted/50 text-left">
+                      <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Partenaire</th>
+                      <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center">Périmètre</th>
+                      <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center">Signalements</th>
+                      <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center">
+                        <CheckCircle2 className="h-3.5 w-3.5 inline mr-1 text-success" />
+                        Résolus
+                      </th>
+                      <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center">
+                        <Loader className="h-3.5 w-3.5 inline mr-1 text-primary" />
+                        En cours
+                      </th>
+                      <th className="px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide text-center">Délai moy.</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {[...partnerPerf]
+                      .sort((a, b) => b.resolved - a.resolved)
+                      .map((p) => (
+                        <tr key={p.id} className="hover:bg-muted/30 transition-colors">
+                          <td className="px-4 py-3 font-medium text-foreground">{p.organization_name}</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold bg-primary/10 text-primary">
+                              {PARTNER_TYPE_LABELS[p.partner_type] ?? p.partner_type}
+                              {p.commune && ` — ${p.commune}`}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center font-semibold">{p.total}</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`font-bold ${p.resolved > 0 ? "text-success" : "text-muted-foreground"}`}>
+                              {p.resolved}
+                            </span>
+                            {p.total > 0 && (
+                              <span className="text-xs text-muted-foreground ml-1">({pct(p.resolved, p.total)}%)</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`font-bold ${p.processing > 0 ? "text-primary" : "text-muted-foreground"}`}>
+                              {p.processing}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center text-xs text-muted-foreground">
+                            {p.avgDaysToResolve !== null
+                              ? `${p.avgDaysToResolve.toFixed(1)}j`
+                              : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* Per commune bars */}
           <h2 className="font-display text-lg font-bold text-foreground mb-3">Répartition par commune</h2>

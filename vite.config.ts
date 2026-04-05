@@ -18,15 +18,17 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
       includeAssets: ["favicon.ico", "robots.txt", "icons/*.png"],
-      workbox: {
-        navigateFallbackDenylist: [/^\/~oauth/, /^\/noc-report\.html/],
+      injectManifest: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,webp,woff2}"],
       },
       manifest: {
-        name: "SIGNA-CI — Coupures Abidjan",
+        name: "SIGNA-CI — Signalements Abidjan",
         short_name: "SIGNA-CI",
-        description: "Signalez les coupures d'eau et d'électricité à Abidjan",
+        description: "Signalez les coupures d'eau, d'électricité et les infrastructures défaillantes à Abidjan",
         theme_color: "#1a2744",
         background_color: "#f8fafc",
         display: "standalone",
@@ -37,6 +39,29 @@ export default defineConfig(({ mode }) => ({
           { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
           { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
           { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        ],
+        shortcuts: [
+          {
+            name: "Faire un signalement",
+            short_name: "Signaler",
+            description: "Signalez une coupure ou un problème d'infrastructure",
+            url: "/signaler",
+            icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
+          },
+          {
+            name: "Voir la carte",
+            short_name: "Carte",
+            description: "Carte live des signalements à Abidjan",
+            url: "/carte",
+            icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
+          },
+          {
+            name: "Mon historique",
+            short_name: "Historique",
+            description: "Suivre mes signalements",
+            url: "/historique",
+            icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
+          },
         ],
       },
     }),

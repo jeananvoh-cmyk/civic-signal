@@ -24,7 +24,7 @@
  */
 
 import { COMMUNES, findNearestCommune, haversineDistance, type Commune } from "./communes";
-import { findCommuneByPolygon } from "./communes-geojson";
+import { findCommuneByPolygon, findCommuneByRealBoundary, loadRealBoundaries } from "./communes-geojson";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -98,7 +98,17 @@ function _isPlausible(commune: Commune, lat: number, lon: number): boolean {
 
 // ── Tier 1: GeoJSON polygon ───────────────────────────────────────────────────
 
-function _byGeoJSON(lat: number, lon: number): Commune | null {
+/**
+ * Try real OSM boundaries first (if loaded), then fall back to simplified polygons.
+ * Real boundaries are loaded lazily — if they are already cached this is instant.
+ */
+async function _byGeoJSON(lat: number, lon: number): Promise<Commune | null> {
+  // Try real OSM boundaries (loaded lazily on first call)
+  await loadRealBoundaries();
+  const nomReal = findCommuneByRealBoundary(lat, lon);
+  if (nomReal) return COMMUNES.find((c) => c.nom === nomReal) ?? null;
+
+  // Fall back to simplified convex polygons (always available, offline)
   const nom = findCommuneByPolygon(lat, lon);
   return nom ? (COMMUNES.find((c) => c.nom === nom) ?? null) : null;
 }
@@ -218,7 +228,7 @@ export async function resolveCommune(
   // Skip when GPS accuracy is too low (> 200 m) — the point may be off by
   // more than a commune boundary thickness.
   if (!accuracy || accuracy <= 200) {
-    const commune = _byGeoJSON(lat, lon);
+    const commune = await _byGeoJSON(lat, lon);
     if (commune) {
       const result: CommuneDetectionResult = {
         commune,

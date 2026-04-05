@@ -10,6 +10,7 @@ import AdminRoute from "@/components/AdminRoute";
 import AuthCTABar from "@/components/AuthCTABar";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import ProfileCompletionNotifier from "@/components/ProfileCompletionNotifier";
+import PWAInstallBanner from "@/components/PWAInstallBanner";
 import Index from "./pages/Index";
 
 const AuthPage = lazy(() => import("./pages/AuthPage"));
@@ -41,6 +42,8 @@ const InstallPage = lazy(() => import("./pages/InstallPage"));
 const ConfirmationPage = lazy(() => import("./pages/ConfirmationPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const PartnerDashboardPage = lazy(() => import("./pages/PartnerDashboardPage"));
+const ReportDetailPage = lazy(() => import("./pages/ReportDetailPage"));
+const TransparencyPage = lazy(() => import("./pages/TransparencyPage"));
 
 const queryClient = new QueryClient();
 
@@ -54,6 +57,7 @@ const App = () => (
           <AuthCTABar />
           <WhatsAppButton />
           <ProfileCompletionNotifier />
+          <PWAInstallBanner />
           <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -71,6 +75,8 @@ const App = () => (
               <Route path="/infrastructures" element={<InfrastructurePage />} />
               <Route path="/install" element={<InstallPage />} />
               <Route path="/confirmation" element={<ConfirmationPage />} />
+              <Route path="/signalement/:id" element={<ReportDetailPage />} />
+              <Route path="/transparence" element={<TransparencyPage />} />
               
               {/* Admin routes */}
               <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>

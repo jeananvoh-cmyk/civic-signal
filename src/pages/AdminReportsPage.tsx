@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { CheckCircle, XCircle, MapPin, Zap, Droplets, Clock, Eye, Construction } from "lucide-react";
+import { CheckCircle, XCircle, MapPin, Zap, Droplets, Clock, Eye, Construction, Download, Square, CheckSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,7 +15,7 @@ import { toast } from "sonner";
 import { getUserFriendlyError } from "@/lib/error-utils";
 import { logAudit } from "@/lib/audit";
 import { format } from "date-fns";
-import SignedImage from "@/components/SignedImage";
+import PhotoGallery from "@/components/PhotoGallery";
 import CorroborationStatus from "@/components/CorroborationStatus";
 import { fr } from "date-fns/locale";
 
@@ -29,6 +30,40 @@ const AdminReportsPage = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedReport, setSelectedReport] = useState<any>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = (reports: any[]) => {
+    setSelectedIds((prev) =>
+      prev.size === reports.length ? new Set() : new Set(reports.map((r) => r.id))
+    );
+  };
+
+  const exportCSV = (reports: any[]) => {
+    const cols = ["id", "commune", "quartier", "service_type", "report_category", "urgency", "status", "verifications", "created_at", "description"];
+    const header = cols.join(";");
+    const rows = reports.map((r) =>
+      cols.map((c) => {
+        const v = r[c] ?? "";
+        return `"${String(v).replace(/"/g, '""')}"`;
+      }).join(";")
+    );
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `signa-ci-signalements-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const { data: pendingReports = [], isLoading: loadingPending } = useQuery({
     queryKey: ["admin-reports-pending"],
@@ -101,12 +136,41 @@ const AdminReportsPage = () => {
     onError: (err: any) => toast.error(getUserFriendlyError(err)),
   });
 
+  const bulkValidateMutation = useMutation({
+    mutationFn: async ({ ids, validated }: { ids: string[]; validated: boolean }) => {
+      await Promise.all(
+        ids.map((id) =>
+          supabase.from("reports").update({
+            validated,
+            validated_by: validated ? user?.id : null,
+            validated_at: validated ? new Date().toISOString() : null,
+          }).eq("id", id)
+        )
+      );
+    },
+    onSuccess: (_, { ids, validated }) => {
+      ids.forEach((id) => logAudit({ action: validated ? "report_validated" : "report_rejected", target_type: "report", target_id: id }));
+      setSelectedIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ["admin-reports-pending"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-reports-validated"] });
+      toast.success(`${ids.length} signalement${ids.length > 1 ? "s" : ""} ${validated ? "validé" : "rejeté"}${ids.length > 1 ? "s" : ""}`);
+    },
+    onError: (err: any) => toast.error(getUserFriendlyError(err)),
+  });
+
   const ReportRow = ({ report, showActions }: { report: any; showActions: boolean }) => {
     const urgency = URGENCY_LABELS[report.urgency] || URGENCY_LABELS.low;
+    const isChecked = selectedIds.has(report.id);
     return (
-      <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setSelectedReport(report)}>
+      <Card className={`hover:border-primary/50 transition-colors ${isChecked ? "border-primary bg-primary/3" : "cursor-pointer"}`}
+        onClick={(e) => { if ((e.target as HTMLElement).closest("[data-checkbox]")) return; setSelectedReport(report); }}>
         <CardContent className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3 min-w-0 flex-1">
+            {showActions && (
+              <div data-checkbox onClick={(e) => { e.stopPropagation(); toggleSelect(report.id); }} className="shrink-0">
+                <Checkbox checked={isChecked} onCheckedChange={() => toggleSelect(report.id)} />
+              </div>
+            )}
             {report.service_type === "electricity" ? (
               <Zap className="h-5 w-5 text-electricity shrink-0" />
             ) : (
@@ -178,7 +242,40 @@ const AdminReportsPage = () => {
             ) : pendingReports.length === 0 ? (
               <p className="text-muted-foreground text-sm">Aucun signalement en attente.</p>
             ) : (
-              pendingReports.map((r: any) => <ReportRow key={r.id} report={r} showActions />)
+              <>
+                {/* Barre d'actions en masse */}
+                <div className="flex items-center gap-2 flex-wrap rounded-xl border border-border bg-card px-3 py-2">
+                  <button
+                    onClick={() => toggleSelectAll(pendingReports)}
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {selectedIds.size === pendingReports.length
+                      ? <CheckSquare className="h-4 w-4 text-primary" />
+                      : <Square className="h-4 w-4" />}
+                    {selectedIds.size === pendingReports.length ? "Tout désélectionner" : "Tout sélectionner"}
+                  </button>
+                  {selectedIds.size > 0 && (
+                    <>
+                      <span className="text-xs text-muted-foreground">{selectedIds.size} sélectionné{selectedIds.size > 1 ? "s" : ""}</span>
+                      <Button
+                        size="sm" className="h-7 text-xs gap-1 bg-green-600 hover:bg-green-700 text-white ml-auto"
+                        disabled={bulkValidateMutation.isPending}
+                        onClick={() => bulkValidateMutation.mutate({ ids: Array.from(selectedIds), validated: true })}
+                      >
+                        <CheckCircle className="h-3.5 w-3.5" /> Valider ({selectedIds.size})
+                      </Button>
+                      <Button
+                        size="sm" variant="destructive" className="h-7 text-xs gap-1"
+                        disabled={bulkValidateMutation.isPending}
+                        onClick={() => bulkValidateMutation.mutate({ ids: Array.from(selectedIds), validated: false })}
+                      >
+                        <XCircle className="h-3.5 w-3.5" /> Rejeter ({selectedIds.size})
+                      </Button>
+                    </>
+                  )}
+                </div>
+                {pendingReports.map((r: any) => <ReportRow key={r.id} report={r} showActions />)}
+              </>
             )}
           </TabsContent>
 
@@ -188,7 +285,15 @@ const AdminReportsPage = () => {
             ) : validatedReports.length === 0 ? (
               <p className="text-muted-foreground text-sm">Aucun signalement validé.</p>
             ) : (
-              validatedReports.map((r: any) => <ReportRow key={r.id} report={r} showActions={false} />)
+              <>
+                <div className="flex justify-end">
+                  <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs"
+                    onClick={() => exportCSV(validatedReports)}>
+                    <Download className="h-3.5 w-3.5" /> Exporter CSV ({validatedReports.length})
+                  </Button>
+                </div>
+                {validatedReports.map((r: any) => <ReportRow key={r.id} report={r} showActions={false} />)}
+              </>
             )}
           </TabsContent>
         </Tabs>
@@ -248,13 +353,16 @@ const AdminReportsPage = () => {
                 </div>
                 {/* Corroboration status in admin detail */}
                 <CorroborationStatus verifications={selectedReport.verifications} />
-                {selectedReport.photo_url && (
+                {((selectedReport.photo_urls && selectedReport.photo_urls.length > 0) || selectedReport.photo_url) && (
                   <div>
-                    <p className="text-muted-foreground text-sm mb-1">Photo jointe</p>
-                    <SignedImage
-                      storagePath={selectedReport.photo_url}
-                      alt="Photo du signalement"
-                      className="w-full rounded-lg border border-border max-h-60 object-cover"
+                    <p className="text-muted-foreground text-sm mb-1">Photo(s) jointe(s)</p>
+                    <PhotoGallery
+                      photos={
+                        (selectedReport.photo_urls && selectedReport.photo_urls.length > 0)
+                          ? selectedReport.photo_urls
+                          : selectedReport.photo_url ? [selectedReport.photo_url] : []
+                      }
+                      thumbHeight="h-48"
                     />
                   </div>
                 )}
