@@ -4,6 +4,7 @@ Disallow: /admin
 Disallow: /admin/
 Disallow: /verification
 Disallow: /profil
+Disallow: /historique
 
 User-agent: Bingbot
 Allow: /
@@ -11,6 +12,7 @@ Disallow: /admin
 Disallow: /admin/
 Disallow: /verification
 Disallow: /profil
+Disallow: /historique
 
 User-agent: Twitterbot
 Allow: /
@@ -24,3 +26,4 @@ Disallow: /admin
 Disallow: /admin/
 Disallow: /verification
 Disallow: /profil
+Disallow: /historique

@@ -28,6 +28,8 @@ import SOSButtons from "@/components/SOSButtons";
 import { fuiteEauIcon, caniveauIcon, voirieIcon, lampadaireIcon } from "@/lib/infra-icons";
 import QuartierSearch from "@/components/QuartierSearch";
 import OnboardingModal from "@/components/OnboardingModal";
+import { reportDetailsSchema } from "@/lib/report-schema";
+import { MAX_DESCRIPTION_LENGTH } from "@/lib/constants";
 
 // ─── Types de signalement ────────────────────────────────────────────────────
 
@@ -209,6 +211,65 @@ const ReportPage = () => {
   const [checkingDuplicates, setCheckingDuplicates] = useState(false);
   const [corroborating, setCorroborating] = useState<string | null>(null);
 
+  // ─── Brouillon auto ─────────────────────────────────────────────────────────
+  const DRAFT_KEY = "signa_report_draft";
+
+  // Restaurer le brouillon au montage (avant que ?type= soit appliqué)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      if (draft.typeId) {
+        const found = REPORT_TYPES.find((t) => t.id === draft.typeId);
+        if (found) { setSelectedType(found); setStep(draft.step ?? 2); }
+      }
+      if (draft.commune) setCommune(draft.commune);
+      if (draft.quartier) setQuartier(draft.quartier);
+      if (draft.description) setDescription(draft.description);
+    } catch { /* brouillon corrompu → ignoré */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sauvegarder le brouillon à chaque changement pertinent
+  useEffect(() => {
+    if (!selectedType) return; // ne rien sauvegarder si aucun type choisi
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        typeId: selectedType.id,
+        step,
+        commune,
+        quartier,
+        description,
+      }));
+    } catch { /* quota dépassé → ignoré */ }
+  }, [selectedType, step, commune, quartier, description]);
+
+  // ─── Détection doublons dès le choix du quartier ─────────────────────────────
+  // On pré-charge les signalements similaires au moment où quartier est sélectionné
+  // (pas seulement au clic sur "Suivant") pour que l'info soit instantanée.
+  useEffect(() => {
+    if (!quartier || !commune || !selectedType || selectedType.reportCategory !== "outage" || !user) {
+      setSimilarReports([]);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const { data, error } = await supabase.rpc("find_similar_reports", {
+          p_commune: commune,
+          p_quartier: quartier,
+          p_service_type: selectedType.serviceType,
+          p_report_category: "outage",
+        });
+        if (cancelled || error || !data) return;
+        const others = (data as SimilarReport[]).filter((r) => r.user_id !== user.id);
+        setSimilarReports(others);
+      } catch { /* silencieux */ }
+    }, 400); // debounce 400ms
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [quartier, commune, selectedType, user]);
+
   const captureGPS = async (showError = true) => {
     if (!navigator.geolocation) {
       setGpsLoading(false);
@@ -383,30 +444,11 @@ const ReportPage = () => {
       return;
     }
 
-    // Check for existing similar reports (duplicate detection) — only for outage type
-    if (selectedType?.reportCategory === "outage" && user) {
-      setCheckingDuplicates(true);
-      try {
-        const { data, error } = await supabase.rpc("find_similar_reports", {
-          p_commune: commune,
-          p_quartier: resolvedQuartier,
-          p_service_type: selectedType.serviceType,
-          p_report_category: "outage",
-        });
-        if (!error && data && data.length > 0) {
-          // Filter out own reports
-          const otherReports = (data as SimilarReport[]).filter((r) => r.user_id !== user.id);
-          if (otherReports.length > 0) {
-            setSimilarReports(otherReports);
-            setShowDuplicateDialog(true);
-            setCheckingDuplicates(false);
-            return;
-          }
-        }
-      } catch {
-        // Silently continue if RPC fails
-      }
-      setCheckingDuplicates(false);
+    // Vérification doublons — similarReports est déjà pré-chargé par le useEffect
+    // (dès que quartier est sélectionné). On affiche le dialog si des résultats existent.
+    if (selectedType?.reportCategory === "outage" && user && similarReports.length > 0) {
+      setShowDuplicateDialog(true);
+      return;
     }
 
     // Auto-ouvrir le panel photo pour les signalements infrastructure (photo obligatoire)
@@ -482,6 +524,20 @@ const ReportPage = () => {
       return;
     }
 
+    // ─── Validation Zod (valeurs numériques + description) ────────────────────
+    const validation = reportDetailsSchema.safeParse({
+      impactedPeople,
+      babies,
+      pregnant,
+      elderly,
+      description: description || undefined,
+    });
+    if (!validation.success) {
+      const firstError = validation.error.errors[0];
+      toast.error(firstError.message);
+      return;
+    }
+
     setSubmitting(true);
     try {
       let reportStartTime = new Date().toISOString();
@@ -540,6 +596,7 @@ const ReportPage = () => {
         } as any).then(() => {}); // erreur silencieuse (doublon déjà existant → ignoré)
       }
 
+      localStorage.removeItem(DRAFT_KEY);
       toast.success("✅ Signalement envoyé !");
       const reportId = (insertData as any)?.id;
       const params = new URLSearchParams({
@@ -853,16 +910,9 @@ const ReportPage = () => {
                   className="w-full py-5 text-base font-bold"
                   style={{ backgroundColor: selectedType.color, color: "white" }}
                   onClick={handleLocationNext}
-                  disabled={!commune || !resolvedQuartier || !latitude || checkingDuplicates}
+                  disabled={!commune || !resolvedQuartier || !latitude}
                 >
-                  {checkingDuplicates ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Vérification…
-                    </>
-                  ) : (
-                    "Continuer →"
-                  )}
+                  Continuer →
                 </Button>
               )}
             </motion.div>
@@ -1015,11 +1065,11 @@ const ReportPage = () => {
                         <Textarea
                           placeholder="Décrivez la situation en quelques mots..."
                           value={description}
-                          onChange={(e) => setDescription(e.target.value.slice(0, 300))}
+                          onChange={(e) => setDescription(e.target.value.slice(0, MAX_DESCRIPTION_LENGTH))}
                           rows={3}
                           autoFocus
                         />
-                        <p className="text-xs text-muted-foreground text-right">{description.length}/300</p>
+                        <p className={`text-xs text-right ${description.length >= MAX_DESCRIPTION_LENGTH ? "text-destructive font-medium" : "text-muted-foreground"}`}>{description.length}/{MAX_DESCRIPTION_LENGTH}</p>
                       </div>
                     </motion.div>
                   )}

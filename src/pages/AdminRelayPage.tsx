@@ -5,7 +5,7 @@ import {
   Send, Clock, CheckCircle2, XCircle, RefreshCw,
   Zap, Droplets, AlertTriangle, MailCheck, MapPin, Users,
   ChevronDown, ChevronUp, ExternalLink, Settings, FlaskConical,
-  ShieldCheck, Save, Ban,
+  ShieldCheck, Save, Ban, MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -70,11 +70,36 @@ const URGENCY_CONFIG: Record<string, { label: string; color: string }> = {
 // ─── Hook : relay config ──────────────────────────────────────────────────────
 
 interface RelayConfig {
-  test_mode:    string;
-  test_email:   string;
-  email_cie:    string;
-  email_sodeci: string;
+  test_mode:      string;
+  test_email:     string;
+  email_cie:      string;
+  email_sodeci:   string;
+  whatsapp_cie:   string;
+  whatsapp_sodeci: string;
   [key: string]: string; // mairie_<slug>_email / mairie_<slug>_enabled
+}
+
+// ─── WhatsApp message builder ─────────────────────────────────────────────────
+
+function buildWhatsAppMessage(group: RelayGroup): string {
+  const isElec = group.operator === "CIE";
+  const serviceLabel = isElec ? "électricité" : "eau potable";
+  const lines = [
+    `*Signalement SIGNA-CI — ${isElec ? "CIE" : "SODECI"}*`,
+    `Commune : *${group.commune}*`,
+    ``,
+    `${group.totalConfirmations} confirmation${group.totalConfirmations > 1 ? "s" : ""} de voisins.`,
+    ``,
+    `Quartiers concernés :`,
+    ...group.quartiers.map(
+      (q) =>
+        `• ${q.name} — ${q.verifications} confirmation${q.verifications > 1 ? "s" : ""} (${URGENCY_CONFIG[q.urgency]?.label ?? q.urgency})`,
+    ),
+    ``,
+    `Merci de traiter cette coupure de ${serviceLabel} en priorité.`,
+    `— Équipe SIGNA-CI (signa.ci)`,
+  ];
+  return lines.join("\n");
 }
 
 const MAIRIES_PILOTES = [
@@ -522,6 +547,28 @@ const AdminRelayPage = () => {
                             <Ban className="h-3.5 w-3.5" />
                             Rejeter
                           </Button>
+                          {/* WhatsApp — CIE ou SODECI uniquement */}
+                          {(group.operator === "CIE" || group.operator === "SODECI") && (() => {
+                            const waNumber = (group.operator === "CIE"
+                              ? effectiveConfig?.whatsapp_cie
+                              : effectiveConfig?.whatsapp_sodeci
+                            )?.replace(/\D/g, "");
+                            if (!waNumber) return null;
+                            const url = `https://wa.me/${waNumber}?text=${encodeURIComponent(buildWhatsAppMessage(group))}`;
+                            return (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                asChild
+                                className="gap-1.5 text-emerald-600 border-emerald-500/40 hover:bg-emerald-500/10 text-xs h-8"
+                              >
+                                <a href={url} target="_blank" rel="noopener noreferrer">
+                                  <MessageCircle className="h-3.5 w-3.5" />
+                                  WhatsApp
+                                </a>
+                              </Button>
+                            );
+                          })()}
                           <Button
                             size="sm"
                             onClick={() =>
@@ -752,27 +799,49 @@ const AdminRelayPage = () => {
             )}
           </div>
 
-          {/* Emails opérateurs réseau */}
-          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+          {/* Emails + WhatsApp opérateurs réseau */}
+          <div className="rounded-xl border border-border bg-card p-5 space-y-5">
             <p className="text-sm font-semibold text-foreground">Opérateurs réseau</p>
             {[
-              { key: "email_cie",    label: "CIE — Électricité", icon: Zap,      color: "text-yellow-600", placeholder: "reclamation@cie.ci" },
-              { key: "email_sodeci", label: "SODECI — Eau",       icon: Droplets, color: "text-sky-600",    placeholder: "reclamation@sodeci.ci" },
-            ].map(({ key, label, icon: Icon, color, placeholder }) => (
-              <div key={key}>
-                <label className="flex items-center gap-1.5 text-xs font-semibold text-foreground mb-1.5">
+              {
+                emailKey: "email_cie",      waKey: "whatsapp_cie",
+                label: "CIE — Électricité", icon: Zap,      color: "text-yellow-600",
+                emailPlaceholder: "reclamation@cie.ci", waPlaceholder: "+225 07 00 00 00 00",
+              },
+              {
+                emailKey: "email_sodeci",   waKey: "whatsapp_sodeci",
+                label: "SODECI — Eau",      icon: Droplets, color: "text-sky-600",
+                emailPlaceholder: "reclamation@sodeci.ci", waPlaceholder: "+225 07 00 00 00 00",
+              },
+            ].map(({ emailKey, waKey, label, icon: Icon, color, emailPlaceholder, waPlaceholder }) => (
+              <div key={emailKey} className="space-y-2">
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                   <Icon className={`h-3.5 w-3.5 ${color}`} />
                   {label}
                 </label>
+                {/* Email */}
                 <input
                   type="email"
-                  value={effectiveConfig[key]}
+                  value={effectiveConfig[emailKey] ?? ""}
                   onChange={(e) =>
-                    setDraftConfig({ ...effectiveConfig, [key]: e.target.value })
+                    setDraftConfig({ ...effectiveConfig, [emailKey]: e.target.value })
                   }
-                  placeholder={placeholder}
+                  placeholder={emailPlaceholder}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
+                {/* WhatsApp */}
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                  <input
+                    type="tel"
+                    value={effectiveConfig[waKey] ?? ""}
+                    onChange={(e) =>
+                      setDraftConfig({ ...effectiveConfig, [waKey]: e.target.value })
+                    }
+                    placeholder={waPlaceholder}
+                    className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                  />
+                </div>
               </div>
             ))}
           </div>

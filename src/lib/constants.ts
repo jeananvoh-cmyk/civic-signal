@@ -3,6 +3,15 @@
 /** Nombre maximum de signalements par utilisateur par jour */
 export const DAILY_REPORT_LIMIT = 5;
 
+/** Nombre maximum de personnes impactées déclaré (vérifié côté client ET serveur) */
+export const MAX_IMPACTED_PEOPLE = 200;
+
+/** Nombre maximum de personnes vulnérables par catégorie */
+export const MAX_VULNERABLE = 100;
+
+/** Longueur maximale d'une description de signalement */
+export const MAX_DESCRIPTION_LENGTH = 500;
+
 /** Nombre maximum de photos par signalement */
 export const MAX_PHOTOS = 3;
 
