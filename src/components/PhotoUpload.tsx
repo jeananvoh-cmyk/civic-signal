@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { getUserFriendlyError } from "@/lib/error-utils";
 import { useSignedUrl } from "@/hooks/useSignedUrl";
 import * as exifr from "exifr";
+import { MAX_PHOTOS } from "@/lib/constants";
 
 interface PhotoUploadProps {
   onPhotosChanged: (urls: string[]) => void;
@@ -15,8 +16,6 @@ interface PhotoUploadProps {
   photoUrls: string[];
   isInfrastructure?: boolean;
 }
-
-const MAX_PHOTOS = 3;
 const MAX_OUTPUT_PX = 1920;
 const JPEG_QUALITY_HIGH = 0.90;  // pour les images ≤ 1MB
 const JPEG_QUALITY_LOW  = 0.82;  // pour les images > 1MB

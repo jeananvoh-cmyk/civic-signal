@@ -383,7 +383,13 @@ const AdminQuartiersPage = () => {
         target_id: q.id,
         details: { commune: q.commune, nom: q.nom, reason },
       });
-      // TODO: envoyer notification à q.submitted_by avec le motif
+      if (q.submitted_by) {
+        await supabase.from("notifications").insert({
+          user_id: q.submitted_by,
+          title: "Soumission de quartier refusée",
+          message: `Votre demande d'ajout du quartier "${q.nom}" (${q.commune}) n'a pas été retenue. Motif : ${reason}`,
+        });
+      }
     },
     onSuccess: () => {
       invalidate();

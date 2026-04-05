@@ -130,7 +130,7 @@ const REPORT_TYPES: ReportTypeConfig[] = [
   },
 ];
 
-const DAILY_LIMIT = 5;
+import { DAILY_REPORT_LIMIT as DAILY_LIMIT } from "@/lib/constants";
 
 // ─── Composant ────────────────────────────────────────────────────────────────
 

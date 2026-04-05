@@ -80,7 +80,7 @@ export interface PriorityInput {
 
 // ── Seuils d'activation zone ──
 /** Le scoring avancé (zone crisis) s'active quand un quartier atteint ces seuils */
-const ZONE_ACTIVATION_THRESHOLD = 50;
+import { ZONE_ACTIVATION_THRESHOLD } from "@/lib/constants";
 const ZONE_CONFIRMATION_RATE_THRESHOLD = 0.5; // 50%
 
 // ────────────────────────── Constantes ──────────────────────────
