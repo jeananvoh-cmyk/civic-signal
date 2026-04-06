@@ -1,6 +1,6 @@
 {
   "packageId": "ci.signa.app",
-  "host": "civic-signal-ten.vercel.app",
+  "host": "signa.ci",
   "name": "SIGNA-CI — Signalements Abidjan",
   "launcherName": "SIGNA-CI",
   "display": "standalone",
@@ -10,25 +10,25 @@
   "backgroundColor": "#f8fafc",
   "enableNotifications": true,
   "startUrl": "/",
-  "iconUrl": "https://civic-signal-ten.vercel.app/icons/icon-512.png",
-  "maskableIconUrl": "https://civic-signal-ten.vercel.app/icons/icon-512.png",
-  "monochromeIconUrl": "https://civic-signal-ten.vercel.app/icons/icon-512.png",
+  "iconUrl": "https://signa.ci/icons/icon-512.png",
+  "maskableIconUrl": "https://signa.ci/icons/icon-512.png",
+  "monochromeIconUrl": "https://signa.ci/icons/icon-512.png",
   "shortcuts": [
     {
       "name": "Faire un signalement",
       "shortName": "Signaler",
       "url": "/signaler",
-      "chosenIconUrl": "https://civic-signal-ten.vercel.app/icons/icon-192.png"
+      "chosenIconUrl": "https://signa.ci/icons/icon-192.png"
     },
     {
       "name": "Voir la carte",
       "shortName": "Carte",
       "url": "/carte",
-      "chosenIconUrl": "https://civic-signal-ten.vercel.app/icons/icon-192.png"
+      "chosenIconUrl": "https://signa.ci/icons/icon-192.png"
     }
   ],
   "generatorApp": "bubblewrap-cli",
-  "webManifestUrl": "https://civic-signal-ten.vercel.app/manifest.webmanifest",
+  "webManifestUrl": "https://signa.ci/manifest.webmanifest",
   "isChromeOSOnly": false,
   "isMetaQuest": false,
   "minSdkVersion": 19,
@@ -51,8 +51,8 @@
     "storeFile": "civic-signal.keystore",
     "storePassword": "signaCI2024"
   },
-  "appVersionCode": 1,
-  "appVersionName": "1.0.0",
+  "appVersionCode": 2,
+  "appVersionName": "1.1.0",
   "features": {
     "locationDelegation": { "enabled": false },
     "playBilling": { "enabled": false }
