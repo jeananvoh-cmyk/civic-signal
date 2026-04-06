@@ -720,6 +720,7 @@ export type Database = {
           created_at: string
           description: string
           id: string
+          quartier: string
           service_type: string
           start_time: string
           user_id: string
@@ -727,6 +728,22 @@ export type Database = {
         }[]
       }
       get_active_outage_count: { Args: never; Returns: number }
+      get_all_commune_quartier_stats: {
+        Args: never
+        Returns: {
+          commune: string
+          eau_actifs: number
+          eau_resolus: number
+          eau_total: number
+          electricite_actifs: number
+          electricite_resolus: number
+          electricite_total: number
+          mairie_actifs: number
+          mairie_resolus: number
+          mairie_total: number
+          quartier: string
+        }[]
+      }
       get_commune_duration_stats: {
         Args: never
         Returns: {
