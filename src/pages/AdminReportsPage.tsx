@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { CheckCircle, XCircle, MapPin, Zap, Droplets, Clock, Eye, Construction, Download, Square, CheckSquare } from "lucide-react";
+import { CheckCircle, XCircle, MapPin, Zap, Droplets, Clock, Eye, Construction, Download, Square, CheckSquare, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -154,6 +154,21 @@ const AdminReportsPage = () => {
       queryClient.invalidateQueries({ queryKey: ["admin-reports-pending"] });
       queryClient.invalidateQueries({ queryKey: ["admin-reports-validated"] });
       toast.success(`${ids.length} signalement${ids.length > 1 ? "s" : ""} ${validated ? "validé" : "rejeté"}${ids.length > 1 ? "s" : ""}`);
+    },
+    onError: (err: any) => toast.error(getUserFriendlyError(err)),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (reportId: string) => {
+      const { error } = await supabase.from("reports").delete().eq("id", reportId);
+      if (error) throw error;
+    },
+    onSuccess: (_, reportId) => {
+      logAudit({ action: "report_deleted", target_type: "report", target_id: reportId });
+      queryClient.invalidateQueries({ queryKey: ["admin-reports-pending"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-reports-validated"] });
+      toast.success("Signalement supprimé.");
+      setSelectedReport(null);
     },
     onError: (err: any) => toast.error(getUserFriendlyError(err)),
   });
@@ -396,6 +411,25 @@ const AdminReportsPage = () => {
                     >
                       <CheckCircle className="mr-2 h-4 w-4" />
                       Marquer comme résolu
+                    </Button>
+                  </div>
+                )}
+                {/* Bouton supprimer pour les signalements infrastructure */}
+                {selectedReport.report_category === "infrastructure" && (
+                  <div className="pt-2 border-t border-border">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="w-full gap-2"
+                      onClick={() => {
+                        if (confirm("Supprimer définitivement ce signalement infrastructure ?")) {
+                          deleteMutation.mutate(selectedReport.id);
+                        }
+                      }}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Supprimer ce signalement
                     </Button>
                   </div>
                 )}
