@@ -54,31 +54,48 @@ const InfrastructurePage = () => {
     const setter = append ? setLoadingMore : setLoading;
     setter(true);
 
-    let query = supabase
-      .from("reports")
-      .select("id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, impacted_people, reporter_type")
-      .eq("report_category", "infrastructure")
-      .eq("validated", true)
-      .order("created_at", { ascending: false })
-      .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
+    let items: InfraReport[] = [];
 
-    if (filter !== "all") {
-      const dbServiceType = filter === "eau" ? "water" : filter === "electricite" ? "electricity" : filter;
-      query = query.eq("service_type", dbServiceType);
+    if (user) {
+      // Utilisateur connecté → query directe (RLS autorise)
+      let query = supabase
+        .from("reports")
+        .select("id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, impacted_people, reporter_type")
+        .eq("report_category", "infrastructure")
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
+
+      if (filter !== "all") {
+        const dbServiceType = filter === "eau" ? "water" : filter === "electricite" ? "electricity" : filter;
+        query = query.eq("service_type", dbServiceType);
+      }
+      if (subFilter) query = query.ilike("description", `%${subFilter}%`);
+
+      const { data, error } = await query;
+      if (error) { setter(false); return; }
+      items = (data ?? []) as InfraReport[];
+    } else {
+      // Visiteur anonyme → RPC SECURITY DEFINER (bypass RLS)
+      const { data, error } = await (supabase as any).rpc(
+        "get_public_infrastructure_reports",
+        { p_limit: PAGE_SIZE, p_offset: pageNum * PAGE_SIZE },
+      );
+      if (error) { setter(false); return; }
+
+      let rows = (data ?? []) as InfraReport[];
+
+      // Filtres côté client pour les anonymes
+      if (filter !== "all") {
+        const dbServiceType = filter === "eau" ? "water" : filter === "electricite" ? "electricity" : filter;
+        rows = rows.filter((r) => r.service_type === dbServiceType);
+      }
+      if (subFilter) {
+        rows = rows.filter((r) => r.description?.toLowerCase().includes(subFilter.toLowerCase()));
+      }
+      items = rows;
     }
 
-    if (subFilter) {
-      query = query.ilike("description", `%${subFilter}%`);
-    }
-
-    const { data, error } = await query;
-    if (error) {
-      console.error(error);
-      setter(false);
-      return;
-    }
-
-    const items = (data ?? []) as InfraReport[];
     setHasMore(items.length === PAGE_SIZE);
     setReports((prev) => (append ? [...prev, ...items] : items));
     setter(false);
