@@ -29,9 +29,9 @@ type InfraReport = {
   photo_url: string | null;
   photo_urls: string[] | null;
   verifications: number;
-  impacted_people: number;
-  reporter_type: string;
   repair_verifications: number;
+  support_count: number;
+  reporter_type: string;
 };
 
 type FilterType = "all" | "eau" | "electricite" | "mairie";
@@ -47,7 +47,7 @@ const InfrastructurePage = () => {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [corroborated, setCorroborated] = useState<Set<string>>(new Set());
+  const [supported, setSupported] = useState<Set<string>>(new Set());
   const [repaired, setRepaired] = useState<Set<string>>(new Set());
 
   const fetchReports = async (pageNum: number, append = false) => {
@@ -60,10 +60,10 @@ const InfrastructurePage = () => {
       // Utilisateur connecté → query directe (RLS autorise)
       let query = supabase
         .from("reports")
-        .select("id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, impacted_people, reporter_type")
+        .select("id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, support_count, reporter_type")
         .eq("report_category", "infrastructure")
         .eq("status", "active")
-        .order("created_at", { ascending: false })
+        .order("support_count", { ascending: false })
         .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
 
       if (filter !== "all") {
@@ -72,9 +72,13 @@ const InfrastructurePage = () => {
       }
       if (subFilter) query = query.ilike("description", `%${subFilter}%`);
 
-      const { data, error } = await query;
+      const [{ data, error }, { data: myVotes }] = await Promise.all([
+        query,
+        (supabase as any).rpc("get_my_infrastructure_votes"),
+      ]);
       if (error) { setter(false); return; }
       items = (data ?? []) as InfraReport[];
+      if (myVotes) setSupported(new Set(myVotes as string[]));
     } else {
       // Visiteur anonyme → RPC SECURITY DEFINER (bypass RLS)
       const { data, error } = await (supabase as any).rpc(
@@ -129,21 +133,27 @@ const InfrastructurePage = () => {
     fetchReports(next, true);
   };
 
-  const handleCorroborate = async (reportId: string) => {
+  const handleSupport = async (reportId: string) => {
     if (!user) {
-      toast.info("Connectez-vous pour confirmer un signalement");
+      toast.info("Connectez-vous pour voter");
       return;
     }
-    const { error } = await supabase.rpc("corroborate_report", { p_report_id: reportId });
-    if (error) {
-      toast.error("Erreur lors de la confirmation");
+    const { data, error } = await (supabase as any).rpc("vote_infrastructure_support", { p_report_id: reportId });
+    if (error || data?.error) {
+      toast.error("Erreur lors du vote");
       return;
     }
-    setCorroborated((prev) => new Set(prev).add(reportId));
+    const voted: boolean = data.voted;
+    const newCount: number = data.support_count;
+    setSupported((prev) => {
+      const next = new Set(prev);
+      voted ? next.add(reportId) : next.delete(reportId);
+      return next;
+    });
     setReports((prev) =>
-      prev.map((r) => (r.id === reportId ? { ...r, verifications: r.verifications + 1 } : r))
+      prev.map((r) => (r.id === reportId ? { ...r, support_count: newCount } : r))
     );
-    toast.success("Merci pour votre confirmation !");
+    toast.success(voted ? "Vote enregistré — merci !" : "Vote retiré");
   };
 
   const handleConfirmRepair = async (reportId: string) => {
@@ -491,11 +501,6 @@ const InfrastructurePage = () => {
                 {/* Post content */}
                 <div className="px-4 pb-3">
                   <p className="text-sm text-foreground leading-relaxed">{report.description}</p>
-                  {report.impacted_people > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      ~{report.impacted_people} personnes concernées
-                    </p>
-                  )}
                 </div>
 
                 {/* Photos cliquables */}
@@ -511,23 +516,23 @@ const InfrastructurePage = () => {
                 {/* Stats bar */}
                 <div className="px-4 py-2.5 flex items-center justify-between text-xs border-b border-border">
                   <div className="flex items-center gap-3">
-                    {report.verifications > 0 ? (
-                      <span className="flex items-center gap-1.5 font-semibold text-foreground">
+                    {(report.support_count ?? 0) > 0 ? (
+                      <span className="flex items-center gap-1.5 font-semibold text-primary">
                         <span className="flex -space-x-1">
-                          {Array.from({ length: Math.min(report.verifications, 3) }).map((_, i) => (
-                            <span key={i} className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[9px] ring-1 ring-background">👤</span>
+                          {Array.from({ length: Math.min(report.support_count, 3) }).map((_, i) => (
+                            <span key={i} className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[9px] ring-1 ring-background">🙋</span>
                           ))}
                         </span>
-                        <span>{report.verifications} voisin{report.verifications > 1 ? "s" : ""} confirment</span>
+                        <span>{report.support_count} citoyen{report.support_count > 1 ? "s" : ""} veulent une réparation rapide</span>
                       </span>
                     ) : (
                       <span className="flex items-center gap-1 text-muted-foreground">
                         <ThumbsUp className="h-3 w-3" />
-                        Pas encore confirmé
+                        Soyez le premier à soutenir
                       </span>
                     )}
                     {report.repair_verifications > 0 && report.status === "active" && (
-                      <span className="flex items-center gap-1 text-[hsl(var(--success))] font-medium">
+                      <span className="flex items-center gap-1 text-emerald-600 font-medium">
                         <CheckCircle className="h-3 w-3" />
                         {report.repair_verifications}/3 réparé
                       </span>
@@ -544,15 +549,14 @@ const InfrastructurePage = () => {
                     variant="ghost"
                     size="sm"
                     className={`flex-1 text-sm gap-1.5 ${
-                      corroborated.has(report.id)
+                      supported.has(report.id)
                         ? "text-primary font-semibold"
                         : "text-muted-foreground"
                     }`}
-                    onClick={() => handleCorroborate(report.id)}
-                    disabled={corroborated.has(report.id)}
+                    onClick={() => handleSupport(report.id)}
                   >
-                    <ThumbsUp className="h-4 w-4" />
-                    {corroborated.has(report.id) ? "Confirmé" : "Confirmer"}
+                    <ThumbsUp className={`h-4 w-4 ${supported.has(report.id) ? "fill-primary" : ""}`} />
+                    {supported.has(report.id) ? "Je soutiens ✓" : "Je veux que ça soit réparé"}
                   </Button>
 
                   {report.status === "active" && (
