@@ -414,6 +414,25 @@ const AdminReportsPage = () => {
                     </Button>
                   </div>
                 )}
+                {/* Bouton supprimer pour les signalements infrastructure */}
+                {selectedReport.report_category === "infrastructure" && (
+                  <div className="pt-2 border-t border-border">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="w-full gap-2"
+                      onClick={() => {
+                        if (confirm("Supprimer définitivement ce signalement infrastructure ?")) {
+                          deleteMutation.mutate(selectedReport.id);
+                        }
+                      }}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Supprimer ce signalement
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </DialogContent>
