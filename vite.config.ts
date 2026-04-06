@@ -33,8 +33,13 @@ export default defineConfig(({ mode }) => ({
         theme_color: "#1a2744",
         background_color: "#1a2744",
         display: "standalone",
+        display_override: ["standalone", "minimal-ui"],
         orientation: "portrait",
+        lang: "fr",
+        dir: "ltr",
         scope: "/",
+        categories: ["utilities", "social", "productivity"],
+        prefer_related_applications: false,
         start_url: "/",
         icons: [
           { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
