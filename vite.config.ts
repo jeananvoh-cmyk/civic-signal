@@ -47,6 +47,41 @@ export default defineConfig(({ mode }) => ({
           { src: "/icons/icon-1024.png", sizes: "1024x1024", type: "image/png" },
           { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
+        screenshots: [
+          {
+            src: "/screenshots/screenshot-home.png",
+            sizes: "390x844",
+            type: "image/png",
+            form_factor: "narrow",
+            label: "Accueil SIGNA-CI — Signalez en 30 secondes",
+          },
+          {
+            src: "/screenshots/screenshot-map.png",
+            sizes: "390x844",
+            type: "image/png",
+            form_factor: "narrow",
+            label: "Carte live des signalements à Abidjan",
+          },
+          {
+            src: "/screenshots/screenshot-report.png",
+            sizes: "390x844",
+            type: "image/png",
+            form_factor: "narrow",
+            label: "Signalements confirmés par les voisins",
+          },
+        ],
+        launch_handler: {
+          client_mode: "focus-existing",
+        },
+        share_target: {
+          action: "/signaler",
+          method: "GET",
+          params: {
+            title: "title",
+            text: "text",
+            url: "url",
+          },
+        },
         shortcuts: [
           {
             name: "Faire un signalement",
