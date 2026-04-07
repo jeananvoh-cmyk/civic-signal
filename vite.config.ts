@@ -92,6 +92,24 @@ export default defineConfig(({ mode }) => ({
             url: "url",
           },
         },
+        // Handle web+signa:// protocol for deep linking (e.g. web+signa://signalement/ID)
+        protocol_handlers: [
+          {
+            protocol: "web+signa",
+            url: "/?protocol=%s",
+          },
+        ],
+        // Handle image files shared to the app (for adding photos to reports)
+        file_handlers: [
+          {
+            action: "/signaler",
+            accept: {
+              "image/png":  [".png"],
+              "image/jpeg": [".jpg", ".jpeg"],
+              "image/webp": [".webp"],
+            },
+          },
+        ],
         shortcuts: [
           {
             name: "Faire un signalement",
