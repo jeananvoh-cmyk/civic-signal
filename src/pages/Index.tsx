@@ -289,7 +289,7 @@ const Index = () => {
               className="mt-6 max-w-xl text-lg leading-relaxed text-white/65"
             >
               La première plateforme citoyenne ivoirienne où les habitants contribuent
-              à l'amélioration des services d'eau, d'électricité et des infrastructures publiques.
+              à l'amélioration des services et infrastructures publiques.
             </motion.p>
 
             {/* CTA buttons */}
