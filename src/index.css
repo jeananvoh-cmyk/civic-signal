@@ -152,16 +152,40 @@
 @layer base {
   * {
     @apply border-border;
+    /* Prevent text selection on UI elements — native app feel */
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', system-ui, sans-serif;
+    /* Prevent overscroll bounce on iOS (native app feel) */
+    overscroll-behavior: none;
+    /* Smooth font rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   h1, h2, h3 {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     letter-spacing: -0.02em;
+  }
+
+  /* Prevent text selection on buttons, labels, nav — feels like native */
+  button, a, label, nav, [role="button"] {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Smooth scrolling inside the app */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Native-like active state on touch */
+  button:active, a:active, [role="button"]:active {
+    opacity: 0.75;
+    transition: opacity 0.08s ease;
   }
 }
 

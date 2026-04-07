@@ -133,31 +133,33 @@ const Index = () => {
     supabase.rpc("get_landing_stats" as any).then(({ data }) => {
       if (data) setLandingStats(data as LandingStats);
     });
-    Promise.all([
-      supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "active").eq("service_type", "electricity"),
-      supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "active").eq("service_type", "water"),
-    ]).then(([elec, water]) => {
-      setServiceCounts({ electricity: elec.count ?? 0, water: water.count ?? 0 });
-    });
   }, []);
 
   useEffect(() => {
-    const fetchCount = async () => {
+    const fetchCounts = async () => {
       const { data } = await supabase.rpc("get_active_outage_count" as any);
       if (data !== null && data !== undefined) setLiveCount(Number(data));
+
+      const [elec, water] = await Promise.all([
+        supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "active").eq("service_type", "electricity"),
+        supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "active").eq("service_type", "water"),
+      ]);
+      setServiceCounts({ electricity: elec.count ?? 0, water: water.count ?? 0 });
     };
-    fetchCount();
+
+    fetchCounts();
 
     const channel = supabase
       .channel("index-live-count")
       .on("postgres_changes", { event: "*", schema: "public", table: "reports" }, () => {
         setLiveActive(true);
-        fetchCount();
+        fetchCounts();
         setTimeout(() => setLiveActive(false), 2000);
       })
       .subscribe();
 
-    const poll = setInterval(fetchCount, 10_000);
+    // Refresh toutes les 30s (suffisant pour une app installée)
+    const poll = setInterval(fetchCounts, 30_000);
     return () => { supabase.removeChannel(channel); clearInterval(poll); };
   }, []);
 

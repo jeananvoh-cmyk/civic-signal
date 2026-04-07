@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import PullToRefresh from "@/components/PullToRefresh";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,6 +11,7 @@ import AdminRoute from "@/components/AdminRoute";
 import AuthCTABar from "@/components/AuthCTABar";
 import ProfileCompletionNotifier from "@/components/ProfileCompletionNotifier";
 import PWAInstallBanner from "@/components/PWAInstallBanner";
+import OfflineBar from "@/components/OfflineBar";
 import Index from "./pages/Index";
 
 const AuthPage = lazy(() => import("./pages/AuthPage"));
@@ -54,6 +56,8 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <PullToRefresh>
+          <OfflineBar />
           <AuthCTABar />
           <ProfileCompletionNotifier />
           <PWAInstallBanner />
@@ -98,6 +102,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
+          </PullToRefresh>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
