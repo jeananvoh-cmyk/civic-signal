@@ -74,11 +74,11 @@ const InfrastructurePage = () => {
 
       const [{ data, error }, { data: myVotes }] = await Promise.all([
         query,
-        (supabase as any).rpc("get_my_infrastructure_votes"),
+        supabase.from("corroborations").select("report_id").eq("user_id", user.id),
       ]);
       if (error) { setter(false); return; }
-      items = (data ?? []) as InfraReport[];
-      if (myVotes) setSupported(new Set(myVotes as string[]));
+      items = (data ?? []) as unknown as InfraReport[];
+      if (myVotes) setSupported(new Set(myVotes.map((v: any) => v.report_id)));
     } else {
       // Visiteur anonyme → RPC SECURITY DEFINER (bypass RLS)
       const { data, error } = await (supabase as any).rpc(
