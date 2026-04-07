@@ -134,7 +134,7 @@ const InfrastructurePage = () => {
   };
 
   const handleSupport = async (reportId: string) => {
-    if (!user) {
+  const handleSupport = async (reportId: string) => {
       toast.info("Connectez-vous pour voter");
       return;
     }
