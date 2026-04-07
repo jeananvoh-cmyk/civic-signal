@@ -944,10 +944,7 @@ export type Database = {
         Args: { p_report_id: string; p_resolved_at: string }
         Returns: undefined
       }
-      support_infra_report: {
-        Args: { p_report_id: string }
-        Returns: undefined
-      }
+      support_infra_report: { Args: { p_report_id: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "test" | "partner"
