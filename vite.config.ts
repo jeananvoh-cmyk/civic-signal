@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => ({
         // ASCII-only strings to avoid UTF-8/Latin-1 mojibake in PWA manifest serialization
         name: "SIGNA-CI - Signalements Abidjan",
         short_name: "SIGNA-CI",
-        description: "Signalez les coupures d'eau et d'electricite, et les infrastructures defaillantes a Abidjan",
+        description: "La premiere plateforme citoyenne ivoirienne ou les habitants contribuent a l'amelioration des services et infrastructures publiques.",
         theme_color: "#1a2744",
         background_color: "#1a2744",
         display: "standalone",
