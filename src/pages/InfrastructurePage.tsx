@@ -138,22 +138,20 @@ const InfrastructurePage = () => {
       toast.info("Connectez-vous pour voter");
       return;
     }
-    const { data, error } = await (supabase as any).rpc("vote_infrastructure_support", { p_report_id: reportId });
-    if (error || data?.error) {
-      toast.error("Erreur lors du vote");
+    if (supported.has(reportId)) {
+      toast.info("Vous avez déjà soutenu ce signalement");
       return;
     }
-    const voted: boolean = data.voted;
-    const newCount: number = data.support_count;
-    setSupported((prev) => {
-      const next = new Set(prev);
-      voted ? next.add(reportId) : next.delete(reportId);
-      return next;
-    });
+    const { error } = await supabase.rpc("support_infra_report", { p_report_id: reportId });
+    if (error) {
+      toast.error(error.message?.includes("déjà soutenu") ? "Vous avez déjà soutenu ce signalement" : "Erreur lors du vote");
+      return;
+    }
+    setSupported((prev) => new Set(prev).add(reportId));
     setReports((prev) =>
-      prev.map((r) => (r.id === reportId ? { ...r, support_count: newCount } : r))
+      prev.map((r) => (r.id === reportId ? { ...r, support_count: (r.support_count || 0) + 1 } : r))
     );
-    toast.success(voted ? "Vote enregistré — merci !" : "Vote retiré");
+    toast.success("Vote enregistré — merci !");
   };
 
   const handleConfirmRepair = async (reportId: string) => {
