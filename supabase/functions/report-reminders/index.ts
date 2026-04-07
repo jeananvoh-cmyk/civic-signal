@@ -31,6 +31,7 @@ Deno.serve(async (req) => {
     }
 
     const now = Date.now();
+    const APP_URL = "https://signa.ci";
     let notificationsInserted = 0;
     let archived = 0;
     let escalated = 0;
@@ -51,9 +52,14 @@ Deno.serve(async (req) => {
       let reminderMessage = "";
       const serviceLabel =
         report.service_type === "electricity" ? "⚡ Électricité" : "💧 Eau";
+      const detailUrl = `${APP_URL}/signalement/${report.id}`;
+
+      // Format age for display
+      const ageDisplay = ageHours < 24
+        ? `${Math.floor(ageHours)}h`
+        : `${Math.floor(ageDays)}j`;
 
       // ============ 14-DAY AUTO-EXPIRATION ============
-      // Reports older than 14 days without resolution → expired (duration not exploitable)
       if (ageDays >= 14) {
         await supabase
           .from("reports")
@@ -70,8 +76,8 @@ Deno.serve(async (req) => {
         await supabase.from("notifications").insert({
           user_id: report.user_id,
           report_id: report.id,
-          title: "⚫ Signalement expiré — 14 jours sans résolution",
-          message: `${serviceLabel} — ${report.commune}, ${report.quartier} • Votre signalement a expiré après 14 jours. La durée n'est pas exploitable. Créez un nouveau signalement si le problème persiste.`,
+          title: "⚫ Signalement expiré automatiquement",
+          message: `${serviceLabel} — ${report.commune}, ${report.quartier} · 14 jours sans résolution. Si la coupure persiste, faites un nouveau signalement. → ${detailUrl}`,
         });
         notificationsInserted++;
 
@@ -86,9 +92,8 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      if (ageHours >= 24) {
-        // T=24h: final reminder + archive or escalate
-        // Count active reports in same quartier + service_type
+      // ============ 24h+ : alerte critique + CTA résolution ============
+      if (ageHours >= 24 && lastReminderMinutes >= 55) {
         const { count } = await supabase
           .from("reports")
           .select("id", { count: "exact", head: true })
@@ -105,10 +110,9 @@ Deno.serve(async (req) => {
             .eq("id", report.id);
           escalated++;
 
-          reminderTitle = "🔴 Coupure critique — 24h sans réponse";
-          reminderMessage = `${serviceLabel} — ${report.commune}, ${report.quartier} • Signalement escaladé en urgence critique (${count} signalements dans la zone)`;
+          reminderTitle = `🔴 Coupure critique — ${ageDisplay} sans rétablissement`;
+          reminderMessage = `${serviceLabel} — ${report.commune}, ${report.quartier} · ${count} signalements dans la zone. Urgence escaladée. Le service est-il rétabli ? → ${detailUrl}`;
         } else {
-          // Keep active but remind — don't archive at 24h anymore, auto-expire at 14 days
           await supabase
             .from("reports")
             .update({
@@ -117,11 +121,10 @@ Deno.serve(async (req) => {
             })
             .eq("id", report.id);
 
-          reminderTitle = "⏰ Toujours sans service ?";
-          reminderMessage = `${serviceLabel} — ${report.commune}, ${report.quartier} • Coupure signalée il y a ${Math.floor(ageHours)}h. Confirmez ou marquez comme résolu.`;
+          reminderTitle = `🔴 ${ageDisplay} de coupure — service rétabli ?`;
+          reminderMessage = `${serviceLabel} — ${report.commune}, ${report.quartier} · La coupure dure depuis ${ageDisplay}. Ouvrez votre signalement pour indiquer si le service est rétabli ou toujours coupé. → ${detailUrl}`;
         }
 
-        // Send notification
         await supabase.from("notifications").insert({
           user_id: report.user_id,
           report_id: report.id,
@@ -133,22 +136,23 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Determine reminder schedule
-      if (ageHours >= 10 && lastReminderMinutes >= 55) {
-        // Hourly reminders from 10h to 24h
+      // ============ 10h+ : rappel toutes les heures ============
+      if (ageHours >= 10 && ageHours < 24 && lastReminderMinutes >= 55) {
+        shouldRemind = true;
+        reminderTitle = `🟠 ${ageDisplay} de coupure — toujours actif ?`;
+        reminderMessage = `${serviceLabel} — ${report.commune}, ${report.quartier} · Signalée il y a ${ageDisplay}. Confirmez si la coupure continue ou marquez comme résolu. → ${detailUrl}`;
+
+      // ============ 6h : 2e rappel ============
+      } else if (ageHours >= 6 && ageHours < 10 && report.reminder_count < 2) {
+        shouldRemind = true;
+        reminderTitle = "🟠 Toujours sans service ?";
+        reminderMessage = `${serviceLabel} — ${report.commune}, ${report.quartier} · Coupure signalée il y a ~6h. Toujours affecté ? → ${detailUrl}`;
+
+      // ============ 3h : 1er rappel ============
+      } else if (ageHours >= 3 && ageHours < 6 && report.reminder_count < 1) {
         shouldRemind = true;
         reminderTitle = "⏰ Coupure toujours active ?";
-        reminderMessage = `${serviceLabel} — ${report.commune}, ${report.quartier} • Signalée il y a ${Math.floor(ageHours)}h. Confirmez ou marquez comme résolu.`;
-      } else if (ageHours >= 6 && report.reminder_count < 2) {
-        // 2nd reminder at ~6h
-        shouldRemind = true;
-        reminderTitle = "⏰ Toujours sans service ?";
-        reminderMessage = `${serviceLabel} — ${report.commune}, ${report.quartier} • Coupure signalée il y a ~6h. Toujours affecté ?`;
-      } else if (ageHours >= 3 && report.reminder_count < 1) {
-        // 1st reminder at ~3h
-        shouldRemind = true;
-        reminderTitle = "⏰ Coupure toujours active ?";
-        reminderMessage = `${serviceLabel} — ${report.commune}, ${report.quartier} • Coupure signalée il y a ~3h. Le service est-il rétabli ?`;
+        reminderMessage = `${serviceLabel} — ${report.commune}, ${report.quartier} · Signalée il y a ~3h. Le service est-il rétabli ? → ${detailUrl}`;
       }
 
       if (shouldRemind) {
