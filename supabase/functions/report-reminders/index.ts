@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // ============ 24h+ : alerte critique + CTA résolution ============
+      // ============ 24h+ : alerte critique + CTA résolution (toutes les heures) ============
       if (ageHours >= 24 && lastReminderMinutes >= 55) {
         const { count } = await supabase
           .from("reports")
@@ -136,8 +136,8 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // ============ 10h+ : rappel toutes les heures ============
-      if (ageHours >= 10 && ageHours < 24 && lastReminderMinutes >= 55) {
+      // ============ 10h–24h : rappel toutes les 3 heures ============
+      if (ageHours >= 10 && ageHours < 24 && lastReminderMinutes >= 175) {
         shouldRemind = true;
         reminderTitle = `🟠 ${ageDisplay} de coupure — toujours actif ?`;
         reminderMessage = `${serviceLabel} — ${report.commune}, ${report.quartier} · Signalée il y a ${ageDisplay}. Confirmez si la coupure continue ou marquez comme résolu. → ${detailUrl}`;
