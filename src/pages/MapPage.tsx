@@ -17,6 +17,36 @@ interface ActiveReport {
   service_type: string;
   verifications: number;
   commune: string;
+  created_at: string;
+  start_time: string | null;
+}
+
+/** Format elapsed time from a start date to now */
+function formatElapsed(startIso: string | null, createdIso: string): string {
+  const ref = startIso ?? createdIso;
+  if (!ref) return "";
+  const diffMs = Date.now() - new Date(ref).getTime();
+  if (diffMs < 0) return "";
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 2) return "< 2 min";
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h < 24) return `${h}h${m > 0 ? m + "min" : ""}`;
+  const d = Math.floor(h / 24);
+  const rh = h % 24;
+  return `${d}j${rh > 0 ? " " + rh + "h" : ""}`;
+}
+
+/** Duration pill HTML for map popups */
+function durationPillHtml(report: ActiveReport): string {
+  const elapsed = formatElapsed(report.start_time, report.created_at);
+  if (!elapsed) return "";
+  const isElec = report.service_type === "electricity";
+  const bg = isElec ? "#fffbeb" : "#eff6ff";
+  const border = isElec ? "#fde68a" : "#bfdbfe";
+  const color = isElec ? "#92400e" : "#1e40af";
+  return `<div style="margin-top:5px;display:inline-block;padding:2px 8px;background:${bg};border:1px solid ${border};border-radius:999px;font-size:10px;color:${color};font-weight:600;">⏱ ${elapsed}</div>`;
 }
 
 interface CommuneServiceStat {
@@ -55,6 +85,14 @@ interface InfraStats {
   mairie_infra_verified: number;
 }
 
+interface DurationStat {
+  commune: string;
+  service_type: string;
+  avg_duration_minutes: number;
+  total_active: number;
+  longest_duration_minutes: number;
+}
+
 type MapMode = "coupures" | "infrastructures";
 type CoupureFilter = "all" | "electricity" | "water";
 type InfraFilter = "all" | "cie" | "sodeci" | "mairie";
@@ -89,6 +127,7 @@ const MapPage = () => {
 
   const [stats, setStats] = useState<CommuneServiceStat[]>([]);
   const [infraStats, setInfraStats] = useState<InfraStats[]>([]);
+  const [durationStats, setDurationStats] = useState<DurationStat[]>([]);
   const [boundaries, setBoundaries] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(false);
@@ -99,12 +138,14 @@ const MapPage = () => {
 
   useEffect(() => {
     const fetchAll = async () => {
-      const [sRes, iRes, geoRes] = await Promise.all([
+      const [sRes, iRes, geoRes, dRes] = await Promise.all([
         supabase.rpc("get_commune_service_stats"),
         supabase.rpc("get_commune_infrastructure_stats" as any),
         fetch("/data/communes-boundaries.geojson").then(r => r.json()).catch(() => null),
+        supabase.rpc("get_commune_duration_stats"),
       ]);
       if (!sRes.error && sRes.data) setStats(sRes.data as unknown as CommuneServiceStat[]);
+      if (!dRes.error && dRes.data) setDurationStats(dRes.data as unknown as DurationStat[]);
       if (!iRes.error && iRes.data) setInfraStats(iRes.data as unknown as InfraStats[]);
       if (geoRes) setBoundaries(geoRes);
       setLoading(false);
@@ -131,7 +172,7 @@ const MapPage = () => {
     }
     let query = supabase
       .from("reports")
-      .select("id, latitude, longitude, service_type, verifications, commune, created_at")
+      .select("id, latitude, longitude, service_type, verifications, commune, created_at, start_time")
       .eq("status", "active")
       .not("latitude", "is", null)
       .not("longitude", "is", null)
@@ -197,10 +238,11 @@ const MapPage = () => {
       })
         .addTo(group)
         .bindPopup(
-          `<div style="text-align:center;min-width:130px">
+          `<div style="text-align:center;min-width:140px">
             <span style="font-size:18px">${isElec ? "⚡" : "💧"}</span><br/>
             <strong style="color:${color}">${r.commune}</strong><br/>
             <span style="font-size:11px;color:#666">${r.verifications} confirmation${r.verifications !== 1 ? "s" : ""}</span>
+            ${durationPillHtml(r)}
           </div>`
         );
     });
@@ -267,7 +309,7 @@ const MapPage = () => {
         renderInfraMarker(map, c, getMarkerPos(c));
       }
     });
-  }, [stats, infraStats, loading, mode, coupureFilter, infraFilter, boundaries]);
+  }, [stats, infraStats, durationStats, loading, mode, coupureFilter, infraFilter, boundaries]);
 
   const renderCoupureMarker = (map: L.Map, c: typeof COMMUNES[0], pos: [number, number]) => {
     const s = stats.find((st) => st.commune.toLowerCase() === c.nom.toLowerCase());
@@ -328,9 +370,28 @@ const MapPage = () => {
           <div style="flex:1;padding:4px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;text-align:center"><span style="font-size:12px">💧</span><br/><span style="font-size:13px;font-weight:bold;color:#2563eb">${s.eau_actifs}</span>${s.eau_verified > 0 ? `<br/><span style="font-size:9px;color:#16a34a">✓ ${s.eau_verified}</span>` : ''}</div>
         </div>` : '';
 
+    // Duration stats for this commune
+    const communeName = c.nom.toLowerCase();
+    const elecDur = durationStats.find(d => d.commune.toLowerCase() === communeName && d.service_type === 'electricity');
+    const eauDur  = durationStats.find(d => d.commune.toLowerCase() === communeName && d.service_type === 'water');
+    const formatMins = (m: number) => {
+      if (!m || m < 1) return null;
+      const h = Math.floor(m / 60); const rm = Math.round(m % 60);
+      return h < 24 ? `${h}h${rm > 0 ? rm + "m" : ""}` : `${Math.floor(h / 24)}j${h % 24 > 0 ? " " + (h % 24) + "h" : ""}`;
+    };
+    const showElecDur = coupureFilter !== "water" && elecDur && elecDur.avg_duration_minutes > 0;
+    const showEauDur  = coupureFilter !== "electricity" && eauDur && eauDur.avg_duration_minutes > 0;
+    const durationHtml = (showElecDur || showEauDur)
+      ? `<div style="margin-top:6px;padding:4px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:wrap">
+          <span style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;width:100%">Durée moy. des coupures</span>
+          ${showElecDur ? `<span style="font-size:10px;font-weight:600;color:#92400e;background:#fffbeb;padding:2px 7px;border-radius:999px;border:1px solid #fde68a;">⚡ ${formatMins(elecDur!.avg_duration_minutes)}</span>` : ''}
+          ${showEauDur  ? `<span style="font-size:10px;font-weight:600;color:#1e40af;background:#eff6ff;padding:2px 7px;border-radius:999px;border:1px solid #bfdbfe;">💧 ${formatMins(eauDur!.avg_duration_minutes)}</span>` : ''}
+        </div>`
+      : '';
+
     L.marker(pos, { icon })
       .addTo(map)
-      .bindPopup(`<div style="min-width:180px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">${serviceLabel} — Coupures</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${breakdownHtml}${confirmHtml}<div style="margin-top:10px"><a href="/commune/${encodeURIComponent(c.nom)}" style="display:inline-block;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;text-decoration:none;font-size:12px;font-weight:700;padding:7px 16px;border-radius:8px;box-shadow:0 2px 6px rgba(14,165,233,0.3);">Voir les signalements →</a></div></div>`);
+      .bindPopup(`<div style="min-width:180px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">${serviceLabel} — Coupures</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${breakdownHtml}${confirmHtml}${durationHtml}<div style="margin-top:10px"><a href="/commune/${encodeURIComponent(c.nom)}" style="display:inline-block;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;text-decoration:none;font-size:12px;font-weight:700;padding:7px 16px;border-radius:8px;box-shadow:0 2px 6px rgba(14,165,233,0.3);">Voir les signalements →</a></div></div>`);
   };
 
   const renderInfraMarker = (map: L.Map, c: typeof COMMUNES[0], pos: [number, number]) => {
