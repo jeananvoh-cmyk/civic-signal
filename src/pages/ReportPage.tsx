@@ -525,12 +525,13 @@ const ReportPage = () => {
     }
 
     // ─── Validation Zod (valeurs numériques + description) ────────────────────
+    const effectiveDescription = description || selectedType.defaultDesc(commune);
     const validation = reportDetailsSchema.safeParse({
       impactedPeople,
       babies,
       pregnant,
       elderly,
-      description: description || undefined,
+      description: effectiveDescription,
     });
     if (!validation.success) {
       const firstError = validation.error.errors[0];
