@@ -32,6 +32,7 @@ type InfraReport = {
   repair_verifications: number;
   support_count: number;
   reporter_type: string;
+  user_id?: string;
 };
 
 type FilterType = "all" | "eau" | "electricite" | "mairie";
@@ -60,7 +61,7 @@ const InfrastructurePage = () => {
       // Utilisateur connecté → query directe (RLS autorise)
       let query = supabase
         .from("reports")
-        .select("id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, support_count, reporter_type")
+        .select("id, user_id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, support_count, reporter_type")
         .eq("report_category", "infrastructure")
         .eq("status", "active")
         .order("support_count", { ascending: false })
@@ -138,9 +139,19 @@ const InfrastructurePage = () => {
       toast.info("Connectez-vous pour voter");
       return;
     }
+    const report = reports.find((r) => r.id === reportId);
+    if (report?.user_id === user.id) {
+      toast.info("Vous ne pouvez pas voter pour votre propre signalement");
+      return;
+    }
     const { data, error } = await (supabase.rpc as any)("support_infra_report", { p_report_id: reportId });
     if (error) {
-      toast.error("Erreur lors du vote");
+      const msg = error.message || "";
+      if (msg.includes("déjà le vôtre")) {
+        toast.info("Vous ne pouvez pas voter pour votre propre signalement");
+      } else {
+        toast.error("Erreur lors du vote");
+      }
       return;
     }
     const voted: boolean = data?.voted;
@@ -545,19 +556,26 @@ const InfrastructurePage = () => {
 
                 {/* Action buttons */}
                 <div className="px-2 py-1.5 flex items-center">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`flex-1 text-sm gap-1.5 ${
-                      supported.has(report.id)
-                        ? "text-primary font-semibold"
-                        : "text-muted-foreground"
-                    }`}
-                    onClick={() => handleSupport(report.id)}
-                  >
-                    <ThumbsUp className={`h-4 w-4 ${supported.has(report.id) ? "fill-primary" : ""}`} />
-                    {supported.has(report.id) ? "Je soutiens ✓" : "Je veux que ça soit réparé"}
-                  </Button>
+                  {user && report.user_id === user.id ? (
+                    <span className="flex-1 text-sm text-muted-foreground flex items-center gap-1.5 px-3 py-1.5">
+                      <ThumbsUp className="h-4 w-4" />
+                      Mon signalement
+                    </span>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`flex-1 text-sm gap-1.5 ${
+                        supported.has(report.id)
+                          ? "text-primary font-semibold"
+                          : "text-muted-foreground"
+                      }`}
+                      onClick={() => handleSupport(report.id)}
+                    >
+                      <ThumbsUp className={`h-4 w-4 ${supported.has(report.id) ? "fill-primary" : ""}`} />
+                      {supported.has(report.id) ? "Je soutiens ✓" : "Je veux que ça soit réparé"}
+                    </Button>
+                  )}
 
                   {report.status === "active" && (
                     <Button
