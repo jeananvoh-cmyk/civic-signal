@@ -32,6 +32,7 @@ type InfraReport = {
   repair_verifications: number;
   support_count: number;
   reporter_type: string;
+  user_id?: string;
 };
 
 type FilterType = "all" | "eau" | "electricite" | "mairie";
