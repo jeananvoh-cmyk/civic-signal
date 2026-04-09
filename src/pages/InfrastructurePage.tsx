@@ -556,19 +556,26 @@ const InfrastructurePage = () => {
 
                 {/* Action buttons */}
                 <div className="px-2 py-1.5 flex items-center">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`flex-1 text-sm gap-1.5 ${
-                      supported.has(report.id)
-                        ? "text-primary font-semibold"
-                        : "text-muted-foreground"
-                    }`}
-                    onClick={() => handleSupport(report.id)}
-                  >
-                    <ThumbsUp className={`h-4 w-4 ${supported.has(report.id) ? "fill-primary" : ""}`} />
-                    {supported.has(report.id) ? "Je soutiens ✓" : "Je veux que ça soit réparé"}
-                  </Button>
+                  {user && report.user_id === user.id ? (
+                    <span className="flex-1 text-sm text-muted-foreground flex items-center gap-1.5 px-3 py-1.5">
+                      <ThumbsUp className="h-4 w-4" />
+                      Mon signalement
+                    </span>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`flex-1 text-sm gap-1.5 ${
+                        supported.has(report.id)
+                          ? "text-primary font-semibold"
+                          : "text-muted-foreground"
+                      }`}
+                      onClick={() => handleSupport(report.id)}
+                    >
+                      <ThumbsUp className={`h-4 w-4 ${supported.has(report.id) ? "fill-primary" : ""}`} />
+                      {supported.has(report.id) ? "Je soutiens ✓" : "Je veux que ça soit réparé"}
+                    </Button>
+                  )}
 
                   {report.status === "active" && (
                     <Button
