@@ -61,7 +61,7 @@ const InfrastructurePage = () => {
       // Utilisateur connecté → query directe (RLS autorise)
       let query = supabase
         .from("reports")
-        .select("id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, support_count, reporter_type")
+        .select("id, user_id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, support_count, reporter_type")
         .eq("report_category", "infrastructure")
         .eq("status", "active")
         .order("support_count", { ascending: false })
@@ -139,9 +139,19 @@ const InfrastructurePage = () => {
       toast.info("Connectez-vous pour voter");
       return;
     }
+    const report = reports.find((r) => r.id === reportId);
+    if (report?.user_id === user.id) {
+      toast.info("Vous ne pouvez pas voter pour votre propre signalement");
+      return;
+    }
     const { data, error } = await (supabase.rpc as any)("support_infra_report", { p_report_id: reportId });
     if (error) {
-      toast.error("Erreur lors du vote");
+      const msg = error.message || "";
+      if (msg.includes("déjà le vôtre")) {
+        toast.info("Vous ne pouvez pas voter pour votre propre signalement");
+      } else {
+        toast.error("Erreur lors du vote");
+      }
       return;
     }
     const voted: boolean = data?.voted;
