@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import {
-  Zap, Droplets, MapPin, Clock, ThumbsUp, MessageCircle, CheckCircle,
+  Zap, Droplets, MapPin, Clock, ThumbsUp, CheckCircle,
   Filter, TrendingUp, AlertCircle, ChevronDown, Lightbulb, TriangleAlert, Info, MoreHorizontal, Building2, Map, Trash2, Waves
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -148,9 +148,11 @@ const InfrastructurePage = () => {
     if (error) {
       const msg = error.message || "";
       if (msg.includes("déjà le vôtre")) {
-        toast.info("Vous ne pouvez pas voter pour votre propre signalement");
+        toast.info("Vous ne pouvez pas soutenir votre propre signalement");
       } else {
-        toast.error("Erreur lors du vote");
+        toast.error("Impossible d'enregistrer votre soutien", {
+          description: "Vérifiez votre connexion et réessayez.",
+        });
       }
       return;
     }
@@ -164,7 +166,13 @@ const InfrastructurePage = () => {
     setReports((prev) =>
       prev.map((r) => (r.id === reportId ? { ...r, support_count: newCount } : r))
     );
-    toast.success(voted ? "Vote enregistré — merci !" : "Vote retiré");
+    if (voted) {
+      toast.success("👍 Merci pour votre soutien !", {
+        description: "Votre voix compte. Plus on est nombreux, plus vite ça bouge !",
+      });
+    } else {
+      toast.info("Soutien retiré");
+    }
   };
 
   const handleConfirmRepair = async (reportId: string) => {
@@ -174,14 +182,18 @@ const InfrastructurePage = () => {
     }
     const { error } = await supabase.rpc("confirm_repair", { p_report_id: reportId });
     if (error) {
-      toast.error(error.message || "Erreur lors de la confirmation");
+      toast.error("Impossible de confirmer la réparation", {
+        description: "Vérifiez votre connexion et réessayez.",
+      });
       return;
     }
     setRepaired((prev) => new Set(prev).add(reportId));
     setReports((prev) =>
       prev.map((r) => (r.id === reportId ? { ...r, repair_verifications: (r.repair_verifications || 0) + 1 } : r))
     );
-    toast.success("Réparation confirmée ! Merci pour votre contribution.");
+    toast.success("✅ Réparation confirmée !", {
+      description: "Merci ! Si 3 citoyens le confirment, le signalement sera clôturé.",
+    });
   };
 
   const timeAgo = (date: string) =>
@@ -494,14 +506,21 @@ const InfrastructurePage = () => {
                           </span>
                           {urgencyBadge(report.urgency)}
                         </div>
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-                          <MapPin className="h-3 w-3" />
-                          <span className="truncate">
-                            {report.quartier}, {report.commune}
-                          </span>
-                          <span>·</span>
-                          <Clock className="h-3 w-3" />
-                          <span>{timeAgo(report.created_at)}</span>
+                        <div className="flex flex-col gap-0.5 mt-0.5">
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            <span className="font-medium text-foreground/80">{report.quartier}</span>
+                            {report.commune && (
+                              <>
+                                <span className="text-muted-foreground/50">·</span>
+                                <span>{report.commune}</span>
+                              </>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Clock className="h-3 w-3 shrink-0" />
+                            <span>{timeAgo(report.created_at)}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -559,7 +578,7 @@ const InfrastructurePage = () => {
                 {/* Action buttons */}
                 <div className="px-2 py-1.5 flex items-center">
                   {user && report.user_id === user.id ? (
-                    <span className="flex-1 text-sm text-muted-foreground flex items-center gap-1.5 px-3 py-1.5">
+                    <span className="flex-1 text-xs text-muted-foreground flex items-center gap-1.5 px-3 py-1.5">
                       <ThumbsUp className="h-4 w-4" />
                       Mon signalement
                     </span>
@@ -567,15 +586,19 @@ const InfrastructurePage = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className={`flex-1 text-sm gap-1.5 ${
+                      className={`flex-1 text-xs gap-1.5 min-w-0 ${
                         supported.has(report.id)
                           ? "text-primary font-semibold"
-                          : "text-muted-foreground"
+                          : "text-muted-foreground hover:text-primary"
                       }`}
                       onClick={() => handleSupport(report.id)}
                     >
-                      <ThumbsUp className={`h-4 w-4 ${supported.has(report.id) ? "fill-primary" : ""}`} />
-                      {supported.has(report.id) ? "Je soutiens ✓" : "Je veux que ça soit réparé"}
+                      <ThumbsUp className={`h-4 w-4 shrink-0 ${supported.has(report.id) ? "fill-primary" : ""}`} />
+                      <span className="truncate">
+                        {supported.has(report.id)
+                          ? "Soutenu ✓"
+                          : <><span className="hidden sm:inline">Je veux que ça soit réparé</span><span className="sm:hidden">Soutenir</span></>}
+                      </span>
                     </Button>
                   )}
 
@@ -583,23 +606,35 @@ const InfrastructurePage = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className={`flex-1 text-sm gap-1.5 ${
+                      className={`flex-1 text-xs gap-1.5 min-w-0 ${
                         repaired.has(report.id)
-                          ? "text-[hsl(var(--success))] font-semibold"
-                          : "text-[hsl(var(--success))]"
+                          ? "text-emerald-600 font-semibold"
+                          : "text-emerald-600/70 hover:text-emerald-600"
                       }`}
                       onClick={() => handleConfirmRepair(report.id)}
                       disabled={repaired.has(report.id)}
                     >
-                      <CheckCircle className="h-4 w-4" />
-                      {repaired.has(report.id) ? "Noté réparé" : "C'est réparé"}
+                      <CheckCircle className="h-4 w-4 shrink-0" />
+                      <span className="truncate">
+                        {repaired.has(report.id) ? "Réparé ✓" : "C'est réparé ?"}
+                      </span>
                     </Button>
                   )}
 
                   <ShareButton
-                    title={`Signalement ${serviceLabel(report.service_type)}`}
-                    text={`${report.description?.replace(/\s*\[\d+\s*personne\(s\)\]/gi, "").trim()} — ${report.quartier}, ${report.commune}`}
-                    url={window.location.origin}
+                    title={`Signalement infra — ${report.quartier}, ${report.commune}`}
+                    text={[
+                      `🚧 INFRASTRUCTURE — ${report.quartier}, ${report.commune}`,
+                      ``,
+                      report.description?.replace(/\s*\[\d+\s*personne\(s\)\]/gi, "").trim(),
+                      ``,
+                      report.support_count > 0
+                        ? `👥 ${report.support_count} citoyen${report.support_count > 1 ? "s" : ""} demandent une réparation.`
+                        : ``,
+                      `✊ Signalez les problèmes de votre quartier sur SIGNA-CI`,
+                      `La plateforme citoyenne d'Abidjan pour faire bouger les choses.`,
+                    ].filter(Boolean).join("\n")}
+                    url={`${window.location.origin}/signalement/${report.id}`}
                     variant="ghost"
                     size="sm"
                     className="flex-none px-3 text-muted-foreground"

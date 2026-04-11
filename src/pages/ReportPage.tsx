@@ -30,6 +30,8 @@ import QuartierSearch from "@/components/QuartierSearch";
 import OnboardingModal from "@/components/OnboardingModal";
 import { reportDetailsSchema } from "@/lib/report-schema";
 import { MAX_DESCRIPTION_LENGTH } from "@/lib/constants";
+import { useOfflineQueue } from "@/hooks/useOfflineQueue";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 
 // ─── Types de signalement ────────────────────────────────────────────────────
 
@@ -40,6 +42,9 @@ type ReportTypeId =
   | "water_leak"
   | "drain_blocked"
   | "pothole"
+  | "road_damage"
+  | "open_sewer"
+  | "market_waste"
   | "illegal_dump"
   | "other";
 
@@ -113,6 +118,36 @@ const REPORT_TYPES: ReportTypeConfig[] = [
     defaultDesc: (c) => `Nid de poule / route dégradée à ${c}`,
   },
   {
+    id: "road_damage",
+    emoji: "🛤️",
+    label: "Voirie dégradée",
+    description: "Trottoir cassé, pavé, glissière...",
+    color: "#8B5CF6",
+    serviceType: "mairie" as any,
+    reportCategory: "infrastructure",
+    defaultDesc: (c) => `Voirie / trottoir dégradé à ${c}`,
+  },
+  {
+    id: "open_sewer",
+    emoji: "🕳️",
+    label: "Égout à ciel ouvert",
+    description: "Bouche d'égout ouverte / dangereuse",
+    color: "#6B7280",
+    serviceType: "mairie" as any,
+    reportCategory: "infrastructure",
+    defaultDesc: (c) => `Égout ou bouche d'égout ouvert à ${c}`,
+  },
+  {
+    id: "market_waste",
+    emoji: "🏪",
+    label: "Déchets de marché",
+    description: "Ordures non ramassées autour du marché",
+    color: "#F97316",
+    serviceType: "mairie" as any,
+    reportCategory: "infrastructure",
+    defaultDesc: (c) => `Déchets non ramassés autour du marché à ${c}`,
+  },
+  {
     id: "illegal_dump",
     emoji: "🗑️",
     label: "Dépôt sauvage",
@@ -140,6 +175,8 @@ const ReportPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { isOnline } = useNetworkStatus();
+  const { enqueue } = useOfflineQueue();
 
   // Wizard
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -561,7 +598,7 @@ const ReportPage = () => {
       const fullDesc = `${fullBaseDesc} ${impactInfo}`;
       const hasVulnerable = babies > 0 || pregnant > 0 || elderly > 0;
 
-      const { data: insertData, error } = await supabase.from("reports").insert({
+      const reportPayload = {
         user_id: user.id,
         service_type: selectedType.serviceType,
         report_category: selectedType.reportCategory,
@@ -579,7 +616,22 @@ const ReportPage = () => {
         babies,
         pregnant,
         elderly,
-      } as any).select("id").single();
+      };
+
+      // -- Offline: save to queue and exit ----------------------------------
+      if (!isOnline) {
+        localStorage.removeItem(DRAFT_KEY);
+        enqueue(reportPayload);
+        toast.success("📶 Signalement sauvegardé", {
+          description: "Il sera envoyé automatiquement dès que vous serez reconnecté.",
+          duration: 6000,
+        });
+        setSubmitting(false);
+        navigate("/");
+        return;
+      }
+
+      const { data: insertData, error } = await supabase.from("reports").insert(reportPayload as any).select("id").single();
 
       if (error) throw error;
 
@@ -606,6 +658,7 @@ const ReportPage = () => {
         emoji: selectedType.emoji,
         quartier: resolvedQuartier,
         service: selectedType.serviceType,
+        category: selectedType.reportCategory,
         ...(reportId ? { id: reportId } : {}),
       });
       navigate(`/confirmation?${params.toString()}`);
@@ -770,6 +823,12 @@ const ReportPage = () => {
                   />
                 </div>
               )}
+
+              {/* Hint GPS */}
+              <p className="flex items-start gap-1.5 text-xs text-muted-foreground px-1">
+                <Navigation className="h-3.5 w-3.5 shrink-0 mt-0.5 text-primary/60" />
+                <span>📍 Soyez <strong>proche du problème</strong> pour une meilleure localisation.</span>
+              </p>
 
               {/* Bannière GPS */}
               <div

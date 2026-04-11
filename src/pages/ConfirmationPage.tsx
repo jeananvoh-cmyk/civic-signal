@@ -5,6 +5,7 @@ import { CheckCircle2, Radio, Users, Share2, BarChart3, Zap, ArrowRight, MapPin 
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
+import PushPromptBanner from "@/components/PushPromptBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNES } from "@/lib/communes";
 
@@ -74,7 +75,33 @@ const ConfirmationPage = () => {
     fetchNeighbors();
   }, [commune, quartier, serviceType, reportId]);
 
-  const shareText = `${typeEmoji} ${typeLabel} signalé à ${commune || "Abidjan"} — Aidez vos voisins à confirmer sur SignalÉnergie !`;
+  const isOutage = searchParams.get("category") === "outage";
+  const operatorName = serviceType === "electricity" ? "CIE" : serviceType === "water" ? "SODECI" : null;
+  const locationLabel = [quartier, commune].filter(Boolean).join(", ");
+  const shareLines = isOutage
+    ? [
+        `${typeEmoji} ALERTE COUPURE — ${locationLabel}`,
+        ``,
+        `${typeLabel} en cours. Toujours sans intervention.`,
+        ``,
+        neighborCount && neighborCount > 0
+          ? `👥 ${neighborCount + 1} signalement${neighborCount > 0 ? "s" : ""} dans le secteur.`
+          : ``,
+        operatorName
+          ? `📢 Rejoignez-nous sur SIGNA-CI pour faire pression sur ${operatorName}.`
+          : `📢 Signalez sur SIGNA-CI pour être plus forts ensemble.`,
+        `Plus on est nombreux, plus vite ils interviennent !`,
+      ].filter(Boolean).join("\n")
+    : [
+        `🚧 INFRASTRUCTURE — ${locationLabel}`,
+        ``,
+        `${typeLabel} signalé dans votre quartier.`,
+        ``,
+        `✊ Rejoignez SIGNA-CI pour signaler les problèmes de votre quartier`,
+        `et suivre leur résolution en temps réel.`,
+      ].filter(Boolean).join("\n");
+
+  const shareText = shareLines;
 
   return (
     <div className="min-h-screen bg-background">
@@ -192,18 +219,47 @@ const ConfirmationPage = () => {
           )}
         </motion.div>
 
+        {/* Push notifications prompt */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.28 }}
+          className="mb-4"
+        >
+          <PushPromptBanner />
+        </motion.div>
+
+        {/* Partage incitatif */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="rounded-2xl border-2 border-green-500/30 bg-green-500/5 p-4 space-y-3"
+        >
+          <div className="text-center space-y-1">
+            <p className="text-sm font-bold text-foreground">
+              📣 Alertez vos voisins — renforcez votre signalement
+            </p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Plus votre signalement est confirmé, plus vite il sera traité.
+              Partagez-le maintenant sur WhatsApp pour que vos voisins le corroborent !
+            </p>
+          </div>
+          <ShareButton
+            title="SIGNA-CI — Signalement citoyen"
+            text={shareText}
+            url={reportId ? `${window.location.origin}/signalement/${reportId}` : window.location.origin}
+            className="w-full justify-center py-4 text-sm font-bold bg-green-600 hover:bg-green-700 text-white border-0"
+          />
+        </motion.div>
+
         {/* Actions */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
+          transition={{ delay: 0.45 }}
           className="space-y-3"
         >
-          <ShareButton
-            title="SignalÉnergie — Signalement citoyen"
-            text={shareText}
-            className="w-full justify-center py-5 text-base font-bold"
-          />
 
           <div className="grid grid-cols-2 gap-3">
             <Button asChild variant="outline" className="py-4 font-semibold">

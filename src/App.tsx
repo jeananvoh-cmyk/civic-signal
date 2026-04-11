@@ -43,6 +43,7 @@ const InstallPage = lazy(() => import("./pages/InstallPage"));
 const ConfirmationPage = lazy(() => import("./pages/ConfirmationPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const PartnerDashboardPage = lazy(() => import("./pages/PartnerDashboardPage"));
+const PartnersPage = lazy(() => import("./pages/PartnersPage"));
 const ReportDetailPage = lazy(() => import("./pages/ReportDetailPage"));
 const TransparencyPage = lazy(() => import("./pages/TransparencyPage"));
 const UpdatePasswordPage = lazy(() => import("./pages/UpdatePasswordPage"));
@@ -99,6 +100,7 @@ const App = () => (
               </Route>
               
               <Route path="/partner/dashboard" element={<ProtectedRoute><PartnerDashboardPage /></ProtectedRoute>} />
+              <Route path="/partenaires" element={<PartnersPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

@@ -40,6 +40,7 @@ const Header = () => {
     { to: "/verification", label: "Vérifier", highlight: true },
     ...(donationsEnabled ? [{ to: "/dons", label: "♥ Dons", highlight: false }] : []),
     ...(transparencyEnabled ? [{ to: "/transparence", label: "Transparence", highlight: false }] : []),
+    { to: "/partenaires", label: "Partenaires", highlight: false },
   ];
 
   return (
