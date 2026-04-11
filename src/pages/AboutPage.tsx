@@ -32,10 +32,14 @@ const AboutPage = () => {
               <h2 className="font-display text-xl font-bold text-foreground">Notre mission</h2>
             </div>
             <p className="text-muted-foreground leading-relaxed">
-              SIGNA-CI est une initiative CivicTech qui permet aux habitants d'Abidjan de signaler 
-              les coupures d'eau et d'électricité en temps réel. En collectant ces données citoyennes, 
-              nous aidons les opérateurs (CIE, SODECI) et les autorités locales à mieux comprendre 
-              et résoudre les problèmes d'accès aux services essentiels.
+              SIGNA-CI est la première plateforme citoyenne ivoirienne dédiée à l'amélioration 
+              des services publics. Les habitants signalent en temps réel les coupures d'eau et 
+              d'électricité, les défaillances d'infrastructures (éclairage public, voirie, 
+              assainissement) et, à terme, tout dysfonctionnement affectant leur cadre de vie. 
+              En structurant ces données citoyennes, nous fournissons aux opérateurs (CIE, SODECI), 
+              aux collectivités et aux autorités locales des indicateurs fiables pour prioriser 
+              les interventions et renforcer la qualité des services essentiels sur l'ensemble 
+              du territoire.
             </p>
           </section>
 
