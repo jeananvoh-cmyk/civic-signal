@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import PullToRefresh from "@/components/PullToRefresh";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -12,6 +12,8 @@ import AuthCTABar from "@/components/AuthCTABar";
 import ProfileCompletionNotifier from "@/components/ProfileCompletionNotifier";
 import PWAInstallBanner from "@/components/PWAInstallBanner";
 import OfflineBar from "@/components/OfflineBar";
+import BottomNav from "@/components/BottomNav";
+import OnboardingSlides from "@/components/OnboardingSlides";
 import Index from "./pages/Index";
 
 const AuthPage = lazy(() => import("./pages/AuthPage"));
@@ -50,6 +52,12 @@ const UpdatePasswordPage = lazy(() => import("./pages/UpdatePasswordPage"));
 
 const queryClient = new QueryClient();
 
+// Apply saved brand theme on cold start (before first render)
+const savedTheme = localStorage.getItem("signa_brand_theme");
+if (savedTheme === "ivoire" || savedTheme === null) {
+  document.documentElement.classList.add("theme-ivoire");
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -62,6 +70,8 @@ const App = () => (
           <AuthCTABar />
           <ProfileCompletionNotifier />
           <PWAInstallBanner />
+          <OnboardingSlides />
+          <BottomNav />
           <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
             <Routes>
               <Route path="/" element={<Index />} />

@@ -24,24 +24,24 @@
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 2%;
 
-    --primary: 214 89% 52%;      /* #1877F2 Facebook blue */
+    --primary: 20 76% 48%;        /* #E65B1B orange soleil ivoirien */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 216 10% 90%;    /* #E4E6E9 */
-    --secondary-foreground: 0 0% 2%;
+    --secondary: 152 20% 92%;    /* vert savane très clair */
+    --secondary-foreground: 152 41% 18%;
 
-    --muted: 216 10% 90%;
-    --muted-foreground: 220 3% 41%; /* #65676B */
+    --muted: 30 15% 92%;
+    --muted-foreground: 30 8% 42%;
 
-    --accent: 214 89% 96%;
-    --accent-foreground: 214 89% 35%;
+    --accent: 20 76% 95%;
+    --accent-foreground: 20 76% 28%;
 
     --destructive: 0 72% 51%;    /* red */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 219 6% 82%;        /* #CED0D4 */
-    --input: 219 6% 82%;
-    --ring: 214 89% 52%;
+    --border: 30 10% 82%;
+    --input: 30 10% 82%;
+    --ring: 20 76% 48%;
 
     --radius: 0.5rem;            /* 8px - slightly rounder */
 
@@ -76,13 +76,13 @@
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 0 0% 2%;
-    --sidebar-primary: 214 89% 52%;
+    --sidebar-primary: 20 76% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 216 10% 90%;
-    --sidebar-accent-foreground: 0 0% 2%;
-    --sidebar-border: 219 6% 82%;
-    --sidebar-ring: 214 89% 52%;
-    --chart-1: 214 89% 52%;
+    --sidebar-accent: 152 20% 92%;
+    --sidebar-accent-foreground: 152 41% 18%;
+    --sidebar-border: 30 10% 82%;
+    --sidebar-ring: 20 76% 48%;
+    --chart-1: 20 76% 48%;
     --chart-2: 192 80% 45%;
     --chart-3: 150 60% 40%;
     --chart-4: 40 95% 50%;
@@ -111,7 +111,7 @@
     --card-foreground: 216 18% 90%;
     --popover: 0 0% 14%;
     --popover-foreground: 216 18% 90%;
-    --primary: 214 89% 52%;     /* keep Facebook blue */
+    --primary: 20 76% 55%;      /* orange soleil légèrement éclairci pour dark mode */
     --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 24%;      /* #3A3B3C */
     --secondary-foreground: 216 18% 90%;
@@ -146,6 +146,55 @@
     --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
     --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
     --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     THÈME IVOIRE — Orange Soleil · Vert Savane
+     Activé par <html class="theme-ivoire">
+     Réverter : retirer la classe theme-ivoire
+     ═══════════════════════════════════════════════════════════ */
+  .theme-ivoire {
+    /* Orange soleil ivoirien */
+    --primary: 20 75% 52%;           /* #E65B1B */
+    --primary-foreground: 0 0% 100%;
+
+    /* Fond ivoire chaud */
+    --background: 36 20% 95%;        /* #F5F2EE */
+    --card: 0 0% 100%;
+
+    /* Vert savane (accents) */
+    --accent: 152 40% 92%;           /* vert très clair */
+    --accent-foreground: 152 50% 28%;
+
+    /* Ring */
+    --ring: 20 75% 52%;
+
+    /* Sidebar */
+    --sidebar-primary: 20 75% 52%;
+    --sidebar-ring: 20 75% 52%;
+
+    /* Charts */
+    --chart-1: 20 75% 52%;
+    --chart-2: 152 50% 40%;
+    --chart-3: 40 90% 55%;
+    --chart-4: 192 70% 45%;
+    --chart-5: 0 72% 51%;
+
+    /* Shadows warm-tinted */
+    --shadow-card: 0 1px 2px hsl(20 30% 70% / 0.4), 0 0 0 1px hsl(20 30% 70% / 0.2);
+    --shadow-elevated: 0 4px 12px hsl(20 40% 60% / 0.25);
+  }
+
+  .dark.theme-ivoire {
+    --primary: 20 80% 58%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 152 40% 18%;
+    --accent-foreground: 152 50% 70%;
+    --ring: 20 80% 58%;
+    --sidebar-primary: 20 80% 58%;
+    --sidebar-ring: 20 80% 58%;
+    --chart-1: 20 80% 62%;
+    --chart-2: 152 50% 50%;
   }
 }
 

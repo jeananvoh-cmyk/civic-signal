@@ -239,6 +239,63 @@ const TransparencyPage = () => {
               </div>
             </motion.div>
 
+            {/* Podium communes — classement mensuel */}
+            {stats.by_commune && stats.by_commune.length >= 3 && (() => {
+              const sorted = [...stats.by_commune].sort((a, b) => b.resolution_rate - a.resolution_rate);
+              const medals = ["🥇", "🥈", "🥉"];
+              return (
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.19 }}
+                  className="rounded-2xl border border-border bg-card shadow-card p-6"
+                >
+                  <h2 className="text-base font-bold text-foreground mb-1 flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-primary" /> Classement — meilleures communes
+                  </h2>
+                  <p className="text-xs text-muted-foreground mb-5">Communes avec le meilleur taux de r\u00e9solution des signalements</p>
+                  {/* Podium visuel — top 3 */}
+                  <div className="flex items-end justify-center gap-3 mb-6">
+                    {[sorted[1], sorted[0], sorted[2]].map((c, pos) => {
+                      if (!c) return null;
+                      const heights = ["h-20", "h-28", "h-16"];
+                      const rank = pos === 1 ? 0 : pos === 0 ? 1 : 2;
+                      const color = COMMUNE_COLORS[c.commune] || "#888";
+                      return (
+                        <div key={c.commune} className="flex flex-col items-center gap-1">
+                          <span className="text-xl">{medals[rank]}</span>
+                          <p className="text-xs font-bold text-foreground text-center max-w-[72px] truncate">{c.commune}</p>
+                          <p className="text-xs font-semibold" style={{ color }}>{c.resolution_rate}%</p>
+                          <div
+                            className={`w-16 ${heights[pos]} rounded-t-xl flex items-end justify-center pb-2`}
+                            style={{ backgroundColor: color + "30", border: `2px solid ${color}40` }}
+                          >
+                            <span className="text-lg font-extrabold" style={{ color }}>{rank + 1}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Reste du classement */}
+                  <div className="space-y-2">
+                    {sorted.slice(3).map((c, i) => {
+                      const color = COMMUNE_COLORS[c.commune] || "#888";
+                      return (
+                        <div key={c.commune} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground font-semibold w-4">{i + 4}</span>
+                            <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                            <span className="font-medium text-foreground">{c.commune}</span>
+                          </div>
+                          <span className="font-semibold text-foreground">{c.resolution_rate}%</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              );
+            })()}
+
             {/* Problèmes chroniques */}
             {chronicCount > 0 && (
               <motion.div

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Zap, Shield, Users, ArrowRight, BarChart3, MapPin,
   Radio, LogIn, UserPlus, Map, History, Info, Heart,
-  ChevronDown, CheckCircle2, TrendingUp,
+  ChevronDown, CheckCircle2, TrendingUp, Droplets, Wrench, Navigation,
 } from "lucide-react";
 import SOSButtons from "@/components/SOSButtons";
 import { Button } from "@/components/ui/button";
@@ -121,6 +121,29 @@ interface ServiceCounts {
   water: number;
 }
 
+interface NearbyReport {
+  id: string;
+  service_type: string;
+  report_category: string;
+  commune: string;
+  quartier: string;
+  description: string;
+  created_at: string;
+  verifications: number;
+}
+
+const HAVERSINE_KM = 2; // rayon en km
+
+function distKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 const Index = () => {
   const { user } = useAuth();
   const [liveCount, setLiveCount] = useState<number | null>(null);
@@ -128,6 +151,8 @@ const Index = () => {
   const [wordIndex, setWordIndex] = useState(0);
   const [landingStats, setLandingStats] = useState<LandingStats | null>(null);
   const [serviceCounts, setServiceCounts] = useState<ServiceCounts | null>(null);
+  const [nearbyReports, setNearbyReports] = useState<NearbyReport[]>([]);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
 
   useEffect(() => {
     supabase.rpc("get_landing_stats" as any).then(({ data }) => {
@@ -166,6 +191,33 @@ const Index = () => {
   useEffect(() => {
     const id = setInterval(() => setWordIndex((i) => (i + 1) % ROTATING_WORDS.length), 2800);
     return () => clearInterval(id);
+  }, []);
+
+  // Signalements "près de moi" — GPS optionnel
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    setNearbyLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude: lat, longitude: lon } = pos.coords;
+        // Fetch active reports with approximate coordinates
+        const { data } = await supabase
+          .from("reports")
+          .select("id, service_type, report_category, commune, quartier, description, created_at, verifications, latitude, longitude")
+          .eq("status", "active")
+          .not("latitude", "is", null)
+          .limit(100);
+        if (data) {
+          const nearby = (data as any[])
+            .filter((r) => r.latitude && r.longitude && distKm(lat, lon, r.latitude, r.longitude) <= HAVERSINE_KM)
+            .slice(0, 5) as NearbyReport[];
+          setNearbyReports(nearby);
+        }
+        setNearbyLoading(false);
+      },
+      () => setNearbyLoading(false),
+      { timeout: 5000, maximumAge: 60000 }
+    );
   }, []);
 
 
@@ -404,6 +456,74 @@ const Index = () => {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════
+          FIL "PRÈS DE MOI" — signalements dans un rayon de 2 km
+      ══════════════════════════════════════════════════════════════ */}
+      {(nearbyLoading || nearbyReports.length > 0) && (
+        <section className="container py-12">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mb-6 flex items-center gap-2"
+          >
+            <Navigation className="h-4 w-4 text-primary" />
+            <h2 className="font-display text-xl font-bold text-foreground">Près de vous</h2>
+            <span className="text-xs text-muted-foreground">· rayon 2 km</span>
+          </motion.div>
+
+          {nearbyLoading ? (
+            <div className="flex justify-center py-6">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {nearbyReports.map((r, i) => {
+                const isElec = r.service_type === "electricity";
+                const isInfra = r.report_category === "infrastructure";
+                const icon = isInfra ? <Wrench className="h-4 w-4 text-teal-500" /> : isElec ? <Zap className="h-4 w-4 text-amber-500" /> : <Droplets className="h-4 w-4 text-sky-500" />;
+                const timeAgo = (() => {
+                  const diff = (Date.now() - new Date(r.created_at).getTime()) / 60000;
+                  if (diff < 60) return `il y a ${Math.round(diff)} min`;
+                  if (diff < 1440) return `il y a ${Math.round(diff / 60)} h`;
+                  return `il y a ${Math.round(diff / 1440)} j`;
+                })();
+                return (
+                  <motion.div
+                    key={r.id}
+                    initial={{ opacity: 0, x: -12 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.06 }}
+                  >
+                    <Link
+                      to={`/signalement/${r.id}`}
+                      className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm hover:bg-accent transition-colors"
+                    >
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted">
+                        {icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">
+                          {r.commune}{r.quartier ? ` · ${r.quartier}` : ""}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">{r.description}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-[10px] text-muted-foreground">{timeAgo}</p>
+                        {r.verifications > 0 && (
+                          <p className="text-[10px] font-semibold text-green-600">{r.verifications} confirm.</p>
+                        )}
+                      </div>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════
           PROBLEM TYPES — 5 cartes cliquables
       ══════════════════════════════════════════════════════════════ */}
       <section className="container py-24">
@@ -611,12 +731,18 @@ const Index = () => {
           <div className="grid gap-8 sm:grid-cols-3 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                  <Zap className="h-4 w-4 text-white" />
+                <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-8 w-8">
+                  <circle cx="18" cy="14" r="12" fill="hsl(var(--primary))" opacity="0.12" />
+                  <circle cx="18" cy="13" r="7" fill="hsl(var(--primary))" />
+                  <path d="M18 20 L18 34 L15 30 L18 34 L21 30 L18 34" stroke="hsl(var(--primary))" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                  <circle cx="18" cy="13" r="3" fill="white" />
+                  <path d="M11 9 Q9 11 9 13 Q9 15 11 17" stroke="hsl(var(--primary))" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.5" />
+                  <path d="M25 9 Q27 11 27 13 Q27 15 25 17" stroke="hsl(var(--primary))" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.5" />
+                </svg>
+                <div className="flex flex-col leading-none">
+                  <span className="font-extrabold text-sm text-foreground">SIGNA<span className="text-primary">·CI</span></span>
+                  <span className="text-[9px] font-semibold tracking-widest text-muted-foreground uppercase">Côte d'Ivoire</span>
                 </div>
-                <span className="font-bold text-sm text-foreground">
-                  SIGNA<span className="text-primary">-CI</span>
-                </span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Plateforme citoyenne de signalement des coupures d'eau et d'électricité à Abidjan, Côte d'Ivoire.

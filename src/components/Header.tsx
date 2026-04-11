@@ -46,15 +46,35 @@ const Header = () => {
   ];
 
   return (
+    <>
     <header className="sticky top-0 z-50 border-b border-border bg-card shadow-sm">
       <div className="container flex h-14 items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <Zap className="h-4 w-4 text-white" />
+        <Link to="/" className="flex items-center gap-2 group">
+          {/* Logo mark — pin with signal waves */}
+          <div className="relative flex h-9 w-9 items-center justify-center">
+            <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-9 w-9">
+              {/* Outer signal ring */}
+              <circle cx="18" cy="14" r="12" fill="hsl(var(--primary))" opacity="0.12" />
+              {/* Inner circle (pin head) */}
+              <circle cx="18" cy="13" r="7" fill="hsl(var(--primary))" />
+              {/* Pin stem */}
+              <path d="M18 20 L18 34 L15 30 L18 34 L21 30 L18 34" stroke="hsl(var(--primary))" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              {/* Signal dot center */}
+              <circle cx="18" cy="13" r="3" fill="white" />
+              {/* Signal wave left */}
+              <path d="M11 9 Q9 11 9 13 Q9 15 11 17" stroke="hsl(var(--primary))" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.5" />
+              {/* Signal wave right */}
+              <path d="M25 9 Q27 11 27 13 Q27 15 25 17" stroke="hsl(var(--primary))" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.5" />
+            </svg>
           </div>
-          <span className="font-bold text-base text-foreground">
-            SIGNA<span className="text-primary">-CI</span>
-          </span>
+          <div className="flex flex-col leading-none">
+            <span className="font-extrabold text-[15px] tracking-tight text-foreground">
+              SIGNA<span className="text-primary">·CI</span>
+            </span>
+            <span className="text-[9px] font-semibold tracking-widest text-muted-foreground uppercase">
+              Côte d'Ivoire
+            </span>
+          </div>
         </Link>
 
         <nav className="hidden items-center gap-0.5 md:flex">
@@ -313,6 +333,7 @@ const Header = () => {
 
     {/* Global search dialog */}
     <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+    </>
   );
 };
 

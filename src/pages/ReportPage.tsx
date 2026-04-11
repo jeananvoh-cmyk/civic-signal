@@ -1091,25 +1091,100 @@ const ReportPage = () => {
                     </button>
                   )}
 
-                  {/* Personnes — coupures uniquement */}
-                  {selectedType.reportCategory === "outage" && (
-                    <button
-                      type="button"
-                      onClick={() => setShowPeople(!showPeople)}
-                      className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
-                        showPeople
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                      }`}
-                    >
-                      <Users className="h-4 w-4" />
-                      Ménage
-                      {(impactedPeople > 1 || babies + pregnant + elderly > 0) && (
-                        <span className="h-2 w-2 rounded-full bg-primary" />
-                      )}
-                    </button>
-                  )}
                 </div>
+
+                {/* Personnes vulnérables — accordion visible (coupures uniquement) */}
+                {selectedType.reportCategory === "outage" && (
+                  <div className="rounded-xl border-2 border-border bg-card overflow-hidden transition-colors">
+                    {/* Header avec toggle Oui/Non */}
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-semibold text-foreground">
+                          Personnes vulnérables dans votre foyer ?
+                        </span>
+                        {(babies + pregnant + elderly > 0) && (
+                          <span className="inline-flex items-center rounded-full bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 text-[10px] font-bold text-red-600">
+                            ⚠️ Priorité haute
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 rounded-lg bg-muted p-0.5">
+                        <button
+                          type="button"
+                          onClick={() => { setShowPeople(false); setBabies(0); setPregnant(0); setElderly(0); }}
+                          className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
+                            !showPeople ? "bg-card shadow text-foreground" : "text-muted-foreground"
+                          }`}
+                        >
+                          Non
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowPeople(true)}
+                          className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
+                            showPeople ? "bg-card shadow text-foreground" : "text-muted-foreground"
+                          }`}
+                        >
+                          Oui →
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Contenu accordion */}
+                    <AnimatePresence>
+                      {showPeople && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="border-t border-border px-4 pt-3 pb-3 space-y-1">
+                            <p className="text-xs text-muted-foreground mb-3">
+                              Ces informations priorisent votre signalement auprès des opérateurs.
+                            </p>
+                            {[
+                              { label: "Personnes impactées", emoji: "👥", val: impactedPeople, set: setImpactedPeople, min: 1, max: 50 },
+                              { label: "Bébés / Nourrissons (0-2 ans)", emoji: "👶", val: babies, set: setBabies, min: 0, max: 20 },
+                              { label: "Femmes enceintes", emoji: "🤰", val: pregnant, set: setPregnant, min: 0, max: 20 },
+                              { label: "Personnes âgées (65+ ans)", emoji: "👴", val: elderly, set: setElderly, min: 0, max: 20 },
+                            ].map(({ label, emoji, val, set, min, max }) => (
+                              <div key={label} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                                <span className="text-sm flex items-center gap-2">
+                                  <span className="text-base">{emoji}</span>
+                                  <span className="text-foreground">{label}</span>
+                                </span>
+                                <div className="flex items-center gap-2.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => set(Math.max(min, val - 1))}
+                                    className="flex h-7 w-7 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
+                                  >
+                                    <Minus className="h-3 w-3" />
+                                  </button>
+                                  <span className="w-5 text-center text-sm font-bold tabular-nums">{val}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => set(Math.min(max, val + 1))}
+                                    className="flex h-7 w-7 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                            {(babies + pregnant + elderly > 0) && (
+                              <p className="text-xs text-red-600 font-medium pt-1">
+                                ⚠️ Personnes vulnérables détectées — urgence élevée automatique
+                              </p>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
 
                 {/* Panneau Note */}
                 <AnimatePresence>
@@ -1187,59 +1262,6 @@ const ReportPage = () => {
                   )}
                 </AnimatePresence>
 
-                {/* Panneau Personnes */}
-                <AnimatePresence>
-                  {showPeople && selectedType.reportCategory === "outage" && (
-                    <motion.div
-                      key="people"
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="rounded-xl border border-border bg-card p-3 space-y-1">
-                        <p className="text-xs text-muted-foreground mb-2">
-                          Combien de personnes dans votre ménage sont touchées par cette coupure ?
-                        </p>
-                        {[
-                          { label: "Personnes impactées dans le ménage", emoji: "👥", val: impactedPeople, set: setImpactedPeople, min: 1, max: 50 },
-                          { label: "Bébés / Nourrissons (0-2 ans)", emoji: "👶", val: babies, set: setBabies, min: 0, max: 20 },
-                          { label: "Femmes enceintes", emoji: "🤰", val: pregnant, set: setPregnant, min: 0, max: 20 },
-                          { label: "Personnes âgées (65+ ans)", emoji: "👴", val: elderly, set: setElderly, min: 0, max: 20 },
-                        ].map(({ label, emoji, val, set, min, max }) => (
-                          <div key={label} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
-                            <span className="text-sm flex items-center gap-2">
-                              <span className="text-base">{emoji}</span>
-                              {label}
-                            </span>
-                            <div className="flex items-center gap-2.5">
-                              <button
-                                type="button"
-                                onClick={() => set(Math.max(min, val - 1))}
-                                className="flex h-7 w-7 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
-                              >
-                                <Minus className="h-3 w-3" />
-                              </button>
-                              <span className="w-5 text-center text-sm font-bold tabular-nums">{val}</span>
-                              <button
-                                type="button"
-                                onClick={() => set(Math.min(max, val + 1))}
-                                className="flex h-7 w-7 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
-                              >
-                                <Plus className="h-3 w-3" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                        {(babies + pregnant + elderly > 0) && (
-                          <p className="text-xs text-red-600 font-medium pt-1">
-                            ⚠️ Personnes vulnérables — priorité élevée automatique
-                          </p>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
 
               {/* Visiteur non connecté → Aha moment */}

@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import { useThemeBrand } from "@/hooks/useThemeBrand";
 import { motion, AnimatePresence } from "framer-motion";
 // ProfilePage - updated
 import {
@@ -351,6 +352,7 @@ const RightsTabContent = () => {
 const ProfilePage = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
+  const { isIvoire, toggle: toggleBrandTheme } = useThemeBrand();
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get("tab") ?? "rights";
   const [loading, setLoading] = useState(true);
@@ -1280,6 +1282,24 @@ const ProfilePage = () => {
                     onClick={() => update("theme", profile.theme === "system" ? "light" : profile.theme === "light" ? "dark" : "system")}
                   >
                     {profile.theme === "system" ? "☀️" : profile.theme === "light" ? "🌙" : "⚙️"}
+                  </Button>
+                </div>
+
+                {/* Couleurs de marque */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                      <Palette className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm text-foreground">Couleurs SIGNA·CI</p>
+                      <p className="text-xs text-muted-foreground">
+                        {isIvoire ? "🟠 Thème Ivoire (orange soleil)" : "🔵 Thème classique (bleu)"}
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={toggleBrandTheme}>
+                    {isIvoire ? "→ Bleu" : "→ Ivoire"}
                   </Button>
                 </div>
 
