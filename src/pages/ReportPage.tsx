@@ -179,7 +179,7 @@ const ReportPage = () => {
   const { enqueue } = useOfflineQueue();
 
   // Wizard
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2>(1);
 
   // Étape 1
   const [selectedType, setSelectedType] = useState<ReportTypeConfig | null>(null);
@@ -259,7 +259,7 @@ const ReportPage = () => {
       const draft = JSON.parse(raw);
       if (draft.typeId) {
         const found = REPORT_TYPES.find((t) => t.id === draft.typeId);
-        if (found) { setSelectedType(found); setStep(draft.step ?? 2); }
+        if (found) { setSelectedType(found); }
       }
       if (draft.commune) setCommune(draft.commune);
       if (draft.quartier) setQuartier(draft.quartier);
@@ -401,7 +401,6 @@ const ReportPage = () => {
     const found = REPORT_TYPES.find((t) => t.id === typeParam);
     if (found) {
       setSelectedType(found);
-      setStep(2);
     }
   }, [searchParams]);
 
@@ -468,7 +467,6 @@ const ReportPage = () => {
 
   const handleTypeSelect = (type: ReportTypeConfig) => {
     setSelectedType(type);
-    setStep(2);
   };
 
   const handleLocationNext = async () => {
@@ -492,7 +490,7 @@ const ReportPage = () => {
     if (selectedType?.reportCategory === "infrastructure") {
       setShowPhoto(true);
     }
-    setStep(3);
+    setStep(2);
   };
 
   const handleCorroborateExisting = async (reportId: string) => {
@@ -512,7 +510,7 @@ const ReportPage = () => {
       } else if (msg.includes("Impossible de confirmer")) {
         toast.error("Ce signalement n'est plus actif.");
         setShowDuplicateDialog(false);
-        proceedToStep3();
+        proceedToStep2();
       } else {
         toast.error(msg);
       }
@@ -521,12 +519,12 @@ const ReportPage = () => {
     }
   };
 
-  const proceedToStep3 = () => {
+  const proceedToStep2 = () => {
     setShowDuplicateDialog(false);
     if (selectedType?.reportCategory === "infrastructure") {
       setShowPhoto(true);
     }
-    setStep(3);
+    setStep(2);
   };
 
   const handleSubmit = async () => {
@@ -687,7 +685,7 @@ const ReportPage = () => {
 
         {/* Indicateur de progression */}
         <div className="mb-6 flex items-center gap-2">
-          {([1, 2, 3] as const).map((s) => (
+          {([1, 2] as const).map((s) => (
             <div key={s} className="flex items-center gap-2 flex-1 last:flex-none">
               <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all ${
                 step === s
@@ -699,9 +697,9 @@ const ReportPage = () => {
                 {step > s ? "✓" : s}
               </div>
               <span className={`text-xs hidden sm:block ${step === s ? "text-foreground font-semibold" : "text-muted-foreground"}`}>
-                {s === 1 ? "Type" : s === 2 ? "Lieu" : "Confirmer"}
+                {s === 1 ? "Type & Lieu" : "Confirmer"}
               </span>
-              {s < 3 && <div className={`flex-1 h-0.5 ${step > s ? "bg-green-500" : "bg-muted"}`} />}
+              {s < 2 && <div className={`flex-1 h-0.5 ${step > s ? "bg-green-500" : "bg-muted"}`} />}
             </div>
           ))}
         </div>
@@ -722,7 +720,7 @@ const ReportPage = () => {
         <AnimatePresence mode="wait">
 
           {/* ═══════════════════════════════════════════════
-              ÉTAPE 1 — Choisir le type
+              ÉTAPE 1 — Type + Localisation
           ═══════════════════════════════════════════════ */}
           {step === 1 && (
             <motion.div
@@ -731,50 +729,257 @@ const ReportPage = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -30 }}
               transition={{ duration: 0.2 }}
+              className="space-y-4"
             >
-              <div className="mb-5 text-center">
+              <div className="text-center">
                 <h1 className="text-xl font-bold">Que se passe-t-il ?</h1>
-                <p className="text-sm text-muted-foreground mt-1">Touchez un type pour continuer</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {selectedType ? "Confirmez ensuite votre localisation" : "Touchez un type pour continuer"}
+                </p>
               </div>
 
+              {/* Grille des types */}
               <div className="grid grid-cols-2 gap-3">
-                {REPORT_TYPES.map((type) => (
-                  <motion.button
-                    key={type.id}
-                    type="button"
-                    whileTap={{ scale: 0.94 }}
-                    onClick={() => handleTypeSelect(type)}
-                    className="group flex flex-col items-center gap-2.5 rounded-2xl border-2 border-border bg-card p-5 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                    style={{ "--hover-color": type.color } as any}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = type.color;
-                      e.currentTarget.style.backgroundColor = type.color + "10";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "";
-                      e.currentTarget.style.backgroundColor = "";
-                    }}
-                  >
-                    {type.image
-                      ? <img src={type.image} alt={type.label} className="h-10 w-10 object-contain rounded-lg" />
-                      : <span className="text-4xl leading-none">{type.emoji}</span>
-                    }
-                    <span className="text-xs font-semibold leading-tight text-foreground">{type.label}</span>
-                    {type.description && (
-                      <span className="text-[10px] leading-tight text-muted-foreground">{type.description}</span>
-                    )}
-                  </motion.button>
-                ))}
+                {REPORT_TYPES.map((type) => {
+                  const isSelected = selectedType?.id === type.id;
+                  return (
+                    <motion.button
+                      key={type.id}
+                      type="button"
+                      whileTap={{ scale: 0.94 }}
+                      onClick={() => handleTypeSelect(type)}
+                      className="group flex flex-col items-center gap-2.5 rounded-2xl border-2 p-5 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      style={{
+                        borderColor: isSelected ? type.color : undefined,
+                        backgroundColor: isSelected ? type.color + "18" : undefined,
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.borderColor = type.color;
+                          e.currentTarget.style.backgroundColor = type.color + "10";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.borderColor = "";
+                          e.currentTarget.style.backgroundColor = "";
+                        }
+                      }}
+                    >
+                      {type.image
+                        ? <img src={type.image} alt={type.label} className="h-10 w-10 object-contain rounded-lg" />
+                        : <span className="text-4xl leading-none">{type.emoji}</span>
+                      }
+                      <span className="text-xs font-semibold leading-tight text-foreground">{type.label}</span>
+                      {type.description && (
+                        <span className="text-[10px] leading-tight text-muted-foreground">{type.description}</span>
+                      )}
+                    </motion.button>
+                  );
+                })}
               </div>
 
-              <div className="mt-6">
+              {/* Section localisation — visible après sélection du type */}
+              <AnimatePresence>
+                {selectedType && (
+                  <motion.div
+                    key="location-section"
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    transition={{ duration: 0.25 }}
+                    className="space-y-4 pt-2"
+                  >
+                    {/* Séparateur + label */}
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 h-px bg-border" />
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+                        <span
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+                          style={{ backgroundColor: selectedType.color + "20" }}
+                        >
+                          {selectedType.image
+                            ? <img src={selectedType.image} alt="" className="h-4 w-4 object-contain" />
+                            : <span className="text-base leading-none">{selectedType.emoji}</span>}
+                        </span>
+                        <span>{selectedType.label} — où ?</span>
+                      </div>
+                      <div className="flex-1 h-px bg-border" />
+                    </div>
+
+                    {/* Champ libre si "Autre" */}
+                    {selectedType.id === "other" && (
+                      <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+                        <label className="text-sm font-semibold block">Précisez le problème *</label>
+                        <Input
+                          placeholder="Ex: Arbre tombé, route inondée..."
+                          value={customTypeDesc}
+                          onChange={(e) => setCustomTypeDesc(e.target.value)}
+                          maxLength={80}
+                          autoFocus
+                        />
+                      </div>
+                    )}
+
+                    {/* Hint GPS */}
+                    <p className="flex items-start gap-1.5 text-xs text-muted-foreground px-1">
+                      <Navigation className="h-3.5 w-3.5 shrink-0 mt-0.5 text-primary/60" />
+                      <span>📍 Soyez <strong>proche du problème</strong> pour une meilleure localisation.</span>
+                    </p>
+
+                    {/* Bannière GPS */}
+                    <div
+                      className="rounded-xl border-2 p-4 transition-colors"
+                      style={{ borderColor: detectedCommune?.couleur || "var(--border)" }}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <MapPin className="h-4 w-4 shrink-0" style={{ color: detectedCommune?.couleur }} />
+                          {gpsLoading ? (
+                            <span className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              {gpsRetrying ? "Amélioration du signal…" : "Détection GPS..."}
+                            </span>
+                          ) : detectedCommune ? (
+                            <span className="font-bold text-sm truncate" style={{ color: detectedCommune.couleur }}>
+                              {detectedCommune.nom} ✓
+                            </span>
+                          ) : outsidePilotZone ? (
+                            <span className="text-sm text-destructive font-medium">⚠️ Hors zone pilote</span>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">GPS non disponible</span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => captureGPS(true)}
+                          disabled={gpsLoading}
+                          className="flex shrink-0 items-center gap-1 rounded-lg bg-muted px-3 py-1.5 text-xs font-medium hover:bg-muted/70 transition-colors disabled:opacity-50"
+                        >
+                          <Navigation className="h-3 w-3" />
+                          {latitude ? "Relocaliser" : "Localiser"}
+                        </button>
+                      </div>
+                      {latitude && longitude && (
+                        <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                          <p className="text-xs text-muted-foreground font-mono">
+                            {latitude.toFixed(5)}, {longitude.toFixed(5)}
+                          </p>
+                          {gpsAccuracy !== null && (
+                            <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium border ${
+                              gpsAccuracy <= 80
+                                ? "bg-green-50 text-green-700 border-green-200"
+                                : gpsAccuracy <= 200
+                                ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                                : "bg-red-50 text-red-700 border-red-200"
+                            }`}>
+                              ± {Math.round(gpsAccuracy)} m
+                            </span>
+                          )}
+                          {gpsSource && (
+                            <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium border bg-muted text-muted-foreground border-border">
+                              {gpsSource === "geojson" ? "polygone" : gpsSource}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {gpsWeakSignal && !outsidePilotZone && detectedCommune && (
+                        <p className="mt-1 text-xs text-amber-600 flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3 shrink-0" />
+                          Signal GPS faible — déplacez-vous près d'une fenêtre pour améliorer la précision
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Blocage hors zone pilote */}
+                    {!gpsLoading && (outsidePilotZone || (!detectedCommune && !gpsLoading)) && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="rounded-2xl border-2 border-amber-500/30 bg-amber-500/5 p-5 text-center space-y-3"
+                      >
+                        <div className="flex justify-center">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/15">
+                            <MapPin className="h-6 w-6 text-amber-500" />
+                          </div>
+                        </div>
+                        <h3 className="font-bold text-foreground text-sm">
+                          {outsidePilotZone
+                            ? "Vous êtes en dehors de nos communes pilotes"
+                            : "Position GPS non disponible"}
+                        </h3>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          {outsidePilotZone
+                            ? "SIGNA-CI est actuellement disponible dans 7 communes d'Abidjan : Abobo, Adjamé, Bingerville, Cocody, Koumassi, Port-Bouët et Yopougon. Nous travaillons à étendre notre couverture très bientôt. Merci pour votre intérêt ! 🙏"
+                            : "Pour signaler un problème, nous avons besoin de votre position GPS afin de vérifier que vous êtes dans une commune pilote. Veuillez autoriser la géolocalisation dans les paramètres de votre navigateur."}
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => captureGPS(true)}
+                          disabled={gpsLoading}
+                          className="mx-auto"
+                        >
+                          <Navigation className="h-3.5 w-3.5 mr-1.5" />
+                          Réessayer la localisation
+                        </Button>
+                      </motion.div>
+                    )}
+
+                    {/* Commune & Quartier */}
+                    {canReport && (
+                      <>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold">Commune *</label>
+                          <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/50 px-4 py-3">
+                            <span className="h-3 w-3 rounded-full inline-block" style={{ backgroundColor: detectedCommune?.couleur }} />
+                            <span className="font-semibold text-sm text-foreground">{commune}</span>
+                            <span className="text-xs text-muted-foreground ml-auto">détectée par GPS</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold">Quartier *</label>
+                          <QuartierSearch
+                            quartiers={getQuartiersForCommune(commune)}
+                            value={quartier}
+                            onChange={setQuartier}
+                          />
+                          {quartier === "__other" && (
+                            <Input
+                              placeholder="Nom du quartier"
+                              value={customQuartier}
+                              onChange={(e) => setCustomQuartier(e.target.value)}
+                              maxLength={100}
+                              autoFocus
+                            />
+                          )}
+                        </div>
+
+                        <Button
+                          type="button"
+                          className="w-full py-5 text-base font-bold"
+                          style={{ backgroundColor: selectedType.color, color: "white" }}
+                          onClick={handleLocationNext}
+                          disabled={!commune || !resolvedQuartier || !latitude}
+                        >
+                          Continuer →
+                        </Button>
+                      </>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="mt-2">
                 <SOSButtons />
               </div>
             </motion.div>
           )}
 
           {/* ═══════════════════════════════════════════════
-              ÉTAPE 2 — Localisation
+              ÉTAPE 2 — Confirmation + envoi
           ═══════════════════════════════════════════════ */}
           {step === 2 && selectedType && (
             <motion.div
@@ -790,211 +995,6 @@ const ReportPage = () => {
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="rounded-full p-2 hover:bg-muted transition-colors"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </button>
-                <div className="flex items-center gap-2.5">
-                  <span
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                    style={{ backgroundColor: selectedType.color + "20" }}
-                  >
-                    {selectedType.image
-                      ? <img src={selectedType.image} alt={selectedType.label} className="h-7 w-7 object-contain" />
-                      : <span className="text-2xl leading-none">{selectedType.emoji}</span>}
-                  </span>
-                  <div>
-                    <p className="font-bold text-sm leading-tight">{selectedType.label}</p>
-                    <p className="text-xs text-muted-foreground">Confirmez votre localisation</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Champ libre si "Autre" */}
-              {selectedType.id === "other" && (
-                <div className="rounded-xl border border-border bg-card p-4 space-y-2">
-                  <label className="text-sm font-semibold block">Précisez le problème *</label>
-                  <Input
-                    placeholder="Ex: Arbre tombé, route inondée..."
-                    value={customTypeDesc}
-                    onChange={(e) => setCustomTypeDesc(e.target.value)}
-                    maxLength={80}
-                    autoFocus
-                  />
-                </div>
-              )}
-
-              {/* Hint GPS */}
-              <p className="flex items-start gap-1.5 text-xs text-muted-foreground px-1">
-                <Navigation className="h-3.5 w-3.5 shrink-0 mt-0.5 text-primary/60" />
-                <span>📍 Soyez <strong>proche du problème</strong> pour une meilleure localisation.</span>
-              </p>
-
-              {/* Bannière GPS */}
-              <div
-                className="rounded-xl border-2 p-4 transition-colors"
-                style={{ borderColor: detectedCommune?.couleur || "var(--border)" }}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <MapPin className="h-4 w-4 shrink-0" style={{ color: detectedCommune?.couleur }} />
-                    {gpsLoading ? (
-                      <span className="text-sm text-muted-foreground flex items-center gap-1">
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        {gpsRetrying ? "Amélioration du signal…" : "Détection GPS..."}
-                      </span>
-                    ) : detectedCommune ? (
-                      <span className="font-bold text-sm truncate" style={{ color: detectedCommune.couleur }}>
-                        {detectedCommune.nom} ✓
-                      </span>
-                    ) : outsidePilotZone ? (
-                      <span className="text-sm text-destructive font-medium">⚠️ Hors zone pilote</span>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">GPS non disponible</span>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => captureGPS(true)}
-                    disabled={gpsLoading}
-                    className="flex shrink-0 items-center gap-1 rounded-lg bg-muted px-3 py-1.5 text-xs font-medium hover:bg-muted/70 transition-colors disabled:opacity-50"
-                  >
-                    <Navigation className="h-3 w-3" />
-                    {latitude ? "Relocaliser" : "Localiser"}
-                  </button>
-                </div>
-                {latitude && longitude && (
-                  <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-                    <p className="text-xs text-muted-foreground font-mono">
-                      {latitude.toFixed(5)}, {longitude.toFixed(5)}
-                    </p>
-                    {gpsAccuracy !== null && (
-                      <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium border ${
-                        gpsAccuracy <= 80
-                          ? "bg-green-50 text-green-700 border-green-200"
-                          : gpsAccuracy <= 200
-                          ? "bg-yellow-50 text-yellow-700 border-yellow-200"
-                          : "bg-red-50 text-red-700 border-red-200"
-                      }`}>
-                        ± {Math.round(gpsAccuracy)} m
-                      </span>
-                    )}
-                    {gpsSource && (
-                      <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium border bg-muted text-muted-foreground border-border">
-                        {gpsSource === "geojson" ? "polygone" : gpsSource}
-                      </span>
-                    )}
-                  </div>
-                )}
-                {gpsWeakSignal && !outsidePilotZone && detectedCommune && (
-                  <p className="mt-1 text-xs text-amber-600 flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3 shrink-0" />
-                    Signal GPS faible — déplacez-vous près d'une fenêtre pour améliorer la précision
-                  </p>
-                )}
-              </div>
-
-              {/* Blocage hors zone pilote */}
-              {!gpsLoading && (outsidePilotZone || (!detectedCommune && !gpsLoading)) && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="rounded-2xl border-2 border-amber-500/30 bg-amber-500/5 p-5 text-center space-y-3"
-                >
-                  <div className="flex justify-center">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/15">
-                      <MapPin className="h-6 w-6 text-amber-500" />
-                    </div>
-                  </div>
-                  <h3 className="font-bold text-foreground text-sm">
-                    {outsidePilotZone
-                      ? "Vous êtes en dehors de nos communes pilotes"
-                      : "Position GPS non disponible"}
-                  </h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {outsidePilotZone
-                      ? "SIGNA-CI est actuellement disponible dans 7 communes d'Abidjan : Abobo, Adjamé, Bingerville, Cocody, Koumassi, Port-Bouët et Yopougon. Nous travaillons à étendre notre couverture très bientôt. Merci pour votre intérêt ! 🙏"
-                      : "Pour signaler un problème, nous avons besoin de votre position GPS afin de vérifier que vous êtes dans une commune pilote. Veuillez autoriser la géolocalisation dans les paramètres de votre navigateur."}
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => captureGPS(true)}
-                    disabled={gpsLoading}
-                    className="mx-auto"
-                  >
-                    <Navigation className="h-3.5 w-3.5 mr-1.5" />
-                    Réessayer la localisation
-                  </Button>
-                </motion.div>
-              )}
-
-              {/* Commune & Quartier — uniquement si dans zone pilote */}
-              {canReport && (
-                <>
-                  {/* Commune */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold">Commune *</label>
-                    <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/50 px-4 py-3">
-                      <span className="h-3 w-3 rounded-full inline-block" style={{ backgroundColor: detectedCommune?.couleur }} />
-                      <span className="font-semibold text-sm text-foreground">{commune}</span>
-                      <span className="text-xs text-muted-foreground ml-auto">détectée par GPS</span>
-                    </div>
-                  </div>
-
-                  {/* Quartier — searchable */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold">Quartier *</label>
-                    <QuartierSearch
-                      quartiers={getQuartiersForCommune(commune)}
-                      value={quartier}
-                      onChange={setQuartier}
-                    />
-                    {quartier === "__other" && (
-                      <Input
-                        placeholder="Nom du quartier"
-                        value={customQuartier}
-                        onChange={(e) => setCustomQuartier(e.target.value)}
-                        maxLength={100}
-                        autoFocus
-                      />
-                    )}
-                  </div>
-                </>
-              )}
-
-              {canReport && (
-                <Button
-                  type="button"
-                  className="w-full py-5 text-base font-bold"
-                  style={{ backgroundColor: selectedType.color, color: "white" }}
-                  onClick={handleLocationNext}
-                  disabled={!commune || !resolvedQuartier || !latitude}
-                >
-                  Continuer →
-                </Button>
-              )}
-            </motion.div>
-          )}
-
-          {/* ═══════════════════════════════════════════════
-              ÉTAPE 3 — Confirmation + envoi
-          ═══════════════════════════════════════════════ */}
-          {step === 3 && selectedType && (
-            <motion.div
-              key="step3"
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -30 }}
-              transition={{ duration: 0.2 }}
-              className="space-y-4"
-            >
-              {/* En-tête */}
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setStep(2)}
                   className="rounded-full p-2 hover:bg-muted transition-colors"
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -1393,7 +1393,7 @@ const ReportPage = () => {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={proceedToStep3}
+                onClick={proceedToStep2}
               >
                 Non, c'est un nouveau problème — créer un signalement
               </Button>

@@ -28,6 +28,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import CitizenBadge from "@/components/CitizenBadge";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Header from "@/components/Header";
 import MyReports from "@/components/MyReports";
@@ -858,6 +859,15 @@ const ProfilePage = () => {
                     </div>
                   ))}
                 </div>
+
+                {/* Citizen badge — shown when ≥1 resolved report */}
+                {resolvedReportsCount >= 1 && (
+                  <CitizenBadge
+                    displayName={profile?.display_name || profile?.first_name || "Citoyen"}
+                    resolvedCount={resolvedReportsCount}
+                    commune={profile?.commune || undefined}
+                  />
+                )}
 
                 {/* Filters */}
                 <div className="flex flex-wrap gap-2 items-center">
