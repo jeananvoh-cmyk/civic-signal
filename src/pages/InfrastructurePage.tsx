@@ -511,7 +511,9 @@ const InfrastructurePage = () => {
 
                 {/* Post content */}
                 <div className="px-4 pb-3">
-                  <p className="text-sm text-foreground leading-relaxed">{report.description}</p>
+                  <p className="text-sm text-foreground leading-relaxed">
+                    {report.description?.replace(/\s*\[\d+\s*personne\(s\)\]/gi, "").trim()}
+                  </p>
                 </div>
 
                 {/* Photos cliquables */}
@@ -596,7 +598,7 @@ const InfrastructurePage = () => {
 
                   <ShareButton
                     title={`Signalement ${serviceLabel(report.service_type)}`}
-                    text={`${report.description} — ${report.quartier}, ${report.commune}`}
+                    text={`${report.description?.replace(/\s*\[\d+\s*personne\(s\)\]/gi, "").trim()} — ${report.quartier}, ${report.commune}`}
                     url={window.location.origin}
                     variant="ghost"
                     size="sm"
