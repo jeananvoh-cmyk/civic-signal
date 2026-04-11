@@ -564,6 +564,7 @@ export type Database = {
           service_type: string
           start_time: string
           status: string
+          support_count: number
           updated_at: string
           urgency: string
           user_id: string
@@ -596,6 +597,7 @@ export type Database = {
           service_type: string
           start_time?: string
           status?: string
+          support_count?: number
           updated_at?: string
           urgency: string
           user_id: string
@@ -628,6 +630,7 @@ export type Database = {
           service_type?: string
           start_time?: string
           status?: string
+          support_count?: number
           updated_at?: string
           urgency?: string
           user_id?: string
@@ -851,6 +854,28 @@ export type Database = {
           service_type: string
         }[]
       }
+      get_public_infrastructure_reports: {
+        Args: { p_commune?: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          commune: string
+          created_at: string
+          description: string
+          id: string
+          latitude_approx: number
+          location: string
+          longitude_approx: number
+          photo_url: string
+          photo_urls: string[]
+          quartier: string
+          repair_verifications: number
+          reporter_type: string
+          service_type: string
+          status: string
+          support_count: number
+          urgency: string
+          verifications: number
+        }[]
+      }
       get_public_reports: {
         Args: never
         Returns: {
@@ -919,10 +944,7 @@ export type Database = {
         Args: { p_report_id: string; p_resolved_at: string }
         Returns: undefined
       }
-      support_infra_report: {
-        Args: { p_report_id: string }
-        Returns: undefined
-      }
+      support_infra_report: { Args: { p_report_id: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "test" | "partner"

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
@@ -8,10 +7,10 @@ import ShareButton from "@/components/ShareButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
-  Zap, Droplets, MapPin, Clock, ThumbsUp, CheckCircle,
-  Filter, TrendingUp, AlertCircle, ChevronDown, Lightbulb, TriangleAlert, Info, MoreHorizontal, Building2, Map, Trash2, Waves, LogIn, X,
+  Zap, Droplets, MapPin, Clock, ThumbsUp, MessageCircle, CheckCircle,
+  Filter, TrendingUp, AlertCircle, ChevronDown, Lightbulb, TriangleAlert, Info, MoreHorizontal, Building2, Map, Trash2, Waves
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -33,6 +32,7 @@ type InfraReport = {
   repair_verifications: number;
   support_count: number;
   reporter_type: string;
+  user_id?: string;
 };
 
 type FilterType = "all" | "eau" | "electricite" | "mairie";
@@ -41,7 +41,6 @@ const PAGE_SIZE = 10;
 
 const InfrastructurePage = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [reports, setReports] = useState<InfraReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>("all");
@@ -51,37 +50,55 @@ const InfrastructurePage = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [supported, setSupported] = useState<Set<string>>(new Set());
   const [repaired, setRepaired] = useState<Set<string>>(new Set());
-  const [loginPrompt, setLoginPrompt] = useState<"support" | "repair" | null>(null);
 
   const fetchReports = async (pageNum: number, append = false) => {
     const setter = append ? setLoadingMore : setLoading;
     setter(true);
 
-    // Même query pour tous — RLS autorise SELECT validated=true pour les anonymes
-    let query = supabase
-      .from("reports")
-      .select("id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, support_count, reporter_type")
-      .eq("report_category", "infrastructure")
-      .eq("validated", true)
-      .eq("status", "active")
-      .order("support_count", { ascending: false })
-      .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
+    let items: InfraReport[] = [];
 
-    if (filter !== "all") {
-      const dbServiceType = filter === "eau" ? "water" : filter === "electricite" ? "electricity" : filter;
-      query = query.eq("service_type", dbServiceType);
-    }
-    if (subFilter) query = query.ilike("description", `%${subFilter}%`);
-
-    const { data, error } = await query;
-    if (error) { setter(false); return; }
-
-    const items = (data ?? []) as InfraReport[];
-
-    // Votes personnels — seulement si connecté
     if (user) {
-      const { data: myVotes } = await (supabase as any).rpc("get_my_infrastructure_votes");
-      if (myVotes) setSupported(new Set(myVotes as string[]));
+      // Utilisateur connecté → query directe (RLS autorise)
+      let query = supabase
+        .from("reports")
+        .select("id, user_id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, support_count, reporter_type")
+        .eq("report_category", "infrastructure")
+        .eq("status", "active")
+        .order("support_count", { ascending: false })
+        .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
+
+      if (filter !== "all") {
+        const dbServiceType = filter === "eau" ? "water" : filter === "electricite" ? "electricity" : filter;
+        query = query.eq("service_type", dbServiceType);
+      }
+      if (subFilter) query = query.ilike("description", `%${subFilter}%`);
+
+      const [{ data, error }, { data: myVotes }] = await Promise.all([
+        query,
+        supabase.from("corroborations").select("report_id").eq("user_id", user.id),
+      ]);
+      if (error) { setter(false); return; }
+      items = (data ?? []) as unknown as InfraReport[];
+      if (myVotes) setSupported(new Set(myVotes.map((v: any) => v.report_id)));
+    } else {
+      // Visiteur anonyme → RPC SECURITY DEFINER (bypass RLS)
+      const { data, error } = await (supabase as any).rpc(
+        "get_public_infrastructure_reports",
+        { p_limit: PAGE_SIZE, p_offset: pageNum * PAGE_SIZE },
+      );
+      if (error) { setter(false); return; }
+
+      let rows = (data ?? []) as InfraReport[];
+
+      // Filtres côté client pour les anonymes
+      if (filter !== "all") {
+        const dbServiceType = filter === "eau" ? "water" : filter === "electricite" ? "electricity" : filter;
+        rows = rows.filter((r) => r.service_type === dbServiceType);
+      }
+      if (subFilter) {
+        rows = rows.filter((r) => r.description?.toLowerCase().includes(subFilter.toLowerCase()));
+      }
+      items = rows;
     }
 
     setHasMore(items.length === PAGE_SIZE);
@@ -93,7 +110,7 @@ const InfrastructurePage = () => {
     setPage(0);
     fetchReports(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter, subFilter, user]);
+  }, [filter, subFilter]);
 
   const handleCategoryClick = (category: string, type: FilterType) => {
     if (subFilter === category) {
@@ -119,31 +136,26 @@ const InfrastructurePage = () => {
 
   const handleSupport = async (reportId: string) => {
     if (!user) {
-      setLoginPrompt("support");
+      toast.info("Connectez-vous pour voter");
       return;
     }
-    const { data, error } = await (supabase as any).rpc("vote_infrastructure_support", { p_report_id: reportId });
+    const report = reports.find((r) => r.id === reportId);
+    if (report?.user_id === user.id) {
+      toast.info("Vous ne pouvez pas voter pour votre propre signalement");
+      return;
+    }
+    const { data, error } = await (supabase.rpc as any)("support_infra_report", { p_report_id: reportId });
     if (error) {
-      // RPC manquant → migration à exécuter
-      if (error.code === "PGRST202" || error.message?.includes("Could not find")) {
-        toast.error("Fonctionnalité temporairement indisponible", {
-          description: "L'équipe technique est sur le coup. Revenez dans quelques instants.",
-        });
+      const msg = error.message || "";
+      if (msg.includes("déjà le vôtre")) {
+        toast.info("Vous ne pouvez pas voter pour votre propre signalement");
       } else {
-        toast.error("Impossible d'enregistrer votre soutien", {
-          description: "Vérifiez votre connexion et réessayez.",
-        });
+        toast.error("Erreur lors du vote");
       }
       return;
     }
-    if (data?.error) {
-      toast.error("Impossible d'enregistrer votre soutien", {
-        description: data.error,
-      });
-      return;
-    }
-    const voted: boolean = data.voted;
-    const newCount: number = data.support_count;
+    const voted: boolean = data?.voted;
+    const newCount: number = data?.support_count;
     setSupported((prev) => {
       const next = new Set(prev);
       voted ? next.add(reportId) : next.delete(reportId);
@@ -152,26 +164,17 @@ const InfrastructurePage = () => {
     setReports((prev) =>
       prev.map((r) => (r.id === reportId ? { ...r, support_count: newCount } : r))
     );
-    toast.success(
-      voted
-        ? "👍 Merci pour votre soutien !"
-        : "Vote retiré",
-      voted
-        ? { description: "Votre voix compte. Plus on est nombreux, plus vite ça bouge !" }
-        : undefined
-    );
+    toast.success(voted ? "Vote enregistré — merci !" : "Vote retiré");
   };
 
   const handleConfirmRepair = async (reportId: string) => {
     if (!user) {
-      setLoginPrompt("repair");
+      toast.info("Connectez-vous pour confirmer la réparation");
       return;
     }
     const { error } = await supabase.rpc("confirm_repair", { p_report_id: reportId });
     if (error) {
-      toast.error("Impossible de confirmer la réparation", {
-        description: "Vérifiez votre connexion et réessayez.",
-      });
+      toast.error(error.message || "Erreur lors de la confirmation");
       return;
     }
     setRepaired((prev) => new Set(prev).add(reportId));
@@ -445,54 +448,6 @@ const InfrastructurePage = () => {
         </div>
       </div>
 
-      {/* Login prompt banner */}
-      <AnimatePresence>
-        {loginPrompt && (
-          <motion.div
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            className="sticky top-[89px] z-30 container max-w-2xl px-4 pt-3"
-          >
-            <div className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 shadow-sm backdrop-blur-sm">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/20">
-                {loginPrompt === "support"
-                  ? <ThumbsUp className="h-4 w-4 text-primary" />
-                  : <CheckCircle className="h-4 w-4 text-green-600" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">
-                  {loginPrompt === "support"
-                    ? "Votre voix compte !"
-                    : "Vous avez vu la réparation ?"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {loginPrompt === "support"
-                    ? "Connectez-vous pour soutenir ce signalement et peser sur les priorités."
-                    : "Connectez-vous pour confirmer la réparation et clore ce signalement."}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  size="sm"
-                  className="h-8 gap-1.5 text-xs"
-                  onClick={() => navigate("/auth")}
-                >
-                  <LogIn className="h-3.5 w-3.5" />
-                  Se connecter
-                </Button>
-                <button
-                  onClick={() => setLoginPrompt(null)}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Feed */}
       <div className="container max-w-2xl px-4 py-4 space-y-3">
         {loading
@@ -556,9 +511,7 @@ const InfrastructurePage = () => {
 
                 {/* Post content */}
                 <div className="px-4 pb-3">
-                  <p className="text-sm text-foreground leading-relaxed">
-                    {report.description.replace(/\s*\[\d+\s*personne\(s\)\]/gi, "").trim()}
-                  </p>
+                  <p className="text-sm text-foreground leading-relaxed">{report.description}</p>
                 </div>
 
                 {/* Photos cliquables */}
@@ -602,63 +555,52 @@ const InfrastructurePage = () => {
                 </div>
 
                 {/* Action buttons */}
-                <div className="px-2 py-1.5 flex items-center gap-0.5">
-                  {/* Bouton soutien */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`flex-1 text-xs gap-1.5 rounded-lg transition-colors ${
-                      supported.has(report.id)
-                        ? "text-primary font-bold bg-primary/8"
-                        : user
-                          ? "text-muted-foreground hover:text-primary hover:bg-primary/8"
-                          : "text-muted-foreground hover:text-primary/80"
-                    }`}
-                    onClick={() => handleSupport(report.id)}
-                  >
-                    <ThumbsUp className={`h-4 w-4 shrink-0 ${supported.has(report.id) ? "fill-primary" : ""}`} />
-                    <span className="truncate">
-                      {supported.has(report.id)
-                        ? "Soutenu ✓"
-                        : user
-                          ? "Je veux que ça soit réparé"
-                          : report.support_count > 0
-                            ? `${report.support_count} soutien${report.support_count > 1 ? "s" : ""} · Voter`
-                            : "Soutenir"}
+                <div className="px-2 py-1.5 flex items-center">
+                  {user && report.user_id === user.id ? (
+                    <span className="flex-1 text-sm text-muted-foreground flex items-center gap-1.5 px-3 py-1.5">
+                      <ThumbsUp className="h-4 w-4" />
+                      Mon signalement
                     </span>
-                  </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`flex-1 text-sm gap-1.5 ${
+                        supported.has(report.id)
+                          ? "text-primary font-semibold"
+                          : "text-muted-foreground"
+                      }`}
+                      onClick={() => handleSupport(report.id)}
+                    >
+                      <ThumbsUp className={`h-4 w-4 ${supported.has(report.id) ? "fill-primary" : ""}`} />
+                      {supported.has(report.id) ? "Je soutiens ✓" : "Je veux que ça soit réparé"}
+                    </Button>
+                  )}
 
-                  {/* Bouton réparation */}
                   {report.status === "active" && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      className={`flex-1 text-xs gap-1.5 rounded-lg transition-colors ${
+                      className={`flex-1 text-sm gap-1.5 ${
                         repaired.has(report.id)
-                          ? "text-emerald-600 font-bold bg-emerald-500/10"
-                          : "text-emerald-600/70 hover:text-emerald-600 hover:bg-emerald-500/10"
+                          ? "text-[hsl(var(--success))] font-semibold"
+                          : "text-[hsl(var(--success))]"
                       }`}
                       onClick={() => handleConfirmRepair(report.id)}
                       disabled={repaired.has(report.id)}
                     >
-                      <CheckCircle className="h-4 w-4 shrink-0" />
-                      <span className="truncate">
-                        {repaired.has(report.id)
-                          ? "Réparé ✓"
-                          : report.repair_verifications > 0
-                            ? `${report.repair_verifications}/3 réparé`
-                            : "C'est réparé ?"}
-                      </span>
+                      <CheckCircle className="h-4 w-4" />
+                      {repaired.has(report.id) ? "Noté réparé" : "C'est réparé"}
                     </Button>
                   )}
 
                   <ShareButton
                     title={`Signalement ${serviceLabel(report.service_type)}`}
                     text={`${report.description} — ${report.quartier}, ${report.commune}`}
-                    url={`${window.location.origin}/signalement/${report.id}`}
+                    url={window.location.origin}
                     variant="ghost"
                     size="sm"
-                    className="flex-none px-2.5 text-muted-foreground"
+                    className="flex-none px-3 text-muted-foreground"
                   />
                 </div>
               </motion.article>
