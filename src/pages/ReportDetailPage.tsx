@@ -3,8 +3,10 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Zap, Droplets, MapPin, Calendar, CheckCircle2,
-  Clock, Users, AlertTriangle, ExternalLink, Loader2, Shield,
+  Clock, Users, AlertTriangle, ExternalLink, Loader2, Shield, ThumbsUp,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
@@ -18,6 +20,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 
 interface ReportDetail {
   id: string;
+  user_id: string;
   service_type: string;
   report_category: string;
   description: string;
@@ -84,9 +87,12 @@ const TimelineStep = ({
 const ReportDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [report, setReport] = useState<ReportDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [corroborating, setCorroborating] = useState(false);
+  const [corroborated, setCorroborated] = useState(false);
 
   usePageMeta({
     title: report
@@ -101,7 +107,7 @@ const ReportDetailPage = () => {
     if (!id) return;
     supabase
       .from("reports")
-      .select("id, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, validated, validated_at, photo_url, photo_urls, verifications, repair_verifications, impacted_people, babies, pregnant, elderly, latitude, longitude")
+      .select("id, user_id, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, validated, validated_at, photo_url, photo_urls, verifications, repair_verifications, impacted_people, babies, pregnant, elderly, latitude, longitude")
       .eq("id", id)
       .single()
       .then(({ data, error }) => {
@@ -138,7 +144,27 @@ const ReportDetailPage = () => {
   const color = COMMUNE_COLORS[report.commune] || "#888";
   const isElec = report.service_type === "electricity";
   const isResolved = report.status === "resolved";
+  const isInfra = report.report_category === "infrastructure";
   const hasVulnerable = report.babies > 0 || report.pregnant > 0 || report.elderly > 0;
+  const canCorroborate = user && user.id !== report.user_id && !isResolved && !isInfra;
+
+  const handleCorroborate = async () => {
+    if (!user) { toast.error("Connectez-vous pour confirmer ce signalement"); return; }
+    setCorroborating(true);
+    try {
+      const { error } = await supabase.rpc("corroborate_report", { p_report_id: report.id });
+      if (error) throw error;
+      setCorroborated(true);
+      setReport((prev) => prev ? { ...prev, verifications: prev.verifications + 1 } : prev);
+      toast.success("✅ Confirmation enregistrée — merci !");
+    } catch (err: any) {
+      const msg = err?.message || "";
+      if (msg.includes("déjà confirmé")) toast.info("Vous avez déjà confirmé ce signalement.");
+      else toast.error("Impossible de confirmer pour le moment.");
+    } finally {
+      setCorroborating(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -280,6 +306,24 @@ const ReportDetailPage = () => {
             />
           </div>
         </motion.div>
+
+        {/* Bouton corroborer — visiteurs connectés non-auteurs */}
+        {canCorroborate && (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.17 }}>
+            <Button
+              onClick={handleCorroborate}
+              disabled={corroborating || corroborated}
+              className="w-full gap-2 py-5 text-sm font-bold"
+            >
+              {corroborating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ThumbsUp className="h-4 w-4" />
+              )}
+              {corroborated ? "Confirmation enregistrée ✓" : "Je confirme cette coupure"}
+            </Button>
+          </motion.div>
+        )}
 
         {/* Actions + Partage */}
         <motion.div

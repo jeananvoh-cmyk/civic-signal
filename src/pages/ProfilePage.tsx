@@ -102,6 +102,22 @@ const RESOURCE_ICONS: Record<string, React.ReactNode> = {
 const RightsTabContent = () => {
   const { data: rights, isLoading } = useRightsContent();
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
+  const [whatsappCIE, setWhatsappCIE] = useState("");
+  const [whatsappSODECI, setWhatsappSODECI] = useState("");
+
+  useEffect(() => {
+    supabase
+      .from("relay_config")
+      .select("key, value")
+      .in("key", ["whatsapp_cie", "whatsapp_sodeci"])
+      .then(({ data }) => {
+        if (!data) return;
+        for (const row of data as { key: string; value: string }[]) {
+          if (row.key === "whatsapp_cie") setWhatsappCIE(row.value ?? "");
+          if (row.key === "whatsapp_sodeci") setWhatsappSODECI(row.value ?? "");
+        }
+      });
+  }, []);
 
   const toggle = (key: string) => {
     setOpenSections(prev => {
@@ -289,6 +305,35 @@ const RightsTabContent = () => {
                             </a>
                           );
                         })}
+                        {/* WhatsApp opérateurs configurés par l'admin */}
+                        {whatsappCIE && (
+                          <a
+                            href={`https://wa.me/${whatsappCIE.replace(/\D/g, "")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 rounded-lg border border-green-200 p-2.5 bg-green-50 hover:bg-green-100 transition-colors dark:border-green-800/40 dark:bg-green-900/10"
+                          >
+                            <span className="text-green-600 text-base shrink-0">💬</span>
+                            <div>
+                              <p className="text-xs font-medium text-foreground">CIE (WhatsApp)</p>
+                              <p className="text-sm font-bold text-green-700 dark:text-green-400">{whatsappCIE}</p>
+                            </div>
+                          </a>
+                        )}
+                        {whatsappSODECI && (
+                          <a
+                            href={`https://wa.me/${whatsappSODECI.replace(/\D/g, "")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 rounded-lg border border-green-200 p-2.5 bg-green-50 hover:bg-green-100 transition-colors dark:border-green-800/40 dark:bg-green-900/10"
+                          >
+                            <span className="text-green-600 text-base shrink-0">💬</span>
+                            <div>
+                              <p className="text-xs font-medium text-foreground">SODECI (WhatsApp)</p>
+                              <p className="text-sm font-bold text-green-700 dark:text-green-400">{whatsappSODECI}</p>
+                            </div>
+                          </a>
+                        )}
                       </div>
                     )}
                   </div>
@@ -336,6 +381,10 @@ const ProfilePage = () => {
   // Active & resolved reports count
   const [activeReportsCount, setActiveReportsCount] = useState<number | null>(null);
   const [resolvedReportsCount, setResolvedReportsCount] = useState<number>(0);
+
+  // WhatsApp opérateurs depuis relay_config
+  const [whatsappCIE, setWhatsappCIE] = useState<string>("");
+  const [whatsappSODECI, setWhatsappSODECI] = useState<string>("");
 
   // History state
   const [history, setHistory] = useState<HistoryReport[]>([]);
@@ -418,6 +467,21 @@ const ProfilePage = () => {
       setResolvedReportsCount(resolvedCount ?? 0);
     };
     fetchCounts();
+
+    // Fetch WhatsApp opérateurs depuis relay_config (lecture publique)
+    const fetchWhatsapp = async () => {
+      const { data } = await supabase
+        .from("relay_config")
+        .select("key, value")
+        .in("key", ["whatsapp_cie", "whatsapp_sodeci"]);
+      if (data) {
+        for (const row of data as { key: string; value: string }[]) {
+          if (row.key === "whatsapp_cie") setWhatsappCIE(row.value ?? "");
+          if (row.key === "whatsapp_sodeci") setWhatsappSODECI(row.value ?? "");
+        }
+      }
+    };
+    fetchWhatsapp();
   }, [user]);
 
   const fetchHistory = async () => {

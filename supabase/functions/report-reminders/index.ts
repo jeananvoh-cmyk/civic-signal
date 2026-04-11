@@ -19,8 +19,8 @@ Deno.serve(async (req) => {
     // Fetch all active outage reports with age in hours
     const { data: reports, error } = await supabase
       .from("reports")
-      .select("id, user_id, service_type, commune, quartier, created_at, reminder_count, last_reminder_at, report_category")
-      .eq("status", "active")
+      .select("id, user_id, service_type, commune, quartier, created_at, reminder_count, last_reminder_at, report_category, status")
+      .in("status", ["active", "chronic"])
       .eq("report_category", "outage");
 
     if (error) throw error;
@@ -59,38 +59,57 @@ Deno.serve(async (req) => {
         ? `${Math.floor(ageHours)}h`
         : `${Math.floor(ageDays)}j`;
 
-      // ============ 14-DAY AUTO-EXPIRATION ============
-      if (ageDays >= 14) {
+      // ============ 14-DAY → CHRONIC (problème récurrent) ============
+      if (ageDays >= 14 && report.status !== "chronic") {
         await supabase
           .from("reports")
           .update({
-            status: "expired",
+            status: "chronic",
+            urgency: "critical",
             last_reminder_at: new Date().toISOString(),
             reminder_count: report.reminder_count + 1,
-            latitude: null,
-            longitude: null,
           })
           .eq("id", report.id);
         expired14d++;
 
+        // Notify the author
         await supabase.from("notifications").insert({
           user_id: report.user_id,
           report_id: report.id,
-          title: "⚫ Signalement expiré automatiquement",
-          message: `${serviceLabel} — ${report.commune}, ${report.quartier} · 14 jours sans résolution. Si la coupure persiste, faites un nouveau signalement. → ${detailUrl}`,
+          title: "🔴 Problème chronique — 14 jours sans intervention",
+          message: `${serviceLabel} — ${report.commune}, ${report.quartier} · Ce problème dure depuis 14 jours sans résolution. Il est désormais classé "Problème chronique" et reste visible publiquement pour maintenir la pression. → ${detailUrl}`,
         });
         notificationsInserted++;
 
-        // Clean up unread neighbor notifications
-        await supabase
-          .from("notifications")
-          .delete()
-          .eq("report_id", report.id)
-          .eq("read", false)
-          .eq("title", "Coupure signalée dans votre quartier");
+        // Notify neighbors in same quartier who have active reports of same type
+        const { data: neighbors } = await supabase
+          .from("reports")
+          .select("user_id")
+          .eq("quartier", report.quartier)
+          .eq("service_type", report.service_type)
+          .eq("report_category", report.report_category)
+          .in("status", ["active", "chronic"])
+          .neq("id", report.id)
+          .neq("user_id", report.user_id);
+
+        if (neighbors && neighbors.length > 0) {
+          const uniqueNeighborIds = [...new Set(neighbors.map((n: any) => n.user_id))];
+          await supabase.from("notifications").insert(
+            uniqueNeighborIds.map((uid) => ({
+              user_id: uid,
+              report_id: report.id,
+              title: "⚠️ Problème chronique dans votre quartier",
+              message: `${serviceLabel} — ${report.quartier}, ${report.commune} · Un problème dure depuis 14 jours sans intervention. Partagez-le pour amplifier la pression collective. → ${detailUrl}`,
+            }))
+          );
+          notificationsInserted += uniqueNeighborIds.length;
+        }
 
         continue;
       }
+
+      // Skip already-chronic reports (don't re-process)
+      if (report.status === "chronic") continue;
 
       // ============ 24h+ : alerte critique + CTA résolution (toutes les heures) ============
       if (ageHours >= 24 && lastReminderMinutes >= 55) {
@@ -181,7 +200,7 @@ Deno.serve(async (req) => {
         notifications: notificationsInserted,
         archived,
         escalated,
-        expired14d,
+        chronicified: expired14d,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

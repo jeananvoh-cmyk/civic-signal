@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Zap, Droplets, Loader2, History, Calendar, ArrowLeft, ChevronRight, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Zap, Droplets, Loader2, History, Calendar, ArrowLeft, ChevronRight, CheckCircle2, AlertTriangle, Wrench } from "lucide-react";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
 import { Badge } from "@/components/ui/badge";
@@ -12,12 +12,14 @@ import { useNavigate, Link } from "react-router-dom";
 import PhotoGallery from "@/components/PhotoGallery";
 import DurationBadge from "@/components/DurationBadge";
 import { toast } from "sonner";
+import CitizenScore from "@/components/CitizenScore";
 
 const FEEDBACK_KEY = "report_resolution_feedback";
 
 interface HistoryReport {
   id: string;
   service_type: string;
+  report_category: string;
   description: string;
   commune: string;
   quartier: string;
@@ -56,7 +58,7 @@ const HistoryPage = () => {
     const fetch = async () => {
       const { data, error } = await supabase
         .from("reports")
-        .select("id, service_type, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, photo_url, photo_urls, repair_verifications, verifications")
+        .select("id, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, photo_url, photo_urls, repair_verifications, verifications")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (!error && data) setReports(data);
@@ -96,6 +98,31 @@ const HistoryPage = () => {
           </div>
         </motion.div>
 
+        {/* Score citoyen */}
+        {!loading && (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-5">
+            <CitizenScore />
+          </motion.div>
+        )}
+
+        {/* Stats rapides */}
+        {!loading && reports.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-5 grid grid-cols-3 gap-3">
+            <div className="rounded-xl border border-border bg-card p-3 text-center">
+              <p className="text-2xl font-extrabold text-foreground">{reports.length}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Total</p>
+            </div>
+            <div className="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-800/40 dark:bg-amber-900/10 p-3 text-center">
+              <p className="text-2xl font-extrabold text-amber-600 dark:text-amber-400">{totalActive}</p>
+              <p className="text-[10px] text-amber-700 dark:text-amber-500 mt-0.5">En cours</p>
+            </div>
+            <div className="rounded-xl border border-green-200 bg-green-50 dark:border-green-800/40 dark:bg-green-900/10 p-3 text-center">
+              <p className="text-2xl font-extrabold text-green-600 dark:text-green-400">{totalResolved}</p>
+              <p className="text-[10px] text-green-700 dark:text-green-500 mt-0.5">R\u00e9solus</p>
+            </div>
+          </motion.div>
+        )}
+
         {/* Filter tabs */}
         <div className="mb-4 flex gap-2">
           {[
@@ -131,7 +158,10 @@ const HistoryPage = () => {
             {filtered.map((r, i) => {
               const color = COMMUNE_COLORS[r.commune] || "#888";
               const isElec = r.service_type === "electricity";
+              const isInfra = r.report_category === "infrastructure";
               const isResolved = r.status === "resolved";
+              const serviceIcon = isInfra ? <Wrench className="h-4 w-4" /> : isElec ? <Zap className="h-4 w-4" /> : <Droplets className="h-4 w-4" />;
+              const serviceLabel = isInfra ? "Infrastructure" : isElec ? "Électricité" : "Eau";
 
               return (
                 <motion.div
@@ -143,8 +173,8 @@ const HistoryPage = () => {
                 >
                   <div className="flex items-center justify-between px-4 py-2" style={{ backgroundColor: color }}>
                     <div className="flex items-center gap-2 text-white">
-                      {isElec ? <Zap className="h-4 w-4" /> : <Droplets className="h-4 w-4" />}
-                      <span className="text-sm font-bold">{isElec ? "Électricité" : "Eau"}</span>
+                      {serviceIcon}
+                      <span className="text-sm font-bold">{serviceLabel}</span>
                     </div>
                     <Badge variant="outline" className={`text-white border-white/30 ${isResolved ? "bg-white/20" : "bg-white/10"}`}>
                       {isResolved ? "✅ Résolu" : "🔴 Actif"}

@@ -232,8 +232,8 @@ const MapPage = () => {
     }
     let query = supabase
       .from("reports")
-      .select("id, latitude, longitude, service_type, verifications, commune, created_at, start_time")
-      .eq("status", "active")
+      .select("id, latitude, longitude, service_type, verifications, commune, created_at, start_time, status")
+      .in("status", ["active", "chronic"])
       .not("latitude", "is", null)
       .not("longitude", "is", null)
       .limit(500);
@@ -304,10 +304,19 @@ const MapPage = () => {
       const hoursOldest = (Date.now() - oldestMs) / 3600000;
       const level = alertLevel(hoursOldest);
 
-      // Color override for alert level
-      const fillColor = level === "critical" ? "#dc2626" : level === "warning" ? "#ea580c" : baseColor;
-      const borderColor = level === "critical" ? "#fca5a5" : level === "warning" ? "#fed7aa" : "#fff";
-      const borderWeight = level !== "normal" ? 2.5 : 1.5;
+      // Chronic if any report in cluster is chronic
+      const isChronic = cluster.some((r: any) => r.status === "chronic");
+
+      // Color override for alert level and chronic
+      const fillColor = isChronic ? "#7c3aed"
+        : level === "critical" ? "#dc2626"
+        : level === "warning" ? "#ea580c"
+        : baseColor;
+      const borderColor = isChronic ? "#ddd6fe"
+        : level === "critical" ? "#fca5a5"
+        : level === "warning" ? "#fed7aa"
+        : "#fff";
+      const borderWeight = isChronic ? 3 : level !== "normal" ? 2.5 : 1.5;
 
       const totalVerifs = cluster.reduce((s, r) => s + r.verifications, 0);
       const radius = Math.min(6 + Math.min(totalVerifs * 2, 18) + (cluster.length > 1 ? 4 : 0), 28);
@@ -320,13 +329,17 @@ const MapPage = () => {
         ? `<span style="display:inline-block;background:#1e293b;color:#fff;border-radius:999px;font-size:9px;font-weight:700;padding:1px 6px;margin-left:3px">${cluster.length}</span>`
         : '';
 
+      const chronicBadge = isChronic
+        ? `<span style="display:inline-block;background:#7c3aed;color:#fff;border-radius:999px;font-size:9px;font-weight:700;padding:1px 6px;margin-top:2px">🔴 Chronique +14j</span>`
+        : '';
+
       L.circleMarker([lat, lon], {
         radius,
         fillColor,
         color: borderColor,
         weight: borderWeight,
         opacity: 1,
-        fillOpacity: level !== "normal" ? 0.85 : 0.65,
+        fillOpacity: isChronic ? 0.9 : level !== "normal" ? 0.85 : 0.65,
       })
         .addTo(group)
         .bindPopup(
@@ -334,6 +347,7 @@ const MapPage = () => {
             <span style="font-size:18px">${isElec ? "⚡" : "💧"}</span>${countBadge}<br/>
             <strong style="color:${fillColor}">${r0.commune}</strong><br/>
             <span style="font-size:11px;color:#666">${totalVerifs} confirmation${totalVerifs !== 1 ? "s" : ""}${cluster.length > 1 ? ` · ${cluster.length} signalements` : ""}</span>
+            ${chronicBadge}
             ${durationPillHtml({ ...r0, start_time: new Date(oldestMs).toISOString() })}
           </div>`
         );

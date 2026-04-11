@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
-import { Zap, Menu, X, LogOut, User, Shield, Moon, Sun, Monitor, Map, Wrench, ChevronDown } from "lucide-react";
+import { Zap, Menu, X, LogOut, User, Shield, Moon, Sun, Monitor, Map, Wrench, ChevronDown, Search } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
+import GlobalSearch from "@/components/GlobalSearch";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,6 +13,7 @@ const Header = () => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mapDropdownOpen, setMapDropdownOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { user, signOut } = useAuth();
   const { canValidate, isAdmin, isModerator } = useUserRole();
@@ -122,6 +124,9 @@ const Header = () => {
             )}
           </div>
 
+          <Button variant="ghost" size="icon" onClick={() => setSearchOpen(true)} className="ml-1" title="Rechercher">
+            <Search className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="icon" onClick={toggleTheme} className="ml-1" title={`Thème: ${theme}`}>
             {themeIcon}
           </Button>
@@ -305,6 +310,9 @@ const Header = () => {
         </nav>
       )}
     </header>
+
+    {/* Global search dialog */}
+    <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
   );
 };
 

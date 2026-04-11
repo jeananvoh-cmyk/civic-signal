@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Clock, Power, Zap, Droplets, Loader2, PartyPopper, AlertTriangle, ThumbsUp, Trash2 } from "lucide-react";
+import { CheckCircle2, Clock, Power, Zap, Droplets, Loader2, PartyPopper, AlertTriangle, ThumbsUp, Trash2, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,7 @@ import { toast } from "sonner";
 interface MyReport {
   id: string;
   service_type: string;
+  report_category: string;
   description: string;
   commune: string;
   quartier: string;
@@ -55,7 +56,7 @@ const VerificationPage = () => {
     if (!user) return;
     const { data, error } = await supabase
       .from("reports")
-      .select("id, service_type, description, commune, quartier, status, urgency, created_at, start_time, verifications, last_reminder_at")
+      .select("id, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, verifications, last_reminder_at")
       .eq("user_id", user.id)
       .eq("status", "active")
       .order("created_at", { ascending: false });
@@ -233,7 +234,7 @@ const VerificationPage = () => {
               </div>
               <h1 className="font-display text-2xl font-bold text-foreground">Mes signalements actifs</h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                Confirmez le retour du service ou signalez que la coupure est toujours en cours
+                Mettez à jour l'état de vos signalements en cours
               </p>
             </motion.div>
 
@@ -260,8 +261,16 @@ const VerificationPage = () => {
               {reports.map((r, i) => {
                 const color = COMMUNE_COLORS[r.commune] || "#6B7280";
                 const isElec = r.service_type === "electricity";
+                const isInfra = r.report_category === "infrastructure";
                 const isResolved = justResolved === r.id;
                 const timeAgo = getTimeAgo(r.created_at);
+
+                const serviceIcon = isInfra
+                  ? <Wrench className="h-4 w-4" />
+                  : isElec ? <Zap className="h-4 w-4" /> : <Droplets className="h-4 w-4" />;
+                const serviceLabel = isInfra
+                  ? "Infrastructure"
+                  : isElec ? "Électricité" : "Eau";
 
                 return (
                   <motion.div
@@ -282,9 +291,9 @@ const VerificationPage = () => {
                       style={{ backgroundColor: color }}
                     >
                       <div className="flex items-center gap-2 text-white">
-                        {isElec ? <Zap className="h-4 w-4" /> : <Droplets className="h-4 w-4" />}
+                        {serviceIcon}
                         <span className="text-sm font-bold">
-                          {isElec ? "Électricité" : "Eau"} — {r.commune}
+                          {serviceLabel} — {r.commune}
                         </span>
                       </div>
                       <span className="text-xs text-white/70">{timeAgo}</span>
@@ -293,7 +302,9 @@ const VerificationPage = () => {
                     {isResolved ? (
                       <div className="flex items-center justify-center gap-2 p-6">
                         <PartyPopper className="h-6 w-6 text-success" />
-                        <span className="font-bold text-success">Service rétabli !</span>
+                        <span className="font-bold text-success">
+                          {isInfra ? "Problème résolu !" : "Service rétabli !"}
+                        </span>
                       </div>
                     ) : (
                       <div className="p-4">
@@ -326,14 +337,14 @@ const VerificationPage = () => {
                             ) : (
                               <AlertTriangle className="mr-1.5 h-4 w-4" />
                             )}
-                            Toujours coupé
+                            {isInfra ? "Problème persiste" : "Toujours coupé"}
                           </Button>
                           <Button
                             onClick={() => openResolveDialog(r)}
                             className="bg-success text-success-foreground hover:bg-success/90 font-semibold"
                           >
                             <Power className="mr-1.5 h-4 w-4" />
-                            Tout va bien
+                            {isInfra ? "Problème résolu" : "Tout va bien"}
                           </Button>
                         </div>
                         

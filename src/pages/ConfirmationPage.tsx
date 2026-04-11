@@ -1,19 +1,24 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Radio, Users, Share2, BarChart3, Zap, ArrowRight, MapPin } from "lucide-react";
+import { CheckCircle2, Radio, Users, Share2, BarChart3, Zap, ArrowRight, MapPin, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
 import PushPromptBanner from "@/components/PushPromptBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNES } from "@/lib/communes";
+import { useAuth } from "@/contexts/AuthContext";
+
+const FIRST_BADGE_KEY = "signa_first_report_badge";
 
 const POLL_INTERVAL = 5000;
 
 const ConfirmationPage = () => {
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const reportId = searchParams.get("id");
+  const [showBadge, setShowBadge] = useState(false);
   const commune = searchParams.get("commune") || "";
   const typeLabel = searchParams.get("type") || "Signalement";
   const typeEmoji = searchParams.get("emoji") || "⚡";
@@ -54,6 +59,21 @@ const ConfirmationPage = () => {
     const interval = setInterval(fetchVerifications, POLL_INTERVAL);
     return () => clearInterval(interval);
   }, [reportId]);
+
+  // Badge "Premier signalement"
+  useEffect(() => {
+    if (!user || localStorage.getItem(FIRST_BADGE_KEY)) return;
+    supabase
+      .from("reports")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .then(({ count }) => {
+        if (count === 1) {
+          localStorage.setItem(FIRST_BADGE_KEY, "1");
+          setTimeout(() => setShowBadge(true), 1200);
+        }
+      });
+  }, [user]);
 
   // Fetch count of other active reports in same area
   useEffect(() => {
@@ -106,6 +126,43 @@ const ConfirmationPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+
+      {/* Modal badge premier signalement */}
+      <AnimatePresence>
+        {showBadge && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+            onClick={() => setShowBadge(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.7, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.7, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 260, damping: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-card rounded-2xl border border-amber-200 p-8 text-center max-w-xs w-full shadow-2xl"
+            >
+              <div className="flex justify-center mb-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
+                  <Award className="h-8 w-8 text-amber-500" />
+                </div>
+              </div>
+              <p className="text-xs font-semibold text-amber-600 uppercase tracking-widest mb-1">Badge d\u00e9bloqu\u00e9</p>
+              <h2 className="font-display text-xl font-extrabold text-foreground mb-2">Premier Signalement !</h2>
+              <p className="text-sm text-muted-foreground mb-6">
+                F\u00e9licitations ! Vous venez de faire votre premier signalement citoyen. Continuez comme \u00e7a !
+              </p>
+              <Button onClick={() => setShowBadge(false)} className="w-full">
+                Super !
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <main className="container max-w-md py-10 px-4">
 
         {/* Icône succès */}

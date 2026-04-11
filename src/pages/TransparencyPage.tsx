@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   BarChart3, CheckCircle2, Clock, Users, TrendingUp,
-  Zap, Droplets, MapPin, Loader2, Shield,
+  Zap, Droplets, MapPin, Loader2, Shield, AlertTriangle,
 } from "lucide-react";
 import Header from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,11 +70,33 @@ const TransparencyPage = () => {
     description: "Statistiques publiques des signalements citoyens à Abidjan : taux de résolution, délais, communes les plus touchées.",
   });
 
+  const [chronicCount, setChronicCount] = useState<number>(0);
+  const [chronicByCommune, setChronicByCommune] = useState<Array<{ commune: string; count: number }>>([]);
+
   useEffect(() => {
     supabase.rpc("get_transparency_stats" as any).then(({ data }) => {
       if (data) setStats(data as TransparencyStats);
       setLoading(false);
     });
+
+    // Fetch chronic reports
+    supabase
+      .from("reports")
+      .select("commune")
+      .eq("status", "chronic")
+      .then(({ data }) => {
+        if (!data) return;
+        setChronicCount(data.length);
+        const byCommune: Record<string, number> = {};
+        data.forEach((r: any) => {
+          byCommune[r.commune] = (byCommune[r.commune] || 0) + 1;
+        });
+        setChronicByCommune(
+          Object.entries(byCommune)
+            .map(([commune, count]) => ({ commune, count }))
+            .sort((a, b) => b.count - a.count)
+        );
+      });
   }, []);
 
   const maxMonthly = stats?.monthly
@@ -214,6 +236,109 @@ const TransparencyPage = () => {
                       </div>
                     );
                   })}
+              </div>
+            </motion.div>
+
+            {/* Problèmes chroniques */}
+            {chronicCount > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.21 }}
+                className="rounded-2xl border-2 border-violet-500/30 bg-violet-500/5 p-6"
+              >
+                <h2 className="text-base font-bold text-foreground mb-1 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-violet-600" />
+                  Problèmes chroniques — sans résolution depuis +14 jours
+                </h2>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Ces signalements n'ont reçu aucune intervention depuis plus de 2 semaines.
+                  Ils restent visibles pour maintenir la pression sur les opérateurs.
+                </p>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="rounded-xl bg-violet-500/10 border border-violet-500/20 px-4 py-3 text-center">
+                    <p className="text-3xl font-extrabold text-violet-700">{chronicCount}</p>
+                    <p className="text-xs text-violet-600 mt-0.5">problème{chronicCount > 1 ? "s" : ""} chronique{chronicCount > 1 ? "s" : ""}</p>
+                  </div>
+                </div>
+                {chronicByCommune.length > 0 && (
+                  <div className="space-y-2">
+                    {chronicByCommune.slice(0, 5).map((c) => {
+                      const color = COMMUNE_COLORS[c.commune] || "#7c3aed";
+                      return (
+                        <div key={c.commune} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                            <span className="font-medium text-foreground">{c.commune}</span>
+                          </div>
+                          <span className="text-xs font-semibold text-violet-700 bg-violet-500/10 rounded-full px-2 py-0.5">
+                            {c.count} chronique{c.count > 1 ? "s" : ""}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* SLA Opérateurs */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.215 }}
+              className="rounded-2xl border border-border bg-card shadow-card p-6"
+            >
+              <h2 className="text-base font-bold text-foreground mb-4 flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" /> SLA Opérateurs — objectifs de réactivité
+              </h2>
+              <div className="space-y-3">
+                {[
+                  {
+                    label: "CIE — Coupure électricité",
+                    icon: <Zap className="h-4 w-4 text-yellow-500" />,
+                    target: 24,
+                    actual: stats?.avg_resolution_hours?.electricity ?? null,
+                  },
+                  {
+                    label: "SODECI — Coupure eau",
+                    icon: <Droplets className="h-4 w-4 text-sky-500" />,
+                    target: 48,
+                    actual: stats?.avg_resolution_hours?.water ?? null,
+                  },
+                  {
+                    label: "Mairie — Infrastructure",
+                    icon: <MapPin className="h-4 w-4 text-emerald-500" />,
+                    target: 72,
+                    actual: stats?.avg_resolution_hours?.infrastructure ?? null,
+                  },
+                ].map((row) => {
+                  const ok = row.actual !== null && row.actual <= row.target;
+                  const badge = row.actual === null ? "–" : ok ? "✅ Dans les délais" : "⚠️ Hors délai";
+                  const badgeClass = row.actual === null
+                    ? "text-muted-foreground"
+                    : ok ? "text-emerald-600 bg-emerald-500/10 border-emerald-500/20"
+                    : "text-amber-600 bg-amber-500/10 border-amber-500/20";
+                  return (
+                    <div key={row.label} className="flex items-center justify-between gap-3 rounded-xl bg-muted/40 px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        {row.icon}
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{row.label}</p>
+                          <p className="text-xs text-muted-foreground">Objectif : &lt; {row.target}h</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-foreground">
+                          {row.actual !== null ? fmtHours(row.actual) : "–"}
+                        </p>
+                        <span className={`text-[10px] font-semibold rounded-full border px-1.5 py-0.5 ${badgeClass}`}>
+                          {badge}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </motion.div>
 
