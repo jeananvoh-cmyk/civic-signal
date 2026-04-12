@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Zap, Droplets, CheckCircle2, Clock, Loader2, AlertTriangle, MapPin } from "lucide-react";
+import { Zap, Droplets, Wrench, CheckCircle2, Loader2, AlertTriangle, MapPin, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +10,7 @@ import { toast } from "sonner";
 interface ReportToCorroborate {
   id: string;
   service_type: string;
+  report_category: string;
   description: string;
   commune: string;
   quartier: string;
@@ -21,9 +22,11 @@ interface ReportToCorroborate {
 interface NeighborCorroborationProps {
   reportId: string;
   onDone: () => void;
+  /** Called once the report type is resolved — lets the parent update its heading */
+  onReportLoaded?: (serviceType: string, reportCategory: string) => void;
 }
 
-const NeighborCorroboration = ({ reportId, onDone }: NeighborCorroborationProps) => {
+const NeighborCorroboration = ({ reportId, onDone, onReportLoaded }: NeighborCorroborationProps) => {
   const { user } = useAuth();
   const [report, setReport] = useState<ReportToCorroborate | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,14 +38,32 @@ const NeighborCorroboration = ({ reportId, onDone }: NeighborCorroborationProps)
     const fetchReport = async () => {
       if (!user || !reportId) return;
 
-      // Use get_public_reports or direct query — but since RLS restricts direct access,
-      // we use the corroborate flow: just try to fetch basic info via RPC or a public function.
-      // Actually, let's query via get_nearby_reports won't work without coords.
-      // The corroborate_report RPC will validate access. Let's fetch minimal info from notifications context.
-      // Best approach: create a simple select that the RPC will validate anyway.
-      
-      // We can't directly SELECT other users' reports due to RLS.
-      // Let's fetch from the notification itself to get context, then just show the corroborate button.
+      // 1. Try to fetch the report directly (active reports are publicly readable)
+      const { data: reportData } = await supabase
+        .from("reports")
+        .select("id, service_type, report_category, commune, quartier, verifications, created_at, start_time, description")
+        .eq("id", reportId)
+        .single();
+
+      if (reportData) {
+        // Check if already corroborated
+        const { data: existing } = await supabase
+          .from("corroborations")
+          .select("id")
+          .eq("report_id", reportId)
+          .eq("user_id", user.id)
+          .limit(1);
+
+        if (existing && existing.length > 0) setConfirmed(true);
+
+        const r = reportData as ReportToCorroborate;
+        setReport(r);
+        onReportLoaded?.(r.service_type, r.report_category);
+        setLoading(false);
+        return;
+      }
+
+      // 2. Fallback: parse from notification
       const { data: notifData } = await supabase
         .from("notifications")
         .select("report_id, message, title")
@@ -57,11 +78,30 @@ const NeighborCorroboration = ({ reportId, onDone }: NeighborCorroborationProps)
         return;
       }
 
-      // Parse info from notification message
-      const isElec = notifData.message.includes("Électricité");
-      const parts = notifData.message.replace("⚡ ", "").replace("💧 ", "").split(" — ");
-      const serviceLabel = isElec ? "electricity" : "water";
-      const locationParts = parts[1]?.split(", ") || ["", ""];
+      const msg = notifData.message ?? "";
+      const title = notifData.title ?? "";
+      const combined = msg + " " + title;
+
+      // Detect type from message keywords
+      const isInfra =
+        combined.includes("nfrastructure") ||
+        combined.includes("oirie") ||
+        combined.includes("gout") ||
+        combined.includes("arché") ||
+        combined.includes("🏗") ||
+        combined.includes("🛤") ||
+        combined.includes("🕳") ||
+        combined.includes("🏪");
+
+      const isElec =
+        !isInfra &&
+        (combined.includes("lectricité") ||
+          combined.includes("lectric") ||
+          combined.includes("CIE") ||
+          combined.includes("⚡"));
+
+      const serviceLabel = isInfra ? "infrastructure" : isElec ? "electricity" : "water";
+      const reportCategory = isInfra ? "infrastructure" : "outage";
 
       // Check if already corroborated
       const { data: existing } = await supabase
@@ -71,20 +111,23 @@ const NeighborCorroboration = ({ reportId, onDone }: NeighborCorroborationProps)
         .eq("user_id", user.id)
         .limit(1);
 
-      if (existing && existing.length > 0) {
-        setConfirmed(true);
-      }
+      if (existing && existing.length > 0) setConfirmed(true);
+
+      const parts = msg.split(" — ");
+      const locationParts = parts[1]?.split(", ") || ["", ""];
 
       setReport({
         id: reportId,
         service_type: serviceLabel,
-        description: notifData.message,
+        report_category: reportCategory,
+        description: msg,
         commune: locationParts[0] || "",
         quartier: locationParts[1] || "",
         verifications: 0,
         created_at: "",
         start_time: "",
       });
+      onReportLoaded?.(serviceLabel, reportCategory);
       setLoading(false);
     };
 
@@ -98,14 +141,17 @@ const NeighborCorroboration = ({ reportId, onDone }: NeighborCorroborationProps)
       const { error } = await supabase.rpc("corroborate_report", { p_report_id: reportId });
       if (error) throw error;
       setConfirmed(true);
-      toast.success("✅ Merci ! Votre confirmation a été enregistrée.");
+      const isInfra = report?.report_category === "infrastructure";
+      toast.success(isInfra
+        ? "✅ Merci ! Votre demande de réparation a été enregistrée."
+        : "✅ Merci ! Votre confirmation a été enregistrée.");
     } catch (err: any) {
       const msg = err.message || "Erreur";
       if (msg.includes("déjà confirmé")) {
         setConfirmed(true);
-        toast.info("Vous avez déjà confirmé ce signalement.");
+        toast.info("Vous avez déjà soutenu ce signalement.");
       } else if (msg.includes("Impossible de confirmer")) {
-        setError("Ce signalement a été résolu ou supprimé. La confirmation n'est plus possible.");
+        setError("Ce signalement a été résolu ou supprimé. L'action n'est plus possible.");
       } else {
         toast.error(msg);
       }
@@ -148,8 +194,41 @@ const NeighborCorroboration = ({ reportId, onDone }: NeighborCorroborationProps)
     );
   }
 
+  const isInfra = report.report_category === "infrastructure";
   const isElec = report.service_type === "electricity";
   const color = COMMUNE_COLORS[report.commune] || "#6B7280";
+
+  // Dynamic labels
+  const headerLabel = isInfra
+    ? "Problème de voirie / infrastructure"
+    : isElec
+      ? "Coupure d'électricité"
+      : "Coupure d'eau";
+
+  const headerIcon = isInfra
+    ? <Wrench className="h-5 w-5" />
+    : isElec
+      ? <Zap className="h-5 w-5" />
+      : <Droplets className="h-5 w-5" />;
+
+  const infoBannerText = isInfra
+    ? "Un voisin a signalé un problème de voirie ou d'infrastructure dans votre quartier. Si vous êtes aussi concerné(e), soutenez le signalement pour accélérer l'intervention de la mairie."
+    : `Un voisin a signalé une coupure ${isElec ? "d'électricité" : "d'eau"} dans votre quartier. Si vous êtes aussi affecté(e), confirmez pour renforcer le signalement.`;
+
+  const confirmBtnLabel = isInfra
+    ? "Je demande aussi la réparation"
+    : `Oui, je confirme la coupure`;
+
+  const declineBtnLabel = isInfra
+    ? "Pas de problème dans mon secteur"
+    : "Non, tout va bien chez moi";
+
+  const confirmedTitle = isInfra ? "Demande enregistrée" : "Confirmation enregistrée";
+  const confirmedDesc = isInfra
+    ? "Merci ! Votre demande renforce la pression sur les services de la mairie."
+    : "Merci d'avoir aidé votre communauté !";
+
+  const supportCount = report.verifications > 0 ? report.verifications : null;
 
   return (
     <motion.div
@@ -160,10 +239,8 @@ const NeighborCorroboration = ({ reportId, onDone }: NeighborCorroborationProps)
       {/* Header band */}
       <div className="flex items-center justify-between px-4 py-3" style={{ backgroundColor: color }}>
         <div className="flex items-center gap-2 text-white">
-          {isElec ? <Zap className="h-5 w-5" /> : <Droplets className="h-5 w-5" />}
-          <span className="text-sm font-bold">
-            Coupure {isElec ? "d'Électricité" : "d'Eau"}
-          </span>
+          {headerIcon}
+          <span className="text-sm font-bold">{headerLabel}</span>
         </div>
       </div>
 
@@ -179,12 +256,19 @@ const NeighborCorroboration = ({ reportId, onDone }: NeighborCorroborationProps)
           </div>
         </div>
 
+        {/* Support count */}
+        {supportCount !== null && (
+          <p className="text-sm font-semibold text-foreground">
+            <span className="text-primary">{supportCount}</span>{" "}
+            {isInfra
+              ? `citoyen${supportCount > 1 ? "s" : ""} demandent la réparation.`
+              : `voisin${supportCount > 1 ? "s" : ""} ont confirmé la coupure.`}
+          </p>
+        )}
+
         {/* Info banner */}
         <div className="rounded-xl bg-secondary/50 p-4">
-          <p className="text-sm text-foreground">
-            Un voisin a signalé une coupure {isElec ? "d'électricité" : "d'eau"} dans votre quartier.
-            Si vous êtes aussi affecté(e), confirmez pour renforcer le signalement.
-          </p>
+          <p className="text-sm text-foreground">{infoBannerText}</p>
         </div>
 
         {confirmed ? (
@@ -193,11 +277,9 @@ const NeighborCorroboration = ({ reportId, onDone }: NeighborCorroborationProps)
             animate={{ scale: 1, opacity: 1 }}
             className="rounded-xl bg-success/10 p-5 text-center"
           >
-            <CheckCircle2 className="mx-auto h-10 w-10 text-success mb-2" />
-            <p className="font-bold text-success">Confirmation enregistrée</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Merci d'avoir aidé votre communauté !
-            </p>
+            <ThumbsUp className="mx-auto h-10 w-10 text-success mb-2" />
+            <p className="font-bold text-success">{confirmedTitle}</p>
+            <p className="text-sm text-muted-foreground mt-1">{confirmedDesc}</p>
             <Button variant="outline" className="mt-4" onClick={onDone}>
               Retour à mes signalements
             </Button>
@@ -216,14 +298,16 @@ const NeighborCorroboration = ({ reportId, onDone }: NeighborCorroborationProps)
                 </>
               ) : (
                 <>
-                  <AlertTriangle className="mr-2 h-5 w-5" />
-                  Oui, je confirme la coupure
+                  {isInfra
+                    ? <Wrench className="mr-2 h-5 w-5" />
+                    : <AlertTriangle className="mr-2 h-5 w-5" />}
+                  {confirmBtnLabel}
                 </>
               )}
             </Button>
 
             <Button variant="outline" className="w-full" onClick={onDone}>
-              Non, tout va bien chez moi
+              {declineBtnLabel}
             </Button>
           </div>
         )}

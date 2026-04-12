@@ -11,6 +11,7 @@ import PriorityBadge from "@/components/PriorityBadge";
 import { calculatePriority, getNormReference } from "@/lib/priority-score";
 import { useUserRole } from "@/hooks/useUserRole";
 import DurationBadge from "@/components/DurationBadge";
+import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
 
 // After this many days without any verification, a report is considered "non pris en charge"
 const NEGLECTED_DAYS = 7;
@@ -478,21 +479,32 @@ const SuiviPage = () => {
               {filteredReports.map((r) => {
                 const meta = STATUS_META[r.computedStatus];
                 const isElec = r.service_type === "electricity";
+                const isInfra = r.report_category === "infrastructure";
+                const infraLabel = isInfra ? extractInfraLabel(r.description) : null;
                 const age = formatAge(r.created_at);
                 return (
                   <Card key={r.id} className={`border-l-4 ${getUrgencyBorderClass(r.urgency)} hover:shadow-md transition-shadow cursor-pointer`}
                     onClick={() => window.location.href = `/signalement/${r.id}`}
                   >
                     <CardContent className="p-3 flex items-start gap-3">
-                      <span className="text-xl shrink-0 mt-0.5">{isElec ? "⚡" : "💧"}</span>
+                      <span className="text-xl shrink-0 mt-0.5">
+                        {isInfra ? infraEmoji(infraLabel) : isElec ? "⚡" : "💧"}
+                      </span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
                           <PriorityBadge priority={r.priority} showScore={canValidate} showFactors={canValidate} />
                           <span className={`inline-flex items-center gap-1 text-[10px] font-medium rounded-full px-2 py-0.5 ${meta.pill}`}>
                             {meta.emoji} {meta.label}
                           </span>
+                          {isInfra && infraLabel && (
+                            <span className="inline-flex items-center rounded-full bg-teal-500/10 px-2 py-0.5 text-[10px] font-semibold text-teal-700 dark:text-teal-400">
+                              {infraLabel}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-sm font-medium text-foreground line-clamp-1">{r.description}</p>
+                        <p className="text-sm font-medium text-foreground line-clamp-1">
+                          {cleanDescription(r.description)}
+                        </p>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
                             <MapPin className="h-3 w-3" />
@@ -500,7 +512,7 @@ const SuiviPage = () => {
                           </span>
                           {(r.verifications ?? 0) > 0 && (
                             <span className="text-xs text-muted-foreground">
-                              · {r.verifications} vérif.
+                              · {r.verifications} {isInfra ? "demande(s) réparation" : "vérif."}
                             </span>
                           )}
                         </div>

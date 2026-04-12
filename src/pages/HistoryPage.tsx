@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { COMMUNE_COLORS } from "@/lib/communes";
+import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
 import { Button } from "@/components/ui/button";
 import { useNavigate, Link } from "react-router-dom";
 import PhotoGallery from "@/components/PhotoGallery";
@@ -160,8 +161,11 @@ const HistoryPage = () => {
               const isElec = r.service_type === "electricity";
               const isInfra = r.report_category === "infrastructure";
               const isResolved = r.status === "resolved";
-              const serviceIcon = isInfra ? <Wrench className="h-4 w-4" /> : isElec ? <Zap className="h-4 w-4" /> : <Droplets className="h-4 w-4" />;
-              const serviceLabel = isInfra ? "Infrastructure" : isElec ? "Électricité" : "Eau";
+              const infraLabel = isInfra ? extractInfraLabel(r.description) : null;
+              const serviceIcon = isInfra
+                ? <span className="text-base leading-none">{infraEmoji(infraLabel)}</span>
+                : isElec ? <Zap className="h-4 w-4" /> : <Droplets className="h-4 w-4" />;
+              const serviceLabel = isInfra ? (infraLabel ?? "Infrastructure") : isElec ? "Électricité" : "Eau";
 
               return (
                 <motion.div
@@ -185,7 +189,7 @@ const HistoryPage = () => {
                       <span className="font-semibold text-foreground text-sm">{r.commune}</span>
                       {r.quartier && <span className="text-xs text-muted-foreground">· {r.quartier}</span>}
                     </div>
-                    <p className="text-xs text-muted-foreground mb-3">{r.description}</p>
+                    <p className="text-xs text-muted-foreground mb-3">{cleanDescription(r.description)}</p>
 
                     <PhotoGallery
                       photos={

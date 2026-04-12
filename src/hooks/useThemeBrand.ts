@@ -5,7 +5,7 @@ type BrandTheme = "default" | "ivoire";
 
 export function useThemeBrand() {
   const [theme, setTheme] = useState<BrandTheme>(() => {
-    return (localStorage.getItem(STORAGE_KEY) as BrandTheme) || "ivoire";
+    return (localStorage.getItem(STORAGE_KEY) as BrandTheme) || "default";
   });
 
   useEffect(() => {

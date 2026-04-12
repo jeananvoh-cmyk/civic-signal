@@ -20,6 +20,7 @@ import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
 
 const NEGLECTED_DAYS = 7;
 
@@ -82,18 +83,22 @@ const STATUS_META: Record<ComputedStatus, { label: string; emoji: string; pill: 
   },
 };
 
-function getTypeEmoji(serviceType: string, reportCategory: string | null): string {
-  if (serviceType === "electricity") return reportCategory === "infrastructure" ? "💡" : "⚡";
-  if (serviceType === "water") return reportCategory === "infrastructure" ? "🚧" : "💧";
+function getTypeEmoji(serviceType: string, reportCategory: string | null, description?: string): string {
+  if (reportCategory === "infrastructure") return infraEmoji(description ? extractInfraLabel(description) : null);
+  if (serviceType === "electricity") return "⚡";
+  if (serviceType === "water") return "💧";
   return "📍";
 }
 
-function getTypeLabel(serviceType: string, reportCategory: string | null): string {
+function getTypeLabel(serviceType: string, reportCategory: string | null, description?: string): string {
+  if (reportCategory === "infrastructure") {
+    return extractInfraLabel(description ?? "") ?? "Problème d'infrastructure";
+  }
   if (serviceType === "electricity") {
-    return reportCategory === "infrastructure" ? "Infrastructure électrique" : "Coupure d'électricité";
+    return "Coupure d'électricité";
   }
   if (serviceType === "water") {
-    return reportCategory === "infrastructure" ? "Problème d'infrastructure" : "Coupure d'eau";
+    return "Coupure d'eau";
   }
   return "Signalement";
 }
@@ -279,8 +284,8 @@ const SignalementDetailPage = () => {
   const daysSince = Math.floor((Date.now() - new Date(report.created_at).getTime()) / 86400000);
   const communeLabel = report.commune || report.location || "Inconnu";
   const locationLabel = `${communeLabel}${report.quartier ? `, ${report.quartier}` : ""}`;
-  const typeEmoji = getTypeEmoji(report.service_type, report.report_category);
-  const typeLabel = getTypeLabel(report.service_type, report.report_category);
+  const typeEmoji = getTypeEmoji(report.service_type, report.report_category, report.description);
+  const typeLabel = getTypeLabel(report.service_type, report.report_category, report.description);
   const priority = calculatePriority({
     service_type: report.service_type,
     report_category: report.report_category,
@@ -305,7 +310,7 @@ const SignalementDetailPage = () => {
   const verifText = (report.verifications ?? 0) > 0
     ? `\n👥 ${report.verifications} voisin${report.verifications > 1 ? "s" : ""} ont confirmé.`
     : "";
-  const shareText = `${typeEmoji} ${report.description} — ${locationLabel}${daysText}${verifText}\n\nAidez à faire bouger les choses sur CivicSignal :`;
+  const shareText = `${typeEmoji} ${cleanDescription(report.description)} — ${locationLabel}${daysText}${verifText}\n\nAidez à faire bouger les choses sur CivicSignal :`;
 
   return (
     <div className="min-h-screen bg-background">
@@ -438,7 +443,7 @@ const SignalementDetailPage = () => {
           {/* Détails */}
           <Card className="mb-4">
             <CardContent className="p-5 space-y-4">
-              <p className="text-base font-semibold text-foreground leading-snug">{report.description}</p>
+              <p className="text-base font-semibold text-foreground leading-snug">{cleanDescription(report.description)}</p>
               <div className="flex flex-col gap-2.5 text-sm text-muted-foreground border-t border-border pt-4">
                 <span className="flex items-center gap-1.5">
                   <MapPin className="h-4 w-4 shrink-0" />

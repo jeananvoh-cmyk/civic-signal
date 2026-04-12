@@ -38,6 +38,9 @@ const VerificationPage = () => {
   const [reports, setReports] = useState<MyReport[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Type of the report being corroborated (from notification link)
+  const [notifReportType, setNotifReportType] = useState<{ serviceType: string; reportCategory: string } | null>(null);
+
   // Resolve dialog
   const [resolveTarget, setResolveTarget] = useState<MyReport | null>(null);
   const [resolveTime, setResolveTime] = useState("");
@@ -123,20 +126,26 @@ const VerificationPage = () => {
   };
 
   const handleResolve = async () => {
-    if (!resolveTarget || !resolveTime) return;
+    if (!resolveTarget) return;
+    const isInfra = resolveTarget.report_category === "infrastructure";
+    if (!isInfra && !resolveTime) return;
     setResolving(true);
     try {
-      const resolvedAt = new Date(resolveTime).toISOString();
+      const resolvedAt = isInfra ? new Date().toISOString() : new Date(resolveTime).toISOString();
       const { error } = await supabase.rpc("resolve_report", {
         p_report_id: resolveTarget.id,
         p_resolved_at: resolvedAt,
       });
       if (error) throw error;
       const resolvedId = resolveTarget.id;
-      const serviceLabel = resolveTarget.service_type === "electricity" ? "L'électricité" : "L'eau";
+      const successMsg = isInfra
+        ? "🎉 Problème résolu ! Merci pour le suivi."
+        : resolveTarget.service_type === "electricity"
+          ? "🎉 L'électricité est de retour ! Merci."
+          : "🎉 L'eau est de retour ! Merci.";
       setJustResolved(resolvedId);
       setResolveTarget(null);
-      toast.success(`🎉 ${serviceLabel} est de retour ! Merci.`);
+      toast.success(successMsg);
       setTimeout(() => {
         setReports((prev) => prev.filter((r) => r.id !== resolvedId));
         setJustResolved(null);
@@ -185,17 +194,54 @@ const VerificationPage = () => {
         {reportIdFromNotif && notifType !== "confirmation" ? (
           <>
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-urgent/10">
-                <AlertTriangle className="h-8 w-8 text-urgent" />
-              </div>
-              <h1 className="font-display text-2xl font-bold text-foreground">Confirmer une coupure</h1>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Un voisin a signalé une coupure dans votre quartier
-              </p>
+              {notifReportType?.reportCategory === "infrastructure" ? (
+                <>
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-green-500/10">
+                    <Wrench className="h-8 w-8 text-green-600" />
+                  </div>
+                  <h1 className="font-display text-2xl font-bold text-foreground">Confirmer un problème</h1>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Un voisin a signalé un problème de voirie dans votre quartier
+                  </p>
+                </>
+              ) : notifReportType?.serviceType === "electricity" ? (
+                <>
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-yellow-500/10">
+                    <Zap className="h-8 w-8 text-yellow-500" />
+                  </div>
+                  <h1 className="font-display text-2xl font-bold text-foreground">Confirmer une coupure d'électricité</h1>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Un voisin a signalé une coupure CIE dans votre quartier
+                  </p>
+                </>
+              ) : notifReportType?.serviceType === "water" ? (
+                <>
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/10">
+                    <Droplets className="h-8 w-8 text-blue-500" />
+                  </div>
+                  <h1 className="font-display text-2xl font-bold text-foreground">Confirmer une coupure d'eau</h1>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Un voisin a signalé une coupure SODECI dans votre quartier
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-urgent/10">
+                    <AlertTriangle className="h-8 w-8 text-urgent" />
+                  </div>
+                  <h1 className="font-display text-2xl font-bold text-foreground">Confirmer un signalement</h1>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Un voisin a fait un signalement dans votre quartier
+                  </p>
+                </>
+              )}
             </motion.div>
             <NeighborCorroboration
               reportId={reportIdFromNotif}
               onDone={() => setSearchParams({})}
+              onReportLoaded={(serviceType, reportCategory) =>
+                setNotifReportType({ serviceType, reportCategory })
+              }
             />
           </>
         ) : reportIdFromNotif && notifType === "confirmation" ? (
@@ -315,7 +361,7 @@ const VerificationPage = () => {
 
                         {/* Corroboration status */}
                         <div className="mb-4">
-                          <CorroborationStatus verifications={r.verifications} />
+                          <CorroborationStatus verifications={r.verifications} reportCategory={r.report_category} />
                         </div>
 
                         {r.urgency === "critical" && (
@@ -373,60 +419,72 @@ const VerificationPage = () => {
           <DialogContent className="max-w-sm">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-success">
-                <Power className="h-5 w-5" />
-                Service rétabli
+                <CheckCircle2 className="h-5 w-5" />
+                {resolveTarget?.report_category === "infrastructure"
+                  ? "Problème résolu"
+                  : "Service rétabli"}
               </DialogTitle>
             </DialogHeader>
-            {resolveTarget && (
-              <div className="space-y-5">
-                <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="rounded-xl bg-success/10 p-4 text-center"
-                >
-                  <div className="text-3xl mb-2">
-                    {resolveTarget.service_type === "electricity" ? "⚡" : "💧"}
-                  </div>
-                  <p className="text-sm font-semibold text-foreground">
-                    {resolveTarget.service_type === "electricity" ? "L'électricité" : "L'eau"} est de retour à{" "}
-                    <span className="font-bold" style={{ color: COMMUNE_COLORS[resolveTarget.commune] }}>
-                      {resolveTarget.commune}
-                    </span>
-                  </p>
-                </motion.div>
+            {resolveTarget && (() => {
+              const isInfra = resolveTarget.report_category === "infrastructure";
+              const isElec = resolveTarget.service_type === "electricity";
+              const emoji = isInfra ? "🏗️" : isElec ? "⚡" : "💧";
+              const label = isInfra
+                ? "Le problème a été réparé à"
+                : isElec
+                  ? "L'électricité est de retour à"
+                  : "L'eau est de retour à";
+              return (
+                <div className="space-y-5">
+                  <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="rounded-xl bg-success/10 p-4 text-center"
+                  >
+                    <div className="text-3xl mb-2">{emoji}</div>
+                    <p className="text-sm font-semibold text-foreground">
+                      {label}{" "}
+                      <span className="font-bold" style={{ color: COMMUNE_COLORS[resolveTarget.commune] }}>
+                        {resolveTarget.commune}
+                      </span>
+                    </p>
+                  </motion.div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    À quelle heure c'est revenu ?
-                  </label>
-                  <Input
-                    type="datetime-local"
-                    value={resolveTime}
-                    onChange={(e) => setResolveTime(e.target.value)}
-                    className="text-base"
-                  />
-                </div>
-
-                <Button
-                  className="w-full bg-success text-success-foreground hover:bg-success/90 py-6 text-base font-bold"
-                  onClick={handleResolve}
-                  disabled={resolving || !resolveTime}
-                >
-                  {resolving ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Envoi…
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="mr-2 h-5 w-5" />
-                      Confirmer le rétablissement
-                    </>
+                  {!isInfra && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        À quelle heure c'est revenu ?
+                      </label>
+                      <Input
+                        type="datetime-local"
+                        value={resolveTime}
+                        onChange={(e) => setResolveTime(e.target.value)}
+                        className="text-base"
+                      />
+                    </div>
                   )}
-                </Button>
-              </div>
-            )}
+
+                  <Button
+                    className="w-full bg-success text-success-foreground hover:bg-success/90 py-6 text-base font-bold"
+                    onClick={handleResolve}
+                    disabled={resolving || (!isInfra && !resolveTime)}
+                  >
+                    {resolving ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Envoi…
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="mr-2 h-5 w-5" />
+                        {isInfra ? "Confirmer la résolution" : "Confirmer le rétablissement"}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              );
+            })()}
           </DialogContent>
         </Dialog>
 
@@ -446,7 +504,13 @@ const VerificationPage = () => {
             {deleteTarget && (
               <div className="rounded-lg border border-border bg-muted/50 p-3">
                 <div className="flex items-center gap-2 text-sm">
-                  <span>{deleteTarget.service_type === "electricity" ? "⚡" : "💧"}</span>
+                  <span>{
+                    deleteTarget.report_category === "infrastructure"
+                      ? "🏗️"
+                      : deleteTarget.service_type === "electricity"
+                        ? "⚡"
+                        : "💧"
+                  }</span>
                   <span className="font-medium">{deleteTarget.commune}</span>
                   {deleteTarget.quartier && <span className="text-muted-foreground">· {deleteTarget.quartier}</span>}
                 </div>

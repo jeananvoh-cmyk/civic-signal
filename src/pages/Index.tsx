@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import waterIcon from "@/assets/water-icon-sm.webp";
 import electricityIcon from "@/assets/electricity-icon-sm.webp";
 import { caniveauIcon, voirieIcon, lampadaireIcon } from "@/lib/infra-icons";
+import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
 
 const ROTATING_WORDS = [
   { text: "coupures d'eau",         color: "text-sky-400",    bg: "bg-sky-400/10"    },
@@ -480,7 +481,12 @@ const Index = () => {
               {nearbyReports.map((r, i) => {
                 const isElec = r.service_type === "electricity";
                 const isInfra = r.report_category === "infrastructure";
-                const icon = isInfra ? <Wrench className="h-4 w-4 text-teal-500" /> : isElec ? <Zap className="h-4 w-4 text-amber-500" /> : <Droplets className="h-4 w-4 text-sky-500" />;
+                const infraLabel = isInfra ? extractInfraLabel(r.description) : null;
+                const icon = isInfra
+                  ? <span className="text-base leading-none">{infraEmoji(infraLabel)}</span>
+                  : isElec
+                    ? <Zap className="h-4 w-4 text-amber-500" />
+                    : <Droplets className="h-4 w-4 text-sky-500" />;
                 const timeAgo = (() => {
                   const diff = (Date.now() - new Date(r.created_at).getTime()) / 60000;
                   if (diff < 60) return `il y a ${Math.round(diff)} min`;
@@ -506,11 +512,26 @@ const Index = () => {
                         <p className="text-sm font-semibold text-foreground truncate">
                           {r.commune}{r.quartier ? ` · ${r.quartier}` : ""}
                         </p>
-                        <p className="text-xs text-muted-foreground truncate">{r.description}</p>
+                        {isInfra ? (
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {infraLabel && (
+                              <span className="inline-flex items-center rounded-full bg-teal-500/10 px-2 py-0.5 text-[10px] font-semibold text-teal-700 dark:text-teal-400 shrink-0">
+                                {infraLabel}
+                              </span>
+                            )}
+                            {r.verifications > 0 && (
+                              <span className="text-[10px] text-muted-foreground truncate">
+                                · {r.verifications} demande{r.verifications > 1 ? "s" : ""} de réparation
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground truncate">{cleanDescription(r.description)}</p>
+                        )}
                       </div>
                       <div className="text-right shrink-0">
                         <p className="text-[10px] text-muted-foreground">{timeAgo}</p>
-                        {r.verifications > 0 && (
+                        {!isInfra && r.verifications > 0 && (
                           <p className="text-[10px] font-semibold text-green-600">{r.verifications} confirm.</p>
                         )}
                       </div>

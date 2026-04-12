@@ -14,187 +14,221 @@
 
 @layer base {
   :root {
-    /* Facebook/Instagram-inspired theme */
-    --background: 216 20% 95%;   /* #F0F2F5 page background */
-    --foreground: 0 0% 2%;       /* #050505 */
+    /* ═══════════════════════════════════════════════════════════
+       THÈME SIGNA·CI — Bleu Institutionnel · Terracotta
+       Inspiré de viepublique.ci (#0168b3 + #7d3c00)
+       ═══════════════════════════════════════════════════════════ */
 
-    --card: 0 0% 100%;           /* white cards */
-    --card-foreground: 0 0% 2%;
+    /* Surfaces */
+    --background: 228 35% 96%;         /* #f2f3fa bleu-blanc très doux */
+    --foreground: 220 18% 9%;          /* #191c21 quasi-noir */
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 18% 9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 2%;
+    --popover-foreground: 220 18% 9%;
 
-    --primary: 20 76% 48%;        /* #E65B1B orange soleil ivoirien */
+    /* Primary — bleu institutionnel viepublique.ci */
+    --primary: 207 97% 35%;            /* #0168b3 */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 152 20% 92%;    /* vert savane très clair */
-    --secondary-foreground: 152 41% 18%;
+    /* Secondary — slate bleu */
+    --secondary: 213 27% 92%;          /* teinte douce du #48607e */
+    --secondary-foreground: 213 27% 30%;
 
-    --muted: 30 15% 92%;
-    --muted-foreground: 30 8% 42%;
+    --muted: 220 20% 93%;
+    --muted-foreground: 213 15% 45%;
 
-    --accent: 20 76% 95%;
-    --accent-foreground: 20 76% 28%;
+    /* Accent — terracotta chaud (contraste avec le bleu) */
+    --accent: 29 70% 93%;              /* terracotta très clair */
+    --accent-foreground: 29 90% 28%;   /* #7d3c00 foncé */
 
-    --destructive: 0 72% 51%;    /* red */
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 10% 82%;
-    --input: 30 10% 82%;
-    --ring: 20 76% 48%;
+    --border: 220 16% 88%;
+    --input: 220 16% 88%;
+    --ring: 207 97% 35%;
 
-    --radius: 0.5rem;            /* 8px - slightly rounder */
+    --radius: 0.5rem;
 
     /* Custom tokens */
-    --water: 192 80% 45%;
+    --water: 199 80% 42%;
     --water-foreground: 0 0% 100%;
-    --water-light: 192 60% 92%;
+    --water-light: 199 60% 93%;
 
     --electricity: 40 95% 50%;
     --electricity-foreground: 40 90% 10%;
     --electricity-light: 40 70% 92%;
 
-    --success: 150 60% 40%;
+    --success: 150 60% 38%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 30 90% 55%;
+    --warning: 30 90% 52%;
     --warning-foreground: 30 90% 10%;
 
     --urgent: 0 75% 55%;
     --urgent-foreground: 0 0% 100%;
 
-    --gradient-hero: linear-gradient(135deg, hsl(220 60% 12%), hsl(240 45% 16%), hsl(192 60% 14%));
-    --gradient-hero-radial: radial-gradient(ellipse 80% 60% at 20% 40%, hsl(192 80% 25% / 0.4), transparent), radial-gradient(ellipse 60% 50% at 80% 60%, hsl(40 95% 40% / 0.2), transparent);
-    --gradient-water: linear-gradient(135deg, hsl(192 80% 45%), hsl(192 60% 55%));
+    --gradient-hero: linear-gradient(135deg, hsl(220 70% 10%), hsl(207 97% 18%), hsl(213 50% 14%));
+    --gradient-hero-radial: radial-gradient(ellipse 80% 60% at 20% 40%, hsl(207 97% 35% / 0.4), transparent), radial-gradient(ellipse 60% 50% at 80% 60%, hsl(29 70% 50% / 0.15), transparent);
+    --gradient-water: linear-gradient(135deg, hsl(199 80% 42%), hsl(199 65% 52%));
     --gradient-electricity: linear-gradient(135deg, hsl(40 95% 50%), hsl(35 90% 55%));
     --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.08), hsl(0 0% 100% / 0.02));
 
-    --shadow-card: 0 1px 2px hsl(219 6% 82% / 0.8), 0 0 0 1px hsl(219 6% 82% / 0.4);
-    --shadow-elevated: 0 4px 12px hsl(219 6% 82% / 0.9);
-    --shadow-glow-water: 0 0 40px hsl(192 80% 45% / 0.3);
+    --shadow-card: 0 1px 2px hsl(213 20% 80% / 0.7), 0 0 0 1px hsl(213 20% 85% / 0.4);
+    --shadow-elevated: 0 4px 16px hsl(207 40% 70% / 0.35);
+    --shadow-glow-water: 0 0 40px hsl(199 80% 42% / 0.3);
     --shadow-glow-electricity: 0 0 40px hsl(40 95% 50% / 0.3);
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 2%;
-    --sidebar-primary: 20 76% 48%;
+    --sidebar-foreground: 220 18% 9%;
+    --sidebar-primary: 207 97% 35%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 152 20% 92%;
-    --sidebar-accent-foreground: 152 41% 18%;
-    --sidebar-border: 30 10% 82%;
-    --sidebar-ring: 20 76% 48%;
-    --chart-1: 20 76% 48%;
-    --chart-2: 192 80% 45%;
-    --chart-3: 150 60% 40%;
+    --sidebar-accent: 213 27% 92%;
+    --sidebar-accent-foreground: 213 27% 30%;
+    --sidebar-border: 220 16% 88%;
+    --sidebar-ring: 207 97% 35%;
+    --chart-1: 207 97% 35%;
+    --chart-2: 199 80% 42%;
+    --chart-3: 150 60% 38%;
     --chart-4: 40 95% 50%;
-    --chart-5: 0 72% 51%;
+    --chart-5: 29 85% 45%;
     --sidebar: 0 0% 100%;
     --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
     --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
     --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.08), 0 1px 2px -1px hsl(0 0% 0% / 0.08);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.08), 0 1px 2px -1px hsl(0 0% 0% / 0.08);
+    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.08), 0 2px 4px -1px hsl(0 0% 0% / 0.08);
+    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.08), 0 4px 6px -1px hsl(0 0% 0% / 0.08);
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.08), 0 8px 10px -1px hsl(0 0% 0% / 0.08);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.2);
     --tracking-normal: 0em;
     --spacing: 0.25rem;
   }
 
   .dark {
-    /* Facebook dark mode palette */
-    --background: 0 0% 10%;     /* #1A1A1A */
-    --foreground: 216 18% 90%;  /* #E4E6EB */
-    --card: 0 0% 14%;           /* #242526 */
-    --card-foreground: 216 18% 90%;
-    --popover: 0 0% 14%;
-    --popover-foreground: 216 18% 90%;
-    --primary: 20 76% 55%;      /* orange soleil légèrement éclairci pour dark mode */
+    /* ═══════════════════════════════════════════════════════════
+       MODE SOMBRE — Gris neutre · lisible · contraste élevé
+       Principe : fond moyen-foncé (pas noir pur), cartes claires
+       sur fond, texte très lisible.
+       ═══════════════════════════════════════════════════════════ */
+
+    --background: 222 16% 14%;         /* gris-bleu moyen — ni noir ni trop sombre */
+    --foreground: 210 20% 94%;         /* blanc cassé très lisible */
+
+    --card: 222 14% 20%;               /* carte 6 points plus claire que le fond */
+    --card-foreground: 210 20% 94%;
+
+    --popover: 222 14% 20%;
+    --popover-foreground: 210 20% 94%;
+
+    /* Primary — bleu lumineux, contraste fort sur fond foncé */
+    --primary: 207 82% 62%;            /* #3aa3e8 bleu vif */
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 24%;      /* #3A3B3C */
-    --secondary-foreground: 216 18% 90%;
-    --muted: 0 0% 24%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 214 89% 20%;
-    --accent-foreground: 214 89% 70%;
-    --destructive: 0 72% 55%;
+
+    /* Secondary — surface légèrement surélevée */
+    --secondary: 222 12% 26%;
+    --secondary-foreground: 210 15% 86%;
+
+    --muted: 222 12% 22%;
+    --muted-foreground: 210 10% 62%;   /* texte secondaire lisible */
+
+    /* Accent — terracotta atténué */
+    --accent: 29 45% 22%;
+    --accent-foreground: 29 65% 75%;
+
+    --destructive: 0 65% 58%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 25%;         /* #3E4042 */
-    --input: 0 0% 25%;
-    --ring: 214 89% 52%;
-    --sidebar-background: 0 0% 9%;
-    --sidebar-foreground: 216 18% 90%;
-    --sidebar-primary: 214 89% 52%;
+
+    --border: 222 12% 28%;             /* border visible mais discrète */
+    --input: 222 12% 24%;
+    --ring: 207 82% 58%;
+
+    --sidebar-background: 222 16% 11%;
+    --sidebar-foreground: 210 18% 90%;
+    --sidebar-primary: 207 82% 62%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 18%;
-    --sidebar-accent-foreground: 216 18% 90%;
-    --sidebar-border: 0 0% 25%;
-    --sidebar-ring: 214 89% 52%;
-    --chart-1: 214 89% 62%;
-    --chart-2: 192 70% 55%;
-    --chart-3: 150 60% 50%;
-    --chart-4: 40 90% 55%;
-    --chart-5: 0 72% 60%;
-    --sidebar: 0 0% 9%;
-    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+    --sidebar-accent: 222 12% 20%;
+    --sidebar-accent-foreground: 210 15% 82%;
+    --sidebar-border: 222 12% 22%;
+    --sidebar-ring: 207 82% 58%;
+    --chart-1: 207 82% 64%;
+    --chart-2: 199 72% 56%;
+    --chart-3: 150 55% 52%;
+    --chart-4: 40 90% 60%;
+    --chart-5: 29 72% 58%;
+    --sidebar: 222 16% 11%;
+
+    /* Shadows — légères pour que les cartes "flottent" sur le fond */
+    --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.35), 0 0 0 1px hsl(222 12% 28% / 0.6);
+    --shadow-elevated: 0 4px 20px hsl(0 0% 0% / 0.4);
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.18);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.18);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.25), 0 1px 2px -1px hsl(0 0% 0% / 0.25);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.25), 0 1px 2px -1px hsl(0 0% 0% / 0.25);
+    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.25), 0 2px 4px -1px hsl(0 0% 0% / 0.25);
+    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.25), 0 4px 6px -1px hsl(0 0% 0% / 0.25);
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25), 0 8px 10px -1px hsl(0 0% 0% / 0.25);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.45);
   }
 
   /* ═══════════════════════════════════════════════════════════
-     THÈME IVOIRE — Orange Soleil · Vert Savane
+     THÈME IVOIRE — Orange Soleil · Vert Savane (toggle optionnel)
      Activé par <html class="theme-ivoire">
-     Réverter : retirer la classe theme-ivoire
      ═══════════════════════════════════════════════════════════ */
   .theme-ivoire {
-    /* Orange soleil ivoirien */
-    --primary: 20 75% 52%;           /* #E65B1B */
+    --primary: 20 75% 50%;             /* #E05515 orange soleil */
     --primary-foreground: 0 0% 100%;
-
-    /* Fond ivoire chaud */
-    --background: 36 20% 95%;        /* #F5F2EE */
+    --background: 36 25% 95%;          /* #F5F2EE fond ivoire */
     --card: 0 0% 100%;
-
-    /* Vert savane (accents) */
-    --accent: 152 40% 92%;           /* vert très clair */
-    --accent-foreground: 152 50% 28%;
-
-    /* Ring */
-    --ring: 20 75% 52%;
-
-    /* Sidebar */
-    --sidebar-primary: 20 75% 52%;
-    --sidebar-ring: 20 75% 52%;
-
-    /* Charts */
-    --chart-1: 20 75% 52%;
+    --accent: 152 40% 92%;
+    --accent-foreground: 152 50% 25%;
+    --ring: 20 75% 50%;
+    --border: 30 14% 85%;
+    --input: 30 14% 85%;
+    --muted: 30 18% 92%;
+    --muted-foreground: 30 10% 44%;
+    --sidebar-primary: 20 75% 50%;
+    --sidebar-ring: 20 75% 50%;
+    --chart-1: 20 75% 50%;
     --chart-2: 152 50% 40%;
-    --chart-3: 40 90% 55%;
-    --chart-4: 192 70% 45%;
+    --chart-3: 40 90% 52%;
+    --chart-4: 199 70% 42%;
     --chart-5: 0 72% 51%;
-
-    /* Shadows warm-tinted */
-    --shadow-card: 0 1px 2px hsl(20 30% 70% / 0.4), 0 0 0 1px hsl(20 30% 70% / 0.2);
-    --shadow-elevated: 0 4px 12px hsl(20 40% 60% / 0.25);
+    --shadow-card: 0 1px 2px hsl(20 25% 72% / 0.4), 0 0 0 1px hsl(20 25% 78% / 0.25);
+    --shadow-elevated: 0 4px 14px hsl(20 35% 62% / 0.28);
   }
 
+  /* Dark + Ivoire — warm dark amber, properly balanced */
   .dark.theme-ivoire {
-    --primary: 20 80% 58%;
+    --primary: 25 85% 60%;             /* orange doré lumineux sur fond sombre */
     --primary-foreground: 0 0% 100%;
-    --accent: 152 40% 18%;
-    --accent-foreground: 152 50% 70%;
-    --ring: 20 80% 58%;
-    --sidebar-primary: 20 80% 58%;
-    --sidebar-ring: 20 80% 58%;
-    --chart-1: 20 80% 62%;
-    --chart-2: 152 50% 50%;
+    --background: 20 15% 8%;           /* brun très sombre */
+    --card: 20 12% 12%;
+    --card-foreground: 36 18% 90%;
+    --foreground: 36 18% 90%;
+    --accent: 152 35% 15%;
+    --accent-foreground: 152 45% 68%;
+    --muted: 20 12% 16%;
+    --muted-foreground: 30 10% 58%;
+    --border: 20 10% 20%;
+    --input: 20 10% 20%;
+    --ring: 25 85% 58%;
+    --secondary: 20 10% 18%;
+    --secondary-foreground: 36 15% 80%;
+    --sidebar-background: 20 15% 6%;
+    --sidebar-primary: 25 85% 60%;
+    --sidebar-ring: 25 85% 58%;
+    --chart-1: 25 85% 62%;
+    --chart-2: 152 50% 48%;
+    --chart-3: 40 90% 55%;
+    --chart-4: 199 70% 52%;
+    --chart-5: 0 70% 58%;
   }
 }
 

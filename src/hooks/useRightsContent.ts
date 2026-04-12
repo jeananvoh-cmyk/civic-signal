@@ -19,6 +19,7 @@ export interface EmergencyContact {
   name: string;
   number: string;
   type: "electricity" | "water" | "general" | "emergency";
+  whatsapp?: string;  // numéro WhatsApp optionnel (format international, ex: +2250150179179)
 }
 
 export interface RightsContent {

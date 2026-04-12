@@ -53,9 +53,12 @@ const UpdatePasswordPage = lazy(() => import("./pages/UpdatePasswordPage"));
 const queryClient = new QueryClient();
 
 // Apply saved brand theme on cold start (before first render)
+// Default is now "default" (bleu institutionnel) — "ivoire" is opt-in
 const savedTheme = localStorage.getItem("signa_brand_theme");
-if (savedTheme === "ivoire" || savedTheme === null) {
+if (savedTheme === "ivoire") {
   document.documentElement.classList.add("theme-ivoire");
+} else {
+  document.documentElement.classList.remove("theme-ivoire");
 }
 
 const App = () => (
