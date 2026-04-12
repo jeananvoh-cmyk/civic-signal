@@ -341,6 +341,27 @@ export type Database = {
         }
         Relationships: []
       }
+      quartier_aliases: {
+        Row: {
+          alias: string
+          canonical: string
+          commune: string
+          id: number
+        }
+        Insert: {
+          alias: string
+          canonical: string
+          commune: string
+          id?: number
+        }
+        Update: {
+          alias?: string
+          canonical?: string
+          commune?: string
+          id?: number
+        }
+        Relationships: []
+      }
       quartiers: {
         Row: {
           aliases: string[]
@@ -538,6 +559,35 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      report_support_votes: {
+        Row: {
+          created_at: string
+          id: string
+          report_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          report_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          report_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_support_votes_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reports: {
         Row: {
@@ -747,6 +797,16 @@ export type Database = {
           quartier: string
         }[]
       }
+      get_commune_active_durations: {
+        Args: never
+        Returns: {
+          active_count: number
+          commune: string
+          longest_hours: number
+          oldest_start: string
+          service_type: string
+        }[]
+      }
       get_commune_duration_stats: {
         Args: never
         Returns: {
@@ -935,6 +995,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      normalize_quartier: {
+        Args: { p_commune: string; p_quartier: string }
+        Returns: string
       }
       partner_update_report_status: {
         Args: { p_report_id: string; p_status: string }
