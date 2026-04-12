@@ -281,6 +281,20 @@ const RightsTabContent = () => {
                     <div className="grid gap-2 grid-cols-2">
                       {contactsWithoutWA.map((c, i) => {
                         const color = CONTACT_COLORS[c.type] || "text-primary";
+                        const isWA = /whatsapp/i.test(c.name);
+                        const numClean = c.number.replace(/\D/g, "");
+                        if (isWA) {
+                          return (
+                            <a key={i} href={`https://wa.me/${numClean}`} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-2.5 rounded-lg border border-green-200 dark:border-green-800/40 p-2.5 bg-background hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
+                              <WhatsAppIcon />
+                              <div className="min-w-0">
+                                <p className="text-[11px] text-muted-foreground leading-tight truncate">{c.name}</p>
+                                <p className="text-xs font-bold text-[#25D366]">{c.number}</p>
+                              </div>
+                            </a>
+                          );
+                        }
                         return (
                           <a key={i} href={`tel:${c.number.replace(/\s/g, "")}`}
                             className="flex items-center gap-2.5 rounded-lg border border-border p-2.5 bg-background hover:bg-accent transition-colors">
