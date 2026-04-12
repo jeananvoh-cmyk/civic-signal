@@ -299,7 +299,7 @@ const RightsTabContent = () => {
             )}
           </AnimatePresence>
         </div>
-      )
+      )}
 
       {/* Accordion sections */}
       {sections.map(s => {
