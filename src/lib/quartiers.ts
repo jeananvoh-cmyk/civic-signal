@@ -94,7 +94,6 @@ const ALIAS_MAP: Record<string, string> = {
   // Cocody
   "cocody|blockauss (village)":     "Blockauss",
   "cocody|blockauss village":        "Blockauss",
-  "cocody|blockauss village":        "Blockauss",
   "cocody|anono":                    "Angré",
   "cocody|anono village":            "Angré",
   "cocody|riviéra":                  "Riviéra 2",
