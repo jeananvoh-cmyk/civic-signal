@@ -202,6 +202,8 @@
     --chart-5: 0 72% 51%;
     --shadow-card: 0 1px 2px hsl(20 25% 72% / 0.4), 0 0 0 1px hsl(20 25% 78% / 0.25);
     --shadow-elevated: 0 4px 14px hsl(20 35% 62% / 0.28);
+    --gradient-hero: linear-gradient(135deg, hsl(20 65% 25%), hsl(20 75% 38%), hsl(25 60% 30%));
+    --gradient-hero-radial: radial-gradient(ellipse 80% 60% at 20% 40%, hsl(20 75% 50% / 0.5), transparent), radial-gradient(ellipse 60% 50% at 80% 60%, hsl(40 90% 55% / 0.25), transparent);
   }
 
   /* Dark + Ivoire — warm dark amber, properly balanced */
@@ -229,6 +231,8 @@
     --chart-3: 40 90% 55%;
     --chart-4: 199 70% 52%;
     --chart-5: 0 70% 58%;
+    --gradient-hero: linear-gradient(135deg, hsl(20 40% 8%), hsl(20 60% 18%), hsl(25 45% 12%));
+    --gradient-hero-radial: radial-gradient(ellipse 80% 60% at 20% 40%, hsl(25 85% 60% / 0.4), transparent), radial-gradient(ellipse 60% 50% at 80% 60%, hsl(40 90% 55% / 0.2), transparent);
   }
 }
 

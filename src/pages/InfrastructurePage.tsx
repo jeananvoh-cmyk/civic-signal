@@ -16,6 +16,7 @@ import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
+import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
 
 type InfraReport = {
   id: string;
@@ -492,7 +493,7 @@ const InfrastructurePage = () => {
       </div>
 
       {/* Feed */}
-      <div className="container max-w-2xl px-4 py-4 space-y-3">
+      <div className="container max-w-2xl lg:max-w-3xl px-4 py-4 space-y-3">
         {loading
           ? Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="rounded-xl bg-card border border-border p-4 space-y-3">
@@ -519,33 +520,26 @@ const InfrastructurePage = () => {
                 <div className="px-4 pt-4 pb-2">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                          report.service_type === "eau"
-                            ? "bg-[hsl(var(--water-light))]"
-                            : report.service_type === "electricite"
-                            ? "bg-[hsl(var(--electricity-light))]"
-                            : "bg-emerald-500/10"
-                        }`}
-                      >
-                        {serviceIcon(report.service_type)}
+                      {/* Infra type emoji avatar */}
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-500/10 text-xl">
+                        {infraEmoji(extractInfraLabel(report.description))}
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-semibold text-foreground">
-                            {serviceLabel(report.service_type)}
-                          </span>
+                          {/* Infra type label badge */}
+                          {extractInfraLabel(report.description) && (
+                            <span className="inline-flex items-center rounded-full bg-teal-500/10 px-2 py-0.5 text-xs font-semibold text-teal-700 dark:text-teal-400">
+                              {extractInfraLabel(report.description)}
+                            </span>
+                          )}
                           {urgencyBadge(report.urgency)}
                         </div>
-                        <div className="flex flex-col gap-0.5 mt-0.5">
+                        <div className="flex items-center gap-3 mt-1 flex-wrap">
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <MapPin className="h-3 w-3 shrink-0" />
-                            <span className="font-medium text-foreground/80">{report.quartier}</span>
+                            <span className="font-semibold text-foreground">{report.quartier}</span>
                             {report.commune && (
-                              <>
-                                <span className="text-muted-foreground/50">·</span>
-                                <span>{report.commune}</span>
-                              </>
+                              <><span className="opacity-40">·</span><span>{report.commune}</span></>
                             )}
                           </div>
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -559,10 +553,10 @@ const InfrastructurePage = () => {
                   </div>
                 </div>
 
-                {/* Post content */}
+                {/* Post content — cleaned description */}
                 <div className="px-4 pb-3">
-                  <p className="text-sm text-foreground leading-relaxed">
-                    {report.description?.replace(/\s*\[\d+\s*personne\(s\)\]/gi, "").trim()}
+                  <p className="text-sm font-medium text-foreground leading-relaxed">
+                    {cleanDescription(report.description)}
                   </p>
                 </div>
 
