@@ -182,89 +182,124 @@ const RightsTabContent = () => {
   return (
     <div className="space-y-3">
 
-      {/* ── Numéros utiles — always visible, top of page ── */}
-      {rights.contacts.length > 0 && (
-        <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3 bg-destructive/5 border-b border-border">
-            <Phone className="h-4 w-4 text-destructive shrink-0" />
-            <span className="font-semibold text-sm text-foreground">Numéros utiles</span>
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-1">{rights.contacts.length}</Badge>
+      {/* ── Mon Espace Eau & Électricité — collapsible ── */}
+      <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+        <button
+          onClick={() => toggle("intro")}
+          className="w-full flex items-center justify-between gap-2 px-4 py-3 hover:bg-accent/50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-primary shrink-0">
+              <Scale className="h-4.5 w-4.5" />
+            </div>
+            <div className="min-w-0 text-left">
+              <h2 className="font-display text-base font-bold text-foreground">Mon Espace Eau & Électricité</h2>
+              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                Vos droits, devoirs, conseils et ressources officielles en tant qu'usager en Côte d'Ivoire.
+              </p>
+            </div>
           </div>
-          <div className="p-3 space-y-2">
-            {/* Merged phone + WhatsApp cards */}
-            {mergedContacts.map(({ contact: c, waNumber }, i) => {
-              const color = CONTACT_COLORS[c.type] || "text-primary";
-              const waClean = waNumber.replace(/\D/g, "");
-              return (
-                <div key={i} className="rounded-lg border border-border bg-background overflow-hidden">
-                  <div className="flex">
-                    <a href={`tel:${c.number.replace(/\s/g, "")}`}
-                      className="flex flex-1 items-center gap-2.5 p-3 hover:bg-accent transition-colors border-r border-border">
-                      <Phone className={`h-4 w-4 ${color} shrink-0`} />
-                      <div>
-                        <p className="text-[11px] text-muted-foreground leading-tight">{c.name}</p>
-                        <p className={`text-sm font-bold ${color}`}>{c.number}</p>
-                      </div>
-                    </a>
-                    <a href={`https://wa.me/${waClean}`} target="_blank" rel="noopener noreferrer"
-                      className="flex flex-1 items-center gap-2.5 p-3 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
-                      <WhatsAppIcon />
-                      <div>
-                        <p className="text-[11px] text-muted-foreground leading-tight">WhatsApp</p>
-                        <p className="text-sm font-bold text-[#25D366]">{waNumber}</p>
-                      </div>
-                    </a>
+          <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0 ${openSections.has("intro") ? "rotate-90" : ""}`} />
+        </button>
+        <AnimatePresence initial={false}>
+          {openSections.has("intro") && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="px-4 pb-4 border-t border-border pt-3">
+                <div className="flex gap-2">
+                  <div className="flex-1 flex items-center gap-2 rounded-lg border border-border bg-background p-2 text-left">
+                    <span className="text-base">💧</span>
+                    <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400">ODD 6 — Eau propre</span>
+                  </div>
+                  <div className="flex-1 flex items-center gap-2 rounded-lg border border-border bg-background p-2 text-left">
+                    <span className="text-base">⚡</span>
+                    <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">ODD 7 — Énergie</span>
                   </div>
                 </div>
-              );
-            })}
-            {/* Phone-only contacts */}
-            {contactsWithoutWA.length > 0 && (
-              <div className="grid gap-2 grid-cols-2">
-                {contactsWithoutWA.map((c, i) => {
-                  const color = CONTACT_COLORS[c.type] || "text-primary";
-                  return (
-                    <a key={i} href={`tel:${c.number.replace(/\s/g, "")}`}
-                      className="flex items-center gap-2.5 rounded-lg border border-border p-2.5 bg-background hover:bg-accent transition-colors">
-                      <Phone className={`h-4 w-4 ${color} shrink-0`} />
-                      <div className="min-w-0">
-                        <p className="text-[11px] text-muted-foreground leading-tight truncate">{c.name}</p>
-                        <p className={`text-xs font-bold ${color}`}>{c.number}</p>
-                      </div>
-                    </a>
-                  );
-                })}
               </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Compact intro banner */}
-      <div className="rounded-xl border border-border bg-card p-4 shadow-card">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-primary shrink-0">
-            <Scale className="h-4.5 w-4.5" />
-          </div>
-          <div className="min-w-0">
-            <h2 className="font-display text-base font-bold text-foreground">Mon Espace Eau & Électricité</h2>
-            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-              Vos droits, devoirs, conseils et ressources officielles en tant qu'usager en Côte d'Ivoire.
-            </p>
-          </div>
-        </div>
-        {/* ODD compact inline */}
-        <div className="flex gap-2 mt-3">
-          <div className="flex-1 flex items-center gap-2 rounded-lg border border-border bg-background p-2 text-left">
-            <span className="text-base">💧</span>
-            <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400">ODD 6 — Eau propre</span>
-          </div>
-          <div className="flex-1 flex items-center gap-2 rounded-lg border border-border bg-background p-2 text-left">
-            <span className="text-base">⚡</span>
-            <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">ODD 7 — Énergie</span>
-          </div>
-        </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
+
+      {/* ── Numéros utiles — collapsible, after intro ── */}
+      {rights.contacts.length > 0 && (
+        <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+          <button
+            onClick={() => toggle("contacts")}
+            className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-destructive/5 hover:bg-accent/50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Phone className="h-4 w-4 text-destructive shrink-0" />
+              <span className="font-semibold text-sm text-foreground">Numéros utiles</span>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-1">{rights.contacts.length}</Badge>
+            </div>
+            <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${openSections.has("contacts") ? "rotate-90" : ""}`} />
+          </button>
+          <AnimatePresence initial={false}>
+            {openSections.has("contacts") && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="p-3 space-y-2 border-t border-border">
+                  {mergedContacts.map(({ contact: c, waNumber }, i) => {
+                    const color = CONTACT_COLORS[c.type] || "text-primary";
+                    const waClean = waNumber.replace(/\D/g, "");
+                    return (
+                      <div key={i} className="rounded-lg border border-border bg-background overflow-hidden">
+                        <div className="flex">
+                          <a href={`tel:${c.number.replace(/\s/g, "")}`}
+                            className="flex flex-1 items-center gap-2.5 p-3 hover:bg-accent transition-colors border-r border-border">
+                            <Phone className={`h-4 w-4 ${color} shrink-0`} />
+                            <div>
+                              <p className="text-[11px] text-muted-foreground leading-tight">{c.name}</p>
+                              <p className={`text-sm font-bold ${color}`}>{c.number}</p>
+                            </div>
+                          </a>
+                          <a href={`https://wa.me/${waClean}`} target="_blank" rel="noopener noreferrer"
+                            className="flex flex-1 items-center gap-2.5 p-3 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
+                            <WhatsAppIcon />
+                            <div>
+                              <p className="text-[11px] text-muted-foreground leading-tight">WhatsApp</p>
+                              <p className="text-sm font-bold text-[#25D366]">{waNumber}</p>
+                            </div>
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {contactsWithoutWA.length > 0 && (
+                    <div className="grid gap-2 grid-cols-2">
+                      {contactsWithoutWA.map((c, i) => {
+                        const color = CONTACT_COLORS[c.type] || "text-primary";
+                        return (
+                          <a key={i} href={`tel:${c.number.replace(/\s/g, "")}`}
+                            className="flex items-center gap-2.5 rounded-lg border border-border p-2.5 bg-background hover:bg-accent transition-colors">
+                            <Phone className={`h-4 w-4 ${color} shrink-0`} />
+                            <div className="min-w-0">
+                              <p className="text-[11px] text-muted-foreground leading-tight truncate">{c.name}</p>
+                              <p className={`text-xs font-bold ${color}`}>{c.number}</p>
+                            </div>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )
 
       {/* Accordion sections */}
       {sections.map(s => {
