@@ -5,7 +5,7 @@ import {
   Send, Clock, CheckCircle2, XCircle, RefreshCw,
   Zap, Droplets, AlertTriangle, MailCheck, MapPin, Users,
   ChevronDown, ChevronUp, ExternalLink, Settings, FlaskConical,
-  ShieldCheck, Save, Ban, MessageCircle,
+  ShieldCheck, Save, Ban, MessageCircle, Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -231,7 +231,17 @@ const AdminRelayPage = () => {
     error:   logs.filter((l) => l.status === "error").length,
     cie:     logs.filter((l) => l.operator === "CIE").length,
     sodeci:  logs.filter((l) => l.operator === "SODECI").length,
+    mairie:  logs.filter((l) => l.operator === "MAIRIE").length,
   };
+
+  // Décompte infra par mairie
+  const mairieByCommune = MAIRIES_PILOTES.map((m) => ({
+    slug: m.slug,
+    label: m.label,
+    total:   logs.filter((l) => l.operator === "MAIRIE" && l.report?.commune === m.label).length,
+    pending: logs.filter((l) => l.operator === "MAIRIE" && l.report?.commune === m.label && l.status === "pending").length,
+    sent:    logs.filter((l) => l.operator === "MAIRIE" && l.report?.commune === m.label && l.status === "sent").length,
+  })).filter((m) => m.total > 0);
 
   // ── Envoi manuel d'un groupe ───────────────────────────────────────────────
   const sendGroup = useMutation({
@@ -332,7 +342,7 @@ const AdminRelayPage = () => {
             Relais opérateurs
           </h1>
           <p className="text-sm text-muted-foreground">
-            Validation manuelle avant transmission CIE / SODECI
+            Validation manuelle avant transmission CIE / SODECI / Mairies
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -358,7 +368,7 @@ const AdminRelayPage = () => {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="grid grid-cols-2 sm:grid-cols-5 gap-3"
+        className="grid grid-cols-3 sm:grid-cols-6 gap-3"
       >
         {[
           { label: "En attente",  value: stats.pending, icon: Clock,        color: "text-amber-600" },
@@ -366,6 +376,7 @@ const AdminRelayPage = () => {
           { label: "Erreurs",     value: stats.error,   icon: XCircle,      color: "text-red-600" },
           { label: "CIE",         value: stats.cie,     icon: Zap,          color: "text-yellow-600" },
           { label: "SODECI",      value: stats.sodeci,  icon: Droplets,     color: "text-sky-600" },
+          { label: "Mairies",     value: stats.mairie,  icon: Building2,    color: "text-orange-600" },
         ].map((kpi) => (
           <div key={kpi.label} className="rounded-xl border border-border bg-card p-4 flex flex-col gap-1">
             <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -376,6 +387,41 @@ const AdminRelayPage = () => {
           </div>
         ))}
       </motion.div>
+
+      {/* Décompte infra par mairie */}
+      {mairieByCommune.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08 }}
+          className="rounded-xl border border-orange-200 dark:border-orange-800/40 bg-orange-50/50 dark:bg-orange-900/10 p-4"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Building2 className="h-4 w-4 text-orange-600" />
+            <p className="text-xs font-semibold text-orange-700 dark:text-orange-400">
+              Signalements infrastructure par mairie
+            </p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+            {mairieByCommune.map((m) => (
+              <div key={m.slug} className="rounded-lg border border-orange-200 dark:border-orange-800/30 bg-white dark:bg-card px-3 py-2">
+                <p className="text-xs font-semibold text-foreground truncate">{m.label}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-lg font-extrabold text-orange-600">{m.total}</span>
+                  <div className="flex flex-col text-[10px] leading-tight text-muted-foreground">
+                    {m.pending > 0 && (
+                      <span className="text-amber-600 font-medium">{m.pending} en attente</span>
+                    )}
+                    {m.sent > 0 && (
+                      <span className="text-emerald-600">{m.sent} envoyé{m.sent > 1 ? "s" : ""}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* Pipeline */}
       <motion.div
