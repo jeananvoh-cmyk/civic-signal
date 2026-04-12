@@ -1,6 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
 import { Home, BarChart3, Plus, MapPin, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const tabs = [
   { to: "/", icon: Home, label: "Accueil" },
@@ -12,6 +14,44 @@ const tabs = [
 export default function BottomNav() {
   const location = useLocation();
   const { user } = useAuth();
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    if (!user) { setUnread(0); return; }
+    // Fetch unread count
+    supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("read", false)
+      .then(({ count }) => setUnread(count ?? 0));
+
+    // Realtime: listen for new notifications
+    const channel = supabase
+      .channel("bottomnav-notifs")
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "notifications",
+        filter: `user_id=eq.${user.id}`,
+      }, () => setUnread((n) => n + 1))
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "notifications",
+        filter: `user_id=eq.${user.id}`,
+      }, () => {
+        supabase
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("read", false)
+          .then(({ count }) => setUnread(count ?? 0));
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
 
   // Hide on pages where bottom nav would conflict
   const hidden = ["/signaler", "/auth", "/admin", "/install"].some((p) =>
@@ -46,12 +86,13 @@ export default function BottomNav() {
           {/* Tab 3 */}
           <NavTab to={tabs[2].to} icon={tabs[2].icon} label={tabs[2].label} active={location.pathname === tabs[2].to} />
 
-          {/* Tab 4 */}
+          {/* Tab 4 — Mon espace avec badge notifications */}
           <NavTab
             to={user ? tabs[3].to : "/auth"}
             icon={tabs[3].icon}
             label={tabs[3].label}
             active={location.pathname === tabs[3].to}
+            badge={unread > 0 ? unread : undefined}
           />
         </div>
       </nav>
@@ -60,9 +101,9 @@ export default function BottomNav() {
 }
 
 function NavTab({
-  to, icon: Icon, label, active,
+  to, icon: Icon, label, active, badge,
 }: {
-  to: string; icon: React.ElementType; label: string; active: boolean;
+  to: string; icon: React.ElementType; label: string; active: boolean; badge?: number;
 }) {
   return (
     <Link
@@ -71,7 +112,14 @@ function NavTab({
         active ? "text-primary" : "text-muted-foreground"
       }`}
     >
-      <Icon className={`h-5 w-5 ${active ? "text-primary" : "text-muted-foreground"}`} />
+      <div className="relative">
+        <Icon className={`h-5 w-5 ${active ? "text-primary" : "text-muted-foreground"}`} />
+        {badge !== undefined && (
+          <span className="absolute -top-1 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-white px-0.5">
+            {badge > 9 ? "9+" : badge}
+          </span>
+        )}
+      </div>
       <span>{label}</span>
     </Link>
   );

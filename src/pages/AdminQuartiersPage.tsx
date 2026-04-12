@@ -23,7 +23,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   CheckCircle2, XCircle, MapPin, Clock, User, Plus, Pencil, Trash2,
   Eye, EyeOff, Search, Building2, AlertTriangle, GitMerge, X, Tag,
-  Copy, CheckSquare,
+  Copy, CheckSquare, ArrowRight,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
@@ -726,6 +726,10 @@ const AdminQuartiersPage = () => {
             <Search className="h-4 w-4 mr-1.5" />
             Tous
           </TabsTrigger>
+          <TabsTrigger value="aliases">
+            <ArrowRight className="h-4 w-4 mr-1.5" />
+            Aliases
+          </TabsTrigger>
         </TabsList>
 
         {/* ── PAR COMMUNE ── */}
@@ -1115,6 +1119,11 @@ const AdminQuartiersPage = () => {
             </Card>
           )}
         </TabsContent>
+
+        {/* ── ALIASES ── */}
+        <TabsContent value="aliases">
+          <AliasesTab />
+        </TabsContent>
       </Tabs>
 
       {/* ── ADD DIALOG ── */}
@@ -1496,5 +1505,237 @@ const AdminQuartiersPage = () => {
     </div>
   );
 };
+
+// ─── Aliases Tab ─────────────────────────────────────────────────────────────
+
+type QuartierAlias = {
+  id: number;
+  commune: string;
+  alias: string;
+  canonical: string;
+};
+
+function AliasesTab() {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [filterCommune, setFilterCommune] = useState<string>("all");
+  const [addOpen, setAddOpen] = useState(false);
+  const [editItem, setEditItem] = useState<QuartierAlias | null>(null);
+  const [form, setForm] = useState({ commune: "", alias: "", canonical: "" });
+
+  const { data: aliases = [], isLoading } = useQuery({
+    queryKey: ["quartier-aliases"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("quartier_aliases")
+        .select("*")
+        .order("commune")
+        .order("alias");
+      if (error) throw error;
+      return data as QuartierAlias[];
+    },
+  });
+
+  const filtered = aliases.filter((a) => {
+    if (filterCommune !== "all" && a.commune !== filterCommune) return false;
+    if (search) {
+      const s = search.toLowerCase();
+      return a.alias.toLowerCase().includes(s) || a.canonical.toLowerCase().includes(s);
+    }
+    return true;
+  });
+
+  const upsert = useMutation({
+    mutationFn: async (row: Omit<QuartierAlias, "id"> & { id?: number }) => {
+      if (row.id) {
+        const { error } = await (supabase as any)
+          .from("quartier_aliases")
+          .update({ commune: row.commune, alias: row.alias, canonical: row.canonical })
+          .eq("id", row.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any)
+          .from("quartier_aliases")
+          .insert({ commune: row.commune, alias: row.alias, canonical: row.canonical });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["quartier-aliases"] });
+      toast({ title: "Alias sauvegardé" });
+      setAddOpen(false);
+      setEditItem(null);
+      setForm({ commune: "", alias: "", canonical: "" });
+    },
+    onError: (e: any) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: number) => {
+      const { error } = await (supabase as any).from("quartier_aliases").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["quartier-aliases"] });
+      toast({ title: "Alias supprimé" });
+    },
+  });
+
+  const openEdit = (a: QuartierAlias) => {
+    setEditItem(a);
+    setForm({ commune: a.commune, alias: a.alias, canonical: a.canonical });
+    setAddOpen(true);
+  };
+
+  const communes = Array.from(new Set(aliases.map((a) => a.commune))).sort();
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3">
+        <div>
+          <CardTitle className="text-base flex items-center gap-2">
+            <ArrowRight className="h-4 w-4 text-primary" />
+            Gestion des aliases de quartiers
+          </CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Unifie les noms saisis différemment par les utilisateurs vers un nom canonique unique.
+          </p>
+        </div>
+        <Button size="sm" onClick={() => { setEditItem(null); setForm({ commune: "", alias: "", canonical: "" }); setAddOpen(true); }}>
+          <Plus className="h-4 w-4 mr-1.5" /> Ajouter
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {/* Filters */}
+        <div className="flex flex-wrap gap-2">
+          <div className="relative flex-1 min-w-48">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              className="pl-8 h-9 text-sm"
+              placeholder="Rechercher un alias..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Select value={filterCommune} onValueChange={setFilterCommune}>
+            <SelectTrigger className="h-9 w-40 text-sm">
+              <SelectValue placeholder="Commune" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes les communes</SelectItem>
+              {communes.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Stats */}
+        <p className="text-xs text-muted-foreground">{filtered.length} alias{filtered.length > 1 ? "es" : ""} · {aliases.length} au total</p>
+
+        {/* Table */}
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">Chargement…</p>
+        ) : filtered.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-6 text-center">Aucun alias trouvé</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs">Commune</TableHead>
+                <TableHead className="text-xs">Alias saisi</TableHead>
+                <TableHead className="text-xs"><ArrowRight className="h-3 w-3 inline mr-1" />Nom canonique</TableHead>
+                <TableHead className="w-20" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((a) => (
+                <TableRow key={a.id}>
+                  <TableCell className="text-sm font-medium">{a.commune}</TableCell>
+                  <TableCell>
+                    <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-mono">
+                      {a.alias}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="inline-flex items-center gap-1 text-sm text-primary font-semibold">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      {a.canonical}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEdit(a)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="sm" variant="ghost"
+                        className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                        onClick={() => remove.mutate(a.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{editItem ? "Modifier l'alias" : "Nouvel alias"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Commune *</Label>
+              <Select value={form.commune} onValueChange={(v) => setForm((f) => ({ ...f, commune: v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir une commune" />
+                </SelectTrigger>
+                <SelectContent>
+                  {COMMUNES.map((c) => <SelectItem key={c.nom} value={c.nom}>{c.nom}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Alias saisi par l'utilisateur *</Label>
+              <Input
+                placeholder="Ex: Blockauss (village)"
+                value={form.alias}
+                onChange={(e) => setForm((f) => ({ ...f, alias: e.target.value }))}
+              />
+              <p className="text-[10px] text-muted-foreground">Nom tel qu'il peut être saisi dans l'app</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Nom canonique (officiel) *</Label>
+              <Input
+                placeholder="Ex: Blockauss"
+                value={form.canonical}
+                onChange={(e) => setForm((f) => ({ ...f, canonical: e.target.value }))}
+              />
+              <p className="text-[10px] text-muted-foreground">Nom vers lequel les signalements seront unifiés</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" size="sm">Annuler</Button>
+            </DialogClose>
+            <Button
+              size="sm"
+              disabled={!form.commune || !form.alias || !form.canonical || upsert.isPending}
+              onClick={() => upsert.mutate({ ...form, ...(editItem ? { id: editItem.id } : {}) })}
+            >
+              {upsert.isPending ? "Enregistrement…" : editItem ? "Modifier" : "Ajouter"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
 
 export default AdminQuartiersPage;

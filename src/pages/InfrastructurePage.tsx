@@ -10,8 +10,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import {
   Zap, Droplets, MapPin, Clock, ThumbsUp, CheckCircle,
-  Filter, TrendingUp, AlertCircle, ChevronDown, Lightbulb, TriangleAlert, Info, MoreHorizontal, Building2, Map, Trash2, Waves
+  Filter, TrendingUp, AlertCircle, ChevronDown, Lightbulb, TriangleAlert, Info, MoreHorizontal, Building2, Map, Trash2, Waves, ExternalLink, X as XIcon
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
@@ -50,6 +51,7 @@ const InfrastructurePage = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [supported, setSupported] = useState<Set<string>>(new Set());
   const [repaired, setRepaired] = useState<Set<string>>(new Set());
+  const [communeFilter, setCommuneFilter] = useState<string | null>(null);
 
   const fetchReports = async (pageNum: number, append = false) => {
     const setter = append ? setLoadingMore : setLoading;
@@ -72,6 +74,7 @@ const InfrastructurePage = () => {
         query = query.eq("service_type", dbServiceType);
       }
       if (subFilter) query = query.ilike("description", `%${subFilter}%`);
+      if (communeFilter) query = query.eq("commune", communeFilter);
 
       const [{ data, error }, { data: myVotes }] = await Promise.all([
         query,
@@ -98,6 +101,9 @@ const InfrastructurePage = () => {
       if (subFilter) {
         rows = rows.filter((r) => r.description?.toLowerCase().includes(subFilter.toLowerCase()));
       }
+      if (communeFilter) {
+        rows = rows.filter((r) => r.commune === communeFilter);
+      }
       items = rows;
     }
 
@@ -110,7 +116,7 @@ const InfrastructurePage = () => {
     setPage(0);
     fetchReports(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter, subFilter]);
+  }, [filter, subFilter, communeFilter]);
 
   const handleCategoryClick = (category: string, type: FilterType) => {
     if (subFilter === category) {
@@ -436,7 +442,8 @@ const InfrastructurePage = () => {
 
       {/* Filters - horizontal scroll on mobile */}
       <div className="sticky top-14 z-40 bg-background border-b border-border">
-        <div className="container max-w-2xl px-4 py-2 flex items-center gap-2 overflow-x-auto no-scrollbar">
+        {/* Type filters */}
+        <div className="container max-w-2xl px-4 pt-2 pb-1 flex items-center gap-2 overflow-x-auto no-scrollbar">
           <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
           {[
             { key: "all" as FilterType, label: "Tous", icon: TrendingUp },
@@ -457,6 +464,30 @@ const InfrastructurePage = () => {
               {label}
             </button>
           ))}
+        </div>
+        {/* Commune filters */}
+        <div className="container max-w-2xl px-4 pb-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          {communeFilter && (
+            <button
+              onClick={() => setCommuneFilter(null)}
+              className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap bg-primary text-primary-foreground"
+            >
+              {communeFilter}
+              <XIcon className="h-3 w-3" />
+            </button>
+          )}
+          {["Abobo","Adjamé","Bingerville","Cocody","Koumassi","Port-Bouët","Yopougon"]
+            .filter((c) => c !== communeFilter)
+            .map((c) => (
+              <button
+                key={c}
+                onClick={() => setCommuneFilter(c)}
+                className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap bg-card border border-border text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+              >
+                {c}
+              </button>
+            ))}
         </div>
       </div>
 
@@ -620,6 +651,14 @@ const InfrastructurePage = () => {
                       </span>
                     </Button>
                   )}
+
+                  <Link
+                    to={`/signalement/${report.id}`}
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted"
+                    title="Voir le détail"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Link>
 
                   <ShareButton
                     title={`Signalement infra — ${report.quartier}, ${report.commune}`}
