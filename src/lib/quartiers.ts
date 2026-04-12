@@ -1,6 +1,11 @@
 /**
  * Liste des quartiers par commune pilote
  * Source : OpenStreetMap / openalfa.com (rues-cote-d-ivoire)
+ *
+ * Règle : UN seul nom canonique par quartier.
+ * Les alias (ex: "Blockauss village" → "Blockauss") sont gérés dans :
+ *  - la table SQL `quartier_aliases` (normalisation DB)
+ *  - la fonction `normalizeQuartier()` ci-dessous (normalisation frontend)
  */
 
 export const QUARTIERS: Record<string, string[]> = {
@@ -14,7 +19,7 @@ export const QUARTIERS: Record<string, string[]> = {
     "Coprim Zenith", "Deuxième tranche", "Diop", "Doukouré", "Fanny", "Figayo",
     "Fin goudron", "Gabriel Gare", "Galilée", "Gbamnan Djidan 1", "Gesco",
     "GFCI", "Hôpital", "Île Boulay", "Issamboua", "Judée", "Keneya", "Kouté",
-    "Kouté village", "Koweit", "Lauriers 2", "Lauriers Sacos", "Le corridor",
+    "Koweit", "Lauriers 2", "Lauriers Sacos", "Le corridor",
     "Les Pays-Bas", "Lezou Aman", "Lièvre rouge", "Lokoa extension",
     "Mamie Adjoua", "Mbakré", "Micao", "N'zimakro", "Niaba", "Niangon",
     "Niangon Adjamé", "Niangon à droite", "Niangon à gauche", "Niangon Lokoa",
@@ -79,6 +84,62 @@ export const QUARTIERS: Record<string, string[]> = {
     "Quartier Français", "Vridi", "Vridi Canal", "Vridi plage",
   ],
 };
+
+/**
+ * Alias connus côté frontend — miroir de la table SQL `quartier_aliases`.
+ * Clé : "commune|alias_lowercase", Valeur : nom canonique.
+ * Permet la normalisation instantanée sans appel réseau.
+ */
+const ALIAS_MAP: Record<string, string> = {
+  // Cocody
+  "cocody|blockauss (village)":     "Blockauss",
+  "cocody|blockauss village":        "Blockauss",
+  "cocody|blockauss village":        "Blockauss",
+  "cocody|anono":                    "Angré",
+  "cocody|anono village":            "Angré",
+  "cocody|riviéra":                  "Riviéra 2",
+  "cocody|riviera":                  "Riviéra 2",
+  "cocody|deux plateaux":            "Deux Plateaux",
+  "cocody|2 plateaux":               "Deux Plateaux",
+  "cocody|deux-plateaux":            "Deux Plateaux",
+  "cocody|angré château":            "Angré",
+  "cocody|angre chateau":            "Angré",
+  // Yopougon
+  "yopougon|kouté village":          "Kouté",
+  "yopougon|koute village":          "Kouté",
+  "yopougon|wassakara village":      "Wassakara",
+  "yopougon|gesco village":          "Gesco",
+  // Abobo
+  "abobo|abobo baoulé":              "Abobo Baoulé",
+  "abobo|n dotré":                   "N'dotré",
+  "abobo|ndotré":                    "N'dotré",
+  "abobo|ndotre":                    "N'dotré",
+  // Adjamé
+  "adjamé|williamsville village":    "Williamsville",
+  // Bingerville
+  "bingerville|abatta village":      "Abatta",
+  "bingerville|eloka village":       "Eloka",
+  // Koumassi
+  "koumassi|koumassi village":       "Koumassi Campement",
+  // Port-Bouët
+  "port-bouët|gonzague":             "Gonzagueville",
+  "port-bouët|gonzagueville village":"Gonzagueville",
+};
+
+/**
+ * Normalise un nom de quartier vers son nom canonique.
+ * Priorité : alias explicite → suppression suffixe "village" → tel quel.
+ */
+export function normalizeQuartier(quartier: string, commune: string): string {
+  const key = `${commune.toLowerCase()}|${quartier.toLowerCase().trim()}`;
+  if (ALIAS_MAP[key]) return ALIAS_MAP[key];
+
+  // Supprime " village", " (village)", " Village" si le nom de base reste non-vide
+  const stripped = quartier.replace(/\s*\(?\s*[Vv]illage\s*\)?\s*$/, "").trim();
+  if (stripped && stripped !== quartier) return stripped;
+
+  return quartier.trim();
+}
 
 /** Get quartiers for a given commune, sorted alphabetically */
 export const getQuartiers = (commune: string): string[] => {

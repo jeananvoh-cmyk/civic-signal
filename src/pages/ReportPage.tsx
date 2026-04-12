@@ -22,7 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { COMMUNES, type Commune } from "@/lib/communes";
 import { resolveCommune, type DetectionSource } from "@/lib/geolocation";
-import { getQuartiers } from "@/lib/quartiers";
+import { getQuartiers, normalizeQuartier } from "@/lib/quartiers";
 import type { ServiceType } from "@/lib/data";
 import SOSButtons from "@/components/SOSButtons";
 import { fuiteEauIcon, caniveauIcon, voirieIcon, lampadaireIcon } from "@/lib/infra-icons";
@@ -596,6 +596,8 @@ const ReportPage = () => {
       const fullDesc = `${fullBaseDesc} ${impactInfo}`;
       const hasVulnerable = babies > 0 || pregnant > 0 || elderly > 0;
 
+      const canonicalQuartier = normalizeQuartier(resolvedQuartier, commune);
+
       const reportPayload = {
         user_id: user.id,
         service_type: selectedType.serviceType,
@@ -603,7 +605,7 @@ const ReportPage = () => {
         description: fullDesc,
         location: commune,
         commune,
-        quartier: resolvedQuartier,
+        quartier: canonicalQuartier,
         latitude,
         longitude,
         urgency: hasVulnerable ? "high" : "medium",
