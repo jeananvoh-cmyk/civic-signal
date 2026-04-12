@@ -123,6 +123,27 @@ const RightsTabContent = () => {
     );
   }
 
+  // WhatsApp icon reusable
+  const WhatsAppIcon = () => (
+    <div className="h-7 w-7 rounded-full bg-[#25D366] flex items-center justify-center shrink-0">
+      <svg viewBox="0 0 24 24" className="h-4 w-4 fill-white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+      </svg>
+    </div>
+  );
+
+  // Build contacts merged cards (same logic as below)
+  const waMap: Record<string, string> = Object.fromEntries(
+    rights.contacts.filter(c => c.whatsapp).map(c => [c.type, c.whatsapp!])
+  );
+  const typesWithWA = new Set(Object.keys(waMap));
+  const mergedContacts = [...typesWithWA].map(type => {
+    const group = rights.contacts.filter(c => c.type === type);
+    const phoneContact = group.find(c => !c.whatsapp) ?? group[0];
+    return { contact: phoneContact, waNumber: waMap[type] };
+  }).filter(m => !!m.contact);
+  const contactsWithoutWA = rights.contacts.filter(c => !typesWithWA.has(c.type));
+
   const sections = [
     {
       key: "elec",
@@ -156,17 +177,69 @@ const RightsTabContent = () => {
       count: rights.resources.length,
       bgAccent: "bg-muted/30",
     },
-    {
-      key: "contacts",
-      icon: <Phone className="h-4 w-4 text-primary" />,
-      title: "Numéros utiles",
-      count: rights.contacts.length,
-      bgAccent: "bg-destructive/5",
-    },
   ].filter(s => s.count > 0);
 
   return (
     <div className="space-y-3">
+
+      {/* ── Numéros utiles — always visible, top of page ── */}
+      {rights.contacts.length > 0 && (
+        <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 bg-destructive/5 border-b border-border">
+            <Phone className="h-4 w-4 text-destructive shrink-0" />
+            <span className="font-semibold text-sm text-foreground">Numéros utiles</span>
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-1">{rights.contacts.length}</Badge>
+          </div>
+          <div className="p-3 space-y-2">
+            {/* Merged phone + WhatsApp cards */}
+            {mergedContacts.map(({ contact: c, waNumber }, i) => {
+              const color = CONTACT_COLORS[c.type] || "text-primary";
+              const waClean = waNumber.replace(/\D/g, "");
+              return (
+                <div key={i} className="rounded-lg border border-border bg-background overflow-hidden">
+                  <div className="flex">
+                    <a href={`tel:${c.number.replace(/\s/g, "")}`}
+                      className="flex flex-1 items-center gap-2.5 p-3 hover:bg-accent transition-colors border-r border-border">
+                      <Phone className={`h-4 w-4 ${color} shrink-0`} />
+                      <div>
+                        <p className="text-[11px] text-muted-foreground leading-tight">{c.name}</p>
+                        <p className={`text-sm font-bold ${color}`}>{c.number}</p>
+                      </div>
+                    </a>
+                    <a href={`https://wa.me/${waClean}`} target="_blank" rel="noopener noreferrer"
+                      className="flex flex-1 items-center gap-2.5 p-3 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
+                      <WhatsAppIcon />
+                      <div>
+                        <p className="text-[11px] text-muted-foreground leading-tight">WhatsApp</p>
+                        <p className="text-sm font-bold text-[#25D366]">{waNumber}</p>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
+            {/* Phone-only contacts */}
+            {contactsWithoutWA.length > 0 && (
+              <div className="grid gap-2 grid-cols-2">
+                {contactsWithoutWA.map((c, i) => {
+                  const color = CONTACT_COLORS[c.type] || "text-primary";
+                  return (
+                    <a key={i} href={`tel:${c.number.replace(/\s/g, "")}`}
+                      className="flex items-center gap-2.5 rounded-lg border border-border p-2.5 bg-background hover:bg-accent transition-colors">
+                      <Phone className={`h-4 w-4 ${color} shrink-0`} />
+                      <div className="min-w-0">
+                        <p className="text-[11px] text-muted-foreground leading-tight truncate">{c.name}</p>
+                        <p className={`text-xs font-bold ${color}`}>{c.number}</p>
+                      </div>
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Compact intro banner */}
       <div className="rounded-xl border border-border bg-card p-4 shadow-card">
         <div className="flex items-center gap-3">
@@ -274,96 +347,8 @@ const RightsTabContent = () => {
                       </div>
                     )}
 
-                    {/* Contacts */}
-                    {s.key === "contacts" && (() => {
-                      // Build waMap from contacts[].whatsapp (managed via admin)
-                      const waMap: Record<string, string> = Object.fromEntries(
-                        rights.contacts
-                          .filter(c => c.whatsapp)
-                          .map(c => [c.type, c.whatsapp!])
-                      );
-
-                      // One merged card per type that has a WA number.
-                      // For the phone side: prefer the contact WITHOUT whatsapp field (hotline),
-                      // otherwise fall back to the first contact of that type.
-                      const typesWithWA = new Set(Object.keys(waMap));
-                      const mergedContacts = [...typesWithWA].map(type => {
-                        const group = rights.contacts.filter(c => c.type === type);
-                        const phoneContact = group.find(c => !c.whatsapp) ?? group[0];
-                        return { contact: phoneContact, waNumber: waMap[type] };
-                      }).filter(m => !!m.contact);
-
-                      // Phone-only: contacts whose type has no WA at all
-                      const contactsWithoutWA = rights.contacts.filter(c => !typesWithWA.has(c.type));
-
-                      const WhatsAppIcon = () => (
-                        <div className="h-7 w-7 rounded-full bg-[#25D366] flex items-center justify-center shrink-0">
-                          <svg viewBox="0 0 24 24" className="h-4 w-4 fill-white" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                          </svg>
-                        </div>
-                      );
-
-                      return (
-                        <div className="space-y-2">
-                          {/* One merged card per type: phone left | WhatsApp right */}
-                          {mergedContacts.map(({ contact: c, waNumber }, i) => {
-                            const color = CONTACT_COLORS[c.type] || "text-primary";
-                            const waClean = waNumber.replace(/\D/g, "");
-                            return (
-                              <div key={i} className="rounded-lg border border-border bg-background overflow-hidden">
-                                <div className="flex">
-                                  <a
-                                    href={`tel:${c.number.replace(/\s/g, "")}`}
-                                    className="flex flex-1 items-center gap-2.5 p-3 hover:bg-accent transition-colors border-r border-border"
-                                  >
-                                    <Phone className={`h-4 w-4 ${color} shrink-0`} />
-                                    <div>
-                                      <p className="text-[11px] text-muted-foreground">{c.name}</p>
-                                      <p className={`text-sm font-bold ${color}`}>{c.number}</p>
-                                    </div>
-                                  </a>
-                                  <a
-                                    href={`https://wa.me/${waClean}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex flex-1 items-center gap-2.5 p-3 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
-                                  >
-                                    <WhatsAppIcon />
-                                    <div>
-                                      <p className="text-[11px] text-muted-foreground">WhatsApp</p>
-                                      <p className="text-sm font-bold text-[#25D366]">{waNumber}</p>
-                                    </div>
-                                  </a>
-                                </div>
-                              </div>
-                            );
-                          })}
-
-                          {/* Phone-only contacts (types with no WA at all) */}
-                          {contactsWithoutWA.length > 0 && (
-                            <div className="grid gap-2 sm:grid-cols-2">
-                              {contactsWithoutWA.map((c, i) => {
-                                const color = CONTACT_COLORS[c.type] || "text-primary";
-                                return (
-                                  <a
-                                    key={i}
-                                    href={`tel:${c.number.replace(/\s/g, "")}`}
-                                    className="flex items-center gap-3 rounded-lg border border-border p-2.5 bg-background hover:bg-accent transition-colors"
-                                  >
-                                    <Phone className={`h-4 w-4 ${color} shrink-0`} />
-                                    <div>
-                                      <p className="text-xs font-medium text-foreground">{c.name}</p>
-                                      <p className={`text-sm font-bold ${color}`}>{c.number}</p>
-                                    </div>
-                                  </a>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
+                    {/* Contacts — now rendered above the accordion, nothing to render here */}
+                    {s.key === "contacts" && null}
                   </div>
                 </motion.div>
               )}
@@ -814,34 +799,46 @@ const ProfilePage = () => {
 
           <div className="px-4 sm:px-0">
           <Tabs defaultValue={initialTab} className="space-y-4 sm:space-y-6" onValueChange={(v) => { if (v === "history" && history.length === 0) fetchHistory(); }}>
-            <TabsList className="flex w-full overflow-x-auto no-scrollbar gap-0.5">
-              <TabsTrigger value="rights" className="gap-1.5 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
-                <Scale className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="hidden sm:inline">Eau & Énergie Citoyen</span>
-                <span className="sm:hidden">Eau & Énergie</span>
+            {/* Mobile: 2×3 grid — Desktop: single row */}
+            <TabsList className="hidden sm:flex w-full gap-0.5">
+              <TabsTrigger value="rights" className="gap-1.5 flex-1 text-sm px-3">
+                <Scale className="h-3.5 w-3.5 shrink-0" /><span>Eau & Énergie</span>
               </TabsTrigger>
-              <TabsTrigger value="history" className="gap-1 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
-                <History className="h-3.5 w-3.5 flex-shrink-0" />
-                <span>Historique</span>
+              <TabsTrigger value="history" className="gap-1 flex-1 text-sm px-3">
+                <History className="h-3.5 w-3.5 shrink-0" /><span>Historique</span>
               </TabsTrigger>
-              <TabsTrigger value="utility" className="gap-1 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
-                <Zap className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="hidden sm:inline">Compteurs</span>
-                <span className="sm:hidden">Compt.</span>
+              <TabsTrigger value="utility" className="gap-1 flex-1 text-sm px-3">
+                <Zap className="h-3.5 w-3.5 shrink-0" /><span>Compteurs</span>
               </TabsTrigger>
-              <TabsTrigger value="profile" className="gap-1 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
-                <User className="h-3.5 w-3.5 flex-shrink-0" />
-                <span>Profil</span>
+              <TabsTrigger value="profile" className="gap-1 flex-1 text-sm px-3">
+                <User className="h-3.5 w-3.5 shrink-0" /><span>Profil</span>
               </TabsTrigger>
-              <TabsTrigger value="location" className="gap-1 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
-                <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="hidden sm:inline">Localisation</span>
-                <span className="sm:hidden">Lieu</span>
+              <TabsTrigger value="location" className="gap-1 flex-1 text-sm px-3">
+                <MapPin className="h-3.5 w-3.5 shrink-0" /><span>Lieu</span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="gap-1 min-w-0 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3">
-                <Shield className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="hidden sm:inline">Paramètres</span>
-                <span className="sm:hidden">Param.</span>
+              <TabsTrigger value="settings" className="gap-1 flex-1 text-sm px-3">
+                <Shield className="h-3.5 w-3.5 shrink-0" /><span>Paramètres</span>
+              </TabsTrigger>
+            </TabsList>
+            {/* Mobile grid 2 rows × 3 cols */}
+            <TabsList className="sm:hidden grid grid-cols-3 w-full h-auto gap-1 p-1">
+              <TabsTrigger value="rights" className="flex flex-col gap-0.5 h-auto py-2 text-[10px] font-medium">
+                <Scale className="h-4 w-4" /><span>Droits</span>
+              </TabsTrigger>
+              <TabsTrigger value="history" className="flex flex-col gap-0.5 h-auto py-2 text-[10px] font-medium">
+                <History className="h-4 w-4" /><span>Historique</span>
+              </TabsTrigger>
+              <TabsTrigger value="utility" className="flex flex-col gap-0.5 h-auto py-2 text-[10px] font-medium">
+                <Zap className="h-4 w-4" /><span>Compteurs</span>
+              </TabsTrigger>
+              <TabsTrigger value="profile" className="flex flex-col gap-0.5 h-auto py-2 text-[10px] font-medium">
+                <User className="h-4 w-4" /><span>Profil</span>
+              </TabsTrigger>
+              <TabsTrigger value="location" className="flex flex-col gap-0.5 h-auto py-2 text-[10px] font-medium">
+                <MapPin className="h-4 w-4" /><span>Lieu</span>
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex flex-col gap-0.5 h-auto py-2 text-[10px] font-medium">
+                <Shield className="h-4 w-4" /><span>Paramètres</span>
               </TabsTrigger>
             </TabsList>
 
@@ -1097,52 +1094,49 @@ const ProfilePage = () => {
 
                 {/* ── Avatar + name hero ── */}
                 <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
-                  {/* Gradient banner */}
-                  <div className="h-20 bg-gradient-to-r from-primary/80 via-primary to-primary/60 relative">
-                    <div className="absolute inset-0 opacity-20"
+                  {/* Gradient banner — name displayed on top */}
+                  <div className="h-28 bg-gradient-to-r from-primary via-primary/90 to-primary/70 relative flex items-end px-5 pb-3">
+                    <div className="absolute inset-0 opacity-10"
                       style={{ backgroundImage: "radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)", backgroundSize: "32px 32px" }}
                     />
-                  </div>
-
-                  {/* Avatar overlap */}
-                  <div className="px-5 pb-5">
-                    <div className="flex items-end gap-4 -mt-8 mb-4">
-                      <div className="relative">
-                        <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-2xl font-bold text-white shadow-lg border-4 border-card">
-                          {avatarInitial}
-                        </div>
+                    {/* Name on banner — always white, always readable */}
+                    <div className="relative z-10 flex items-center gap-3">
+                      <div className="h-14 w-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl font-bold text-white shadow-lg border-2 border-white/30">
+                        {avatarInitial}
                         {isProfileComplete && (
-                          <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-card">
+                          <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-white">
                             <CheckCircle2 className="h-3 w-3 text-white" />
                           </div>
                         )}
                       </div>
-                      <div className="mb-1 min-w-0">
-                        <p className="font-bold text-base text-foreground leading-tight truncate">{displayName}</p>
-                        <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                      <div className="min-w-0">
+                        <p className="font-bold text-lg text-white leading-tight truncate drop-shadow">{displayName}</p>
+                        <p className="text-xs text-white/75 truncate">{user?.email}</p>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Name fields */}
+                  {/* Name fields — below banner, on card bg */}
+                  <div className="px-5 py-4">
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Prénom</Label>
+                        <Label className="text-xs font-semibold text-foreground">Prénom</Label>
                         <Input
                           placeholder="Votre prénom"
                           value={profile.first_name}
                           onChange={(e) => update("first_name", e.target.value)}
                           maxLength={50}
-                          className="h-11 text-sm bg-background border-border focus:border-primary rounded-xl"
+                          className="h-11 text-sm rounded-xl"
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Nom de famille</Label>
+                        <Label className="text-xs font-semibold text-foreground">Nom de famille</Label>
                         <Input
                           placeholder="Votre nom"
                           value={profile.last_name}
                           onChange={(e) => update("last_name", e.target.value)}
                           maxLength={50}
-                          className="h-11 text-sm bg-background border-border focus:border-primary rounded-xl"
+                          className="h-11 text-sm rounded-xl"
                         />
                       </div>
                     </div>
