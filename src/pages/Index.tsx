@@ -147,6 +147,17 @@ function distKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+interface MyActiveReport {
+  id: string;
+  service_type: string;
+  report_category: string;
+  description: string;
+  commune: string;
+  quartier: string;
+  created_at: string;
+  verifications: number;
+}
+
 const Index = () => {
   const { user } = useAuth();
   const [liveCount, setLiveCount] = useState<number | null>(null);
@@ -156,6 +167,7 @@ const Index = () => {
   const [serviceCounts, setServiceCounts] = useState<ServiceCounts | null>(null);
   const [nearbyReports, setNearbyReports] = useState<NearbyReport[]>([]);
   const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [myActiveReports, setMyActiveReports] = useState<MyActiveReport[]>([]);
 
   useEffect(() => {
     supabase.rpc("get_landing_stats" as any).then(({ data }) => {
@@ -195,6 +207,19 @@ const Index = () => {
     const id = setInterval(() => setWordIndex((i) => (i + 1) % ROTATING_WORDS.length), 2800);
     return () => clearInterval(id);
   }, []);
+
+  // Mes signalements actifs — utilisateur connecté
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("reports")
+      .select("id, service_type, report_category, description, commune, quartier, created_at, verifications")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(3)
+      .then(({ data }) => { if (data) setMyActiveReports(data as MyActiveReport[]); });
+  }, [user]);
 
   // Signalements "près de moi" — GPS optionnel
   useEffect(() => {
@@ -457,6 +482,72 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* ══════════════════════════════════════════════════════════════
+          MES SIGNALEMENTS ACTIFS — utilisateur connecté
+      ══════════════════════════════════════════════════════════════ */}
+      {user && myActiveReports.length > 0 && (
+        <section className="container py-8">
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="rounded-2xl border border-amber-400/30 bg-amber-500/5 p-5"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Radio className="h-4 w-4 text-amber-500 animate-pulse" />
+                <h2 className="font-display text-base font-bold text-foreground">Mes signalements en cours</h2>
+                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                  {myActiveReports.length} actif{myActiveReports.length > 1 ? "s" : ""}
+                </span>
+              </div>
+              <Link to="/historique" className="text-xs text-primary hover:underline flex items-center gap-1">
+                Tout voir <ChevronDown className="h-3 w-3 -rotate-90" />
+              </Link>
+            </div>
+            <div className="space-y-2">
+              {myActiveReports.map((r) => {
+                const isElec = r.service_type === "electricity";
+                const isInfra = r.report_category === "infrastructure";
+                const icon = isInfra ? infraEmoji(extractInfraLabel(r.description)) : isElec ? "⚡" : "💧";
+                const label = isInfra ? (extractInfraLabel(r.description) ?? "Infrastructure") : isElec ? "Électricité" : "Eau";
+                return (
+                  <Link
+                    key={r.id}
+                    to={`/signalement/${r.id}`}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 hover:bg-accent/50 transition-colors group"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-xl shrink-0">{icon}</span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{label} · {r.commune}</p>
+                        <p className="text-[10px] text-muted-foreground">{r.quartier && `${r.quartier} · `}{new Date(r.created_at).toLocaleDateString("fr-FR")}{r.verifications > 0 ? ` · ${r.verifications} confirmation${r.verifications > 1 ? "s" : ""}` : ""}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 rounded-full px-2 py-0.5">En cours</span>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground -rotate-90 group-hover:text-primary transition-colors" />
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+            <div className="mt-3 flex gap-2">
+              <Link to="/historique" className="flex-1">
+                <Button variant="outline" size="sm" className="w-full text-xs gap-1">
+                  <History className="h-3.5 w-3.5" /> Voir l'historique complet
+                </Button>
+              </Link>
+              <Link to="/verification">
+                <Button variant="outline" size="sm" className="text-xs gap-1 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Vérifier
+                </Button>
+              </Link>
+            </div>
+          </motion.div>
+        </section>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════
           FIL "PRÈS DE MOI" — signalements dans un rayon de 2 km

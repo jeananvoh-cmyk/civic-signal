@@ -310,6 +310,26 @@ const ConfirmationPage = () => {
           />
         </motion.div>
 
+        {/* CTA principal — accès direct au signalement */}
+        {reportId && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.38 }}
+            className="mb-3"
+          >
+            <Button asChild className="w-full py-5 font-bold text-base gap-2" style={{ backgroundColor: accentColor }}>
+              <Link to={`/signalement/${reportId}`}>
+                📋 Consulter mon signalement
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+            <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
+              Retrouvez cette page à tout moment depuis <strong>Mon espace → Historique</strong>
+            </p>
+          </motion.div>
+        )}
+
         {/* Actions */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -333,7 +353,7 @@ const ConfirmationPage = () => {
             </Button>
           </div>
 
-          <Button asChild className="w-full py-4 font-semibold" style={{ backgroundColor: accentColor }}>
+          <Button asChild variant="ghost" className="w-full py-4 font-semibold text-muted-foreground">
             <Link to="/">
               Retour à l'accueil
               <ArrowRight className="ml-2 h-4 w-4" />
