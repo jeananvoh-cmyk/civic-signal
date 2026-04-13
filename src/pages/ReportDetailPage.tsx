@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Zap, Droplets, MapPin, Calendar, CheckCircle2,
   Clock, Users, AlertTriangle, ExternalLink, Loader2, Shield, ThumbsUp,
+  LogIn, UserPlus, Wrench, PartyPopper, Radio,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -94,13 +95,21 @@ const ReportDetailPage = () => {
   const [corroborating, setCorroborating] = useState(false);
   const [corroborated, setCorroborated] = useState(false);
 
+  const isElecMeta = report?.service_type === "electricity";
+  const isInfraMeta = report?.report_category === "infrastructure";
+  const metaDesc = report
+    ? isInfraMeta
+      ? `Problème d'infrastructure signalé à ${report.quartier || report.commune} — ${report.description.slice(0, 100)}`
+      : `Coupure de ${isElecMeta ? "courant" : "eau"} signalée à ${report.quartier || ""} ${report.commune}. ${report.verifications} confirmation(s).`
+    : "Détail d'un signalement citoyen sur SIGNA-CI.";
+
   usePageMeta({
     title: report
-      ? `${report.report_category} — ${report.commune}`
-      : "Signalement",
-    description: report
-      ? `Coupure de ${report.service_type === "electricity" ? "courant" : "eau"} signalée à ${report.quartier}, ${report.commune}. Urgence : ${report.urgency}.`
-      : "Détail d'un signalement citoyen sur SIGNA-CI.",
+      ? isInfraMeta
+        ? `Infrastructure — ${report.commune}`
+        : `Coupure ${isElecMeta ? "électricité" : "eau"} — ${report.commune}`
+      : "Signalement SIGNA-CI",
+    description: metaDesc,
   });
 
   useEffect(() => {
@@ -146,7 +155,28 @@ const ReportDetailPage = () => {
   const isResolved = report.status === "resolved";
   const isInfra = report.report_category === "infrastructure";
   const hasVulnerable = report.babies > 0 || report.pregnant > 0 || report.elderly > 0;
-  const canCorroborate = user && user.id !== report.user_id && !isResolved && !isInfra;
+  const isAuthor = user?.id === report.user_id;
+  const canCorroborate = user && !isAuthor && !isResolved;
+
+  // Durée de résolution lisible
+  const resolutionDuration = (() => {
+    if (!isResolved || !report.resolved_at) return null;
+    const from = new Date(report.start_time || report.created_at);
+    const to = new Date(report.resolved_at);
+    const diffH = Math.round((to.getTime() - from.getTime()) / 3600000);
+    if (diffH < 1) return "moins d'1 heure";
+    if (diffH < 24) return `${diffH}h`;
+    return `${Math.round(diffH / 24)} jour${Math.round(diffH / 24) > 1 ? "s" : ""}`;
+  })();
+
+  // Textes adaptés outage vs infrastructure
+  const corroborateLabel = isInfra
+    ? "Je soutiens cette demande"
+    : "Je confirme cette coupure";
+  const corroboratedLabel = isInfra ? "Soutien enregistré ✓" : "Confirmation enregistrée ✓";
+  const shareText = isInfra
+    ? `🚧 INFRASTRUCTURE — ${report.quartier ? `${report.quartier}, ` : ""}${report.commune}\n\n${report.description}\n\n✊ Soutenez cette demande sur SIGNA-CI :`
+    : `${isElec ? "⚡" : "💧"} ALERTE COUPURE — ${report.quartier ? `${report.quartier}, ` : ""}${report.commune}\n\nCoupure ${isElec ? "d'électricité" : "d'eau"} en cours. Toujours sans intervention.\n📢 Rejoignez-nous sur SIGNA-CI pour faire pression sur ${isElec ? "CIE" : "SODECI"}.\nPlus on est nombreux, plus vite ils interviennent !`;
 
   const handleCorroborate = async () => {
     if (!user) { toast.error("Connectez-vous pour confirmer ce signalement"); return; }
@@ -181,6 +211,65 @@ const ReportDetailPage = () => {
         >
           <ArrowLeft className="h-4 w-4" /> Retour
         </button>
+
+        {/* ── Bannière RÉSOLU ── */}
+        <AnimatePresence>
+          {isResolved && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-2xl border-2 border-emerald-500/40 bg-emerald-500/8 p-4"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15">
+                  <PartyPopper className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <p className="font-bold text-emerald-700 dark:text-emerald-300">
+                    {isInfra ? "Problème résolu !" : "Coupure terminée !"}
+                  </p>
+                  <p className="text-xs text-emerald-600/80 dark:text-emerald-400/70 mt-0.5">
+                    {isInfra
+                      ? "Ce problème d'infrastructure a été pris en charge."
+                      : `Le service ${isElec ? "électrique" : "en eau"} a été rétabli${resolutionDuration ? ` en ${resolutionDuration}` : ""}.`}
+                  </p>
+                  {report.verifications > 0 && (
+                    <p className="text-xs text-emerald-600/70 dark:text-emerald-400/60 mt-1">
+                      Merci aux <strong>{report.verifications} voisin{report.verifications > 1 ? "s" : ""}</strong> qui ont confirmé ce signalement.
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-emerald-500/20">
+                <p className="text-[11px] text-emerald-600/70 dark:text-emerald-400/60 mb-2">
+                  {isInfra ? "Un autre problème dans votre quartier ?" : "Un nouveau problème dans votre quartier ?"}
+                </p>
+                <Button asChild size="sm" variant="outline" className="border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 text-xs gap-1.5">
+                  <Link to="/signaler">
+                    {isInfra ? <Wrench className="h-3.5 w-3.5" /> : <Zap className="h-3.5 w-3.5" />}
+                    {isInfra ? "Signaler un problème" : "Signaler une coupure"}
+                  </Link>
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Bannière ACTIF — rappel live ── */}
+        {!isResolved && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-2.5 rounded-xl border border-red-500/30 bg-red-500/5 px-4 py-2.5"
+          >
+            <Radio className="h-4 w-4 text-red-500 animate-pulse shrink-0" />
+            <p className="text-xs font-semibold text-red-700 dark:text-red-400">
+              {isInfra
+                ? "Problème toujours présent · En attente d'intervention"
+                : `Coupure de ${isElec ? "courant" : "d'eau"} en cours · Toujours sans intervention`}
+            </p>
+          </motion.div>
+        )}
 
         {/* Header card */}
         <motion.div
@@ -307,7 +396,7 @@ const ReportDetailPage = () => {
           </div>
         </motion.div>
 
-        {/* Bouton corroborer — visiteurs connectés non-auteurs */}
+        {/* ── Bouton corroborer — utilisateur connecté non-auteur ── */}
         {canCorroborate && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.17 }}>
             <Button
@@ -320,8 +409,117 @@ const ReportDetailPage = () => {
               ) : (
                 <ThumbsUp className="h-4 w-4" />
               )}
-              {corroborated ? "Confirmation enregistrée ✓" : "Je confirme cette coupure"}
+              {corroborated ? corroboratedLabel : corroborateLabel}
             </Button>
+            <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
+              {isInfra
+                ? "Votre soutien renforce la demande auprès des autorités"
+                : "Votre confirmation augmente la priorité de traitement"}
+            </p>
+          </motion.div>
+        )}
+
+        {/* ── CTA conversion — visiteur non connecté ── */}
+        {!user && !isResolved && (
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="rounded-2xl border-2 border-primary/30 bg-primary/5 p-5 space-y-4"
+          >
+            <div className="text-center space-y-1">
+              <p className="text-lg font-extrabold text-foreground">
+                {isInfra ? "🚧 Vous voyez aussi ce problème ?" : `${isElec ? "⚡" : "💧"} Vous subissez aussi cette coupure ?`}
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {isInfra
+                  ? "Rejoignez SIGNA-CI et soutenez cette demande. Plus on est nombreux, plus les autorités agissent vite."
+                  : `Rejoignez SIGNA-CI et confirmez cette coupure. Ensemble, on oblige ${isElec ? "CIE" : "SODECI"} à intervenir plus vite.`}
+              </p>
+            </div>
+
+            {/* Bénéfices rapides */}
+            <div className="grid grid-cols-3 gap-2 text-center">
+              {[
+                { icon: "✅", text: isInfra ? "Soutenir" : "Confirmer" },
+                { icon: "🔔", text: "Être alerté" },
+                { icon: "📊", text: "Suivre" },
+              ].map((b) => (
+                <div key={b.text} className="rounded-xl bg-background/60 border border-border px-2 py-2">
+                  <p className="text-xl">{b.icon}</p>
+                  <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">{b.text}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-2">
+              <Button asChild className="w-full gap-2 font-bold py-4">
+                <Link to={`/auth?redirect=/signalement/${report.id}&action=signup`}>
+                  <UserPlus className="h-4 w-4" />
+                  Créer mon compte — c'est gratuit
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full gap-2 text-sm">
+                <Link to={`/auth?redirect=/signalement/${report.id}&action=login`}>
+                  <LogIn className="h-4 w-4" />
+                  J'ai déjà un compte — Se connecter
+                </Link>
+              </Button>
+            </div>
+            <p className="text-center text-[10px] text-muted-foreground">
+              Inscription en 30 secondes · Aucune publicité · Données protégées
+            </p>
+          </motion.div>
+        )}
+
+        {/* ── CTA visiteur — signalement résolu ── */}
+        {!user && isResolved && (
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="rounded-2xl border border-border bg-card p-5 text-center space-y-3"
+          >
+            <p className="text-sm font-semibold text-foreground">
+              {isInfra
+                ? "Un autre problème dans votre quartier ?"
+                : "Un autre problème chez vous ?"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Rejoignez SIGNA-CI pour signaler, suivre et être alerté des coupures et problèmes d'infrastructure à Abidjan.
+            </p>
+            <div className="flex gap-2">
+              <Button asChild className="flex-1 gap-1.5 text-sm font-bold">
+                <Link to={`/auth?redirect=/signaler&action=signup`}>
+                  <UserPlus className="h-4 w-4" /> S'inscrire
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="flex-1 gap-1.5 text-sm">
+                <Link to={`/auth?action=login`}>
+                  <LogIn className="h-4 w-4" /> Se connecter
+                </Link>
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── CTA auteur — son propre signalement ── */}
+        {user && isAuthor && !isResolved && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.17 }}
+            className="rounded-xl border border-border bg-secondary/40 px-4 py-3 flex items-center justify-between gap-3"
+          >
+            <div>
+              <p className="text-xs font-semibold text-foreground">C'est votre signalement</p>
+              <p className="text-[10px] text-muted-foreground">Partagez-le pour obtenir plus de confirmations</p>
+            </div>
+            <Link to="/verification">
+              <Button size="sm" variant="outline" className="text-xs gap-1">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Mettre à jour
+              </Button>
+            </Link>
           </motion.div>
         )}
 
@@ -329,7 +527,7 @@ const ReportDetailPage = () => {
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.18 }}
+          transition={{ delay: 0.25 }}
           className="flex gap-2 flex-wrap"
         >
           <Button asChild variant="outline" className="flex-1 gap-2 min-w-[120px]">
@@ -346,7 +544,7 @@ const ReportDetailPage = () => {
           </Button>
           <ShareButton
             title={`Signalement SIGNA-CI — ${report.commune}`}
-            text={`${isElec ? "⚡" : "💧"} ${report.description} — ${report.commune}, ${report.quartier}`}
+            text={shareText}
             url={`${window.location.origin}/signalement/${report.id}`}
             variant="outline"
             size="sm"

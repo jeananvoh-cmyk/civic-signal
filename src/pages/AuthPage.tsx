@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Zap, ArrowLeft, User, Phone, Building2, Home, Eye, EyeOff, Mail, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -87,10 +87,18 @@ function Divider() {
 // ── Page principale ───────────────────────────────────────────────────────────
 const AuthPage = () => {
   const [searchParams] = useSearchParams();
-  const initialMode = searchParams.get("tab") === "signup" ? "signup" : "login";
+  const redirectAfter = searchParams.get("redirect") || "/";
+  const initialMode = (searchParams.get("tab") === "signup" || searchParams.get("action") === "signup") ? "signup" : "login";
 
   const [mode, setMode]           = useState<"login" | "signup" | "forgot">(initialMode);
   const [loginMethod, setLoginMethod] = useState<"magic" | "password">("magic");
+
+  // Persist redirect target so it survives email verification round-trip
+  useEffect(() => {
+    if (redirectAfter && redirectAfter !== "/") {
+      sessionStorage.setItem("signa_auth_redirect", redirectAfter);
+    }
+  }, [redirectAfter]);
 
   const [identifier, setIdentifier]   = useState("");
   const [password, setPassword]       = useState("");
@@ -158,7 +166,7 @@ const AuthPage = () => {
         : await supabase.auth.signInWithPassword({ email: trimmed, password });
       if (result.error) throw result.error;
       toast.success("Connexion réussie !");
-      navigate("/");
+      navigate(redirectAfter);
     } catch (error: any) {
       toast.error(getUserFriendlyError(error));
     } finally {

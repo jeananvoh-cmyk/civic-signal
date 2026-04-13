@@ -25,10 +25,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Après connexion via magic link ou vérification email → rediriger si nécessaire
+        if ((event === "SIGNED_IN" || event === "USER_UPDATED") && session) {
+          const redirectTo = sessionStorage.getItem("signa_auth_redirect");
+          if (redirectTo && redirectTo !== "/") {
+            sessionStorage.removeItem("signa_auth_redirect");
+            window.location.href = redirectTo;
+          }
+        }
       }
     );
 
