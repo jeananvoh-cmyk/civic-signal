@@ -272,24 +272,35 @@ export default function OnboardingSlides() {
   const progress = ((current + 1) / slides.length) * 100;
 
   // Portal sur document.body pour bypasser le translateY de PullToRefresh
-  // (un parent avec transform CSS brise position:fixed sur tous ses enfants)
   return createPortal(
     <AnimatePresence>
       {visible && (
-        <motion.div
-          key="onboarding-fullscreen"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-[100] flex flex-col bg-background"
-          onTouchStart={onTouchStart}
-          onTouchEnd={onTouchEnd}
-        >
-          {/* ── Barre supérieure : progress + skip ── */}
-          <div className="flex items-center gap-3 px-5 pt-5 pb-2 shrink-0">
-            {/* Progress bar */}
-            <div className="flex-1 h-1.5 rounded-full bg-border overflow-hidden">
+        <>
+          {/* Backdrop flouté */}
+          <motion.div
+            key="backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-[99] bg-black/60 backdrop-blur-sm"
+            onClick={dismiss}
+          />
+
+          {/* Modal centré, taille raisonnable */}
+          <motion.div
+            key="modal"
+            initial={{ opacity: 0, scale: 0.94, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.94, y: 16 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="fixed z-[100] inset-x-4 top-1/2 -translate-y-1/2 mx-auto w-full max-w-[400px] rounded-3xl bg-card shadow-2xl overflow-hidden"
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Barre de progression */}
+            <div className="h-1 bg-border w-full">
               <motion.div
                 className="h-full rounded-full"
                 style={{ background: `linear-gradient(to right, ${slide.gradient[0]}, ${slide.gradient[1]})` }}
@@ -297,132 +308,138 @@ export default function OnboardingSlides() {
                 transition={{ duration: 0.4, ease: "easeOut" }}
               />
             </div>
-            <button
-              onClick={dismiss}
-              className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-              aria-label="Fermer"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
 
-          {/* ── Illustration — zone flexible ── */}
-          <div className={`flex-1 flex items-center justify-center px-8 bg-gradient-to-b ${slide.bgFrom} ${slide.bgTo} mx-4 rounded-3xl mt-2 mb-4 overflow-hidden`}>
-            <AnimatePresence mode="wait" custom={direction}>
-              <motion.div
-                key={slide.id}
-                custom={direction}
-                initial={{ opacity: 0, x: direction * 80, scale: 0.93 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: -direction * 80, scale: 0.93 }}
-                transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="w-full max-w-[320px] mx-auto"
-                style={{ height: "clamp(180px, 35vh, 300px)" }}
+            {/* Header : passer + fermer */}
+            <div className="flex items-center justify-between px-5 pt-4 pb-0">
+              <button
+                onClick={dismiss}
+                className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
-                {slide.illustration}
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          {/* ── Texte + CTA ── */}
-          <div className="shrink-0 px-6 pb-10">
-            {/* Chip */}
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={slide.id + "-chip"}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground mb-3"
+                Passer
+              </button>
+              <button
+                onClick={dismiss}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                aria-label="Fermer"
               >
-                {slide.chip.icon}
-                {slide.chip.label}
-              </motion.div>
-            </AnimatePresence>
-
-            {/* Title + Subtitle */}
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={slide.id + "-text"}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -16 }}
-                transition={{ duration: 0.25, ease: "easeOut" }}
-              >
-                <h2 className="text-3xl font-extrabold text-foreground leading-tight mb-2">
-                  {slide.title}
-                </h2>
-                <p className="text-base text-muted-foreground leading-relaxed">
-                  {slide.subtitle}
-                </p>
-              </motion.div>
-            </AnimatePresence>
-
-            {/* Dots cliquables */}
-            <div className="flex items-center gap-2 mt-6 mb-6">
-              {slides.map((_, i) => (
-                <motion.button
-                  key={i}
-                  onClick={() => { setDirection(i > current ? 1 : -1); setCurrent(i); }}
-                  animate={{ width: i === current ? 32 : 8, opacity: i === current ? 1 : 0.3 }}
-                  transition={{ duration: 0.25 }}
-                  className="h-2 rounded-full"
-                  style={{
-                    background: i === current
-                      ? `linear-gradient(to right, ${slide.gradient[0]}, ${slide.gradient[1]})`
-                      : "hsl(var(--border))",
-                  }}
-                  aria-label={`Slide ${i + 1}`}
-                />
-              ))}
-              {/* Instruction swipe — aide visuelle */}
-              <span className="ml-auto text-[11px] text-muted-foreground/50 select-none hidden sm:block">
-                ← → pour naviguer · Échap pour fermer
-              </span>
-              <span className="ml-auto text-[11px] text-muted-foreground/50 select-none sm:hidden">
-                Glissez pour naviguer
-              </span>
+                <X className="h-4 w-4" />
+              </button>
             </div>
 
-            {/* CTAs */}
-            {isLast ? (
-              <div className="flex flex-col gap-3">
-                <Button
-                  className="w-full rounded-2xl py-6 text-base font-bold gap-2 shadow-lg"
-                  style={{ background: `linear-gradient(135deg, ${slide.gradient[0]}, ${slide.gradient[1]})` }}
-                  onClick={goToSignup}
+            {/* Illustration */}
+            <div className={`flex items-center justify-center px-6 pt-3 pb-2 bg-gradient-to-b ${slide.bgFrom} ${slide.bgTo}`}
+              style={{ height: 180 }}>
+              <AnimatePresence mode="wait" custom={direction}>
+                <motion.div
+                  key={slide.id}
+                  custom={direction}
+                  initial={{ opacity: 0, x: direction * 50, scale: 0.95 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: -direction * 50, scale: 0.95 }}
+                  transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+                  className="w-full max-w-[200px] mx-auto h-full"
                 >
-                  Créer mon compte gratuit
-                  <ArrowRight className="h-5 w-5" />
-                </Button>
-                <button
-                  onClick={dismiss}
-                  className="w-full py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  {slide.illustration}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* Texte + actions */}
+            <div className="px-5 pt-4 pb-6">
+              {/* Chip */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={slide.id + "-chip"}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.18 }}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground mb-2.5"
                 >
-                  Continuer sans compte →
-                </button>
+                  {slide.chip.icon}
+                  {slide.chip.label}
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Titre + sous-titre */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={slide.id + "-text"}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.22 }}
+                >
+                  <h2 className="text-xl font-extrabold text-foreground leading-tight mb-1.5">
+                    {slide.title}
+                  </h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {slide.subtitle}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Dots + hint navigation */}
+              <div className="flex items-center gap-2 mt-4 mb-4">
+                {slides.map((_, i) => (
+                  <motion.button
+                    key={i}
+                    onClick={() => { setDirection(i > current ? 1 : -1); setCurrent(i); }}
+                    animate={{ width: i === current ? 24 : 7, opacity: i === current ? 1 : 0.3 }}
+                    transition={{ duration: 0.22 }}
+                    className="h-1.5 rounded-full"
+                    style={{
+                      background: i === current
+                        ? `linear-gradient(to right, ${slide.gradient[0]}, ${slide.gradient[1]})`
+                        : "hsl(var(--border))",
+                    }}
+                    aria-label={`Slide ${i + 1}`}
+                  />
+                ))}
+                <span className="ml-auto text-[10px] text-muted-foreground/40 select-none">
+                  {current + 1} / {slides.length}
+                </span>
               </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                <Button
-                  className="w-full rounded-2xl py-6 text-base font-bold gap-2 shadow-lg"
-                  style={{ background: `linear-gradient(135deg, ${slide.gradient[0]}, ${slide.gradient[1]})` }}
-                  onClick={goNext}
-                >
-                  Suivant
-                  <ArrowRight className="h-5 w-5" />
-                </Button>
-                <button
-                  onClick={dismiss}
-                  className="w-full py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Accéder à l'application →
-                </button>
-              </div>
-            )}
-          </div>
-        </motion.div>
+
+              {/* CTAs */}
+              {isLast ? (
+                <div className="flex flex-col gap-2">
+                  <Button
+                    className="w-full rounded-xl py-5 text-sm font-bold gap-2"
+                    style={{ background: `linear-gradient(135deg, ${slide.gradient[0]}, ${slide.gradient[1]})` }}
+                    onClick={goToSignup}
+                  >
+                    Créer mon compte gratuit
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                  <button
+                    onClick={dismiss}
+                    className="w-full py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Continuer sans compte →
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <Button
+                    className="w-full rounded-xl py-5 text-sm font-bold gap-2"
+                    style={{ background: `linear-gradient(135deg, ${slide.gradient[0]}, ${slide.gradient[1]})` }}
+                    onClick={goNext}
+                  >
+                    Suivant
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                  <button
+                    onClick={dismiss}
+                    className="w-full py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Accéder à l'application →
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </>
       )}
     </AnimatePresence>,
     document.body
