@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -13,7 +14,7 @@ const slides = [
     subtitle:
       "Signalez les pannes d'eau, d'électricité et les problèmes urbains en quelques secondes. Vos voisins et les opérateurs vous entendent.",
     illustration: (
-      <svg viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-[220px]">
+      <svg viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
         <rect x="20" y="20" width="160" height="120" rx="16" fill="hsl(var(--primary) / 0.08)" />
         <line x1="20" y1="80" x2="180" y2="80" stroke="hsl(var(--primary) / 0.15)" strokeWidth="2" />
         <line x1="100" y1="20" x2="100" y2="140" stroke="hsl(var(--primary) / 0.15)" strokeWidth="2" />
@@ -38,7 +39,7 @@ const slides = [
     subtitle:
       "Choisissez le type de panne, prenez une photo, activez votre GPS. Votre signalement est transmis en moins de 30 secondes.",
     illustration: (
-      <svg viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-[220px]">
+      <svg viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
         <rect x="68" y="15" width="64" height="110" rx="12" fill="hsl(var(--primary) / 0.08)" stroke="hsl(var(--primary) / 0.25)" strokeWidth="2" />
         <rect x="74" y="24" width="52" height="72" rx="6" fill="hsl(var(--primary) / 0.06)" />
         <circle cx="100" cy="60" r="16" fill="hsl(var(--primary))" opacity="0.15" />
@@ -62,7 +63,7 @@ const slides = [
     subtitle:
       "Vos voisins soutiennent votre signalement. Plus de voix = plus de pression sur les opérateurs pour une réparation rapide.",
     illustration: (
-      <svg viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-[220px]">
+      <svg viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
         <circle cx="100" cy="65" r="18" fill="hsl(var(--primary))" opacity="0.2" />
         <circle cx="100" cy="56" r="9" fill="hsl(var(--primary))" />
         <path d="M84 80 Q84 72 100 72 Q116 72 116 80" fill="hsl(var(--primary))" />
@@ -94,7 +95,7 @@ export default function OnboardingSlides() {
     if (user) return;
     const done = localStorage.getItem(STORAGE_KEY);
     if (!done) {
-      const t = setTimeout(() => setVisible(true), 700);
+      const t = setTimeout(() => setVisible(true), 600);
       return () => clearTimeout(t);
     }
   }, [user]);
@@ -116,92 +117,153 @@ export default function OnboardingSlides() {
     navigate("/auth");
   };
 
-  if (!visible) return null;
-
   const slide = slides[current];
   const isLast = current === slides.length - 1;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-4 pb-4 sm:pb-0">
-      <motion.div
-        initial={{ y: 60, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 60, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="w-full max-w-sm bg-card rounded-3xl shadow-2xl overflow-hidden"
-      >
-        {/* Illustration area */}
-        <div className="flex items-center justify-center pt-10 pb-4 px-8 bg-gradient-to-b from-primary/5 to-transparent min-h-[180px]">
-          <AnimatePresence mode="wait" custom={direction}>
-            <motion.div
-              key={slide.id}
-              custom={direction}
-              initial={{ opacity: 0, x: direction * 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -direction * 40 }}
-              transition={{ duration: 0.25, ease: "easeInOut" }}
-              className="flex items-center justify-center"
-            >
-              {slide.illustration}
-            </motion.div>
-          </AnimatePresence>
-        </div>
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{ y: -120, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: -120, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 320, damping: 32 }}
+          className="fixed top-14 inset-x-0 z-40 px-3 pt-2 pb-1"
+        >
+          <div className="mx-auto max-w-3xl rounded-2xl border border-border bg-card shadow-lg overflow-hidden">
+            {/* Main row */}
+            <div className="flex items-center gap-3 px-4 py-3">
+              {/* Illustration — compact square */}
+              <div className="shrink-0 h-16 w-16 sm:h-20 sm:w-20 rounded-xl bg-primary/5 flex items-center justify-center overflow-hidden p-2">
+                <AnimatePresence mode="wait" custom={direction}>
+                  <motion.div
+                    key={slide.id}
+                    custom={direction}
+                    initial={{ opacity: 0, x: direction * 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -direction * 20 }}
+                    transition={{ duration: 0.2 }}
+                    className="w-full h-full"
+                  >
+                    {slide.illustration}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
 
-        {/* Text */}
-        <div className="px-6 pt-2 pb-6 text-center">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={slide.id + "-text"}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.22 }}
-            >
-              <h2 className="text-xl font-bold text-foreground mb-2">{slide.title}</h2>
-              <p className="text-sm text-muted-foreground leading-relaxed">{slide.subtitle}</p>
-            </motion.div>
-          </AnimatePresence>
+              {/* Text */}
+              <div className="flex-1 min-w-0">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={slide.id + "-text"}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.18 }}
+                  >
+                    <p className="font-bold text-foreground text-sm leading-tight">{slide.title}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed mt-0.5 line-clamp-2 sm:line-clamp-none">
+                      {slide.subtitle}
+                    </p>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
 
-          {/* Progress dots */}
-          <div className="flex items-center justify-center gap-2 mt-5 mb-5">
-            {slides.map((_, i) => (
-              <motion.div
-                key={i}
-                animate={{ width: i === current ? 24 : 8, opacity: i === current ? 1 : 0.3 }}
-                transition={{ duration: 0.25 }}
-                className="h-2 rounded-full bg-primary"
-              />
-            ))}
+              {/* Actions — desktop: inline / mobile: hidden here, shown below */}
+              <div className="hidden sm:flex items-center gap-2 shrink-0 ml-2">
+                {isLast ? (
+                  <>
+                    <button
+                      onClick={dismiss}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1.5 whitespace-nowrap"
+                    >
+                      Continuer sans compte
+                    </button>
+                    <Button size="sm" className="rounded-lg text-xs font-semibold whitespace-nowrap" onClick={goToSignup}>
+                      Créer mon compte →
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={dismiss}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1.5"
+                    >
+                      Passer
+                    </button>
+                    <Button size="sm" className="rounded-lg text-xs font-semibold" onClick={next}>
+                      Suivant →
+                    </Button>
+                  </>
+                )}
+              </div>
+
+              {/* Close button */}
+              <button
+                onClick={dismiss}
+                className="shrink-0 ml-1 flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                aria-label="Fermer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Mobile bottom bar */}
+            <div className="flex sm:hidden items-center justify-between px-4 pb-3 gap-3">
+              {/* Progress dots */}
+              <div className="flex items-center gap-1.5">
+                {slides.map((_, i) => (
+                  <motion.div
+                    key={i}
+                    animate={{ width: i === current ? 18 : 6, opacity: i === current ? 1 : 0.3 }}
+                    transition={{ duration: 0.22 }}
+                    className="h-1.5 rounded-full bg-primary"
+                  />
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {isLast ? (
+                  <>
+                    <button
+                      onClick={dismiss}
+                      className="text-xs text-muted-foreground active:opacity-60 py-1 px-2"
+                    >
+                      Sans compte
+                    </button>
+                    <Button size="sm" className="rounded-lg text-xs font-semibold h-8" onClick={goToSignup}>
+                      Créer mon compte →
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={dismiss}
+                      className="text-xs text-muted-foreground active:opacity-60 py-1 px-2"
+                    >
+                      Passer
+                    </button>
+                    <Button size="sm" className="rounded-lg text-xs font-semibold h-8" onClick={next}>
+                      Suivant →
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Desktop progress dots */}
+            <div className="hidden sm:flex items-center justify-center gap-1.5 pb-2">
+              {slides.map((_, i) => (
+                <motion.div
+                  key={i}
+                  animate={{ width: i === current ? 18 : 6, opacity: i === current ? 1 : 0.3 }}
+                  transition={{ duration: 0.22 }}
+                  className="h-1.5 rounded-full bg-primary"
+                />
+              ))}
+            </div>
           </div>
-
-          {/* Actions */}
-          {isLast ? (
-            <div className="flex flex-col gap-2">
-              <Button className="w-full rounded-xl font-semibold" onClick={goToSignup}>
-                Créer mon compte gratuit →
-              </Button>
-              <button
-                onClick={dismiss}
-                className="text-sm text-muted-foreground py-1.5 active:opacity-60"
-              >
-                J'ai déjà un compte · Continuer
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between gap-3">
-              <button
-                onClick={dismiss}
-                className="text-sm text-muted-foreground px-3 py-2 active:opacity-60"
-              >
-                Passer
-              </button>
-              <Button className="flex-1 rounded-xl font-semibold" onClick={next}>
-                Suivant →
-              </Button>
-            </div>
-          )}
-        </div>
-      </motion.div>
-    </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
