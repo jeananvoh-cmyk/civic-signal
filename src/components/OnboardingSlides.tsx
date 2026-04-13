@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { X, ArrowRight, Zap, Users, CheckCircle2 } from "lucide-react";
@@ -270,7 +271,9 @@ export default function OnboardingSlides() {
   const isLast = current === slides.length - 1;
   const progress = ((current + 1) / slides.length) * 100;
 
-  return (
+  // Portal sur document.body pour bypasser le translateY de PullToRefresh
+  // (un parent avec transform CSS brise position:fixed sur tous ses enfants)
+  return createPortal(
     <AnimatePresence>
       {visible && (
         <motion.div
@@ -421,6 +424,7 @@ export default function OnboardingSlides() {
           </div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
