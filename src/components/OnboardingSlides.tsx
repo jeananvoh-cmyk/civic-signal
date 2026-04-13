@@ -60,9 +60,9 @@ const slides = [
     gradient: ["#3B82F6", "#6366F1"],          // bleu → violet
     bgFrom: "from-blue-500/[0.15]",
     bgTo: "to-violet-500/[0.08]",
-    chip: { icon: <span className="text-xs">🟢</span>, label: "2 847 citoyens actifs" },
+    chip: { icon: <span className="text-xs">📍</span>, label: "Abidjan & communes pilotes" },
     title: "La voix de votre quartier",
-    subtitle: "Signalez les pannes d'eau, d'électricité et les problèmes urbains en quelques secondes.",
+    subtitle: "Signalez les coupures d'eau, d'électricité et les problèmes urbains en quelques secondes.",
     illustration: (
       <svg viewBox="0 0 260 220" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
         {/* Map background */}
@@ -104,9 +104,9 @@ const slides = [
     gradient: ["#10B981", "#0EA5E9"],          // vert → cyan
     bgFrom: "from-emerald-500/[0.15]",
     bgTo: "to-cyan-500/[0.08]",
-    chip: { icon: <Zap className="h-3 w-3 text-emerald-600" />, label: "Signalement en < 30 sec" },
+    chip: { icon: <Zap className="h-3 w-3 text-emerald-600" />, label: "Rapide & facile" },
     title: "Simple comme bonjour",
-    subtitle: "Choisissez la panne, prenez une photo, activez le GPS. Transmis en moins de 30 secondes.",
+    subtitle: "Choisissez le type de signalement, prenez une photo, activez le GPS. Votre signalement est transmis en quelques secondes.",
     illustration: (
       <svg viewBox="0 0 260 220" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
         <defs>
@@ -153,9 +153,9 @@ const slides = [
     gradient: ["#F59E0B", "#EF4444"],          // amber → rouge
     bgFrom: "from-amber-400/[0.15]",
     bgTo: "to-orange-500/[0.08]",
-    chip: { icon: <CheckCircle2 className="h-3 w-3 text-amber-600" />, label: "78% des pannes résolues plus vite" },
+    chip: { icon: <Users className="h-3 w-3 text-amber-600" />, label: "Ensemble, on est entendus" },
     title: "Plus forts ensemble",
-    subtitle: "Vos voisins confirment vos signalements. Plus de voix = plus de pression. Les opérateurs agissent plus vite.",
+    subtitle: "Vos voisins confirment vos signalements. Plus on est nombreux, plus les opérateurs et les autorités réagissent.",
     illustration: (
       <svg viewBox="0 0 260 220" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
         <defs>
@@ -273,35 +273,20 @@ export default function OnboardingSlides() {
   return (
     <AnimatePresence>
       {visible && (
-        <>
-          {/* ── Backdrop ─────────────────────────────────────────────────── */}
-          <motion.div
-            key="backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-[90] bg-black/50 backdrop-blur-sm"
-            onClick={dismiss}
-          />
-
-          {/* ── Modal ────────────────────────────────────────────────────── */}
-          {/* Mobile: bottom-sheet rising from bottom
-              Desktop: centered card with max-width */}
-          <motion.div
-            key="modal"
-            initial={{ y: "100%", opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: "100%", opacity: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 32 }}
-            className="fixed z-[100] inset-x-0 bottom-0 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:top-1/2 sm:-translate-y-1/2 sm:bottom-auto w-full sm:w-[440px]
-              rounded-t-[32px] sm:rounded-[28px] bg-card overflow-hidden shadow-2xl"
-            onTouchStart={onTouchStart}
-            onTouchEnd={onTouchEnd}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Progress bar — top */}
-            <div className="h-1 bg-border w-full">
+        <motion.div
+          key="onboarding-fullscreen"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="fixed inset-0 z-[100] flex flex-col bg-background"
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+        >
+          {/* ── Barre supérieure : progress + skip ── */}
+          <div className="flex items-center gap-3 px-5 pt-5 pb-2 shrink-0">
+            {/* Progress bar */}
+            <div className="flex-1 h-1.5 rounded-full bg-border overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
                 style={{ background: `linear-gradient(to right, ${slide.gradient[0]}, ${slide.gradient[1]})` }}
@@ -309,145 +294,132 @@ export default function OnboardingSlides() {
                 transition={{ duration: 0.4, ease: "easeOut" }}
               />
             </div>
+            <button
+              onClick={dismiss}
+              className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              aria-label="Fermer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
 
-            {/* Drag handle on mobile */}
-            <div className="flex justify-center pt-3 sm:hidden">
-              <div className="h-1 w-10 rounded-full bg-muted-foreground/20" />
-            </div>
-
-            {/* Close + skip row */}
-            <div className="flex items-center justify-between px-5 pt-3 pb-0">
-              <button
-                onClick={dismiss}
-                className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors py-1 px-1"
+          {/* ── Illustration — zone flexible ── */}
+          <div className={`flex-1 flex items-center justify-center px-8 bg-gradient-to-b ${slide.bgFrom} ${slide.bgTo} mx-4 rounded-3xl mt-2 mb-4 overflow-hidden`}>
+            <AnimatePresence mode="wait" custom={direction}>
+              <motion.div
+                key={slide.id}
+                custom={direction}
+                initial={{ opacity: 0, x: direction * 80, scale: 0.93 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: -direction * 80, scale: 0.93 }}
+                transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+                className="w-full max-w-[320px] mx-auto"
+                style={{ height: "clamp(180px, 35vh, 300px)" }}
               >
-                Passer
-              </button>
-              <button
-                onClick={dismiss}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                aria-label="Fermer"
+                {slide.illustration}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* ── Texte + CTA ── */}
+          <div className="shrink-0 px-6 pb-10">
+            {/* Chip */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={slide.id + "-chip"}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground mb-3"
               >
-                <X className="h-4 w-4" />
-              </button>
+                {slide.chip.icon}
+                {slide.chip.label}
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Title + Subtitle */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={slide.id + "-text"}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+              >
+                <h2 className="text-3xl font-extrabold text-foreground leading-tight mb-2">
+                  {slide.title}
+                </h2>
+                <p className="text-base text-muted-foreground leading-relaxed">
+                  {slide.subtitle}
+                </p>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Dots cliquables */}
+            <div className="flex items-center gap-2 mt-6 mb-6">
+              {slides.map((_, i) => (
+                <motion.button
+                  key={i}
+                  onClick={() => { setDirection(i > current ? 1 : -1); setCurrent(i); }}
+                  animate={{ width: i === current ? 32 : 8, opacity: i === current ? 1 : 0.3 }}
+                  transition={{ duration: 0.25 }}
+                  className="h-2 rounded-full"
+                  style={{
+                    background: i === current
+                      ? `linear-gradient(to right, ${slide.gradient[0]}, ${slide.gradient[1]})`
+                      : "hsl(var(--border))",
+                  }}
+                  aria-label={`Slide ${i + 1}`}
+                />
+              ))}
+              {/* Instruction swipe — aide visuelle */}
+              <span className="ml-auto text-[11px] text-muted-foreground/50 select-none hidden sm:block">
+                ← → pour naviguer · Échap pour fermer
+              </span>
+              <span className="ml-auto text-[11px] text-muted-foreground/50 select-none sm:hidden">
+                Glissez pour naviguer
+              </span>
             </div>
 
-            {/* Illustration zone — gradient bg per slide */}
-            <div className={`relative flex items-center justify-center px-6 pt-4 pb-2 bg-gradient-to-b ${slide.bgFrom} ${slide.bgTo}`}
-              style={{ minHeight: 200 }}>
-              <AnimatePresence mode="wait" custom={direction}>
-                <motion.div
-                  key={slide.id}
-                  custom={direction}
-                  initial={{ opacity: 0, x: direction * 60, scale: 0.95 }}
-                  animate={{ opacity: 1, x: 0, scale: 1 }}
-                  exit={{ opacity: 0, x: -direction * 60, scale: 0.95 }}
-                  transition={{ duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] }}
-                  className="w-full max-w-[240px] mx-auto"
-                  style={{ height: 200 }}
+            {/* CTAs */}
+            {isLast ? (
+              <div className="flex flex-col gap-3">
+                <Button
+                  className="w-full rounded-2xl py-6 text-base font-bold gap-2 shadow-lg"
+                  style={{ background: `linear-gradient(135deg, ${slide.gradient[0]}, ${slide.gradient[1]})` }}
+                  onClick={goToSignup}
                 >
-                  {slide.illustration}
-                </motion.div>
-              </AnimatePresence>
-            </div>
-
-            {/* Text + CTA zone */}
-            <div className="px-6 pt-4 pb-8">
-              {/* Social proof chip */}
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={slide.id + "-chip"}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.2 }}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground mb-4"
+                  Créer mon compte gratuit
+                  <ArrowRight className="h-5 w-5" />
+                </Button>
+                <button
+                  onClick={dismiss}
+                  className="w-full py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {slide.chip.icon}
-                  {slide.chip.label}
-                </motion.div>
-              </AnimatePresence>
-
-              {/* Title + Subtitle */}
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={slide.id + "-text"}
-                  initial={{ opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -14 }}
-                  transition={{ duration: 0.25, ease: "easeOut" }}
-                >
-                  <h2 className="text-2xl font-extrabold text-foreground leading-tight mb-2">
-                    {slide.title}
-                  </h2>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {slide.subtitle}
-                  </p>
-                </motion.div>
-              </AnimatePresence>
-
-              {/* Dots */}
-              <div className="flex items-center gap-2 mt-5 mb-5">
-                {slides.map((_, i) => (
-                  <motion.button
-                    key={i}
-                    onClick={() => { setDirection(i > current ? 1 : -1); setCurrent(i); }}
-                    animate={{
-                      width: i === current ? 28 : 8,
-                      opacity: i === current ? 1 : 0.3,
-                    }}
-                    transition={{ duration: 0.25 }}
-                    className="h-2 rounded-full"
-                    style={{
-                      background: i === current
-                        ? `linear-gradient(to right, ${slide.gradient[0]}, ${slide.gradient[1]})`
-                        : undefined,
-                      backgroundColor: i !== current ? "hsl(var(--border))" : undefined,
-                    }}
-                    aria-label={`Slide ${i + 1}`}
-                  />
-                ))}
+                  Continuer sans compte →
+                </button>
               </div>
-
-              {/* CTAs */}
-              {isLast ? (
-                <div className="flex flex-col gap-3">
-                  <Button
-                    className="w-full rounded-2xl py-6 text-base font-bold gap-2 shadow-lg"
-                    style={{ background: `linear-gradient(135deg, ${slide.gradient[0]}, ${slide.gradient[1]})` }}
-                    onClick={goToSignup}
-                  >
-                    Créer mon compte gratuit
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                  <button
-                    onClick={dismiss}
-                    className="w-full py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Continuer sans compte →
-                  </button>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  <Button
-                    className="w-full rounded-2xl py-6 text-base font-bold gap-2 shadow-lg"
-                    style={{ background: `linear-gradient(135deg, ${slide.gradient[0]}, ${slide.gradient[1]})` }}
-                    onClick={goNext}
-                  >
-                    Suivant
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                  <button
-                    onClick={dismiss}
-                    className="w-full py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Accéder à l'application →
-                  </button>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <Button
+                  className="w-full rounded-2xl py-6 text-base font-bold gap-2 shadow-lg"
+                  style={{ background: `linear-gradient(135deg, ${slide.gradient[0]}, ${slide.gradient[1]})` }}
+                  onClick={goNext}
+                >
+                  Suivant
+                  <ArrowRight className="h-5 w-5" />
+                </Button>
+                <button
+                  onClick={dismiss}
+                  className="w-full py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Accéder à l'application →
+                </button>
+              </div>
+            )}
+          </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );
