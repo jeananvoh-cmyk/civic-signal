@@ -287,14 +287,19 @@ export default function OnboardingSlides() {
             onClick={dismiss}
           />
 
-          {/* Modal centré, taille raisonnable */}
+          {/* Modal — centré, contraint dans le viewport */}
           <motion.div
             key="modal"
             initial={{ opacity: 0, scale: 0.94, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 16 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed z-[100] inset-x-4 top-1/2 -translate-y-1/2 mx-auto w-full max-w-[400px] rounded-3xl bg-card shadow-2xl overflow-hidden"
+            className="fixed z-[100] inset-x-4 mx-auto w-full max-w-[400px] rounded-3xl bg-card shadow-2xl overflow-hidden flex flex-col"
+            style={{
+              top: "50%",
+              transform: "translateY(-50%)",
+              maxHeight: "calc(100dvh - 32px)",
+            }}
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
             onClick={(e) => e.stopPropagation()}
@@ -326,9 +331,9 @@ export default function OnboardingSlides() {
               </button>
             </div>
 
-            {/* Illustration */}
-            <div className={`flex items-center justify-center px-6 pt-3 pb-2 bg-gradient-to-b ${slide.bgFrom} ${slide.bgTo}`}
-              style={{ height: 180 }}>
+            {/* Illustration — hauteur réduite sur petits écrans */}
+            <div className={`shrink-0 flex items-center justify-center px-6 pt-3 pb-2 bg-gradient-to-b ${slide.bgFrom} ${slide.bgTo}`}
+              style={{ height: "clamp(120px, 22vh, 180px)" }}>
               <AnimatePresence mode="wait" custom={direction}>
                 <motion.div
                   key={slide.id}
@@ -344,8 +349,8 @@ export default function OnboardingSlides() {
               </AnimatePresence>
             </div>
 
-            {/* Texte + actions */}
-            <div className="px-5 pt-4 pb-6">
+            {/* Texte + actions — scrollable si besoin */}
+            <div className="px-5 pt-4 pb-6 overflow-y-auto">
               {/* Chip */}
               <AnimatePresence mode="wait">
                 <motion.div
