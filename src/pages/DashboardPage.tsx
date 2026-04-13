@@ -497,6 +497,9 @@ const DashboardPage = () => {
                       <span className="font-semibold text-foreground">{elecResolutionRate}% résolues</span>
                     </div>
                   )}
+                  <p className="mt-2 text-[9px] text-muted-foreground/50 italic">
+                    « Résolu » = confirmé par l'auteur ou 3 voisins
+                  </p>
                 </div>
 
                 {/* Eau */}
@@ -524,6 +527,9 @@ const DashboardPage = () => {
                       <span className="font-semibold text-foreground">{eauResolutionRate}% résolues</span>
                     </div>
                   )}
+                  <p className="mt-2 text-[9px] text-muted-foreground/50 italic">
+                    « Résolu » = confirmé par l'auteur ou 3 voisins
+                  </p>
                 </div>
 
                 {/* Voirie & Infrastructure */}
@@ -551,6 +557,7 @@ const DashboardPage = () => {
                       <span className="font-semibold text-foreground">{mairieResolutionRate}% résolues</span>
                     </div>
                   )}
+                  <p className="mt-2 text-[9px] text-muted-foreground/50 italic">« Résolu » = confirmé par l'auteur ou 3 voisins</p>
                 </div>
               </>
             )}
