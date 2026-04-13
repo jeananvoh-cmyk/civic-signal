@@ -7,6 +7,51 @@ import { useAuth } from "@/contexts/AuthContext";
 import confetti from "canvas-confetti";
 
 const STORAGE_KEY = "signa_onboarding_done";
+const LAST_SHOWN_KEY = "signa_onboarding_last";
+const SHOW_COUNT_KEY = "signa_onboarding_count";
+
+/**
+ * Stratégie d'affichage pour visiteurs non connectés :
+ *
+ * Affichage 1 — 3s après la 1ère visite (découverte)
+ * Affichage 2 — au retour sur le site après 24h (rappel léger)
+ * Affichage 3 — au retour après 72h (dernière chance)
+ * Ensuite    — plus jamais (STORAGE_KEY = "done" posé)
+ *
+ * Si l'utilisateur clique "Accéder à l'application" (dismiss sans s'inscrire),
+ * on planifie le prochain affichage selon la règle ci-dessus.
+ */
+function shouldShow(): boolean {
+  const done = localStorage.getItem(STORAGE_KEY);
+  if (done) return false;
+
+  const count = parseInt(localStorage.getItem(SHOW_COUNT_KEY) || "0", 10);
+  const lastShown = parseInt(localStorage.getItem(LAST_SHOWN_KEY) || "0", 10);
+  const now = Date.now();
+
+  // 1ère fois : montrer après 3s (géré par le setTimeout dans useEffect)
+  if (count === 0) return true;
+
+  // 2ème fois : au retour après 24h
+  if (count === 1 && now - lastShown >= 24 * 60 * 60 * 1000) return true;
+
+  // 3ème fois : au retour après 72h
+  if (count === 2 && now - lastShown >= 72 * 60 * 60 * 1000) return true;
+
+  // 4ème passage : on arrête définitivement
+  if (count >= 3) {
+    localStorage.setItem(STORAGE_KEY, "1");
+    return false;
+  }
+
+  return false;
+}
+
+function recordShown() {
+  const count = parseInt(localStorage.getItem(SHOW_COUNT_KEY) || "0", 10);
+  localStorage.setItem(SHOW_COUNT_KEY, String(count + 1));
+  localStorage.setItem(LAST_SHOWN_KEY, String(Date.now()));
+}
 
 /* ─── Slides ──────────────────────────────────────────────────────────────── */
 const slides = [
@@ -162,8 +207,15 @@ export default function OnboardingSlides() {
 
   useEffect(() => {
     if (user) return;
-    if (localStorage.getItem(STORAGE_KEY)) return;
-    const t = setTimeout(() => setVisible(true), 500);
+    if (!shouldShow()) return;
+    // 1ère visite : 3s de délai pour laisser la page se charger
+    // Visites suivantes : 8s pour laisser l'utilisateur naviguer un peu
+    const count = parseInt(localStorage.getItem(SHOW_COUNT_KEY) || "0", 10);
+    const delay = count === 0 ? 3000 : 8000;
+    const t = setTimeout(() => {
+      setVisible(true);
+      recordShown();
+    }, delay);
     return () => clearTimeout(t);
   }, [user]);
 

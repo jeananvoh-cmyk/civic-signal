@@ -8,7 +8,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
-import AuthCTABar from "@/components/AuthCTABar";
 import ProfileCompletionNotifier from "@/components/ProfileCompletionNotifier";
 import PWAInstallBanner from "@/components/PWAInstallBanner";
 import OfflineBar from "@/components/OfflineBar";
@@ -70,7 +69,6 @@ const App = () => (
         <BrowserRouter>
           <PullToRefresh>
           <OfflineBar />
-          <AuthCTABar />
           <ProfileCompletionNotifier />
           <PWAInstallBanner />
           <OnboardingSlides />
