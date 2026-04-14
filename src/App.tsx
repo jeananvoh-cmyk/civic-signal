@@ -72,7 +72,6 @@ const App = () => (
           <ProfileCompletionNotifier />
           <PWAInstallBanner />
           <OnboardingSlides />
-          <BottomNav />
           <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -93,7 +92,7 @@ const App = () => (
               <Route path="/signalement/:id" element={<ReportDetailPage />} />
               <Route path="/transparence" element={<TransparencyPage />} />
               <Route path="/update-password" element={<UpdatePasswordPage />} />
-              
+
               {/* Admin routes */}
               <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
                 <Route index element={<AdminOverviewPage />} />
@@ -109,12 +108,13 @@ const App = () => (
                 <Route path="droits" element={<AdminRightsPage />} />
                 <Route path="relay" element={<AdminRelayPage />} />
               </Route>
-              
+
               <Route path="/partner/dashboard" element={<ProtectedRoute><PartnerDashboardPage /></ProtectedRoute>} />
               <Route path="/partenaires" element={<PartnersPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
+          <BottomNav />
           </PullToRefresh>
         </BrowserRouter>
       </TooltipProvider>
