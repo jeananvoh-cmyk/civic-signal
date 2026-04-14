@@ -7,7 +7,7 @@ import ShareButton from "@/components/ShareButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Zap, Droplets, MapPin, Clock, ThumbsUp, CheckCircle,
   Filter, TrendingUp, AlertCircle, ChevronDown, Lightbulb, TriangleAlert, Info, MoreHorizontal, Building2, Map, Trash2, Waves, ExternalLink, X as XIcon
@@ -52,6 +52,8 @@ const InfrastructurePage = () => {
   const [supported, setSupported] = useState<Set<string>>(new Set());
   const [repaired, setRepaired] = useState<Set<string>>(new Set());
   const [communeFilter, setCommuneFilter] = useState<string | null>(null);
+  const [openSection, setOpenSection] = useState<string | null>(null);
+  const toggleSection = (key: string) => setOpenSection((prev) => (prev === key ? null : key));
 
   const fetchReports = async (pageNum: number, append = false) => {
     const setter = append ? setLoadingMore : setLoading;
@@ -279,163 +281,181 @@ const InfrastructurePage = () => {
             </div>
           </div>
 
-          {/* Alert Categories */}
-          <div className="space-y-4 mb-2">
-            {(filter === "all" || filter === "electricite") && (
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Signalements électriques (CIE)
-                  </span>
+          {/* Alert Categories — Accordéon compact */}
+          <div className="space-y-2 mb-2">
+            {/* ── Électricité (CIE) ── */}
+            {(filter === "all" || filter === "electricite") && (() => {
+              const isOpen = openSection === "electricite";
+              const activeHere = filter === "electricite" && subFilter;
+              return (
+                <div className="rounded-xl border border-[hsl(var(--electricity))]/30 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => toggleSection("electricite")}
+                    className="w-full flex items-center justify-between gap-3 px-3 py-2.5 bg-[hsl(var(--electricity))]/8 hover:bg-[hsl(var(--electricity))]/12 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-[hsl(var(--electricity))] shrink-0" />
+                      <span className="text-xs font-bold text-foreground uppercase tracking-wide">Électricité · CIE</span>
+                      {activeHere && (
+                        <span className="rounded-full bg-[hsl(var(--electricity))]/20 px-2 py-0.5 text-[10px] font-semibold text-[hsl(var(--electricity))]">{subFilter}</span>
+                      )}
+                    </div>
+                    <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="grid grid-cols-4 gap-2 p-2">
+                          {[
+                            { label: "Éclairage public", icon: <Lightbulb className="h-5 w-5 text-[hsl(var(--electricity))]" />, sub: "Éclairage public" },
+                            { label: "Poteaux & Pylônes", icon: <Zap className="h-5 w-5 text-[hsl(var(--electricity))]" />, sub: "Poteaux & Pylônes" },
+                            { label: "Branchements dangereux", icon: <TriangleAlert className="h-5 w-5 text-destructive" />, sub: "Branchements dangereux", danger: true },
+                            { label: "Autres", icon: <MoreHorizontal className="h-5 w-5 text-muted-foreground" />, sub: "Autres" },
+                          ].map((item) => (
+                            <button
+                              key={item.sub}
+                              type="button"
+                              onClick={() => { handleCategoryClick(item.sub, "electricite"); setOpenSection(null); }}
+                              className={`flex flex-col items-center justify-center gap-1.5 rounded-lg p-2 text-center transition-all border ${
+                                subFilter === item.sub && filter === "electricite"
+                                  ? item.danger ? "border-destructive bg-destructive/15 ring-1 ring-destructive/40" : "border-[hsl(var(--electricity))] bg-[hsl(var(--electricity))]/15 ring-1 ring-[hsl(var(--electricity))]/40"
+                                  : item.danger ? "border-destructive/20 bg-destructive/5 hover:bg-destructive/15" : "border-[hsl(var(--electricity))]/20 bg-[hsl(var(--electricity))]/5 hover:bg-[hsl(var(--electricity))]/15"
+                              }`}
+                            >
+                              {item.icon}
+                              <span className="text-[10px] font-semibold text-foreground leading-tight">{item.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div 
-                    onClick={() => handleCategoryClick("Éclairage public", "electricite")}
-                    className={`cursor-pointer bg-[hsl(var(--electricity))]/10 border ${subFilter === "Éclairage public" ? "border-[hsl(var(--electricity))] ring-2 ring-[hsl(var(--electricity))]/50" : "border-[hsl(var(--electricity))]/20"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-[hsl(var(--electricity))]/20`}
-                  >
-                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
-                      <Lightbulb className="h-5 w-5 text-[hsl(var(--electricity))]" />
-                    </div>
-                    <span className="text-xs font-semibold text-foreground">Éclairage public</span>
-                  </div>
-                  
-                  <div 
-                    onClick={() => handleCategoryClick("Poteaux & Pylônes", "electricite")}
-                    className={`cursor-pointer bg-[hsl(var(--electricity))]/10 border ${subFilter === "Poteaux & Pylônes" ? "border-[hsl(var(--electricity))] ring-2 ring-[hsl(var(--electricity))]/50" : "border-[hsl(var(--electricity))]/20"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-[hsl(var(--electricity))]/20`}
-                  >
-                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
-                      <Zap className="h-5 w-5 text-[hsl(var(--electricity))]" />
-                    </div>
-                    <span className="text-xs font-semibold text-foreground">Poteaux & Pylônes</span>
-                  </div>
-                  
-                  <div 
-                    onClick={() => handleCategoryClick("Branchements dangereux", "electricite")}
-                    className={`cursor-pointer bg-destructive/10 border ${subFilter === "Branchements dangereux" ? "border-destructive ring-2 ring-destructive/50" : "border-destructive/20"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-destructive/20`}
-                  >
-                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
-                      <TriangleAlert className="h-5 w-5 text-destructive" />
-                    </div>
-                    <span className="text-xs font-semibold text-foreground leading-tight">Branchements dangereux</span>
-                  </div>
-                  
-                  <div 
-                    onClick={() => handleCategoryClick("Autres", "electricite")}
-                    className={`cursor-pointer bg-muted border ${subFilter === "Autres" && filter === "electricite" ? "border-primary ring-2 ring-primary/50" : "border-border"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-muted/80`}
-                  >
-                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
-                      <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <span className="text-xs font-semibold text-foreground">Autres</span>
-                  </div>
-                </div>
-              </div>
-            )}
+              );
+            })()}
 
-            {(filter === "all" || filter === "eau") && (
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Signalements eau (SODECI)
-                  </span>
+            {/* ── Eau (SODECI) ── */}
+            {(filter === "all" || filter === "eau") && (() => {
+              const isOpen = openSection === "eau";
+              const activeHere = filter === "eau" && subFilter;
+              return (
+                <div className="rounded-xl border border-[hsl(var(--water))]/30 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => toggleSection("eau")}
+                    className="w-full flex items-center justify-between gap-3 px-3 py-2.5 bg-[hsl(var(--water))]/8 hover:bg-[hsl(var(--water))]/12 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Droplets className="h-4 w-4 text-[hsl(var(--water))] shrink-0" />
+                      <span className="text-xs font-bold text-foreground uppercase tracking-wide">Eau · SODECI</span>
+                      {activeHere && (
+                        <span className="rounded-full bg-[hsl(var(--water))]/20 px-2 py-0.5 text-[10px] font-semibold text-[hsl(var(--water))]">{subFilter}</span>
+                      )}
+                    </div>
+                    <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="grid grid-cols-4 gap-2 p-2">
+                          {[
+                            { label: "Fuite d'eau", icon: <Droplets className="h-5 w-5 text-[hsl(var(--water))]" />, sub: "Fuite d'eau" },
+                            { label: "Canalisation publique", icon: <AlertCircle className="h-5 w-5 text-[hsl(var(--water))]" />, sub: "Canalisation publique" },
+                            { label: "Qualité de l'eau", icon: <TriangleAlert className="h-5 w-5 text-destructive" />, sub: "Qualité de l'eau", danger: true },
+                            { label: "Autres", icon: <MoreHorizontal className="h-5 w-5 text-muted-foreground" />, sub: "Autres" },
+                          ].map((item) => (
+                            <button
+                              key={item.sub}
+                              type="button"
+                              onClick={() => { handleCategoryClick(item.sub, "eau"); setOpenSection(null); }}
+                              className={`flex flex-col items-center justify-center gap-1.5 rounded-lg p-2 text-center transition-all border ${
+                                subFilter === item.sub && filter === "eau"
+                                  ? item.danger ? "border-destructive bg-destructive/15 ring-1 ring-destructive/40" : "border-[hsl(var(--water))] bg-[hsl(var(--water))]/15 ring-1 ring-[hsl(var(--water))]/40"
+                                  : item.danger ? "border-destructive/20 bg-destructive/5 hover:bg-destructive/15" : "border-[hsl(var(--water))]/20 bg-[hsl(var(--water))]/5 hover:bg-[hsl(var(--water))]/15"
+                              }`}
+                            >
+                              {item.icon}
+                              <span className="text-[10px] font-semibold text-foreground leading-tight">{item.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div 
-                    onClick={() => handleCategoryClick("Fuite d'eau", "eau")}
-                    className={`cursor-pointer bg-[hsl(var(--water))]/10 border ${subFilter === "Fuite d'eau" ? "border-[hsl(var(--water))] ring-2 ring-[hsl(var(--water))]/50" : "border-[hsl(var(--water))]/20"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-[hsl(var(--water))]/20`}
-                  >
-                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
-                      <Droplets className="h-5 w-5 text-[hsl(var(--water))]" />
-                    </div>
-                   <span className="text-xs font-semibold text-foreground leading-tight">Fuite d'eau</span>
-                  </div>
-                  
-                  <div 
-                    onClick={() => handleCategoryClick("Canalisation publique", "eau")}
-                    className={`cursor-pointer bg-[hsl(var(--water))]/10 border ${subFilter === "Canalisation publique" ? "border-[hsl(var(--water))] ring-2 ring-[hsl(var(--water))]/50" : "border-[hsl(var(--water))]/20"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-[hsl(var(--water))]/20`}
-                  >
-                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
-                      <AlertCircle className="h-5 w-5 text-[hsl(var(--water))]" />
-                    </div>
-                    <span className="text-xs font-semibold text-foreground leading-tight">Canalisation publique</span>
-                  </div>
-                  
-                  <div 
-                    onClick={() => handleCategoryClick("Qualité de l'eau", "eau")}
-                    className={`cursor-pointer bg-destructive/10 border ${subFilter === "Qualité de l'eau" ? "border-destructive ring-2 ring-destructive/50" : "border-destructive/20"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-destructive/20`}
-                  >
-                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
-                      <TriangleAlert className="h-5 w-5 text-destructive" />
-                    </div>
-                    <span className="text-xs font-semibold text-foreground leading-tight">Qualité de l'eau</span>
-                  </div>
-                  
-                  <div 
-                    onClick={() => handleCategoryClick("Autres", "eau")}
-                    className={`cursor-pointer bg-muted border ${subFilter === "Autres" && filter === "eau" ? "border-primary ring-2 ring-primary/50" : "border-border"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-muted/80`}
-                  >
-                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
-                      <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <span className="text-xs font-semibold text-foreground">Autres</span>
-                  </div>
-                </div>
-              </div>
-            )}
+              );
+            })()}
 
-            {(filter === "all" || filter === "mairie") && (
-              <div>
-                <div className="flex items-center gap-2 mb-3 mt-4">
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Signalements voirie (Mairie)
-                  </span>
+            {/* ── Voirie (Mairie) ── */}
+            {(filter === "all" || filter === "mairie") && (() => {
+              const isOpen = openSection === "mairie";
+              const activeHere = filter === "mairie" && subFilter;
+              return (
+                <div className="rounded-xl border border-emerald-500/30 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => toggleSection("mairie")}
+                    className="w-full flex items-center justify-between gap-3 px-3 py-2.5 bg-emerald-500/8 hover:bg-emerald-500/12 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Map className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span className="text-xs font-bold text-foreground uppercase tracking-wide">Voirie · Mairie</span>
+                      {activeHere && (
+                        <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">{subFilter}</span>
+                      )}
+                    </div>
+                    <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="grid grid-cols-4 gap-2 p-2">
+                          {[
+                            { label: "Nid de poule / Route", icon: <Map className="h-5 w-5 text-emerald-500" />, sub: "Nid de poule" },
+                            { label: "Caniveau bouché", icon: <Waves className="h-5 w-5 text-emerald-500" />, sub: "Caniveau bouché" },
+                            { label: "Amas d'ordures", icon: <Trash2 className="h-5 w-5 text-emerald-500" />, sub: "Amas d'ordures" },
+                            { label: "Autres", icon: <MoreHorizontal className="h-5 w-5 text-muted-foreground" />, sub: "Autres" },
+                          ].map((item) => (
+                            <button
+                              key={item.sub}
+                              type="button"
+                              onClick={() => { handleCategoryClick(item.sub, "mairie"); setOpenSection(null); }}
+                              className={`flex flex-col items-center justify-center gap-1.5 rounded-lg p-2 text-center transition-all border ${
+                                subFilter === item.sub && filter === "mairie"
+                                  ? "border-emerald-500 bg-emerald-500/15 ring-1 ring-emerald-500/40"
+                                  : "border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/15"
+                              }`}
+                            >
+                              {item.icon}
+                              <span className="text-[10px] font-semibold text-foreground leading-tight">{item.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div 
-                    onClick={() => handleCategoryClick("Nid de poule", "mairie")}
-                    className={`cursor-pointer bg-emerald-500/10 border ${subFilter === "Nid de poule" ? "border-emerald-500 ring-2 ring-emerald-500/50" : "border-emerald-500/20"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-emerald-500/20`}
-                  >
-                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
-                      <Map className="h-5 w-5 text-emerald-500" />
-                    </div>
-                    <span className="text-xs font-semibold text-foreground leading-tight">Nid de poule / Route</span>
-                  </div>
-                  
-                  <div 
-                    onClick={() => handleCategoryClick("Caniveau bouché", "mairie")}
-                    className={`cursor-pointer bg-emerald-500/10 border ${subFilter === "Caniveau bouché" ? "border-emerald-500 ring-2 ring-emerald-500/50" : "border-emerald-500/20"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-emerald-500/20`}
-                  >
-                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
-                      <Waves className="h-5 w-5 text-emerald-500" />
-                    </div>
-                    <span className="text-xs font-semibold text-foreground leading-tight">Caniveau bouché</span>
-                  </div>
-                  
-                  <div 
-                    onClick={() => handleCategoryClick("Amas d'ordures", "mairie")}
-                    className={`cursor-pointer bg-emerald-500/10 border ${subFilter === "Amas d'ordures" ? "border-emerald-500 ring-2 ring-emerald-500/50" : "border-emerald-500/20"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-emerald-500/20`}
-                  >
-                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
-                      <Trash2 className="h-5 w-5 text-emerald-500" />
-                    </div>
-                    <span className="text-xs font-semibold text-foreground leading-tight">Amas d'ordures</span>
-                  </div>
-                  
-                  <div 
-                    onClick={() => handleCategoryClick("Autres", "mairie")}
-                    className={`cursor-pointer bg-muted border ${subFilter === "Autres" && filter === "mairie" ? "border-primary ring-2 ring-primary/50" : "border-border"} rounded-xl p-3 flex flex-col items-center justify-center text-center gap-2 transition-all hover:bg-muted/80`}
-                  >
-                    <div className="bg-background/80 backdrop-blur-sm rounded-full p-2 shadow-sm">
-                      <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <span className="text-xs font-semibold text-foreground">Autres</span>
-                  </div>
-                </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -597,7 +617,7 @@ const InfrastructurePage = () => {
                 </div>
 
                 {/* Action buttons */}
-                <div className="px-2 py-1.5 flex items-center">
+                <div className="px-2 py-2 flex items-center gap-2">
                   {user && report.user_id === user.id ? (
                     <span className="flex-1 text-xs text-muted-foreground flex items-center gap-1.5 px-3 py-1.5">
                       <ThumbsUp className="h-4 w-4" />
@@ -605,12 +625,12 @@ const InfrastructurePage = () => {
                     </span>
                   ) : (
                     <Button
-                      variant="ghost"
+                      variant={supported.has(report.id) ? "outline" : "default"}
                       size="sm"
-                      className={`flex-1 text-xs gap-1.5 min-w-0 ${
+                      className={`flex-1 text-xs gap-1.5 font-semibold ${
                         supported.has(report.id)
-                          ? "text-primary font-semibold"
-                          : "text-muted-foreground hover:text-primary"
+                          ? "text-primary border-primary/40 bg-primary/5"
+                          : ""
                       }`}
                       onClick={() => handleSupport(report.id)}
                     >
@@ -618,7 +638,7 @@ const InfrastructurePage = () => {
                       <span className="truncate">
                         {supported.has(report.id)
                           ? "Soutenu ✓"
-                          : <><span className="hidden sm:inline">Je veux que ça soit réparé</span><span className="sm:hidden">Soutenir</span></>}
+                          : "Je veux qu'on répare"}
                       </span>
                     </Button>
                   )}
