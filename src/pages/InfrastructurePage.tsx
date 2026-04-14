@@ -33,7 +33,6 @@ type InfraReport = {
   verifications: number;
   repair_verifications: number;
   support_count: number;
-  reporter_type: string;
   user_id?: string;
 };
 
@@ -64,7 +63,7 @@ const InfrastructurePage = () => {
       // Utilisateur connecté → query directe (RLS autorise)
       let query = supabase
         .from("reports")
-        .select("id, user_id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, support_count, reporter_type")
+        .select("id, user_id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, support_count")
         .eq("report_category", "infrastructure")
         .eq("status", "active")
         .order("support_count", { ascending: false })
@@ -595,9 +594,6 @@ const InfrastructurePage = () => {
                       </span>
                     )}
                   </div>
-                  <span className="text-muted-foreground">
-                    {report.reporter_type === "individual" ? "un résident" : "un groupe"}
-                  </span>
                 </div>
 
                 {/* Action buttons */}
