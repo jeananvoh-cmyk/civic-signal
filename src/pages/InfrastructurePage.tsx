@@ -263,22 +263,8 @@ const InfrastructurePage = () => {
               Fil Infrastructures
             </h1>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Lampadaires en panne, fuites d'eau, routes abîmées… Parcourez les problèmes signalés près de chez vous, confirmez ceux que vous constatez et suivez leur résolution.
+              Lampadaires hors service, fuites d'eau, routes dégradées — signalez, confirmez, suivez.
             </p>
-            <div className="flex flex-wrap gap-2 mt-1">
-              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted rounded-full px-2.5 py-1">
-                <Lightbulb className="h-3 w-3 text-[hsl(var(--electricity))]" />
-                Éclairage
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted rounded-full px-2.5 py-1">
-                <Droplets className="h-3 w-3 text-[hsl(var(--water))]" />
-                Fuites & canalisations
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted rounded-full px-2.5 py-1">
-                <Map className="h-3 w-3 text-muted-foreground" />
-                Voirie & nids de poule
-              </span>
-            </div>
           </div>
 
           {/* Alert Categories — Accordéon compact */}
