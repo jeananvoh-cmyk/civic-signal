@@ -4,8 +4,9 @@ import {
   Zap, Shield, Users, ArrowRight, BarChart3, MapPin,
   Radio, LogIn, UserPlus, Map, History, Info, Heart,
   ChevronDown, CheckCircle2, TrendingUp, Droplets, Wrench, Navigation,
-  ExternalLink,
+  ExternalLink, Download, Share,
 } from "lucide-react";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 import SOSButtons from "@/components/SOSButtons";
 import { Button } from "@/components/ui/button";
@@ -160,6 +161,7 @@ interface MyActiveReport {
 
 const Index = () => {
   const { user } = useAuth();
+  const { canInstall, isIOS, install } = usePWAInstall();
   const [liveCount, setLiveCount] = useState<number | null>(null);
   const [liveActive, setLiveActive] = useState(false);
   const [wordIndex, setWordIndex] = useState(0);
@@ -389,13 +391,28 @@ const Index = () => {
                 Signaler maintenant
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
-              <Link
-                to="/tableau-de-bord"
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/8 px-8 py-4 text-base font-bold text-white backdrop-blur-md transition-all hover:bg-white/15 active:scale-[0.97]"
-              >
-                <BarChart3 className="h-5 w-5" />
-                Voir le dashboard
-              </Link>
+              {canInstall ? (
+                /* Bouton install — remplace "dashboard" si l'app n'est pas installée */
+                <button
+                  onClick={async () => {
+                    if (isIOS) { window.location.href = "/install"; return; }
+                    await install();
+                  }}
+                  className="group inline-flex items-center gap-2 rounded-2xl border-2 border-amber-400/60 bg-amber-400/15 px-8 py-4 text-base font-bold text-amber-200 backdrop-blur-md transition-all hover:bg-amber-400/25 hover:border-amber-400/80 active:scale-[0.97]"
+                >
+                  {isIOS
+                    ? <><Share className="h-5 w-5" /> Ajouter à l'accueil</>
+                    : <><Download className="h-5 w-5" /> Installer l'app</>}
+                </button>
+              ) : (
+                <Link
+                  to="/tableau-de-bord"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/8 px-8 py-4 text-base font-bold text-white backdrop-blur-md transition-all hover:bg-white/15 active:scale-[0.97]"
+                >
+                  <BarChart3 className="h-5 w-5" />
+                  Voir le dashboard
+                </Link>
+              )}
             </motion.div>
 
             {/* Communes pills */}
@@ -811,9 +828,9 @@ const Index = () => {
                 </p>
               )}
               <p className="mx-auto mt-4 max-w-md text-muted-foreground">
-                Signale une coupure en{" "}
-                <span className="font-semibold text-electricity">15 secondes</span>,
-                aide tes voisins et contribue à améliorer les services publics d'Abidjan.
+                Signalez une coupure en{" "}
+                <span className="font-semibold text-electricity">quelques secondes</span>,
+                aidez vos voisins et contribuez à améliorer les services publics d'Abidjan.
               </p>
               <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <Button
