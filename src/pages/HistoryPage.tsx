@@ -214,6 +214,11 @@ const HistoryPage = () => {
                         repair_verifications={r.repair_verifications}
                         verifications={r.verifications}
                       />
+                      {r.status === "active" && r.verifications === 0 && (Date.now() - new Date(r.created_at).getTime()) > 7 * 86400000 && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/10 border border-orange-500/30 px-2 py-0.5 text-[10px] font-semibold text-orange-600 dark:text-orange-400">
+                          ⚠ Non pris en charge
+                        </span>
+                      )}
                     </div>
 
                     {/* Feedback résolution */}

@@ -5,10 +5,12 @@ import {
   Send, Clock, CheckCircle2, XCircle, RefreshCw,
   Zap, Droplets, AlertTriangle, MailCheck, MapPin, Users,
   ChevronDown, ChevronUp, ExternalLink, Settings, FlaskConical,
-  ShieldCheck, Save, Ban, MessageCircle, Building2,
+  ShieldCheck, Save, Ban, MessageCircle, Building2, TicketCheck,
+  PhoneCall, Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -25,12 +27,22 @@ interface RelayLog {
   error_message: string | null;
   created_at: string;
   sent_at: string | null;
+  wa_sent_at: string | null;
+  cie_ticket_number: string | null;
+  cie_ticket_at: string | null;
   report?: {
+    id: string;
     commune: string;
     quartier: string;
     service_type: string;
     verifications: number;
     urgency: string;
+    meter_number?: string | null;
+    contract_type?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    user_id?: string;
+    reporter_phone?: string | null; // enrichi depuis profiles
   };
 }
 
@@ -43,6 +55,12 @@ interface RelayGroup {
   quartiers: { name: string; verifications: number; urgency: string; count?: number }[];
   totalConfirmations: number;
   hasCritical: boolean;
+  meterNumbers: string[];
+  // Reporter contacts for WhatsApp message
+  reporters: Array<{ phone: string | null; meterNumber: string | null; contractType: string | null; quartier: string }>;
+  // Suivi WhatsApp / ticket CIE
+  waSentAt: string | null;        // null = pas encore envoyé via WA
+  cieTicketNumber: string | null; // ticket reçu de la CIE
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -83,21 +101,53 @@ interface RelayConfig {
 
 function buildWhatsAppMessage(group: RelayGroup): string {
   const isElec = group.operator === "CIE";
+  const isSodeci = group.operator === "SODECI";
   const serviceLabel = isElec ? "électricité" : "eau potable";
+  const serviceEmoji = isElec ? "⚡" : "💧";
+  const operatorName = isElec ? "CIE" : isSodeci ? "SODECI" : "Mairie";
+
+  const quartierLines = group.quartiers.map((q) => {
+    const urgLabel = URGENCY_CONFIG[q.urgency]?.label ?? q.urgency;
+    const sigCount = q.count && q.count > 1 ? ` (${q.count} signalements)` : "";
+    return `• ${q.name}${sigCount} — ${q.verifications} confirmation${q.verifications > 1 ? "s" : ""} — ${urgLabel}`;
+  });
+
+  // Reporter contacts section
+  const reporterLines: string[] = [];
+  if (group.reporters.length > 0) {
+    for (const r of group.reporters) {
+      const parts: string[] = [];
+      if (r.meterNumber) parts.push(`Compteur ${r.meterNumber}${r.contractType ? ` (${r.contractType === "postpaid" ? "Postpayé" : "Prépayé"})` : ""}`);
+      if (r.phone) parts.push(r.phone);
+      if (r.quartier) parts.push(r.quartier);
+      if (parts.length > 0) reporterLines.push(`• ${parts.join(" · ")}`);
+    }
+  }
+
   const lines = [
-    `*Signalement SIGNA-CI — ${isElec ? "CIE" : "SODECI"}*`,
-    `Commune : *${group.commune}*`,
+    `${serviceEmoji} *SIGNA-CI — Signalement citoyen officiel*`,
     ``,
-    `${group.totalConfirmations} confirmation${group.totalConfirmations > 1 ? "s" : ""} de voisins.`,
+    `Bonjour ${operatorName},`,
     ``,
-    `Quartiers concernés :`,
-    ...group.quartiers.map(
-      (q) =>
-        `• ${q.name} — ${q.verifications} confirmation${q.verifications > 1 ? "s" : ""} (${URGENCY_CONFIG[q.urgency]?.label ?? q.urgency})`,
-    ),
+    `Nous vous contactons au nom de *${group.totalConfirmations} citoyen${group.totalConfirmations > 1 ? "s" : ""}* abonné${group.totalConfirmations > 1 ? "s" : ""} ayant signalé une coupure de *${serviceLabel}* sur notre plateforme.`,
     ``,
-    `Merci de traiter cette coupure de ${serviceLabel} en priorité.`,
-    `— Équipe SIGNA-CI (signa.ci)`,
+    `📍 *Commune :* ${group.commune}`,
+    ``,
+    `*Zones touchées :*`,
+    ...quartierLines,
+    ...(reporterLines.length > 0 ? [
+      ``,
+      `*Abonnés concernés :*`,
+      ...reporterLines,
+      ``,
+      `Merci de contacter directement les abonnés listés ci-dessus pour leur communiquer le numéro de ticket.`,
+    ] : []),
+    ``,
+    `Merci de traiter cette panne en priorité.`,
+    ``,
+    `— *Équipe SIGNA-CI*`,
+    `Plateforme citoyenne · Abidjan`,
+    `signa.ci`,
   ];
   return lines.join("\n");
 }
@@ -135,7 +185,7 @@ function useRelayLogs() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("relay_logs")
-        .select("id, report_id, operator, email_to, status, error_message, created_at, sent_at")
+        .select("id, report_id, operator, email_to, status, error_message, created_at, sent_at, wa_sent_at, cie_ticket_number, cie_ticket_at")
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
@@ -143,12 +193,23 @@ function useRelayLogs() {
       const reportIds = [...new Set((data as any[]).map((r: any) => r.report_id))];
       if (reportIds.length === 0) return [] as RelayLog[];
 
+      // Fetch reports with user_id for contact lookup
       const { data: reports } = await supabase
         .from("reports")
-        .select("id, commune, quartier, service_type, verifications, urgency")
+        .select("id, commune, quartier, service_type, verifications, urgency, meter_number, contract_type, latitude, longitude, user_id")
         .in("id", reportIds as string[]);
 
-      const reportMap = new Map((reports ?? []).map((r: any) => [r.id, r]));
+      // Fetch reporter phones from profiles
+      const userIds = [...new Set((reports ?? []).map((r: any) => r.user_id).filter(Boolean))];
+      const { data: profiles } = userIds.length > 0
+        ? await supabase.from("profiles").select("user_id, phone").in("user_id", userIds as string[])
+        : { data: [] };
+
+      const phoneMap = new Map((profiles ?? []).map((p: any) => [p.user_id, p.phone as string | null]));
+      const reportMap = new Map((reports ?? []).map((r: any) => [r.id, {
+        ...r,
+        reporter_phone: phoneMap.get(r.user_id) ?? null,
+      }]));
 
       return (data as any[]).map((log: any) => ({
         ...log,
@@ -177,11 +238,41 @@ function groupPending(logs: RelayLog[]): RelayGroup[] {
         quartiers: [],
         totalConfirmations: 0,
         hasCritical: false,
+        meterNumbers: [],
+        reporters: [],
+        waSentAt: log.wa_sent_at,
+        cieTicketNumber: log.cie_ticket_number,
       });
     }
     const g = map.get(key)!;
     g.relayIds.push(log.id);
-    // Fusionner par quartier dans l'UI aussi
+
+    // Collect unique meter numbers
+    if (log.report.meter_number && !g.meterNumbers.includes(log.report.meter_number)) {
+      g.meterNumbers.push(log.report.meter_number);
+    }
+
+    // Collect reporter contacts (with phone and/or meter number)
+    const hasContact = log.report.reporter_phone || log.report.meter_number;
+    if (hasContact) {
+      const alreadyAdded = g.reporters.some(
+        (r) => r.phone === log.report!.reporter_phone && r.meterNumber === log.report!.meter_number
+      );
+      if (!alreadyAdded) {
+        g.reporters.push({
+          phone: log.report.reporter_phone ?? null,
+          meterNumber: log.report.meter_number ?? null,
+          contractType: log.report.contract_type ?? null,
+          quartier: log.report.quartier,
+        });
+      }
+    }
+
+    // Merge wa_sent_at / cie_ticket from first sent log in group
+    if (!g.waSentAt && log.wa_sent_at) g.waSentAt = log.wa_sent_at;
+    if (!g.cieTicketNumber && log.cie_ticket_number) g.cieTicketNumber = log.cie_ticket_number;
+
+    // Merge by quartier
     const existing = g.quartiers.find((q) => q.name === log.report!.quartier);
     if (existing) {
       existing.verifications += log.report.verifications;
@@ -311,6 +402,41 @@ const AdminRelayPage = () => {
       toast({ title: "Erreur", variant: "destructive" });
     },
   });
+
+  // ── Marquer envoyé via WhatsApp ───────────────────────────────────────────
+  const markWaSent = useMutation({
+    mutationFn: async (relay_ids: string[]) => {
+      const { error } = await (supabase as any)
+        .from("relay_logs")
+        .update({ wa_sent_at: new Date().toISOString() })
+        .in("id", relay_ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-relay-logs-all"] });
+      toast({ title: "Envoi WhatsApp enregistré", description: "La CIE sera notifiée de suivre avec les abonnés." });
+    },
+    onError: () => toast({ title: "Erreur", variant: "destructive" }),
+  });
+
+  // ── Enregistrer ticket CIE ─────────────────────────────────────────────────
+  const saveCieTicket = useMutation({
+    mutationFn: async ({ relay_ids, ticket }: { relay_ids: string[]; ticket: string }) => {
+      const { error } = await (supabase as any)
+        .from("relay_logs")
+        .update({ cie_ticket_number: ticket, cie_ticket_at: new Date().toISOString() })
+        .in("id", relay_ids);
+      if (error) throw error;
+    },
+    onSuccess: (_, { ticket }) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-relay-logs-all"] });
+      toast({ title: `Ticket CIE enregistré`, description: `N° ${ticket}` });
+    },
+    onError: () => toast({ title: "Erreur", variant: "destructive" }),
+  });
+
+  // État local tickets par groupe
+  const [ticketInputs, setTicketInputs] = useState<Record<string, string>>({});
 
   // ── Réessayer un relay en erreur ───────────────────────────────────────────
   const retryRelay = useMutation({
@@ -593,26 +719,51 @@ const AdminRelayPage = () => {
                             <Ban className="h-3.5 w-3.5" />
                             Rejeter
                           </Button>
-                          {/* WhatsApp — CIE ou SODECI uniquement */}
+                          {/* ── WhatsApp CIE / SODECI — bouton SIGNA intermédiaire ── */}
                           {(group.operator === "CIE" || group.operator === "SODECI") && (() => {
                             const waNumber = (group.operator === "CIE"
                               ? effectiveConfig?.whatsapp_cie
                               : effectiveConfig?.whatsapp_sodeci
                             )?.replace(/\D/g, "");
                             if (!waNumber) return null;
-                            const url = `https://wa.me/${waNumber}?text=${encodeURIComponent(buildWhatsAppMessage(group))}`;
+                            const waMsg = buildWhatsAppMessage(group);
+                            const url = `https://wa.me/${waNumber}?text=${encodeURIComponent(waMsg)}`;
+                            const alreadySent = !!group.waSentAt;
                             return (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                asChild
-                                className="gap-1.5 text-emerald-600 border-emerald-500/40 hover:bg-emerald-500/10 text-xs h-8"
-                              >
-                                <a href={url} target="_blank" rel="noopener noreferrer">
+                              <div className="flex items-center gap-1.5">
+                                {/* Copier message */}
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="gap-1 text-muted-foreground text-xs h-8 px-2"
+                                  title="Copier le message"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(waMsg);
+                                    toast({ title: "Message copié", description: "Collez-le dans WhatsApp." });
+                                  }}
+                                >
+                                  <Copy className="h-3.5 w-3.5" />
+                                </Button>
+                                {/* Ouvrir WA + enregistrer envoi */}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className={`gap-1.5 text-xs h-8 ${
+                                    alreadySent
+                                      ? "text-emerald-700 border-emerald-500/50 bg-emerald-500/10"
+                                      : "text-emerald-600 border-emerald-500/40 hover:bg-emerald-500/10"
+                                  }`}
+                                  onClick={() => {
+                                    window.open(url, "_blank", "noopener,noreferrer");
+                                    if (!alreadySent) {
+                                      markWaSent.mutate(group.relayIds);
+                                    }
+                                  }}
+                                >
                                   <MessageCircle className="h-3.5 w-3.5" />
-                                  WhatsApp
-                                </a>
-                              </Button>
+                                  {alreadySent ? "WA renvoyé" : "WhatsApp"}
+                                </Button>
+                              </div>
                             );
                           })()}
                           <Button
@@ -631,7 +782,7 @@ const AdminRelayPage = () => {
                             }`}
                           >
                             <Send className="h-3.5 w-3.5" />
-                            {isSending ? "Envoi…" : `Envoyer à ${opCfg.label}`}
+                            {isSending ? "Envoi…" : `Email ${opCfg.label}`}
                           </Button>
                         </>
                       )}
@@ -666,6 +817,95 @@ const AdminRelayPage = () => {
                       );
                     })}
                   </div>
+
+                  {/* ── Suivi WhatsApp CIE — abonnés + ticket ── */}
+                  {(group.operator === "CIE" || group.operator === "SODECI") && (
+                    <div className="border-t border-border bg-muted/10 px-4 py-3 space-y-3">
+
+                      {/* Statut envoi WA */}
+                      <div className="flex flex-wrap items-center gap-3">
+                        {group.waSentAt ? (
+                          <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-2.5 py-1">
+                            <MessageCircle className="h-3 w-3" />
+                            WhatsApp envoyé · {format(new Date(group.waSentAt), "dd MMM HH:mm", { locale: fr })}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground italic">
+                            WhatsApp non encore envoyé
+                          </span>
+                        )}
+                        {group.cieTicketNumber && (
+                          <span className="flex items-center gap-1.5 text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-full px-2.5 py-1 font-mono">
+                            <TicketCheck className="h-3 w-3" />
+                            {group.cieTicketNumber}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Abonnés avec contacts */}
+                      {group.reporters.length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                            <PhoneCall className="h-3 w-3" />
+                            Abonnés concernés ({group.reporters.length})
+                          </p>
+                          <div className="space-y-1">
+                            {group.reporters.map((r, i) => (
+                              <div key={i} className="flex flex-wrap items-center gap-2 text-xs text-foreground bg-background rounded-lg px-3 py-1.5 border border-border">
+                                {r.meterNumber && (
+                                  <span className="font-mono font-semibold">⚡ {r.meterNumber}</span>
+                                )}
+                                {r.contractType && (
+                                  <span className="text-muted-foreground rounded-full bg-muted px-1.5 py-0.5 text-[10px]">
+                                    {r.contractType === "postpaid" ? "Postpayé" : "Prépayé"}
+                                  </span>
+                                )}
+                                {r.phone && (
+                                  <span className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                                    <PhoneCall className="h-3 w-3" />
+                                    {r.phone}
+                                  </span>
+                                )}
+                                <span className="text-muted-foreground">· {r.quartier}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Saisie ticket CIE */}
+                      {!group.cieTicketNumber && group.waSentAt && (
+                        <div className="space-y-1.5">
+                          <p className="text-[11px] font-semibold text-foreground">
+                            Ticket reçu de la {group.operator === "CIE" ? "CIE" : "SODECI"} ?
+                          </p>
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Ex: DEP-BT 043 04 2026 1219"
+                              value={ticketInputs[group.key] ?? ""}
+                              onChange={(e) => setTicketInputs((prev) => ({ ...prev, [group.key]: e.target.value }))}
+                              className="flex-1 h-8 text-xs bg-background font-mono"
+                              maxLength={40}
+                            />
+                            <Button
+                              size="sm"
+                              disabled={!ticketInputs[group.key]?.trim() || saveCieTicket.isPending}
+                              onClick={() => {
+                                const ticket = ticketInputs[group.key]?.trim();
+                                if (ticket) saveCieTicket.mutate({ relay_ids: group.relayIds, ticket });
+                              }}
+                              className="h-8 px-3 bg-amber-500 hover:bg-amber-600 text-white shrink-0"
+                            >
+                              <TicketCheck className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">
+                            Enregistrer le numéro de sollicitation reçu en réponse WhatsApp
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </motion.div>
               );
             })}
@@ -770,7 +1010,19 @@ const AdminRelayPage = () => {
                         </Button>
                         {log.sent_at && (
                           <span className="text-xs text-muted-foreground">
-                            Envoyé le {format(new Date(log.sent_at), "d MMM yyyy à HH:mm", { locale: fr })}
+                            Email · {format(new Date(log.sent_at), "d MMM HH:mm", { locale: fr })}
+                          </span>
+                        )}
+                        {log.wa_sent_at && (
+                          <span className="flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400 font-medium">
+                            <MessageCircle className="h-3 w-3" />
+                            WA · {format(new Date(log.wa_sent_at), "d MMM HH:mm", { locale: fr })}
+                          </span>
+                        )}
+                        {log.cie_ticket_number && (
+                          <span className="flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400 font-mono font-bold bg-amber-500/10 border border-amber-500/30 rounded-full px-2 py-0.5">
+                            <TicketCheck className="h-3 w-3" />
+                            {log.cie_ticket_number}
                           </span>
                         )}
                       </div>

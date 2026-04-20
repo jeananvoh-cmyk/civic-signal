@@ -158,6 +158,26 @@ const AdminReportsPage = () => {
     onError: (err: any) => toast.error(getUserFriendlyError(err)),
   });
 
+  const forwardMutation = useMutation({
+    mutationFn: async (reportId: string) => {
+      const { error } = await supabase
+        .from("reports")
+        .update({
+          forwarded_to_operator_at: new Date().toISOString(),
+          forwarded_to_operator_by: user?.id,
+        } as any)
+        .eq("id", reportId);
+      if (error) throw error;
+    },
+    onSuccess: (_, reportId) => {
+      logAudit({ action: "report_forwarded_to_operator", target_type: "report", target_id: reportId });
+      queryClient.invalidateQueries({ queryKey: ["admin-reports-validated"] });
+      setSelectedReport((prev: any) => prev ? { ...prev, forwarded_to_operator_at: new Date().toISOString() } : prev);
+      toast.success("✅ Signalement marqué comme transmis à l'opérateur.");
+    },
+    onError: (err: any) => toast.error(getUserFriendlyError(err)),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (reportId: string) => {
       const { error } = await supabase.from("reports").delete().eq("id", reportId);
@@ -403,9 +423,26 @@ const AdminReportsPage = () => {
                   </div>
                 )}
                 {selectedReport.validated && selectedReport.status === "active" && (
-                  <div className="flex gap-2 pt-2">
+                  <div className="flex flex-col gap-2 pt-2">
+                    {/* Transmettre à l'opérateur */}
+                    {!(selectedReport as any).forwarded_to_operator_at ? (
+                      <Button
+                        variant="outline"
+                        className="w-full gap-2 border-amber-500/40 text-amber-700 hover:bg-amber-500/10"
+                        onClick={() => forwardMutation.mutate(selectedReport.id)}
+                        disabled={forwardMutation.isPending}
+                      >
+                        <Clock className="h-4 w-4" />
+                        Marquer "Transmis à l'opérateur"
+                      </Button>
+                    ) : (
+                      <div className="flex items-center gap-2 rounded-lg bg-amber-500/8 border border-amber-500/30 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                        <Clock className="h-3.5 w-3.5 shrink-0" />
+                        Transmis à l'opérateur le {new Date((selectedReport as any).forwarded_to_operator_at).toLocaleDateString("fr-FR")}
+                      </div>
+                    )}
                     <Button
-                      className="flex-1 bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90 text-white"
+                      className="w-full bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90 text-white"
                       onClick={() => resolveMutation.mutate(selectedReport.id)}
                       disabled={resolveMutation.isPending}
                     >

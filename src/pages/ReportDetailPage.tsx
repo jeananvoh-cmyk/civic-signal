@@ -34,6 +34,7 @@ interface ReportDetail {
   resolved_at: string | null;
   validated: boolean;
   validated_at: string | null;
+  forwarded_to_operator_at: string | null;
   photo_url: string | null;
   photo_urls: string[] | null;
   verifications: number;
@@ -116,7 +117,7 @@ const ReportDetailPage = () => {
     if (!id) return;
     supabase
       .from("reports")
-      .select("id, user_id, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, validated, validated_at, photo_url, photo_urls, verifications, repair_verifications, impacted_people, babies, pregnant, elderly, latitude, longitude")
+      .select("id, user_id, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, validated, validated_at, forwarded_to_operator_at, photo_url, photo_urls, verifications, repair_verifications, impacted_people, babies, pregnant, elderly, latitude, longitude")
       .eq("id", id)
       .single()
       .then(({ data, error }) => {
@@ -386,6 +387,12 @@ const ReportDetailPage = () => {
               done={report.verifications >= 3}
               label={`${report.verifications} voisin${report.verifications !== 1 ? "s" : ""} ont confirmé`}
               icon={<Users className="h-3.5 w-3.5" />}
+            />
+            <TimelineStep
+              done={!!report.forwarded_to_operator_at}
+              label={report.forwarded_to_operator_at ? "Transmis à l'opérateur" : "Transmission à l'opérateur en attente"}
+              date={report.forwarded_to_operator_at}
+              icon={<ExternalLink className="h-3.5 w-3.5" />}
             />
             <TimelineStep
               done={isResolved}

@@ -2,7 +2,7 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Clock, Users, CheckCircle2, Info, ThumbsUp, Maximize2, X, ExternalLink, MessageSquare, Send, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, Users, CheckCircle2, Info, ThumbsUp, Maximize2, X, ExternalLink, MessageSquare, Send, ChevronLeft, ChevronRight, MessageCircle, TicketCheck } from "lucide-react";
 import DurationBadge from "@/components/DurationBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,123 @@ import "leaflet/dist/leaflet.css";
 import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
 
 const NEGLECTED_DAYS = 7;
+
+// ── CieRelayStatus — lecture seule, affiché sur le signalement ───────────────
+
+function CieRelayStatus({ reportId, serviceType }: { reportId: string; serviceType: string }) {
+  const { data: relay } = useQuery({
+    queryKey: ["relay-status", reportId],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("relay_logs")
+        .select("status, sent_at, wa_sent_at, cie_ticket_number, cie_ticket_at, operator")
+        .eq("report_id", reportId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data as {
+        status: string;
+        sent_at: string | null;
+        wa_sent_at: string | null;
+        cie_ticket_number: string | null;
+        cie_ticket_at: string | null;
+        operator: string;
+      } | null;
+    },
+    staleTime: 30_000,
+    enabled: !!reportId && (serviceType === "electricity" || serviceType === "water"),
+  });
+
+  if (!relay) {
+    // Pas encore dans la file — montrer message d'attente
+    return (
+      <div className="rounded-2xl border border-dashed border-amber-400/50 bg-amber-50/40 dark:bg-amber-900/10 px-4 py-3 flex items-start gap-3">
+        <MessageCircle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+        <div>
+          <p className="text-sm font-semibold text-foreground">SIGNA-CI contactera la {serviceType === "electricity" ? "CIE" : "SODECI"} pour vous</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+            Dès 2 confirmations de voisins, votre signalement sera transmis directement à l'opérateur via WhatsApp.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const operatorName = relay.operator === "CIE" ? "CIE" : relay.operator === "SODECI" ? "SODECI" : relay.operator;
+  const isSentViaWa = !!relay.wa_sent_at;
+  const isSentViaEmail = relay.status === "sent" && !!relay.sent_at;
+  const hasTicket = !!relay.cie_ticket_number;
+
+  return (
+    <div className="rounded-2xl border-2 border-amber-400/40 bg-amber-50/50 dark:bg-amber-900/10 p-4 space-y-3">
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/15">
+          <MessageCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-foreground">Suivi {operatorName} via SIGNA-CI</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            SIGNA-CI vous représente auprès de l'opérateur
+          </p>
+        </div>
+        {hasTicket && (
+          <span className="flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300/50 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold px-2 py-0.5 shrink-0">
+            <TicketCheck className="h-3 w-3" />
+            Ticket
+          </span>
+        )}
+      </div>
+
+      {/* Timeline statut */}
+      <div className="space-y-1.5">
+        {/* En file */}
+        <div className="flex items-center gap-2 text-xs">
+          <span className="h-2 w-2 rounded-full bg-amber-400 shrink-0" />
+          <span className="text-foreground font-medium">En file de transmission SIGNA-CI</span>
+        </div>
+        {/* Envoyé email */}
+        {isSentViaEmail && (
+          <div className="flex items-center gap-2 text-xs ml-1">
+            <span className="h-2 w-2 rounded-full bg-blue-400 shrink-0" />
+            <span className="text-foreground font-medium">
+              Email transmis à {operatorName} · {new Date(relay.sent_at!).toLocaleDateString("fr-FR")}
+            </span>
+          </div>
+        )}
+        {/* Envoyé WhatsApp */}
+        {isSentViaWa && (
+          <div className="flex items-center gap-2 text-xs ml-1">
+            <span className="h-2 w-2 rounded-full bg-[#25D366] shrink-0" />
+            <span className="text-foreground font-semibold">
+              WhatsApp envoyé à {operatorName} · {new Date(relay.wa_sent_at!).toLocaleDateString("fr-FR")}
+            </span>
+          </div>
+        )}
+        {/* Ticket CIE reçu */}
+        {hasTicket && (
+          <div className="flex items-start gap-2 text-xs ml-1">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0 mt-1" />
+            <div>
+              <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                Ticket {operatorName} reçu
+              </span>
+              <span className="ml-2 font-mono font-semibold bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300/40 rounded px-1.5 py-0.5">
+                {relay.cie_ticket_number}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Message si envoyé mais pas encore de ticket */}
+      {(isSentViaWa || isSentViaEmail) && !hasTicket && (
+        <p className="text-[11px] text-muted-foreground border-t border-border pt-2">
+          En attente de la réponse de {operatorName}. Vous serez notifié dès qu'un ticket sera attribué.
+        </p>
+      )}
+    </div>
+  );
+}
 
 interface ReportDetail {
   id: string;
@@ -48,6 +165,11 @@ interface ReportDetail {
   repair_verifications: number | null;
   latitude: number | null;
   longitude: number | null;
+  meter_number: string | null;
+  contract_type: string | null;
+  cie_ticket_number: string | null;
+  cie_ticket_submitted_at: string | null;
+  user_id: string;
 }
 
 type ComputedStatus = "nouveau" | "en_cours" | "resolu" | "non_pris";
@@ -121,7 +243,7 @@ const SignalementDetailPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reports")
-        .select("id, status, urgency, service_type, report_category, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, photo_url, photo_urls, babies, pregnant, elderly, repair_verifications, latitude, longitude")
+        .select("id, status, urgency, service_type, report_category, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, photo_url, photo_urls, babies, pregnant, elderly, repair_verifications, latitude, longitude, meter_number, contract_type, cie_ticket_number, cie_ticket_submitted_at, user_id")
         .eq("id", id!)
         .single();
       if (error) throw error;
@@ -609,6 +731,11 @@ const SignalementDetailPage = () => {
                 }
               </Button>
             </div>
+          )}
+
+          {/* ── Suivi relay CIE / SODECI — géré par SIGNA-CI ── */}
+          {report.report_category === "outage" && (report.service_type === "electricity" || report.service_type === "water") && (
+            <CieRelayStatus reportId={report.id} serviceType={report.service_type} />
           )}
 
           {/* Partage */}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Radio, Users, Share2, BarChart3, Zap, ArrowRight, MapPin, Award } from "lucide-react";
+import { CheckCircle2, Radio, Users, BarChart3, Zap, ArrowRight, MapPin, Award, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
@@ -285,6 +285,35 @@ const ConfirmationPage = () => {
         >
           <PushPromptBanner />
         </motion.div>
+
+        {/* ── Bloc SIGNA relais CIE/SODECI ── */}
+        {isOutage && operatorName && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.29 }}
+            className="rounded-2xl border-2 border-amber-400/40 bg-amber-50/60 dark:bg-amber-900/10 p-4"
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/15">
+                <MessageCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-foreground leading-tight">
+                  SIGNA-CI contacte la {operatorName} pour vous
+                </p>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Dès que votre signalement est confirmé par vos voisins, notre équipe le transmet directement à la {operatorName} via WhatsApp en votre nom. Vous n'avez rien d'autre à faire.
+                </p>
+                {neighborCount !== null && neighborCount > 0 && (
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400 font-semibold mt-1.5">
+                    ✓ {neighborCount + 1} signalement{neighborCount > 0 ? "s" : ""} déjà dans ce secteur — transmission prioritaire
+                  </p>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Partage incitatif */}
         <motion.div

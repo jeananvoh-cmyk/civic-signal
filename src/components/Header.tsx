@@ -20,7 +20,8 @@ const Header = () => {
   const { canValidate, isAdmin, isModerator } = useUserRole();
   const { theme, toggleTheme } = useTheme();
   const { data: donationsEnabled = true } = useSiteSetting("donations_enabled");
-  const { data: transparencyEnabled = false } = useSiteSetting("transparency_enabled");
+  const { data: transparencyEnabled = true } = useSiteSetting("transparency_enabled");
+  const { data: partnersEnabled = true } = useSiteSetting("partners_enabled");
 
   const themeIcon = theme === "dark" ? <Moon className="h-4 w-4" /> : theme === "light" ? <Sun className="h-4 w-4" /> : <Monitor className="h-4 w-4" />;
 
@@ -39,11 +40,12 @@ const Header = () => {
   const links = [
     { to: "/", label: "Accueil", highlight: false },
     { to: "/signaler", label: "Signaler", highlight: false },
-    { to: "/tableau-de-bord", label: "Tableau de Bord Public", highlight: false },
+    { to: "/tableau-de-bord", label: "Tableau de Bord", highlight: false },
+    { to: "/suivi", label: "Suivi", highlight: false },
     { to: "/verification", label: "Vérifier", highlight: true },
+    ...(transparencyEnabled ? [{ to: "/transparence", label: "Résultats", highlight: false }] : []),
     ...(donationsEnabled ? [{ to: "/dons", label: "♥ Dons", highlight: false }] : []),
-    ...(transparencyEnabled ? [{ to: "/transparence", label: "Transparence", highlight: false }] : []),
-    { to: "/partenaires", label: "Partenaires", highlight: false },
+    ...(partnersEnabled ? [{ to: "/partenaires", label: "Partenaires", highlight: false }] : []),
   ];
 
   return (

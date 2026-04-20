@@ -170,6 +170,7 @@ const Index = () => {
   const [nearbyReports, setNearbyReports] = useState<NearbyReport[]>([]);
   const [nearbyLoading, setNearbyLoading] = useState(false);
   const [myActiveReports, setMyActiveReports] = useState<MyActiveReport[]>([]);
+  const [avgResolutionHours, setAvgResolutionHours] = useState<Record<string, number> | null>(null);
 
   useEffect(() => {
     supabase.rpc("get_landing_stats" as any).then(({ data }) => {
@@ -208,6 +209,15 @@ const Index = () => {
   useEffect(() => {
     const id = setInterval(() => setWordIndex((i) => (i + 1) % ROTATING_WORDS.length), 2800);
     return () => clearInterval(id);
+  }, []);
+
+  // Temps de résolution moyen par opérateur
+  useEffect(() => {
+    supabase.rpc("get_transparency_stats" as any).then(({ data }) => {
+      if (data && (data as any).avg_resolution_hours) {
+        setAvgResolutionHours((data as any).avg_resolution_hours);
+      }
+    });
   }, []);
 
   // Mes signalements actifs — utilisateur connecté
@@ -499,6 +509,47 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* ══════════════════════════════════════════════════════════════
+          TEMPS DE RÉPONSE — preuve que ça marche
+      ══════════════════════════════════════════════════════════════ */}
+      {avgResolutionHours && Object.keys(avgResolutionHours).length > 0 && (
+        <section className="container py-6">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="rounded-2xl border border-border bg-card p-5"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-emerald-500" />
+                <h2 className="font-display text-sm font-bold text-foreground">Délai moyen de résolution</h2>
+              </div>
+              <Link to="/transparence" className="text-xs text-primary hover:underline">Voir les résultats →</Link>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { key: "electricity", label: "CIE", icon: "⚡", color: "text-yellow-500" },
+                { key: "water", label: "SODECI", icon: "💧", color: "text-sky-500" },
+                { key: "mairie", label: "Mairie", icon: "🏛", color: "text-emerald-500" },
+              ].map(({ key, label, icon, color }) => {
+                const h = avgResolutionHours[key];
+                if (!h) return null;
+                const display = h < 1 ? `${Math.round(h * 60)} min` : h < 24 ? `${Math.round(h)} h` : `${Math.round(h / 24)} j`;
+                return (
+                  <div key={key} className="rounded-xl bg-secondary p-3 text-center">
+                    <p className="text-lg mb-1">{icon}</p>
+                    <p className={`font-display text-xl font-extrabold ${color}`}>{display}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{label}</p>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-3 text-[10px] text-muted-foreground text-center italic">Basé sur les signalements résolus · mis à jour en temps réel</p>
+          </motion.div>
+        </section>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════
           MES SIGNALEMENTS ACTIFS — utilisateur connecté

@@ -178,8 +178,8 @@ const ReportPage = () => {
   const { isOnline } = useNetworkStatus();
   const { enqueue } = useOfflineQueue();
 
-  // Wizard
-  const [step, setStep] = useState<1 | 2>(1);
+  // Wizard — si step=2 dans l'URL (retour depuis auth après signalement anonyme), avancer directement
+  const [step, setStep] = useState<1 | 2>(() => searchParams.get("step") === "2" ? 2 : 1);
 
   // Étape 1
   const [selectedType, setSelectedType] = useState<ReportTypeConfig | null>(null);
@@ -204,6 +204,10 @@ const ReportPage = () => {
   const [showTime, setShowTime] = useState(false);
   const [showPeople, setShowPeople] = useState(false);
   const [gpsConsent, setGpsConsent] = useState(false);
+
+  // CIE / SODECI — compteur & contrat
+  const [meterNumber, setMeterNumber] = useState("");
+  const [contractType, setContractType] = useState<"prepaid" | "postpaid">("prepaid");
 
   // GPS
   const [latitude, setLatitude] = useState<number | null>(null);
@@ -616,6 +620,10 @@ const ReportPage = () => {
         babies,
         pregnant,
         elderly,
+        meter_number: meterNumber || null,
+        contract_type: (selectedType.id === "electricity_outage" || selectedType.id === "water_outage")
+          ? contractType
+          : null,
       };
 
       // -- Offline: save to queue and exit ----------------------------------
@@ -650,6 +658,8 @@ const ReportPage = () => {
       }
 
       localStorage.removeItem(DRAFT_KEY);
+      // Retour haptique sur mobile
+      if ("vibrate" in navigator) navigator.vibrate(200);
       toast.success("✅ Signalement envoyé !");
       const reportId = (insertData as any)?.id;
       const params = new URLSearchParams({
@@ -660,6 +670,8 @@ const ReportPage = () => {
         service: selectedType.serviceType,
         category: selectedType.reportCategory,
         ...(reportId ? { id: reportId } : {}),
+        ...(meterNumber ? { meter: meterNumber } : {}),
+        ...(contractType ? { contract: contractType } : {}),
       });
       navigate(`/confirmation?${params.toString()}`);
     } catch (error: any) {
@@ -1095,6 +1107,62 @@ const ReportPage = () => {
 
                 </div>
 
+                {/* ── Compteur CIE / SODECI ── optionnel, accélère la transmission SIGNA → opérateur */}
+                {(selectedType.id === "electricity_outage" || selectedType.id === "water_outage") && (
+                  <div className="rounded-xl border-2 border-amber-400/40 bg-amber-50/60 dark:bg-amber-900/10 overflow-hidden">
+                    <div className="px-4 py-3 flex items-center gap-2">
+                      <span className="text-lg">{selectedType.id === "electricity_outage" ? "⚡" : "💧"}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-foreground leading-tight">
+                          Informations {selectedType.id === "electricity_outage" ? "CIE" : "SODECI"} <span className="text-muted-foreground font-normal text-xs">(optionnel)</span>
+                        </p>
+                        <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+                          SIGNA-CI transmettra votre signalement à l'opérateur — ces infos accélèrent la prise en charge
+                        </p>
+                      </div>
+                    </div>
+                    <div className="border-t border-amber-400/30 px-4 pb-3 pt-2 space-y-3">
+                      {/* Type de contrat */}
+                      <div>
+                        <p className="text-xs font-semibold text-foreground mb-1.5">Type de contrat</p>
+                        <div className="flex gap-2">
+                          {(["prepaid", "postpaid"] as const).map((ct) => (
+                            <button
+                              key={ct}
+                              type="button"
+                              onClick={() => setContractType(ct)}
+                              className={`flex-1 rounded-lg border-2 py-2 text-sm font-semibold transition-all ${
+                                contractType === ct
+                                  ? "border-amber-500 bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                                  : "border-border bg-card text-muted-foreground hover:border-amber-400/60"
+                              }`}
+                            >
+                              {ct === "prepaid" ? "Prépayé" : "Postpayé"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Numéro de compteur */}
+                      <div>
+                        <label className="text-xs font-semibold text-foreground block mb-1.5">
+                          Numéro de compteur
+                        </label>
+                        <Input
+                          placeholder="Ex: 1234567890"
+                          value={meterNumber}
+                          onChange={(e) => setMeterNumber(e.target.value.trim())}
+                          maxLength={20}
+                          inputMode="numeric"
+                          className="bg-background"
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          Permet à la {selectedType.id === "electricity_outage" ? "CIE" : "SODECI"} de vous identifier et vous contacter directement
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Personnes vulnérables — accordion visible (coupures uniquement) */}
                 {selectedType.reportCategory === "outage" && (
                   <div className="rounded-xl border-2 border-border bg-card overflow-hidden transition-colors">
@@ -1269,23 +1337,35 @@ const ReportPage = () => {
               {/* Visiteur non connecté → Aha moment */}
               {!user ? (
                 <div className="rounded-2xl border-2 border-primary/30 bg-primary/5 p-5 text-center space-y-3">
-                  <p className="text-2xl">✅</p>
-                  <p className="font-bold text-base text-foreground">Votre signalement est prêt !</p>
-                  <p className="text-sm text-muted-foreground">
-                    Créez un compte gratuit en 30 secondes pour l'envoyer et aider vos voisins.
-                  </p>
+                  <div className="flex justify-center">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+                      <span className="text-2xl">✅</span>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-bold text-base text-foreground">Votre signalement est prêt !</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Créez un compte gratuit pour l'envoyer — vos voisins seront alertés immédiatement.
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-background/60 border border-border p-3 text-xs text-left space-y-1">
+                    <p className="text-muted-foreground font-medium">Votre signalement sera conservé :</p>
+                    <p className="text-foreground">• Type : <strong>{selectedType.label}</strong></p>
+                    {commune && <p className="text-foreground">• Commune : <strong>{commune}</strong></p>}
+                    {resolvedQuartier && <p className="text-foreground">• Quartier : <strong>{resolvedQuartier}</strong></p>}
+                  </div>
                   <div className="flex flex-col gap-2 pt-1">
                     <Button
                       asChild
                       className="w-full py-5 text-base font-bold"
                       style={{ backgroundColor: selectedCommuneData?.couleur || selectedType.color, color: "white" }}
                     >
-                      <Link to={`/auth?tab=signup&redirect=/signaler?type=${selectedType.id}`}>
+                      <Link to={`/auth?tab=signup&redirect=${encodeURIComponent(`/signaler?type=${selectedType.id}&step=2`)}`}>
                         <UserPlus className="mr-2 h-5 w-5" /> Créer mon compte gratuitement
                       </Link>
                     </Button>
                     <Button asChild variant="outline" className="w-full py-5 text-base font-bold">
-                      <Link to={`/auth?tab=login&redirect=/signaler?type=${selectedType.id}`}>
+                      <Link to={`/auth?tab=login&redirect=${encodeURIComponent(`/signaler?type=${selectedType.id}&step=2`)}`}>
                         <LogIn className="mr-2 h-5 w-5" /> J'ai déjà un compte
                       </Link>
                     </Button>

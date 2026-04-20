@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import {
   FileText, Users, AlertTriangle, CheckCircle2, Clock, TrendingUp,
-  Zap, Droplets, Shield, Trash2, BarChart3, ArrowRight, Heart, MailCheck,
+  Zap, Droplets, Shield, Trash2, BarChart3, ArrowRight, Heart, MailCheck, Building2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,8 @@ const AdminOverviewPage = () => {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const queryClient = useQueryClient();
   const { data: donationsEnabled = true } = useSiteSetting("donations_enabled");
-  const { data: transparencyEnabled = false } = useSiteSetting("transparency_enabled");
+  const { data: transparencyEnabled = true } = useSiteSetting("transparency_enabled");
+  const { data: partnersEnabled = true } = useSiteSetting("partners_enabled");
 
   const toggleTransparency = useMutation({
     mutationFn: async (enabled: boolean) => {
@@ -46,6 +47,19 @@ const AdminOverviewPage = () => {
     onSuccess: (_, enabled) => {
       queryClient.invalidateQueries({ queryKey: ["site-setting", "transparency_enabled"] });
       toast({ title: enabled ? "Page transparence activée" : "Page transparence masquée" });
+    },
+  });
+
+  const togglePartners = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const { error } = await supabase
+        .from("site_settings")
+        .upsert({ key: "partners_enabled", value: enabled as unknown as never, updated_at: new Date().toISOString(), updated_by: user?.id }, { onConflict: "key" });
+      if (error) throw error;
+    },
+    onSuccess: (_, enabled) => {
+      queryClient.invalidateQueries({ queryKey: ["site-setting", "partners_enabled"] });
+      toast({ title: enabled ? "Page partenaires visible" : "Page partenaires masquée" });
     },
   });
 
@@ -321,6 +335,32 @@ const AdminOverviewPage = () => {
               checked={transparencyEnabled}
               onCheckedChange={(checked) => toggleTransparency.mutate(checked)}
               disabled={toggleTransparency.isPending}
+            />
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Partners page toggle */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+        <Card className="mb-8">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary">
+                <Building2 className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">Page Partenaires</p>
+                <p className="text-xs text-muted-foreground">
+                  {partnersEnabled
+                    ? "Visible — lien affiché dans la navigation"
+                    : "Masquée — accessible uniquement via URL directe"}
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={partnersEnabled}
+              onCheckedChange={(checked) => togglePartners.mutate(checked)}
+              disabled={togglePartners.isPending}
             />
           </CardContent>
         </Card>
