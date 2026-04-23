@@ -123,9 +123,19 @@ export default function EstimationCard({ estimate, onAddReading }: Props) {
         Mettre à jour mes kWh restants
       </button>
 
+      {/* Disclaimer permanent */}
+      <div className="rounded-xl bg-muted/40 border border-border px-3 py-2.5">
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          <span className="font-semibold text-foreground">Comment fonctionne cette estimation ?</span><br />
+          Nous calculons votre consommation uniquement à partir des recharges et mises à jour que <span className="font-medium text-foreground">vous nous communiquez</span>.
+          Plus vous actualisez vos kWh restants, plus l'estimation sera précise.
+          Elle ne reflète pas votre compteur réel et ne constitue pas une mesure officielle.
+        </p>
+      </div>
+
       {isInsufficient && (
         <p className="text-center text-xs text-muted-foreground">
-          L'estimation s'affiche après l'enregistrement de votre première recharge et mise à jour.
+          L'estimation s'affiche après l'enregistrement de votre première recharge et d'au moins une mise à jour de consommation.
         </p>
       )}
     </div>

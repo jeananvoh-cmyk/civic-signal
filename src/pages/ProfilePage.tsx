@@ -7,8 +7,12 @@ import {
   Bell, Globe, Palette, ChevronRight, CheckCircle2, FileText, Clock,
   Zap, Droplets, Info, History, Trash2, AlertTriangle, LogOut,
   Filter, CalendarDays, XCircle, CheckCheck, Download, Award,
-  BookOpen, ExternalLink, Scale, Lightbulb, ShieldCheck, Camera, Loader2, ScanLine
+  BookOpen, ExternalLink, Scale, Lightbulb, ShieldCheck, Camera, Loader2, ScanLine,
+  Gauge, BatteryMedium,
 } from "lucide-react";
+import { useElectricity } from "@/hooks/useElectricity";
+import { formatDaysRemaining } from "@/lib/consumptionEngine";
+import AddReadingSheet from "@/components/electricity/AddReadingSheet";
 import confetti from "canvas-confetti";
 import waterIconSm from "@/assets/water-icon-sm.webp";
 import electricityIconSm from "@/assets/electricity-icon-sm.webp";
@@ -451,6 +455,139 @@ const RightsTabContent = () => {
   );
 };
 
+
+// ─── Widget électricité — visible directement dans l'onglet Compteurs ────────
+
+function ElectricityWidget() {
+  const { activeMeter, recharges, estimate, addReading, hasData } = useElectricity();
+  const [showReadingSheet, setShowReadingSheet] = useState(false);
+
+  // Pas encore de compteur configuré → simple lien vers /compteur
+  if (!hasData) {
+    return (
+      <Link
+        to="/compteur"
+        className="flex items-center justify-between rounded-2xl border border-yellow-500/40 bg-gradient-to-r from-yellow-500/10 to-yellow-400/5 px-4 py-4 mb-5 hover:from-yellow-500/15 hover:to-yellow-400/10 active:scale-[0.98] transition-all"
+      >
+        <div className="flex items-center gap-3">
+          <div className="h-11 w-11 rounded-2xl bg-yellow-500/15 flex items-center justify-center shrink-0">
+            <Zap className="h-5 w-5 text-yellow-500" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-foreground leading-tight">Suivi électricité prépayée</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Commencer le suivi de votre consommation</p>
+          </div>
+        </div>
+        <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+      </Link>
+    );
+  }
+
+  const isInsufficient = estimate.confidence === "insufficient";
+
+  // Couleur urgence selon jours restants
+  const urgentBorder = estimate.days_remaining !== null && estimate.days_remaining <= 3
+    ? "border-red-500/40 from-red-500/10 to-red-400/5"
+    : estimate.days_remaining !== null && estimate.days_remaining <= 7
+    ? "border-orange-500/40 from-orange-500/10 to-orange-400/5"
+    : "border-yellow-500/40 from-yellow-500/10 to-yellow-400/5";
+
+  return (
+    <>
+      <div className={`rounded-2xl border bg-gradient-to-r ${urgentBorder} p-4 mb-5 space-y-3`}>
+
+        {/* En-tête */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-9 w-9 rounded-xl bg-yellow-500/15 flex items-center justify-center shrink-0">
+              <Zap className="h-4 w-4 text-yellow-500" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-foreground leading-tight">{activeMeter?.label ?? "Mon compteur"}</p>
+              <p className="text-[10px] text-muted-foreground font-mono">
+                {activeMeter?.meter_number ? `Ctr: ${activeMeter.meter_number}` : "Suivi électricité prépayée"}
+              </p>
+            </div>
+          </div>
+          <Link to="/compteur" className="text-[11px] font-medium text-primary hover:underline flex items-center gap-0.5">
+            Détails <ChevronRight className="h-3 w-3" />
+          </Link>
+        </div>
+
+        {/* Métriques principales */}
+        {!isInsufficient ? (
+          <div className="grid grid-cols-3 gap-2">
+            {/* kWh restants */}
+            <div className="rounded-xl bg-white/60 dark:bg-card/60 border border-border px-3 py-2.5 text-center">
+              <p className="text-[10px] text-muted-foreground leading-tight mb-0.5">kWh restants</p>
+              <p className={`text-xl font-extrabold leading-tight ${
+                (estimate.current_kwh ?? 0) <= 10 ? "text-red-600" :
+                (estimate.current_kwh ?? 0) <= 25 ? "text-orange-600" : "text-foreground"
+              }`}>
+                {estimate.current_kwh ?? "—"}
+              </p>
+            </div>
+            {/* Jours restants */}
+            <div className="rounded-xl bg-white/60 dark:bg-card/60 border border-border px-3 py-2.5 text-center">
+              <p className="text-[10px] text-muted-foreground leading-tight mb-0.5">Autonomie</p>
+              <p className={`text-base font-extrabold leading-tight ${
+                (estimate.days_remaining ?? 99) <= 3 ? "text-red-600" :
+                (estimate.days_remaining ?? 99) <= 7 ? "text-orange-600" : "text-foreground"
+              }`}>
+                {formatDaysRemaining(estimate.days_remaining)}
+              </p>
+            </div>
+            {/* Conso/jour */}
+            <div className="rounded-xl bg-white/60 dark:bg-card/60 border border-border px-3 py-2.5 text-center">
+              <p className="text-[10px] text-muted-foreground leading-tight mb-0.5">Conso/jour</p>
+              <p className="text-base font-extrabold text-foreground leading-tight">
+                {estimate.avg_kwh_per_day !== null ? `${estimate.avg_kwh_per_day}` : "—"}
+                {estimate.avg_kwh_per_day !== null && <span className="text-[10px] font-medium text-muted-foreground"> kWh</span>}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl bg-white/60 dark:bg-card/60 border border-border px-3 py-2.5">
+            <p className="text-xs text-muted-foreground text-center">
+              {recharges.length === 0
+                ? "Enregistrez une recharge pour démarrer le suivi"
+                : "Ajoutez une mise à jour de consommation pour voir l'estimation"}
+            </p>
+          </div>
+        )}
+
+        {/* Disclaimer estimation */}
+        <p className="text-[10px] text-muted-foreground leading-tight px-0.5">
+          ⓘ Estimation basée uniquement sur vos données saisies. La quantité réelle peut différer.
+        </p>
+
+        {/* Bouton mise à jour rapide */}
+        <button
+          onClick={() => setShowReadingSheet(true)}
+          className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-yellow-500/40 py-2.5 text-xs font-semibold text-yellow-700 dark:text-yellow-400 hover:bg-yellow-500/5 transition-colors active:scale-[0.98]"
+        >
+          <Gauge className="h-3.5 w-3.5" />
+          Mettre à jour mes kWh restants
+        </button>
+      </div>
+
+      {showReadingSheet && activeMeter && (
+        <AddReadingSheet
+          meterId={activeMeter.id}
+          currentEstimate={estimate.current_kwh}
+          onSave={async (data) => {
+            await addReading.mutateAsync(data);
+            const { toast: t } = await import("sonner");
+            t.success("Mise à jour enregistrée");
+          }}
+          onClose={() => setShowReadingSheet(false)}
+        />
+      )}
+    </>
+  );
+}
+
+// ─── Page principale ──────────────────────────────────────────────────────────
 
 const ProfilePage = () => {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -1209,22 +1346,8 @@ const ProfilePage = () => {
             {/* ── COMPTEURS / UTILITY ── */}
             <TabsContent value="utility">
 
-              {/* ── Suivi électricité prépayée ── */}
-              <Link
-                to="/compteur"
-                className="flex items-center justify-between rounded-2xl border border-yellow-500/40 bg-gradient-to-r from-yellow-500/10 to-yellow-400/5 px-4 py-4 mb-5 hover:from-yellow-500/15 hover:to-yellow-400/10 active:scale-[0.98] transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-11 w-11 rounded-2xl bg-yellow-500/15 flex items-center justify-center shrink-0">
-                    <Zap className="h-5 w-5 text-yellow-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-foreground leading-tight">Suivi électricité prépayée</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Recharges · Consommation · Autonomie estimée</p>
-                  </div>
-                </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
-              </Link>
+              {/* ── Widget suivi électricité prépayée ── */}
+              <ElectricityWidget />
 
               {/* Hidden file inputs */}
               <input

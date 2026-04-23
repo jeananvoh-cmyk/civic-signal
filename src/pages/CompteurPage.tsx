@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Zap, Plus, ArrowLeft, Gauge, History,
-  RefreshCw, Trash2, Building2, CheckCircle2,
+  RefreshCw, Trash2, Building2, CheckCircle2, XCircle, AlertCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -122,6 +122,8 @@ export default function CompteurPage() {
   const [showReadingSheet, setShowReadingSheet] = useState(false);
   const [activeTab, setActiveTab] = useState<"dashboard" | "history">("dashboard");
   const [deleting, setDeleting] = useState<string | null>(null);
+  // Banner post-recharge : invite à faire la première mise à jour
+  const [showPostRechargeBanner, setShowPostRechargeBanner] = useState(false);
 
   // ── Écran de chargement ───────────────────────────────────────────
   if (isLoading) {
@@ -218,16 +220,80 @@ export default function CompteurPage() {
                 className="flex items-center gap-2 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 px-4 py-3 text-sm font-semibold text-yellow-700 dark:text-yellow-400 active:scale-95 transition-transform"
               >
                 <Plus className="h-4 w-4" />
-                Recharge
+                + Recharge
               </button>
               <button
                 onClick={() => setShowReadingSheet(true)}
                 className="flex items-center gap-2 rounded-2xl bg-sky-500/10 border border-sky-500/30 px-4 py-3 text-sm font-semibold text-sky-700 dark:text-sky-400 active:scale-95 transition-transform"
               >
                 <Gauge className="h-4 w-4" />
-                Mise à jour
+                Mettre à jour
               </button>
             </div>
+
+            {/* ── Banner post-recharge ── */}
+            {showPostRechargeBanner && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl border border-sky-500/40 bg-sky-500/8 p-4 space-y-3"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-xl bg-sky-500/15 flex items-center justify-center shrink-0 mt-0.5">
+                    <CheckCircle2 className="h-4 w-4 text-sky-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-foreground">Recharge enregistrée ✓</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                      Pour affiner l'estimation, regardez votre compteur et indiquez
+                      combien de kWh sont affichés maintenant.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowPostRechargeBanner(false)}
+                    className="text-muted-foreground hover:text-foreground shrink-0"
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => { setShowPostRechargeBanner(false); setShowReadingSheet(true); }}
+                    className="rounded-xl bg-sky-600 py-2.5 text-xs font-bold text-white active:scale-95 transition-transform"
+                  >
+                    Indiquer mes kWh maintenant
+                  </button>
+                  <button
+                    onClick={() => setShowPostRechargeBanner(false)}
+                    className="rounded-xl border border-border py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Plus tard
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Rappel si recharges sans aucune lecture ── */}
+            {!showPostRechargeBanner && recharges.length > 0 && readings.length === 0 && (
+              <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/8 px-3 py-3">
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                    Première mise à jour recommandée
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                    Regardez l'écran de votre compteur et saisissez les kWh affichés.
+                    L'estimation démarrera automatiquement.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowReadingSheet(true)}
+                  className="shrink-0 rounded-lg bg-amber-500/15 border border-amber-500/30 px-2.5 py-1.5 text-[11px] font-bold text-amber-700 dark:text-amber-400 whitespace-nowrap"
+                >
+                  Saisir
+                </button>
+              </div>
+            )}
 
             {/* Carte estimation */}
             <EstimationCard
@@ -392,6 +458,8 @@ export default function CompteurPage() {
           onSave={async (data) => {
             await addRecharge.mutateAsync(data);
             toast.success(`${data.kwh_purchased} kWh enregistrés`);
+            setShowPostRechargeBanner(true);
+            setActiveTab("dashboard"); // revenir sur le dashboard pour voir le banner
           }}
           onClose={() => setShowRechargeSheet(false)}
         />
