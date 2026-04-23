@@ -153,6 +153,18 @@ export function computeEstimate(
     }
   }
 
+  // ── MÉTHODE D : recharge(s) connues, aucune lecture → afficher kWh achetés ──
+  if (!avgPerDay && sortedReadings.length === 0 && sortedRecharges.length >= 1) {
+    const totalKwh = sortedRecharges.reduce((s, r) => s + r.kwh_purchased, 0);
+    return {
+      ...empty,
+      current_kwh: Math.round(totalKwh * 10) / 10,
+      data_points: sortedRecharges.length,
+      last_updated: new Date(sortedRecharges[sortedRecharges.length - 1].recharged_at),
+      warning: "Indiquez vos kWh restants sur le compteur pour démarrer l'estimation de l'autonomie.",
+    };
+  }
+
   if (!avgPerDay || avgPerDay <= 0) return empty;
 
   // ── Calcul des kWh restants actuels ───────────────────────────────

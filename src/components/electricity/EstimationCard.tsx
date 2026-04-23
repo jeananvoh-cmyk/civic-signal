@@ -60,6 +60,14 @@ export default function EstimationCard({ estimate, onAddReading }: Props) {
         <BatteryIcon pct={batteryPct} />
       </div>
 
+      {/* kWh de référence — visible après recharge, avant la première lecture */}
+      {isInsufficient && estimate.current_kwh !== null && (
+        <div className="text-center rounded-xl bg-primary/5 border border-primary/20 py-3 px-4">
+          <p className="text-3xl font-extrabold text-foreground">{estimate.current_kwh} kWh</p>
+          <p className="text-xs text-muted-foreground mt-0.5">achetés lors de la dernière recharge</p>
+        </div>
+      )}
+
       {/* Barre de progression */}
       {!isInsufficient && (
         <div className="space-y-1">
@@ -133,7 +141,7 @@ export default function EstimationCard({ estimate, onAddReading }: Props) {
         </p>
       </div>
 
-      {isInsufficient && (
+      {isInsufficient && estimate.current_kwh === null && (
         <p className="text-center text-xs text-muted-foreground">
           L'estimation s'affiche après l'enregistrement de votre première recharge et d'au moins une mise à jour de consommation.
         </p>
