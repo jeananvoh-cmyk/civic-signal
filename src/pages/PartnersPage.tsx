@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import {
   Zap, Droplets, Building2, BarChart3, Bell, Users, CheckCircle2,
   ArrowRight, Mail, MapPin, TrendingUp, Shield, Clock, MessageSquare,
@@ -7,13 +8,28 @@ import {
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { supabase } from "@/integrations/supabase/client";
 
-const STATS = [
-  { value: "500+", label: "Signalements traités", icon: CheckCircle2, color: "text-primary" },
-  { value: "7", label: "Communes couvertes", icon: MapPin, color: "text-blue-500" },
-  { value: "72h", label: "Délai moyen de résolution", icon: Clock, color: "text-amber-500" },
-  { value: "2 000+", label: "Citoyens actifs", icon: Users, color: "text-emerald-500" },
-];
+interface LiveStats {
+  resolved: number;
+  communes: number;
+  avgHours: number | null;
+  users: number;
+}
+
+function formatAvgDelay(hours: number | null): string {
+  if (hours === null) return "—";
+  if (hours < 1) return `${Math.round(hours * 60)} min`;
+  if (hours < 24) return `${Math.round(hours)}h`;
+  const days = Math.round(hours / 24);
+  return `${days}j`;
+}
+
+function formatCount(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k+`;
+  if (n > 0) return `${n}`;
+  return "—";
+}
 
 const BENEFITS_CIE_SODECI = [
   {
@@ -123,6 +139,50 @@ const PartnersPage = () => {
     description: "CIE, SODECI, Mairies d'Abidjan : rejoignez SIGNA-CI pour gérer les signalements citoyens en temps réel et améliorer votre réactivité sur le terrain.",
   });
 
+  const [stats, setStats] = useState<LiveStats | null>(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // Stats de base via RPC landing (accessible anon)
+        const [landingRes, transparencyRes] = await Promise.all([
+          supabase.rpc("get_landing_stats" as any),
+          supabase.rpc("get_transparency_stats" as any),
+        ]);
+
+        const landing = landingRes.data as any;
+        const transparency = transparencyRes.data as any;
+
+        // Nombre de communes avec au moins 1 signalement
+        const communeCount = Array.isArray(transparency?.by_commune)
+          ? transparency.by_commune.length
+          : landing?.total_reports > 0 ? "?" : 0;
+
+        // Délai moyen global (moyenne des services)
+        let avgHours: number | null = null;
+        if (transparency?.avg_resolution_hours) {
+          const values = Object.values(transparency.avg_resolution_hours as Record<string, number>).filter(
+            (v) => typeof v === "number" && v > 0
+          );
+          if (values.length > 0) {
+            avgHours = values.reduce((a: number, b) => a + (b as number), 0) / values.length;
+          }
+        }
+
+        setStats({
+          resolved: landing?.resolved_reports ?? landing?.total_reports ?? 0,
+          communes: typeof communeCount === "number" ? communeCount : 0,
+          avgHours,
+          users: landing?.total_users ?? transparency?.total_users ?? 0,
+        });
+      } catch {
+        // En cas d'erreur on garde null → affichage "—"
+      }
+    };
+
+    fetchStats();
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -170,11 +230,36 @@ const PartnersPage = () => {
         </div>
       </section>
 
-      {/* Stats */}
+      {/* Stats — données en temps réel */}
       <section className="border-b border-border py-12">
         <div className="container max-w-4xl px-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {STATS.map((stat, i) => (
+            {[
+              {
+                icon: CheckCircle2,
+                color: "text-primary",
+                value: stats ? formatCount(stats.resolved) : "…",
+                label: "Signalements traités",
+              },
+              {
+                icon: MapPin,
+                color: "text-blue-500",
+                value: stats ? (stats.communes > 0 ? String(stats.communes) : "—") : "…",
+                label: "Communes couvertes",
+              },
+              {
+                icon: Clock,
+                color: "text-amber-500",
+                value: stats ? formatAvgDelay(stats.avgHours) : "…",
+                label: "Délai moyen de résolution",
+              },
+              {
+                icon: Users,
+                color: "text-emerald-500",
+                value: stats ? formatCount(stats.users) : "…",
+                label: "Citoyens inscrits",
+              },
+            ].map((stat, i) => (
               <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, y: 12 }}

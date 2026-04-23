@@ -59,6 +59,7 @@ interface QuartierRanking {
 interface PriorityReport {
   id: string;
   service_type: string;
+  report_category: string;
   description: string;
   location: string;
   urgency: string;
@@ -361,18 +362,18 @@ const DashboardPage = () => {
   // Confirmed zone alerts: reports with 3+ verifications grouped by location
   const confirmedReports = activeReports.filter((r) => r.verifications >= 3);
   const confirmedZones = (() => {
-    const zones = new Map<string, { commune: string; quartier: string; serviceType: string; count: number; totalVerifications: number }>();
+    const zones = new Map<string, { commune: string; quartier: string; serviceType: string; reportCategory: string; count: number; totalVerifications: number }>();
     for (const r of confirmedReports) {
       const parts = r.location.split(", ");
       const commune = parts[0] || r.location;
       const quartier = parts[1] || "";
-      const key = `${commune}|${quartier}|${r.service_type}`;
+      const key = `${commune}|${quartier}|${r.service_type}|${r.report_category}`;
       const existing = zones.get(key);
       if (existing) {
         existing.count++;
         existing.totalVerifications += r.verifications;
       } else {
-        zones.set(key, { commune, quartier, serviceType: r.service_type, count: 1, totalVerifications: r.verifications });
+        zones.set(key, { commune, quartier, serviceType: r.service_type, reportCategory: r.report_category ?? "outage", count: 1, totalVerifications: r.verifications });
       }
     }
     return Array.from(zones.values()).sort((a, b) => b.totalVerifications - a.totalVerifications);
@@ -565,7 +566,20 @@ const DashboardPage = () => {
         )}
 
         {/* ═══ Zones de coupure confirmées ═══ */}
-        {!loading && confirmedZones.length > 0 && (
+        {!loading && confirmedZones.length > 0 && (() => {
+          const hasOutage = confirmedZones.some((z) => z.reportCategory === "outage");
+          const hasInfra = confirmedZones.some((z) => z.reportCategory === "infrastructure" || z.serviceType === "mairie");
+          const sectionTitle = hasOutage && hasInfra
+            ? "Signalements confirmés"
+            : hasInfra
+            ? "Infrastructures soutenues"
+            : "Zones de coupure confirmées";
+          const sectionSubtitle = hasOutage && hasInfra
+            ? "Coupures vérifiées · infrastructures soutenues par 3+ citoyens"
+            : hasInfra
+            ? "Demandes de réparation soutenues par 3+ citoyens (CIE / SODECI / Mairie)"
+            : "Signalements vérifiés par 3+ voisins — haute fiabilité";
+          return (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="mb-8">
             <div className="rounded-2xl border-2 border-emerald-500/30 bg-emerald-500/5 p-5 space-y-3">
               <div className="flex items-center gap-2">
@@ -573,37 +587,49 @@ const DashboardPage = () => {
                   <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                 </div>
                 <div>
-                  <h3 className="font-display text-sm font-bold text-foreground">Zones de coupure confirmées</h3>
-                  <p className="text-[10px] text-muted-foreground">Signalements vérifiés par 3+ voisins — haute fiabilité</p>
+                  <h3 className="font-display text-sm font-bold text-foreground">{sectionTitle}</h3>
+                  <p className="text-[10px] text-muted-foreground">{sectionSubtitle}</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {confirmedZones.slice(0, 6).map((z) => {
                   const isElec = z.serviceType === "electricity";
                   const isWater = z.serviceType === "water";
-                  const operator = isElec ? "CIE" : isWater ? "SODECI" : "Mairie";
-                  const serviceLabel = isElec ? "Coupure électricité" : isWater ? "Coupure d'eau" : "Infrastructure";
+                  const isInfra = z.reportCategory === "infrastructure";
+                  const isMairie = z.serviceType === "mairie";
+                  const operator = isMairie ? "Mairie" : isElec ? "CIE" : "SODECI";
+                  const icon = isMairie ? "🏗️" : isElec ? (isInfra ? "💡" : "⚡") : (isInfra ? "🚿" : "💧");
+                  const serviceLabel = isMairie
+                    ? "Infra. Mairie"
+                    : isElec
+                    ? (isInfra ? "Infra. CIE" : "Coupure électricité")
+                    : (isInfra ? "Infra. SODECI" : "Coupure d'eau");
+                  const countLabel = isInfra || isMairie
+                    ? `${z.totalVerifications} soutien${z.totalVerifications > 1 ? "s" : ""}`
+                    : `${z.totalVerifications} confirmation${z.totalVerifications > 1 ? "s" : ""}`;
+                  const statusBadge = isInfra || isMairie ? "✓ Soutenu" : "✓ Confirmé";
                   const hasQuartier = z.quartier && z.quartier !== z.commune;
                   return (
-                    <div key={`${z.commune}|${z.quartier}|${z.serviceType}`} className="flex items-center gap-3 rounded-xl bg-card border border-border px-4 py-3">
-                      <span className="text-lg">{isElec ? "⚡" : isWater ? "💧" : "🏗️"}</span>
+                    <div key={`${z.commune}|${z.quartier}|${z.serviceType}|${z.reportCategory}`} className="flex items-center gap-3 rounded-xl bg-card border border-border px-4 py-3">
+                      <span className="text-lg">{icon}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-foreground truncate">
                           {hasQuartier ? z.quartier : z.commune}
                           {hasQuartier && <span className="ml-1 font-normal text-muted-foreground">· {z.commune}</span>}
                         </p>
                         <p className="text-[10px] text-muted-foreground">
-                          {serviceLabel} · {z.totalVerifications} confirmation{z.totalVerifications > 1 ? "s" : ""} · transmis à <span className="font-semibold text-foreground">{operator}</span>
+                          {serviceLabel} · {countLabel} · transmis à <span className="font-semibold text-foreground">{operator}</span>
                         </p>
                       </div>
-                      <span className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600">✓ Confirmé</span>
+                      <span className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600">{statusBadge}</span>
                     </div>
                   );
                 })}
               </div>
             </div>
           </motion.div>
-        )}
+          );
+        })()}
 
         {/* Duration stats */}
         {canValidate && !loading && durations.some((d) => d.total_resolved > 0) && (() => {

@@ -270,13 +270,23 @@ const HistoryPage = () => {
                       );
                     })()}
 
-                    {/* Lien vers le détail */}
-                    <Link
-                      to={`/signalement/${r.id}`}
-                      className="mt-2 flex items-center justify-end gap-1 text-xs text-primary hover:underline"
-                    >
-                      Voir le détail <ChevronRight className="h-3.5 w-3.5" />
-                    </Link>
+                    {/* Actions rapides */}
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      {!isResolved && (
+                        <Link
+                          to="/verification"
+                          className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
+                        >
+                          Vérifier <ChevronRight className="h-3 w-3" />
+                        </Link>
+                      )}
+                      <Link
+                        to={`/signalement/${r.id}`}
+                        className="ml-auto flex items-center gap-1 text-xs text-muted-foreground hover:text-primary hover:underline"
+                      >
+                        Voir le détail <ChevronRight className="h-3.5 w-3.5" />
+                      </Link>
+                    </div>
                   </div>
                 </motion.div>
               );

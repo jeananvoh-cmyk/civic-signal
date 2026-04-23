@@ -7,7 +7,7 @@ import {
   Bell, Globe, Palette, ChevronRight, CheckCircle2, FileText, Clock,
   Zap, Droplets, Info, History, Trash2, AlertTriangle, LogOut,
   Filter, CalendarDays, XCircle, CheckCheck, Download, Award,
-  BookOpen, ExternalLink, Scale, Lightbulb, ShieldCheck
+  BookOpen, ExternalLink, Scale, Lightbulb, ShieldCheck, Camera, Loader2, ScanLine
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import waterIconSm from "@/assets/water-icon-sm.webp";
@@ -29,7 +29,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import CitizenBadge from "@/components/CitizenBadge";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import Header from "@/components/Header";
 import MyReports from "@/components/MyReports";
 import { COMMUNES } from "@/lib/communes";
@@ -106,6 +106,20 @@ const RESOURCE_ICONS: Record<string, React.ReactNode> = {
 const RightsTabContent = () => {
   const { data: rights, isLoading } = useRightsContent();
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
+  const [relayWA, setRelayWA] = useState<{ cie: string; sodeci: string }>({ cie: "", sodeci: "" });
+
+  useEffect(() => {
+    supabase
+      .from("relay_config")
+      .select("key, value")
+      .in("key", ["whatsapp_cie", "whatsapp_sodeci"])
+      .then(({ data }) => {
+        if (!data) return;
+        const cie = data.find(r => r.key === "whatsapp_cie")?.value ?? "";
+        const sodeci = data.find(r => r.key === "whatsapp_sodeci")?.value ?? "";
+        setRelayWA({ cie, sodeci });
+      });
+  }, []);
 
   const toggle = (key: string) => {
     setOpenSections(prev => {
@@ -308,7 +322,35 @@ const RightsTabContent = () => {
                       })}
                     </div>
                   )}
-                </div>
+                {/* WhatsApp relay_config CIE / SODECI — si configurés par l'admin */}
+                {(relayWA.cie || relayWA.sodeci) && (
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <p className="text-[11px] text-muted-foreground font-semibold mb-2 uppercase tracking-wide">Contact WhatsApp direct</p>
+                    <div className="grid gap-2 grid-cols-2">
+                      {relayWA.cie && (
+                        <a href={`https://wa.me/${relayWA.cie.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2.5 rounded-lg border border-green-200 dark:border-green-800/40 p-2.5 bg-background hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
+                          <WhatsAppIcon />
+                          <div className="min-w-0">
+                            <p className="text-[11px] text-muted-foreground leading-tight">CIE WhatsApp</p>
+                            <p className="text-xs font-bold text-[#25D366]">{relayWA.cie}</p>
+                          </div>
+                        </a>
+                      )}
+                      {relayWA.sodeci && (
+                        <a href={`https://wa.me/${relayWA.sodeci.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2.5 rounded-lg border border-green-200 dark:border-green-800/40 p-2.5 bg-background hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
+                          <WhatsAppIcon />
+                          <div className="min-w-0">
+                            <p className="text-[11px] text-muted-foreground leading-tight">SODECI WhatsApp</p>
+                            <p className="text-xs font-bold text-[#25D366]">{relayWA.sodeci}</p>
+                          </div>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -416,11 +458,16 @@ const ProfilePage = () => {
   const { isIvoire, toggle: toggleBrandTheme } = useThemeBrand();
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get("tab") ?? "rights";
+  const targetField = searchParams.get("field");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const initialProfileRef = useRef<ProfileData | null>(null);
   const [isDirty, setIsDirty] = useState(false);
+  const [ocrLoading, setOcrLoading] = useState<"electricity" | "water" | null>(null);
+  const [ocrPreview, setOcrPreview] = useState<{ type: "electricity" | "water"; url: string } | null>(null);
+  const elecFileRef = useRef<HTMLInputElement>(null);
+  const waterFileRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<ProfileData>({
     first_name: "",
     last_name: "",
@@ -528,6 +575,23 @@ const ProfilePage = () => {
     fetchCounts();
   }, [user]);
 
+  // ── Auto-focus field from ?field= param (après chargement) ──────────────────
+  useEffect(() => {
+    if (!targetField || loading) return;
+    // Petit délai pour que le tab soit rendu
+    const t = setTimeout(() => {
+      const el = document.getElementById(`field-${targetField}`) as HTMLInputElement | null;
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.focus();
+        // Flash visuel
+        el.classList.add("ring-2", "ring-primary", "ring-offset-2");
+        setTimeout(() => el.classList.remove("ring-2", "ring-primary", "ring-offset-2"), 2000);
+      }
+    }, 350);
+    return () => clearTimeout(t);
+  }, [targetField, loading]);
+
   const fetchHistory = async () => {
     if (!user) return;
     setHistoryLoading(true);
@@ -539,6 +603,71 @@ const ProfilePage = () => {
       .limit(100);
     if (data) setHistory(data as HistoryReport[]);
     setHistoryLoading(false);
+  };
+
+  const handleOcrScan = async (file: File, hint: "electricity" | "water") => {
+    setOcrLoading(hint);
+    const previewUrl = URL.createObjectURL(file);
+    setOcrPreview({ type: hint, url: previewUrl });
+
+    try {
+      // Convertir en base64
+      const arrayBuffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = "";
+      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+      const base64 = btoa(binary);
+
+      // Appel via supabase.functions.invoke (pattern standard de l'app)
+      const { data: result, error } = await supabase.functions.invoke("extract-meter-info", {
+        body: {
+          image_base64: base64,
+          mime_type: file.type || "image/jpeg",
+          hint,
+        },
+      });
+
+      if (error) {
+        toast.error("Impossible d'analyser l'image", { description: error.message });
+        return;
+      }
+
+      if (result?.error) {
+        toast.error("Impossible d'analyser l'image", { description: result.error });
+        return;
+      }
+
+      // Remplir les champs détectés
+      let filled = 0;
+      const fields = [
+        "electricity_client_id", "electricity_meter_ref", "electricity_meter_number",
+        "water_client_id", "water_meter_ref", "water_meter_number",
+      ] as const;
+
+      fields.forEach((f) => {
+        if (result?.[f]) { update(f, result[f]); filled++; }
+      });
+
+      if (filled === 0) {
+        toast.warning("Aucun numéro détecté", {
+          description: "L'image n'est peut-être pas assez nette. Réessayez avec une meilleure photo.",
+        });
+      } else {
+        const confidence = result?.confidence === "high" ? "haute" : result?.confidence === "medium" ? "moyenne" : "faible";
+        toast.success(`${filled} champ${filled > 1 ? "s" : ""} rempli${filled > 1 ? "s" : ""}`, {
+          description: `Fiabilité de lecture : ${confidence}. Vérifiez les valeurs avant d'enregistrer.`,
+        });
+      }
+    } catch (err) {
+      console.error("OCR error:", err);
+      toast.error("Analyse impossible", { description: "Vérifiez que la photo est nette et réessayez." });
+    } finally {
+      setOcrLoading(null);
+      URL.revokeObjectURL(previewUrl);
+      setOcrPreview(null);
+      if (elecFileRef.current) elecFileRef.current.value = "";
+      if (waterFileRef.current) waterFileRef.current.value = "";
+    }
   };
 
   const handleSave = async () => {
@@ -856,8 +985,9 @@ const ProfilePage = () => {
               <TabsTrigger value="history" className="gap-1 flex-1 text-sm px-3">
                 <History className="h-3.5 w-3.5 shrink-0" /><span>Historique</span>
               </TabsTrigger>
-              <TabsTrigger value="utility" className="gap-1 flex-1 text-sm px-3">
+              <TabsTrigger value="utility" className="gap-1 flex-1 text-sm px-3 relative">
                 <Zap className="h-3.5 w-3.5 shrink-0" /><span>Compteurs</span>
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 rounded-full bg-violet-500" title="Scanner disponible" />
               </TabsTrigger>
               <TabsTrigger value="profile" className="gap-1 flex-1 text-sm px-3">
                 <User className="h-3.5 w-3.5 shrink-0" /><span>Profil</span>
@@ -877,8 +1007,9 @@ const ProfilePage = () => {
               <TabsTrigger value="history" className="flex flex-col gap-0.5 h-auto py-2 text-[10px] font-medium">
                 <History className="h-4 w-4" /><span>Historique</span>
               </TabsTrigger>
-              <TabsTrigger value="utility" className="flex flex-col gap-0.5 h-auto py-2 text-[10px] font-medium">
+              <TabsTrigger value="utility" className="flex flex-col gap-0.5 h-auto py-2 text-[10px] font-medium relative">
                 <Zap className="h-4 w-4" /><span>Compteurs</span>
+                <span className="absolute top-1 right-1 flex h-2 w-2 rounded-full bg-violet-500" />
               </TabsTrigger>
               <TabsTrigger value="profile" className="flex flex-col gap-0.5 h-auto py-2 text-[10px] font-medium">
                 <User className="h-4 w-4" /><span>Profil</span>
@@ -899,6 +1030,23 @@ const ProfilePage = () => {
             {/* ── HISTORIQUE ── */}
             <TabsContent value="history">
               <div className="space-y-4">
+                {/* Carte suivi électricité prépayée */}
+                <Link
+                  to="/compteur"
+                  className="flex items-center justify-between rounded-2xl border border-yellow-500/30 bg-yellow-500/5 px-4 py-3 hover:bg-yellow-500/10 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-xl bg-yellow-500/15 flex items-center justify-center shrink-0">
+                      <Zap className="h-4 w-4 text-yellow-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Suivi électricité prépayée</p>
+                      <p className="text-xs text-muted-foreground">Recharges · Consommation · Autonomie estimée</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                </Link>
+
                 {/* Stats row */}
                 <div className="grid grid-cols-3 gap-3">
                   {[
@@ -1077,7 +1225,32 @@ const ProfilePage = () => {
 
             {/* ── COMPTEURS / UTILITY ── */}
             <TabsContent value="utility">
+              {/* Hidden file inputs */}
+              <input
+                ref={elecFileRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleOcrScan(file, "electricity");
+                }}
+              />
+              <input
+                ref={waterFileRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleOcrScan(file, "water");
+                }}
+              />
+
               <div className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
+                {/* Bandeau info */}
                 <div className="flex gap-3 rounded-lg bg-primary/5 border border-primary/20 p-3 sm:p-4">
                   <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                   <div>
@@ -1089,6 +1262,47 @@ const ProfilePage = () => {
                   </div>
                 </div>
 
+                {/* Bandeau OCR — boutons d'action visibles */}
+                <div className="rounded-xl border border-violet-500/30 bg-violet-500/5 p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-500/15">
+                      <ScanLine className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-foreground">Remplissage automatique par photo</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                        Photographiez votre <strong>compteur</strong>, votre <strong>facture</strong> ou votre <strong>reçu de rechargement</strong> — les numéros sont extraits automatiquement.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      disabled={ocrLoading !== null}
+                      onClick={() => elecFileRef.current?.click()}
+                      className="flex items-center justify-center gap-2 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 px-3 py-2.5 text-sm font-semibold text-amber-700 dark:text-amber-400 transition-colors disabled:opacity-50"
+                    >
+                      {ocrLoading === "electricity"
+                        ? <><Loader2 className="h-4 w-4 animate-spin" />Analyse…</>
+                        : <><Camera className="h-4 w-4" /><Zap className="h-3.5 w-3.5" />Scanner CIE</>}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={ocrLoading !== null}
+                      onClick={() => waterFileRef.current?.click()}
+                      className="flex items-center justify-center gap-2 rounded-lg bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/40 px-3 py-2.5 text-sm font-semibold text-blue-700 dark:text-blue-400 transition-colors disabled:opacity-50"
+                    >
+                      {ocrLoading === "water"
+                        ? <><Loader2 className="h-4 w-4 animate-spin" />Analyse…</>
+                        : <><Camera className="h-4 w-4" /><Droplets className="h-3.5 w-3.5" />Scanner SODECI</>}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground text-center">
+                    Vérifiez toujours les valeurs extraites avant d'enregistrer
+                  </p>
+                </div>
+
+                {/* ── Section Électricité ── */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/15">
@@ -1097,6 +1311,18 @@ const ProfilePage = () => {
                     <h3 className="font-semibold text-foreground">Électricité (CIE)</h3>
                     <span className="ml-auto text-xs text-muted-foreground italic">Facultatif</span>
                   </div>
+
+                  {/* Prévisualisation pendant OCR */}
+                  {ocrPreview?.type === "electricity" && (
+                    <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-2">
+                      <img src={ocrPreview.url} alt="Aperçu" className="h-14 w-14 rounded object-cover shrink-0" />
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+                        Extraction des numéros en cours…
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid gap-3 sm:grid-cols-3">
                     {[
                       { label: "Identifiant client", field: "electricity_client_id" as const, placeholder: "Ex: 01234567" },
@@ -1105,14 +1331,18 @@ const ProfilePage = () => {
                     ].map((f) => (
                       <div key={f.field} className="space-y-1.5">
                         <Label className="text-xs font-medium text-muted-foreground">{f.label}</Label>
-                        <Input placeholder={f.placeholder} value={profile[f.field]} onChange={(e) => update(f.field, e.target.value)} maxLength={30} className="h-9 text-sm" />
+                        <Input id={`field-${f.field}`} placeholder={f.placeholder} value={profile[f.field]} onChange={(e) => update(f.field, e.target.value)} maxLength={30} className="h-9 text-sm" />
                       </div>
                     ))}
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Vous pouvez scanner votre facture CIE, le panneau de votre compteur ou un reçu de rechargement.
+                  </p>
                 </div>
 
                 <Separator />
 
+                {/* ── Section Eau ── */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/15">
@@ -1121,6 +1351,18 @@ const ProfilePage = () => {
                     <h3 className="font-semibold text-foreground">Eau (SODECI)</h3>
                     <span className="ml-auto text-xs text-muted-foreground italic">Facultatif</span>
                   </div>
+
+                  {/* Prévisualisation pendant OCR */}
+                  {ocrPreview?.type === "water" && (
+                    <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-2">
+                      <img src={ocrPreview.url} alt="Aperçu" className="h-14 w-14 rounded object-cover shrink-0" />
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                        Extraction des numéros en cours…
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid gap-3 sm:grid-cols-3">
                     {[
                       { label: "Identifiant client", field: "water_client_id" as const, placeholder: "Ex: 01234567" },
@@ -1129,10 +1371,13 @@ const ProfilePage = () => {
                     ].map((f) => (
                       <div key={f.field} className="space-y-1.5">
                         <Label className="text-xs font-medium text-muted-foreground">{f.label}</Label>
-                        <Input placeholder={f.placeholder} value={profile[f.field]} onChange={(e) => update(f.field, e.target.value)} maxLength={30} className="h-9 text-sm" />
+                        <Input id={`field-${f.field}`} placeholder={f.placeholder} value={profile[f.field]} onChange={(e) => update(f.field, e.target.value)} maxLength={30} className="h-9 text-sm" />
                       </div>
                     ))}
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Vous pouvez scanner votre facture SODECI ou le panneau de votre compteur d'eau.
+                  </p>
                 </div>
               </div>
             </TabsContent>
@@ -1171,6 +1416,7 @@ const ProfilePage = () => {
                       <div className="space-y-1.5">
                         <Label className="text-xs font-semibold text-foreground">Prénom</Label>
                         <Input
+                          id="field-first_name"
                           placeholder="Votre prénom"
                           value={profile.first_name}
                           onChange={(e) => update("first_name", e.target.value)}
@@ -1181,6 +1427,7 @@ const ProfilePage = () => {
                       <div className="space-y-1.5">
                         <Label className="text-xs font-semibold text-foreground">Nom de famille</Label>
                         <Input
+                          id="field-last_name"
                           placeholder="Votre nom"
                           value={profile.last_name}
                           onChange={(e) => update("last_name", e.target.value)}
@@ -1225,6 +1472,7 @@ const ProfilePage = () => {
                           </svg>
                         </div>
                         <Input
+                          id="field-phone"
                           placeholder="Ex: +225 07 01 23 45 67"
                           value={profile.phone}
                           onChange={(e) => update("phone", e.target.value)}

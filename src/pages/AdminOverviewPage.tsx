@@ -1,10 +1,10 @@
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useEffect } from "react";
 import {
   FileText, Users, AlertTriangle, CheckCircle2, Clock, TrendingUp,
-  Zap, Droplets, Shield, Trash2, BarChart3, ArrowRight, Heart, MailCheck, Building2,
+  Zap, Droplets, Shield, Trash2, BarChart3, ArrowRight, Heart, MailCheck, Building2, Eye, Activity, AlertOctagon, SlidersHorizontal, Minus, Plus,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,7 @@ const AdminOverviewPage = () => {
   const { data: donationsEnabled = true } = useSiteSetting("donations_enabled");
   const { data: transparencyEnabled = true } = useSiteSetting("transparency_enabled");
   const { data: partnersEnabled = true } = useSiteSetting("partners_enabled");
+  const { data: suiviEnabled = true } = useSiteSetting("suivi_enabled");
 
   const toggleTransparency = useMutation({
     mutationFn: async (enabled: boolean) => {
@@ -60,6 +61,19 @@ const AdminOverviewPage = () => {
     onSuccess: (_, enabled) => {
       queryClient.invalidateQueries({ queryKey: ["site-setting", "partners_enabled"] });
       toast({ title: enabled ? "Page partenaires visible" : "Page partenaires masquée" });
+    },
+  });
+
+  const toggleSuivi = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const { error } = await supabase
+        .from("site_settings")
+        .upsert({ key: "suivi_enabled", value: enabled as unknown as never, updated_at: new Date().toISOString(), updated_by: user?.id }, { onConflict: "key" });
+      if (error) throw error;
+    },
+    onSuccess: (_, enabled) => {
+      queryClient.invalidateQueries({ queryKey: ["site-setting", "suivi_enabled"] });
+      toast({ title: enabled ? "Lien Suivi visible" : "Lien Suivi masqué" });
     },
   });
 
@@ -146,6 +160,43 @@ const AdminOverviewPage = () => {
     },
   });
 
+  // Seuil neglect configurable
+  const { data: neglectThreshold = 7 } = useSiteSetting("neglect_threshold_days");
+  const [thresholdInput, setThresholdInput] = useState<number | null>(null);
+  const currentThreshold = thresholdInput ?? (typeof neglectThreshold === "number" ? neglectThreshold : 7);
+
+  const saveThreshold = useMutation({
+    mutationFn: async (days: number) => {
+      const { error } = await supabase
+        .from("site_settings")
+        .upsert({ key: "neglect_threshold_days", value: days as unknown as never, updated_at: new Date().toISOString(), updated_by: user?.id }, { onConflict: "key" });
+      if (error) throw error;
+    },
+    onSuccess: (_, days) => {
+      queryClient.invalidateQueries({ queryKey: ["site-setting", "neglect_threshold_days"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-overview-neglected"] });
+      setThresholdInput(null);
+      toast({ title: `Seuil mis à jour : ${days} jours` });
+    },
+  });
+
+  // Neglected reports count (actifs >seuil jours, validés, aucune corroboration)
+  const { data: neglectedCount = 0 } = useQuery({
+    queryKey: ["admin-overview-neglected", currentThreshold],
+    queryFn: async () => {
+      const sevenDaysAgo = new Date(Date.now() - currentThreshold * 24 * 60 * 60 * 1000).toISOString();
+      const { count, error } = await supabase
+        .from("reports")
+        .select("*", { count: "exact", head: true })
+        .in("status", ["active", "chronic"])
+        .eq("validated", true)
+        .eq("verifications", 0)
+        .lt("created_at", sevenDaysAgo);
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
   // Recent critical reports
   const { data: criticalReports = [] } = useQuery({
     queryKey: ["admin-overview-critical"],
@@ -225,7 +276,7 @@ const AdminOverviewPage = () => {
       </div>
 
       {/* Secondary stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary">
@@ -233,7 +284,7 @@ const AdminOverviewPage = () => {
             </div>
             <div>
               <p className="font-display text-2xl font-bold text-foreground">{pendingCount}</p>
-              <p className="text-xs text-muted-foreground">En attente de validation</p>
+              <p className="text-xs text-muted-foreground">En attente validation</p>
             </div>
           </CardContent>
         </Card>
@@ -250,6 +301,18 @@ const AdminOverviewPage = () => {
           </CardContent>
         </Card>
 
+        <Card className={neglectedCount > 0 ? "border-amber-500/30" : ""}>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${neglectedCount > 0 ? "bg-amber-500/10" : "bg-secondary"}`}>
+              <AlertOctagon className={`h-5 w-5 ${neglectedCount > 0 ? "text-amber-500" : "text-muted-foreground"}`} />
+            </div>
+            <div>
+              <p className={`font-display text-2xl font-bold ${neglectedCount > 0 ? "text-amber-500" : "text-foreground"}`}>{neglectedCount}</p>
+              <p className="text-xs text-muted-foreground">Négligés +7j</p>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary">
@@ -257,7 +320,7 @@ const AdminOverviewPage = () => {
             </div>
             <div>
               <p className="font-display text-2xl font-bold text-foreground">{deletionsCount}</p>
-              <p className="text-xs text-muted-foreground">Suppressions utilisateurs</p>
+              <p className="text-xs text-muted-foreground">Suppressions</p>
             </div>
           </CardContent>
         </Card>
@@ -267,6 +330,7 @@ const AdminOverviewPage = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
         {[
           { label: "Valider signalements", path: "/admin/signalements", icon: FileText, count: pendingCount, color: "text-primary" },
+          { label: "Négligés +7j", path: "/admin/signalements", icon: AlertOctagon, count: neglectedCount, color: neglectedCount > 0 ? "text-amber-500" : "text-muted-foreground" },
           { label: "Gérer les rôles", path: "/admin/utilisateurs", icon: Users, color: "text-primary" },
           { label: "Historique suppressions", path: "/admin/suppressions", icon: Trash2, count: deletionsCount, color: "text-destructive" },
           { label: "Statistiques", path: "/admin/stats", icon: BarChart3, color: "text-primary" },
@@ -290,78 +354,161 @@ const AdminOverviewPage = () => {
         ))}
       </div>
 
-      {/* Donation page toggle */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-        <Card className="mb-8">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary">
-                <Heart className="h-5 w-5 text-destructive" />
-              </div>
-              <div>
-                <p className="font-semibold text-foreground">Page de dons</p>
-                <p className="text-xs text-muted-foreground">
-                  {donationsEnabled ? "Visible par tous les utilisateurs" : "Masquée — les utilisateurs ne peuvent pas y accéder"}
-                </p>
-              </div>
+      {/* ── Visibilité des pages ── */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mb-8">
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              <h2 className="font-display text-sm font-bold text-foreground">Visibilité des pages</h2>
             </div>
-            <Switch
-              checked={donationsEnabled}
-              onCheckedChange={(checked) => toggleDonations.mutate(checked)}
-              disabled={toggleDonations.isPending}
-            />
+            <div className="divide-y divide-border">
+
+              {/* Partenaires */}
+              <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
+                    <Building2 className="h-4.5 w-4.5 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Page Partenaires</p>
+                    <p className="text-xs text-muted-foreground">
+                      {partnersEnabled
+                        ? "Visible — lien affiché dans la navigation"
+                        : "Masquée — non accessible depuis la navigation"}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={!!partnersEnabled}
+                  onCheckedChange={(checked) => togglePartners.mutate(checked)}
+                  disabled={togglePartners.isPending}
+                />
+              </div>
+
+              {/* Suivi */}
+              <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10">
+                    <Activity className="h-4.5 w-4.5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Lien Suivi</p>
+                    <p className="text-xs text-muted-foreground">
+                      {suiviEnabled
+                        ? "Visible — lien affiché dans la navigation"
+                        : "Masqué — page /suivi accessible uniquement via URL directe"}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={!!suiviEnabled}
+                  onCheckedChange={(checked) => toggleSuivi.mutate(checked)}
+                  disabled={toggleSuivi.isPending}
+                />
+              </div>
+
+              {/* Transparence */}
+              <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <BarChart3 className="h-4.5 w-4.5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Page Résultats</p>
+                    <p className="text-xs text-muted-foreground">
+                      {transparencyEnabled
+                        ? "Visible — lien affiché dans la navigation"
+                        : "Masquée — accessible uniquement sur /transparence directement"}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={!!transparencyEnabled}
+                  onCheckedChange={(checked) => toggleTransparency.mutate(checked)}
+                  disabled={toggleTransparency.isPending}
+                />
+              </div>
+
+              {/* Dons */}
+              <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-destructive/10">
+                    <Heart className="h-4.5 w-4.5 text-destructive" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Page de dons</p>
+                    <p className="text-xs text-muted-foreground">
+                      {donationsEnabled
+                        ? "Visible par tous les utilisateurs"
+                        : "Masquée — les utilisateurs ne peuvent pas y accéder"}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={!!donationsEnabled}
+                  onCheckedChange={(checked) => toggleDonations.mutate(checked)}
+                  disabled={toggleDonations.isPending}
+                />
+              </div>
+
+            </div>
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* Transparency page toggle */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
-        <Card className="mb-8">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary">
-                <BarChart3 className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-semibold text-foreground">Page de transparence</p>
-                <p className="text-xs text-muted-foreground">
-                  {transparencyEnabled
-                    ? "Visible par tous — lien affiché dans la navigation"
-                    : "Masquée — accessible uniquement sur /transparence directement"}
-                </p>
-              </div>
+      {/* ── Paramètres comportement ── */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="mb-8">
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <SlidersHorizontal className="h-4 w-4 text-primary" />
+              <h2 className="font-display text-sm font-bold text-foreground">Paramètres de comportement</h2>
             </div>
-            <Switch
-              checked={transparencyEnabled}
-              onCheckedChange={(checked) => toggleTransparency.mutate(checked)}
-              disabled={toggleTransparency.isPending}
-            />
-          </CardContent>
-        </Card>
-      </motion.div>
+            <div className="divide-y divide-border">
 
-      {/* Partners page toggle */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-        <Card className="mb-8">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary">
-                <Building2 className="h-5 w-5 text-blue-500" />
+              {/* Seuil négligé */}
+              <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0 gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/10">
+                    <AlertOctagon className="h-4 w-4 text-amber-500" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Seuil "Négligé"</p>
+                    <p className="text-xs text-muted-foreground">
+                      Nombre de jours sans corroboration avant qu'un signalement soit marqué "Négligé"
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => setThresholdInput(Math.max(1, currentThreshold - 1))}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-border hover:bg-muted transition-colors"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </button>
+                  <span className="w-10 text-center text-sm font-bold text-foreground">
+                    {currentThreshold}j
+                  </span>
+                  <button
+                    onClick={() => setThresholdInput(Math.min(30, currentThreshold + 1))}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-border hover:bg-muted transition-colors"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                  {thresholdInput !== null && thresholdInput !== (typeof neglectThreshold === "number" ? neglectThreshold : 7) && (
+                    <button
+                      onClick={() => saveThreshold.mutate(thresholdInput)}
+                      disabled={saveThreshold.isPending}
+                      className="ml-1 h-7 px-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    >
+                      {saveThreshold.isPending ? "…" : "Sauver"}
+                    </button>
+                  )}
+                </div>
               </div>
-              <div>
-                <p className="font-semibold text-foreground">Page Partenaires</p>
-                <p className="text-xs text-muted-foreground">
-                  {partnersEnabled
-                    ? "Visible — lien affiché dans la navigation"
-                    : "Masquée — accessible uniquement via URL directe"}
-                </p>
-              </div>
+
             </div>
-            <Switch
-              checked={partnersEnabled}
-              onCheckedChange={(checked) => togglePartners.mutate(checked)}
-              disabled={togglePartners.isPending}
-            />
           </CardContent>
         </Card>
       </motion.div>

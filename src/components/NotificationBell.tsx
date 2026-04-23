@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { Bell, Zap, Droplets, Check, Trash2, Megaphone, CheckCircle2, Clock, AlertTriangle, Archive, ChevronDown, ChevronUp, X } from "lucide-react";
+import { Bell, Zap, Droplets, Check, Trash2, Megaphone, CheckCircle2, Clock, AlertTriangle, Archive, ChevronDown, ChevronUp, X, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +17,7 @@ interface Notification {
 }
 
 /** Classification of notification types for grouping */
-type NotifCategory = "neighbor_outage" | "confirmation" | "resolved" | "reminder" | "critical" | "archived" | "broadcast" | "other";
+type NotifCategory = "neighbor_outage" | "confirmation" | "resolved" | "reminder" | "critical" | "escalade" | "archived" | "broadcast" | "other";
 
 interface NotifGroup {
   category: NotifCategory;
@@ -33,6 +33,7 @@ interface NotifGroup {
 
 const categorize = (n: Notification): NotifCategory => {
   if (n.message.startsWith("📢")) return "broadcast";
+  if (n.title.includes("🚨") || n.title.toLowerCase().includes("escalade") || n.title.includes("Rapport hebdo") || n.title.includes("J+14")) return "escalade";
   if (n.title === "Service rétabli dans votre quartier") return "resolved";
   if (n.title === "Un voisin confirme votre signalement") return "confirmation";
   if (n.title.startsWith("⏰")) return "reminder";
@@ -90,8 +91,8 @@ const groupNotifications = (notifications: Notification[]): NotifGroup[] => {
   return Array.from(groupMap.values()).sort((a, b) => {
     // Critical/reminder always on top
     const priorityOrder: Record<NotifCategory, number> = {
-      critical: 0, reminder: 1, neighbor_outage: 2, confirmation: 3,
-      resolved: 4, broadcast: 5, archived: 6, other: 7,
+      escalade: 0, critical: 1, reminder: 2, neighbor_outage: 3, confirmation: 4,
+      resolved: 5, broadcast: 6, archived: 7, other: 8,
     };
     const aPriority = a.unreadCount > 0 ? priorityOrder[a.category] : priorityOrder[a.category] + 100;
     const bPriority = b.unreadCount > 0 ? priorityOrder[b.category] : priorityOrder[b.category] + 100;
@@ -102,6 +103,7 @@ const groupNotifications = (notifications: Notification[]): NotifGroup[] => {
 
 const CATEGORY_CONFIG: Record<NotifCategory, { icon: typeof Bell; bgClass: string; textClass: string; unreadBgClass: string }> = {
   critical: { icon: AlertTriangle, bgClass: "bg-destructive/10", textClass: "text-destructive", unreadBgClass: "bg-destructive/10" },
+  escalade: { icon: ShieldAlert, bgClass: "bg-destructive/15", textClass: "text-destructive", unreadBgClass: "bg-destructive/10" },
   reminder: { icon: Clock, bgClass: "bg-warning/10", textClass: "text-warning", unreadBgClass: "bg-warning/10" },
   neighbor_outage: { icon: Bell, bgClass: "bg-primary/10", textClass: "text-primary", unreadBgClass: "bg-primary/5" },
   confirmation: { icon: Check, bgClass: "bg-success/10", textClass: "text-success", unreadBgClass: "bg-success/5" },
@@ -194,12 +196,25 @@ const NotificationBell = () => {
     setNotifications((prev) => prev.filter((n) => !ids.includes(n.id)));
   };
 
+  const isAdminEscalade = (n: Notification) =>
+    n.title.includes("🚨") ||
+    n.title.toLowerCase().includes("escalade") ||
+    n.title.includes("Problème chronique") ||
+    n.title.includes("J+14") ||
+    n.title.includes("Rapport hebdo");
+
   const handleNotificationClick = async (n: Notification) => {
     if (!n.read) {
       await supabase.from("notifications").update({ read: true }).eq("id", n.id);
       setNotifications((prev) => prev.map((notif) => notif.id === n.id ? { ...notif, read: true } : notif));
     }
     setOpen(false);
+
+    // Notifications d'escalade admin → onglet Escalades du dashboard admin
+    if (isAdminEscalade(n)) {
+      navigate("/admin/rapports?tab=escalades");
+      return;
+    }
 
     const category = categorize(n);
     if (category === "broadcast" || category === "resolved" || category === "archived") return;

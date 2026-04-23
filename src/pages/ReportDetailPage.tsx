@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Zap, Droplets, MapPin, Calendar, CheckCircle2,
   Clock, Users, AlertTriangle, ExternalLink, Loader2, Shield, ThumbsUp,
-  LogIn, UserPlus, Wrench, PartyPopper, Radio,
+  LogIn, UserPlus, Wrench, PartyPopper, Radio, AlertOctagon,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -159,6 +159,13 @@ const ReportDetailPage = () => {
   const isAuthor = user?.id === report.user_id;
   const canCorroborate = user && !isAuthor && !isResolved;
 
+  // Négligé : actif depuis >7j sans aucune corroboration
+  const ageDays = Math.floor(
+    (Date.now() - new Date(report.created_at).getTime()) / 86400000
+  );
+  const isChronic = report.status === "chronic";
+  const isNeglected = !isResolved && ageDays >= 7 && report.verifications === 0;
+
   // Durée de résolution lisible
   const resolutionDuration = (() => {
     if (!isResolved || !report.resolved_at) return null;
@@ -269,6 +276,61 @@ const ReportDetailPage = () => {
                 ? "Problème toujours présent · En attente d'intervention"
                 : `Coupure de ${isElec ? "courant" : "d'eau"} en cours · Toujours sans intervention`}
             </p>
+          </motion.div>
+        )}
+
+        {/* ── Bannière CHRONIQUE ── */}
+        {isChronic && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border-2 border-red-500/40 bg-red-500/8 p-4 flex items-start gap-3"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-500/15">
+              <AlertOctagon className="h-4.5 w-4.5 text-red-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-red-700 dark:text-red-300">
+                Problème chronique — {ageDays} jours sans résolution
+              </p>
+              <p className="text-xs text-red-600/80 dark:text-red-400/70 mt-0.5">
+                Ce signalement dépasse 14 jours sans intervention. Partagez-le pour maintenir la pression collective.
+              </p>
+              <ShareButton
+                title={`Signalement SIGNA-CI — ${report.commune}`}
+                text={shareText}
+                url={`${window.location.origin}/signalement/${report.id}`}
+                variant="outline"
+                size="sm"
+                className="mt-2.5 border-red-500/40 text-red-700 dark:text-red-400 hover:bg-red-500/10 text-xs gap-1.5"
+              />
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── Bannière NÉGLIGÉ (>7j, 0 corroboration, non chronique) ── */}
+        {isNeglected && !isChronic && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border-2 border-amber-500/40 bg-amber-500/8 p-4 flex items-start gap-3"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15">
+              <AlertOctagon className="h-4.5 w-4.5 text-amber-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-amber-700 dark:text-amber-300">
+                {ageDays} jours sans prise en charge
+              </p>
+              <p className="text-xs text-amber-600/80 dark:text-amber-400/70 mt-0.5">
+                Aucun voisin n'a encore confirmé ce signalement.
+                {canCorroborate
+                  ? " Soyez le premier à le corroborer pour augmenter sa priorité."
+                  : !user
+                  ? " Connectez-vous pour être le premier à le confirmer."
+                  : " Partagez-le pour mobiliser votre quartier."}
+              </p>
+            </div>
           </motion.div>
         )}
 

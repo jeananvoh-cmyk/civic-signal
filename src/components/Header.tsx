@@ -22,6 +22,7 @@ const Header = () => {
   const { data: donationsEnabled = true } = useSiteSetting("donations_enabled");
   const { data: transparencyEnabled = true } = useSiteSetting("transparency_enabled");
   const { data: partnersEnabled = true } = useSiteSetting("partners_enabled");
+  const { data: suiviEnabled = true } = useSiteSetting("suivi_enabled");
 
   const themeIcon = theme === "dark" ? <Moon className="h-4 w-4" /> : theme === "light" ? <Sun className="h-4 w-4" /> : <Monitor className="h-4 w-4" />;
 
@@ -41,7 +42,7 @@ const Header = () => {
     { to: "/", label: "Accueil", highlight: false },
     { to: "/signaler", label: "Signaler", highlight: false },
     { to: "/tableau-de-bord", label: "Tableau de Bord", highlight: false },
-    { to: "/suivi", label: "Suivi", highlight: false },
+    ...(suiviEnabled ? [{ to: "/suivi", label: "Suivi", highlight: false }] : []),
     { to: "/verification", label: "Vérifier", highlight: true },
     ...(transparencyEnabled ? [{ to: "/transparence", label: "Résultats", highlight: false }] : []),
     ...(donationsEnabled ? [{ to: "/dons", label: "♥ Dons", highlight: false }] : []),
@@ -97,7 +98,7 @@ const Header = () => {
             </Link>
           ))}
 
-          {/* Carte dropdown */}
+          {/* Signalements dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setMapDropdownOpen(!mapDropdownOpen)}
@@ -108,39 +109,44 @@ const Header = () => {
               }`}
             >
               <Map className="h-3.5 w-3.5" />
-              Carte
+              Signalements
               <ChevronDown className={`h-3 w-3 transition-transform ${mapDropdownOpen ? "rotate-180" : ""}`} />
             </button>
             {mapDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 w-52 rounded-lg border border-border bg-card shadow-lg py-1 z-50">
+              <div className="absolute top-full left-0 mt-1 w-72 rounded-xl border border-border bg-card shadow-lg py-1.5 z-50">
                 <Link
                   to="/carte"
                   onClick={() => setMapDropdownOpen(false)}
-                  className={`flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors ${
+                  className={`flex items-start gap-3 px-4 py-3 text-sm transition-colors ${
                     location.pathname === "/carte"
-                      ? "bg-primary/10 text-primary font-semibold"
+                      ? "bg-primary/10 text-primary"
                       : "text-foreground/80 hover:bg-secondary"
                   }`}
                 >
-                  <Map className="h-4 w-4 flex-shrink-0" />
+                  <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-500/10">
+                    <Map className="h-3.5 w-3.5 text-sky-500" />
+                  </div>
                   <div>
-                    <p className="font-medium">Carte des coupures</p>
-                    <p className="text-xs text-muted-foreground">Eau & électricité en temps réel</p>
+                    <p className="font-semibold text-foreground">Coupures d'eau & d'électricité</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Suivez les interruptions signalées par les citoyens et les services.</p>
                   </div>
                 </Link>
+                <div className="mx-4 my-1 border-t border-border/50" />
                 <Link
                   to="/infrastructures"
                   onClick={() => setMapDropdownOpen(false)}
-                  className={`flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors ${
+                  className={`flex items-start gap-3 px-4 py-3 text-sm transition-colors ${
                     location.pathname === "/infrastructures"
-                      ? "bg-primary/10 text-primary font-semibold"
+                      ? "bg-primary/10 text-primary"
                       : "text-foreground/80 hover:bg-secondary"
                   }`}
                 >
-                  <Wrench className="h-4 w-4 flex-shrink-0" />
+                  <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-orange-500/10">
+                    <Wrench className="h-3.5 w-3.5 text-orange-500" />
+                  </div>
                   <div>
-                    <p className="font-medium">Infrastructures</p>
-                    <p className="text-xs text-muted-foreground">Lampadaires, voirie, fuites…</p>
+                    <p className="font-semibold text-foreground">Infrastructures publiques</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Visualisez et signalez les problèmes de voirie, d'éclairage et d'équipements urbains.</p>
                   </div>
                 </Link>
               </div>
@@ -215,6 +221,9 @@ const Header = () => {
 
         <div className="flex items-center gap-0.5 md:hidden">
           {user && <NotificationBell />}
+          <Button variant="ghost" size="icon" onClick={() => setSearchOpen(true)} title="Rechercher">
+            <Search className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="icon" onClick={toggleTheme}>
             {themeIcon}
           </Button>
@@ -251,9 +260,9 @@ const Header = () => {
             </Link>
           ))}
 
-          {/* Mobile: Carte sub-links */}
+          {/* Mobile: Signalements sub-links */}
           <div className="mt-1 mb-1">
-            <p className="px-4 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Carte</p>
+            <p className="px-4 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Signalements</p>
             <Link
               to="/carte"
               onClick={() => setMobileOpen(false)}
@@ -261,7 +270,7 @@ const Header = () => {
                 location.pathname === "/carte" ? "bg-primary/10 text-primary font-semibold" : "text-foreground/70 hover:bg-secondary"
               }`}
             >
-              <Map className="h-4 w-4" /> Carte des coupures
+              <Map className="h-4 w-4" /> Coupures d'eau & d'électricité
             </Link>
             <Link
               to="/infrastructures"
@@ -270,7 +279,7 @@ const Header = () => {
                 location.pathname === "/infrastructures" ? "bg-primary/10 text-primary font-semibold" : "text-foreground/70 hover:bg-secondary"
               }`}
             >
-              <Wrench className="h-4 w-4" /> Infrastructures
+              <Wrench className="h-4 w-4" /> Infrastructures publiques
             </Link>
           </div>
 

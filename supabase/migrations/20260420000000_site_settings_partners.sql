@@ -4,7 +4,7 @@
 
 -- Insert partners_enabled setting (default: true = visible)
 INSERT INTO site_settings (key, value)
-VALUES ('partners_enabled', true)
+VALUES ('partners_enabled', 'true'::jsonb)
 ON CONFLICT (key) DO NOTHING;
 
 -- Insert forwarded_to_operator_at column on reports
