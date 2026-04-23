@@ -4,7 +4,7 @@ import {
   Zap, Shield, Users, ArrowRight, BarChart3, MapPin,
   Radio, LogIn, UserPlus, Map, History, Info, Heart,
   ChevronDown, CheckCircle2, TrendingUp, Droplets, Wrench, Navigation,
-  ExternalLink, Download, Share,
+  ExternalLink, Download, Share, X, BatteryFull, TrendingDown,
 } from "lucide-react";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { SOCIAL_LINKS } from "@/lib/social-links";
@@ -171,6 +171,9 @@ const Index = () => {
   const [nearbyLoading, setNearbyLoading] = useState(false);
   const [myActiveReports, setMyActiveReports] = useState<MyActiveReport[]>([]);
   const [avgResolutionHours, setAvgResolutionHours] = useState<Record<string, number> | null>(null);
+  const [showElecBanner, setShowElecBanner] = useState(
+    () => localStorage.getItem("signa_elec_feature_v1") !== "dismissed"
+  );
 
   useEffect(() => {
     supabase.rpc("get_landing_stats" as any).then(({ data }) => {
@@ -618,6 +621,112 @@ const Index = () => {
       )}
 
       {/* ══════════════════════════════════════════════════════════════
+          FEATURE DISCOVERY — Suivi électricité prépayée (1 seule fois)
+      ══════════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {showElecBanner && (
+          <motion.section
+            key="elec-feature"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10, scale: 0.97 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            className="container py-3"
+          >
+            <div className="relative overflow-hidden rounded-2xl border border-yellow-400/40 bg-gradient-to-br from-yellow-500/12 via-amber-400/8 to-orange-400/5 p-5 shadow-sm">
+
+              {/* Bouton fermer */}
+              <button
+                onClick={() => {
+                  setShowElecBanner(false);
+                  localStorage.setItem("signa_elec_feature_v1", "dismissed");
+                }}
+                className="absolute top-3 right-3 h-6 w-6 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Fermer"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+
+              {/* Pastille "Nouveau" */}
+              <span className="inline-flex items-center gap-1 rounded-full bg-yellow-500/20 border border-yellow-500/30 px-2.5 py-0.5 text-[10px] font-bold text-yellow-700 dark:text-yellow-400 mb-3">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-500 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-yellow-500" />
+                </span>
+                Nouveau sur SIGNA-CI
+              </span>
+
+              <div className="flex items-start gap-4">
+
+                {/* Icône */}
+                <div className="shrink-0 h-14 w-14 rounded-2xl bg-yellow-500/15 border border-yellow-500/25 flex flex-col items-center justify-center gap-0.5">
+                  <Zap className="h-6 w-6 text-yellow-500" />
+                  <BatteryFull className="h-3.5 w-3.5 text-yellow-500/70" />
+                </div>
+
+                {/* Texte */}
+                <div className="flex-1 min-w-0 pr-5">
+                  <p className="text-sm font-extrabold text-foreground leading-tight">
+                    Suivez votre électricité prépayée
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    Collez votre SMS de recharge CIE · Suivez vos kWh restants ·
+                    Recevez une estimation de votre autonomie en jours.
+                  </p>
+
+                  {/* Mini métriques illustratives */}
+                  <div className="flex items-center gap-3 mt-2.5">
+                    <div className="flex items-center gap-1 text-[11px] font-semibold text-yellow-700 dark:text-yellow-400">
+                      <TrendingDown className="h-3 w-3" />
+                      <span>Conso/jour</span>
+                    </div>
+                    <div className="h-3 w-px bg-border" />
+                    <div className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                      <BatteryFull className="h-3 w-3" />
+                      <span>Jours restants</span>
+                    </div>
+                    <div className="h-3 w-px bg-border" />
+                    <div className="flex items-center gap-1 text-[11px] font-semibold text-sky-700 dark:text-sky-400">
+                      <Zap className="h-3 w-3" />
+                      <span>Historique</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTA */}
+              <div className="mt-4 flex items-center gap-2">
+                <Link
+                  to="/compteur"
+                  onClick={() => {
+                    setShowElecBanner(false);
+                    localStorage.setItem("signa_elec_feature_v1", "dismissed");
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-yellow-500 hover:bg-yellow-400 active:scale-[0.98] transition-all py-2.5 text-sm font-bold text-white shadow-sm shadow-yellow-500/30"
+                >
+                  <Zap className="h-4 w-4" />
+                  Essayer maintenant
+                </Link>
+                <button
+                  onClick={() => {
+                    setShowElecBanner(false);
+                    localStorage.setItem("signa_elec_feature_v1", "dismissed");
+                  }}
+                  className="px-4 py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Plus tard
+                </button>
+              </div>
+
+              {/* Fond décoratif */}
+              <div className="pointer-events-none absolute -bottom-6 -right-6 h-24 w-24 rounded-full bg-yellow-400/10 blur-2xl" />
+              <div className="pointer-events-none absolute -top-4 -left-4 h-16 w-16 rounded-full bg-amber-400/10 blur-xl" />
+            </div>
+          </motion.section>
+        )}
+      </AnimatePresence>
+
+      {/* ══════════════════════════════════════════════════════════════
           FIL "PRÈS DE MOI" — signalements dans un rayon de 2 km
       ══════════════════════════════════════════════════════════════ */}
       {(nearbyLoading || nearbyReports.length > 0) && (
@@ -989,7 +1098,7 @@ const Index = () => {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Plateforme citoyenne de signalement des coupures d'eau et d'électricité à Abidjan, Côte d'Ivoire.
+                Plateforme citoyenne de signalement des services publics et infrastructures urbaines à Abidjan, Côte d'Ivoire.
               </p>
             </div>
 
@@ -997,7 +1106,7 @@ const Index = () => {
               <p className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wider">Navigation</p>
               <div className="flex flex-col gap-2">
                 <Link to="/signaler" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  <Zap className="h-3.5 w-3.5" /> Signaler une coupure
+                  <Zap className="h-3.5 w-3.5" /> Signaler un problème
                 </Link>
                 <Link to="/tableau-de-bord" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
                   <BarChart3 className="h-3.5 w-3.5" /> Tableau de Bord Public
@@ -1006,7 +1115,7 @@ const Index = () => {
                   <Map className="h-3.5 w-3.5" /> Carte interactive
                 </Link>
                 <Link to="/verification" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  <Users className="h-3.5 w-3.5" /> Vérifier un signalement
+                  <Users className="h-3.5 w-3.5" /> Confirmer ou clore un signalement
                 </Link>
                 <Link to="/historique" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
                   <History className="h-3.5 w-3.5" /> Historique
