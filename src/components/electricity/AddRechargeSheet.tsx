@@ -15,6 +15,7 @@ interface Props {
     reference?: string;
     raw_sms?: string;
     source: "sms" | "manual";
+    meter_number?: string | null;
   }) => Promise<void>;
   onClose: () => void;
 }
@@ -75,6 +76,7 @@ export default function AddRechargeSheet({ meterId, onSave, onClose }: Props) {
         reference: parsed?.reference ?? undefined,
         raw_sms: smsText || undefined,
         source: mode,
+        meter_number: parsed?.meter_number ?? undefined,
       });
       onClose();
     } catch (e: any) {

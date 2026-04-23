@@ -149,6 +149,18 @@ export function useElectricity() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["electricity-recharges"] }),
   });
 
+  const updateMeter = useMutation({
+    mutationFn: async (payload: { id: string; meter_number?: string; label?: string }) => {
+      const { id, ...rest } = payload;
+      const { error } = await (supabase as any)
+        .from("electricity_meters")
+        .update({ ...rest, updated_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["electricity-meters"] }),
+  });
+
   return {
     // Data
     meters,
@@ -164,5 +176,6 @@ export function useElectricity() {
     addRecharge,
     addReading,
     deleteRecharge,
+    updateMeter,
   };
 }

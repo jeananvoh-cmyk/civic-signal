@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useGoBack } from "@/hooks/useGoBack";
 import { motion } from "framer-motion";
 import {
   Zap, Plus, ArrowLeft, Gauge, History,
-  RefreshCw, Trash2, Building2, CheckCircle2, XCircle, AlertCircle,
+  RefreshCw, Trash2, Building2, CheckCircle2, XCircle, AlertCircle, Hash,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -100,10 +101,10 @@ function SetupMeter({ onCreate }: { onCreate: (label: string, meterNumber?: stri
             Commencer le suivi
           </button>
         </div>
-        <Link to="/" className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
+        <button onClick={goBack} className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-3.5 w-3.5" />
-          Retour à l'accueil
-        </Link>
+          Retour
+        </button>
       </div>
     </div>
   );
@@ -112,18 +113,20 @@ function SetupMeter({ onCreate }: { onCreate: (label: string, meterNumber?: stri
 // ─── Page principale ──────────────────────────────────────────────────────────
 
 export default function CompteurPage() {
+  const goBack = useGoBack("/");
   const {
     activeMeter, recharges, readings, estimate,
     isLoading, hasData,
-    createMeter, addRecharge, addReading, deleteRecharge,
+    createMeter, addRecharge, addReading, deleteRecharge, updateMeter,
   } = useElectricity();
 
   const [showRechargeSheet, setShowRechargeSheet] = useState(false);
   const [showReadingSheet, setShowReadingSheet] = useState(false);
   const [activeTab, setActiveTab] = useState<"dashboard" | "history">("dashboard");
   const [deleting, setDeleting] = useState<string | null>(null);
-  // Banner post-recharge : invite à faire la première mise à jour
   const [showPostRechargeBanner, setShowPostRechargeBanner] = useState(false);
+  // N° de compteur détecté dans un SMS — attend confirmation de l'utilisateur
+  const [pendingMeterNumber, setPendingMeterNumber] = useState<string | null>(null);
 
   // ── Écran de chargement ───────────────────────────────────────────
   if (isLoading) {
@@ -154,9 +157,9 @@ export default function CompteurPage() {
       <div className="sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
+            <button onClick={goBack} className="text-muted-foreground hover:text-foreground transition-colors">
               <ArrowLeft className="h-5 w-5" />
-            </Link>
+            </button>
             <div>
               <p className="font-bold text-foreground text-sm leading-tight">{activeMeter?.label}</p>
               {activeMeter?.meter_number && (
@@ -268,6 +271,55 @@ export default function CompteurPage() {
                     className="rounded-xl border border-border py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Plus tard
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── Confirmation numéro de compteur détecté ── */}
+            {pendingMeterNumber && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl border border-emerald-500/40 bg-emerald-500/8 p-4 space-y-3"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0 mt-0.5">
+                    <Hash className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-foreground">Numéro de compteur détecté</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                      Votre SMS contient la référence{" "}
+                      <span className="font-mono font-semibold text-foreground">{pendingMeterNumber}</span>.
+                      Souhaitez-vous l'enregistrer sur ce compteur ?
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setPendingMeterNumber(null)}
+                    className="text-muted-foreground hover:text-foreground shrink-0"
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={async () => {
+                      if (!activeMeter) return;
+                      await updateMeter.mutateAsync({ id: activeMeter.id, meter_number: pendingMeterNumber });
+                      setPendingMeterNumber(null);
+                      toast.success("Numéro de compteur enregistré");
+                    }}
+                    disabled={updateMeter.isPending}
+                    className="rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white active:scale-95 transition-transform disabled:opacity-50"
+                  >
+                    {updateMeter.isPending ? "Enregistrement…" : "Oui, enregistrer"}
+                  </button>
+                  <button
+                    onClick={() => setPendingMeterNumber(null)}
+                    className="rounded-xl border border-border py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Non merci
                   </button>
                 </div>
               </motion.div>
@@ -459,7 +511,11 @@ export default function CompteurPage() {
             await addRecharge.mutateAsync(data);
             toast.success(`${data.kwh_purchased} kWh enregistrés`);
             setShowPostRechargeBanner(true);
-            setActiveTab("dashboard"); // revenir sur le dashboard pour voir le banner
+            setActiveTab("dashboard");
+            // Proposer la sauvegarde du n° compteur si détecté et absent/différent
+            if (data.meter_number && data.meter_number !== activeMeter.meter_number) {
+              setPendingMeterNumber(data.meter_number);
+            }
           }}
           onClose={() => setShowRechargeSheet(false)}
         />
