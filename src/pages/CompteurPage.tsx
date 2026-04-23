@@ -114,6 +114,7 @@ function SetupMeter({ onCreate }: { onCreate: (label: string, meterNumber?: stri
 
 export default function CompteurPage() {
   const goBack = useGoBack("/");
+  const { user } = useAuth();
   const {
     activeMeter, recharges, readings, estimate,
     isLoading, hasData,
@@ -125,8 +126,10 @@ export default function CompteurPage() {
   const [activeTab, setActiveTab] = useState<"dashboard" | "history">("dashboard");
   const [deleting, setDeleting] = useState<string | null>(null);
   const [showPostRechargeBanner, setShowPostRechargeBanner] = useState(false);
-  // N° de compteur détecté dans un SMS — attend confirmation de l'utilisateur
   const [pendingMeterNumber, setPendingMeterNumber] = useState<string | null>(null);
+  // Référence CIE (Ref:) détectée dans un SMS — attend confirmation pour maj profil
+  const [pendingCieRef, setPendingCieRef] = useState<string | null>(null);
+  const [savingCieRef, setSavingCieRef] = useState(false);
 
   // ── Écran de chargement ───────────────────────────────────────────
   if (isLoading) {
@@ -325,6 +328,66 @@ export default function CompteurPage() {
               </motion.div>
             )}
 
+            {/* ── Confirmation référence CIE (Ref:) détectée ── */}
+            {pendingCieRef && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-3"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <Hash className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-foreground">Référence CIE détectée</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                      Votre SMS contient la référence{" "}
+                      <span className="font-mono font-semibold text-foreground">{pendingCieRef}</span>.
+                      Enregistrer comme référence de votre compteur CIE ?
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setPendingCieRef(null)}
+                    className="text-muted-foreground hover:text-foreground shrink-0"
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={async () => {
+                      if (!user) return;
+                      setSavingCieRef(true);
+                      try {
+                        const { error } = await supabase
+                          .from("profiles")
+                          .update({ electricity_meter_ref: pendingCieRef })
+                          .eq("user_id", user.id);
+                        if (error) throw error;
+                        setPendingCieRef(null);
+                        toast.success("Référence CIE enregistrée");
+                      } catch {
+                        toast.error("Erreur lors de l'enregistrement");
+                      } finally {
+                        setSavingCieRef(false);
+                      }
+                    }}
+                    disabled={savingCieRef}
+                    className="rounded-xl bg-primary py-2.5 text-xs font-bold text-white active:scale-95 transition-transform disabled:opacity-50"
+                  >
+                    {savingCieRef ? "Enregistrement…" : "Oui, enregistrer"}
+                  </button>
+                  <button
+                    onClick={() => setPendingCieRef(null)}
+                    className="rounded-xl border border-border py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Non merci
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
             {/* ── Rappel si recharges sans aucune lecture ── */}
             {!showPostRechargeBanner && recharges.length > 0 && readings.length === 0 && (
               <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/8 px-3 py-3">
@@ -512,9 +575,11 @@ export default function CompteurPage() {
             toast.success(`${data.kwh_purchased} kWh enregistrés`);
             setShowPostRechargeBanner(true);
             setActiveTab("dashboard");
-            // Proposer la sauvegarde du n° compteur si détecté et absent/différent
             if (data.meter_number && data.meter_number !== activeMeter.meter_number) {
               setPendingMeterNumber(data.meter_number);
+            }
+            if (data.cie_ref) {
+              setPendingCieRef(data.cie_ref);
             }
           }}
           onClose={() => setShowRechargeSheet(false)}
