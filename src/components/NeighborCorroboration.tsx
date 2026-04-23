@@ -198,9 +198,32 @@ const NeighborCorroboration = ({ reportId, onDone, onReportLoaded }: NeighborCor
   const isElec = report.service_type === "electricity";
   const color = COMMUNE_COLORS[report.commune] || "#6B7280";
 
+  // Détection du sous-type infrastructure depuis la description
+  const detectInfraSubtype = (desc: string): { label: string; btnLabel: string; headerLabel: string } => {
+    const d = (desc || "").toLowerCase();
+    if (d.includes("caniveau") || d.includes("égout") || d.includes("drainage") || d.includes("drain"))
+      return { label: "un caniveau bouché ou un problème de drainage", btnLabel: "Je confirme ce problème", headerLabel: "Caniveau / Drainage" };
+    if (d.includes("route") || d.includes("chaussée") || d.includes("asphalte") || d.includes("nid-de-poule") || d.includes("trottoir"))
+      return { label: "une route ou un trottoir dégradé", btnLabel: "Je confirme ce problème de voirie", headerLabel: "Route / Voirie" };
+    if (d.includes("lampadaire") || d.includes("éclairage") || d.includes("lumière") || d.includes("poteau"))
+      return { label: "un lampadaire ou un problème d'éclairage public", btnLabel: "Je confirme ce problème", headerLabel: "Éclairage public" };
+    if (d.includes("fuite") || d.includes("canalisation") || d.includes("conduite"))
+      return { label: "une fuite ou une canalisation défectueuse", btnLabel: "Je confirme cette fuite", headerLabel: "Fuite / Canalisation" };
+    if (d.includes("déchet") || d.includes("ordure") || d.includes("dépôt sauvage") || d.includes("insalubri"))
+      return { label: "un problème de salubrité dans votre quartier", btnLabel: "Je confirme ce problème", headerLabel: "Salubrité" };
+    return { label: "un problème d'infrastructure", btnLabel: "Je demande aussi la réparation", headerLabel: "Voirie / Infrastructure" };
+  };
+
+  const infraSubtype = isInfra ? detectInfraSubtype(report.description) : null;
+
+  // Extrait lisible de la description (max 90 car.)
+  const descExcerpt = report.description
+    ? report.description.slice(0, 90).trim() + (report.description.length > 90 ? "…" : "")
+    : null;
+
   // Dynamic labels
   const headerLabel = isInfra
-    ? "Problème de voirie / infrastructure"
+    ? (infraSubtype?.headerLabel ?? "Voirie / Infrastructure")
     : isElec
       ? "Coupure d'électricité"
       : "Coupure d'eau";
@@ -212,12 +235,12 @@ const NeighborCorroboration = ({ reportId, onDone, onReportLoaded }: NeighborCor
       : <Droplets className="h-5 w-5" />;
 
   const infoBannerText = isInfra
-    ? "Un voisin a signalé un problème de voirie ou d'infrastructure dans votre quartier. Si vous êtes aussi concerné(e), soutenez le signalement pour accélérer l'intervention de la mairie."
+    ? `Un voisin a signalé ${infraSubtype?.label ?? "un problème d'infrastructure"} dans votre quartier.${descExcerpt ? ` Il décrit : « ${descExcerpt} »` : ""} Si vous êtes aussi concerné(e), soutenez ce signalement pour accélérer l'intervention de la mairie.`
     : `Un voisin a signalé une coupure ${isElec ? "d'électricité" : "d'eau"} dans votre quartier. Si vous êtes aussi affecté(e), confirmez pour renforcer le signalement.`;
 
   const confirmBtnLabel = isInfra
-    ? "Je demande aussi la réparation"
-    : `Oui, je confirme la coupure`;
+    ? (infraSubtype?.btnLabel ?? "Je demande aussi la réparation")
+    : "Oui, je confirme la coupure";
 
   const declineBtnLabel = isInfra
     ? "Pas de problème dans mon secteur"
