@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Zap, Plus, ArrowLeft, Gauge, History,
-  RefreshCw, Trash2, Building2,
+  RefreshCw, Trash2, Building2, CheckCircle2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useElectricity } from "@/hooks/useElectricity";
 import EstimationCard from "@/components/electricity/EstimationCard";
 import ConsumptionChart from "@/components/electricity/ConsumptionChart";
@@ -17,8 +19,26 @@ import AddReadingSheet from "@/components/electricity/AddReadingSheet";
 // ─── Setup compteur (premier lancement) ──────────────────────────────────────
 
 function SetupMeter({ onCreate }: { onCreate: (label: string, meterNumber?: string) => void }) {
+  const { user } = useAuth();
   const [label, setLabel] = useState("Mon compteur");
   const [meterNumber, setMeterNumber] = useState("");
+  const [prefilled, setPrefilled] = useState(false);
+
+  // Pré-remplir depuis profiles.electricity_meter_number si disponible
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("electricity_meter_number, electricity_client_id")
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.electricity_meter_number) {
+          setMeterNumber(data.electricity_meter_number);
+          setPrefilled(true);
+        }
+      });
+  }, [user]);
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm space-y-6">
@@ -45,17 +65,33 @@ function SetupMeter({ onCreate }: { onCreate: (label: string, meterNumber?: stri
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              N° de compteur <span className="font-normal text-muted-foreground">(optionnel)</span>
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                N° de compteur <span className="font-normal text-muted-foreground">(optionnel)</span>
+              </label>
+              {prefilled && (
+                <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Récupéré depuis votre profil
+                </span>
+              )}
+            </div>
             <input
               type="text"
               value={meterNumber}
-              onChange={e => setMeterNumber(e.target.value)}
+              onChange={e => { setMeterNumber(e.target.value); setPrefilled(false); }}
               placeholder="ex: 42057649321"
-              className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className={`w-full rounded-xl border px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/40 ${
+                prefilled
+                  ? "border-emerald-500/40 bg-emerald-500/5"
+                  : "border-border bg-background"
+              }`}
             />
-            <p className="text-[11px] text-muted-foreground">Visible dans vos SMS de recharge (Ctr: …)</p>
+            <p className="text-[11px] text-muted-foreground">
+              {prefilled
+                ? "Ce numéro provient du scan de votre facture CIE. Vous pouvez le modifier."
+                : "Visible dans vos SMS de recharge (Ctr: …)"}
+            </p>
           </div>
           <button
             onClick={() => label.trim() && onCreate(label.trim(), meterNumber || undefined)}
