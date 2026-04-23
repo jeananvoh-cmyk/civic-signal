@@ -1030,23 +1030,6 @@ const ProfilePage = () => {
             {/* ── HISTORIQUE ── */}
             <TabsContent value="history">
               <div className="space-y-4">
-                {/* Carte suivi électricité prépayée */}
-                <Link
-                  to="/compteur"
-                  className="flex items-center justify-between rounded-2xl border border-yellow-500/30 bg-yellow-500/5 px-4 py-3 hover:bg-yellow-500/10 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-xl bg-yellow-500/15 flex items-center justify-center shrink-0">
-                      <Zap className="h-4 w-4 text-yellow-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">Suivi électricité prépayée</p>
-                      <p className="text-xs text-muted-foreground">Recharges · Consommation · Autonomie estimée</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                </Link>
-
                 {/* Stats row */}
                 <div className="grid grid-cols-3 gap-3">
                   {[
@@ -1225,6 +1208,24 @@ const ProfilePage = () => {
 
             {/* ── COMPTEURS / UTILITY ── */}
             <TabsContent value="utility">
+
+              {/* ── Suivi électricité prépayée ── */}
+              <Link
+                to="/compteur"
+                className="flex items-center justify-between rounded-2xl border border-yellow-500/40 bg-gradient-to-r from-yellow-500/10 to-yellow-400/5 px-4 py-4 mb-5 hover:from-yellow-500/15 hover:to-yellow-400/10 active:scale-[0.98] transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-11 w-11 rounded-2xl bg-yellow-500/15 flex items-center justify-center shrink-0">
+                    <Zap className="h-5 w-5 text-yellow-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-foreground leading-tight">Suivi électricité prépayée</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Recharges · Consommation · Autonomie estimée</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+              </Link>
+
               {/* Hidden file inputs */}
               <input
                 ref={elecFileRef}
