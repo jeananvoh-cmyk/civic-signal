@@ -120,68 +120,74 @@ const PhotoUpload = ({
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-
+    const all = Array.from(e.target.files ?? []);
     e.target.value = "";
+    if (!all.length || !user) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Seules les images sont acceptées");
-      return;
-    }
-
-    if (photoUrls.length >= MAX_PHOTOS) {
+    const remaining = MAX_PHOTOS - photoUrls.length;
+    if (remaining <= 0) {
       toast.error(`Maximum ${MAX_PHOTOS} photos par signalement`);
       return;
     }
 
+    const toProcess = all.slice(0, remaining);
+    if (all.length > remaining) {
+      toast.info(`${all.length - remaining} photo(s) ignorée(s) — limite de ${MAX_PHOTOS} atteinte`);
+    }
+
     setUploading(true);
+    const addedUrls: string[] = [];
+    let exifHandled = false;
 
-    try {
-      // Compression + extraction GPS en parallèle
-      const [exifGps, compressed] = await Promise.all([
-        extractExifGps(file),
-        compressImage(file),
-      ]);
+    for (let i = 0; i < toProcess.length; i++) {
+      const file = toProcess[i];
+      if (!file.type.startsWith("image/")) {
+        toast.error(`"${file.name}" n'est pas une image valide`);
+        continue;
+      }
+      try {
+        const isFirstEver = photoUrls.length === 0 && i === 0;
+        const [exifGps, compressed] = await Promise.all([
+          isFirstEver ? extractExifGps(file) : Promise.resolve(null),
+          compressImage(file),
+        ]);
 
-      const path = `${user.id}/${Date.now()}.jpg`;
-      const { error } = await supabase.storage
-        .from("report-photos")
-        .upload(path, compressed, { upsert: true, contentType: "image/jpeg" });
+        const path = `${user.id}/${Date.now()}_${i}.jpg`;
+        const { error } = await supabase.storage
+          .from("report-photos")
+          .upload(path, compressed, { upsert: true, contentType: "image/jpeg" });
+        if (error) throw error;
 
-      if (error) throw error;
+        addedUrls.push(path);
 
-      const newUrls = [...photoUrls, path];
-      onPhotosChanged(newUrls);
-
-      // GPS EXIF — seulement sur la première photo
-      if (exifGps && onGpsFromPhoto && photoUrls.length === 0) {
-        onGpsFromPhoto(exifGps.lat, exifGps.lng);
-        setGpsSource("photo");
-        toast.success("📸 Photo ajoutée — position GPS extraite de la photo", {
-          description: `Coordonnées : ${exifGps.lat.toFixed(5)}, ${exifGps.lng.toFixed(5)}`,
-          duration: 5000,
-        });
-      } else {
-        setGpsSource("device");
-        toast.success(
-          newUrls.length === 1
-            ? "Photo ajoutée !"
-            : `Photo ${newUrls.length}/${MAX_PHOTOS} ajoutée`,
-        );
-        if (isInfrastructure && !exifGps && photoUrls.length === 0) {
-          toast("💡 Conseil", {
-            description:
-              "Si vous partagez une photo prise ailleurs, la position GPS de votre appareil sera utilisée. Vous pouvez la corriger sur la carte.",
-            duration: 6000,
+        // GPS EXIF — première photo uniquement
+        if (isFirstEver && exifGps && onGpsFromPhoto && !exifHandled) {
+          onGpsFromPhoto(exifGps.lat, exifGps.lng);
+          setGpsSource("photo");
+          exifHandled = true;
+          toast.success("📸 Position GPS extraite de la photo", {
+            description: `${exifGps.lat.toFixed(5)}, ${exifGps.lng.toFixed(5)}`,
+            duration: 5000,
           });
         }
+      } catch (err: any) {
+        toast.error(getUserFriendlyError(err, `Erreur photo ${i + 1}`));
       }
-    } catch (err: any) {
-      toast.error(getUserFriendlyError(err, "Erreur lors de l'upload photo"));
-    } finally {
-      setUploading(false);
     }
+
+    if (addedUrls.length > 0) {
+      const allUrls = [...photoUrls, ...addedUrls];
+      onPhotosChanged(allUrls);
+      if (!exifHandled) {
+        setGpsSource("device");
+        toast.success(
+          addedUrls.length === 1 ? "Photo ajoutée !" : `${addedUrls.length} photos ajoutées !`,
+          { description: `${allUrls.length}/${MAX_PHOTOS} au total` },
+        );
+      }
+    }
+
+    setUploading(false);
   };
 
   const removePhoto = (index: number) => {
@@ -198,6 +204,7 @@ const PhotoUpload = ({
         ref={fileRef}
         type="file"
         accept="image/*"
+        multiple
         className="hidden"
         onChange={handleFileChange}
       />

@@ -220,6 +220,8 @@ const ReportPage = () => {
   const [gpsSource, setGpsSource] = useState<DetectionSource>(null);
   const [gpsRetrying, setGpsRetrying] = useState(false);
   const [gpsWeakSignal, setGpsWeakSignal] = useState(false);
+  // Option A — position mémorisée (utilisateur ayant quitté le lieu)
+  const [storedGpsAgeMin, setStoredGpsAgeMin] = useState<number | null>(null);
 
   // Misc
   const [submitting, setSubmitting] = useState(false);
@@ -356,6 +358,26 @@ const ReportPage = () => {
     setGpsRetrying(false);
 
     if (!bestPos) {
+      // Option A — essayer la position mémorisée (< 2h)
+      try {
+        const raw = localStorage.getItem("signa_last_gps_v2");
+        if (raw) {
+          const stored = JSON.parse(raw) as { lat: number; lng: number; accuracy: number; commune: Commune; timestamp: number };
+          const ageMin = (Date.now() - stored.timestamp) / 60000;
+          if (ageMin < 120 && stored.lat && stored.lng && stored.commune) {
+            setLatitude(stored.lat);
+            setLongitude(stored.lng);
+            setGpsAccuracy(stored.accuracy);
+            setGpsWeakSignal(stored.accuracy > 300);
+            setDetectedCommune(stored.commune);
+            setCommune(stored.commune.nom);
+            setOutsidePilotZone(false);
+            setStoredGpsAgeMin(Math.round(ageMin));
+            setGpsLoading(false);
+            return;
+          }
+        }
+      } catch { /* silent */ }
       setGpsLoading(false);
       if (showError) toast.error("Impossible d'obtenir votre position. Vérifiez les permissions GPS.");
       return;
@@ -378,6 +400,13 @@ const ReportPage = () => {
       setDetectedCommune(result.commune);
       setCommune(result.commune.nom);
       setOutsidePilotZone(false);
+      setStoredGpsAgeMin(null); // position fraîche
+      // Sauvegarder pour le fallback "position mémorisée"
+      try {
+        localStorage.setItem("signa_last_gps_v2", JSON.stringify({
+          lat, lng: lon, accuracy, commune: result.commune, timestamp: Date.now(),
+        }));
+      } catch { /* silent */ }
       if (showError) {
         const sourceLabel: Record<string, string> = {
           geojson: "polygone", nominatim: "OSM", google: "Google", radius: "rayon",
@@ -534,7 +563,7 @@ const ReportPage = () => {
   const handleSubmit = async () => {
     if (limitReached) { toast.error(`Limite de ${DAILY_LIMIT} signalements / jour atteinte`); return; }
     if (!latitude || !longitude) { toast.error("Position GPS requise"); return; }
-    if (!gpsFromPhoto && gpsAccuracy !== null && gpsAccuracy > 300 && !isAdmin && !isTestAccount) {
+    if (!gpsFromPhoto && storedGpsAgeMin === null && gpsAccuracy !== null && gpsAccuracy > 300 && !isAdmin && !isTestAccount) {
       toast.error("Signal GPS trop imprécis", {
         description: `Précision actuelle : ± ${Math.round(gpsAccuracy)} m. Déplacez-vous près d'une fenêtre et relancez la localisation.`,
         action: { label: "Relocaliser", onClick: () => captureGPS(true) },
@@ -897,11 +926,39 @@ const ReportPage = () => {
                           )}
                         </div>
                       )}
-                      {gpsWeakSignal && !outsidePilotZone && detectedCommune && (
+                      {gpsWeakSignal && !outsidePilotZone && detectedCommune && storedGpsAgeMin === null && (
                         <p className="mt-1 text-xs text-amber-600 flex items-center gap-1">
                           <AlertTriangle className="h-3 w-3 shrink-0" />
                           Signal GPS faible — déplacez-vous près d'une fenêtre pour améliorer la précision
                         </p>
+                      )}
+                      {storedGpsAgeMin !== null && latitude !== null && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mt-2 flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/8 px-3 py-2.5"
+                        >
+                          <Clock className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                              📍 Position mémorisée il y a {storedGpsAgeMin < 60 ? `${storedGpsAgeMin} min` : `${Math.round(storedGpsAgeMin / 60)}h`}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+                              Vous avez peut-être quitté le lieu — vous pouvez quand même finaliser votre signalement.
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs shrink-0 text-amber-700"
+                            onClick={() => captureGPS(true)}
+                            disabled={gpsLoading}
+                          >
+                            <Navigation className="h-3 w-3 mr-1" />
+                            Relocaliser
+                          </Button>
+                        </motion.div>
                       )}
                     </div>
 
@@ -1293,10 +1350,22 @@ const ReportPage = () => {
                       <div className="rounded-xl border border-border bg-card p-3">
                         <PhotoUpload
                           onPhotosChanged={setPhotoUrls}
-                          onGpsFromPhoto={(lat, lng) => {
+                          onGpsFromPhoto={async (lat, lng) => {
                             setLatitude(lat);
                             setLongitude(lng);
                             setGpsFromPhoto(true);
+                            setGpsAccuracy(10); // EXIF = très précis
+                            setStoredGpsAgeMin(null);
+                            // Option C : résoudre la commune depuis les coordonnées EXIF
+                            try {
+                              const result = await resolveCommune(lat, lng, 10);
+                              setGpsSource(result.source);
+                              if (!result.outsidePilotZone && result.commune) {
+                                setDetectedCommune(result.commune);
+                                setCommune(result.commune.nom);
+                                setOutsidePilotZone(false);
+                              }
+                            } catch { /* silent */ }
                           }}
                           photoUrls={photoUrls}
                           isInfrastructure={selectedType.reportCategory === "infrastructure"}
