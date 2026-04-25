@@ -583,6 +583,9 @@ const Index = () => {
                 const isInfra = r.report_category === "infrastructure";
                 const icon = isInfra ? infraEmoji(extractInfraLabel(r.description)) : isElec ? "⚡" : "💧";
                 const label = isInfra ? (extractInfraLabel(r.description) ?? "Infrastructure") : isElec ? "Électricité" : "Eau";
+                const verifLabel = isInfra
+                  ? `${r.verifications} soutien${r.verifications > 1 ? "s" : ""}`
+                  : `${r.verifications} confirmation${r.verifications > 1 ? "s" : ""}`;
                 return (
                   <Link
                     key={r.id}
@@ -593,7 +596,7 @@ const Index = () => {
                       <span className="text-xl shrink-0">{icon}</span>
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-foreground truncate">{label} · {r.commune}</p>
-                        <p className="text-[10px] text-muted-foreground">{r.quartier && `${r.quartier} · `}{new Date(r.created_at).toLocaleDateString("fr-FR")}{r.verifications > 0 ? ` · ${r.verifications} confirmation${r.verifications > 1 ? "s" : ""}` : ""}</p>
+                        <p className="text-[10px] text-muted-foreground">{r.quartier && `${r.quartier} · `}{new Date(r.created_at).toLocaleDateString("fr-FR")}{r.verifications > 0 ? ` · ${verifLabel}` : ""}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -1098,7 +1101,7 @@ const Index = () => {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Plateforme citoyenne de signalement des services publics et infrastructures urbaines à Abidjan, Côte d'Ivoire.
+                Plateforme citoyenne ivoirienne de signalement des dysfonctionnements des services et infrastructures publiques urbains à Abidjan, et dans toute la Côte d'Ivoire.
               </p>
             </div>
 
@@ -1109,16 +1112,16 @@ const Index = () => {
                   <Zap className="h-3.5 w-3.5" /> Signaler un problème
                 </Link>
                 <Link to="/tableau-de-bord" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  <BarChart3 className="h-3.5 w-3.5" /> Tableau de Bord Public
+                  <BarChart3 className="h-3.5 w-3.5" /> Tableau de bord citoyen
                 </Link>
                 <Link to="/carte" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  <Map className="h-3.5 w-3.5" /> Carte interactive
+                  <Map className="h-3.5 w-3.5" /> Carte des signalements
                 </Link>
                 <Link to="/verification" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  <Users className="h-3.5 w-3.5" /> Confirmer ou clore un signalement
+                  <Users className="h-3.5 w-3.5" /> Vérifier & confirmer un signalement
                 </Link>
                 <Link to="/historique" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  <History className="h-3.5 w-3.5" /> Historique
+                  <History className="h-3.5 w-3.5" /> Mon historique
                 </Link>
               </div>
             </div>
@@ -1168,7 +1171,7 @@ const Index = () => {
               </a>
             </div>
 
-            <p className="text-xs text-muted-foreground">Fait avec ❤️ pour les citoyens d'Abidjan</p>
+            <p className="text-xs text-muted-foreground">Fiers d'être ivoirien ❤️ </p>
           </div>
         </div>
       </footer>

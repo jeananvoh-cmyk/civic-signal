@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Zap, Droplets, Trash2, CheckCircle2, Clock, Loader2, AlertTriangle, Users } from "lucide-react";
+import { Zap, Droplets, Trash2, CheckCircle2, Clock, Loader2, AlertTriangle, Users, Wrench } from "lucide-react";
+import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -16,6 +17,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 interface Report {
   id: string;
   service_type: string;
+  report_category: string;
   description: string;
   commune: string;
   quartier: string;
@@ -50,7 +52,7 @@ const MyReports = ({ profileComplete = false }: { profileComplete?: boolean }) =
     if (!user) return;
     const { data, error } = await supabase
       .from("reports")
-      .select("id, service_type, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, verifications")
+      .select("id, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, verifications")
       .eq("user_id", user.id)
       .eq("status", "active")
       .order("created_at", { ascending: false });
@@ -163,7 +165,11 @@ const MyReports = ({ profileComplete = false }: { profileComplete?: boolean }) =
       {reports.map((r) => {
         const color = COMMUNE_COLORS[r.commune] || "#888";
         const isActive = r.status === "active";
-        const emoji = r.service_type === "electricity" ? "⚡" : "💧";
+        const isInfra = r.report_category === "infrastructure";
+        const infraLabel = isInfra ? extractInfraLabel(r.description) : null;
+        const typeEmoji = isInfra ? infraEmoji(infraLabel) : r.service_type === "electricity" ? "⚡" : "💧";
+        const typeLabel = isInfra ? (infraLabel ?? "Infrastructure") : r.service_type === "electricity" ? "Électricité" : "Eau";
+        const displayDesc = isInfra ? cleanDescription(r.description) : r.description;
 
         return (
           <div
@@ -174,13 +180,14 @@ const MyReports = ({ profileComplete = false }: { profileComplete?: boolean }) =
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-lg">{emoji}</span>
-                  <span className="font-bold text-sm text-foreground">{r.commune}</span>
+                  <span className="text-lg">{typeEmoji}</span>
+                  <span className="font-bold text-sm text-foreground">{typeLabel}</span>
+                  <span className="text-xs text-muted-foreground">· {r.commune}</span>
                   {r.quartier && (
                     <span className="text-xs text-muted-foreground">· {r.quartier}</span>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground line-clamp-2">{r.description}</p>
+                <p className="text-xs text-muted-foreground line-clamp-2">{displayDesc}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <Badge variant={isActive ? "default" : "outline"} className={isActive ? "" : "border-success text-success"}>
                     {isActive ? "Actif" : "Résolu"}
@@ -196,8 +203,8 @@ const MyReports = ({ profileComplete = false }: { profileComplete?: boolean }) =
                     </Badge>
                   )}
                   {r.verifications >= 3 && r.urgency !== "critical" && (
-                    <Badge variant="outline" className="border-amber-500 text-amber-500">
-                      ⚡ {r.verifications} confirmations
+                    <Badge variant="outline" className={isInfra ? "border-emerald-500 text-emerald-600" : "border-amber-500 text-amber-500"}>
+                      {isInfra ? "🤝" : "⚡"} {r.verifications} {isInfra ? `soutien${r.verifications > 1 ? "s" : ""}` : "confirmations"}
                     </Badge>
                   )}
                   {canSeeQuartierCounts && isActive && r.quartier && (() => {
@@ -250,13 +257,17 @@ const MyReports = ({ profileComplete = false }: { profileComplete?: boolean }) =
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>
-              {resolveTarget?.service_type === "electricity" ? "⚡ Électricité" : "💧 Eau"} rétablie ?
+              {resolveTarget?.report_category === "infrastructure"
+                ? `🏗️ Problème résolu ?`
+                : resolveTarget?.service_type === "electricity" ? "⚡ Électricité rétablie ?" : "💧 Eau rétablie ?"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="rounded-lg bg-success/10 p-3 text-center">
               <p className="text-sm font-medium text-success">
-                Le service est de retour à {resolveTarget?.commune} !
+                {resolveTarget?.report_category === "infrastructure"
+                  ? `La réparation a été effectuée à ${resolveTarget?.commune} ?`
+                  : `Le service est de retour à ${resolveTarget?.commune} !`}
               </p>
             </div>
             <div className="space-y-2">
