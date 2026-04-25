@@ -2,8 +2,10 @@ import { motion } from "framer-motion";
 import { Shield, MapPin, Lock, Eye, Trash2, FileText, Mail, Scale, Globe, Server, AlertTriangle, Users, Bell } from "lucide-react";
 import Header from "@/components/Header";
 import { Link } from "react-router-dom";
+import { useGoBack } from "@/hooks/useGoBack";
 
 const PrivacyPolicyPage = () => {
+  const goBack = useGoBack("/a-propos");
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -393,9 +395,9 @@ const PrivacyPolicyPage = () => {
           </section>
 
           <div className="text-center space-y-3">
-            <Link to="/a-propos" className="text-sm text-primary underline">
-              ← Retour à la page À propos
-            </Link>
+            <button onClick={goBack} className="text-sm text-primary underline">
+              ← Retour
+            </button>
           </div>
 
           <div className="mt-6 text-center text-xs text-muted-foreground">

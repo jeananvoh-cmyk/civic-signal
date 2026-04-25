@@ -546,7 +546,7 @@ const MapPage = () => {
       let infraConfirmHtml = '';
       if (actifs > 0) {
         if (hasVerified) {
-          infraConfirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center"><span style="font-size:13px;color:#16a34a;font-weight:700">✓ ${verified} confirmé${verified > 1 ? 's' : ''} (${verifiedPercent}%)</span><br/><span style="font-size:10px;color:#15803d">vérifié${verified > 1 ? 's' : ''} par les voisins</span></div>`;
+          infraConfirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center"><span style="font-size:13px;color:#16a34a;font-weight:700">✓ ${verified} soutenu${verified > 1 ? 's' : ''} (${verifiedPercent}%)</span><br/><span style="font-size:10px;color:#15803d">soutenu${verified > 1 ? 's' : ''} pour réparation</span></div>`;
         } else {
           infraConfirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;text-align:center"><span style="font-size:11px;color:#92400e">⏳ En attente de confirmation</span></div>`;
         }
@@ -568,7 +568,7 @@ const MapPage = () => {
       let singleConfirmHtml = '';
       if (actifs > 0) {
         if (hasVerified) {
-          singleConfirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center"><span style="font-size:13px;color:#16a34a;font-weight:700">✓ ${verified} confirmé${verified > 1 ? 's' : ''} (${singleVerifiedPercent}%)</span><br/><span style="font-size:10px;color:#15803d">vérifié${verified > 1 ? 's' : ''} par les voisins</span></div>`;
+          singleConfirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center"><span style="font-size:13px;color:#16a34a;font-weight:700">✓ ${verified} soutenu${verified > 1 ? 's' : ''} (${singleVerifiedPercent}%)</span><br/><span style="font-size:10px;color:#15803d">soutenu${verified > 1 ? 's' : ''} pour réparation</span></div>`;
         } else {
           singleConfirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;text-align:center"><span style="font-size:11px;color:#92400e">⏳ En attente de confirmation</span></div>`;
         }
@@ -613,8 +613,8 @@ const MapPage = () => {
           <div>
             <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground uppercase tracking-tight">
               {mode === "coupures"
-                ? "Cartographie live des coupures d'eau et d'électricité"
-                : "Cartographie live des infrastructures défaillantes"}
+                ? "Coupures d'eau & d'électricité — en temps réel"
+                : "Infrastructures publiques — signalements citoyens"}
             </h1>
             <p className="text-xs text-muted-foreground mt-0.5">07 communes pilotes disponibles</p>
             <p className="mt-1 text-muted-foreground">

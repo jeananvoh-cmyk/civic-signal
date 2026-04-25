@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useGoBack } from "@/hooks/useGoBack";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getUserFriendlyError } from "@/lib/error-utils";
@@ -114,6 +115,7 @@ const AuthPage = () => {
   const [magicSent, setMagicSent]     = useState(false);
 
   const navigate  = useNavigate();
+  const goBack    = useGoBack("/");
   const isPhone   = (v: string) => /^\+?\d[\d\s-]{6,}$/.test(v.trim());
 
   // ── Google OAuth ──────────────────────────────────────────────────────────
@@ -251,13 +253,13 @@ const AuthPage = () => {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-sm"
       >
-        <Link
-          to="/"
+        <button
+          onClick={goBack}
           className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Retour à l'accueil
-        </Link>
+          Retour
+        </button>
 
         {/* Logo */}
         <div className="mb-6 flex items-center justify-center gap-3">

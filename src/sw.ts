@@ -1,11 +1,21 @@
 /// <reference lib="webworker" />
-import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
+import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from "workbox-precaching";
+import { NavigationRoute, registerRoute } from "workbox-routing";
 
 declare const self: ServiceWorkerGlobalScope;
 
 // Injected by VitePWA at build time
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
+
+// SPA fallback : toutes les navigations (F5, liens directs, rechargement)
+// servent le index.html mis en cache → React Router gère la route côté client.
+const handler = createHandlerBoundToURL("/index.html");
+const navigationRoute = new NavigationRoute(handler, {
+  // Exclure les fichiers statiques et les routes API
+  denylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
+});
+registerRoute(navigationRoute);
 
 // ─── Push notifications ───────────────────────────────────────────────────────
 

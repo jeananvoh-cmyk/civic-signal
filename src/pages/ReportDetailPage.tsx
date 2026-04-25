@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useGoBack } from "@/hooks/useGoBack";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Zap, Droplets, MapPin, Calendar, CheckCircle2,
@@ -18,6 +19,7 @@ import ReportComments from "@/components/ReportComments";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNE_COLORS } from "@/lib/communes";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { extractInfraLabel, cleanDescription } from "@/lib/report-display";
 
 interface ReportDetail {
   id: string;
@@ -89,6 +91,7 @@ const TimelineStep = ({
 const ReportDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const goBack = useGoBack("/tableau-de-bord");
   const { user } = useAuth();
   const [report, setReport] = useState<ReportDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -145,7 +148,7 @@ const ReportDetailPage = () => {
         <div className="container py-16 text-center">
           <AlertTriangle className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
           <p className="text-muted-foreground mb-4">Signalement introuvable.</p>
-          <Button variant="outline" onClick={() => navigate(-1)}>Retour</Button>
+          <Button variant="outline" onClick={goBack}>Retour</Button>
         </div>
       </div>
     );
@@ -194,7 +197,7 @@ const ReportDetailPage = () => {
       if (error) throw error;
       setCorroborated(true);
       setReport((prev) => prev ? { ...prev, verifications: prev.verifications + 1 } : prev);
-      toast.success("✅ Confirmation enregistrée — merci !");
+      toast.success(`✅ ${corroboratedLabel} — merci !`);
     } catch (err: any) {
       const msg = err?.message || "";
       if (msg.includes("déjà confirmé")) toast.info("Vous avez déjà confirmé ce signalement.");
@@ -214,7 +217,7 @@ const ReportDetailPage = () => {
       <main className="container max-w-lg py-6 space-y-4">
         {/* Back */}
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" /> Retour
@@ -243,7 +246,9 @@ const ReportDetailPage = () => {
                   </p>
                   {report.verifications > 0 && (
                     <p className="text-xs text-emerald-600/70 dark:text-emerald-400/60 mt-1">
-                      Merci aux <strong>{report.verifications} voisin{report.verifications > 1 ? "s" : ""}</strong> qui ont confirmé ce signalement.
+                      {isInfra
+                        ? <>Merci aux <strong>{report.verifications} citoyen{report.verifications > 1 ? "s" : ""}</strong> qui ont soutenu ce signalement.</>
+                        : <>Merci aux <strong>{report.verifications} voisin{report.verifications > 1 ? "s" : ""}</strong> qui ont confirmé cette coupure.</>}
                     </p>
                   )}
                 </div>
@@ -323,7 +328,7 @@ const ReportDetailPage = () => {
                 {ageDays} jours sans prise en charge
               </p>
               <p className="text-xs text-amber-600/80 dark:text-amber-400/70 mt-0.5">
-                Aucun voisin n'a encore confirmé ce signalement.
+                {isInfra ? "Aucun citoyen n'a encore soutenu ce signalement." : "Aucun voisin n'a encore confirmé cette coupure."}
                 {canCorroborate
                   ? " Soyez le premier à le corroborer pour augmenter sa priorité."
                   : !user
@@ -343,8 +348,8 @@ const ReportDetailPage = () => {
           {/* Commune banner */}
           <div className="flex items-center justify-between px-4 py-2.5" style={{ backgroundColor: color }}>
             <div className="flex items-center gap-2 text-white">
-              {isElec ? <Zap className="h-4 w-4" /> : <Droplets className="h-4 w-4" />}
-              <span className="text-sm font-bold">{SERVICE_LABELS[report.service_type] ?? report.service_type}</span>
+              {isInfra ? <Wrench className="h-4 w-4" /> : isElec ? <Zap className="h-4 w-4" /> : <Droplets className="h-4 w-4" />}
+              <span className="text-sm font-bold">{isInfra ? (extractInfraLabel(report.description) ?? "Infrastructure") : (SERVICE_LABELS[report.service_type] ?? report.service_type)}</span>
             </div>
             <Badge variant="outline" className={`text-white border-white/30 ${isResolved ? "bg-white/20" : "bg-white/10"}`}>
               {isResolved ? "✅ Résolu" : "🔴 Actif"}
@@ -360,7 +365,7 @@ const ReportDetailPage = () => {
             </div>
 
             {/* Description */}
-            <p className="text-sm text-foreground leading-relaxed">{report.description}</p>
+            <p className="text-sm text-foreground leading-relaxed">{isInfra ? cleanDescription(report.description) : report.description}</p>
 
             {/* Tags */}
             <div className="flex flex-wrap gap-2">
@@ -392,7 +397,7 @@ const ReportDetailPage = () => {
               </span>
               <span className="flex items-center gap-1">
                 <Users className="h-3.5 w-3.5" />
-                {report.verifications} confirmation{report.verifications !== 1 ? "s" : ""}
+                {report.verifications} {isInfra ? `soutien${report.verifications !== 1 ? "s" : ""}` : `confirmation${report.verifications !== 1 ? "s" : ""}`}
               </span>
               {report.impacted_people > 1 && (
                 <span className="flex items-center gap-1">
@@ -447,7 +452,7 @@ const ReportDetailPage = () => {
             />
             <TimelineStep
               done={report.verifications >= 3}
-              label={`${report.verifications} voisin${report.verifications !== 1 ? "s" : ""} ont confirmé`}
+              label={isInfra ? `${report.verifications} citoyen${report.verifications !== 1 ? "s" : ""} ont soutenu` : `${report.verifications} voisin${report.verifications !== 1 ? "s" : ""} ont confirmé`}
               icon={<Users className="h-3.5 w-3.5" />}
             />
             <TimelineStep

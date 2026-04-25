@@ -1,4 +1,5 @@
 import { useParams, Link } from "react-router-dom";
+import { useGoBack } from "@/hooks/useGoBack";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
@@ -227,6 +228,7 @@ function getTypeLabel(serviceType: string, reportCategory: string | null, descri
 
 const SignalementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
+  const goBack = useGoBack("/suivi");
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [supported, setSupported] = useState(false);
@@ -430,7 +432,9 @@ const SignalementDetailPage = () => {
     ? `, signalé il y a ${daysSince} jour${daysSince > 1 ? "s" : ""} sans intervention !`
     : "";
   const verifText = (report.verifications ?? 0) > 0
-    ? `\n👥 ${report.verifications} voisin${report.verifications > 1 ? "s" : ""} ont confirmé.`
+    ? report.report_category === "infrastructure"
+      ? `\n👥 ${report.verifications} citoyen${report.verifications > 1 ? "s" : ""} ont soutenu ce signalement.`
+      : `\n👥 ${report.verifications} voisin${report.verifications > 1 ? "s" : ""} ont confirmé.`
     : "";
   const shareText = `${typeEmoji} ${cleanDescription(report.description)} — ${locationLabel}${daysText}${verifText}\n\nAidez à faire bouger les choses sur CivicSignal :`;
 
@@ -439,13 +443,13 @@ const SignalementDetailPage = () => {
       <Header />
       <main className="container max-w-lg py-8 px-4">
         {/* Retour */}
-        <Link
-          to="/suivi"
+        <button
+          onClick={goBack}
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Retour au suivi
-        </Link>
+          Retour
+        </button>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           {/* Galerie photos — en premier pour l'impact visuel */}

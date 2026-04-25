@@ -19,7 +19,7 @@ const AboutPage = () => {
               SIGNA<span className="text-water">-CI</span>
             </h1>
             <p className="mt-2 text-muted-foreground">
-              Plateforme citoyenne de signalement des coupures d'eau et d'électricité
+              Plateforme citoyenne de signalement des services publics et infrastructures urbaines
             </p>
           </div>
 

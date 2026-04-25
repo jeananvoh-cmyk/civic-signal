@@ -8,7 +8,7 @@ import {
   Zap, Droplets, Info, History, Trash2, AlertTriangle, LogOut,
   Filter, CalendarDays, XCircle, CheckCheck, Download, Award,
   BookOpen, ExternalLink, Scale, Lightbulb, ShieldCheck, Camera, Loader2, ScanLine,
-  Gauge, BatteryMedium,
+  Gauge, BatteryMedium, ArrowLeft,
 } from "lucide-react";
 import { useElectricity } from "@/hooks/useElectricity";
 import { formatDaysRemaining } from "@/lib/consumptionEngine";
@@ -635,6 +635,25 @@ const ProfilePage = () => {
   const [historyFilter, setHistoryFilter] = useState<"all" | "active" | "resolved">("all");
   const [historyType, setHistoryType] = useState<"all" | "electricity" | "water">("all");
 
+  // Google-style section navigation
+  const [activeSection, setActiveSection] = useState<string | null>(() => {
+    const t = searchParams.get("tab");
+    const f = searchParams.get("field");
+    if (f && !t) {
+      if (f.startsWith("electricity") || f.startsWith("water")) return "utility";
+      if (f === "commune" || f === "quartier") return "location";
+      return "profile";
+    }
+    if (!t || t === "rights") return null;
+    if (t === "settings") return "notifications";
+    return t;
+  });
+
+  const goToSection = (s: string) => {
+    if (s === "history" && history.length === 0) fetchHistory();
+    setActiveSection(s);
+  };
+
   // Delete account state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showOddDialog, setShowOddDialog] = useState<"odd6" | "odd7" | null>(null);
@@ -949,999 +968,567 @@ const ProfilePage = () => {
     ? new Date(user.created_at).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })
     : "";
 
+  const SECTION_TITLES: Record<string, string> = {
+    profile: "Mon profil",
+    location: "Ma localisation",
+    history: "Mes signalements",
+    utility: "Mes compteurs",
+    rights: "Eau & énergie",
+    notifications: "Notifications",
+    appearance: "Apparence",
+  };
+
+  const conformityColor = isProfileComplete
+    ? "hsl(45 93% 47%)"
+    : conformityPercent >= 80
+    ? "hsl(142 71% 45%)"
+    : conformityPercent >= 50
+    ? "hsl(38 92% 50%)"
+    : "hsl(var(--destructive))";
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container max-w-3xl px-0 sm:px-4 py-0 sm:py-6">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+        <AnimatePresence mode="wait">
+          {!activeSection ? (
+            /* ═══ MAIN MENU VIEW ═══ */
+            <motion.div key="menu" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="pb-20">
 
-          {/* ═══ Profile Header — Redesigned ═══ */}
-          <div className="relative mb-6 px-4 sm:px-6 pt-6">
-            {/* Row 1: Circle + Name + Counters */}
-            <div className="flex items-start gap-4 sm:gap-5">
-              {/* Conformity circle */}
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                className="relative flex-shrink-0"
-              >
-                <svg width="120" height="120" viewBox="0 0 96 96" className="sm:w-[140px] sm:h-[140px]">
-                  <circle cx="48" cy="48" r="42" fill="none" stroke={isProfileComplete ? "hsl(45 93% 47% / 0.2)" : "hsl(var(--muted))"} strokeWidth="6" />
-                  <circle
-                    cx="48" cy="48" r="42"
-                    fill="none"
-                    stroke={isProfileComplete ? "hsl(45 93% 47%)" : conformityPercent >= 80 ? "hsl(var(--success, 142 71% 45%))" : conformityPercent >= 50 ? "hsl(var(--warning, 38 92% 50%))" : "hsl(var(--destructive))"}
-                    strokeWidth="6"
-                    strokeLinecap="round"
-                    strokeDasharray={`${2 * Math.PI * 42}`}
-                    strokeDashoffset={`${2 * Math.PI * 42 * (1 - conformityPercent / 100)}`}
-                    transform="rotate(-90 48 48)"
-                    className="transition-all duration-700"
-                  />
-                  {isProfileComplete && (
-                    <circle cx="48" cy="48" r="42" fill="none" stroke="hsl(45 93% 47% / 0.3)" strokeWidth="12" className="animate-pulse" />
-                  )}
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  {isProfileComplete ? (
-                    <>
-                      <Award className="h-6 w-6 sm:h-7 sm:w-7" style={{ color: "hsl(45 93% 47%)" }} />
-                      <span className="text-[8px] sm:text-[9px] font-bold mt-0.5" style={{ color: "hsl(45 93% 47%)" }}>EXEMPLAIRE</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-xl sm:text-2xl font-bold text-foreground">{conformityPercent}%</span>
-                      <span className="text-[9px] sm:text-[10px] text-muted-foreground font-medium">Conformité</span>
-                    </>
-                  )}
-                </div>
-              </motion.div>
-
-              {/* Name + info + counters */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground truncate">{displayName}</h1>
-                  {isProfileComplete && (
-                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border" style={{ borderColor: "hsl(45 93% 47%)", color: "hsl(45 93% 47%)", background: "hsl(45 93% 47% / 0.1)" }}>
-                      ✅ Vérifié
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
-                  {profile.commune && (
-                    <span className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
-                      <MapPin className="h-3 w-3" />{profile.commune}{profile.quartier ? `, ${profile.quartier}` : ""}
-                    </span>
-                  )}
-                  {memberSince && (
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3" />Membre depuis {memberSince}
-                    </span>
-                  )}
-                </div>
-
-                {/* Counters row */}
-                <div className="flex items-center gap-3 mt-3">
-                  {/* Active reports counter — only if > 0 */}
-                  {(activeReportsCount ?? 0) > 0 && (
-                    <motion.div
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="flex items-center gap-2 rounded-full border border-destructive/30 bg-destructive/10 px-3 py-1.5"
-                    >
-                      <span className="relative flex h-2 w-2">
-                        <span className="absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75 animate-ping" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
-                      </span>
-                      <span className="font-display text-sm font-bold text-destructive">{activeReportsCount}</span>
-                      <span className="text-[10px] text-destructive/80 font-medium">en cours</span>
-                    </motion.div>
-                  )}
-                  {/* Resolved reports counter */}
-                  <div className="flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 py-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-success" />
-                    <span className="font-display text-sm font-bold text-foreground">{resolvedReportsCount}</span>
-                    <span className="text-[10px] text-muted-foreground font-medium">résolu{resolvedReportsCount > 1 ? "s" : ""}</span>
-                  </div>
-                  {/* User type */}
-                  <div className="hidden sm:flex items-center gap-1 rounded-full border border-border bg-muted/50 px-3 py-1.5">
-                    <span className="text-sm">{profile.user_type === "household" ? "🏠" : "🏢"}</span>
-                    <span className="text-[10px] text-muted-foreground font-medium">{profile.user_type === "household" ? "Ménage" : "Entreprise"}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Row 2: Missing fields + ODD — aligned with circle */}
-            <div className="mt-4 flex flex-col sm:flex-row gap-3">
-              {/* Missing fields to complete profile */}
-              {conformityPercent < 100 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex-1 rounded-xl border border-primary/20 bg-primary/5 p-3"
-                >
-                  <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
-                    <Info className="h-3.5 w-3.5 text-primary" />
-                    Complétez votre profil
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {missingFields.map((f) => {
-                      const isElec = f.field.startsWith("electricity");
-                      const isWater = f.field.startsWith("water");
-                      const isPhone = f.field === "phone";
-                      const isLocation = f.field === "commune" || f.field === "quartier";
-                      const borderClass = isElec ? "border-yellow-500/50 text-yellow-600" : isWater ? "border-cyan-500/50 text-cyan-600" : isPhone ? "border-amber-500/50 text-amber-600" : isLocation ? "border-blue-500/50 text-blue-600" : "border-muted-foreground/30";
-                      const icon = isElec ? <img src={electricityIconSm} alt="" className="h-3 w-3" /> : isWater ? <img src={waterIconSm} alt="" className="h-3 w-3" /> : isPhone ? <Phone className="h-3 w-3" /> : isLocation ? <MapPin className="h-3 w-3" /> : <User className="h-3 w-3" />;
-                      return (
-                        <Badge key={f.field} variant="outline" className={`text-[10px] bg-background gap-1 py-0.5 ${borderClass}`}>
-                          {icon} {f.label}
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                </motion.div>
-              )}
-
-              {/* ODD mini cards */}
-              <div className={`grid grid-cols-2 gap-2 ${conformityPercent < 100 ? "sm:w-72 flex-shrink-0" : "w-full sm:max-w-md"}`}>
-                <button
-                  onClick={() => setShowOddDialog("odd6")}
-                  className="flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 p-2.5 hover:bg-blue-500/10 transition-colors text-left cursor-pointer"
-                >
-                  <span className="text-lg shrink-0">💧</span>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 leading-tight">ODD 6</p>
-                    <p className="text-[10px] text-muted-foreground leading-tight">Eau propre</p>
-                  </div>
-                  <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto shrink-0" />
-                </button>
-                <button
-                  onClick={() => setShowOddDialog("odd7")}
-                  className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-2.5 hover:bg-amber-500/10 transition-colors text-left cursor-pointer"
-                >
-                  <span className="text-lg shrink-0">⚡</span>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 leading-tight">ODD 7</p>
-                    <p className="text-[10px] text-muted-foreground leading-tight">Énergie propre</p>
-                  </div>
-                  <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto shrink-0" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="px-4 sm:px-0">
-          <Tabs defaultValue={initialTab} className="space-y-4 sm:space-y-6" onValueChange={(v) => { if (v === "history" && history.length === 0) fetchHistory(); }}>
-            {/* Mobile: 2×3 grid — Desktop: single row */}
-            <TabsList className="hidden sm:flex w-full gap-0.5">
-              <TabsTrigger value="rights" className="gap-1.5 flex-1 text-sm px-3">
-                <Scale className="h-3.5 w-3.5 shrink-0" /><span>Eau & Énergie</span>
-              </TabsTrigger>
-              <TabsTrigger value="history" className="gap-1 flex-1 text-sm px-3">
-                <History className="h-3.5 w-3.5 shrink-0" /><span>Historique</span>
-              </TabsTrigger>
-              <TabsTrigger value="utility" className="gap-1 flex-1 text-sm px-3 relative">
-                <Zap className="h-3.5 w-3.5 shrink-0" /><span>Compteurs</span>
-                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 rounded-full bg-violet-500" title="Scanner disponible" />
-              </TabsTrigger>
-              <TabsTrigger value="profile" className="gap-1 flex-1 text-sm px-3">
-                <User className="h-3.5 w-3.5 shrink-0" /><span>Profil</span>
-              </TabsTrigger>
-              <TabsTrigger value="location" className="gap-1 flex-1 text-sm px-3">
-                <MapPin className="h-3.5 w-3.5 shrink-0" /><span>Lieu</span>
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="gap-1 flex-1 text-sm px-3">
-                <Shield className="h-3.5 w-3.5 shrink-0" /><span>Paramètres</span>
-              </TabsTrigger>
-            </TabsList>
-            {/* Mobile grid 2 rows × 3 cols */}
-            <TabsList className="sm:hidden grid grid-cols-3 w-full h-auto gap-1 p-1">
-              <TabsTrigger value="rights" className="flex flex-col gap-0.5 h-auto py-2 text-[10px] font-medium">
-                <Scale className="h-4 w-4" /><span>Droits</span>
-              </TabsTrigger>
-              <TabsTrigger value="history" className="flex flex-col gap-0.5 h-auto py-2 text-[10px] font-medium">
-                <History className="h-4 w-4" /><span>Historique</span>
-              </TabsTrigger>
-              <TabsTrigger value="utility" className="flex flex-col gap-0.5 h-auto py-2 text-[10px] font-medium relative">
-                <Zap className="h-4 w-4" /><span>Compteurs</span>
-                <span className="absolute top-1 right-1 flex h-2 w-2 rounded-full bg-violet-500" />
-              </TabsTrigger>
-              <TabsTrigger value="profile" className="flex flex-col gap-0.5 h-auto py-2 text-[10px] font-medium">
-                <User className="h-4 w-4" /><span>Profil</span>
-              </TabsTrigger>
-              <TabsTrigger value="location" className="flex flex-col gap-0.5 h-auto py-2 text-[10px] font-medium">
-                <MapPin className="h-4 w-4" /><span>Lieu</span>
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="flex flex-col gap-0.5 h-auto py-2 text-[10px] font-medium">
-                <Shield className="h-4 w-4" /><span>Paramètres</span>
-              </TabsTrigger>
-            </TabsList>
-
-            {/* ── DROITS & CONSEILS ── */}
-            <TabsContent value="rights">
-              <RightsTabContent />
-            </TabsContent>
-
-            {/* ── HISTORIQUE ── */}
-            <TabsContent value="history">
-              <div className="space-y-4">
-                {/* Stats row */}
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { label: "Total", value: historyStats.total, color: "bg-primary/10 text-primary" },
-                    { label: "En cours", value: historyStats.active, color: "bg-amber-500/10 text-amber-600" },
-                    { label: "Résolus", value: historyStats.resolved, color: "bg-green-500/10 text-green-600" },
-                  ].map((s) => (
-                    <div key={s.label} className={`rounded-xl p-3 text-center ${s.color} border border-border bg-card`}>
-                      <p className={`text-xl font-bold ${s.color.split(" ")[1]}`}>{s.value}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
+              {/* ── Profile Card Header ── */}
+              <div className="bg-gradient-to-b from-primary/15 via-primary/5 to-background pb-4 pt-6 px-4">
+                <div className="flex flex-col items-center text-center">
+                  {/* Avatar with conformity ring */}
+                  <div className="relative mb-3">
+                    <svg width="80" height="80" viewBox="0 0 96 96">
+                      <circle cx="48" cy="48" r="42" fill="none" stroke="hsl(var(--muted))" strokeWidth="5" />
+                      <circle cx="48" cy="48" r="42" fill="none" stroke={conformityColor} strokeWidth="5" strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 42}`} strokeDashoffset={`${2 * Math.PI * 42 * (1 - conformityPercent / 100)}`} transform="rotate(-90 48 48)" className="transition-all duration-700" />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="h-14 w-14 rounded-full bg-primary flex items-center justify-center text-2xl font-bold text-primary-foreground shadow-lg">
+                        {avatarInitial}
+                      </div>
                     </div>
+                    {isProfileComplete && (
+                      <div className="absolute -bottom-0.5 -right-0.5 h-6 w-6 rounded-full bg-[hsl(45_93%_47%)] flex items-center justify-center border-2 border-background shadow">
+                        <Award className="h-3.5 w-3.5 text-white" />
+                      </div>
+                    )}
+                  </div>
+                  <h2 className="font-display text-xl font-bold text-foreground leading-tight">{displayName}</h2>
+                  <p className="text-sm text-muted-foreground mt-0.5">{user?.email}</p>
+                  {profile.commune && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                      <MapPin className="h-3 w-3" />{profile.commune}{profile.quartier ? `, ${profile.quartier}` : ""}
+                    </p>
+                  )}
+                  {conformityPercent < 100 && (
+                    <button onClick={() => goToSection("profile")} className="mt-3 flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs text-primary hover:bg-primary/10 transition-colors">
+                      <Info className="h-3.5 w-3.5 shrink-0" />
+                      Profil à {conformityPercent}% — Compléter maintenant
+                    </button>
+                  )}
+                </div>
+
+                {/* Stats strip */}
+                <div className="mt-4 grid grid-cols-3 divide-x divide-border rounded-2xl border border-border bg-card/80 overflow-hidden">
+                  <div className="flex flex-col items-center py-3 px-2">
+                    <span className="text-lg font-bold text-destructive">{activeReportsCount ?? 0}</span>
+                    <span className="text-[10px] text-muted-foreground mt-0.5">En cours</span>
+                  </div>
+                  <div className="flex flex-col items-center py-3 px-2">
+                    <span className="text-lg font-bold text-green-600">{resolvedReportsCount}</span>
+                    <span className="text-[10px] text-muted-foreground mt-0.5">Résolus</span>
+                  </div>
+                  <div className="flex flex-col items-center py-3 px-2">
+                    <span className="text-lg font-bold" style={{ color: conformityColor }}>{conformityPercent}%</span>
+                    <span className="text-[10px] text-muted-foreground mt-0.5">Complétude</span>
+                  </div>
+                </div>
+
+                {/* ODD chips */}
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button onClick={() => setShowOddDialog("odd6")} className="flex items-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/5 p-2.5 hover:bg-blue-500/10 transition-colors text-left">
+                    <span className="text-lg shrink-0">💧</span>
+                    <div className="min-w-0"><p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 leading-tight">ODD 6</p><p className="text-[10px] text-muted-foreground leading-tight">Eau propre</p></div>
+                    <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto shrink-0" />
+                  </button>
+                  <button onClick={() => setShowOddDialog("odd7")} className="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 p-2.5 hover:bg-amber-500/10 transition-colors text-left">
+                    <span className="text-lg shrink-0">⚡</span>
+                    <div className="min-w-0"><p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 leading-tight">ODD 7</p><p className="text-[10px] text-muted-foreground leading-tight">Énergie propre</p></div>
+                    <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto shrink-0" />
+                  </button>
+                </div>
+              </div>
+
+              {/* ── Navigation sections ── */}
+              <div className="px-4 space-y-3 mt-4">
+                {/* Mon compte */}
+                <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+                  <p className="px-4 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider bg-muted/30">Mon compte</p>
+                  {[
+                    { key: "profile", icon: <User className="h-5 w-5 text-primary" />, label: "Mon profil", sub: "Prénom, nom, téléphone", bg: "bg-primary/10" },
+                    { key: "location", icon: <MapPin className="h-5 w-5 text-blue-600" />, label: "Ma localisation", sub: profile.commune || "Commune, quartier", bg: "bg-blue-500/10" },
+                  ].map((item, i, arr) => (
+                    <button key={item.key} onClick={() => goToSection(item.key)} className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/40 active:bg-muted/60 transition-colors text-left ${i < arr.length - 1 ? "border-b border-border" : ""}`}>
+                      <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${item.bg}`}>{item.icon}</div>
+                      <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-foreground">{item.label}</p><p className="text-xs text-muted-foreground truncate">{item.sub}</p></div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </button>
                   ))}
                 </div>
 
-                {/* Citizen badge — shown when ≥1 resolved report */}
-                {resolvedReportsCount >= 1 && (
-                  <CitizenBadge
-                    displayName={profile?.display_name || profile?.first_name || "Citoyen"}
-                    resolvedCount={resolvedReportsCount}
-                    commune={profile?.commune || undefined}
-                  />
-                )}
-
-                {/* Filters */}
-                <div className="flex flex-wrap gap-2 items-center">
-                  <Filter className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <div className="flex gap-1.5 flex-wrap">
-                    {(["all", "active", "resolved"] as const).map((f) => (
-                      <button
-                        key={f}
-                        onClick={() => setHistoryFilter(f)}
-                        className={`rounded-full px-3 py-1 text-xs font-medium transition-colors border ${
-                          historyFilter === f
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-card text-muted-foreground border-border hover:border-primary/50"
-                        }`}
-                      >
-                        {f === "all" ? "Tous" : f === "active" ? "En cours" : "Résolus"}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex gap-1.5 flex-wrap ml-1">
-                    {(["all", "electricity", "water"] as const).map((t) => (
-                      <button
-                        key={t}
-                        onClick={() => setHistoryType(t)}
-                        className={`rounded-full px-3 py-1 text-xs font-medium transition-colors border flex items-center gap-1 ${
-                          historyType === t
-                            ? t === "electricity"
-                              ? "bg-amber-500 text-white border-amber-500"
-                              : t === "water"
-                              ? "bg-blue-500 text-white border-blue-500"
-                              : "bg-primary text-primary-foreground border-primary"
-                            : "bg-card text-muted-foreground border-border hover:border-primary/50"
-                        }`}
-                      >
-                        {t === "electricity" ? <Zap className="h-3 w-3" /> : t === "water" ? <Droplets className="h-3 w-3" /> : null}
-                        {t === "all" ? "Tous types" : t === "electricity" ? "Électricité" : "Eau"}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Timeline */}
-                {historyLoading ? (
-                  <div className="flex justify-center py-10">
-                    <div className="h-7 w-7 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-                  </div>
-                ) : filteredHistory.length === 0 ? (
-                  <div className="rounded-xl border border-border bg-card p-8 text-center">
-                    <CalendarDays className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
-                    <p className="text-sm text-muted-foreground">Aucun signalement trouvé</p>
-                  </div>
-                ) : (
-                  <div className="relative">
-                    {/* Timeline line */}
-                    <div className="absolute left-5 top-4 bottom-4 w-px bg-border hidden sm:block" />
-                    <div className="space-y-3">
-                      <AnimatePresence>
-                        {filteredHistory.map((r, i) => {
-                          const isElec = r.service_type === "electricity";
-                          const isInfra = r.report_category === "infrastructure";
-                          const infraLabel = isInfra ? extractInfraLabel(r.description) : null;
-                          const isActive = r.status === "active";
-                          const duration = r.resolved_at ? formatDuration(r.start_time, r.resolved_at) : null;
-                          return (
-                            <motion.div
-                              key={r.id}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: -10 }}
-                              transition={{ delay: i * 0.03 }}
-                              className="flex gap-3 sm:gap-4"
-                            >
-                              {/* Timeline dot */}
-                              <div className="relative z-10 flex-shrink-0 hidden sm:flex">
-                                <div className={`h-10 w-10 rounded-full flex items-center justify-center border-2 ${
-                                  isInfra
-                                    ? "bg-teal-500/10 border-teal-500/40 text-teal-600"
-                                    : isElec
-                                      ? "bg-amber-500/10 border-amber-500/40 text-amber-500"
-                                      : "bg-blue-500/10 border-blue-500/40 text-blue-500"
-                                }`}>
-                                  {isInfra
-                                    ? <span className="text-base leading-none">{infraEmoji(infraLabel)}</span>
-                                    : isElec ? <Zap className="h-4 w-4" /> : <Droplets className="h-4 w-4" />}
-                                </div>
-                              </div>
-
-                              {/* Card */}
-                              <div className={`flex-1 rounded-xl border bg-card p-3 sm:p-4 shadow-sm transition-all ${
-                                isActive ? "border-border" : "border-border/60 opacity-80"
-                              }`}>
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                                      {/* Mobile icon */}
-                                      <span className={`sm:hidden text-sm ${isInfra ? "text-teal-600" : isElec ? "text-amber-500" : "text-blue-500"}`}>
-                                        {isInfra
-                                          ? <span className="text-sm leading-none">{infraEmoji(infraLabel)}</span>
-                                          : isElec ? <Zap className="h-3.5 w-3.5 inline" /> : <Droplets className="h-3.5 w-3.5 inline" />}
-                                      </span>
-                                      <span className="font-semibold text-sm text-foreground">{r.commune}</span>
-                                      {r.quartier && (
-                                        <span className="text-xs text-muted-foreground">· {r.quartier}</span>
-                                      )}
-                                      {isInfra && infraLabel && (
-                                        <span className="inline-flex items-center rounded-full bg-teal-500/10 px-2 py-0.5 text-[10px] font-semibold text-teal-700 dark:text-teal-400">
-                                          {infraLabel}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{cleanDescription(r.description)}</p>
-                                    <div className="flex flex-wrap items-center gap-1.5">
-                                      <Badge
-                                        variant={isActive ? "default" : "outline"}
-                                        className={`text-xs h-5 ${isActive ? "bg-amber-500/15 text-amber-600 border-amber-500/30 hover:bg-amber-500/20" : "border-green-500/40 text-green-600"}`}
-                                      >
-                                        {isActive ? (
-                                          <><Clock className="h-2.5 w-2.5 mr-1" />En cours</>
-                                        ) : (
-                                          <><CheckCheck className="h-2.5 w-2.5 mr-1" />Résolu</>
-                                        )}
-                                      </Badge>
-                                      {r.verifications > 0 && (
-                                        <Badge variant="outline" className="text-xs h-5 border-primary/30 text-primary">
-                                          {isInfra ? `${r.verifications} demande(s)` : `${r.verifications} confirm.`}
-                                        </Badge>
-                                      )}
-                                      {duration && (
-                                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                          <Clock className="h-3 w-3" /> {duration}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="flex-shrink-0 text-right">
-                                    <p className="text-xs text-muted-foreground whitespace-nowrap">
-                                      {new Date(r.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {new Date(r.created_at).getFullYear()}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            </motion.div>
-                          );
-                        })}
-                      </AnimatePresence>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-
-            {/* ── COMPTEURS / UTILITY ── */}
-            <TabsContent value="utility">
-
-              {/* ── Widget suivi électricité prépayée ── */}
-              <ElectricityWidget />
-
-              {/* Hidden file inputs */}
-              <input
-                ref={elecFileRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleOcrScan(file, "electricity");
-                }}
-              />
-              <input
-                ref={waterFileRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleOcrScan(file, "water");
-                }}
-              />
-
-              <div className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
-                {/* Bandeau info */}
-                <div className="flex gap-3 rounded-lg bg-primary/5 border border-primary/20 p-3 sm:p-4">
-                  <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Augmentez la crédibilité de vos signalements</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Renseigner vos informations de compteur permet de renforcer la conformité de vos signalements auprès des autorités.{" "}
-                      <span className="font-medium text-foreground">Ces champs sont facultatifs.</span>
-                    </p>
-                  </div>
-                </div>
-
-                {/* Bandeau OCR — boutons d'action visibles */}
-                <div className="rounded-xl border border-violet-500/30 bg-violet-500/5 p-4 space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-500/15">
-                      <ScanLine className="h-5 w-5 text-violet-600 dark:text-violet-400" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-foreground">Remplissage automatique par photo</p>
-                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                        Photographiez votre <strong>compteur</strong>, votre <strong>facture</strong> ou votre <strong>reçu de rechargement</strong> — les numéros sont extraits automatiquement.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      disabled={ocrLoading !== null}
-                      onClick={() => elecFileRef.current?.click()}
-                      className="flex items-center justify-center gap-2 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 px-3 py-2.5 text-sm font-semibold text-amber-700 dark:text-amber-400 transition-colors disabled:opacity-50"
-                    >
-                      {ocrLoading === "electricity"
-                        ? <><Loader2 className="h-4 w-4 animate-spin" />Analyse…</>
-                        : <><Camera className="h-4 w-4" /><Zap className="h-3.5 w-3.5" />Scanner CIE</>}
+                {/* Mon activité */}
+                <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+                  <p className="px-4 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider bg-muted/30">Mon activité</p>
+                  {[
+                    { key: "history", icon: <History className="h-5 w-5 text-green-600" />, label: "Mes signalements", sub: `${historyStats.total} signalement${historyStats.total > 1 ? "s" : ""}`, bg: "bg-green-500/10", badge: (activeReportsCount ?? 0) > 0 ? `${activeReportsCount} actif${(activeReportsCount ?? 0) > 1 ? "s" : ""}` : null, dot: false },
+                    { key: "utility", icon: <Zap className="h-5 w-5 text-amber-500" />, label: "Mes compteurs", sub: "CIE · SODECI", bg: "bg-amber-500/10", badge: null, dot: true },
+                  ].map((item, i, arr) => (
+                    <button key={item.key} onClick={() => goToSection(item.key)} className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/40 active:bg-muted/60 transition-colors text-left ${i < arr.length - 1 ? "border-b border-border" : ""}`}>
+                      <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${item.bg}`}>{item.icon}</div>
+                      <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-foreground">{item.label}</p><p className="text-xs text-muted-foreground">{item.sub}</p></div>
+                      {item.badge && <span className="text-[10px] font-bold text-destructive bg-destructive/10 border border-destructive/20 rounded-full px-2 py-0.5 shrink-0 mr-1">{item.badge}</span>}
+                      {item.dot && <span className="h-2 w-2 rounded-full bg-violet-500 shrink-0 mr-1" />}
+                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                     </button>
-                    <button
-                      type="button"
-                      disabled={ocrLoading !== null}
-                      onClick={() => waterFileRef.current?.click()}
-                      className="flex items-center justify-center gap-2 rounded-lg bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/40 px-3 py-2.5 text-sm font-semibold text-blue-700 dark:text-blue-400 transition-colors disabled:opacity-50"
-                    >
-                      {ocrLoading === "water"
-                        ? <><Loader2 className="h-4 w-4 animate-spin" />Analyse…</>
-                        : <><Camera className="h-4 w-4" /><Droplets className="h-3.5 w-3.5" />Scanner SODECI</>}
+                  ))}
+                </div>
+
+                {/* Informations */}
+                <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+                  <p className="px-4 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider bg-muted/30">Informations</p>
+                  <button onClick={() => goToSection("rights")} className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/40 active:bg-muted/60 transition-colors text-left">
+                    <div className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0 bg-teal-500/10"><Scale className="h-5 w-5 text-teal-600" /></div>
+                    <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-foreground">Eau & Énergie</p><p className="text-xs text-muted-foreground">Droits, contacts, tarifs</p></div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </button>
+                </div>
+
+                {/* Préférences */}
+                <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+                  <p className="px-4 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider bg-muted/30">Préférences</p>
+                  {[
+                    { key: "notifications", icon: <Bell className="h-5 w-5 text-purple-600" />, label: "Notifications", sub: profile.notifications_enabled ? "Activées" : "Désactivées", bg: "bg-purple-500/10" },
+                    { key: "appearance", icon: <Palette className="h-5 w-5 text-pink-500" />, label: "Apparence & thème", sub: profile.theme === "system" ? "Système" : profile.theme === "dark" ? "Sombre" : "Clair", bg: "bg-pink-500/10" },
+                  ].map((item, i, arr) => (
+                    <button key={item.key} onClick={() => goToSection(item.key)} className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/40 active:bg-muted/60 transition-colors text-left ${i < arr.length - 1 ? "border-b border-border" : ""}`}>
+                      <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${item.bg}`}>{item.icon}</div>
+                      <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-foreground">{item.label}</p><p className="text-xs text-muted-foreground">{item.sub}</p></div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                     </button>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground text-center">
-                    Vérifiez toujours les valeurs extraites avant d'enregistrer
-                  </p>
+                  ))}
                 </div>
-
-                {/* ── Section Électricité ── */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/15">
-                      <Zap className="h-4 w-4 text-amber-500" />
-                    </div>
-                    <h3 className="font-semibold text-foreground">Électricité (CIE)</h3>
-                    <span className="ml-auto text-xs text-muted-foreground italic">Facultatif</span>
-                  </div>
-
-                  {/* Prévisualisation pendant OCR */}
-                  {ocrPreview?.type === "electricity" && (
-                    <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-2">
-                      <img src={ocrPreview.url} alt="Aperçu" className="h-14 w-14 rounded object-cover shrink-0" />
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
-                        Extraction des numéros en cours…
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    {[
-                      { label: "Identifiant client", field: "electricity_client_id" as const, placeholder: "Ex: 01234567" },
-                      { label: "Réf. compteur", field: "electricity_meter_ref" as const, placeholder: "Ex: CIE-XXXX" },
-                      { label: "N° compteur", field: "electricity_meter_number" as const, placeholder: "Ex: 987654321" },
-                    ].map((f) => (
-                      <div key={f.field} className="space-y-1.5">
-                        <Label className="text-xs font-medium text-muted-foreground">{f.label}</Label>
-                        <Input id={`field-${f.field}`} placeholder={f.placeholder} value={profile[f.field]} onChange={(e) => update(f.field, e.target.value)} maxLength={30} className="h-9 text-sm" />
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Vous pouvez scanner votre facture CIE, le panneau de votre compteur ou un reçu de rechargement.
-                  </p>
-                </div>
-
-                <Separator />
-
-                {/* ── Section Eau ── */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/15">
-                      <Droplets className="h-4 w-4 text-blue-500" />
-                    </div>
-                    <h3 className="font-semibold text-foreground">Eau (SODECI)</h3>
-                    <span className="ml-auto text-xs text-muted-foreground italic">Facultatif</span>
-                  </div>
-
-                  {/* Prévisualisation pendant OCR */}
-                  {ocrPreview?.type === "water" && (
-                    <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-2">
-                      <img src={ocrPreview.url} alt="Aperçu" className="h-14 w-14 rounded object-cover shrink-0" />
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                        Extraction des numéros en cours…
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    {[
-                      { label: "Identifiant client", field: "water_client_id" as const, placeholder: "Ex: 01234567" },
-                      { label: "Réf. compteur", field: "water_meter_ref" as const, placeholder: "Ex: SOD-XXXX" },
-                      { label: "N° compteur", field: "water_meter_number" as const, placeholder: "Ex: 123456789" },
-                    ].map((f) => (
-                      <div key={f.field} className="space-y-1.5">
-                        <Label className="text-xs font-medium text-muted-foreground">{f.label}</Label>
-                        <Input id={`field-${f.field}`} placeholder={f.placeholder} value={profile[f.field]} onChange={(e) => update(f.field, e.target.value)} maxLength={30} className="h-9 text-sm" />
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Vous pouvez scanner votre facture SODECI ou le panneau de votre compteur d'eau.
-                  </p>
-                </div>
-              </div>
-            </TabsContent>
-
-            {/* ── PROFIL ── */}
-            <TabsContent value="profile">
-              <div className="space-y-4">
-
-                {/* ── Avatar + name hero ── */}
-                <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
-                  {/* Gradient banner — name displayed on top */}
-                  <div className="h-28 bg-gradient-to-r from-primary via-primary/90 to-primary/70 relative flex items-end px-5 pb-3">
-                    <div className="absolute inset-0 opacity-10"
-                      style={{ backgroundImage: "radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)", backgroundSize: "32px 32px" }}
-                    />
-                    {/* Name on banner — always white, always readable */}
-                    <div className="relative z-10 flex items-center gap-3">
-                      <div className="h-14 w-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl font-bold text-white shadow-lg border-2 border-white/30">
-                        {avatarInitial}
-                        {isProfileComplete && (
-                          <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-success flex items-center justify-center border-2 border-white">
-                            <CheckCircle2 className="h-3 w-3 text-white" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-bold text-lg text-white leading-tight truncate drop-shadow">{displayName}</p>
-                        <p className="text-xs text-white/75 truncate">{user?.email}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Name fields — below banner, on card bg */}
-                  <div className="px-5 py-4">
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-foreground">Prénom</Label>
-                        <Input
-                          id="field-first_name"
-                          placeholder="Votre prénom"
-                          value={profile.first_name}
-                          onChange={(e) => update("first_name", e.target.value)}
-                          maxLength={50}
-                          className="h-11 text-sm rounded-xl"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-foreground">Nom de famille</Label>
-                        <Input
-                          id="field-last_name"
-                          placeholder="Votre nom"
-                          value={profile.last_name}
-                          onChange={(e) => update("last_name", e.target.value)}
-                          maxLength={50}
-                          className="h-11 text-sm rounded-xl"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ── Contact ── */}
-                <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
-                  <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border">
-                    <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Mail className="h-3.5 w-3.5 text-primary" />
-                    </div>
-                    <h3 className="font-semibold text-sm text-foreground">Contact</h3>
-                  </div>
-
-                  <div className="p-5 space-y-4">
-                    {/* Email — readonly */}
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Adresse e-mail</Label>
-                      <div className="flex items-center gap-3 h-11 rounded-xl border border-border bg-muted/40 px-3">
-                        <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="text-sm text-muted-foreground truncate flex-1">{user?.email}</span>
-                        <span className="text-[10px] font-medium text-muted-foreground bg-muted rounded px-1.5 py-0.5 shrink-0">Non modifiable</span>
-                      </div>
-                    </div>
-
-                    {/* WhatsApp */}
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        Numéro WhatsApp <span className="text-destructive">*</span>
-                      </Label>
-                      <div className="relative">
-                        {/* WhatsApp icon SVG */}
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-[#25D366] flex items-center justify-center shrink-0">
-                          <svg viewBox="0 0 24 24" className="h-3 w-3 fill-white" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                          </svg>
-                        </div>
-                        <Input
-                          id="field-phone"
-                          placeholder="Ex: +225 07 01 23 45 67"
-                          value={profile.phone}
-                          onChange={(e) => update("phone", e.target.value)}
-                          maxLength={20}
-                          type="tel"
-                          className="pl-11 h-11 text-sm rounded-xl border-border focus:border-[#25D366] focus:ring-[#25D366]/20"
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-destructive" />
-                        Requis pour faire un signalement · Utilisé uniquement pour vous contacter en cas de besoin
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ── Type de profil ── */}
-                <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
-                  <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border">
-                    <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <User className="h-3.5 w-3.5 text-primary" />
-                    </div>
-                    <h3 className="font-semibold text-sm text-foreground">Type de profil</h3>
-                  </div>
-
-                  <div className="p-5">
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Sélectionnez votre profil pour personnaliser vos signalements
-                    </p>
-                    <div className="grid grid-cols-2 gap-3">
-                      {/* Ménage */}
-                      <button
-                        type="button"
-                        onClick={() => update("user_type", "household")}
-                        className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all ${
-                          profile.user_type === "household"
-                            ? "border-primary bg-primary/5 shadow-sm"
-                            : "border-border bg-background hover:border-primary/40 hover:bg-muted/30"
-                        }`}
-                      >
-                        {profile.user_type === "household" && (
-                          <div className="absolute top-2 right-2 h-4 w-4 rounded-full bg-primary flex items-center justify-center">
-                            <CheckCircle2 className="h-3 w-3 text-white" />
-                          </div>
-                        )}
-                        <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${
-                          profile.user_type === "household" ? "bg-primary/15" : "bg-muted"
-                        }`}>
-                          <Home className={`h-5 w-5 ${profile.user_type === "household" ? "text-primary" : "text-muted-foreground"}`} />
-                        </div>
-                        <div className="text-center">
-                          <p className={`text-sm font-semibold ${profile.user_type === "household" ? "text-primary" : "text-foreground"}`}>Ménage</p>
-                          <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">Particulier / Famille</p>
-                        </div>
-                      </button>
-
-                      {/* Entreprise */}
-                      <button
-                        type="button"
-                        onClick={() => update("user_type", "business")}
-                        className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all ${
-                          profile.user_type === "business"
-                            ? "border-primary bg-primary/5 shadow-sm"
-                            : "border-border bg-background hover:border-primary/40 hover:bg-muted/30"
-                        }`}
-                      >
-                        {profile.user_type === "business" && (
-                          <div className="absolute top-2 right-2 h-4 w-4 rounded-full bg-primary flex items-center justify-center">
-                            <CheckCircle2 className="h-3 w-3 text-white" />
-                          </div>
-                        )}
-                        <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${
-                          profile.user_type === "business" ? "bg-primary/15" : "bg-muted"
-                        }`}>
-                          <Building2 className={`h-5 w-5 ${profile.user_type === "business" ? "text-primary" : "text-muted-foreground"}`} />
-                        </div>
-                        <div className="text-center">
-                          <p className={`text-sm font-semibold ${profile.user_type === "business" ? "text-primary" : "text-foreground"}`}>Entreprise</p>
-                          <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">Commerce / Structure</p>
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-            </TabsContent>
-
-            {/* ── LOCALISATION ── */}
-            <TabsContent value="location">
-              <div className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary">
-                    <MapPin className="h-4 w-4 text-secondary-foreground" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm text-foreground">Votre localisation</p>
-                    <p className="text-xs text-muted-foreground">Permet de cibler les signalements dans votre zone</p>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Commune</Label>
-                  <Select value={profile.commune} onValueChange={(v) => { update("commune", v); update("quartier", ""); }}>
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="Sélectionner votre commune" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {COMMUNES.map((c) => (
-                        <SelectItem key={c.nom} value={c.nom}>
-                          <span className="flex items-center gap-2">
-                            <span className="h-2.5 w-2.5 rounded-full inline-block" style={{ backgroundColor: c.couleur }} />
-                            {c.nom}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Quartier</Label>
-                  {profile.commune ? (
-                    <Select value={profile.quartier} onValueChange={(v) => update("quartier", v)}>
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue placeholder="Sélectionner votre quartier" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        {getQuartiers(profile.commune).map((q) => (
-                          <SelectItem key={q} value={q}>{q}</SelectItem>
-                        ))}
-                        <SelectItem value="__other">Autre quartier...</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <p className="text-sm text-muted-foreground italic">Sélectionnez d'abord une commune</p>
-                  )}
-                  {profile.quartier === "__other" && (
-                    <Input
-                      placeholder="Saisissez le nom du quartier"
-                      onChange={(e) => { if (e.target.value.trim()) update("quartier", e.target.value.trim()); }}
-                      maxLength={100}
-                      autoFocus
-                      className="h-9 text-sm"
-                    />
-                  )}
-                  <p className="text-xs text-muted-foreground">Cette information nous aide à vous envoyer les alertes pertinentes</p>
-                </div>
-              </div>
-            </TabsContent>
-
-            {/* ── PARAMÈTRES ── */}
-            <TabsContent value="settings">
-              <div className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
-                {/* Notifications in-app */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary">
-                      <Bell className="h-4 w-4 text-secondary-foreground" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm text-foreground">Notifications in-app</p>
-                      <p className="text-xs text-muted-foreground">Alertes de coupure dans votre zone</p>
-                    </div>
-                  </div>
-                  <Switch checked={profile.notifications_enabled} onCheckedChange={(v) => update("notifications_enabled", v)} />
-                </div>
-
-                {/* Push notifications */}
-                <PushNotificationToggle />
-
-                <Separator />
-
-                {/* Language */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary">
-                      <Globe className="h-4 w-4 text-secondary-foreground" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm text-foreground">Langue</p>
-                      <p className="text-xs text-muted-foreground">{profile.language === "fr" ? "Français" : "English"}</p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => update("language", profile.language === "fr" ? "en" : "fr")}>
-                    {profile.language === "fr" ? "EN" : "FR"}
-                  </Button>
-                </div>
-
-                <Separator />
-
-                {/* Theme */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary">
-                      <Palette className="h-4 w-4 text-secondary-foreground" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm text-foreground">Thème</p>
-                      <p className="text-xs text-muted-foreground">
-                        {profile.theme === "system" ? "Système" : profile.theme === "dark" ? "Sombre" : "Clair"}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => update("theme", profile.theme === "system" ? "light" : profile.theme === "light" ? "dark" : "system")}
-                  >
-                    {profile.theme === "system" ? "☀️" : profile.theme === "light" ? "🌙" : "⚙️"}
-                  </Button>
-                </div>
-
-                {/* Couleurs de marque */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-                      <Palette className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm text-foreground">Couleurs SIGNA·CI</p>
-                      <p className="text-xs text-muted-foreground">
-                        {isIvoire ? "🟠 Thème Ivoire (orange soleil)" : "🔵 Thème SIGNA·CI (bleu institutionnel)"}
-                      </p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={toggleBrandTheme}>
-                    {isIvoire ? "→ Bleu" : "→ Ivoire 🟠"}
-                  </Button>
-                </div>
-
-                <Separator />
 
                 {/* Account actions */}
-                <div className="space-y-3 pt-1">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions du compte</p>
-
-                  {/* Export des données */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-between"
-                    onClick={async () => {
-                      if (!user) return;
-                      toast.info("Préparation de l'export...");
-                      try {
-                        const { data: profileData } = await supabase
-                          .from("profiles")
-                          .select("*")
-                          .eq("user_id", user.id)
-                          .single();
-                        const { data: reportsData } = await supabase
-                          .from("reports")
-                          .select("id, service_type, report_category, description, commune, quartier, status, urgency, created_at, resolved_at, start_time, impacted_people, babies, pregnant, elderly, verifications")
-                          .eq("user_id", user.id)
-                          .order("created_at", { ascending: false });
-                        const { data: corroborationsData } = await supabase
-                          .from("corroborations")
-                          .select("report_id, created_at")
-                          .eq("user_id", user.id);
-
-                        const exportData = {
-                          exported_at: new Date().toISOString(),
-                          user_email: user.email,
-                          profile: profileData ? {
-                            first_name: profileData.first_name,
-                            last_name: profileData.last_name,
-                            display_name: profileData.display_name,
-                            phone: profileData.phone,
-                            commune: profileData.commune,
-                            quartier: profileData.quartier,
-                            user_type: profileData.user_type,
-                            created_at: profileData.created_at,
-                          } : null,
-                          reports: reportsData || [],
-                          corroborations: corroborationsData || [],
-                        };
-
-                        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = `signaci-mes-donnees-${new Date().toISOString().slice(0, 10)}.json`;
-                        a.click();
-                        URL.revokeObjectURL(url);
-                        toast.success("Export téléchargé !");
-                      } catch {
-                        toast.error("Erreur lors de l'export");
-                      }
-                    }}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Download className="h-4 w-4" />
-                      Exporter mes données
-                    </span>
+                <div className="space-y-2 pt-1">
+                  <Button variant="outline" size="sm" className="w-full justify-between h-12 rounded-xl" onClick={async () => {
+                    if (!user) return;
+                    toast.info("Préparation de l'export...");
+                    try {
+                      const { data: profileData } = await supabase.from("profiles").select("*").eq("user_id", user.id).single();
+                      const { data: reportsData } = await supabase.from("reports").select("id, service_type, report_category, description, commune, quartier, status, urgency, created_at, resolved_at, start_time, impacted_people, babies, pregnant, elderly, verifications").eq("user_id", user.id).order("created_at", { ascending: false });
+                      const { data: corroborationsData } = await supabase.from("corroborations").select("report_id, created_at").eq("user_id", user.id);
+                      const exportData = { exported_at: new Date().toISOString(), user_email: user.email, profile: profileData ? { first_name: profileData.first_name, last_name: profileData.last_name, display_name: profileData.display_name, phone: profileData.phone, commune: profileData.commune, quartier: profileData.quartier, user_type: profileData.user_type, created_at: profileData.created_at } : null, reports: reportsData || [], corroborations: corroborationsData || [] };
+                      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `signaci-mes-donnees-${new Date().toISOString().slice(0, 10)}.json`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                      toast.success("Export téléchargé !");
+                    } catch { toast.error("Erreur lors de l'export"); }
+                  }}>
+                    <span className="flex items-center gap-2"><Download className="h-4 w-4" />Exporter mes données</span>
                     <ChevronRight className="h-4 w-4" />
                   </Button>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-between"
-                    onClick={async () => { await signOut(); navigate("/"); }}
-                  >
-                    <span className="flex items-center gap-2">
-                      <LogOut className="h-4 w-4" />
-                      Se déconnecter
-                    </span>
+                  <Button variant="outline" size="sm" className="w-full justify-between h-12 rounded-xl" onClick={async () => { await signOut(); navigate("/"); }}>
+                    <span className="flex items-center gap-2"><LogOut className="h-4 w-4" />Se déconnecter</span>
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
 
-                <Separator />
-
                 {/* Danger zone */}
-                <div className="space-y-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+                <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 space-y-3">
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-destructive" />
                     <p className="text-sm font-semibold text-destructive">Zone de danger</p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    La suppression de votre compte est <strong>irréversible</strong>. Toutes vos données et signalements seront définitivement supprimés.
-                  </p>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="w-full gap-2"
-                    onClick={() => {
-                      setShowDeleteDialog(true);
-                      setDeleteReason("");
-                      setDeleteOther("");
-                      setDeleteConfirmText("");
-                    }}
-                  >
+                  <p className="text-xs text-muted-foreground">La suppression de votre compte est <strong>irréversible</strong>. Toutes vos données seront définitivement supprimées.</p>
+                  <Button variant="destructive" size="sm" className="w-full gap-2" onClick={() => { setShowDeleteDialog(true); setDeleteReason(""); setDeleteOther(""); setDeleteConfirmText(""); }}>
                     <Trash2 className="h-4 w-4" />
                     Supprimer mon compte
                   </Button>
                 </div>
               </div>
-            </TabsContent>
-          </Tabs>
-          </div>
-        </motion.div>
+            </motion.div>
+          ) : (
+            /* ═══ SECTION VIEW ═══ */
+            <motion.div key={activeSection} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="pb-20">
+
+              {/* Sticky section header */}
+              <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-background/95 backdrop-blur-sm px-4 py-3">
+                <button onClick={() => setActiveSection(null)} className="h-8 w-8 rounded-full border border-border bg-card flex items-center justify-center hover:bg-muted transition-colors shrink-0">
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
+                <h2 className="font-semibold text-base text-foreground flex-1">{SECTION_TITLES[activeSection]}</h2>
+                {isDirty && (
+                  <Button size="sm" onClick={handleSave} disabled={saving} className="shrink-0 gap-1.5">
+                    {saving ? <><div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />...</> : <><CheckCircle2 className="h-3.5 w-3.5" />Enregistrer</>}
+                  </Button>
+                )}
+              </div>
+
+              {/* Section content */}
+              <div className="px-4 py-4 sm:px-0 sm:py-6 space-y-4">
+
+                {/* ── PROFIL ── */}
+                {activeSection === "profile" && (
+                  <div className="space-y-4">
+                    <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
+                      <div className="h-28 bg-gradient-to-r from-primary via-primary/90 to-primary/70 relative flex items-end px-5 pb-3">
+                        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
+                        <div className="relative z-10 flex items-center gap-3">
+                          <div className="h-14 w-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl font-bold text-white shadow-lg border-2 border-white/30">{avatarInitial}</div>
+                          <div className="min-w-0"><p className="font-bold text-lg text-white leading-tight truncate drop-shadow">{displayName}</p><p className="text-xs text-white/75 truncate">{user?.email}</p></div>
+                        </div>
+                      </div>
+                      <div className="px-5 py-4">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="space-y-1.5"><Label className="text-xs font-semibold text-foreground">Prénom</Label><Input id="field-first_name" placeholder="Votre prénom" value={profile.first_name} onChange={(e) => update("first_name", e.target.value)} maxLength={50} className="h-11 text-sm rounded-xl" /></div>
+                          <div className="space-y-1.5"><Label className="text-xs font-semibold text-foreground">Nom de famille</Label><Input id="field-last_name" placeholder="Votre nom" value={profile.last_name} onChange={(e) => update("last_name", e.target.value)} maxLength={50} className="h-11 text-sm rounded-xl" /></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
+                      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border">
+                        <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center"><Mail className="h-3.5 w-3.5 text-primary" /></div>
+                        <h3 className="font-semibold text-sm text-foreground">Contact</h3>
+                      </div>
+                      <div className="p-5 space-y-4">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Adresse e-mail</Label>
+                          <div className="flex items-center gap-3 h-11 rounded-xl border border-border bg-muted/40 px-3">
+                            <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <span className="text-sm text-muted-foreground truncate flex-1">{user?.email}</span>
+                            <span className="text-[10px] font-medium text-muted-foreground bg-muted rounded px-1.5 py-0.5 shrink-0">Non modifiable</span>
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Numéro WhatsApp <span className="text-destructive">*</span></Label>
+                          <div className="relative">
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-[#25D366] flex items-center justify-center shrink-0">
+                              <svg viewBox="0 0 24 24" className="h-3 w-3 fill-white" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                            </div>
+                            <Input id="field-phone" placeholder="Ex: +225 07 01 23 45 67" value={profile.phone} onChange={(e) => update("phone", e.target.value)} maxLength={20} type="tel" className="pl-11 h-11 text-sm rounded-xl border-border focus:border-[#25D366] focus:ring-[#25D366]/20" />
+                          </div>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><span className="inline-block h-1.5 w-1.5 rounded-full bg-destructive" />Requis pour faire un signalement</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
+                      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border">
+                        <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center"><User className="h-3.5 w-3.5 text-primary" /></div>
+                        <h3 className="font-semibold text-sm text-foreground">Type de profil</h3>
+                      </div>
+                      <div className="p-5">
+                        <div className="grid grid-cols-2 gap-3">
+                          <button type="button" onClick={() => update("user_type", "household")} className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all ${profile.user_type === "household" ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-background hover:border-primary/40"}`}>
+                            {profile.user_type === "household" && <div className="absolute top-2 right-2 h-4 w-4 rounded-full bg-primary flex items-center justify-center"><CheckCircle2 className="h-3 w-3 text-white" /></div>}
+                            <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${profile.user_type === "household" ? "bg-primary/15" : "bg-muted"}`}><Home className={`h-5 w-5 ${profile.user_type === "household" ? "text-primary" : "text-muted-foreground"}`} /></div>
+                            <div className="text-center"><p className={`text-sm font-semibold ${profile.user_type === "household" ? "text-primary" : "text-foreground"}`}>Ménage</p><p className="text-[11px] text-muted-foreground">Particulier / Famille</p></div>
+                          </button>
+                          <button type="button" onClick={() => update("user_type", "business")} className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all ${profile.user_type === "business" ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-background hover:border-primary/40"}`}>
+                            {profile.user_type === "business" && <div className="absolute top-2 right-2 h-4 w-4 rounded-full bg-primary flex items-center justify-center"><CheckCircle2 className="h-3 w-3 text-white" /></div>}
+                            <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${profile.user_type === "business" ? "bg-primary/15" : "bg-muted"}`}><Building2 className={`h-5 w-5 ${profile.user_type === "business" ? "text-primary" : "text-muted-foreground"}`} /></div>
+                            <div className="text-center"><p className={`text-sm font-semibold ${profile.user_type === "business" ? "text-primary" : "text-foreground"}`}>Entreprise</p><p className="text-[11px] text-muted-foreground">Commerce / Structure</p></div>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── LOCALISATION ── */}
+                {activeSection === "location" && (
+                  <div className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary"><MapPin className="h-4 w-4 text-secondary-foreground" /></div>
+                      <div><p className="font-semibold text-sm text-foreground">Votre localisation</p><p className="text-xs text-muted-foreground">Permet de cibler les signalements dans votre zone</p></div>
+                    </div>
+                    <Separator />
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-foreground">Commune</Label>
+                      <Select value={profile.commune} onValueChange={(v) => { update("commune", v); update("quartier", ""); }}>
+                        <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Sélectionner votre commune" /></SelectTrigger>
+                        <SelectContent>
+                          {COMMUNES.map((c) => (
+                            <SelectItem key={c.nom} value={c.nom}>
+                              <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full inline-block" style={{ backgroundColor: c.couleur }} />{c.nom}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-foreground">Quartier</Label>
+                      {profile.commune ? (
+                        <Select value={profile.quartier} onValueChange={(v) => update("quartier", v)}>
+                          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Sélectionner votre quartier" /></SelectTrigger>
+                          <SelectContent className="max-h-60">
+                            {getQuartiers(profile.commune).map((q) => (<SelectItem key={q} value={q}>{q}</SelectItem>))}
+                            <SelectItem value="__other">Autre quartier...</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">Sélectionnez d'abord une commune</p>
+                      )}
+                      {profile.quartier === "__other" && (
+                        <Input placeholder="Saisissez le nom du quartier" onChange={(e) => { if (e.target.value.trim()) update("quartier", e.target.value.trim()); }} maxLength={100} autoFocus className="h-9 text-sm" />
+                      )}
+                      <p className="text-xs text-muted-foreground">Cette information nous aide à vous envoyer les alertes pertinentes</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── HISTORIQUE ── */}
+                {activeSection === "history" && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { label: "Total", value: historyStats.total, color: "bg-primary/10 text-primary" },
+                        { label: "En cours", value: historyStats.active, color: "bg-amber-500/10 text-amber-600" },
+                        { label: "Résolus", value: historyStats.resolved, color: "bg-green-500/10 text-green-600" },
+                      ].map((s) => (
+                        <div key={s.label} className={`rounded-xl p-3 text-center ${s.color} border border-border bg-card`}>
+                          <p className={`text-xl font-bold ${s.color.split(" ")[1]}`}>{s.value}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {resolvedReportsCount >= 1 && (
+                      <CitizenBadge
+                        displayName={profile?.display_name || profile?.first_name || "Citoyen"}
+                        resolvedCount={resolvedReportsCount}
+                        commune={profile?.commune || undefined}
+                      />
+                    )}
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <Filter className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <div className="flex gap-1.5 flex-wrap">
+                        {(["all", "active", "resolved"] as const).map((f) => (
+                          <button key={f} onClick={() => setHistoryFilter(f)} className={`rounded-full px-3 py-1 text-xs font-medium transition-colors border ${historyFilter === f ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:border-primary/50"}`}>
+                            {f === "all" ? "Tous" : f === "active" ? "En cours" : "Résolus"}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex gap-1.5 flex-wrap ml-1">
+                        {(["all", "electricity", "water"] as const).map((t) => (
+                          <button key={t} onClick={() => setHistoryType(t)} className={`rounded-full px-3 py-1 text-xs font-medium transition-colors border flex items-center gap-1 ${historyType === t ? t === "electricity" ? "bg-amber-500 text-white border-amber-500" : t === "water" ? "bg-blue-500 text-white border-blue-500" : "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:border-primary/50"}`}>
+                            {t === "electricity" ? <Zap className="h-3 w-3" /> : t === "water" ? <Droplets className="h-3 w-3" /> : null}
+                            {t === "all" ? "Tous types" : t === "electricity" ? "Électricité" : "Eau"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {historyLoading ? (
+                      <div className="flex justify-center py-10"><div className="h-7 w-7 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>
+                    ) : filteredHistory.length === 0 ? (
+                      <div className="rounded-xl border border-border bg-card p-8 text-center">
+                        <CalendarDays className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
+                        <p className="text-sm text-muted-foreground">Aucun signalement trouvé</p>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <div className="absolute left-5 top-4 bottom-4 w-px bg-border hidden sm:block" />
+                        <div className="space-y-3">
+                          <AnimatePresence>
+                            {filteredHistory.map((r, i) => {
+                              const isElec = r.service_type === "electricity";
+                              const isInfra = r.report_category === "infrastructure";
+                              const infraLabel = isInfra ? extractInfraLabel(r.description) : null;
+                              const isActive = r.status === "active";
+                              const duration = r.resolved_at ? formatDuration(r.start_time, r.resolved_at) : null;
+                              return (
+                                <motion.div key={r.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ delay: i * 0.03 }} className="flex gap-3 sm:gap-4">
+                                  <div className="relative z-10 flex-shrink-0 hidden sm:flex">
+                                    <div className={`h-10 w-10 rounded-full flex items-center justify-center border-2 ${isInfra ? "bg-teal-500/10 border-teal-500/40 text-teal-600" : isElec ? "bg-amber-500/10 border-amber-500/40 text-amber-500" : "bg-blue-500/10 border-blue-500/40 text-blue-500"}`}>
+                                      {isInfra ? <span className="text-base leading-none">{infraEmoji(infraLabel)}</span> : isElec ? <Zap className="h-4 w-4" /> : <Droplets className="h-4 w-4" />}
+                                    </div>
+                                  </div>
+                                  <div className={`flex-1 rounded-xl border bg-card p-3 sm:p-4 shadow-sm ${isActive ? "border-border" : "border-border/60 opacity-80"}`}>
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                                          <span className={`sm:hidden text-sm ${isInfra ? "text-teal-600" : isElec ? "text-amber-500" : "text-blue-500"}`}>{isInfra ? <span className="text-sm leading-none">{infraEmoji(infraLabel)}</span> : isElec ? <Zap className="h-3.5 w-3.5 inline" /> : <Droplets className="h-3.5 w-3.5 inline" />}</span>
+                                          <span className="font-semibold text-sm text-foreground">{r.commune}</span>
+                                          {r.quartier && <span className="text-xs text-muted-foreground">· {r.quartier}</span>}
+                                          {isInfra && infraLabel && <span className="inline-flex items-center rounded-full bg-teal-500/10 px-2 py-0.5 text-[10px] font-semibold text-teal-700 dark:text-teal-400">{infraLabel}</span>}
+                                        </div>
+                                        <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{cleanDescription(r.description)}</p>
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                          <Badge variant={isActive ? "default" : "outline"} className={`text-xs h-5 ${isActive ? "bg-amber-500/15 text-amber-600 border-amber-500/30 hover:bg-amber-500/20" : "border-green-500/40 text-green-600"}`}>
+                                            {isActive ? <><Clock className="h-2.5 w-2.5 mr-1" />En cours</> : <><CheckCheck className="h-2.5 w-2.5 mr-1" />Résolu</>}
+                                          </Badge>
+                                          {r.verifications > 0 && <Badge variant="outline" className="text-xs h-5 border-primary/30 text-primary">{isInfra ? `${r.verifications} demande(s)` : `${r.verifications} confirm.`}</Badge>}
+                                          {duration && <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> {duration}</span>}
+                                        </div>
+                                      </div>
+                                      <div className="flex-shrink-0 text-right">
+                                        <p className="text-xs text-muted-foreground whitespace-nowrap">{new Date(r.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}</p>
+                                        <p className="text-xs text-muted-foreground">{new Date(r.created_at).getFullYear()}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              );
+                            })}
+                          </AnimatePresence>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ── COMPTEURS / UTILITY ── */}
+                {activeSection === "utility" && (
+                  <>
+                    <ElectricityWidget />
+                    <input ref={elecFileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleOcrScan(file, "electricity"); }} />
+                    <input ref={waterFileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleOcrScan(file, "water"); }} />
+                    <div className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
+                      <div className="flex gap-3 rounded-lg bg-primary/5 border border-primary/20 p-3 sm:p-4">
+                        <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">Augmentez la crédibilité de vos signalements</p>
+                          <p className="text-xs text-muted-foreground mt-1">Renseigner vos informations de compteur permet de renforcer la conformité de vos signalements.{" "}<span className="font-medium text-foreground">Ces champs sont facultatifs.</span></p>
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-violet-500/30 bg-violet-500/5 p-4 space-y-3">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-500/15"><ScanLine className="h-5 w-5 text-violet-600 dark:text-violet-400" /></div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-foreground">Remplissage automatique par photo</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">Photographiez votre <strong>compteur</strong>, votre <strong>facture</strong> ou votre <strong>reçu de rechargement</strong>.</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button type="button" disabled={ocrLoading !== null} onClick={() => elecFileRef.current?.click()} className="flex items-center justify-center gap-2 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 px-3 py-2.5 text-sm font-semibold text-amber-700 dark:text-amber-400 transition-colors disabled:opacity-50">
+                            {ocrLoading === "electricity" ? <><Loader2 className="h-4 w-4 animate-spin" />Analyse…</> : <><Camera className="h-4 w-4" /><Zap className="h-3.5 w-3.5" />Scanner CIE</>}
+                          </button>
+                          <button type="button" disabled={ocrLoading !== null} onClick={() => waterFileRef.current?.click()} className="flex items-center justify-center gap-2 rounded-lg bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/40 px-3 py-2.5 text-sm font-semibold text-blue-700 dark:text-blue-400 transition-colors disabled:opacity-50">
+                            {ocrLoading === "water" ? <><Loader2 className="h-4 w-4 animate-spin" />Analyse…</> : <><Camera className="h-4 w-4" /><Droplets className="h-3.5 w-3.5" />Scanner SODECI</>}
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground text-center">Vérifiez toujours les valeurs extraites avant d'enregistrer</p>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/15"><Zap className="h-4 w-4 text-amber-500" /></div>
+                          <h3 className="font-semibold text-foreground">Électricité (CIE)</h3>
+                          <span className="ml-auto text-xs text-muted-foreground italic">Facultatif</span>
+                        </div>
+                        {ocrPreview?.type === "electricity" && (
+                          <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-2">
+                            <img src={ocrPreview.url} alt="Aperçu" className="h-14 w-14 rounded object-cover shrink-0" />
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin text-amber-500" />Extraction des numéros en cours…</div>
+                          </div>
+                        )}
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          {[
+                            { label: "Identifiant client", field: "electricity_client_id" as const, placeholder: "Ex: 01234567" },
+                            { label: "Réf. compteur", field: "electricity_meter_ref" as const, placeholder: "Ex: CIE-XXXX" },
+                            { label: "N° compteur", field: "electricity_meter_number" as const, placeholder: "Ex: 987654321" },
+                          ].map((f) => (
+                            <div key={f.field} className="space-y-1.5">
+                              <Label className="text-xs font-medium text-muted-foreground">{f.label}</Label>
+                              <Input id={`field-${f.field}`} placeholder={f.placeholder} value={profile[f.field]} onChange={(e) => update(f.field, e.target.value)} maxLength={30} className="h-9 text-sm" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <Separator />
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/15"><Droplets className="h-4 w-4 text-blue-500" /></div>
+                          <h3 className="font-semibold text-foreground">Eau (SODECI)</h3>
+                          <span className="ml-auto text-xs text-muted-foreground italic">Facultatif</span>
+                        </div>
+                        {ocrPreview?.type === "water" && (
+                          <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-2">
+                            <img src={ocrPreview.url} alt="Aperçu" className="h-14 w-14 rounded object-cover shrink-0" />
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin text-blue-500" />Extraction des numéros en cours…</div>
+                          </div>
+                        )}
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          {[
+                            { label: "Identifiant client", field: "water_client_id" as const, placeholder: "Ex: 01234567" },
+                            { label: "Réf. compteur", field: "water_meter_ref" as const, placeholder: "Ex: SOD-XXXX" },
+                            { label: "N° compteur", field: "water_meter_number" as const, placeholder: "Ex: 123456789" },
+                          ].map((f) => (
+                            <div key={f.field} className="space-y-1.5">
+                              <Label className="text-xs font-medium text-muted-foreground">{f.label}</Label>
+                              <Input id={`field-${f.field}`} placeholder={f.placeholder} value={profile[f.field]} onChange={(e) => update(f.field, e.target.value)} maxLength={30} className="h-9 text-sm" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* ── DROITS & CONSEILS ── */}
+                {activeSection === "rights" && <RightsTabContent />}
+
+                {/* ── NOTIFICATIONS ── */}
+                {activeSection === "notifications" && (
+                  <div className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary"><Bell className="h-4 w-4 text-secondary-foreground" /></div>
+                        <div><p className="font-semibold text-sm text-foreground">Notifications in-app</p><p className="text-xs text-muted-foreground">Alertes de coupure dans votre zone</p></div>
+                      </div>
+                      <Switch checked={profile.notifications_enabled} onCheckedChange={(v) => update("notifications_enabled", v)} />
+                    </div>
+                    <PushNotificationToggle />
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary"><Globe className="h-4 w-4 text-secondary-foreground" /></div>
+                        <div><p className="font-semibold text-sm text-foreground">Langue</p><p className="text-xs text-muted-foreground">{profile.language === "fr" ? "Français" : "English"}</p></div>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => update("language", profile.language === "fr" ? "en" : "fr")}>{profile.language === "fr" ? "EN" : "FR"}</Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── APPARENCE ── */}
+                {activeSection === "appearance" && (
+                  <div className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-card">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary"><Palette className="h-4 w-4 text-secondary-foreground" /></div>
+                        <div><p className="font-semibold text-sm text-foreground">Thème</p><p className="text-xs text-muted-foreground">{profile.theme === "system" ? "Système" : profile.theme === "dark" ? "Sombre" : "Clair"}</p></div>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => update("theme", profile.theme === "system" ? "light" : profile.theme === "light" ? "dark" : "system")}>
+                        {profile.theme === "system" ? "☀️" : profile.theme === "light" ? "🌙" : "⚙️"}
+                      </Button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10"><Palette className="h-4 w-4 text-primary" /></div>
+                        <div><p className="font-semibold text-sm text-foreground">Couleurs SIGNA·CI</p><p className="text-xs text-muted-foreground">{isIvoire ? "🟠 Thème Ivoire (orange soleil)" : "🔵 Thème SIGNA·CI (bleu institutionnel)"}</p></div>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={toggleBrandTheme}>{isIvoire ? "→ Bleu" : "→ Ivoire 🟠"}</Button>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* ── ODD DIALOG ── */}

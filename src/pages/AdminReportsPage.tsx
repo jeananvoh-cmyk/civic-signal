@@ -20,6 +20,7 @@ import { logAudit } from "@/lib/audit";
 import { format } from "date-fns";
 import PhotoGallery from "@/components/PhotoGallery";
 import CorroborationStatus from "@/components/CorroborationStatus";
+import { extractInfraLabel, cleanDescription, infraEmoji, infraOperator } from "@/lib/report-display";
 
 const URGENCY_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   low: { label: "🟢 Faible", variant: "secondary" },
@@ -351,7 +352,9 @@ const AdminReportsPage = () => {
                 <Checkbox checked={isChecked} onCheckedChange={() => toggleSelect(report.id)} />
               </div>
             )}
-            {report.service_type === "electricity" ? (
+            {report.report_category === "infrastructure" ? (
+              <Wrench className="h-5 w-5 text-teal-500 shrink-0" />
+            ) : report.service_type === "electricity" ? (
               <Zap className="h-5 w-5 text-electricity shrink-0" />
             ) : (
               <Droplets className="h-5 w-5 text-water shrink-0" />
@@ -360,14 +363,15 @@ const AdminReportsPage = () => {
               <p className="text-sm font-medium text-foreground truncate">
                 {report.commune}, {report.quartier}
               </p>
-              <p className="text-xs text-muted-foreground truncate">{report.description}</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {report.report_category === "infrastructure" ? cleanDescription(report.description) : report.description}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {report.report_category === "infrastructure" && (
-              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 gap-1">
-                <Construction className="h-3 w-3" />
-                Infra
+              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                {infraEmoji(extractInfraLabel(report.description))} {extractInfraLabel(report.description) ?? "Infrastructure"}
               </Badge>
             )}
             <Badge variant={urgency.variant}>{urgency.label}</Badge>
@@ -564,14 +568,14 @@ const AdminReportsPage = () => {
                               </Badge>
                               {r.report_category === "infrastructure" && (
                                 <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-emerald-500/40 text-emerald-600 bg-emerald-500/5">
-                                  <Construction className="h-2.5 w-2.5 mr-1" />Infra
+                                  {infraEmoji(extractInfraLabel(r.description))} {extractInfraLabel(r.description) ?? "Infrastructure"}
                                 </Badge>
                               )}
                             </div>
 
                             {r.description && (
                               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                                {r.description}
+                                {r.report_category === "infrastructure" ? cleanDescription(r.description) : r.description}
                               </p>
                             )}
 
@@ -699,7 +703,10 @@ const AdminReportsPage = () => {
                   const isInfra = report?.report_category === "infrastructure";
                   const isChronic = report?.status === "chronic";
                   const ageDays = report ? Math.floor((Date.now() - new Date(report.created_at).getTime()) / 86400000) : null;
-                  const operatorName = isElec ? "CIE" : report?.service_type === "water" ? "SODECI" : "Mairie";
+                  const infraLbl = isInfra ? extractInfraLabel(report?.description || "") : null;
+                  const operatorName = isInfra
+                    ? infraOperator(infraLbl, report?.commune || "")
+                    : isElec ? "CIE" : "SODECI";
                   const waLink = report ? buildOperatorWhatsAppLink(report, notif.relayWA) : null;
                   const isRead = notif.read;
 
@@ -739,7 +746,7 @@ const AdminReportsPage = () => {
                           <div className="rounded-xl border border-border bg-muted/30 px-3 py-2.5 space-y-1.5">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm">
-                                {isElec ? (isInfra ? "💡" : "⚡") : (isInfra ? "🚿" : "💧")}
+                                {isInfra ? infraEmoji(extractInfraLabel(report?.description || "")) : isElec ? "⚡" : "💧"}
                               </span>
                               <span className="text-sm font-semibold text-foreground">
                                 {report.commune}{report.quartier ? `, ${report.quartier}` : ""}
@@ -756,8 +763,8 @@ const AdminReportsPage = () => {
                               )}
                             </div>
                             <div className="flex gap-3 text-[11px] text-muted-foreground">
-                              <span>{isInfra ? "Infra." : "Coupure"} — {operatorName}</span>
-                              <span>{report.verifications} corroboration{report.verifications > 1 ? "s" : ""}</span>
+                              <span>{isInfra ? (infraLbl ?? "Infrastructure") : "Coupure"} — {operatorName}</span>
+                              <span>{report.verifications} {isInfra ? `soutien${report.verifications > 1 ? "s" : ""}` : `confirmation${report.verifications > 1 ? "s" : ""}`}</span>
                             </div>
                           </div>
                         )}
@@ -860,7 +867,11 @@ const AdminReportsPage = () => {
                 </div>
                 <div>
                   <p className="text-muted-foreground text-sm mb-1">Description</p>
-                  <p className="text-sm">{selectedReport.description}</p>
+                  <p className="text-sm">
+                    {selectedReport.report_category === "infrastructure"
+                      ? cleanDescription(selectedReport.description)
+                      : selectedReport.description}
+                  </p>
                 </div>
                 {/* Corroboration status in admin detail */}
                 <CorroborationStatus verifications={selectedReport.verifications} />

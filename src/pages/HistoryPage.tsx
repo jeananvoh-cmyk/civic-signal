@@ -10,6 +10,7 @@ import { COMMUNE_COLORS } from "@/lib/communes";
 import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
 import { Button } from "@/components/ui/button";
 import { useNavigate, Link } from "react-router-dom";
+import { useGoBack } from "@/hooks/useGoBack";
 import PhotoGallery from "@/components/PhotoGallery";
 import DurationBadge from "@/components/DurationBadge";
 import { toast } from "sonner";
@@ -41,6 +42,7 @@ interface HistoryReport {
 const HistoryPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const goBack = useGoBack("/profil");
   const [reports, setReports] = useState<HistoryReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "active" | "resolved">("all");
@@ -79,7 +81,7 @@ const HistoryPage = () => {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => navigate("/profil")} aria-label="Retour à Mon espace">
+              <Button variant="ghost" size="icon" onClick={goBack} aria-label="Retour">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div>

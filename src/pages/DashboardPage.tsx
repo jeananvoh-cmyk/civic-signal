@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
-import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio, Flame, AlertTriangle, MapPin, Siren, CalendarDays, Construction, CheckCircle2, Info } from "lucide-react";
+import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio, Flame, AlertTriangle, MapPin, Siren, CalendarDays, Construction, CheckCircle2, Info, Wrench } from "lucide-react";
 import Header from "@/components/Header";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,8 +12,9 @@ import TrendsChart from "@/components/TrendsChart";
 import PriorityBadge from "@/components/PriorityBadge";
 import { calculatePriority, type PriorityResult } from "@/lib/priority-score";
 import { supabase } from "@/integrations/supabase/client";
-import { COMMUNES } from "@/lib/communes";
+import { COMMUNES, COMMUNE_COLORS } from "@/lib/communes";
 import { COMMUNE_LOGOS } from "@/lib/commune-logos";
+import { extractInfraLabel, infraEmoji, infraOperator, cleanDescription } from "@/lib/report-display";
 import electricityIcon from "@/assets/electricity-icon.png";
 import waterIcon from "@/assets/water-icon.png";
 
@@ -124,6 +125,7 @@ const SkeletonCommune = () => (
 
 const ReportRow = ({ r, variant }: { r: PriorityReport; variant: "critical" | "high" | "medium" }) => {
   const isElec = r.service_type === "electricity";
+  const isInfra = r.report_category === "infrastructure";
   const durationMins = r.start_time ? (Date.now() - new Date(r.start_time).getTime()) / 60000 : 0;
   const timeSince = durationMins > 0 ? formatMinutes(durationMins) : "";
 
@@ -143,7 +145,7 @@ const ReportRow = ({ r, variant }: { r: PriorityReport; variant: "critical" | "h
   // Extract people count embedded in description "[X personne(s)]"
   const peopleMatch = r.description.match(/\[(\d+)\s*personne/);
   const people = peopleMatch ? parseInt(peopleMatch[1]) : null;
-  const cleanDesc = r.description.replace(/\s*\[\d+\s*personne\(s\)\]/g, "").trim();
+  const cleanDesc = isInfra ? cleanDescription(r.description) : r.description.replace(/\s*\[\d+\s*personne\(s\)\]/g, "").trim();
 
   const leftBorder = variant === "critical"
     ? "border-l-4 border-l-destructive"
@@ -163,8 +165,8 @@ const ReportRow = ({ r, variant }: { r: PriorityReport; variant: "critical" | "h
   return (
     <div className={`flex items-start gap-4 px-5 py-4 transition-colors hover:bg-muted/30 ${leftBorder}`}>
       {/* Service icon */}
-      <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${isElec ? "bg-amber-500/20" : "bg-blue-500/20"}`}>
-        {isElec ? <Zap className="h-5 w-5 text-amber-500" /> : <Droplets className="h-5 w-5 text-blue-500" />}
+      <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${isInfra ? "bg-teal-500/20" : isElec ? "bg-amber-500/20" : "bg-blue-500/20"}`}>
+        {isInfra ? <Wrench className="h-5 w-5 text-teal-500" /> : isElec ? <Zap className="h-5 w-5 text-amber-500" /> : <Droplets className="h-5 w-5 text-blue-500" />}
       </div>
 
       {/* Description + meta */}
@@ -183,10 +185,14 @@ const ReportRow = ({ r, variant }: { r: PriorityReport; variant: "critical" | "h
             </span>
           )}
           {r.verifications === 0 ? (
-            <span className="text-[10px] italic text-muted-foreground">Pas encore vérifié par les voisins</span>
+            <span className="text-[10px] italic text-muted-foreground">
+              {isInfra ? "Pas encore soutenu pour réparation" : "Pas encore vérifié par les voisins"}
+            </span>
           ) : (
             <span className="flex items-center gap-0.5 text-[10px] font-semibold text-success">
-              ✓ {r.verifications} voisin{r.verifications > 1 ? "s" : ""} confirm{r.verifications > 1 ? "ent" : "e"}
+              {isInfra
+                ? `✓ ${r.verifications} soutien${r.verifications > 1 ? "s" : ""} pour réparation`
+                : `✓ ${r.verifications} voisin${r.verifications > 1 ? "s" : ""} confirm${r.verifications > 1 ? "ent" : "e"}`}
             </span>
           )}
         </div>
@@ -362,7 +368,7 @@ const DashboardPage = () => {
   // Confirmed zone alerts: reports with 3+ verifications grouped by location
   const confirmedReports = activeReports.filter((r) => r.verifications >= 3);
   const confirmedZones = (() => {
-    const zones = new Map<string, { commune: string; quartier: string; serviceType: string; reportCategory: string; count: number; totalVerifications: number }>();
+    const zones = new Map<string, { commune: string; quartier: string; serviceType: string; reportCategory: string; count: number; totalVerifications: number; firstDescription: string }>();
     for (const r of confirmedReports) {
       const parts = r.location.split(", ");
       const commune = parts[0] || r.location;
@@ -373,7 +379,7 @@ const DashboardPage = () => {
         existing.count++;
         existing.totalVerifications += r.verifications;
       } else {
-        zones.set(key, { commune, quartier, serviceType: r.service_type, reportCategory: r.report_category ?? "outage", count: 1, totalVerifications: r.verifications });
+        zones.set(key, { commune, quartier, serviceType: r.service_type, reportCategory: r.report_category ?? "outage", count: 1, totalVerifications: r.verifications, firstDescription: r.description });
       }
     }
     return Array.from(zones.values()).sort((a, b) => b.totalVerifications - a.totalVerifications);
@@ -548,17 +554,17 @@ const DashboardPage = () => {
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4 text-center mt-4">
-                    <div><p className="font-display text-2xl font-extrabold text-teal-500">{totalMairieActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
-                    <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalMairieResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
+                    <div><p className="font-display text-2xl font-extrabold text-teal-500">{totalMairieActifs}</p><p className="text-xs text-muted-foreground">Actifs</p></div>
+                    <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalMairieResolus}</p><p className="text-xs text-muted-foreground">Réparés</p></div>
                     <div><p className="font-display text-2xl font-extrabold text-foreground">{totalMairieTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
                   </div>
                   {totalMairieTotal > 0 && (
                     <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground border-t border-border pt-3">
-                      <span>{totalMairieVerified > 0 ? `✓ ${totalMairieVerified} confirmé${totalMairieVerified > 1 ? "s" : ""} par voisins` : "Aucune confirmation"}</span>
-                      <span className="font-semibold text-foreground">{mairieResolutionRate}% résolues</span>
+                      <span>{totalMairieVerified > 0 ? `✓ ${totalMairieVerified} soutenu${totalMairieVerified > 1 ? "s" : ""} pour réparation` : "Aucun soutien citoyen"}</span>
+                      <span className="font-semibold text-foreground">{mairieResolutionRate}% réparés</span>
                     </div>
                   )}
-                  <p className="mt-2 text-[9px] text-muted-foreground/50 italic">« Résolu » = confirmé par l'auteur ou 3 voisins</p>
+                  <p className="mt-2 text-[9px] text-muted-foreground/50 italic">« Résolu » = réparation confirmée par l'auteur ou 3 citoyens</p>
                 </div>
               </>
             )}
@@ -569,6 +575,17 @@ const DashboardPage = () => {
         {!loading && confirmedZones.length > 0 && (() => {
           const hasOutage = confirmedZones.some((z) => z.reportCategory === "outage");
           const hasInfra = confirmedZones.some((z) => z.reportCategory === "infrastructure" || z.serviceType === "mairie");
+
+          // Compute only the operators actually present in infra zones
+          const infraOperatorTypes = hasInfra ? [...new Set(
+            confirmedZones
+              .filter((z) => z.reportCategory === "infrastructure" || z.serviceType === "mairie")
+              .map((z) => {
+                const op = infraOperator(extractInfraLabel(z.firstDescription), z.commune);
+                return op.startsWith("Mairie") ? "Mairie" : op;
+              })
+          )] : [];
+
           const sectionTitle = hasOutage && hasInfra
             ? "Signalements confirmés"
             : hasInfra
@@ -577,7 +594,7 @@ const DashboardPage = () => {
           const sectionSubtitle = hasOutage && hasInfra
             ? "Coupures vérifiées · infrastructures soutenues par 3+ citoyens"
             : hasInfra
-            ? "Demandes de réparation soutenues par 3+ citoyens (CIE / SODECI / Mairie)"
+            ? `Demandes de réparation soutenues par 3+ citoyens (${infraOperatorTypes.join(" / ")})`
             : "Signalements vérifiés par 3+ voisins — haute fiabilité";
           return (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="mb-8">
@@ -591,37 +608,47 @@ const DashboardPage = () => {
                   <p className="text-[10px] text-muted-foreground">{sectionSubtitle}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {confirmedZones.slice(0, 6).map((z) => {
-                  const isElec = z.serviceType === "electricity";
-                  const isWater = z.serviceType === "water";
-                  const isInfra = z.reportCategory === "infrastructure";
-                  const isMairie = z.serviceType === "mairie";
-                  const operator = isMairie ? "Mairie" : isElec ? "CIE" : "SODECI";
-                  const icon = isMairie ? "🏗️" : isElec ? (isInfra ? "💡" : "⚡") : (isInfra ? "🚿" : "💧");
-                  const serviceLabel = isMairie
-                    ? "Infra. Mairie"
-                    : isElec
-                    ? (isInfra ? "Infra. CIE" : "Coupure électricité")
-                    : (isInfra ? "Infra. SODECI" : "Coupure d'eau");
-                  const countLabel = isInfra || isMairie
+              <div className="space-y-2">
+                {confirmedZones.slice(0, 8).map((z) => {
+                  const isElecService = z.serviceType === "electricity";
+                  const isInfraReport = z.reportCategory === "infrastructure";
+                  const isMairieService = z.serviceType === "mairie";
+                  const isInfraType = isInfraReport || isMairieService;
+
+                  const infraLabel = isInfraType ? extractInfraLabel(z.firstDescription) : null;
+                  const operator = isInfraType
+                    ? infraOperator(infraLabel, z.commune)
+                    : isElecService ? "CIE" : "SODECI";
+                  const icon = isInfraType
+                    ? infraEmoji(infraLabel)
+                    : isElecService ? "⚡" : "💧";
+                  const typeLabel = isInfraType
+                    ? (infraLabel ?? "Infrastructure")
+                    : isElecService ? "Coupure électricité" : "Coupure d'eau";
+
+                  const communeColor = COMMUNE_COLORS[z.commune] || "#888";
+                  const hasQuartier = z.quartier && z.quartier !== z.commune;
+                  const countLabel = isInfraType
                     ? `${z.totalVerifications} soutien${z.totalVerifications > 1 ? "s" : ""}`
                     : `${z.totalVerifications} confirmation${z.totalVerifications > 1 ? "s" : ""}`;
-                  const statusBadge = isInfra || isMairie ? "✓ Soutenu" : "✓ Confirmé";
-                  const hasQuartier = z.quartier && z.quartier !== z.commune;
+
                   return (
-                    <div key={`${z.commune}|${z.quartier}|${z.serviceType}|${z.reportCategory}`} className="flex items-center gap-3 rounded-xl bg-card border border-border px-4 py-3">
-                      <span className="text-lg">{icon}</span>
+                    <div
+                      key={`${z.commune}|${z.quartier}|${z.serviceType}|${z.reportCategory}`}
+                      className="flex items-center gap-3 rounded-xl bg-card border border-border px-4 py-3"
+                      style={{ borderLeftColor: communeColor, borderLeftWidth: 4 }}
+                    >
+                      <span className="text-xl shrink-0">{icon}</span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground truncate">
-                          {hasQuartier ? z.quartier : z.commune}
-                          {hasQuartier && <span className="ml-1 font-normal text-muted-foreground">· {z.commune}</span>}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {serviceLabel} · {countLabel} · transmis à <span className="font-semibold text-foreground">{operator}</span>
+                        <p className="text-sm font-semibold text-foreground truncate">{typeLabel}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {hasQuartier ? `${z.quartier} · ` : ""}{z.commune}
                         </p>
                       </div>
-                      <span className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600">{statusBadge}</span>
+                      <div className="flex flex-col items-end gap-0.5 shrink-0">
+                        <span className="text-xs font-bold text-emerald-600">{countLabel}</span>
+                        <span className="text-[10px] text-muted-foreground">→ {operator}</span>
+                      </div>
                     </div>
                   );
                 })}

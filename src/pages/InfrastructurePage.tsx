@@ -260,10 +260,10 @@ const InfrastructurePage = () => {
           <div className="flex flex-col gap-2 mb-6">
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
               <AlertCircle className="h-6 w-6 text-primary" />
-              Fil Infrastructures
+              Infrastructures publiques
             </h1>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Lampadaires hors service, fuites d'eau, routes dégradées — signalez, confirmez, suivez.
+              Voirie, éclairage public, fuites d'eau — signalez, soutenez, suivez l'avancement.
             </p>
           </div>
 

@@ -46,3 +46,21 @@ export function infraEmoji(label: string | null): string {
   if (!label) return "🏗️";
   return INFRA_LABEL_EMOJI[label] ?? "🏗️";
 }
+
+/** Infra types managed by CIE (electricity operator) */
+const INFRA_CIE = new Set(["Lampadaire cassé", "Poteau électrique"]);
+
+/** Infra types managed by SODECI (water operator) */
+const INFRA_SODECI = new Set(["Fuite d'eau"]);
+
+/**
+ * Returns the responsible operator for an infrastructure report.
+ * - CIE  : lampadaires, poteaux électriques
+ * - SODECI : fuites d'eau
+ * - Mairie de {commune} : caniveaux, égouts, voirie, ordures, autres
+ */
+export function infraOperator(label: string | null, commune: string): string {
+  if (label && INFRA_CIE.has(label)) return "CIE";
+  if (label && INFRA_SODECI.has(label)) return "SODECI";
+  return `Mairie de ${commune}`;
+}

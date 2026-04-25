@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useGoBack } from "@/hooks/useGoBack";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Zap, Droplets, MapPin, Clock, TrendingUp, TrendingDown, Minus, Wrench, CheckCircle2 } from "lucide-react";
@@ -54,6 +55,7 @@ function formatMinutes(mins: number): string {
 const CommuneDetailPage = () => {
   const { communeName } = useParams<{ communeName: string }>();
   const navigate = useNavigate();
+  const goBack = useGoBack("/tableau-de-bord");
   const [stats, setStats] = useState<QuartierStat[]>([]);
   const [durations, setDurations] = useState<DurationStat[]>([]);
   const [impactStats, setImpactStats] = useState<ImpactStats | null>(null);
@@ -111,8 +113,8 @@ const CommuneDetailPage = () => {
         {/* Back + Title */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/tableau-de-bord")} className="-ml-2">
-              <ArrowLeft className="h-4 w-4 mr-1" /> Retour au dashboard
+            <Button variant="ghost" size="sm" onClick={goBack} className="-ml-2">
+              <ArrowLeft className="h-4 w-4 mr-1" /> Retour
             </Button>
             <ShareButton
               title={`SIGNA-CI — ${decodedName}`}

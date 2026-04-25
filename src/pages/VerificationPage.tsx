@@ -252,7 +252,9 @@ const VerificationPage = () => {
               </div>
               <h1 className="font-display text-2xl font-bold text-foreground">Confirmation reçue !</h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                Un voisin a confirmé votre signalement de coupure
+                {notifReportType?.reportCategory === "infrastructure"
+                  ? "Un citoyen a soutenu votre signalement"
+                  : "Un voisin a confirmé votre signalement de coupure"}
               </p>
             </motion.div>
             <motion.div
@@ -264,7 +266,9 @@ const VerificationPage = () => {
                 <CheckCircle2 className="mx-auto h-10 w-10 text-success mb-2" />
                 <p className="font-bold text-foreground">Votre signalement gagne en visibilité</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Chaque confirmation renforce la crédibilité de votre signalement dans nos rapports aux opérateurs.
+                  {notifReportType?.reportCategory === "infrastructure"
+                    ? "Chaque soutien renforce votre demande de réparation auprès de la Mairie."
+                    : "Chaque confirmation renforce la crédibilité de votre signalement dans nos rapports aux opérateurs."}
                 </p>
               </div>
               <Button variant="outline" onClick={() => setSearchParams({})}>

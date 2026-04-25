@@ -499,7 +499,7 @@ const AdminStatsPage = () => {
                     <p className="text-2xl font-extrabold text-teal-500">{totMairie}</p>
                     <p className="text-xs text-muted-foreground">signalements actifs</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {serviceStats.reduce((s, c) => s + c.mairie_verified, 0)} vérifiés par les voisins
+                      {serviceStats.reduce((s, c) => s + c.mairie_verified, 0)} soutenus pour réparation
                     </p>
                   </div>
                 </>
