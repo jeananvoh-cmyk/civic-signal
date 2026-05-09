@@ -16,9 +16,10 @@ interface PhotoUploadProps {
   photoUrls: string[];
   isInfrastructure?: boolean;
 }
+
 const MAX_OUTPUT_PX = 1920;
-const JPEG_QUALITY_HIGH = 0.90;  // pour les images ≤ 1MB
-const JPEG_QUALITY_LOW  = 0.82;  // pour les images > 1MB
+const JPEG_QUALITY_HIGH = 0.90;
+const JPEG_QUALITY_LOW  = 0.82;
 
 // ── Compression canvas adaptative ─────────────────────────────────────────────
 async function compressImage(file: File): Promise<Blob> {
@@ -32,7 +33,6 @@ async function compressImage(file: File): Promise<Blob> {
       URL.revokeObjectURL(objectUrl);
 
       let { width, height } = img;
-
       if (width > MAX_OUTPUT_PX || height > MAX_OUTPUT_PX) {
         if (width > height) {
           height = Math.round((height * MAX_OUTPUT_PX) / width);
@@ -46,7 +46,11 @@ async function compressImage(file: File): Promise<Blob> {
       const canvas = document.createElement("canvas");
       canvas.width = width;
       canvas.height = height;
-      const ctx = canvas.getContext("2d")!;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Canvas non disponible"));
+        return;
+      }
       ctx.drawImage(img, 0, 0, width, height);
 
       canvas.toBlob(
@@ -61,7 +65,7 @@ async function compressImage(file: File): Promise<Blob> {
 
     img.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      reject(new Error("Impossible de charger l'image"));
+      reject(new Error("Format non supporté"));
     };
 
     img.src = objectUrl;
@@ -69,18 +73,42 @@ async function compressImage(file: File): Promise<Blob> {
 }
 
 // ── Extraction GPS EXIF ───────────────────────────────────────────────────────
-async function extractExifGps(
-  file: File,
-): Promise<{ lat: number; lng: number } | null> {
+async function extractExifGps(file: File): Promise<{ lat: number; lng: number } | null> {
   try {
     const gps = await exifr.gps(file);
-    if (gps && typeof gps.latitude === "number" && typeof gps.longitude === "number") {
+    if (gps && typeof gps.latitude === "number" && typeof gps.longitude === "number"
+        && (gps.latitude !== 0 || gps.longitude !== 0)) {
       return { lat: gps.latitude, lng: gps.longitude };
     }
   } catch {
-    // Pas d'EXIF ou format non supporté — silencieux
+    // Format non supporté — silencieux
   }
   return null;
+}
+
+// ── Upload d'un fichier avec fallback si compression échoue ───────────────────
+async function uploadFile(file: File, userId: string, index: number): Promise<string> {
+  let blob: Blob;
+  let contentType = "image/jpeg";
+  let ext = "jpg";
+
+  try {
+    blob = await compressImage(file);
+  } catch {
+    // HEIC ou format canvas non supporté → upload original
+    blob = file;
+    contentType = file.type || "image/jpeg";
+    const nameParts = file.name.split(".");
+    ext = nameParts.length > 1 ? nameParts[nameParts.length - 1].toLowerCase() : "jpg";
+  }
+
+  const path = `${userId}/${Date.now()}_${index}.${ext}`;
+  const { error } = await supabase.storage
+    .from("report-photos")
+    .upload(path, blob, { upsert: true, contentType });
+
+  if (error) throw error;
+  return path;
 }
 
 // ── Sous-composant : vignette d'une photo uploadée ────────────────────────────
@@ -117,12 +145,11 @@ const PhotoUpload = ({
   const [uploading, setUploading] = useState(false);
   const [gpsSource, setGpsSource] = useState<"photo" | "device" | null>(null);
   const [showTips, setShowTips] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const all = Array.from(e.target.files ?? []);
-    e.target.value = "";
-    if (!all.length || !user) return;
+  const processFiles = async (files: File[]) => {
+    if (!files.length || !user) return;
 
     const remaining = MAX_PHOTOS - photoUrls.length;
     if (remaining <= 0) {
@@ -130,9 +157,9 @@ const PhotoUpload = ({
       return;
     }
 
-    const toProcess = all.slice(0, remaining);
-    if (all.length > remaining) {
-      toast.info(`${all.length - remaining} photo(s) ignorée(s) — limite de ${MAX_PHOTOS} atteinte`);
+    const toProcess = files.slice(0, remaining);
+    if (files.length > remaining) {
+      toast.info(`${files.length - remaining} photo(s) ignorée(s) — limite de ${MAX_PHOTOS} atteinte`);
     }
 
     setUploading(true);
@@ -141,26 +168,19 @@ const PhotoUpload = ({
 
     for (let i = 0; i < toProcess.length; i++) {
       const file = toProcess[i];
-      if (!file.type.startsWith("image/")) {
+      if (!file.type.startsWith("image/") && !file.name.match(/\.(heic|heif)$/i)) {
         toast.error(`"${file.name}" n'est pas une image valide`);
         continue;
       }
       try {
         const isFirstEver = photoUrls.length === 0 && i === 0;
-        const [exifGps, compressed] = await Promise.all([
+        const [exifGps, path] = await Promise.all([
           isFirstEver ? extractExifGps(file) : Promise.resolve(null),
-          compressImage(file),
+          uploadFile(file, user.id, i),
         ]);
-
-        const path = `${user.id}/${Date.now()}_${i}.jpg`;
-        const { error } = await supabase.storage
-          .from("report-photos")
-          .upload(path, compressed, { upsert: true, contentType: "image/jpeg" });
-        if (error) throw error;
 
         addedUrls.push(path);
 
-        // GPS EXIF — première photo uniquement
         if (isFirstEver && exifGps && onGpsFromPhoto && !exifHandled) {
           onGpsFromPhoto(exifGps.lat, exifGps.lng);
           setGpsSource("photo");
@@ -170,7 +190,7 @@ const PhotoUpload = ({
             duration: 5000,
           });
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         toast.error(getUserFriendlyError(err, `Erreur photo ${i + 1}`));
       }
     }
@@ -190,6 +210,12 @@ const PhotoUpload = ({
     setUploading(false);
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    await processFiles(files);
+  };
+
   const removePhoto = (index: number) => {
     const newUrls = photoUrls.filter((_, i) => i !== index);
     onPhotosChanged(newUrls);
@@ -199,12 +225,21 @@ const PhotoUpload = ({
   const canAddMore = photoUrls.length < MAX_PHOTOS;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      {/* Inputs cachés */}
       <input
-        ref={fileRef}
+        ref={galleryRef}
         type="file"
         accept="image/*"
         multiple
+        className="hidden"
+        onChange={handleFileChange}
+      />
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
         className="hidden"
         onChange={handleFileChange}
       />
@@ -216,7 +251,6 @@ const PhotoUpload = ({
             <PhotoThumb key={url} path={url} onRemove={() => removePhoto(i)} />
           ))}
 
-          {/* Indicateur GPS — sous la première photo */}
           {gpsSource && photoUrls.length > 0 && (
             <div
               className={`col-span-full flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium w-fit
@@ -231,11 +265,10 @@ const PhotoUpload = ({
             </div>
           )}
 
-          {/* Slot "Ajouter" si moins de 3 photos et pas en cours d'upload */}
           {canAddMore && !uploading && (
             <button
               type="button"
-              onClick={() => fileRef.current?.click()}
+              onClick={() => galleryRef.current?.click()}
               className="aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
             >
               <Plus className="h-5 w-5" />
@@ -251,27 +284,32 @@ const PhotoUpload = ({
         </div>
       )}
 
-      {/* Bouton principal — visible uniquement si aucune photo encore */}
+      {/* Boutons principaux — visibles uniquement si aucune photo encore */}
       {photoUrls.length === 0 && !uploading && (
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full h-24 border-dashed border-2 flex flex-col gap-2"
-          onClick={() => fileRef.current?.click()}
-        >
-          <div className="flex items-center gap-3">
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-20 border-dashed border-2 flex flex-col gap-1.5"
+            onClick={() => cameraRef.current?.click()}
+          >
             <Camera className="h-5 w-5 text-muted-foreground" />
-            <span className="text-muted-foreground/40 text-sm">|</span>
+            <span className="text-xs text-muted-foreground">Prendre une photo</span>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-20 border-dashed border-2 flex flex-col gap-1.5"
+            onClick={() => galleryRef.current?.click()}
+          >
             <ImageIcon className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <span className="text-xs text-muted-foreground">
-            Prendre une photo ou choisir depuis la galerie
-          </span>
-        </Button>
+            <span className="text-xs text-muted-foreground">Choisir depuis la galerie</span>
+          </Button>
+        </div>
       )}
 
       {photoUrls.length === 0 && uploading && (
-        <div className="w-full h-24 border rounded-xl flex flex-col items-center justify-center gap-2">
+        <div className="w-full h-20 border rounded-xl flex flex-col items-center justify-center gap-2">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           <span className="text-xs text-muted-foreground">Compression et upload…</span>
         </div>
@@ -300,7 +338,6 @@ const PhotoUpload = ({
 
           {showTips && (
             <div className="px-3 pb-3 space-y-3 border-t border-amber-500/20">
-
               <div className="pt-2 space-y-1.5">
                 <p className="text-[11px] font-bold text-green-700 dark:text-green-400 uppercase tracking-wide">
                   À faire

@@ -507,7 +507,7 @@ const ReportPage = () => {
       toast.error("Sélectionnez la commune et le quartier");
       return;
     }
-    if (!latitude || !longitude) {
+    if (latitude === null || longitude === null) {
       toast.error("Position GPS requise. Activez la géolocalisation.");
       return;
     }
@@ -562,7 +562,7 @@ const ReportPage = () => {
 
   const handleSubmit = async () => {
     if (limitReached) { toast.error(`Limite de ${DAILY_LIMIT} signalements / jour atteinte`); return; }
-    if (!latitude || !longitude) { toast.error("Position GPS requise"); return; }
+    if (latitude === null || longitude === null) { toast.error("Position GPS requise"); return; }
     if (!gpsFromPhoto && storedGpsAgeMin === null && gpsAccuracy !== null && gpsAccuracy > 300 && !isAdmin && !isTestAccount) {
       toast.error("Signal GPS trop imprécis", {
         description: `Précision actuelle : ± ${Math.round(gpsAccuracy)} m. Déplacez-vous près d'une fenêtre et relancez la localisation.`,
