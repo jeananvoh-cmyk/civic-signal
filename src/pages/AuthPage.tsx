@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Zap, ArrowLeft, User, Phone, Building2, Home, Eye, EyeOff, Mail, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -271,6 +271,8 @@ const AuthPage = () => {
           </span>
         </div>
 
+        <AnimatePresence mode="wait">
+          <motion.div key={mode} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
         {/* ── CONNEXION ─────────────────────────────────────────────────── */}
         {mode === "login" && (
           <div className="rounded-xl border border-border bg-card p-6 shadow-card space-y-4">
@@ -381,8 +383,8 @@ const AuthPage = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    tabIndex={-1}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+                    aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
@@ -390,7 +392,7 @@ const AuthPage = () => {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-12 rounded-lg bg-[hsl(217,90%,55%)] text-white text-base font-bold hover:bg-[hsl(217,90%,48%)]"
+                  className="w-full h-12 rounded-lg bg-primary text-primary-foreground text-base font-bold hover:bg-primary/90"
                 >
                   {loading ? "Connexion..." : "Se connecter"}
                 </Button>
@@ -482,8 +484,8 @@ const AuthPage = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    tabIndex={-1}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+                    aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
@@ -498,6 +500,8 @@ const AuthPage = () => {
                   placeholder="Confirmer le mot de passe"
                   value={confirmPwd}
                   onChange={(e) => setConfirmPwd(e.target.value)}
+                  aria-invalid={confirmPwd.length > 0 && confirmPwd !== password}
+                  aria-describedby={confirmPwd !== password && confirmPwd.length > 0 ? "confirm-pwd-error" : undefined}
                   className={`h-12 rounded-lg text-base pr-12 ${
                     confirmPwd && confirmPwd !== password
                       ? "border-red-500 focus-visible:ring-red-500"
@@ -510,13 +514,13 @@ const AuthPage = () => {
                 <button
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  tabIndex={-1}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+                  aria-label={showConfirm ? "Masquer la confirmation" : "Afficher la confirmation"}
                 >
                   {showConfirm ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
                 {confirmPwd && confirmPwd !== password && (
-                  <p className="text-xs text-red-500 mt-1">Les mots de passe ne correspondent pas</p>
+                  <p id="confirm-pwd-error" role="alert" className="text-xs text-red-500 mt-1">Les mots de passe ne correspondent pas</p>
                 )}
               </div>
 
@@ -571,10 +575,23 @@ const AuthPage = () => {
               <Button
                 type="submit"
                 disabled={loading || !signupValid}
-                className="w-full h-12 rounded-lg bg-[hsl(135,55%,48%)] text-white text-base font-bold hover:bg-[hsl(135,55%,40%)] disabled:opacity-50"
+                className="w-full h-12 rounded-lg bg-primary text-primary-foreground text-base font-bold hover:bg-primary/90 disabled:opacity-50"
               >
                 {loading ? "Création..." : "Créer mon compte"}
               </Button>
+              {!signupValid && !loading && (privacyConsent || password.length > 0) && (
+                <p className="text-xs text-center text-muted-foreground">
+                  {!privacyConsent
+                    ? "Acceptez la politique de confidentialité pour continuer"
+                    : password.length < 8
+                    ? "Le mot de passe doit contenir au moins 8 caractères"
+                    : pwdStrength.score < 3
+                    ? "Renforcez votre mot de passe (ajoutez majuscules et chiffres)"
+                    : password !== confirmPwd
+                    ? "Les mots de passe ne correspondent pas"
+                    : null}
+                </p>
+              )}
             </form>
 
             <div className="text-center">
@@ -612,7 +629,7 @@ const AuthPage = () => {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 rounded-lg bg-[hsl(217,90%,55%)] text-white text-base font-bold"
+                className="w-full h-12 rounded-lg bg-primary text-primary-foreground text-base font-bold hover:bg-primary/90"
               >
                 {loading ? "Envoi..." : "Envoyer le lien"}
               </Button>
@@ -628,6 +645,8 @@ const AuthPage = () => {
             </div>
           </div>
         )}
+          </motion.div>
+        </AnimatePresence>
       </motion.div>
     </div>
   );

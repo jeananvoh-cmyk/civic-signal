@@ -15,9 +15,10 @@ interface ShareButtonProps {
   className?: string;
   variant?: "default" | "outline" | "ghost" | "secondary";
   size?: "default" | "sm" | "lg" | "icon";
+  ariaLabel?: string;
 }
 
-const ShareButton = ({ title, text, url, className, variant = "outline", size = "sm" }: ShareButtonProps) => {
+const ShareButton = ({ title, text, url, className, variant = "outline", size = "sm", ariaLabel }: ShareButtonProps) => {
   const shareUrl = url || window.location.href;
 
   const handleNativeShare = async () => {
@@ -50,8 +51,8 @@ const ShareButton = ({ title, text, url, className, variant = "outline", size = 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant={variant} size={size} className={className}>
-          <Share2 className="h-4 w-4 mr-1.5" />
+        <Button variant={variant} size={size} className={className} aria-label={ariaLabel ?? `Partager : ${title}`}>
+          <Share2 className="h-4 w-4 mr-1.5" aria-hidden="true" />
           Partager
         </Button>
       </DropdownMenuTrigger>

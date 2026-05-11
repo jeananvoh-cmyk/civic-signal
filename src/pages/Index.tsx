@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -14,7 +15,6 @@ import Header from "@/components/Header";
 import PushPromptBanner from "@/components/PushPromptBanner";
 import { COMMUNES } from "@/lib/communes";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import waterIcon from "@/assets/water-icon-sm.webp";
 import electricityIcon from "@/assets/electricity-icon-sm.webp";
@@ -136,16 +136,203 @@ interface NearbyReport {
   verifications: number;
 }
 
-const HAVERSINE_KM = 2; // rayon en km
+// -- Section HOW IT WORKS — aucune dép. dynamique, jamais re-rendue -------
+const HowItWorksSection = React.memo(() => (
+  <section className="border-y border-border bg-card/40 py-24">
+    <div className="container">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="mb-14 text-center"
+      >
+        <span className="inline-block rounded-full border border-border bg-secondary px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Comment ça marche
+        </span>
+        <h2 className="mt-4 font-display text-3xl font-bold text-foreground md:text-4xl">
+          Simple. Rapide. Efficace.
+        </h2>
+        <p className="mx-auto mt-3 max-w-sm text-muted-foreground">
+          De la détection du problème à la décision en 4 étapes
+        </p>
+      </motion.div>
 
-function distKm(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      <div className="relative grid gap-10 md:grid-cols-4">
+        <div className="pointer-events-none absolute top-[2.2rem] left-[12%] right-[12%] hidden h-px bg-gradient-to-r from-transparent via-border/60 to-transparent md:block" />
+        {STEPS.map((step, i) => (
+          <motion.div
+            key={step.step}
+            initial={{ opacity: 0, y: 28 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: i * 0.12, duration: 0.5 }}
+            className="relative flex flex-col items-center text-center"
+          >
+            <div className={`relative z-10 mb-5 flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-2xl border ${step.border} ${step.bg} text-3xl`}>
+              {step.emoji}
+              <span className={`absolute -top-2.5 -right-2.5 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background text-[9px] font-extrabold tabular-nums ${step.color}`}>
+                {step.step}
+              </span>
+            </div>
+            <h3 className="font-display text-base font-bold text-foreground">{step.title}</h3>
+            <p className={`mt-0.5 text-[11px] font-bold uppercase tracking-wider ${step.color}`}>{step.headline}</p>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{step.desc}</p>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  </section>
+));
+
+// -- Section COMMUNAUTÉ + FOOTER — jamais re-rendue -----------------------
+const CommunityAndFooter = React.memo(() => (
+  <>
+    <section className="py-14 border-t border-border bg-gradient-to-b from-primary/3 to-transparent">
+      <div className="container max-w-2xl text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+        >
+          <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">Communauté</p>
+          <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-foreground mb-3">
+            Rejoignez la communauté SIGNA-CI
+          </h2>
+          <p className="text-sm text-muted-foreground mb-8 max-w-md mx-auto">
+            Suivez l'actualité des coupures, partagez vos expériences et restez informé en temps réel avec vos voisins.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <a
+              href={SOCIAL_LINKS.facebook.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-3 rounded-2xl border-2 border-[#1877F2]/30 bg-[#1877F2]/5 px-6 py-4 w-full sm:w-auto transition-all hover:border-[#1877F2]/60 hover:bg-[#1877F2]/10 hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#1877F2]">
+                <svg viewBox="0 0 24 24" className="h-5 w-5 fill-white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-sm text-foreground group-hover:text-[#1877F2] transition-colors">Page Facebook</p>
+                <p className="text-xs text-muted-foreground">Actualités & alertes</p>
+              </div>
+              <ExternalLink className="h-3.5 w-3.5 text-muted-foreground ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </a>
+            <a
+              href={SOCIAL_LINKS.whatsapp.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-3 rounded-2xl border-2 border-[#25D366]/30 bg-[#25D366]/5 px-6 py-4 w-full sm:w-auto transition-all hover:border-[#25D366]/60 hover:bg-[#25D366]/10 hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#25D366]">
+                <svg viewBox="0 0 24 24" className="h-5 w-5 fill-white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-sm text-foreground group-hover:text-[#25D366] transition-colors">Canal WhatsApp</p>
+                <p className="text-xs text-muted-foreground">Alertes instantanées</p>
+              </div>
+              <ExternalLink className="h-3.5 w-3.5 text-muted-foreground ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </a>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+
+    <footer className="border-t border-border bg-card py-10">
+      <div className="container">
+        <div className="grid gap-8 sm:grid-cols-3 mb-8">
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-8 w-8">
+                <circle cx="18" cy="14" r="12" fill="hsl(var(--primary))" opacity="0.12" />
+                <circle cx="18" cy="13" r="7" fill="hsl(var(--primary))" />
+                <path d="M18 20 L18 34 L15 30 L18 34 L21 30 L18 34" stroke="hsl(var(--primary))" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                <circle cx="18" cy="13" r="3" fill="white" />
+                <path d="M11 9 Q9 11 9 13 Q9 15 11 17" stroke="hsl(var(--primary))" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.5" />
+                <path d="M25 9 Q27 11 27 13 Q27 15 25 17" stroke="hsl(var(--primary))" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.5" />
+              </svg>
+              <div className="flex flex-col leading-none">
+                <span className="font-extrabold text-sm text-foreground">SIGNA<span className="text-primary">·CI</span></span>
+                <span className="text-[9px] font-semibold tracking-widest text-muted-foreground uppercase">Côte d'Ivoire</span>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Plateforme citoyenne ivoirienne de signalement des dysfonctionnements des services et infrastructures publiques urbains à Abidjan, et dans toute la Côte d'Ivoire.
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wider">Navigation</p>
+            <div className="flex flex-col gap-2">
+              <Link to="/signaler" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"><Zap className="h-3.5 w-3.5" /> Signaler un problème</Link>
+              <Link to="/tableau-de-bord" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"><BarChart3 className="h-3.5 w-3.5" /> Tableau de bord citoyen</Link>
+              <Link to="/carte" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"><Map className="h-3.5 w-3.5" /> Carte des signalements</Link>
+              <Link to="/verification" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"><Users className="h-3.5 w-3.5" /> Vérifier & confirmer un signalement</Link>
+              <Link to="/historique" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"><History className="h-3.5 w-3.5" /> Mon historique</Link>
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wider">Informations</p>
+            <div className="flex flex-col gap-2">
+              <Link to="/a-propos" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"><Info className="h-3.5 w-3.5" /> À propos & CGU</Link>
+              <Link to="/confidentialite" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"><Shield className="h-3.5 w-3.5" /> Politique de confidentialité</Link>
+              <Link to="/dons" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"><Heart className="h-3.5 w-3.5" /> Soutenir le projet</Link>
+            </div>
+          </div>
+        </div>
+        <div className="border-t border-border pt-6 flex flex-col items-center justify-between gap-4 sm:flex-row">
+          <p className="text-xs text-muted-foreground">© 2026 SIGNA-CI — CivicTech Abidjan</p>
+          <div className="flex items-center gap-2">
+            <a href={SOCIAL_LINKS.facebook.url} target="_blank" rel="noopener noreferrer" title="Page Facebook SIGNA-CI" className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1877F2]/10 text-[#1877F2] hover:bg-[#1877F2]/20 transition-colors">
+              <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            </a>
+            <a href={SOCIAL_LINKS.whatsapp.url} target="_blank" rel="noopener noreferrer" title="Canal WhatsApp SIGNA-CI" className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 transition-colors">
+              <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            </a>
+          </div>
+          <p className="text-xs text-muted-foreground">Fiers d'être ivoirien ❤️ </p>
+        </div>
+      </div>
+    </footer>
+  </>
+));
+
+// -- Hook A : encapsule Realtime + poll (live count + service counts) -----
+function useLiveData() {
+  const [liveCount, setLiveCount] = useState<number | null>(null);
+  const [liveActive, setLiveActive] = useState(false);
+  const [serviceCounts, setServiceCounts] = useState<ServiceCounts | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchCounts = async () => {
+      const [rpc, elec, water] = await Promise.all([
+        supabase.rpc("get_active_outage_count" as any),
+        supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "active").eq("service_type", "electricity"),
+        supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "active").eq("service_type", "water"),
+      ]);
+      if (cancelled) return;
+      if (rpc.data !== null && rpc.data !== undefined) setLiveCount(Number(rpc.data));
+      setServiceCounts({ electricity: elec.count ?? 0, water: water.count ?? 0 });
+    };
+
+    fetchCounts();
+
+    const channel = supabase
+      .channel("index-live-count")
+      .on("postgres_changes", { event: "*", schema: "public", table: "reports" }, () => {
+        if (cancelled) return;
+        setLiveActive(true);
+        fetchCounts();
+        setTimeout(() => { if (!cancelled) setLiveActive(false); }, 2000);
+      })
+      .subscribe();
+
+    const poll = setInterval(fetchCounts, 30_000);
+    return () => { cancelled = true; supabase.removeChannel(channel); clearInterval(poll); };
+  }, []);
+
+  return { liveCount, liveActive, serviceCounts };
 }
 
 interface MyActiveReport {
@@ -159,14 +346,39 @@ interface MyActiveReport {
   verifications: number;
 }
 
+// Isolated so wordIndex ticks don't re-render the whole page
+const RotatingWord = React.memo(() => {
+  const [wordIndex, setWordIndex] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setWordIndex((i) => (i + 1) % ROTATING_WORDS.length), 2800);
+    return () => clearInterval(id);
+  }, []);
+  const w = ROTATING_WORDS[wordIndex];
+  return (
+    <>
+      <span aria-live="polite" aria-atomic="true" className="sr-only">{w.text}</span>
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={wordIndex}
+          initial={{ opacity: 0, y: 24, filter: "blur(4px)" }}
+          animate={{ opacity: 1, y: 0,  filter: "blur(0px)" }}
+          exit={{   opacity: 0, y: -24, filter: "blur(4px)" }}
+          transition={{ duration: 0.45, ease: "easeInOut" }}
+          className={w.color}
+          aria-hidden="true"
+        >
+          {w.text}
+        </motion.span>
+      </AnimatePresence>
+    </>
+  );
+});
+
 const Index = () => {
   const { user } = useAuth();
   const { canInstall, isIOS, install } = usePWAInstall();
-  const [liveCount, setLiveCount] = useState<number | null>(null);
-  const [liveActive, setLiveActive] = useState(false);
-  const [wordIndex, setWordIndex] = useState(0);
+  const { liveCount, liveActive, serviceCounts } = useLiveData();
   const [landingStats, setLandingStats] = useState<LandingStats | null>(null);
-  const [serviceCounts, setServiceCounts] = useState<ServiceCounts | null>(null);
   const [nearbyReports, setNearbyReports] = useState<NearbyReport[]>([]);
   const [nearbyLoading, setNearbyLoading] = useState(false);
   const [myActiveReports, setMyActiveReports] = useState<MyActiveReport[]>([]);
@@ -175,50 +387,15 @@ const Index = () => {
     () => localStorage.getItem("signa_elec_feature_v1") !== "dismissed"
   );
 
+  // Batch landing stats + transparency stats — 1 round-trip instead of 2
   useEffect(() => {
-    supabase.rpc("get_landing_stats" as any).then(({ data }) => {
-      if (data) setLandingStats(data as LandingStats);
-    });
-  }, []);
-
-  useEffect(() => {
-    const fetchCounts = async () => {
-      const { data } = await supabase.rpc("get_active_outage_count" as any);
-      if (data !== null && data !== undefined) setLiveCount(Number(data));
-
-      const [elec, water] = await Promise.all([
-        supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "active").eq("service_type", "electricity"),
-        supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "active").eq("service_type", "water"),
-      ]);
-      setServiceCounts({ electricity: elec.count ?? 0, water: water.count ?? 0 });
-    };
-
-    fetchCounts();
-
-    const channel = supabase
-      .channel("index-live-count")
-      .on("postgres_changes", { event: "*", schema: "public", table: "reports" }, () => {
-        setLiveActive(true);
-        fetchCounts();
-        setTimeout(() => setLiveActive(false), 2000);
-      })
-      .subscribe();
-
-    // Refresh toutes les 30s (suffisant pour une app installée)
-    const poll = setInterval(fetchCounts, 30_000);
-    return () => { supabase.removeChannel(channel); clearInterval(poll); };
-  }, []);
-
-  useEffect(() => {
-    const id = setInterval(() => setWordIndex((i) => (i + 1) % ROTATING_WORDS.length), 2800);
-    return () => clearInterval(id);
-  }, []);
-
-  // Temps de résolution moyen par opérateur
-  useEffect(() => {
-    supabase.rpc("get_transparency_stats" as any).then(({ data }) => {
-      if (data && (data as any).avg_resolution_hours) {
-        setAvgResolutionHours((data as any).avg_resolution_hours);
+    Promise.all([
+      supabase.rpc("get_landing_stats" as any),
+      supabase.rpc("get_transparency_stats" as any),
+    ]).then(([{ data: stats }, { data: trans }]) => {
+      if (stats) setLandingStats(stats as LandingStats);
+      if (trans && (trans as any).avg_resolution_hours) {
+        setAvgResolutionHours((trans as any).avg_resolution_hours);
       }
     });
   }, []);
@@ -236,35 +413,30 @@ const Index = () => {
       .then(({ data }) => { if (data) setMyActiveReports(data as MyActiveReport[]); });
   }, [user]);
 
-  // Signalements "près de moi" — GPS optionnel
+  // Signalements "près de moi" — GPS optionnel, filtrage côté DB via RPC
   useEffect(() => {
     if (!navigator.geolocation) return;
+    let cancelled = false;
     setNearbyLoading(true);
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        const { latitude: lat, longitude: lon } = pos.coords;
-        // Fetch active reports with approximate coordinates
-        const { data } = await supabase
-          .from("reports")
-          .select("id, service_type, report_category, commune, quartier, description, created_at, verifications, latitude, longitude")
-          .eq("status", "active")
-          .not("latitude", "is", null)
-          .limit(100);
-        if (data) {
-          const nearby = (data as any[])
-            .filter((r) => r.latitude && r.longitude && distKm(lat, lon, r.latitude, r.longitude) <= HAVERSINE_KM)
-            .slice(0, 5) as NearbyReport[];
-          setNearbyReports(nearby);
-        }
+        const { latitude, longitude } = pos.coords;
+        const { data } = await supabase.rpc("get_landing_nearby_reports" as any, {
+          p_lat: latitude,
+          p_lon: longitude,
+          p_rayon_m: 2000,
+          p_limit: 5,
+        });
+        if (cancelled) return;
+        if (data) setNearbyReports(data as NearbyReport[]);
         setNearbyLoading(false);
       },
-      () => setNearbyLoading(false),
+      () => { if (!cancelled) setNearbyLoading(false); },
       { timeout: 5000, maximumAge: 60000 }
     );
+    return () => { cancelled = true; };
   }, []);
 
-
-  const currentWord = ROTATING_WORDS[wordIndex];
 
   return (
     <div className="min-h-screen bg-background">
@@ -274,7 +446,7 @@ const Index = () => {
       {/* ══════════════════════════════════════════════════════════════
           HERO — full viewport, texte rotatif animé
       ══════════════════════════════════════════════════════════════ */}
-      <section className="relative flex min-h-[93vh] items-center overflow-hidden">
+      <section className="relative flex min-h-[93vh] items-start sm:items-center overflow-hidden">
         {/* ── Fond civic tech moderne ── */}
         <div className="absolute inset-0">
           {/* Base : gradient bleu nuit profond — crédible, institutionnel */}
@@ -312,7 +484,7 @@ const Index = () => {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.55)_100%)]" />
         </div>
 
-        <div className="container relative z-10 py-20">
+        <div className="container relative z-10 pt-10 pb-20 sm:py-20">
           <div className="max-w-3xl">
 
             {/* Status badges */}
@@ -320,7 +492,7 @@ const Index = () => {
               initial={{ opacity: 0, y: -12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="mb-8 flex flex-wrap items-center gap-3"
+              className="mb-5 sm:mb-8 flex flex-wrap items-center gap-3"
             >
               {liveCount !== null && (
                 <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold backdrop-blur-md ${
@@ -362,18 +534,7 @@ const Index = () => {
                   Signalez les
                 </span>
                 <span className="block min-h-[1.15em] text-5xl md:text-6xl lg:text-[4.5rem]">
-                  <AnimatePresence mode="wait">
-                    <motion.span
-                      key={wordIndex}
-                      initial={{ opacity: 0, y: 24, filter: "blur(4px)" }}
-                      animate={{ opacity: 1, y: 0,  filter: "blur(0px)" }}
-                      exit={{   opacity: 0, y: -24, filter: "blur(4px)" }}
-                      transition={{ duration: 0.45, ease: "easeInOut" }}
-                      className={currentWord.color}
-                    >
-                      {currentWord.text}
-                    </motion.span>
-                  </AnimatePresence>
+                  <RotatingWord />
                 </span>
               </motion.h1>
             </div>
@@ -383,7 +544,7 @@ const Index = () => {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.35 }}
-              className="mt-6 max-w-xl text-lg leading-relaxed text-white/65"
+              className="mt-4 sm:mt-6 max-w-xl text-base sm:text-lg leading-relaxed text-white/65"
             >
               La première plateforme citoyenne ivoirienne où les habitants contribuent
               à l'amélioration des services et infrastructures publiques.
@@ -394,7 +555,7 @@ const Index = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.48 }}
-              className="mt-8 flex flex-wrap gap-3"
+              className="mt-6 sm:mt-8 flex flex-wrap gap-3"
             >
               <Link
                 to="/signaler"
@@ -454,7 +615,7 @@ const Index = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.2 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/30"
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/50"
         >
           <span className="text-[10px] tracking-[0.2em] uppercase">Découvrir</span>
           <motion.div animate={{ y: [0, 5, 0] }} transition={{ repeat: Infinity, duration: 1.6 }}>
@@ -907,57 +1068,7 @@ const Index = () => {
         )}
       </section>
 
-      {/* ══════════════════════════════════════════════════════════════
-          HOW IT WORKS — 4 étapes avec ligne de connexion
-      ══════════════════════════════════════════════════════════════ */}
-      <section className="border-y border-border bg-card/40 py-24">
-        <div className="container">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mb-14 text-center"
-          >
-            <span className="inline-block rounded-full border border-border bg-secondary px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Comment ça marche
-            </span>
-            <h2 className="mt-4 font-display text-3xl font-bold text-foreground md:text-4xl">
-              Simple. Rapide. Efficace.
-            </h2>
-            <p className="mx-auto mt-3 max-w-sm text-muted-foreground">
-              De la détection du problème à la décision en 4 étapes
-            </p>
-          </motion.div>
-
-          <div className="relative grid gap-10 md:grid-cols-4">
-            {/* Ligne de connexion desktop */}
-            <div className="pointer-events-none absolute top-[2.2rem] left-[12%] right-[12%] hidden h-px bg-gradient-to-r from-transparent via-border/60 to-transparent md:block" />
-
-            {STEPS.map((step, i) => (
-              <motion.div
-                key={step.step}
-                initial={{ opacity: 0, y: 28 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.12, duration: 0.5 }}
-                className="relative flex flex-col items-center text-center"
-              >
-                {/* Icon circle */}
-                <div className={`relative z-10 mb-5 flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-2xl border ${step.border} ${step.bg} text-3xl`}>
-                  {step.emoji}
-                  <span className={`absolute -top-2.5 -right-2.5 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background text-[9px] font-extrabold tabular-nums ${step.color}`}>
-                    {step.step}
-                  </span>
-                </div>
-
-                <h3 className="font-display text-base font-bold text-foreground">{step.title}</h3>
-                <p className={`mt-0.5 text-[11px] font-bold uppercase tracking-wider ${step.color}`}>{step.headline}</p>
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{step.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <HowItWorksSection />
 
       {/* ══════════════════════════════════════════════════════════════
           AUTH CTA — pour visiteurs non connectés
@@ -1017,164 +1128,7 @@ const Index = () => {
         </section>
       )}
 
-      {/* ══════════════════════════════════════════════════════════════
-          FOOTER
-      ══════════════════════════════════════════════════════════════ */}
-      {/* ══════════════════════════════════════════════════════════════
-          COMMUNAUTÉ — Rejoignez-nous sur les réseaux
-      ══════════════════════════════════════════════════════════════ */}
-      <section className="py-14 border-t border-border bg-gradient-to-b from-primary/3 to-transparent">
-        <div className="container max-w-2xl text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-          >
-            <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">Communauté</p>
-            <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-foreground mb-3">
-              Rejoignez la communauté SIGNA-CI
-            </h2>
-            <p className="text-sm text-muted-foreground mb-8 max-w-md mx-auto">
-              Suivez l'actualité des coupures, partagez vos expériences et restez informé en temps réel avec vos voisins.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              {/* Facebook */}
-              <a
-                href={SOCIAL_LINKS.facebook.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-center gap-3 rounded-2xl border-2 border-[#1877F2]/30 bg-[#1877F2]/5 px-6 py-4 w-full sm:w-auto transition-all hover:border-[#1877F2]/60 hover:bg-[#1877F2]/10 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#1877F2]">
-                  <svg viewBox="0 0 24 24" className="h-5 w-5 fill-white" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                  </svg>
-                </div>
-                <div className="text-left">
-                  <p className="font-bold text-sm text-foreground group-hover:text-[#1877F2] transition-colors">Page Facebook</p>
-                  <p className="text-xs text-muted-foreground">Actualités & alertes</p>
-                </div>
-                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </a>
-
-              {/* WhatsApp Canal */}
-              <a
-                href={SOCIAL_LINKS.whatsapp.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-center gap-3 rounded-2xl border-2 border-[#25D366]/30 bg-[#25D366]/5 px-6 py-4 w-full sm:w-auto transition-all hover:border-[#25D366]/60 hover:bg-[#25D366]/10 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#25D366]">
-                  <svg viewBox="0 0 24 24" className="h-5 w-5 fill-white" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                  </svg>
-                </div>
-                <div className="text-left">
-                  <p className="font-bold text-sm text-foreground group-hover:text-[#25D366] transition-colors">Canal WhatsApp</p>
-                  <p className="text-xs text-muted-foreground">Alertes instantanées</p>
-                </div>
-                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </a>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      <footer className="border-t border-border bg-card py-10">
-        <div className="container">
-          <div className="grid gap-8 sm:grid-cols-3 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-8 w-8">
-                  <circle cx="18" cy="14" r="12" fill="hsl(var(--primary))" opacity="0.12" />
-                  <circle cx="18" cy="13" r="7" fill="hsl(var(--primary))" />
-                  <path d="M18 20 L18 34 L15 30 L18 34 L21 30 L18 34" stroke="hsl(var(--primary))" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                  <circle cx="18" cy="13" r="3" fill="white" />
-                  <path d="M11 9 Q9 11 9 13 Q9 15 11 17" stroke="hsl(var(--primary))" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.5" />
-                  <path d="M25 9 Q27 11 27 13 Q27 15 25 17" stroke="hsl(var(--primary))" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.5" />
-                </svg>
-                <div className="flex flex-col leading-none">
-                  <span className="font-extrabold text-sm text-foreground">SIGNA<span className="text-primary">·CI</span></span>
-                  <span className="text-[9px] font-semibold tracking-widest text-muted-foreground uppercase">Côte d'Ivoire</span>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Plateforme citoyenne ivoirienne de signalement des dysfonctionnements des services et infrastructures publiques urbains à Abidjan, et dans toute la Côte d'Ivoire.
-              </p>
-            </div>
-
-            <div>
-              <p className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wider">Navigation</p>
-              <div className="flex flex-col gap-2">
-                <Link to="/signaler" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  <Zap className="h-3.5 w-3.5" /> Signaler un problème
-                </Link>
-                <Link to="/tableau-de-bord" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  <BarChart3 className="h-3.5 w-3.5" /> Tableau de bord citoyen
-                </Link>
-                <Link to="/carte" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  <Map className="h-3.5 w-3.5" /> Carte des signalements
-                </Link>
-                <Link to="/verification" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  <Users className="h-3.5 w-3.5" /> Vérifier & confirmer un signalement
-                </Link>
-                <Link to="/historique" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  <History className="h-3.5 w-3.5" /> Mon historique
-                </Link>
-              </div>
-            </div>
-
-            <div>
-              <p className="text-xs font-semibold text-foreground mb-3 uppercase tracking-wider">Informations</p>
-              <div className="flex flex-col gap-2">
-                <Link to="/a-propos" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  <Info className="h-3.5 w-3.5" /> À propos & CGU
-                </Link>
-                <Link to="/confidentialite" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  <Shield className="h-3.5 w-3.5" /> Politique de confidentialité
-                </Link>
-                <Link to="/dons" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  <Heart className="h-3.5 w-3.5" /> Soutenir le projet
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-border pt-6 flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <p className="text-xs text-muted-foreground">© 2026 SIGNA-CI — CivicTech Abidjan</p>
-
-            {/* Social icons */}
-            <div className="flex items-center gap-2">
-              <a
-                href={SOCIAL_LINKS.facebook.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Page Facebook SIGNA-CI"
-                className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1877F2]/10 text-[#1877F2] hover:bg-[#1877F2]/20 transition-colors"
-              >
-                <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-              </a>
-              <a
-                href={SOCIAL_LINKS.whatsapp.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Canal WhatsApp SIGNA-CI"
-                className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 transition-colors"
-              >
-                <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                </svg>
-              </a>
-            </div>
-
-            <p className="text-xs text-muted-foreground">Fiers d'être ivoirien ❤️ </p>
-          </div>
-        </div>
-      </footer>
+      <CommunityAndFooter />
 
       <SOSButtons />
     </div>

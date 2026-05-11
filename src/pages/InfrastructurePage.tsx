@@ -78,13 +78,15 @@ const InfrastructurePage = () => {
       if (subFilter) query = query.ilike("description", `%${subFilter}%`);
       if (communeFilter) query = query.eq("commune", communeFilter);
 
-      const [{ data, error }, { data: myVotes }] = await Promise.all([
+      const [{ data, error }, { data: myVotes }, { data: myRepairs }] = await Promise.all([
         query,
         supabase.from("corroborations").select("report_id").eq("user_id", user.id),
+        supabase.from("repair_confirmations").select("report_id").eq("user_id", user.id),
       ]);
       if (error) { setter(false); return; }
       items = (data ?? []) as unknown as InfraReport[];
       if (myVotes) setSupported(new Set(myVotes.map((v: any) => v.report_id)));
+      if (myRepairs) setRepaired(new Set(myRepairs.map((v: any) => v.report_id)));
     } else {
       // Visiteur anonyme → RPC SECURITY DEFINER (bypass RLS)
       const { data, error } = await (supabase as any).rpc(
@@ -188,18 +190,33 @@ const InfrastructurePage = () => {
       toast.info("Connectez-vous pour confirmer la réparation");
       return;
     }
+
+    if (repaired.has(reportId)) {
+      const { error } = await (supabase.rpc as any)("cancel_repair", { p_report_id: reportId });
+      if (error) {
+        console.error("[cancel_repair]", error);
+        toast.error(error.message || "Impossible d'annuler la confirmation");
+        return;
+      }
+      setRepaired((prev) => { const next = new Set(prev); next.delete(reportId); return next; });
+      setReports((prev) =>
+        prev.map((r) => (r.id === reportId ? { ...r, repair_verifications: Math.max(0, (r.repair_verifications || 0) - 1) } : r))
+      );
+      toast.info("Confirmation annulée");
+      return;
+    }
+
     const { error } = await supabase.rpc("confirm_repair", { p_report_id: reportId });
     if (error) {
-      toast.error("Impossible de confirmer la réparation", {
-        description: "Vérifiez votre connexion et réessayez.",
-      });
+      console.error("[confirm_repair]", error);
+      toast.error(error.message || "Impossible de confirmer la réparation");
       return;
     }
     setRepaired((prev) => new Set(prev).add(reportId));
     setReports((prev) =>
       prev.map((r) => (r.id === reportId ? { ...r, repair_verifications: (r.repair_verifications || 0) + 1 } : r))
     );
-    toast.success("✅ Réparation confirmée !", {
+    toast.success("Réparation confirmée !", {
       description: "Merci ! Si 3 citoyens le confirment, le signalement sera clôturé.",
     });
   };
@@ -633,15 +650,15 @@ const InfrastructurePage = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className={`flex-1 text-xs gap-1.5 min-w-0 ${
+                      className={`flex-1 text-xs gap-1.5 min-w-0 transition-colors ${
                         repaired.has(report.id)
-                          ? "text-emerald-600 font-semibold"
+                          ? "text-emerald-600 font-semibold hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
                           : "text-emerald-600/70 hover:text-emerald-600"
                       }`}
                       onClick={() => handleConfirmRepair(report.id)}
-                      disabled={repaired.has(report.id)}
+                      title={repaired.has(report.id) ? "Cliquer pour annuler" : undefined}
                     >
-                      <CheckCircle className="h-4 w-4 shrink-0" />
+                      <CheckCircle className={`h-4 w-4 shrink-0 ${repaired.has(report.id) ? "fill-emerald-600" : ""}`} />
                       <span className="truncate">
                         {repaired.has(report.id) ? "Réparé ✓" : "C'est réparé ?"}
                       </span>

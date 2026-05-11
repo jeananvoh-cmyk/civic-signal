@@ -17,6 +17,7 @@ interface ScoreLevel {
   bgClass: string;
   textClass: string;
   borderClass: string;
+  barClass: string;
   description: string;
 }
 
@@ -28,6 +29,7 @@ const LEVELS: ScoreLevel[] = [
     bgClass: "bg-muted",
     textClass: "text-muted-foreground",
     borderClass: "border-border",
+    barClass: "bg-muted-foreground/40",
     description: "Bienvenue sur SIGNA-CI",
   },
   {
@@ -37,6 +39,7 @@ const LEVELS: ScoreLevel[] = [
     bgClass: "bg-blue-500/10",
     textClass: "text-blue-600 dark:text-blue-400",
     borderClass: "border-blue-500/30",
+    barClass: "bg-blue-500",
     description: "Signalements actifs et profil renseigné",
   },
   {
@@ -46,6 +49,7 @@ const LEVELS: ScoreLevel[] = [
     bgClass: "bg-green-500/10",
     textClass: "text-green-600 dark:text-green-400",
     borderClass: "border-green-500/30",
+    barClass: "bg-green-500",
     description: "Plusieurs signalements validés par l'équipe",
   },
   {
@@ -55,6 +59,7 @@ const LEVELS: ScoreLevel[] = [
     bgClass: "bg-amber-500/10",
     textClass: "text-amber-600 dark:text-amber-400",
     borderClass: "border-amber-500/30",
+    barClass: "bg-amber-500",
     description: "Contributeur de confiance de longue date",
   },
 ];
@@ -132,15 +137,16 @@ export const CitizenScore = ({
     return (
       <span
         className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${level.bgClass} ${level.textClass} ${level.borderClass}`}
+        aria-label={`Score citoyen : ${level.label} (${score} points)`}
       >
-        {level.icon}
+        <span aria-hidden="true">{level.icon}</span>
         {level.label}
       </span>
     );
   }
 
   return (
-    <div className={`rounded-xl border ${level.borderClass} ${level.bgClass} p-4 space-y-3`}>
+    <div className={`rounded-xl border ${level.borderClass} ${level.bgClass} p-4 space-y-3`} aria-label={`Score citoyen : ${level.label}, ${score} points`}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -162,10 +168,17 @@ export const CitizenScore = ({
             <span>Prochain niveau : {nextLevel.label}</span>
             <span>{nextLevel.minScore - score} pts manquants</span>
           </div>
-          <div className="h-1.5 w-full rounded-full bg-border overflow-hidden">
+          <div
+            className="h-1.5 w-full rounded-full bg-border overflow-hidden"
+            role="progressbar"
+            aria-valuenow={progress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`Progression vers ${nextLevel?.label} : ${progress}%`}
+          >
             <div
-              className={`h-full rounded-full transition-all duration-500 ${level.textClass.replace("text-", "bg-")}`}
-              style={{ width: `${progress}%` }}
+              className={`h-full rounded-full origin-left transition-transform duration-500 ${level.barClass}`}
+              style={{ transform: `scaleX(${progress / 100})` }}
             />
           </div>
         </div>
