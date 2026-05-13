@@ -17,6 +17,7 @@ import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
+import { cn } from "@/lib/utils";
 
 type InfraReport = {
   id: string;
@@ -326,11 +327,12 @@ const InfrastructurePage = () => {
                               key={item.sub}
                               type="button"
                               onClick={() => { handleCategoryClick(item.sub, "electricite"); setOpenSection(null); }}
-                              className={`flex flex-col items-center justify-center gap-1.5 rounded-lg p-2 text-center transition-all border ${
+                              className={cn(
+                                "flex flex-col items-center justify-center gap-1.5 rounded-lg p-2 text-center transition-colors border",
                                 subFilter === item.sub && filter === "electricite"
                                   ? item.danger ? "border-destructive bg-destructive/15 ring-1 ring-destructive/40" : "border-[hsl(var(--electricity))] bg-[hsl(var(--electricity))]/15 ring-1 ring-[hsl(var(--electricity))]/40"
                                   : item.danger ? "border-destructive/20 bg-destructive/5 hover:bg-destructive/15" : "border-[hsl(var(--electricity))]/20 bg-[hsl(var(--electricity))]/5 hover:bg-[hsl(var(--electricity))]/15"
-                              }`}
+                              )}
                             >
                               {item.icon}
                               <span className="text-[10px] font-semibold text-foreground leading-tight">{item.label}</span>
@@ -384,11 +386,12 @@ const InfrastructurePage = () => {
                               key={item.sub}
                               type="button"
                               onClick={() => { handleCategoryClick(item.sub, "eau"); setOpenSection(null); }}
-                              className={`flex flex-col items-center justify-center gap-1.5 rounded-lg p-2 text-center transition-all border ${
+                              className={cn(
+                                "flex flex-col items-center justify-center gap-1.5 rounded-lg p-2 text-center transition-colors border",
                                 subFilter === item.sub && filter === "eau"
                                   ? item.danger ? "border-destructive bg-destructive/15 ring-1 ring-destructive/40" : "border-[hsl(var(--water))] bg-[hsl(var(--water))]/15 ring-1 ring-[hsl(var(--water))]/40"
                                   : item.danger ? "border-destructive/20 bg-destructive/5 hover:bg-destructive/15" : "border-[hsl(var(--water))]/20 bg-[hsl(var(--water))]/5 hover:bg-[hsl(var(--water))]/15"
-                              }`}
+                              )}
                             >
                               {item.icon}
                               <span className="text-[10px] font-semibold text-foreground leading-tight">{item.label}</span>
@@ -442,11 +445,12 @@ const InfrastructurePage = () => {
                               key={item.sub}
                               type="button"
                               onClick={() => { handleCategoryClick(item.sub, "mairie"); setOpenSection(null); }}
-                              className={`flex flex-col items-center justify-center gap-1.5 rounded-lg p-2 text-center transition-all border ${
+                              className={cn(
+                                "flex flex-col items-center justify-center gap-1.5 rounded-lg p-2 text-center transition-colors border",
                                 subFilter === item.sub && filter === "mairie"
                                   ? "border-emerald-500 bg-emerald-500/15 ring-1 ring-emerald-500/40"
                                   : "border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/15"
-                              }`}
+                              )}
                             >
                               {item.icon}
                               <span className="text-[10px] font-semibold text-foreground leading-tight">{item.label}</span>
@@ -650,11 +654,12 @@ const InfrastructurePage = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className={`flex-1 text-xs gap-1.5 min-w-0 transition-colors ${
+                      className={cn(
+                        "flex-1 text-xs gap-1.5 min-w-0 transition-colors",
                         repaired.has(report.id)
-                          ? "text-emerald-600 font-semibold hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+                          ? "text-emerald-600 font-semibold hover:text-destructive hover:bg-destructive/10"
                           : "text-emerald-600/70 hover:text-emerald-600"
-                      }`}
+                      )}
                       onClick={() => handleConfirmRepair(report.id)}
                       title={repaired.has(report.id) ? "Cliquer pour annuler" : undefined}
                     >

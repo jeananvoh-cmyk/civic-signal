@@ -186,9 +186,9 @@ export const CitizenScore = ({
 
       {/* Stats */}
       <div className="flex gap-3 text-xs text-muted-foreground pt-1">
-        <span>✅ {scoreData.validatedCount} validé{scoreData.validatedCount > 1 ? "s" : ""}</span>
-        <span>📋 {scoreData.totalCount} total</span>
-        {profileComplete && <span>👤 Profil complet</span>}
+        <span><span aria-hidden="true">✅</span> {scoreData.validatedCount} validé{scoreData.validatedCount > 1 ? "s" : ""}</span>
+        <span><span aria-hidden="true">📋</span> {scoreData.totalCount} total</span>
+        {profileComplete && <span><span aria-hidden="true">👤</span> Profil complet</span>}
       </div>
     </div>
   );
