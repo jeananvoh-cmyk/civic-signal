@@ -626,7 +626,7 @@ const ReportPage = () => {
       if (pregnant > 0) vulnParts.push(`${pregnant} femme(s) enceinte(s)`);
       if (elderly > 0) vulnParts.push(`${elderly} personne(s) âgée(s)`);
       const impactInfo = `[${impactedPeople} personne(s)${vulnParts.length ? ` dont ${vulnParts.join(", ")}` : ""}]`;
-      const fullDesc = `${fullBaseDesc} ${impactInfo}`;
+      const fullDesc = `${fullBaseDesc} ${impactInfo}`.slice(0, 600);
       const hasVulnerable = babies > 0 || pregnant > 0 || elderly > 0;
 
       const canonicalQuartier = normalizeQuartier(resolvedQuartier, commune);
@@ -710,7 +710,10 @@ const ReportPage = () => {
       } else if (msg.includes("Rate limit exceeded")) {
         toast.error("⏱️ Trop de signalements ! Attendez 1 minute.");
       } else {
-        toast.error(getUserFriendlyError(error, "Erreur lors de l'envoi"));
+        const detail = error?.message || error?.details;
+        toast.error(getUserFriendlyError(error, "Erreur lors de l'envoi"), {
+          description: detail ? String(detail) : undefined,
+        });
       }
     } finally {
       setSubmitting(false);
