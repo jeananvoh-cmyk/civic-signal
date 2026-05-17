@@ -260,7 +260,7 @@ export default function AddRechargeSheet({ meterId, onSave, onClose }: Props) {
           <button
             onClick={handleSave}
             disabled={saving || !kwh}
-            className="w-full rounded-2xl bg-primary py-3.5 text-sm font-bold text-white disabled:opacity-50 active:scale-95 transition-transform"
+            className="w-full rounded-2xl bg-primary py-3.5 text-sm font-bold text-white disabled:opacity-50 active:scale-[0.96] transition-transform"
           >
             {saving ? "Enregistrement…" : "Enregistrer la recharge"}
           </button>

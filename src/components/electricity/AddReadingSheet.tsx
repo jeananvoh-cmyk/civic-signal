@@ -141,7 +141,7 @@ export default function AddReadingSheet({ meterId, currentEstimate, onSave, onCl
           <button
             onClick={handleSave}
             disabled={saving}
-            className="w-full rounded-2xl bg-primary py-3.5 text-sm font-bold text-white disabled:opacity-50 active:scale-95 transition-transform"
+            className="w-full rounded-2xl bg-primary py-3.5 text-sm font-bold text-white disabled:opacity-50 active:scale-[0.96] transition-transform"
           >
             {saving ? "Enregistrement…" : "Enregistrer la mise à jour"}
           </button>

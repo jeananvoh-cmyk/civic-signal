@@ -254,7 +254,7 @@ const ConfirmationPage = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 1.2, y: 10 }}
               transition={{ duration: 0.3 }}
-              className="font-display text-6xl font-extrabold"
+              className="font-display text-6xl font-extrabold tabular-nums"
               aria-hidden="true"
               style={{ color: verifications > 0 ? accentColor : undefined }}
             >

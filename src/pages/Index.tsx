@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 import {
   Zap, Shield, Users, ArrowRight, BarChart3, MapPin,
   Radio, LogIn, UserPlus, Map, History, Info, Heart,
@@ -495,11 +496,12 @@ const Index = () => {
               className="mb-5 sm:mb-8 flex flex-wrap items-center gap-3"
             >
               {liveCount !== null && (
-                <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold backdrop-blur-md ${
+                <div className={cn(
+                  "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold backdrop-blur-md tabular-nums",
                   liveCount > 0
                     ? "border-red-400/40 bg-red-500/15 text-red-200"
                     : "border-green-400/40 bg-green-500/15 text-green-200"
-                }`}>
+                )}>
                   <Radio className={`h-3.5 w-3.5 ${liveActive ? "animate-pulse" : ""}`} />
                   <AnimatePresence mode="wait">
                     <motion.span
@@ -662,7 +664,7 @@ const Index = () => {
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 6 }}
-                    className="font-display text-3xl font-extrabold text-white md:text-4xl"
+                    className="font-display text-3xl font-extrabold text-white md:text-4xl tabular-nums"
                   >
                     {stat.value}
                   </motion.p>

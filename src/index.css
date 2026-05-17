@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&family=Lora:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -51,7 +51,7 @@
     --input: 220 16% 88%;
     --ring: 207 97% 35%;
 
-    --radius: 0.5rem;
+    --radius: 0.625rem;
 
     /* Custom tokens */
     --water: 199 80% 42%;
@@ -239,50 +239,79 @@
 @layer base {
   * {
     @apply border-border;
-    /* Prevent text selection on UI elements — native app feel */
     -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    text-rendering: optimizeLegibility;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, sans-serif;
-    /* Prevent overscroll bounce on iOS (native app feel) */
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-feature-settings: "cv11", "ss01", "rlig" 1, "calt" 1;
+    font-optical-sizing: auto;
+    line-height: 1.6;
     overscroll-behavior: none;
-    /* Smooth font rendering */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  h1, h2, h3 {
+  h1, h2, h3, h4, h5, h6 {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    letter-spacing: -0.02em;
+    font-feature-settings: "cv11", "ss01";
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+    font-weight: 700;
+    text-wrap: balance;
   }
 
-  /* Prevent text selection on buttons, labels, nav — feels like native */
+  p {
+    line-height: 1.65;
+    text-wrap: pretty;
+  }
+
+  /* Selection color */
+  ::selection {
+    background: hsl(var(--primary) / 0.18);
+    color: hsl(var(--foreground));
+  }
+
+  /* Scrollbar — subtle, Notion-like */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.5); }
+
+  /* Focus ring — Stripe-like: thin, precise */
+  *:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: var(--radius);
+  }
+
+  /* Inputs: no browser outline, use focus-visible instead */
+  input:focus, textarea:focus, select:focus { outline: none; }
+
   button, a, label, nav, [role="button"] {
     user-select: none;
     -webkit-user-select: none;
   }
 
-  /* Smooth scrolling inside the app */
-  html {
-    scroll-behavior: smooth;
-  }
-
-  /* Native-like active state on touch */
-  button:active, a:active, [role="button"]:active {
-    opacity: 0.75;
-    transition: opacity 0.08s ease;
+  /* Native active state */
+  button:active, [role="button"]:active {
+    transform: scale(0.96);
+    transition: transform 0.1s ease;
   }
 }
 
 @layer utilities {
-  .gradient-hero {
-    background: var(--gradient-hero);
-  }
-  .gradient-hero-rich {
-    background: var(--gradient-hero);
-  }
+  /* ── Gradients ── */
+  .gradient-hero { background: var(--gradient-hero); }
+  .gradient-hero-rich { background: var(--gradient-hero); }
   .gradient-hero-rich::before {
     content: '';
     position: absolute;
@@ -290,45 +319,96 @@
     background: var(--gradient-hero-radial);
     pointer-events: none;
   }
-  .gradient-water {
-    background: var(--gradient-water);
-  }
-  .gradient-electricity {
-    background: var(--gradient-electricity);
-  }
-  .gradient-glass {
-    background: var(--gradient-glass);
-  }
-  .shadow-card {
-    box-shadow: var(--shadow-card);
-  }
-  .shadow-elevated {
-    box-shadow: var(--shadow-elevated);
-  }
-  .shadow-glow-water {
-    box-shadow: var(--shadow-glow-water);
-  }
-  .shadow-glow-electricity {
-    box-shadow: var(--shadow-glow-electricity);
-  }
-  .text-gradient-brand {
-    background: linear-gradient(135deg, hsl(192 80% 55%), hsl(40 95% 60%));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
+  .gradient-water { background: var(--gradient-water); }
+  .gradient-electricity { background: var(--gradient-electricity); }
+  .gradient-glass { background: var(--gradient-glass); }
+
+  /* ── Shadows ── */
+  .shadow-card { box-shadow: var(--shadow-card); }
+  .shadow-elevated { box-shadow: var(--shadow-elevated); }
+  .shadow-glow-water { box-shadow: var(--shadow-glow-water); }
+  .shadow-glow-electricity { box-shadow: var(--shadow-glow-electricity); }
+
+  /* ── Glass surfaces ── */
   .glass-card {
     background: hsl(0 0% 100% / 0.06);
-    backdrop-filter: blur(16px);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid hsl(0 0% 100% / 0.1);
   }
   .glass-card-light {
-    background: hsl(0 0% 100% / 0.7);
-    backdrop-filter: blur(16px);
+    background: hsl(0 0% 100% / 0.72);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid hsl(0 0% 0% / 0.06);
   }
   .dark .glass-card-light {
     background: hsl(0 0% 100% / 0.06);
     border-color: hsl(0 0% 100% / 0.1);
+  }
+
+  /* ── Text gradients ── */
+  .text-gradient-brand {
+    background: linear-gradient(135deg, hsl(207 97% 42%), hsl(199 80% 52%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .text-gradient-hero {
+    background: linear-gradient(135deg, hsl(0 0% 100%), hsl(207 60% 85%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Typography ── */
+  .font-display { font-family: 'Inter', system-ui, sans-serif; font-feature-settings: "cv11"; letter-spacing: -0.03em; }
+  .text-balance { text-wrap: balance; }
+  .text-pretty { text-wrap: pretty; }
+  .tracking-tighter-display { letter-spacing: -0.035em; }
+
+  /* ── Surfaces ── */
+  .surface {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: calc(var(--radius) + 0.25rem);
+  }
+  .surface-raised {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: calc(var(--radius) + 0.25rem);
+    box-shadow: 0 1px 3px hsl(0 0% 0% / 0.06), 0 1px 2px hsl(0 0% 0% / 0.04);
+  }
+  .dark .surface-raised {
+    box-shadow: 0 1px 3px hsl(0 0% 0% / 0.3), 0 1px 2px hsl(0 0% 0% / 0.2);
+  }
+
+  /* ── Interactive states ── */
+  .interactive {
+    cursor: pointer;
+    transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease, border-color 0.15s ease;
+  }
+  .interactive:hover { background: hsl(var(--muted) / 0.6); }
+  .interactive:active { transform: scale(0.99); }
+
+  /* ── Divider ── */
+  .divider {
+    border: none;
+    border-top: 1px solid hsl(var(--border));
+    margin: 0;
+  }
+
+  /* ── Safe area ── */
+  .safe-area-pb { padding-bottom: env(safe-area-inset-bottom); }
+  .safe-area-pt { padding-top: env(safe-area-inset-top); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

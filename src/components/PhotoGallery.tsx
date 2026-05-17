@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight, X, Maximize2 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useSignedUrl } from "@/hooks/useSignedUrl";
+import { cn } from "@/lib/utils";
 
 // ── Vignette individuelle ─────────────────────────────────────────────────────
 function GalleryThumb({
@@ -24,6 +25,8 @@ function GalleryThumb({
       {url && (
         <img src={url} alt={alt} className="w-full h-full object-cover" />
       )}
+      {/* Subtle 1px image outline — black in light mode, white in dark */}
+      <div className="absolute inset-0 rounded-[inherit] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.10)] dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)] pointer-events-none" />
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
       <div className="absolute bottom-2 right-2 bg-black/50 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
         <Maximize2 className="h-3.5 w-3.5" />
@@ -142,9 +145,10 @@ const PhotoGallery = ({
           {/* Fermer */}
           <button
             onClick={close}
-            className="absolute top-3 right-3 z-10 bg-black/60 text-white rounded-full p-1.5 hover:bg-black/80 transition-colors"
+            aria-label="Fermer la galerie"
+            className="absolute top-3 right-3 z-10 bg-black/60 text-white rounded-full p-1.5 hover:bg-black/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </button>
 
           {/* Navigation prev/next */}
@@ -152,15 +156,17 @@ const PhotoGallery = ({
             <>
               <button
                 onClick={prev}
-                className="absolute left-3 top-1/2 -translate-y-1/2 z-10 bg-black/60 text-white rounded-full p-2 hover:bg-black/80 transition-colors"
+                aria-label="Photo précédente"
+                className="absolute left-3 top-1/2 -translate-y-1/2 z-10 bg-black/60 text-white rounded-full p-2 hover:bg-black/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft className="h-5 w-5" aria-hidden="true" />
               </button>
               <button
                 onClick={next}
-                className="absolute right-12 top-1/2 -translate-y-1/2 z-10 bg-black/60 text-white rounded-full p-2 hover:bg-black/80 transition-colors"
+                aria-label="Photo suivante"
+                className="absolute right-12 top-1/2 -translate-y-1/2 z-10 bg-black/60 text-white rounded-full p-2 hover:bg-black/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
-                <ChevronRight className="h-5 w-5" />
+                <ChevronRight className="h-5 w-5" aria-hidden="true" />
               </button>
             </>
           )}
@@ -172,16 +178,17 @@ const PhotoGallery = ({
 
           {/* Indicateurs de position */}
           {photos.length > 1 && lightboxIndex !== null && (
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5" role="group" aria-label="Sélection de photo">
               {photos.map((_, i) => (
                 <button
                   key={i}
+                  aria-label={`Photo ${i + 1} sur ${photos.length}`}
+                  aria-current={i === lightboxIndex ? "true" : undefined}
                   onClick={() => setLightboxIndex(i)}
-                  className={`h-1.5 rounded-full transition-all ${
-                    i === lightboxIndex
-                      ? "w-4 bg-white"
-                      : "w-1.5 bg-white/50 hover:bg-white/80"
-                  }`}
+                  className={cn(
+                    "h-1.5 rounded-full transition-[width,background-color] duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white",
+                    i === lightboxIndex ? "w-4 bg-white" : "w-1.5 bg-white/50 hover:bg-white/80"
+                  )}
                 />
               ))}
             </div>
@@ -189,7 +196,11 @@ const PhotoGallery = ({
 
           {/* Compteur */}
           {photos.length > 1 && lightboxIndex !== null && (
-            <div className="absolute top-3 left-3 bg-black/60 text-white text-xs rounded-full px-2.5 py-1">
+            <div
+              className="absolute top-3 left-3 bg-black/60 text-white text-xs rounded-full px-2.5 py-1 tabular-nums"
+              aria-live="polite"
+              aria-atomic="true"
+            >
               {lightboxIndex + 1} / {photos.length}
             </div>
           )}
