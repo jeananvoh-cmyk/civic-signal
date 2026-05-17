@@ -363,11 +363,9 @@ const ReportPage = () => {
       try {
         const raw = localStorage.getItem("signa_last_gps_v2");
         if (raw) {
-          const stored = JSON.parse(raw) as { lat: number; lng: number; accuracy: number; commune: Commune; timestamp: number };
+          const stored = JSON.parse(raw) as { accuracy: number; commune: Commune; timestamp: number };
           const ageMin = (Date.now() - stored.timestamp) / 60000;
-          if (ageMin < 120 && stored.lat && stored.lng && stored.commune) {
-            setLatitude(stored.lat);
-            setLongitude(stored.lng);
+          if (ageMin < 120 && stored.commune) {
             setGpsAccuracy(stored.accuracy);
             setGpsWeakSignal(stored.accuracy > 300);
             setDetectedCommune(stored.commune);
@@ -402,10 +400,10 @@ const ReportPage = () => {
       setCommune(result.commune.nom);
       setOutsidePilotZone(false);
       setStoredGpsAgeMin(null); // position fraîche
-      // Sauvegarder pour le fallback "position mémorisée"
+      // Sauvegarder pour le fallback "position mémorisée" (sans coordonnées précises)
       try {
         localStorage.setItem("signa_last_gps_v2", JSON.stringify({
-          lat, lng: lon, accuracy, commune: result.commune, timestamp: Date.now(),
+          accuracy, commune: result.commune, timestamp: Date.now(),
         }));
       } catch { /* silent */ }
       if (showError) {
