@@ -282,12 +282,10 @@ const ReportPage = () => {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({
         typeId: selectedType.id,
         step,
-        commune,
-        quartier,
         description,
       }));
     } catch { /* quota dépassé → ignoré */ }
-  }, [selectedType, step, commune, quartier, description]);
+  }, [selectedType, step, description]);
 
   // ─── Détection doublons dès le choix du quartier ─────────────────────────────
   // On pré-charge les signalements similaires au moment où quartier est sélectionné
