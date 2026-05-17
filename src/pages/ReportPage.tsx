@@ -501,6 +501,7 @@ const ReportPage = () => {
 
   const handleTypeSelect = (type: ReportTypeConfig) => {
     setSelectedType(type);
+    if ("vibrate" in navigator) navigator.vibrate([20]);
   };
 
   const handleLocationNext = async () => {
@@ -731,24 +732,33 @@ const ReportPage = () => {
       <main className="container max-w-md py-6 px-4">
 
         {/* Indicateur de progression */}
-        <div className="mb-6 flex items-center gap-2">
-          {([1, 2] as const).map((s) => (
-            <div key={s} className="flex items-center gap-2 flex-1 last:flex-none">
-              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all ${
-                step === s
-                  ? "bg-primary text-primary-foreground shadow-md"
-                  : step > s
-                  ? "bg-green-500 text-white"
-                  : "bg-muted text-muted-foreground"
-              }`}>
-                {step > s ? "✓" : s}
+        <div className="mb-6 space-y-2.5">
+          <div className="flex items-center gap-2">
+            {([1, 2] as const).map((s) => (
+              <div key={s} className="flex items-center gap-2 flex-1 last:flex-none">
+                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all ${
+                  step === s
+                    ? "bg-primary text-primary-foreground shadow-md"
+                    : step > s
+                    ? "bg-success text-success-foreground"
+                    : "bg-muted text-muted-foreground"
+                }`}>
+                  {step > s ? "✓" : s}
+                </div>
+                <span className={`text-xs hidden sm:block ${step === s ? "text-foreground font-semibold" : "text-muted-foreground"}`}>
+                  {s === 1 ? "Type & Lieu" : "Finaliser"}
+                </span>
+                {s < 2 && <div className={`flex-1 h-0.5 ${step > s ? "bg-success" : "bg-muted"}`} />}
               </div>
-              <span className={`text-xs hidden sm:block ${step === s ? "text-foreground font-semibold" : "text-muted-foreground"}`}>
-                {s === 1 ? "Type & Lieu" : "Confirmer"}
-              </span>
-              {s < 2 && <div className={`flex-1 h-0.5 ${step > s ? "bg-green-500" : "bg-muted"}`} />}
-            </div>
-          ))}
+            ))}
+          </div>
+          <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+            <motion.div
+              className="h-full rounded-full bg-primary"
+              animate={{ width: step === 1 ? "50%" : "100%" }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+            />
+          </div>
         </div>
 
         {/* Compteur journalier */}
@@ -1074,7 +1084,7 @@ const ReportPage = () => {
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </button>
-                <h1 className="font-bold text-xl">Confirmer le signalement</h1>
+                <h1 className="font-bold text-xl">Finaliser l'alerte</h1>
               </div>
 
               {/* Carte récapitulative */}
@@ -1112,7 +1122,7 @@ const ReportPage = () => {
                 <p className="text-xs text-center text-muted-foreground">
                   {selectedType.reportCategory === "infrastructure"
                     ? "📸 Une photo est obligatoire pour ce type de signalement"
-                    : "Enrichissez votre signalement (optionnel)"}
+                    : "Ajoutez des détails pour aider vos voisins (optionnel)"}
                 </p>
 
                 {/* Grille de boutons */}
@@ -1483,7 +1493,7 @@ const ReportPage = () => {
                     {submitting ? (
                       <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Envoi en cours...</>
                     ) : (
-                      <><Send className="mr-2 h-5 w-5" /> Envoyer le signalement</>
+                      <><Send className="mr-2 h-5 w-5" /> Alerter mes voisins</>
                     )}
                   </Button>
                 </div>

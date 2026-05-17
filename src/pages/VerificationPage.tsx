@@ -30,6 +30,21 @@ interface MyReport {
   last_reminder_at: string | null;
 }
 
+const NoActiveReportsSVG = () => (
+  <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="mx-auto mb-5 h-24 w-auto">
+    <rect x="0" y="74" width="160" height="1.5" rx="1" fill="currentColor" opacity="0.12" />
+    <rect x="12" y="48" width="36" height="27" rx="3" fill="currentColor" opacity="0.1" />
+    <path d="M8 50L30 29L52 50" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" fill="none" opacity="0.2" />
+    <rect x="22" y="61" width="16" height="13" rx="2" fill="currentColor" opacity="0.15" />
+    <rect x="112" y="48" width="36" height="27" rx="3" fill="currentColor" opacity="0.1" />
+    <path d="M108 50L130 29L152 50" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" fill="none" opacity="0.2" />
+    <rect x="122" y="61" width="16" height="13" rx="2" fill="currentColor" opacity="0.15" />
+    <circle cx="80" cy="50" r="20" fill="hsl(var(--success))" opacity="0.1" />
+    <circle cx="80" cy="50" r="20" stroke="hsl(var(--success))" strokeWidth="1.5" opacity="0.25" />
+    <path d="M71 50L77 56L90 43" stroke="hsl(var(--success))" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.65" />
+  </svg>
+);
+
 const VerificationPage = () => {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -191,12 +206,12 @@ const VerificationPage = () => {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 text-center">
               {notifReportType?.reportCategory === "infrastructure" ? (
                 <>
-                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-green-500/10">
-                    <Wrench className="h-8 w-8 text-green-600" />
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-success/10">
+                    <Wrench className="h-8 w-8 text-success" />
                   </div>
-                  <h1 className="font-display text-2xl font-bold text-foreground">Confirmer un problème</h1>
+                  <h1 className="font-display text-2xl font-bold text-foreground">Un problème dans votre quartier</h1>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Un voisin a signalé un problème de voirie dans votre quartier
+                    Vos voisins signalent un problème d'infrastructure — soutenez leur demande de réparation
                   </p>
                 </>
               ) : notifReportType?.serviceType === "electricity" ? (
@@ -204,9 +219,9 @@ const VerificationPage = () => {
                   <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-yellow-500/10">
                     <Zap className="h-8 w-8 text-yellow-500" />
                   </div>
-                  <h1 className="font-display text-2xl font-bold text-foreground">Confirmer une coupure d'électricité</h1>
+                  <h1 className="font-display text-2xl font-bold text-foreground">L'électricité est coupée</h1>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Un voisin a signalé une coupure CIE dans votre quartier
+                    Vos voisins ont signalé une coupure CIE — confirmez si vous êtes aussi concerné(e)
                   </p>
                 </>
               ) : notifReportType?.serviceType === "water" ? (
@@ -214,9 +229,9 @@ const VerificationPage = () => {
                   <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/10">
                     <Droplets className="h-8 w-8 text-blue-500" />
                   </div>
-                  <h1 className="font-display text-2xl font-bold text-foreground">Confirmer une coupure d'eau</h1>
+                  <h1 className="font-display text-2xl font-bold text-foreground">L'eau est coupée</h1>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Un voisin a signalé une coupure SODECI dans votre quartier
+                    Vos voisins ont signalé une coupure SODECI — confirmez si vous êtes aussi concerné(e)
                   </p>
                 </>
               ) : (
@@ -224,9 +239,9 @@ const VerificationPage = () => {
                   <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-urgent/10">
                     <AlertTriangle className="h-8 w-8 text-urgent" />
                   </div>
-                  <h1 className="font-display text-2xl font-bold text-foreground">Confirmer un signalement</h1>
+                  <h1 className="font-display text-2xl font-bold text-foreground">Un problème dans votre quartier</h1>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Un voisin a fait un signalement dans votre quartier
+                    Vos voisins ont fait un signalement — confirmez si vous êtes concerné(e)
                   </p>
                 </>
               )}
@@ -277,9 +292,9 @@ const VerificationPage = () => {
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-success/10">
                 <CheckCircle2 className="h-8 w-8 text-success" />
               </div>
-              <h1 className="font-display text-2xl font-bold text-foreground">Mes signalements actifs</h1>
+              <h1 className="font-display text-2xl font-bold text-foreground">Mes alertes actives</h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                Mettez à jour l'état de vos signalements en cours
+                Informez vos voisins dès que la situation change
               </p>
             </motion.div>
 
@@ -292,12 +307,12 @@ const VerificationPage = () => {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="rounded-2xl border border-border bg-card py-16 text-center shadow-card"
+            className="rounded-2xl border border-border bg-card px-6 py-14 text-center shadow-card"
           >
-            <ThumbsUp className="mx-auto h-12 w-12 text-success mb-4" />
-            <p className="font-display text-lg font-bold text-foreground">Aucun signalement actif</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Vous n'avez pas de coupure en cours à vérifier.
+            <NoActiveReportsSVG />
+            <p className="font-display text-lg font-bold text-foreground">Tout va bien pour l'instant</p>
+            <p className="mt-2 text-sm text-muted-foreground max-w-xs mx-auto">
+              Aucune alerte active. Vous serez notifié dès qu'un voisin signale un problème dans votre quartier.
             </p>
           </motion.div>
         ) : (
@@ -390,7 +405,7 @@ const VerificationPage = () => {
                             ) : (
                               <AlertTriangle className="mr-1.5 h-3.5 w-3.5" />
                             )}
-                            {isInfra ? "Non, le problème persiste" : "Non, toujours coupé"}
+                            {isInfra ? "Non, le problème persiste" : "Toujours coupé chez moi"}
                           </Button>
                         </div>
                         

@@ -281,30 +281,42 @@ const NeighborCorroboration = ({ reportId, onDone, onReportLoaded }: NeighborCor
 
         {/* Support count */}
         {supportCount !== null && (
-          <p className="text-sm font-semibold text-foreground">
-            <span className="text-primary">{supportCount}</span>{" "}
-            {isInfra
-              ? `citoyen${supportCount > 1 ? "s" : ""} demandent la réparation.`
-              : `voisin${supportCount > 1 ? "s" : ""} ont confirmé la coupure.`}
-          </p>
+          <div className="flex items-center gap-2 rounded-lg bg-primary/5 border border-primary/15 px-3 py-2">
+            <span className="text-lg font-extrabold text-primary tabular-nums">{supportCount}</span>
+            <p className="text-sm text-foreground">
+              {isInfra
+                ? `citoyen${supportCount > 1 ? "s" : ""} demandent aussi la réparation.`
+                : `voisin${supportCount > 1 ? "s" : ""} ${supportCount > 1 ? "ont" : "a"} déjà confirmé.`}
+            </p>
+          </div>
         )}
 
         {/* Info banner */}
-        <div className="rounded-xl bg-secondary/50 p-4">
+        <div className="rounded-xl bg-secondary/50 p-4 space-y-2">
           <p className="text-sm text-foreground">{infoBannerText}</p>
+          {!isInfra && (
+            <p className="text-xs text-muted-foreground">
+              Chaque confirmation renforce la crédibilité du signalement dans nos rapports aux opérateurs {isElec ? "CIE" : "SODECI"}.
+            </p>
+          )}
         </div>
 
         {confirmed ? (
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="rounded-xl bg-success/10 p-5 text-center"
+            className="rounded-xl bg-success/10 border border-success/20 p-5 text-center space-y-2"
           >
             <ThumbsUp className="mx-auto h-10 w-10 text-success mb-2" />
-            <p className="font-bold text-success">{confirmedTitle}</p>
-            <p className="text-sm text-muted-foreground mt-1">{confirmedDesc}</p>
-            <Button variant="outline" className="mt-4" onClick={onDone}>
-              Retour à mes signalements
+            <p className="font-bold text-success text-base">{confirmedTitle}</p>
+            <p className="text-sm text-muted-foreground">{confirmedDesc}</p>
+            {!isInfra && (
+              <p className="text-xs text-muted-foreground">
+                Votre confirmation aide à accélérer l'intervention des opérateurs.
+              </p>
+            )}
+            <Button variant="outline" className="mt-3 w-full" onClick={onDone}>
+              Retour à mes alertes
             </Button>
           </motion.div>
         ) : (
