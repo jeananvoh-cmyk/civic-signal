@@ -97,9 +97,11 @@ async function uploadFile(file: File, userId: string, index: number): Promise<st
   } catch {
     // HEIC ou format canvas non supporté → upload original
     blob = file;
-    contentType = file.type || "image/jpeg";
-    const nameParts = file.name.split(".");
-    ext = nameParts.length > 1 ? nameParts[nameParts.length - 1].toLowerCase() : "jpg";
+    const ALLOWED_TYPES = new Set(["image/jpeg","image/png","image/webp","image/heic","image/heif","image/gif"])
+    contentType = ALLOWED_TYPES.has(file.type) ? file.type : "application/octet-stream";
+    const ALLOWED_EXTS = new Set(["jpg","jpeg","png","webp","heic","heif","gif"])
+    const rawExt = file.name.split(".").pop()?.toLowerCase() ?? ""
+    ext = ALLOWED_EXTS.has(rawExt) ? rawExt : "bin";
   }
 
   const path = `${userId}/${Date.now()}_${index}.${ext}`;
@@ -125,10 +127,11 @@ function PhotoThumb({ path, onRemove }: { path: string; onRemove: () => void }) 
         type="button"
         variant="destructive"
         size="icon"
+        aria-label="Supprimer cette photo"
         className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full"
         onClick={onRemove}
       >
-        <X className="h-3.5 w-3.5" />
+        <X className="h-3.5 w-3.5" aria-hidden="true" />
       </Button>
     </div>
   );
@@ -324,20 +327,22 @@ const PhotoUpload = ({
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 overflow-hidden">
           <button
             type="button"
-            className="w-full flex items-center justify-between px-3 py-2 text-left"
+            aria-expanded={showTips}
+            aria-controls="photo-tips-content"
+            className="w-full flex items-center justify-between px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
             onClick={() => setShowTips((v) => !v)}
           >
             <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
-              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               Comment prendre une bonne photo de signalement ?
             </span>
             {showTips
-              ? <ChevronUp className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-              : <ChevronDown className="h-3.5 w-3.5 text-amber-600 shrink-0" />}
+              ? <ChevronUp className="h-3.5 w-3.5 text-amber-600 shrink-0" aria-hidden="true" />
+              : <ChevronDown className="h-3.5 w-3.5 text-amber-600 shrink-0" aria-hidden="true" />}
           </button>
 
           {showTips && (
-            <div className="px-3 pb-3 space-y-3 border-t border-amber-500/20">
+            <div id="photo-tips-content" className="px-3 pb-3 space-y-3 border-t border-amber-500/20">
               <div className="pt-2 space-y-1.5">
                 <p className="text-[11px] font-bold text-green-700 dark:text-green-400 uppercase tracking-wide">
                   À faire

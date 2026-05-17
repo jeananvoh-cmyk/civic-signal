@@ -32,6 +32,7 @@ import { reportDetailsSchema } from "@/lib/report-schema";
 import { MAX_DESCRIPTION_LENGTH } from "@/lib/constants";
 import { useOfflineQueue } from "@/hooks/useOfflineQueue";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import { cn } from "@/lib/utils";
 
 // ─── Types de signalement ────────────────────────────────────────────────────
 
@@ -778,7 +779,7 @@ const ReportPage = () => {
               className="space-y-4"
             >
               <div className="text-center">
-                <h1 className="text-xl font-bold">Que se passe-t-il ?</h1>
+                <h1 className="text-2xl font-bold">Que se passe-t-il ?</h1>
                 <p className="text-sm text-muted-foreground mt-1">
                   {selectedType ? "Confirmez ensuite votre localisation" : "Touchez un type pour continuer"}
                 </p>
@@ -1062,7 +1063,7 @@ const ReportPage = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -30 }}
               transition={{ duration: 0.2 }}
-              className="space-y-4"
+              className="space-y-4 pb-32 md:pb-0"
             >
               {/* En-tête */}
               <div className="flex items-center gap-3">
@@ -1073,7 +1074,7 @@ const ReportPage = () => {
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </button>
-                <h1 className="font-bold text-lg">Confirmer le signalement</h1>
+                <h1 className="font-bold text-xl">Confirmer le signalement</h1>
               </div>
 
               {/* Carte récapitulative */}
@@ -1135,17 +1136,24 @@ const ReportPage = () => {
                   <button
                     type="button"
                     onClick={() => setShowPhoto(!showPhoto)}
-                    className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
+                    className={cn(
+                      "flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all",
                       showPhoto
                         ? "border-primary bg-primary/10 text-primary"
                         : selectedType.reportCategory === "infrastructure" && photoUrls.length === 0
-                        ? "border-amber-400 bg-amber-500/10 text-amber-600 dark:text-amber-400 animate-pulse"
+                        ? "border-amber-400 bg-amber-500/10 text-amber-700 dark:text-amber-300"
                         : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                    }`}
+                    )}
                   >
                     <Camera className="h-4 w-4" />
                     Photo{selectedType.reportCategory === "infrastructure" ? " *" : ""}
                     {photoUrls.length > 0 && <span className="h-2 w-2 rounded-full bg-primary" />}
+                    {selectedType.reportCategory === "infrastructure" && photoUrls.length === 0 && !showPhoto && (
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
+                      </span>
+                    )}
                   </button>
 
                   {/* Heure — coupures uniquement */}
@@ -1444,7 +1452,7 @@ const ReportPage = () => {
                   </div>
                 </div>
               ) : (
-                <>
+                <div className="fixed bottom-16 left-0 right-0 z-20 border-t border-border bg-background/95 backdrop-blur-md px-4 py-3 space-y-3 md:static md:z-auto md:bg-transparent md:backdrop-blur-none md:border-0 md:px-0 md:py-0">
                   {/* Consentement GPS */}
                   <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
                     <div className="flex items-start gap-3">
@@ -1478,7 +1486,7 @@ const ReportPage = () => {
                       <><Send className="mr-2 h-5 w-5" /> Envoyer le signalement</>
                     )}
                   </Button>
-                </>
+                </div>
               )}
             </motion.div>
           )}

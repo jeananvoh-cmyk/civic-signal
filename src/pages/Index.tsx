@@ -40,6 +40,7 @@ const PROBLEM_TYPES = [
     grad: "from-sky-500/15 to-cyan-500/5",
     text: "text-sky-300",
     glow: "hover:shadow-sky-500/20",
+    prominent: true,
   },
   {
     type: "electricity_outage",
@@ -50,6 +51,7 @@ const PROBLEM_TYPES = [
     grad: "from-yellow-500/15 to-amber-500/5",
     text: "text-yellow-300",
     glow: "hover:shadow-yellow-500/20",
+    prominent: true,
   },
   {
     type: "street_light",
@@ -60,6 +62,7 @@ const PROBLEM_TYPES = [
     grad: "from-orange-500/15 to-yellow-500/5",
     text: "text-orange-300",
     glow: "hover:shadow-orange-500/20",
+    prominent: false,
   },
   {
     type: "drain_blocked",
@@ -70,6 +73,7 @@ const PROBLEM_TYPES = [
     grad: "from-teal-500/15 to-green-500/5",
     text: "text-teal-300",
     glow: "hover:shadow-teal-500/20",
+    prominent: false,
   },
   {
     type: "pothole",
@@ -80,6 +84,7 @@ const PROBLEM_TYPES = [
     grad: "from-slate-500/15 to-gray-500/5",
     text: "text-slate-300",
     glow: "hover:shadow-slate-500/20",
+    prominent: false,
   },
 ];
 
@@ -488,12 +493,40 @@ const Index = () => {
         <div className="container relative z-10 pt-10 pb-20 sm:py-20">
           <div className="max-w-3xl">
 
-            {/* Status badges */}
-            <motion.div
-              initial={{ opacity: 0, y: -12 }}
+            {/* Heading with rotating word */}
+            <div className="overflow-hidden">
+              <motion.h1
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.65 }}
+                className="font-display font-extrabold leading-[1.05] text-white"
+              >
+                <span className="block text-5xl md:text-6xl lg:text-[4.5rem]">
+                  Signalez les
+                </span>
+                <span className="block min-h-[1.15em] text-5xl md:text-6xl lg:text-[4.5rem]">
+                  <RotatingWord />
+                </span>
+              </motion.h1>
+            </div>
+
+            {/* Description */}
+            <motion.p
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="mb-5 sm:mb-8 flex flex-wrap items-center gap-3"
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="mt-4 sm:mt-6 max-w-xl text-base sm:text-lg leading-relaxed text-white/65"
+            >
+              La première plateforme citoyenne ivoirienne où les habitants contribuent
+              à l'amélioration des services et infrastructures publiques.
+            </motion.p>
+
+            {/* Status badges — après le titre pour ne pas casser l'entrée visuelle */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.38 }}
+              className="mt-4 sm:mt-5 flex flex-wrap items-center gap-3"
             >
               {liveCount !== null && (
                 <div className={cn(
@@ -524,39 +557,11 @@ const Index = () => {
               </div>
             </motion.div>
 
-            {/* Heading with rotating word */}
-            <div className="overflow-hidden">
-              <motion.h1
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.65, delay: 0.1 }}
-                className="font-display font-extrabold leading-[1.05] text-white"
-              >
-                <span className="block text-5xl md:text-6xl lg:text-[4.5rem]">
-                  Signalez les
-                </span>
-                <span className="block min-h-[1.15em] text-5xl md:text-6xl lg:text-[4.5rem]">
-                  <RotatingWord />
-                </span>
-              </motion.h1>
-            </div>
-
-            {/* Description */}
-            <motion.p
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.35 }}
-              className="mt-4 sm:mt-6 max-w-xl text-base sm:text-lg leading-relaxed text-white/65"
-            >
-              La première plateforme citoyenne ivoirienne où les habitants contribuent
-              à l'amélioration des services et infrastructures publiques.
-            </motion.p>
-
             {/* CTA buttons */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.48 }}
+              transition={{ duration: 0.5, delay: 0.5 }}
               className="mt-6 sm:mt-8 flex flex-wrap gap-3"
             >
               <Link
@@ -574,7 +579,7 @@ const Index = () => {
                     if (isIOS) { window.location.href = "/install"; return; }
                     await install();
                   }}
-                  className="group inline-flex items-center gap-2 rounded-2xl border-2 border-amber-400/60 bg-amber-400/15 px-8 py-4 text-base font-bold text-amber-200 backdrop-blur-md transition-all hover:bg-amber-400/25 hover:border-amber-400/80 active:scale-[0.97]"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/8 px-8 py-4 text-base font-bold text-white backdrop-blur-md transition-all hover:bg-white/15 active:scale-[0.97]"
                 >
                   {isIOS
                     ? <><Share className="h-5 w-5" /> Ajouter à l'accueil</>
@@ -595,7 +600,7 @@ const Index = () => {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.65 }}
+              transition={{ duration: 0.6, delay: 0.72 }}
               className="mt-10 flex flex-wrap gap-2"
             >
               {COMMUNES.map((c: { nom: string; couleur: string }) => (
@@ -633,18 +638,18 @@ const Index = () => {
         <div className="container">
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
             {[
-              { value: "7", label: "Communes pilotes", Icon: MapPin, live: false },
+              { value: "7", label: "Communes pilotes", Icon: MapPin, live: false, scale: "sm" as const },
               {
                 value: landingStats ? fmtNum(landingStats.total_reports) : "…",
-                label: "Signalements soumis", Icon: BarChart3, live: false,
+                label: "Signalements soumis", Icon: BarChart3, live: false, scale: "md" as const,
               },
               {
                 value: landingStats ? fmtNum(landingStats.resolved_reports) : "…",
-                label: "Problèmes résolus", Icon: TrendingUp, live: false,
+                label: "Problèmes résolus", Icon: TrendingUp, live: false, scale: "md" as const,
               },
               {
                 value: liveCount !== null ? String(liveCount) : "…",
-                label: "Coupures actives", Icon: Radio, live: true,
+                label: "Coupures actives", Icon: Radio, live: true, scale: "lg" as const,
               },
             ].map((stat, i) => (
               <motion.div
@@ -655,8 +660,15 @@ const Index = () => {
                 transition={{ delay: i * 0.08 }}
                 className="flex flex-col items-center text-center"
               >
-                <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl border border-white/15 bg-white/10 backdrop-blur-sm">
-                  <stat.Icon className={`h-5 w-5 text-white/70 ${stat.live && liveActive ? "animate-pulse" : ""}`} />
+                <div className={cn(
+                  "mb-3 flex items-center justify-center rounded-xl border border-white/15 bg-white/10 backdrop-blur-sm",
+                  stat.scale === "lg" ? "h-13 w-13" : "h-11 w-11"
+                )}>
+                  <stat.Icon className={cn(
+                    "text-white/70",
+                    stat.scale === "lg" ? "h-6 w-6" : "h-5 w-5",
+                    stat.live && liveActive ? "animate-pulse" : ""
+                  )} />
                 </div>
                 <AnimatePresence mode="wait">
                   <motion.p
@@ -664,12 +676,15 @@ const Index = () => {
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 6 }}
-                    className="font-display text-3xl font-extrabold text-white md:text-4xl tabular-nums"
+                    className={cn(
+                      "font-display font-extrabold text-white tabular-nums",
+                      stat.scale === "lg" ? "text-4xl md:text-5xl" : stat.scale === "md" ? "text-3xl md:text-4xl" : "text-2xl md:text-3xl"
+                    )}
                   >
                     {stat.value}
                   </motion.p>
                 </AnimatePresence>
-                <p className="mt-1 text-sm text-white/55">{stat.label}</p>
+                <p className={cn("mt-1 text-white/55", stat.scale === "lg" ? "text-sm font-semibold" : "text-sm")}>{stat.label}</p>
               </motion.div>
             ))}
           </div>
@@ -1001,7 +1016,7 @@ const Index = () => {
           </p>
         </motion.div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-7">
           {PROBLEM_TYPES.map((pt, i) => (
             <motion.div
               key={pt.type}
@@ -1009,19 +1024,23 @@ const Index = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.07 }}
+              className={pt.prominent ? "lg:col-span-2" : "lg:col-span-1"}
             >
               <Link
                 to={`/signaler?type=${pt.type}`}
-                className={`group flex flex-col items-center gap-4 rounded-2xl border ${pt.border} bg-gradient-to-br ${pt.grad} p-6 text-center transition-all duration-200 hover:scale-[1.04] hover:shadow-xl ${pt.glow} active:scale-[0.97]`}
+                className={cn(
+                  `group flex flex-col items-center gap-4 rounded-2xl border ${pt.border} bg-gradient-to-br ${pt.grad} text-center transition-all duration-200 hover:scale-[1.04] hover:shadow-xl ${pt.glow} active:scale-[0.97]`,
+                  pt.prominent ? "p-8" : "p-6"
+                )}
               >
-                <div className="text-4xl leading-none">
-                  <img src={pt.iconImg} alt="" className="h-10 w-10" />
-                </div>
+                <img src={pt.iconImg} alt="" className={pt.prominent ? "h-14 w-14" : "h-10 w-10"} />
                 <div>
-                  <p className={`text-sm font-bold ${pt.text}`}>{pt.label}</p>
+                  <p className={cn("font-bold", pt.prominent ? "text-base" : "text-sm", pt.text)}>{pt.label}</p>
                   <p className="mt-1 text-xs text-muted-foreground">{pt.desc}</p>
                 </div>
-                <div className={`flex items-center gap-1 text-xs font-semibold ${pt.text} opacity-0 transition-all group-hover:opacity-100`}>
+                <div className={cn(
+                  `flex items-center gap-1 text-xs font-semibold ${pt.text} opacity-0 transition-all group-hover:opacity-100`
+                )}>
                   Signaler <ArrowRight className="h-3 w-3" />
                 </div>
               </Link>

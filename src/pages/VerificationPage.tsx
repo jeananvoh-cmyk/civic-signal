@@ -72,44 +72,39 @@ const VerificationPage = () => {
   }, [user]);
 
   const handleConfirmStillOngoing = async (report: MyReport) => {
-    // Check rate limit: max 1 per hour
-    if (report.last_reminder_at) {
-      const lastReminder = new Date(report.last_reminder_at).getTime();
-      const now = Date.now();
-      const hoursSinceLast = (now - lastReminder) / (1000 * 60 * 60);
-      if (hoursSinceLast < 1) {
-        const minsLeft = Math.ceil((1 - hoursSinceLast) * 60);
-        toast.error(`Veuillez patienter encore ${minsLeft} minute(s) avant de relancer.`);
-        return;
-      }
-    }
-
     setConfirming(report.id);
     try {
       const { data: currentReport, error: fetchErr } = await supabase
         .from("reports")
-        .select("reminder_count")
+        .select("reminder_count, last_reminder_at")
         .eq("id", report.id)
         .single();
-        
+
       if (fetchErr) throw fetchErr;
 
-      const newReminderAt = new Date().toISOString();
+      if (currentReport?.last_reminder_at) {
+        const elapsed = Date.now() - new Date(currentReport.last_reminder_at).getTime();
+        if (elapsed < 3_600_000) {
+          const minsLeft = Math.ceil((3_600_000 - elapsed) / 60_000);
+          toast.error(`Veuillez patienter encore ${minsLeft} minute(s) avant de relancer.`);
+          return;
+        }
+      }
 
+      const newReminderAt = new Date().toISOString();
       const { error } = await supabase
         .from("reports")
-        .update({ 
+        .update({
           reminder_count: (currentReport?.reminder_count || 0) + 1,
-          last_reminder_at: newReminderAt
+          last_reminder_at: newReminderAt,
         })
         .eq("id", report.id);
 
       if (error) throw error;
-      
-      setReports(prev => prev.map(r => 
+
+      setReports(prev => prev.map(r =>
         r.id === report.id ? { ...r, last_reminder_at: newReminderAt } : r
       ));
-      
       toast.success("Signalement relancé avec succès.");
     } catch (err: any) {
       toast.error(err.message || "Erreur");
@@ -374,27 +369,28 @@ const VerificationPage = () => {
                           </div>
                         )}
 
-                        {/* Two clear action buttons */}
-                        <div className="grid grid-cols-2 gap-3">
+                        {/* CTA — résolution primaire, confirmation secondaire */}
+                        <div className="space-y-2">
+                          <Button
+                            onClick={() => openResolveDialog(r)}
+                            className="w-full py-5 text-base bg-success text-success-foreground hover:bg-success/90 font-bold shadow-sm"
+                          >
+                            <Power className="mr-2 h-5 w-5" />
+                            {isInfra ? "Problème résolu !" : "Tout va bien !"}
+                          </Button>
                           <Button
                             onClick={() => handleConfirmStillOngoing(r)}
                             disabled={confirming === r.id}
                             variant="outline"
-                            className="border-urgent text-urgent hover:bg-urgent hover:text-urgent-foreground font-semibold"
+                            size="sm"
+                            className="w-full border-urgent/40 text-urgent hover:bg-urgent/8 hover:border-urgent font-medium text-sm"
                           >
                             {confirming === r.id ? (
-                              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                             ) : (
-                              <AlertTriangle className="mr-1.5 h-4 w-4" />
+                              <AlertTriangle className="mr-1.5 h-3.5 w-3.5" />
                             )}
-                            {isInfra ? "Problème persiste" : "Toujours coupé"}
-                          </Button>
-                          <Button
-                            onClick={() => openResolveDialog(r)}
-                            className="bg-success text-success-foreground hover:bg-success/90 font-semibold"
-                          >
-                            <Power className="mr-1.5 h-4 w-4" />
-                            {isInfra ? "Problème résolu" : "Tout va bien"}
+                            {isInfra ? "Non, le problème persiste" : "Non, toujours coupé"}
                           </Button>
                         </div>
                         

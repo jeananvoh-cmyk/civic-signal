@@ -66,10 +66,13 @@
     --success-foreground: 0 0% 100%;
 
     --warning: 30 90% 52%;
-    --warning-foreground: 30 90% 10%;
+    --warning-foreground: 30 90% 10%;  /* foncé sur fond clair */
 
     --urgent: 0 75% 55%;
     --urgent-foreground: 0 0% 100%;
+
+    --info: 207 97% 35%;               /* alias primary, séparé pour les composants info */
+    --info-foreground: 0 0% 100%;
 
     --gradient-hero: linear-gradient(135deg, hsl(220 70% 10%), hsl(207 97% 18%), hsl(213 50% 14%));
     --gradient-hero-radial: radial-gradient(ellipse 80% 60% at 20% 40%, hsl(207 97% 35% / 0.4), transparent), radial-gradient(ellipse 60% 50% at 80% 60%, hsl(29 70% 50% / 0.15), transparent);
@@ -144,6 +147,26 @@
 
     --destructive: 0 65% 58%;
     --destructive-foreground: 0 0% 100%;
+
+    /* Semantic — valeurs plus lumineuses pour contraste sur fond sombre */
+    --success: 150 52% 52%;            /* L52% → ratio ≈ 5.1:1 vs L14% */
+    --success-foreground: 0 0% 100%;
+
+    --warning: 32 90% 62%;             /* L62% → ratio ≈ 4.6:1 vs L14% */
+    --warning-foreground: 0 0% 100%;   /* blanc en dark (était marron foncé) */
+
+    --urgent: 0 72% 65%;               /* L65% → ratio ≈ 4.9:1 vs L14% */
+    --urgent-foreground: 0 0% 100%;
+
+    --info: 207 82% 62%;               /* suit --primary dark */
+    --info-foreground: 0 0% 100%;
+
+    /* Domain — surfaces sombres pour les badges eau/électricité */
+    --water: 199 72% 54%;
+    --water-light: 199 55% 14%;        /* surface sombre au lieu du bleu clair */
+
+    --electricity: 40 90% 58%;
+    --electricity-light: 40 65% 12%;   /* surface sombre */
 
     --border: 222 12% 28%;             /* border visible mais discrète */
     --input: 222 12% 24%;

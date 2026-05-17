@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Droplets, Construction, AlertTriangle, Flame } from "lucide-react";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
@@ -19,6 +19,11 @@ interface ActiveReport {
   commune: string;
   created_at: string;
   start_time: string | null;
+}
+
+/** Escape HTML special chars to prevent XSS in Leaflet popup strings */
+function escHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 /** Format elapsed time from a start date to now */
@@ -132,6 +137,25 @@ function alertLevel(h: number): "normal" | "warning" | "critical" {
   if (h >= 24) return "critical";
   if (h >= 10) return "warning";
   return "normal";
+}
+
+/** Confirmation status block shared by coupure and infra popups */
+function buildConfirmHtml(verified: number, actifs: number, mode: "outage" | "infra"): string {
+  if (actifs === 0) return '';
+  const pct = Math.round((verified / actifs) * 100);
+  if (verified > 0) {
+    const verb = mode === "outage" ? "confirmé" : "soutenu";
+    const detail = mode === "outage"
+      ? `${verified} sur ${actifs} signalement${actifs > 1 ? 's' : ''} vérifié${verified > 1 ? 's' : ''} par les voisins`
+      : `soutenu${verified > 1 ? 's' : ''} pour réparation`;
+    return `<div style="margin-top:6px;padding:5px 10px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center"><span style="font-size:13px;color:#16a34a;font-weight:700">✓ ${verified} ${verb}${verified > 1 ? 's' : ''} (${pct}%)</span><br/><span style="font-size:10px;color:#15803d">${detail}</span></div>`;
+  }
+  return `<div style="margin-top:6px;padding:5px 10px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;text-align:center"><span style="font-size:11px;color:#92400e">⏳ En attente de confirmation des voisins</span></div>`;
+}
+
+/** Standard popup container with commune header, counts, extra sections, and CTA link */
+function buildPopupHtml(communeColor: string, communeName: string, typeLabel: string, total: number, actifs: number, resolus: number, extraHtml: string, minWidth = 180): string {
+  return `<div style="min-width:${minWidth}px;text-align:center"><strong style="color:${communeColor};font-size:14px">${communeName}</strong><br/><span style="font-size:11px;color:#666">${typeLabel}</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${extraHtml}<div style="margin-top:10px"><a href="/commune/${encodeURIComponent(communeName)}" style="display:inline-block;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;text-decoration:none;font-size:12px;font-weight:700;padding:7px 16px;border-radius:8px;box-shadow:0 2px 6px rgba(14,165,233,0.3);">Voir les signalements →</a></div></div>`;
 }
 
 /** Badge HTML for active outage duration in commune popup */
@@ -345,7 +369,7 @@ const MapPage = () => {
         .bindPopup(
           `<div style="text-align:center;min-width:150px">
             <span style="font-size:18px">${isElec ? "⚡" : "💧"}</span>${countBadge}<br/>
-            <strong style="color:${fillColor}">${r0.commune}</strong><br/>
+            <strong style="color:${fillColor}">${escHtml(r0.commune)}</strong><br/>
             <span style="font-size:11px;color:#666">${totalVerifs} confirmation${totalVerifs !== 1 ? "s" : ""}${cluster.length > 1 ? ` · ${cluster.length} signalements` : ""}</span>
             ${chronicBadge}
             ${durationPillHtml({ ...r0, start_time: new Date(oldestMs).toISOString() })}
@@ -377,7 +401,7 @@ const MapPage = () => {
             opacity: 0.8,
             dashArray: undefined,
           },
-        }).addTo(map).bindPopup(`<strong>${name}</strong><br/>${(COMMUNES.find(c => c.nom.toLowerCase() === name?.toLowerCase())?.population || 0) / 1000 | 0}k habitants`);
+        }).addTo(map).bindPopup(`<strong>${escHtml(name ?? '')}</strong><br/>${(COMMUNES.find(c => c.nom.toLowerCase() === name?.toLowerCase())?.population || 0) / 1000 | 0}k habitants`);
       });
     } else {
       // Fallback to circles if GeoJSON unavailable
@@ -498,7 +522,7 @@ const MapPage = () => {
 
     L.marker(pos, { icon })
       .addTo(map)
-      .bindPopup(`<div style="min-width:180px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">${serviceLabel} — Coupures</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${breakdownHtml}${confirmHtml}${durationHtml}<div style="margin-top:10px"><a href="/commune/${encodeURIComponent(c.nom)}" style="display:inline-block;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;text-decoration:none;font-size:12px;font-weight:700;padding:7px 16px;border-radius:8px;box-shadow:0 2px 6px rgba(14,165,233,0.3);">Voir les signalements →</a></div></div>`);
+      .bindPopup(buildPopupHtml(c.couleur, c.nom, `${serviceLabel} — Coupures`, total, actifs, resolus, `${breakdownHtml}${buildConfirmHtml(verified, actifs, "outage")}${durationHtml}`));
   };
 
   const renderInfraMarker = (map: L.Map, c: typeof COMMUNES[0], pos: [number, number]) => {
@@ -542,41 +566,19 @@ const MapPage = () => {
         <div style="flex:1;padding:4px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;text-align:center"><img src="${INFRA_CATEGORY_ICONS.mairie}" style="width:${imgS}px;height:${imgS}px;object-fit:contain;margin:0 auto 2px;" /><br/><span style="font-size:10px;color:#065f46">Mairie</span><br/><span style="font-size:13px;font-weight:bold;color:#059669">${s.mairie_infra_actifs}</span></div>
       </div>`;
 
-      const verifiedPercent = actifs > 0 ? Math.round((verified / actifs) * 100) : 0;
-      let infraConfirmHtml = '';
-      if (actifs > 0) {
-        if (hasVerified) {
-          infraConfirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center"><span style="font-size:13px;color:#16a34a;font-weight:700">✓ ${verified} soutenu${verified > 1 ? 's' : ''} (${verifiedPercent}%)</span><br/><span style="font-size:10px;color:#15803d">soutenu${verified > 1 ? 's' : ''} pour réparation</span></div>`;
-        } else {
-          infraConfirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;text-align:center"><span style="font-size:11px;color:#92400e">⏳ En attente de confirmation</span></div>`;
-        }
-      }
-
       L.marker(pos, { icon })
         .addTo(map)
-        .bindPopup(`<div style="min-width:200px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">Infrastructures</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${breakdownHtml}${infraConfirmHtml}<div style="margin-top:10px"><a href="/commune/${encodeURIComponent(c.nom)}" style="display:inline-block;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;text-decoration:none;font-size:12px;font-weight:700;padding:7px 16px;border-radius:8px;box-shadow:0 2px 6px rgba(14,165,233,0.3);">Voir les signalements →</a></div></div>`);
+        .bindPopup(buildPopupHtml(c.couleur, c.nom, "Infrastructures", total, actifs, resolus, `${breakdownHtml}${buildConfirmHtml(verified, actifs, "infra")}`, 200));
     } else {
       const infraIcon = infraFilter === "cie" ? INFRA_CATEGORY_ICONS.cie : infraFilter === "sodeci" ? INFRA_CATEGORY_ICONS.sodeci : infraFilter === "mairie" ? INFRA_CATEGORY_ICONS.mairie : "";
       const bg = infraFilter === "cie" ? "#f59e0b" : infraFilter === "sodeci" ? "#3b82f6" : infraFilter === "mairie" ? "#10b981" : "#6b7280";
       const iconImg = infraIcon ? `<img src="${infraIcon}" style="width:20px;height:20px;object-fit:contain;border-radius:3px;" />` : "🔧";
       const markerHtml = `<div style="position:relative;background:${bg};color:white;width:${markerSize}px;height:${markerSize}px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,.35);font-size:${actifs > 0 ? 13 : 11}px;font-weight:bold;gap:1px;">${iconImg}<span>${actifs > 0 ? actifs : '·'}</span>${hasVerified ? `<span style="position:absolute;top:-6px;right:-6px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;border:2px solid white;">✓</span>` : ''}</div>`;
-
       const icon = L.divIcon({ className: "", html: markerHtml, iconSize: [markerSize, markerSize], iconAnchor: [markerSize / 2, markerSize / 2] });
       const label = infraFilter === "cie" ? "Infra. CIE" : infraFilter === "sodeci" ? "Infra. SODECI" : infraFilter === "mairie" ? "Infra. Mairie" : "Toutes infrastructures";
-
-      const singleVerifiedPercent = actifs > 0 ? Math.round((verified / actifs) * 100) : 0;
-      let singleConfirmHtml = '';
-      if (actifs > 0) {
-        if (hasVerified) {
-          singleConfirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center"><span style="font-size:13px;color:#16a34a;font-weight:700">✓ ${verified} soutenu${verified > 1 ? 's' : ''} (${singleVerifiedPercent}%)</span><br/><span style="font-size:10px;color:#15803d">soutenu${verified > 1 ? 's' : ''} pour réparation</span></div>`;
-        } else {
-          singleConfirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;text-align:center"><span style="font-size:11px;color:#92400e">⏳ En attente de confirmation</span></div>`;
-        }
-      }
-
       L.marker(pos, { icon })
         .addTo(map)
-        .bindPopup(`<div style="min-width:180px;text-align:center"><strong style="color:${c.couleur};font-size:14px">${c.nom}</strong><br/><span style="font-size:11px;color:#666">${label}</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${singleConfirmHtml}<div style="margin-top:10px"><a href="/commune/${encodeURIComponent(c.nom)}" style="display:inline-block;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;text-decoration:none;font-size:12px;font-weight:700;padding:7px 16px;border-radius:8px;box-shadow:0 2px 6px rgba(14,165,233,0.3);">Voir les signalements →</a></div></div>`);
+        .bindPopup(buildPopupHtml(c.couleur, c.nom, label, total, actifs, resolus, buildConfirmHtml(verified, actifs, "infra")));
     }
   };
 
@@ -681,7 +683,8 @@ const MapPage = () => {
         {/* Heat-map toggle */}
         <button
           onClick={() => setShowHeatmap((v) => !v)}
-          className={`mb-4 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all border ${
+          aria-pressed={showHeatmap}
+          className={`mb-4 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
             showHeatmap
               ? "bg-orange-500 text-white border-orange-500 shadow-md"
               : "bg-card text-muted-foreground border-border hover:bg-accent"
@@ -691,28 +694,42 @@ const MapPage = () => {
           {showHeatmap ? "Heat-map ON" : "Heat-map signalements"}
         </button>
 
-        {/* Filtre période */}
-        <div className="mb-3 flex flex-wrap gap-2 items-center">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mr-1">Période :</span>
-          {([
-            { key: "all" as PeriodFilter,   label: "Tout" },
-            { key: "today" as PeriodFilter,  label: "Aujourd'hui" },
-            { key: "7d" as PeriodFilter,     label: "7 jours" },
-            { key: "30d" as PeriodFilter,    label: "30 jours" },
-          ]).map((p) => (
-            <button
-              key={p.key}
-              onClick={() => setPeriodFilter(p.key)}
-              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                periodFilter === p.key
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-accent"
-              }`}
+        {/* Filtre période — heatmap only */}
+        <AnimatePresence>
+          {showHeatmap && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+              animate={{ opacity: 1, height: "auto", marginBottom: 12 }}
+              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
             >
-              {p.label}
-            </button>
-          ))}
-        </div>
+              <div className="flex flex-wrap gap-2 items-center">
+                <span className="text-xs font-semibold text-orange-500 uppercase tracking-wide mr-1 flex items-center gap-1">
+                  <Flame className="h-3 w-3" /> Période heat-map :
+                </span>
+                {([
+                  { key: "all" as PeriodFilter,   label: "Tout" },
+                  { key: "today" as PeriodFilter,  label: "Aujourd'hui" },
+                  { key: "7d" as PeriodFilter,     label: "7 jours" },
+                  { key: "30d" as PeriodFilter,    label: "30 jours" },
+                ]).map((p) => (
+                  <button
+                    key={p.key}
+                    onClick={() => setPeriodFilter(p.key)}
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                      periodFilter === p.key
+                        ? "bg-orange-500 text-white"
+                        : "bg-secondary text-secondary-foreground hover:bg-accent"
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Filtre commune */}
         <div className="mb-4 flex flex-wrap gap-2 items-center">
@@ -844,7 +861,7 @@ const MapPage = () => {
         )}
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="overflow-hidden rounded-xl border border-border shadow-card">
-          <div ref={mapRef} className="h-[500px] w-full" />
+          <div ref={mapRef} className="h-[500px] w-full" role="region" aria-label="Carte interactive des signalements" />
         </motion.div>
 
         <p className="mt-3 text-center text-xs text-muted-foreground">

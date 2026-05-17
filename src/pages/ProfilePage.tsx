@@ -204,7 +204,9 @@ const RightsTabContent = () => {
       <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
         <button
           onClick={() => toggle("intro")}
-          className="w-full flex items-center justify-between gap-2 px-4 py-3 hover:bg-accent/50 transition-colors"
+          aria-expanded={openSections.has("intro")}
+          aria-controls="section-intro"
+          className="w-full flex items-center justify-between gap-2 px-4 py-3 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15 text-primary shrink-0">
@@ -222,6 +224,7 @@ const RightsTabContent = () => {
         <AnimatePresence initial={false}>
           {openSections.has("intro") && (
             <motion.div
+              id="section-intro"
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -250,7 +253,9 @@ const RightsTabContent = () => {
         <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
           <button
             onClick={() => toggle("contacts")}
-            className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-destructive/5 hover:bg-accent/50 transition-colors"
+            aria-expanded={openSections.has("contacts")}
+            aria-controls="section-contacts"
+            className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-destructive/5 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <div className="flex items-center gap-2">
               <Phone className="h-4 w-4 text-destructive shrink-0" />
@@ -262,6 +267,7 @@ const RightsTabContent = () => {
           <AnimatePresence initial={false}>
             {openSections.has("contacts") && (
               <motion.div
+                id="section-contacts"
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
@@ -368,7 +374,9 @@ const RightsTabContent = () => {
           <div key={s.key} className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
             <button
               onClick={() => toggle(s.key)}
-              className={`w-full flex items-center justify-between gap-2 px-4 py-3 ${s.bgAccent} hover:bg-accent/50 transition-colors`}
+              aria-expanded={isOpen}
+              aria-controls={`section-${s.key}`}
+              className={`w-full flex items-center justify-between gap-2 px-4 py-3 ${s.bgAccent} hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary`}
             >
               <div className="flex items-center gap-2">
                 {s.icon}
@@ -381,6 +389,7 @@ const RightsTabContent = () => {
             <AnimatePresence initial={false}>
               {isOpen && (
                 <motion.div
+                  id={`section-${s.key}`}
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
