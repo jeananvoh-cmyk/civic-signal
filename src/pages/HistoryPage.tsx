@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 import { Zap, Droplets, Loader2, History, Calendar, ArrowLeft, ChevronRight, CheckCircle2, AlertTriangle, Wrench } from "lucide-react";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
@@ -115,13 +116,13 @@ const HistoryPage = () => {
               <p className="text-2xl font-extrabold text-foreground">{reports.length}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">Total</p>
             </div>
-            <div className="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-800/40 dark:bg-amber-900/10 p-3 text-center">
-              <p className="text-2xl font-extrabold text-amber-600 dark:text-amber-400">{totalActive}</p>
-              <p className="text-[10px] text-amber-700 dark:text-amber-500 mt-0.5">En cours</p>
+            <div className="rounded-xl border border-warning/30 bg-warning/5 dark:border-warning/25 dark:bg-warning/10 p-3 text-center">
+              <p className="text-2xl font-extrabold text-warning">{totalActive}</p>
+              <p className="text-[10px] text-warning/80 mt-0.5">En cours</p>
             </div>
-            <div className="rounded-xl border border-green-200 bg-green-50 dark:border-green-800/40 dark:bg-green-900/10 p-3 text-center">
-              <p className="text-2xl font-extrabold text-green-600 dark:text-green-400">{totalResolved}</p>
-              <p className="text-[10px] text-green-700 dark:text-green-500 mt-0.5">R\u00e9solus</p>
+            <div className="rounded-xl border border-success/30 bg-success/5 dark:border-success/25 dark:bg-success/10 p-3 text-center">
+              <p className="text-2xl font-extrabold text-success">{totalResolved}</p>
+              <p className="text-[10px] text-success/80 mt-0.5">R\u00e9solus</p>
             </div>
           </motion.div>
         )}
@@ -136,11 +137,12 @@ const HistoryPage = () => {
             <button
               key={f.key}
               onClick={() => setFilter(f.key)}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
+              className={cn(
+                "rounded-full px-4 py-2 text-xs font-semibold transition-colors",
                 filter === f.key
                   ? "bg-primary text-primary-foreground"
                   : "bg-secondary text-secondary-foreground hover:bg-accent"
-              }`}
+              )}
             >
               {f.label}
             </button>
@@ -182,7 +184,7 @@ const HistoryPage = () => {
                       {serviceIcon}
                       <span className="text-sm font-bold">{serviceLabel}</span>
                     </div>
-                    <Badge variant="outline" className={`text-white border-white/30 ${isResolved ? "bg-white/20" : "bg-white/10"}`}>
+                    <Badge variant="outline" className={cn("text-white border-white/30", isResolved ? "bg-white/20" : "bg-white/10")}>
                       {isResolved ? "✅ Résolu" : "🔴 Actif"}
                     </Badge>
                   </div>
@@ -217,7 +219,7 @@ const HistoryPage = () => {
                         verifications={r.verifications}
                       />
                       {r.status === "active" && r.verifications === 0 && (Date.now() - new Date(r.created_at).getTime()) > 7 * 86400000 && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/10 border border-orange-500/30 px-2 py-0.5 text-[10px] font-semibold text-orange-600 dark:text-orange-400">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 border border-warning/30 px-2 py-0.5 text-[10px] font-semibold text-warning">
                           ⚠ Non pris en charge
                         </span>
                       )}
@@ -226,49 +228,72 @@ const HistoryPage = () => {
                     {/* Feedback résolution */}
                     {isResolved && (() => {
                       const fb = feedbacks[r.id];
-                      if (fb === "confirmed") return (
-                        <div className="mt-3 flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
-                          <CheckCircle2 className="h-3.5 w-3.5" /> Résolution confirmée — merci !
-                        </div>
-                      );
-                      if (fb === "contested") return (
-                        <div className="mt-3 flex items-center gap-1.5 text-xs text-orange-600 dark:text-orange-400">
-                          <AlertTriangle className="h-3.5 w-3.5" /> Signalé comme toujours actif
-                        </div>
-                      );
                       return (
-                        <div className="mt-3 pt-3 border-t border-border">
-                          <p className="text-xs text-muted-foreground mb-2">Le problème est-il vraiment résolu ?</p>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs gap-1 border-green-500/40 text-green-700 hover:bg-green-500/10"
-                              onClick={() => {
-                                saveFeedback(r.id, "confirmed");
-                                toast.success("Merci pour votre retour !");
-                              }}
+                        <AnimatePresence mode="wait">
+                          {fb === "confirmed" ? (
+                            <motion.div
+                              key="confirmed"
+                              initial={{ opacity: 0, scale: 0.88, y: 6 }}
+                              animate={{ opacity: 1, scale: 1, y: 0 }}
+                              transition={{ type: "spring", stiffness: 320, damping: 22 }}
+                              className="mt-3 flex items-center gap-2 rounded-xl bg-green-500/10 border border-green-500/20 px-3 py-2"
                             >
-                              <CheckCircle2 className="h-3 w-3" /> Oui, résolu
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs gap-1 border-orange-500/40 text-orange-700 hover:bg-orange-500/10"
-                              onClick={() => {
-                                saveFeedback(r.id, "contested");
-                                toast("Compris. Vous pouvez créer un nouveau signalement.", {
-                                  action: {
-                                    label: "Signaler",
-                                    onClick: () => navigate(`/signaler?type=${r.service_type === "electricity" ? "electricity_outage" : "water_outage"}`),
-                                  },
-                                });
-                              }}
+                              <span className="text-base">🎉</span>
+                              <p className="text-xs font-semibold text-green-700 dark:text-green-400">
+                                Résolution confirmée — merci pour votre suivi citoyen !
+                              </p>
+                            </motion.div>
+                          ) : fb === "contested" ? (
+                            <motion.div
+                              key="contested"
+                              initial={{ opacity: 0, y: 4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="mt-3 flex items-center gap-1.5 text-xs text-orange-600 dark:text-orange-400"
                             >
-                              <AlertTriangle className="h-3 w-3" /> Non, toujours actif
-                            </Button>
-                          </div>
-                        </div>
+                              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                              Signalé comme toujours actif
+                            </motion.div>
+                          ) : (
+                            <motion.div
+                              key="prompt"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              className="mt-3 pt-3 border-t border-border"
+                            >
+                              <p className="text-xs text-muted-foreground mb-2">Le problème est-il vraiment résolu ?</p>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs gap-1 border-green-500/40 text-green-700 hover:bg-green-500/10"
+                                  onClick={() => {
+                                    saveFeedback(r.id, "confirmed");
+                                    toast.success("Merci pour votre retour !");
+                                  }}
+                                >
+                                  <CheckCircle2 className="h-3 w-3" /> Oui, résolu
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs gap-1 border-orange-500/40 text-orange-700 hover:bg-orange-500/10"
+                                  onClick={() => {
+                                    saveFeedback(r.id, "contested");
+                                    toast("Compris. Vous pouvez créer un nouveau signalement.", {
+                                      action: {
+                                        label: "Signaler",
+                                        onClick: () => navigate(`/signaler?type=${r.service_type === "electricity" ? "electricity_outage" : "water_outage"}`),
+                                      },
+                                    });
+                                  }}
+                                >
+                                  <AlertTriangle className="h-3 w-3" /> Non, toujours actif
+                                </Button>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       );
                     })()}
 

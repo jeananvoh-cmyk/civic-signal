@@ -1,9 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 import { Home, BarChart3, Plus, Wrench, User, Download } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
+import { cn } from "@/lib/utils";
 
 export default function BottomNav() {
   const location = useLocation();
@@ -11,19 +12,18 @@ export default function BottomNav() {
   const [unread, setUnread] = useState(0);
   const [pendingVerif, setPendingVerif] = useState(0);
   const { canInstall } = usePWAInstall();
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!user) { setUnread(0); setPendingVerif(0); return; }
 
-    // Notifications non lues
-    supabase
-      .from("notifications")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("read", false)
-      .then(({ count }) => setUnread(count ?? 0));
+    const fetchUnread = () =>
+      supabase.from("notifications").select("id", { count: "exact", head: true })
+        .eq("user_id", user.id).eq("read", false)
+        .then(({ count }) => setUnread(count ?? 0));
 
-    // Signalements voisins en attente de vérification (actifs, pas les miens)
+    fetchUnread();
+
     supabase
       .from("reports")
       .select("id", { count: "exact", head: true })
@@ -31,34 +31,23 @@ export default function BottomNav() {
       .neq("user_id", user.id)
       .then(({ count }) => setPendingVerif(Math.min(count ?? 0, 9)));
 
-    // Realtime : nouvelles notifications
     const channel = supabase
       .channel("bottomnav-notifs")
-      .on("postgres_changes", {
-        event: "INSERT",
-        schema: "public",
-        table: "notifications",
-        filter: `user_id=eq.${user.id}`,
-      }, () => setUnread((n) => n + 1))
-      .on("postgres_changes", {
-        event: "UPDATE",
-        schema: "public",
-        table: "notifications",
-        filter: `user_id=eq.${user.id}`,
-      }, () => {
-        supabase
-          .from("notifications")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .eq("read", false)
-          .then(({ count }) => setUnread(count ?? 0));
-      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        () => setUnread((n) => n + 1))
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        () => {
+          if (debounceTimer.current) clearTimeout(debounceTimer.current);
+          debounceTimer.current = setTimeout(fetchUnread, 300);
+        })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
-  // Masquer sur pages conflictuelles
   const hidden = ["/signaler", "/auth", "/admin", "/install"].some((p) =>
     location.pathname.startsWith(p)
   );
@@ -68,60 +57,48 @@ export default function BottomNav() {
 
   return (
     <>
-      {/* Spacer pour que le contenu ne soit pas masqué derrière la barre */}
-      <div className="h-16 md:hidden" aria-hidden="true" />
+      <div className="h-[4.5rem] md:hidden" aria-hidden="true" />
 
-      <nav className="fixed bottom-0 inset-x-0 z-40 md:hidden bg-card border-t border-border safe-area-pb">
-        <div className="grid grid-cols-5 items-end h-16">
+      <nav className="fixed bottom-0 inset-x-0 z-40 md:hidden safe-area-pb" aria-label="Navigation principale">
+        {/* Frosted glass backdrop */}
+        <div className="absolute inset-0 bg-background/85 backdrop-blur-xl border-t border-border/60" />
 
-          {/* Accueil */}
+        <div className="relative grid grid-cols-5 items-center h-[4.5rem] px-1">
           <NavTab to="/" icon={Home} label="Accueil" active={location.pathname === "/"} />
 
-          {/* Tableau — ou Installer si dispo */}
           {canInstall ? (
             <Link
               to="/install"
-              className={`flex flex-col items-center justify-center gap-0.5 h-full text-[10px] font-medium transition-colors ${
-                location.pathname === "/install" ? "text-primary" : "text-amber-500"
-              }`}
+              aria-label="Installer l'application"
+              className="flex flex-col items-center justify-center gap-1 h-full px-2"
             >
-              <div className="relative">
-                <Download className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-70" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500" />
-                </span>
+              <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-warning/12 border border-warning/20">
+                <Download className="h-4 w-4 text-warning" />
+                <span className="absolute -top-0.5 -right-0.5 inline-flex rounded-full h-2 w-2 bg-warning" />
               </div>
-              <span>Installer</span>
+              <span className="text-[10px] font-medium text-warning leading-none">Installer</span>
             </Link>
           ) : (
             <NavTab to="/tableau-de-bord" icon={BarChart3} label="Tableau" active={location.pathname === "/tableau-de-bord"} />
           )}
 
-          {/* FAB central — Signaler */}
-          <div className="flex items-center justify-center pb-2">
+          {/* FAB central */}
+          <div className="flex items-center justify-center">
             <Link
               to="/signaler"
-              className="flex flex-col items-center justify-center -mt-5 h-14 w-14 rounded-full bg-primary shadow-lg shadow-primary/40 active:scale-95 transition-transform"
-              aria-label="Signaler"
+              className="flex items-center justify-center h-[52px] w-[52px] rounded-[18px] bg-primary shadow-[0_4px_16px_hsl(var(--primary)/0.45)] active:scale-95 transition-transform -mt-4"
+              aria-label="Signaler un problème"
             >
-              <Plus className="h-6 w-6 text-white" />
+              <Plus className="h-6 w-6 text-white stroke-[2.5]" />
             </Link>
           </div>
 
-          {/* Infrastructures */}
-          <NavTab
-            to="/infrastructures"
-            icon={Wrench}
-            label="Infra"
-            active={location.pathname === "/infrastructures"}
-          />
+          <NavTab to="/infrastructures" icon={Wrench} label="Infra" active={location.pathname === "/infrastructures"} />
 
-          {/* Mon espace — badge notifications + vérification */}
           <NavTab
             to={user ? "/profil" : "/auth"}
             icon={User}
-            label="Mon espace"
+            label="Compte"
             active={location.pathname === "/profil"}
             badge={totalBadge > 0 ? totalBadge : undefined}
           />
@@ -134,24 +111,38 @@ export default function BottomNav() {
 function NavTab({
   to, icon: Icon, label, active, badge,
 }: {
-  to: string; icon: React.ElementType; label: string; active: boolean; badge?: number;
+  to: string;
+  icon: React.ElementType;
+  label: string;
+  active: boolean;
+  badge?: number;
 }) {
   return (
     <Link
       to={to}
-      className={`flex flex-col items-center justify-center gap-0.5 h-full text-[10px] font-medium transition-colors ${
-        active ? "text-primary" : "text-muted-foreground"
-      }`}
+      aria-label={badge ? `${label} (${badge} notification${badge > 1 ? "s" : ""})` : label}
+      aria-current={active ? "page" : undefined}
+      className="flex flex-col items-center justify-center gap-1 h-full px-2 group"
     >
-      <div className="relative">
-        <Icon className={`h-5 w-5 ${active ? "text-primary" : "text-muted-foreground"}`} />
+      <div className={cn(
+        "flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-200 relative",
+        active
+          ? "bg-primary/12 text-primary"
+          : "text-muted-foreground group-hover:text-foreground group-hover:bg-muted/60",
+      )}>
+        <Icon className={cn("h-[19px] w-[19px] transition-transform duration-150", active && "scale-105")} strokeWidth={active ? 2.2 : 1.8} />
         {badge !== undefined && (
-          <span className="absolute -top-1 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-white px-0.5">
+          <span className="absolute -top-0.5 -right-0.5 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-white px-0.5 leading-none">
             {badge > 9 ? "9+" : badge}
           </span>
         )}
+        {active && (
+          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-[3px] w-4 rounded-full bg-primary" />
+        )}
       </div>
-      <span>{label}</span>
+      <span className={cn("text-[10px] font-medium leading-none transition-colors", active ? "text-primary" : "text-muted-foreground/80")}>
+        {label}
+      </span>
     </Link>
   );
 }

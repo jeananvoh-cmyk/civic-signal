@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 import { Zap, ArrowLeft, User, Phone, Building2, Home, Eye, EyeOff, Mail, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,7 +89,9 @@ function Divider() {
 // ── Page principale ───────────────────────────────────────────────────────────
 const AuthPage = () => {
   const [searchParams] = useSearchParams();
-  const redirectAfter = searchParams.get("redirect") || "/";
+  // Block open redirect: only allow relative paths (must start with "/" but not "//")
+  const raw = searchParams.get("redirect") || "/";
+  const redirectAfter = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
   const initialMode = (searchParams.get("tab") === "signup" || searchParams.get("action") === "signup") ? "signup" : "login";
 
   const [mode, setMode]           = useState<"login" | "signup" | "forgot">(initialMode);
@@ -291,22 +294,24 @@ const AuthPage = () => {
               <button
                 type="button"
                 onClick={() => { setLoginMethod("magic"); setMagicSent(false); }}
-                className={`flex-1 py-2 text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors ${
+                className={cn(
+                  "flex-1 py-2 text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors",
                   loginMethod === "magic"
                     ? "bg-primary text-primary-foreground"
                     : "bg-background text-muted-foreground hover:bg-muted/50"
-                }`}
+                )}
               >
                 <Sparkles className="h-3.5 w-3.5" /> Lien magique
               </button>
               <button
                 type="button"
                 onClick={() => setLoginMethod("password")}
-                className={`flex-1 py-2 text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors ${
+                className={cn(
+                  "flex-1 py-2 text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors",
                   loginMethod === "password"
                     ? "bg-primary text-primary-foreground"
                     : "bg-background text-muted-foreground hover:bg-muted/50"
-                }`}
+                )}
               >
                 <Eye className="h-3.5 w-3.5" /> Mot de passe
               </button>
@@ -502,13 +507,11 @@ const AuthPage = () => {
                   onChange={(e) => setConfirmPwd(e.target.value)}
                   aria-invalid={confirmPwd.length > 0 && confirmPwd !== password}
                   aria-describedby={confirmPwd !== password && confirmPwd.length > 0 ? "confirm-pwd-error" : undefined}
-                  className={`h-12 rounded-lg text-base pr-12 ${
-                    confirmPwd && confirmPwd !== password
-                      ? "border-red-500 focus-visible:ring-red-500"
-                      : confirmPwd && confirmPwd === password
-                      ? "border-green-500 focus-visible:ring-green-500"
-                      : ""
-                  }`}
+                  className={cn(
+                    "h-12 rounded-lg text-base pr-12",
+                    confirmPwd && confirmPwd !== password && "border-destructive focus-visible:ring-destructive",
+                    confirmPwd && confirmPwd === password && "border-success focus-visible:ring-success"
+                  )}
                   required
                 />
                 <button
@@ -520,7 +523,7 @@ const AuthPage = () => {
                   {showConfirm ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
                 {confirmPwd && confirmPwd !== password && (
-                  <p id="confirm-pwd-error" role="alert" className="text-xs text-red-500 mt-1">Les mots de passe ne correspondent pas</p>
+                  <p id="confirm-pwd-error" role="alert" className="text-xs text-destructive mt-1">Les mots de passe ne correspondent pas</p>
                 )}
               </div>
 

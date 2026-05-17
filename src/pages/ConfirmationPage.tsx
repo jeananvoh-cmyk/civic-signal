@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 import { CheckCircle2, Radio, Users, BarChart3, Zap, ArrowRight, MapPin, Award, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
@@ -29,6 +30,7 @@ const ConfirmationPage = () => {
   const [prevVerifications, setPrevVerifications] = useState(0);
   const [pulse, setPulse] = useState(false);
   const [neighborCount, setNeighborCount] = useState<number | null>(null);
+  const [pollError, setPollError] = useState(false);
 
   const communeData = COMMUNES.find((c) => c.nom === commune);
   const accentColor = communeData?.couleur || "#0ea5e9";
@@ -37,21 +39,27 @@ const ConfirmationPage = () => {
     if (!reportId) return;
 
     const fetchVerifications = async () => {
-      const { data } = await supabase
-        .from("reports")
-        .select("verifications")
-        .eq("id", reportId)
-        .single();
-      if (data !== null && data !== undefined) {
-        const newCount = (data as any).verifications ?? 0;
-        setVerifications((prev) => {
-          if (newCount > prev) {
-            setPulse(true);
-            setPrevVerifications(prev);
-            setTimeout(() => setPulse(false), 1200);
-          }
-          return newCount;
-        });
+      try {
+        const { data, error } = await supabase
+          .from("reports")
+          .select("verifications")
+          .eq("id", reportId)
+          .single();
+        if (error) throw error;
+        setPollError(false);
+        if (data !== null && data !== undefined) {
+          const newCount = (data as any).verifications ?? 0;
+          setVerifications((prev) => {
+            if (newCount > prev) {
+              setPulse(true);
+              setPrevVerifications(prev);
+              setTimeout(() => setPulse(false), 1200);
+            }
+            return newCount;
+          });
+        }
+      } catch {
+        setPollError(true);
       }
     };
 
@@ -204,10 +212,10 @@ const ConfirmationPage = () => {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="mb-4 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800/40 dark:bg-amber-900/20"
+            className="mb-4 flex items-center gap-3 rounded-xl border border-warning/30 bg-warning/5 px-4 py-3 dark:border-warning/25 dark:bg-warning/10"
           >
-            <MapPin className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
-            <p className="text-sm text-amber-800 dark:text-amber-300">
+            <MapPin className="h-5 w-5 shrink-0 text-warning" />
+            <p className="text-sm text-warning-foreground dark:text-warning">
               <span className="font-bold">{neighborCount} voisin{neighborCount > 1 ? "s" : ""}</span> ont aussi signalé {typeEmoji} dans{" "}
               <span className="font-semibold">{quartier || commune}</span>
             </p>
@@ -223,10 +231,22 @@ const ConfirmationPage = () => {
           style={{ borderColor: accentColor + "40" }}
         >
           <div className="mb-2 flex items-center justify-center gap-2 text-xs font-semibold text-muted-foreground">
-            <Radio className={`h-3.5 w-3.5 ${pulse ? "animate-pulse" : ""}`} style={{ color: accentColor }} />
-            Confirmations de vos voisins — Live
+            {pollError ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-warning/10 border border-warning/20 px-2 py-0.5 text-warning">
+                <span className="h-1.5 w-1.5 rounded-full bg-warning animate-pulse" />
+                En attente de connexion…
+              </span>
+            ) : (
+              <>
+                <Radio className={cn("h-3.5 w-3.5", pulse && "animate-pulse")} style={{ color: accentColor }} />
+                Confirmations de vos voisins — Live
+              </>
+            )}
           </div>
 
+          <span className="sr-only" aria-live="polite" aria-atomic="true">
+            {verifications} voisin{verifications !== 1 ? "s" : ""} confirm{verifications !== 1 ? "ent" : "e"}
+          </span>
           <AnimatePresence mode="wait">
             <motion.div
               key={verifications}
@@ -235,6 +255,7 @@ const ConfirmationPage = () => {
               exit={{ opacity: 0, scale: 1.2, y: 10 }}
               transition={{ duration: 0.3 }}
               className="font-display text-6xl font-extrabold"
+              aria-hidden="true"
               style={{ color: verifications > 0 ? accentColor : undefined }}
             >
               {verifications}
@@ -347,7 +368,7 @@ const ConfirmationPage = () => {
             transition={{ delay: 0.38 }}
             className="mb-3"
           >
-            <Button asChild className="w-full py-5 font-bold text-base gap-2" style={{ backgroundColor: accentColor }}>
+            <Button asChild className="w-full py-5 font-bold text-base gap-2 hover:opacity-90 active:opacity-80 transition-opacity" style={{ backgroundColor: accentColor }}>
               <Link to={`/signalement/${reportId}`}>
                 📋 Consulter mon signalement
                 <ArrowRight className="h-4 w-4" />
@@ -390,15 +411,17 @@ const ConfirmationPage = () => {
           </Button>
         </motion.div>
 
-        {/* Tip */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-8 text-center text-xs text-muted-foreground"
-        >
-          Le compteur se met à jour automatiquement toutes les 5 secondes.
-        </motion.p>
+        {/* Statut polling */}
+        {reportId && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="mt-6 text-center text-[10px] text-muted-foreground/60"
+          >
+            {pollError ? "Reconnexion en cours…" : "Mise à jour automatique"}
+          </motion.p>
+        )}
       </main>
     </div>
   );
