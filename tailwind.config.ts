@@ -77,7 +77,8 @@ export default {
   			},
   			accent: {
   				DEFAULT: 'hsl(var(--accent))',
-  				foreground: 'hsl(var(--accent-foreground))'
+  				foreground: 'hsl(var(--accent-foreground))',
+  				mid: 'hsl(var(--accent-mid))'
   			},
   			popover: {
   				DEFAULT: 'hsl(var(--popover))',
@@ -112,6 +113,11 @@ export default {
   			info: {
   				DEFAULT: 'hsl(var(--info))',
   				foreground: 'hsl(var(--info-foreground))'
+  			},
+  			infra: {
+  				DEFAULT: 'hsl(var(--infra))',
+  				foreground: 'hsl(var(--infra-foreground))',
+  				light: 'hsl(var(--infra-light))'
   			},
   			sidebar: {
   				DEFAULT: 'hsl(var(--sidebar-background))',

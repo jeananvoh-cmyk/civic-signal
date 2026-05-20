@@ -20,7 +20,7 @@
        ═══════════════════════════════════════════════════════════ */
 
     /* Surfaces */
-    --background: 228 35% 96%;         /* #f2f3fa bleu-blanc très doux */
+    --background: 35 18% 96%;          /* ivoire subtil — lisible en conditions outdoor */
     --foreground: 220 18% 9%;          /* #191c21 quasi-noir */
 
     --card: 0 0% 100%;
@@ -30,35 +30,37 @@
     --popover-foreground: 220 18% 9%;
 
     /* Primary — bleu institutionnel viepublique.ci */
-    --primary: 207 97% 35%;            /* #0168b3 */
+    --primary: 207 85% 36%;            /* #1472be — institutionnel, moins agressif */
     --primary-foreground: 0 0% 100%;
 
     /* Secondary — slate bleu */
     --secondary: 213 27% 92%;          /* teinte douce du #48607e */
     --secondary-foreground: 213 27% 30%;
 
-    --muted: 220 20% 93%;
+    --muted: 35 12% 92%;
     --muted-foreground: 213 15% 45%;
 
     /* Accent — terracotta chaud (contraste avec le bleu) */
     --accent: 29 70% 93%;              /* terracotta très clair */
     --accent-foreground: 29 90% 28%;   /* #7d3c00 foncé */
+    --accent-mid: 29 65% 55%;          /* terracotta actionnable — badge, CTA secondaire */
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 220 16% 88%;
     --input: 220 16% 88%;
-    --ring: 207 97% 35%;
+    --ring: 207 85% 36%;
 
     --radius: 0.625rem;
 
     /* Custom tokens */
-    --water: 199 80% 42%;
+    --water: 193 78% 40%;
     --water-foreground: 0 0% 100%;
-    --water-light: 199 60% 93%;
+    --water-light: 193 60% 93%;
 
-    --electricity: 40 95% 50%;
+    --electricity: 40 85% 45%;
+    --electricity-text: 40 90% 22%;
     --electricity-foreground: 40 90% 10%;
     --electricity-light: 40 70% 92%;
 
@@ -71,30 +73,34 @@
     --urgent: 0 75% 55%;
     --urgent-foreground: 0 0% 100%;
 
-    --info: 207 97% 35%;               /* alias primary, séparé pour les composants info */
+    --infra: 265 55% 52%;
+    --infra-foreground: 0 0% 100%;
+    --infra-light: 265 40% 93%;
+
+    --info: 207 85% 36%;               /* alias primary */
     --info-foreground: 0 0% 100%;
 
-    --gradient-hero: linear-gradient(135deg, hsl(220 70% 10%), hsl(207 97% 18%), hsl(213 50% 14%));
-    --gradient-hero-radial: radial-gradient(ellipse 80% 60% at 20% 40%, hsl(207 97% 35% / 0.4), transparent), radial-gradient(ellipse 60% 50% at 80% 60%, hsl(29 70% 50% / 0.15), transparent);
-    --gradient-water: linear-gradient(135deg, hsl(199 80% 42%), hsl(199 65% 52%));
+    --gradient-hero: linear-gradient(135deg, hsl(220 70% 10%), hsl(207 85% 18%), hsl(213 50% 14%));
+    --gradient-hero-radial: radial-gradient(ellipse 80% 60% at 20% 40%, hsl(207 85% 36% / 0.4), transparent), radial-gradient(ellipse 60% 50% at 80% 60%, hsl(29 70% 50% / 0.15), transparent);
+    --gradient-water: linear-gradient(135deg, hsl(193 78% 40%), hsl(193 65% 50%));
     --gradient-electricity: linear-gradient(135deg, hsl(40 95% 50%), hsl(35 90% 55%));
     --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.08), hsl(0 0% 100% / 0.02));
 
     --shadow-card: 0 1px 2px hsl(213 20% 80% / 0.7), 0 0 0 1px hsl(213 20% 85% / 0.4);
     --shadow-elevated: 0 4px 16px hsl(207 40% 70% / 0.35);
-    --shadow-glow-water: 0 0 40px hsl(199 80% 42% / 0.3);
+    --shadow-glow-water: 0 0 40px hsl(193 78% 40% / 0.3);
     --shadow-glow-electricity: 0 0 40px hsl(40 95% 50% / 0.3);
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 220 18% 9%;
-    --sidebar-primary: 207 97% 35%;
+    --sidebar-primary: 207 85% 36%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 213 27% 92%;
     --sidebar-accent-foreground: 213 27% 30%;
     --sidebar-border: 220 16% 88%;
-    --sidebar-ring: 207 97% 35%;
-    --chart-1: 207 97% 35%;
-    --chart-2: 199 80% 42%;
+    --sidebar-ring: 207 85% 36%;
+    --chart-1: 207 85% 36%;
+    --chart-2: 193 78% 40%;
     --chart-3: 150 60% 38%;
     --chart-4: 40 95% 50%;
     --chart-5: 29 85% 45%;
@@ -144,6 +150,7 @@
     /* Accent — terracotta atténué */
     --accent: 29 45% 22%;
     --accent-foreground: 29 65% 75%;
+    --accent-mid: 29 60% 48%;
 
     --destructive: 0 65% 58%;
     --destructive-foreground: 0 0% 100%;
@@ -162,11 +169,16 @@
     --info-foreground: 0 0% 100%;
 
     /* Domain — surfaces sombres pour les badges eau/électricité */
-    --water: 199 72% 54%;
-    --water-light: 199 55% 14%;        /* surface sombre au lieu du bleu clair */
+    --water: 193 70% 52%;
+    --water-light: 193 55% 14%;        /* surface sombre au lieu du bleu clair */
 
     --electricity: 40 90% 58%;
+    --electricity-text: 40 85% 80%;
     --electricity-light: 40 65% 12%;   /* surface sombre */
+
+    --infra: 265 55% 65%;
+    --infra-foreground: 0 0% 100%;
+    --infra-light: 265 40% 18%;
 
     --border: 222 12% 28%;             /* border visible mais discrète */
     --input: 222 12% 24%;
@@ -181,7 +193,7 @@
     --sidebar-border: 222 12% 22%;
     --sidebar-ring: 207 82% 58%;
     --chart-1: 207 82% 64%;
-    --chart-2: 199 72% 56%;
+    --chart-2: 193 70% 54%;
     --chart-3: 150 55% 52%;
     --chart-4: 40 90% 60%;
     --chart-5: 29 72% 58%;
