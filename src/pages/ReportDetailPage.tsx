@@ -45,8 +45,6 @@ interface ReportDetail {
   babies: number;
   pregnant: number;
   elderly: number;
-  latitude: number | null;
-  longitude: number | null;
 }
 
 const SERVICE_LABELS: Record<string, string> = {
@@ -120,8 +118,9 @@ const ReportDetailPage = () => {
     if (!id) return;
     supabase
       .from("reports")
-      .select("id, user_id, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, validated, validated_at, forwarded_to_operator_at, photo_url, photo_urls, verifications, repair_verifications, impacted_people, babies, pregnant, elderly, latitude, longitude")
+      .select("id, user_id, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, validated, validated_at, forwarded_to_operator_at, photo_url, photo_urls, verifications, repair_verifications, impacted_people, babies, pregnant, elderly")
       .eq("id", id)
+      .eq("validated", true)
       .single()
       .then(({ data, error }) => {
         if (error || !data) setNotFound(true);

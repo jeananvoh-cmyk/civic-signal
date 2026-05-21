@@ -182,7 +182,7 @@ const VerificationPage = () => {
       });
       if (logError) throw logError;
 
-      const { error } = await supabase.from("reports").delete().eq("id", deleteTarget.id);
+      const { error } = await supabase.from("reports").delete().eq("id", deleteTarget.id).eq("user_id", user!.id);
       if (error) throw error;
       
       setReports((prev) => prev.filter((r) => r.id !== deleteTarget.id));

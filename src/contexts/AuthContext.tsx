@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Après connexion via magic link ou vérification email → rediriger si nécessaire
         if ((event === "SIGNED_IN" || event === "USER_UPDATED") && session) {
           const redirectTo = sessionStorage.getItem("signa_auth_redirect");
-          if (redirectTo && redirectTo !== "/") {
+          if (redirectTo && redirectTo !== "/" && /^\/[^/]/.test(redirectTo)) {
             sessionStorage.removeItem("signa_auth_redirect");
             window.location.href = redirectTo;
           }
