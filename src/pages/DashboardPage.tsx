@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
-import { Zap, Droplets, Clock, Trophy, TrendingUp, ChevronDown, Radio, Flame, AlertTriangle, MapPin, Siren, CalendarDays, Construction, CheckCircle2, Info, Wrench } from "lucide-react";
+import { Zap, Droplets, Clock, Trophy, ChevronDown, Radio, Flame, AlertTriangle, MapPin, Siren, Construction, CheckCircle2, Info, Wrench } from "lucide-react";
 import Header from "@/components/Header";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -80,14 +80,6 @@ function formatMinutes(mins: number): string {
   return `${d}j ${h % 24}h`;
 }
 
-type Period = "7d" | "30d" | "all";
-
-const PERIOD_LABELS: Record<Period, string> = {
-  "7d": "7 jours",
-  "30d": "30 jours",
-  "all": "Tout",
-};
-
 // Skeleton card for loading state
 const SkeletonCard = () => (
   <div className="rounded-2xl border border-border bg-card p-6 shadow-card animate-pulse">
@@ -149,7 +141,7 @@ const ReportRow = ({ r, variant }: { r: PriorityReport; variant: "critical" | "h
 
   const leftBorder = variant === "critical"
     ? "border-l-4 border-l-destructive"
-    : variant === "high" ? "border-l-4 border-l-orange-500"
+    : variant === "high" ? "border-l-4 border-l-warning"
     : "border-l-4 border-l-warning";
 
   // Compute priority for this report
@@ -165,8 +157,8 @@ const ReportRow = ({ r, variant }: { r: PriorityReport; variant: "critical" | "h
   return (
     <div className={`flex items-start gap-4 px-5 py-4 transition-colors hover:bg-muted/30 ${leftBorder}`}>
       {/* Service icon */}
-      <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${isInfra ? "bg-teal-500/20" : isElec ? "bg-amber-500/20" : "bg-blue-500/20"}`}>
-        {isInfra ? <Wrench className="h-5 w-5 text-teal-500" /> : isElec ? <Zap className="h-5 w-5 text-amber-500" /> : <Droplets className="h-5 w-5 text-blue-500" />}
+      <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${isInfra ? "bg-infra/20" : isElec ? "bg-electricity/20" : "bg-water/20"}`}>
+        {isInfra ? <Wrench className="h-5 w-5 text-infra" /> : isElec ? <Zap className="h-5 w-5 text-electricity" /> : <Droplets className="h-5 w-5 text-water" />}
       </div>
 
       {/* Description + meta */}
@@ -221,7 +213,6 @@ const DashboardPage = () => {
   const [priorityReports, setPriorityReports] = useState<PriorityReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [realtimeActive, setRealtimeActive] = useState(false);
-  const [period, setPeriod] = useState<Period>("all");
   const [moderatorName, setModeratorName] = useState<string>("");
   const [selectedCommune, setSelectedCommune] = useState("all");
 
@@ -395,8 +386,6 @@ const DashboardPage = () => {
 
   const dashboardTitle = isAdmin
     ? "Dashboard Opérateur"
-    : isModerator
-    ? `Tableau de Bord des Signalements — vue ${moderatorName || "Modérateur"}`
     : "Tableau de Bord des Signalements Publics";
 
   return (
@@ -423,7 +412,14 @@ const DashboardPage = () => {
       <main className="container py-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
+            <div className="flex items-center gap-2 flex-wrap">
             <h1 className="font-display text-3xl font-bold text-foreground">{dashboardTitle}</h1>
+            {isModerator && (
+              <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                {moderatorName || "Modérateur"}
+              </span>
+            )}
+          </div>
             <div className="mt-1 flex items-center gap-2">
               <p className="text-muted-foreground">7 communes pilotes — Abidjan</p>
               <span className={`flex items-center gap-1 text-xs font-medium transition-colors ${realtimeActive ? "text-success" : "text-muted-foreground"}`}>
@@ -433,23 +429,6 @@ const DashboardPage = () => {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Filtre période */}
-            <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1 shadow-sm">
-              <CalendarDays className="h-4 w-4 text-muted-foreground ml-1.5" />
-              {(["7d", "30d", "all"] as Period[]).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPeriod(p)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    period === p
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  }`}
-                >
-                  {PERIOD_LABELS[p]}
-                </button>
-              ))}
-            </div>
             <ShareButton
               title="Tableau de Bord SIGNA-CI"
               text={`📊 ${totalActifs} coupures actives sur les 7 communes pilotes d'Abidjan`}
@@ -485,8 +464,8 @@ const DashboardPage = () => {
                     <img src={electricityIcon} alt="" className="h-full w-full object-contain" />
                   </div>
                   <div className="flex items-center gap-3 mb-1">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/15">
-                      <Zap className="h-5 w-5 text-amber-500" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-electricity/15">
+                      <Zap className="h-5 w-5 text-electricity" />
                     </div>
                     <div>
                       <h2 className="font-display text-lg font-bold text-foreground">Électricité</h2>
@@ -494,8 +473,8 @@ const DashboardPage = () => {
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4 text-center mt-4">
-                    <div><p className="font-display text-2xl font-extrabold text-amber-500">{totalElecActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
-                    <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalElecResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
+                    <div><p className="font-display text-2xl font-extrabold text-electricity">{totalElecActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
+                    <div><p className="font-display text-2xl font-extrabold text-success">{totalElecResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
                     <div><p className="font-display text-2xl font-extrabold text-foreground">{totalElecTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
                   </div>
                   {totalElecTotal > 0 && (
@@ -504,7 +483,7 @@ const DashboardPage = () => {
                       <span className="font-semibold text-foreground">{elecResolutionRate}% résolues</span>
                     </div>
                   )}
-                  <p className="mt-2 text-[9px] text-muted-foreground/50 italic">
+                  <p className="mt-2 text-[11px] text-muted-foreground/70 italic">
                     « Résolu » = confirmé par l'auteur ou 3 voisins
                   </p>
                 </div>
@@ -515,8 +494,8 @@ const DashboardPage = () => {
                     <img src={waterIcon} alt="" className="h-full w-full object-contain" />
                   </div>
                   <div className="flex items-center gap-3 mb-1">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/15">
-                      <Droplets className="h-5 w-5 text-blue-500" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-water/15">
+                      <Droplets className="h-5 w-5 text-water" />
                     </div>
                     <div>
                       <h2 className="font-display text-lg font-bold text-foreground">Eau</h2>
@@ -524,8 +503,8 @@ const DashboardPage = () => {
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4 text-center mt-4">
-                    <div><p className="font-display text-2xl font-extrabold text-blue-500">{totalEauActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
-                    <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalEauResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
+                    <div><p className="font-display text-2xl font-extrabold text-water">{totalEauActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
+                    <div><p className="font-display text-2xl font-extrabold text-success">{totalEauResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
                     <div><p className="font-display text-2xl font-extrabold text-foreground">{totalEauTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
                   </div>
                   {totalEauTotal > 0 && (
@@ -534,7 +513,7 @@ const DashboardPage = () => {
                       <span className="font-semibold text-foreground">{eauResolutionRate}% résolues</span>
                     </div>
                   )}
-                  <p className="mt-2 text-[9px] text-muted-foreground/50 italic">
+                  <p className="mt-2 text-[11px] text-muted-foreground/70 italic">
                     « Résolu » = confirmé par l'auteur ou 3 voisins
                   </p>
                 </div>
@@ -542,11 +521,11 @@ const DashboardPage = () => {
                 {/* Voirie & Infrastructure */}
                 <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
                   <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
-                    <Construction className="h-full w-full text-teal-500" />
+                    <Construction className="h-full w-full text-infra" />
                   </div>
                   <div className="flex items-center gap-3 mb-1">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-500/15">
-                      <Construction className="h-5 w-5 text-teal-500" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-infra/15">
+                      <Construction className="h-5 w-5 text-infra" />
                     </div>
                     <div>
                       <h2 className="font-display text-lg font-bold text-foreground">Voirie & Infra</h2>
@@ -554,8 +533,8 @@ const DashboardPage = () => {
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4 text-center mt-4">
-                    <div><p className="font-display text-2xl font-extrabold text-teal-500">{totalMairieActifs}</p><p className="text-xs text-muted-foreground">Actifs</p></div>
-                    <div><p className="font-display text-2xl font-extrabold text-emerald-500">{totalMairieResolus}</p><p className="text-xs text-muted-foreground">Réparés</p></div>
+                    <div><p className="font-display text-2xl font-extrabold text-infra">{totalMairieActifs}</p><p className="text-xs text-muted-foreground">Actifs</p></div>
+                    <div><p className="font-display text-2xl font-extrabold text-success">{totalMairieResolus}</p><p className="text-xs text-muted-foreground">Réparés</p></div>
                     <div><p className="font-display text-2xl font-extrabold text-foreground">{totalMairieTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
                   </div>
                   {totalMairieTotal > 0 && (
@@ -564,7 +543,7 @@ const DashboardPage = () => {
                       <span className="font-semibold text-foreground">{mairieResolutionRate}% réparés</span>
                     </div>
                   )}
-                  <p className="mt-2 text-[9px] text-muted-foreground/50 italic">« Résolu » = réparation confirmée par l'auteur ou 3 citoyens</p>
+                  <p className="mt-2 text-[11px] text-muted-foreground/70 italic">« Résolu » = réparation confirmée par l'auteur ou 3 citoyens</p>
                 </div>
               </>
             )}
@@ -598,10 +577,10 @@ const DashboardPage = () => {
             : "Signalements vérifiés par 3+ voisins — haute fiabilité";
           return (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="mb-8">
-            <div className="rounded-2xl border-2 border-emerald-500/30 bg-emerald-500/5 p-5 space-y-3">
+            <div className="rounded-2xl border-2 border-success/30 bg-success/5 p-5 space-y-3">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/20">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-success/20">
+                  <CheckCircle2 className="h-4 w-4 text-success" />
                 </div>
                 <div>
                   <h3 className="font-display text-sm font-bold text-foreground">{sectionTitle}</h3>
@@ -646,7 +625,7 @@ const DashboardPage = () => {
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-0.5 shrink-0">
-                        <span className="text-xs font-bold text-emerald-600">{countLabel}</span>
+                        <span className="text-xs font-bold text-success">{countLabel}</span>
                         <span className="text-[10px] text-muted-foreground">→ {operator}</span>
                       </div>
                     </div>
@@ -659,7 +638,7 @@ const DashboardPage = () => {
         })()}
 
         {/* Duration stats */}
-        {canValidate && !loading && durations.some((d) => d.total_resolved > 0) && (() => {
+        {!loading && durations.some((d) => d.total_resolved > 0) && (() => {
           const communeNames = [...new Set(durations.map((d) => d.commune))];
           const elecDurations = durations.filter((d) => d.service_type === "electricity" && d.total_resolved > 0);
           const waterDurations = durations.filter((d) => d.service_type === "water" && d.total_resolved > 0);
@@ -684,14 +663,14 @@ const DashboardPage = () => {
 
               {/* Global summary */}
               <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                <div className="rounded-xl border border-electricity/20 bg-electricity/5 p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <Zap className="h-4 w-4 text-amber-500" />
+                    <Zap className="h-4 w-4 text-electricity" />
                     <span className="text-xs font-semibold text-foreground">Électricité (CIE)</span>
                   </div>
                   <div className="flex items-baseline gap-4 flex-wrap">
                     <div>
-                      <p className="font-display text-2xl font-extrabold text-amber-500">{globalElecAvg > 0 ? formatMinutes(globalElecAvg) : "—"}</p>
+                      <p className="font-display text-2xl font-extrabold text-electricity">{globalElecAvg > 0 ? formatMinutes(globalElecAvg) : "—"}</p>
                       <p className="text-[10px] text-muted-foreground">durée moy.</p>
                     </div>
                     <div>
@@ -704,14 +683,14 @@ const DashboardPage = () => {
                     </div>
                   </div>
                 </div>
-                <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
+                <div className="rounded-xl border border-water/20 bg-water/5 p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <Droplets className="h-4 w-4 text-blue-500" />
+                    <Droplets className="h-4 w-4 text-water" />
                     <span className="text-xs font-semibold text-foreground">Eau (SODECI)</span>
                   </div>
                   <div className="flex items-baseline gap-4 flex-wrap">
                     <div>
-                      <p className="font-display text-2xl font-extrabold text-blue-500">{globalWaterAvg > 0 ? formatMinutes(globalWaterAvg) : "—"}</p>
+                      <p className="font-display text-2xl font-extrabold text-water">{globalWaterAvg > 0 ? formatMinutes(globalWaterAvg) : "—"}</p>
                       <p className="text-[10px] text-muted-foreground">durée moy.</p>
                     </div>
                     <div>
@@ -734,16 +713,16 @@ const DashboardPage = () => {
                       <tr className="border-b border-border bg-muted/30">
                         <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Commune</th>
                         <th className="text-center px-3 py-2.5 text-xs font-semibold text-muted-foreground">
-                          <span className="flex items-center justify-center gap-1"><Zap className="h-3 w-3 text-amber-500" />Moy.</span>
+                          <span className="flex items-center justify-center gap-1"><Zap className="h-3 w-3 text-electricity" />Moy.</span>
                         </th>
                         <th className="text-center px-3 py-2.5 text-xs font-semibold text-muted-foreground">
-                          <span className="flex items-center justify-center gap-1"><Zap className="h-3 w-3 text-amber-500" />Max</span>
+                          <span className="flex items-center justify-center gap-1"><Zap className="h-3 w-3 text-electricity" />Max</span>
                         </th>
                         <th className="text-center px-3 py-2.5 text-xs font-semibold text-muted-foreground">
-                          <span className="flex items-center justify-center gap-1"><Droplets className="h-3 w-3 text-blue-500" />Moy.</span>
+                          <span className="flex items-center justify-center gap-1"><Droplets className="h-3 w-3 text-water" />Moy.</span>
                         </th>
                         <th className="text-center px-3 py-2.5 text-xs font-semibold text-muted-foreground">
-                          <span className="flex items-center justify-center gap-1"><Droplets className="h-3 w-3 text-blue-500" />Max</span>
+                          <span className="flex items-center justify-center gap-1"><Droplets className="h-3 w-3 text-water" />Max</span>
                         </th>
                       </tr>
                     </thead>
@@ -799,9 +778,9 @@ const DashboardPage = () => {
                           <p className="text-[10px] text-muted-foreground">{q.commune}</p>
                         </div>
                         <div className="flex items-center gap-3 text-xs">
-                          <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-amber-500" />{q.elecActifs}</span>
-                          <span className="flex items-center gap-1"><Droplets className="h-3 w-3 text-blue-500" />{q.eauActifs}</span>
-                          <span className="flex items-center gap-1"><Construction className="h-3 w-3 text-teal-500" />{q.mairieActifs}</span>
+                          <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-electricity" />{q.elecActifs}</span>
+                          <span className="flex items-center gap-1"><Droplets className="h-3 w-3 text-water" />{q.eauActifs}</span>
+                          <span className="flex items-center gap-1"><Construction className="h-3 w-3 text-infra" />{q.mairieActifs}</span>
                         </div>
                         <div className="text-right">
                           <p className="font-display text-lg font-extrabold" style={{ color: q.totalActifs > 0 ? q.couleur : undefined }}>
@@ -849,7 +828,7 @@ const DashboardPage = () => {
           <Collapsible>
             <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-5 py-3 shadow-card hover:bg-secondary/50 transition-colors">
               <div className="flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-amber-500" />
+                <Trophy className="h-5 w-5 text-electricity" />
                 <h2 className="font-display text-xl font-bold text-foreground">Classement des coupures en cours par commune</h2>
               </div>
               <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
@@ -892,9 +871,9 @@ const DashboardPage = () => {
                               {c.commune}
                             </button>
                             <div className="flex gap-3 text-xs text-muted-foreground">
-                              <span>⚡ {c.electricite_actifs}</span>
-                              <span>💧 {c.eau_actifs}</span>
-                              <span>🏗️ {c.mairie_actifs}</span>
+                              <span className="flex items-center gap-0.5"><Zap className="h-3 w-3 text-electricity" />{c.electricite_actifs}</span>
+                              <span className="flex items-center gap-0.5"><Droplets className="h-3 w-3 text-water" />{c.eau_actifs}</span>
+                              <span className="flex items-center gap-0.5"><Construction className="h-3 w-3 text-infra" />{c.mairie_actifs}</span>
                             </div>
                           </div>
                           <div className="text-right">
@@ -974,50 +953,50 @@ const DashboardPage = () => {
                   </div>
 
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="rounded-xl bg-amber-500/5 border border-amber-500/20 p-3">
+                    <div className="rounded-xl bg-electricity/5 border border-electricity/20 p-3">
                       <div className="flex items-center gap-2 mb-2">
-                        <Zap className="h-4 w-4 text-amber-500" />
+                        <Zap className="h-4 w-4 text-electricity" />
                         <span className="text-xs font-semibold text-foreground">CIE</span>
                       </div>
                       <div className="flex items-baseline gap-2 flex-wrap">
                         <div>
-                          <span className="font-display text-xl font-extrabold text-amber-500">{c.electricite_actifs}</span>
+                          <span className="font-display text-xl font-extrabold text-electricity">{c.electricite_actifs}</span>
                           <span className="text-[10px] text-muted-foreground ml-1">actif{c.electricite_actifs !== 1 ? "s" : ""}</span>
                         </div>
                         <div>
-                          <span className="font-display text-sm font-bold text-emerald-500">{c.electricite_resolus}</span>
+                          <span className="font-display text-sm font-bold text-success">{c.electricite_resolus}</span>
                           <span className="text-[10px] text-muted-foreground ml-1">résolu{c.electricite_resolus !== 1 ? "s" : ""}</span>
                         </div>
                       </div>
                     </div>
-                    <div className="rounded-xl bg-blue-500/5 border border-blue-500/20 p-3">
+                    <div className="rounded-xl bg-water/5 border border-water/20 p-3">
                       <div className="flex items-center gap-2 mb-2">
-                        <Droplets className="h-4 w-4 text-blue-500" />
+                        <Droplets className="h-4 w-4 text-water" />
                         <span className="text-xs font-semibold text-foreground">SODECI</span>
                       </div>
                       <div className="flex items-baseline gap-2 flex-wrap">
                         <div>
-                          <span className="font-display text-xl font-extrabold text-blue-500">{c.eau_actifs}</span>
+                          <span className="font-display text-xl font-extrabold text-water">{c.eau_actifs}</span>
                           <span className="text-[10px] text-muted-foreground ml-1">actif{c.eau_actifs !== 1 ? "s" : ""}</span>
                         </div>
                         <div>
-                          <span className="font-display text-sm font-bold text-emerald-500">{c.eau_resolus}</span>
+                          <span className="font-display text-sm font-bold text-success">{c.eau_resolus}</span>
                           <span className="text-[10px] text-muted-foreground ml-1">résolu{c.eau_resolus !== 1 ? "s" : ""}</span>
                         </div>
                       </div>
                     </div>
-                    <div className="rounded-xl bg-teal-500/5 border border-teal-500/20 p-3">
+                    <div className="rounded-xl bg-infra/5 border border-infra/20 p-3">
                       <div className="flex items-center gap-2 mb-2">
-                        <Construction className="h-4 w-4 text-teal-500" />
+                        <Construction className="h-4 w-4 text-infra" />
                         <span className="text-xs font-semibold text-foreground">Mairie</span>
                       </div>
                       <div className="flex items-baseline gap-2 flex-wrap">
                         <div>
-                          <span className="font-display text-xl font-extrabold text-teal-500">{c.mairie_actifs}</span>
+                          <span className="font-display text-xl font-extrabold text-infra">{c.mairie_actifs}</span>
                           <span className="text-[10px] text-muted-foreground ml-1">actif{c.mairie_actifs !== 1 ? "s" : ""}</span>
                         </div>
                         <div>
-                          <span className="font-display text-sm font-bold text-emerald-500">{c.mairie_resolus}</span>
+                          <span className="font-display text-sm font-bold text-success">{c.mairie_resolus}</span>
                           <span className="text-[10px] text-muted-foreground ml-1">résolu{c.mairie_resolus !== 1 ? "s" : ""}</span>
                         </div>
                       </div>
@@ -1044,12 +1023,12 @@ const DashboardPage = () => {
                               {communeReports.length} signalement{communeReports.length > 1 ? "s" : ""} actif{communeReports.length > 1 ? "s" : ""}
                             </span>
                             <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                              {elecCount > 0 && <span className="flex items-center gap-0.5"><Zap className="h-3 w-3 text-amber-500" />{elecCount}</span>}
-                              {eauCount > 0 && <span className="flex items-center gap-0.5"><Droplets className="h-3 w-3 text-blue-500" />{eauCount}</span>}
-                              {mairieCount > 0 && <span className="flex items-center gap-0.5"><Construction className="h-3 w-3 text-teal-500" />{mairieCount}</span>}
+                              {elecCount > 0 && <span className="flex items-center gap-0.5"><Zap className="h-3 w-3 text-electricity" />{elecCount}</span>}
+                              {eauCount > 0 && <span className="flex items-center gap-0.5"><Droplets className="h-3 w-3 text-water" />{eauCount}</span>}
+                              {mairieCount > 0 && <span className="flex items-center gap-0.5"><Construction className="h-3 w-3 text-infra" />{mairieCount}</span>}
                             </div>
                             {verifiedCount > 0 && (
-                              <span className="text-[10px] font-semibold text-emerald-500">✓ {verifiedCount} confirmé{verifiedCount > 1 ? "s" : ""}</span>
+                              <span className="text-[10px] font-semibold text-success">✓ {verifiedCount} confirmé{verifiedCount > 1 ? "s" : ""}</span>
                             )}
                           </div>
                           <span className="text-[10px] font-semibold text-primary group-hover:underline">Voir détails →</span>
