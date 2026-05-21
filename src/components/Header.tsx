@@ -140,7 +140,7 @@ const Header = () => {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -4, scale: 0.97 }}
                     transition={{ duration: 0.15, ease: "easeOut" }}
-                    className="absolute top-full left-0 mt-2 w-80 rounded-xl border border-border bg-card shadow-xl shadow-black/10 py-1.5 z-50"
+                    className="absolute top-full left-0 mt-2 w-80 rounded-xl border border-border bg-card shadow-xl shadow-black/10 dark:shadow-black/40 py-1.5 z-50"
                   >
                     <Link
                       to="/carte"
@@ -151,8 +151,8 @@ const Header = () => {
                           : "text-foreground/80 hover:bg-muted/60"
                       }`}
                     >
-                      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-500/10 border border-sky-500/15">
-                        <Map className="h-4 w-4 text-sky-500" />
+                      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-water/10 border border-water/15">
+                        <Map className="h-4 w-4 text-water" />
                       </div>
                       <div>
                         <p className="font-semibold text-[13px] text-foreground">Coupures eau & électricité</p>
@@ -169,8 +169,8 @@ const Header = () => {
                           : "text-foreground/80 hover:bg-muted/60"
                       }`}
                     >
-                      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-500/10 border border-orange-500/15">
-                        <Wrench className="h-4 w-4 text-orange-500" />
+                      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-infra/10 border border-infra/15">
+                        <Wrench className="h-4 w-4 text-infra" />
                       </div>
                       <div>
                         <p className="font-semibold text-[13px] text-foreground">Infrastructures publiques</p>
@@ -209,7 +209,7 @@ const Header = () => {
                     className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold transition-colors ${
                       isAdmin
                         ? "text-primary hover:bg-primary/8"
-                        : "text-amber-600 hover:bg-amber-500/8"
+                        : "text-warning hover:bg-warning/8"
                     }`}
                   >
                     <Shield className="h-3.5 w-3.5" />
@@ -305,14 +305,14 @@ const Header = () => {
                     to="/carte"
                     className={`flex items-center gap-2.5 rounded-lg px-4 py-3 text-[14px] font-medium transition-colors ${isActive("/carte") ? "bg-primary/8 text-primary" : "text-foreground/70 hover:bg-muted/60 hover:text-foreground"}`}
                   >
-                    <Map className="h-4 w-4 text-sky-500" />
+                    <Map className="h-4 w-4 text-water" />
                     Coupures eau & électricité
                   </Link>
                   <Link
                     to="/infrastructures"
                     className={`flex items-center gap-2.5 rounded-lg px-4 py-3 text-[14px] font-medium transition-colors ${isActive("/infrastructures") ? "bg-primary/8 text-primary" : "text-foreground/70 hover:bg-muted/60 hover:text-foreground"}`}
                   >
-                    <Wrench className="h-4 w-4 text-orange-500" />
+                    <Wrench className="h-4 w-4 text-infra" />
                     Infrastructures publiques
                   </Link>
                 </div>
@@ -323,7 +323,7 @@ const Header = () => {
                       {(isAdmin || isModerator) && (
                         <Link
                           to="/admin"
-                          className={`flex items-center gap-2.5 rounded-lg px-4 py-3 text-[14px] font-medium transition-colors ${isAdmin ? "text-primary hover:bg-primary/8" : "text-amber-600 hover:bg-amber-500/8"}`}
+                          className={`flex items-center gap-2.5 rounded-lg px-4 py-3 text-[14px] font-medium transition-colors ${isAdmin ? "text-primary hover:bg-primary/8" : "text-warning hover:bg-warning/8"}`}
                         >
                           <Shield className="h-4 w-4" />
                           {isAdmin ? "Administration" : "Modération"}
