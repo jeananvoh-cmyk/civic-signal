@@ -386,7 +386,9 @@ const DashboardPage = () => {
 
   const dashboardTitle = isAdmin
     ? "Dashboard Opérateur"
-    : "Tableau de Bord des Signalements Publics";
+    : isModerator
+    ? "Dashboard Modérateur"
+    : "Situation en direct";
 
   return (
     <div className="min-h-screen bg-background">
@@ -435,6 +437,55 @@ const DashboardPage = () => {
             />
           </div>
         </motion.div>
+
+        {/* CTA citoyen */}
+        {!canValidate && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="mb-6 grid grid-cols-2 gap-3">
+            <button
+              onClick={() => navigate("/signaler")}
+              className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-primary px-4 py-4 text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md active:scale-[0.98]"
+            >
+              <Siren className="h-5 w-5" />
+              <span className="text-sm font-bold">Signaler</span>
+              <span className="text-[10px] opacity-80">Eau · électricité · voirie</span>
+            </button>
+            <button
+              onClick={() => navigate("/verification")}
+              className="flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-primary/30 bg-primary/5 px-4 py-4 text-primary transition-all hover:bg-primary/10 active:scale-[0.98]"
+            >
+              <CheckCircle2 className="h-5 w-5" />
+              <span className="text-sm font-bold">Corroborer</span>
+              <span className="text-[10px] text-muted-foreground">Confirmer dans votre quartier</span>
+            </button>
+          </motion.div>
+        )}
+
+        {/* Priority reports P1/P2 — remontés en priorité */}
+        {!loading && highPriorityReports.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8">
+            <Collapsible defaultOpen>
+              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-3 shadow-card hover:bg-destructive/10 transition-colors">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                  <h2 className="font-display text-xl font-bold text-foreground">Priorités critiques</h2>
+                  <span className="rounded-full bg-destructive px-2 py-0.5 text-xs font-bold text-destructive-foreground">{highPriorityReports.length}</span>
+                  <span className="hidden sm:flex items-center gap-1 text-[10px] text-muted-foreground bg-secondary rounded-full px-2 py-0.5">
+                    <Info className="h-3 w-3" />
+                    Score OMS / IEEE / Sphère
+                  </span>
+                </div>
+                <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="mt-2 rounded-2xl border border-destructive/20 bg-card shadow-card overflow-hidden divide-y divide-border">
+                  {highPriorityReports.slice(0, 15).map((r) => (
+                    <ReportRow key={r.id} r={r} variant={r.priority.level === "P1" ? "critical" : "high"} />
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </motion.div>
+        )}
 
         {/* Global totals — admin/moderator only */}
         {canValidate && (
@@ -705,8 +756,8 @@ const DashboardPage = () => {
                 </div>
               </div>
 
-              {/* Per commune - table format */}
-              <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
+              {/* Per commune - table format — canValidate only */}
+              {canValidate && <div className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -744,7 +795,7 @@ const DashboardPage = () => {
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </div>}
             </motion.div>
           );
         })()}
@@ -752,7 +803,7 @@ const DashboardPage = () => {
         {/* Top quartiers */}
         {!loading && topQuartiers.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }} className="mb-8">
-            <Collapsible>
+            <Collapsible defaultOpen>
               <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-5 py-3 shadow-card hover:bg-secondary/50 transition-colors">
                 <div className="flex items-center gap-2">
                   <Flame className="h-5 w-5 text-destructive" />
@@ -796,33 +847,6 @@ const DashboardPage = () => {
             </Collapsible>
           </motion.div>
         )}
-        {/* Priority reports — international norms */}
-        {!loading && highPriorityReports.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-8">
-            <Collapsible defaultOpen>
-              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-3 shadow-card hover:bg-destructive/10 transition-colors">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                  <h2 className="font-display text-xl font-bold text-foreground">Priorités critiques</h2>
-                  <span className="rounded-full bg-destructive px-2 py-0.5 text-xs font-bold text-destructive-foreground">{highPriorityReports.length}</span>
-                  <span className="hidden sm:flex items-center gap-1 text-[10px] text-muted-foreground bg-secondary rounded-full px-2 py-0.5">
-                    <Info className="h-3 w-3" />
-                    Score OMS / IEEE / Sphère
-                  </span>
-                </div>
-                <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="mt-2 rounded-2xl border border-destructive/20 bg-card shadow-card overflow-hidden divide-y divide-border">
-                  {highPriorityReports.slice(0, 15).map((r) => (
-                    <ReportRow key={r.id} r={r} variant={r.priority.level === "P1" ? "critical" : "high"} />
-                  ))}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          </motion.div>
-        )}
-
         {/* Leaderboard */}
         {canValidate && (<motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-8">
           <Collapsible>

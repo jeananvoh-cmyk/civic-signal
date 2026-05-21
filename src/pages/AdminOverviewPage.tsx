@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  FileText, Users, AlertTriangle, CheckCircle2, Clock, TrendingUp,
+  FileText, Users, AlertTriangle, CheckCircle2, Clock, Eye, Megaphone,
   Zap, Droplets, Shield, Trash2, BarChart3, ArrowRight, Heart, MailCheck, Building2, Activity, AlertOctagon, SlidersHorizontal, Minus, Plus,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -234,8 +234,8 @@ const AdminOverviewPage = () => {
           ))
         ) : (
           <>
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-              <Card className="border-warning/20">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} onClick={() => navigate("/admin/signalements")} className="cursor-pointer">
+              <Card className="border-warning/20 hover:shadow-md transition-shadow">
                 <CardContent className="p-4 text-center">
                   <Clock className="h-5 w-5 mx-auto mb-2 text-warning" />
                   <p className="font-display text-3xl font-extrabold text-warning">{pendingCount}</p>
@@ -244,8 +244,8 @@ const AdminOverviewPage = () => {
               </Card>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-              <Card className="border-destructive/20">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} onClick={() => navigate("/admin/signalements")} className="cursor-pointer">
+              <Card className="border-destructive/20 hover:shadow-md transition-shadow">
                 <CardContent className="p-4 text-center">
                   <AlertTriangle className="h-5 w-5 mx-auto mb-2 text-destructive" />
                   <p className="font-display text-3xl font-extrabold text-destructive">{stats.critical}</p>
@@ -254,8 +254,8 @@ const AdminOverviewPage = () => {
               </Card>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-              <Card className={neglectedCount > 0 ? "border-warning/20" : ""}>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} onClick={() => navigate("/admin/signalements")} className="cursor-pointer">
+              <Card className={`hover:shadow-md transition-shadow ${neglectedCount > 0 ? "border-warning/20" : ""}`}>
                 <CardContent className="p-4 text-center">
                   <AlertOctagon className={`h-5 w-5 mx-auto mb-2 ${neglectedCount > 0 ? "text-warning" : "text-muted-foreground"}`} />
                   <p className={`font-display text-3xl font-extrabold ${neglectedCount > 0 ? "text-warning" : "text-foreground"}`}>{neglectedCount}</p>
@@ -264,8 +264,8 @@ const AdminOverviewPage = () => {
               </Card>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-              <Card className={pendingRelayCount > 0 ? "border-warning/20" : ""}>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} onClick={() => navigate("/admin/relay")} className="cursor-pointer">
+              <Card className={`hover:shadow-md transition-shadow ${pendingRelayCount > 0 ? "border-warning/20" : ""}`}>
                 <CardContent className="p-4 text-center">
                   <MailCheck className={`h-5 w-5 mx-auto mb-2 ${pendingRelayCount > 0 ? "text-warning" : "text-muted-foreground"}`} />
                   <p className={`font-display text-3xl font-extrabold ${pendingRelayCount > 0 ? "text-warning" : "text-foreground"}`}>{pendingRelayCount}</p>
@@ -336,15 +336,14 @@ const AdminOverviewPage = () => {
         </motion.div>
       )}
 
-      {/* ── Actions rapides ── */}
+      {/* ── Raccourcis ── */}
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Raccourcis</p>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
         {[
-          { label: "Valider signalements", path: "/admin/signalements", icon: FileText, count: pendingCount, color: "text-primary" },
-          { label: `Négligés +${currentThreshold}j`, path: "/admin/signalements", icon: AlertOctagon, count: neglectedCount, color: neglectedCount > 0 ? "text-warning" : "text-muted-foreground" },
-          { label: "Gérer les rôles", path: "/admin/utilisateurs", icon: Users, color: "text-primary" },
-          { label: "Historique suppressions", path: "/admin/suppressions", icon: Trash2, count: deletionsCount, color: "text-destructive" },
+          { label: "Utilisateurs", path: "/admin/utilisateurs", icon: Users, color: "text-primary" },
+          { label: "Suppressions", path: "/admin/suppressions", icon: Trash2, count: deletionsCount, color: "text-destructive" },
           { label: "Statistiques", path: "/admin/stats", icon: BarChart3, color: "text-primary" },
-          { label: "Relais opérateurs", path: "/admin/relay", icon: MailCheck, count: pendingRelayCount, color: "text-warning" },
+          { label: "Messagerie", path: "/admin/messagerie", icon: Megaphone, color: "text-primary" },
         ].map((action, i) => (
           <motion.div key={action.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 + i * 0.05 }}>
             <Button variant="outline" className="w-full h-auto py-4 flex-col gap-2 relative" onClick={() => navigate(action.path)}>
@@ -360,12 +359,13 @@ const AdminOverviewPage = () => {
         ))}
       </div>
 
-      {/* ── Visibilité des pages ── */}
+      {/* ── Configuration ── */}
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Configuration</p>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="mb-8">
         <Card>
           <CardContent className="p-5">
             <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="h-4 w-4 text-primary" />
+              <Eye className="h-4 w-4 text-primary" />
               <h2 className="font-display text-sm font-bold text-foreground">Visibilité des pages</h2>
             </div>
             <div className="divide-y divide-border">
