@@ -21,7 +21,7 @@ dist-ssr
 supabase/.temp/
 
 # Claude
-.claude/
+**/.claude/
 
 # Editor directories and files
 .vscode/*
