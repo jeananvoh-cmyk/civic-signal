@@ -3,7 +3,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 
 const LAST_ADMIN_PAGE_KEY = "admin_last_page";
 import {
-  FileText, Users, Trash2, BarChart3, Shield, ScrollText, Heart, Megaphone, MapPin,
+  FileText, Users, Trash2, Eraser, BarChart3, Shield, ScrollText, Heart, Megaphone, MapPin,
   ArrowLeft, Zap, ChevronDown, ChevronRight, Menu, X, Scale, MailCheck, Moon, Sun, Monitor,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -32,7 +32,7 @@ const NAV_GROUPS = [
     items: [
       { label: "Utilisateurs", path: "/admin/utilisateurs", icon: Users },
       { label: "Suppressions", path: "/admin/suppressions", icon: Trash2 },
-      { label: "Purge données", path: "/admin/purge", icon: Trash2 },
+      { label: "Purge données", path: "/admin/purge", icon: Eraser },
     ],
   },
   {
