@@ -438,28 +438,6 @@ const DashboardPage = () => {
           </div>
         </motion.div>
 
-        {/* CTA citoyen */}
-        {!canValidate && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="mb-6 grid grid-cols-2 gap-3">
-            <button
-              onClick={() => navigate("/signaler")}
-              className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-primary px-4 py-4 text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md active:scale-[0.98]"
-            >
-              <Siren className="h-5 w-5" />
-              <span className="text-sm font-bold">Signaler</span>
-              <span className="text-xs opacity-80">Eau · électricité · voirie</span>
-            </button>
-            <button
-              onClick={() => navigate("/verification")}
-              className="flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-primary/30 bg-primary/5 px-4 py-4 text-primary transition-all hover:bg-primary/10 active:scale-[0.98]"
-            >
-              <CheckCircle2 className="h-5 w-5" />
-              <span className="text-sm font-bold">Corroborer</span>
-              <span className="text-xs text-muted-foreground">Confirmer dans votre quartier</span>
-            </button>
-          </motion.div>
-        )}
-
         {/* Priority reports P1/P2 — remontés en priorité */}
         {!loading && highPriorityReports.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8">
@@ -484,6 +462,28 @@ const DashboardPage = () => {
                 </div>
               </CollapsibleContent>
             </Collapsible>
+          </motion.div>
+        )}
+
+        {/* CTA citoyen — après les urgences */}
+        {!canValidate && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="mb-6 grid grid-cols-2 gap-3">
+            <button
+              onClick={() => navigate("/signaler")}
+              className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-primary px-4 py-4 text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md active:scale-[0.98]"
+            >
+              <Siren className="h-5 w-5" />
+              <span className="text-sm font-bold">Signaler</span>
+              <span className="text-xs opacity-80">Eau · électricité · voirie</span>
+            </button>
+            <button
+              onClick={() => navigate("/verification")}
+              className="flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-primary/30 bg-primary/5 px-4 py-4 text-primary transition-all hover:bg-primary/10 active:scale-[0.98]"
+            >
+              <CheckCircle2 className="h-5 w-5" />
+              <span className="text-sm font-bold">Corroborer</span>
+              <span className="text-xs text-muted-foreground">Confirmer dans votre quartier</span>
+            </button>
           </motion.div>
         )}
 

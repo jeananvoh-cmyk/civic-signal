@@ -795,9 +795,10 @@ const ReportPage = () => {
                 </p>
               </div>
 
-              {/* Grille des types */}
+              {/* Grille des types — coupures réseau */}
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Coupure de réseau</p>
               <div className="grid grid-cols-2 gap-3">
-                {REPORT_TYPES.map((type) => {
+                {REPORT_TYPES.filter((t) => t.reportCategory === "outage").map((type) => {
                   const isSelected = selectedType?.id === type.id;
                   return (
                     <motion.button
@@ -830,6 +831,48 @@ const ReportPage = () => {
                       <span className="text-xs font-semibold leading-tight text-foreground">{type.label}</span>
                       {type.description && (
                         <span className="text-xs leading-tight text-muted-foreground">{type.description}</span>
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {/* Grille des types — infrastructure */}
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Problème d'infrastructure</p>
+              <div className="grid grid-cols-2 gap-2">
+                {REPORT_TYPES.filter((t) => t.reportCategory === "infrastructure").map((type) => {
+                  const isSelected = selectedType?.id === type.id;
+                  return (
+                    <motion.button
+                      key={type.id}
+                      type="button"
+                      whileTap={{ scale: 0.94 }}
+                      onClick={() => handleTypeSelect(type)}
+                      className="group flex flex-col items-center gap-2 rounded-xl border-2 p-3.5 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      style={{
+                        borderColor: isSelected ? type.color : undefined,
+                        backgroundColor: isSelected ? type.color + "18" : undefined,
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.borderColor = type.color;
+                          e.currentTarget.style.backgroundColor = type.color + "10";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.borderColor = "";
+                          e.currentTarget.style.backgroundColor = "";
+                        }
+                      }}
+                    >
+                      {type.image
+                        ? <img src={type.image} alt={type.label} className="h-8 w-8 object-contain rounded-md" />
+                        : <span className="text-3xl leading-none">{type.emoji}</span>
+                      }
+                      <span className="text-xs font-semibold leading-tight text-foreground">{type.label}</span>
+                      {type.description && (
+                        <span className="text-[10px] leading-tight text-muted-foreground">{type.description}</span>
                       )}
                     </motion.button>
                   );

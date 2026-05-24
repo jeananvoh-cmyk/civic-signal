@@ -68,9 +68,9 @@ const URGENCY_COLORS: Record<string, string> = {
 };
 
 const TimelineStep = ({
-  done, label, date, icon,
+  done, label, date, icon, progress,
 }: {
-  done: boolean; label: string; date?: string | null; icon: React.ReactNode;
+  done: boolean; label: string; date?: string | null; icon: React.ReactNode; progress?: string;
 }) => (
   <div className={`flex items-start gap-3 ${done ? "opacity-100" : "opacity-30"}`}>
     <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${
@@ -79,7 +79,10 @@ const TimelineStep = ({
       {icon}
     </div>
     <div>
-      <p className="text-sm font-semibold text-foreground">{label}</p>
+      <p className="text-sm font-semibold text-foreground">
+        {label}
+        {progress && <span className="ml-1.5 text-xs font-normal text-muted-foreground">({progress})</span>}
+      </p>
       {date && <p className="text-xs text-muted-foreground">{new Date(date).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" })}</p>}
       {!date && done && <p className="text-xs text-muted-foreground">–</p>}
     </div>
@@ -451,8 +454,12 @@ const ReportDetailPage = () => {
             />
             <TimelineStep
               done={report.verifications >= 3}
-              label={isInfra ? `${report.verifications} citoyen${report.verifications !== 1 ? "s" : ""} ont soutenu` : `${report.verifications} voisin${report.verifications !== 1 ? "s" : ""} ont confirmé`}
+              label={isInfra
+                ? `${report.verifications} citoyen${report.verifications !== 1 ? "s" : ""} ont soutenu`
+                : `${report.verifications} voisin${report.verifications !== 1 ? "s" : ""} ont confirmé`}
+              date={report.verifications >= 3 ? undefined : null}
               icon={<Users className="h-3.5 w-3.5" />}
+              progress={report.verifications < 3 ? `${report.verifications}/3` : undefined}
             />
             <TimelineStep
               done={!!report.forwarded_to_operator_at}

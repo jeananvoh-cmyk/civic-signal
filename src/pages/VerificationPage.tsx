@@ -13,6 +13,7 @@ import CorroborationStatus from "@/components/CorroborationStatus";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { COMMUNE_COLORS } from "@/lib/communes";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface MyReport {
@@ -67,6 +68,7 @@ const VerificationPage = () => {
 
   // Delete report
   const [deleteTarget, setDeleteTarget] = useState<MyReport | null>(null);
+  const [deleteChip, setDeleteChip] = useState<string>("");
   const [deleteReason, setDeleteReason] = useState("");
   const [deleting, setDeleting] = useState<string | null>(null);
 
@@ -189,6 +191,7 @@ const VerificationPage = () => {
       toast.success("Signalement supprimé");
       setDeleteTarget(null);
       setDeleteReason("");
+      setDeleteChip("");
     } catch (err: any) {
       toast.error(err.message || "Erreur");
     } finally {
@@ -391,7 +394,7 @@ const VerificationPage = () => {
                             className="w-full py-5 text-base bg-success text-success-foreground hover:bg-success/90 font-bold shadow-sm"
                           >
                             <Power className="mr-2 h-5 w-5" />
-                            {isInfra ? "Problème résolu !" : "Tout va bien !"}
+                            {isInfra ? "C'est réparé" : "C'est rétabli"}
                           </Button>
                           <Button
                             onClick={() => handleConfirmStillOngoing(r)}
@@ -405,7 +408,7 @@ const VerificationPage = () => {
                             ) : (
                               <AlertTriangle className="mr-1.5 h-3.5 w-3.5" />
                             )}
-                            {isInfra ? "Non, le problème persiste" : "Toujours coupé chez moi"}
+                            {isInfra ? "Problème persiste" : "Toujours coupé"}
                           </Button>
                         </div>
                         
@@ -505,7 +508,7 @@ const VerificationPage = () => {
         </Dialog>
 
         {/* Delete confirmation dialog */}
-        <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteReason(""); } }}>
+        <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteReason(""); setDeleteChip(""); } }}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-destructive">
@@ -534,24 +537,47 @@ const VerificationPage = () => {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="delete-reason">Pourquoi supprimez-vous ce signalement ?</Label>
-              <Textarea
-                id="delete-reason"
-                placeholder="Ex : signalement en double, erreur de saisie..."
-                value={deleteReason}
-                onChange={(e) => setDeleteReason(e.target.value)}
-                className="min-h-[80px] resize-none"
-                maxLength={300}
-              />
-              <p className="text-xs text-muted-foreground text-right">{deleteReason.length}/300</p>
+            <div className="space-y-3">
+              <Label>Pourquoi supprimez-vous ce signalement ?</Label>
+              <div className="flex flex-wrap gap-2">
+                {(["Doublon", "Erreur de localisation", "Problème résolu", "Autre"] as const).map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => {
+                      setDeleteChip(chip);
+                      if (chip !== "Autre") setDeleteReason(chip);
+                      else setDeleteReason("");
+                    }}
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                      deleteChip === chip
+                        ? "border-destructive bg-destructive/10 text-destructive"
+                        : "border-border bg-background text-muted-foreground hover:border-border hover:bg-muted/60",
+                    )}
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+              {deleteChip === "Autre" && (
+                <Textarea
+                  id="delete-reason"
+                  placeholder="Précisez la raison..."
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  className="min-h-[72px] resize-none"
+                  maxLength={300}
+                  autoFocus
+                />
+              )}
             </div>
 
             <div className="flex gap-2 pt-2">
               <Button
                 variant="outline"
                 className="flex-1"
-                onClick={() => { setDeleteTarget(null); setDeleteReason(""); }}
+                onClick={() => { setDeleteTarget(null); setDeleteReason(""); setDeleteChip(""); }}
               >
                 Annuler
               </Button>
