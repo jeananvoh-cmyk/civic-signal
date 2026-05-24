@@ -561,7 +561,9 @@ const VerificationPage = () => {
                 onClick={handleDelete}
                 disabled={!deleteReason.trim() || !!deleting}
               >
-                {deleting ? "Suppression..." : "Confirmer"}
+                {deleting ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Suppression...</>
+                ) : "Confirmer"}
               </Button>
             </div>
           </DialogContent>

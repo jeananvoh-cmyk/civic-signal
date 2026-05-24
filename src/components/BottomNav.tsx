@@ -132,7 +132,7 @@ function NavTab({
       )}>
         <Icon className={cn("h-[19px] w-[19px] transition-transform duration-150", active && "scale-105")} strokeWidth={active ? 2.2 : 1.8} />
         {badge !== undefined && (
-          <span className="absolute -top-0.5 -right-0.5 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-white px-0.5 leading-none">
+          <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-white px-0.5 leading-none">
             {badge > 9 ? "9+" : badge}
           </span>
         )}
