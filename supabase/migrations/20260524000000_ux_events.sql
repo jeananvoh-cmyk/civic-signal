@@ -29,9 +29,6 @@ CREATE POLICY "ux_events_select_admin"
   ON public.ux_events FOR SELECT
   TO authenticated
   USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE profiles.id = auth.uid()
-        AND profiles.role IN ('admin', 'moderator')
-    )
+    public.has_role(auth.uid(), 'admin'::app_role)
+    OR public.has_role(auth.uid(), 'moderator'::app_role)
   );
