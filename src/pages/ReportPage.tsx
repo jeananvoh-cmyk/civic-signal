@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { getUserFriendlyError } from "@/lib/error-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import { COMMUNES, type Commune } from "@/lib/communes";
 import { resolveCommune, type DetectionSource } from "@/lib/geolocation";
 import { getQuartiers, normalizeQuartier } from "@/lib/quartiers";
@@ -176,6 +177,7 @@ const ReportPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { track } = useAnalytics();
   const { isOnline } = useNetworkStatus();
   const { enqueue } = useOfflineQueue();
 
@@ -501,6 +503,7 @@ const ReportPage = () => {
 
   const handleTypeSelect = (type: ReportTypeConfig) => {
     setSelectedType(type);
+    track("type_selected", { type_id: type.id, category: type.reportCategory, service: type.serviceType });
     if ("vibrate" in navigator) navigator.vibrate([20]);
   };
 
@@ -689,6 +692,15 @@ const ReportPage = () => {
       }
 
       localStorage.removeItem(DRAFT_KEY);
+      track("report_submitted", {
+        type_id: selectedType!.id,
+        category: selectedType!.reportCategory,
+        service: selectedType!.serviceType,
+        commune,
+        has_photo: photoUrls.length > 0,
+        impacted_people: impactedPeople,
+        has_vulnerable: babies > 0 || pregnant > 0 || elderly > 0,
+      });
       // Retour haptique sur mobile
       if ("vibrate" in navigator) navigator.vibrate(200);
       toast.success("✅ Signalement envoyé !");

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, Clock, Power, Zap, Droplets, Loader2, PartyPopper, AlertTriangle, ThumbsUp, Trash2, Wrench } from "lucide-react";
@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { COMMUNE_COLORS } from "@/lib/communes";
 import { cn } from "@/lib/utils";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import { toast } from "sonner";
 
 interface MyReport {
@@ -70,6 +71,8 @@ const VerificationPage = () => {
   const [deleteTarget, setDeleteTarget] = useState<MyReport | null>(null);
   const [deleteChip, setDeleteChip] = useState<string>("");
   const [deleteReason, setDeleteReason] = useState("");
+  const { track } = useAnalytics();
+  const cardOpenedAt = useRef<Record<string, number>>({});
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const fetchMyActiveReports = async () => {
@@ -80,7 +83,11 @@ const VerificationPage = () => {
       .eq("user_id", user.id)
       .eq("status", "active")
       .order("created_at", { ascending: false });
-    if (!error && data) setReports(data);
+    if (!error && data) {
+      setReports(data);
+      const now = Date.now();
+      data.forEach((r) => { cardOpenedAt.current[r.id] = now; });
+    }
     setLoading(false);
   };
 
@@ -122,6 +129,15 @@ const VerificationPage = () => {
       setReports(prev => prev.map(r =>
         r.id === report.id ? { ...r, last_reminder_at: newReminderAt } : r
       ));
+      track("verification_ongoing", {
+        report_id: report.id,
+        category: report.report_category,
+        service: report.service_type,
+        commune: report.commune,
+        time_to_decision_ms: cardOpenedAt.current[report.id]
+          ? Date.now() - cardOpenedAt.current[report.id]
+          : null,
+      });
       toast.success("Signalement relancé avec succès.");
     } catch (err: any) {
       toast.error(err.message || "Erreur");
@@ -150,6 +166,15 @@ const VerificationPage = () => {
       });
       if (error) throw error;
       const resolvedId = resolveTarget.id;
+      track("verification_resolved", {
+        report_id: resolvedId,
+        category: resolveTarget.report_category,
+        service: resolveTarget.service_type,
+        commune: resolveTarget.commune,
+        time_to_decision_ms: cardOpenedAt.current[resolvedId]
+          ? Date.now() - cardOpenedAt.current[resolvedId]
+          : null,
+      });
       const successMsg = isInfra
         ? "🎉 Problème résolu ! Merci pour le suivi."
         : resolveTarget.service_type === "electricity"
@@ -188,6 +213,13 @@ const VerificationPage = () => {
       if (error) throw error;
       
       setReports((prev) => prev.filter((r) => r.id !== deleteTarget.id));
+      track("report_deleted", {
+        report_id: deleteTarget.id,
+        category: deleteTarget.report_category,
+        service: deleteTarget.service_type,
+        commune: deleteTarget.commune,
+        reason_chip: deleteChip,
+      });
       toast.success("Signalement supprimé");
       setDeleteTarget(null);
       setDeleteReason("");
