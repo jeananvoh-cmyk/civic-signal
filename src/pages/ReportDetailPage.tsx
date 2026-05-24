@@ -19,6 +19,7 @@ import ReportComments from "@/components/ReportComments";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNE_COLORS } from "@/lib/communes";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { useRelayConfig } from "@/hooks/useRelayConfig";
 import { extractInfraLabel, cleanDescription } from "@/lib/report-display";
 
 interface ReportDetail {
@@ -94,6 +95,8 @@ const ReportDetailPage = () => {
   const navigate = useNavigate();
   const goBack = useGoBack("/tableau-de-bord");
   const { user } = useAuth();
+  const { data: thresholdStr } = useRelayConfig("corroboration_threshold", "3");
+  const corroborationThreshold = parseInt(thresholdStr ?? "3", 10);
   const [report, setReport] = useState<ReportDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -453,13 +456,13 @@ const ReportDetailPage = () => {
               icon={<Shield className="h-3.5 w-3.5" />}
             />
             <TimelineStep
-              done={report.verifications >= 3}
+              done={report.verifications >= corroborationThreshold}
               label={isInfra
                 ? `${report.verifications} citoyen${report.verifications !== 1 ? "s" : ""} ont soutenu`
                 : `${report.verifications} voisin${report.verifications !== 1 ? "s" : ""} ont confirmé`}
-              date={report.verifications >= 3 ? undefined : null}
+              date={report.verifications >= corroborationThreshold ? undefined : null}
               icon={<Users className="h-3.5 w-3.5" />}
-              progress={report.verifications < 3 ? `${report.verifications}/3` : undefined}
+              progress={report.verifications < corroborationThreshold ? `${report.verifications}/${corroborationThreshold}` : undefined}
             />
             <TimelineStep
               done={!!report.forwarded_to_operator_at}

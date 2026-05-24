@@ -465,6 +465,22 @@ const DashboardPage = () => {
           </motion.div>
         )}
 
+        {/* État calme — aucune alerte critique */}
+        {!loading && !canValidate && highPriorityReports.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 }}
+            className="mb-6 flex items-center gap-3 rounded-2xl border border-success/25 bg-success/8 px-5 py-3.5"
+          >
+            <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
+            <p className="text-sm font-medium text-foreground">
+              Tout va bien dans votre commune pour l'instant.
+              <span className="ml-1 text-muted-foreground font-normal">Aucune coupure critique signalée.</span>
+            </p>
+          </motion.div>
+        )}
+
         {/* CTA citoyen — après les urgences */}
         {!canValidate && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="mb-6 grid grid-cols-2 gap-3">

@@ -21,6 +21,7 @@ import { getUserFriendlyError } from "@/lib/error-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { useIsDark } from "@/hooks/useIsDark";
 import { COMMUNES, type Commune } from "@/lib/communes";
 import { resolveCommune, type DetectionSource } from "@/lib/geolocation";
 import { getQuartiers, normalizeQuartier } from "@/lib/quartiers";
@@ -178,6 +179,9 @@ const ReportPage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { track } = useAnalytics();
+  const isDark = useIsDark();
+  const colorAlpha = isDark ? "2d" : "18";
+  const hoverAlpha = isDark ? "22" : "10";
   const { isOnline } = useNetworkStatus();
   const { enqueue } = useOfflineQueue();
 
@@ -821,12 +825,12 @@ const ReportPage = () => {
                       className="group flex flex-col items-center gap-2.5 rounded-2xl border-2 p-5 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       style={{
                         borderColor: isSelected ? type.color : undefined,
-                        backgroundColor: isSelected ? type.color + "18" : undefined,
+                        backgroundColor: isSelected ? type.color + colorAlpha : undefined,
                       }}
                       onMouseEnter={(e) => {
                         if (!isSelected) {
                           e.currentTarget.style.borderColor = type.color;
-                          e.currentTarget.style.backgroundColor = type.color + "10";
+                          e.currentTarget.style.backgroundColor = type.color + hoverAlpha;
                         }
                       }}
                       onMouseLeave={(e) => {
@@ -863,12 +867,12 @@ const ReportPage = () => {
                       className="group flex flex-col items-center gap-2 rounded-xl border-2 p-3.5 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       style={{
                         borderColor: isSelected ? type.color : undefined,
-                        backgroundColor: isSelected ? type.color + "18" : undefined,
+                        backgroundColor: isSelected ? type.color + colorAlpha : undefined,
                       }}
                       onMouseEnter={(e) => {
                         if (!isSelected) {
                           e.currentTarget.style.borderColor = type.color;
-                          e.currentTarget.style.backgroundColor = type.color + "10";
+                          e.currentTarget.style.backgroundColor = type.color + hoverAlpha;
                         }
                       }}
                       onMouseLeave={(e) => {

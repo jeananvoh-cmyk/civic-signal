@@ -83,11 +83,7 @@ const VerificationPage = () => {
       .eq("user_id", user.id)
       .eq("status", "active")
       .order("created_at", { ascending: false });
-    if (!error && data) {
-      setReports(data);
-      const now = Date.now();
-      data.forEach((r) => { cardOpenedAt.current[r.id] = now; });
-    }
+    if (!error && data) setReports(data);
     setLoading(false);
   };
 
@@ -96,6 +92,7 @@ const VerificationPage = () => {
   }, [user]);
 
   const handleConfirmStillOngoing = async (report: MyReport) => {
+    cardOpenedAt.current[report.id] = Date.now();
     setConfirming(report.id);
     try {
       const { data: currentReport, error: fetchErr } = await supabase
@@ -149,6 +146,7 @@ const VerificationPage = () => {
   const openResolveDialog = (report: MyReport) => {
     const now = new Date();
     const pad = (n: number) => n.toString().padStart(2, "0");
+    cardOpenedAt.current[report.id] = Date.now();
     setResolveTime(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`);
     setResolveTarget(report);
   };

@@ -15,7 +15,7 @@ export function useAnalytics() {
   const track = useCallback(
     (event: EventName, properties?: Record<string, unknown>) => {
       supabase
-        .from("ux_events" as any)
+        .from("ux_events")
         .insert({ event, user_id: user?.id ?? null, properties: properties ?? {} })
         .then(() => {});
     },

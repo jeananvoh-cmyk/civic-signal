@@ -1,3 +1,4 @@
+npm warn exec The following package was not found and will be installed: supabase@2.101.0
 export type Json =
   | string
   | number
@@ -148,6 +149,127 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      electricity_meters: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          meter_number: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label?: string
+          meter_number?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          meter_number?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      electricity_readings: {
+        Row: {
+          created_at: string
+          id: string
+          kwh_remaining: number
+          meter_id: string
+          note: string | null
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kwh_remaining: number
+          meter_id: string
+          note?: string | null
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kwh_remaining?: number
+          meter_id?: string
+          note?: string | null
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "electricity_readings_meter_id_fkey"
+            columns: ["meter_id"]
+            isOneToOne: false
+            referencedRelation: "electricity_meters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      electricity_recharges: {
+        Row: {
+          amount_fcfa: number | null
+          created_at: string
+          energy_fcfa: number | null
+          id: string
+          kwh_purchased: number
+          meter_id: string
+          raw_sms: string | null
+          recharged_at: string
+          reference: string | null
+          source: string
+          taxes_fcfa: number | null
+          token_code: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_fcfa?: number | null
+          created_at?: string
+          energy_fcfa?: number | null
+          id?: string
+          kwh_purchased: number
+          meter_id: string
+          raw_sms?: string | null
+          recharged_at?: string
+          reference?: string | null
+          source?: string
+          taxes_fcfa?: number | null
+          token_code?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_fcfa?: number | null
+          created_at?: string
+          energy_fcfa?: number | null
+          id?: string
+          kwh_purchased?: number
+          meter_id?: string
+          raw_sms?: string | null
+          recharged_at?: string
+          reference?: string | null
+          source?: string
+          taxes_fcfa?: number | null
+          token_code?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "electricity_recharges_meter_id_fkey"
+            columns: ["meter_id"]
+            isOneToOne: false
+            referencedRelation: "electricity_meters"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -592,16 +714,24 @@ export type Database = {
       reports: {
         Row: {
           babies: number
+          cie_ticket_number: string | null
+          cie_ticket_submitted_at: string | null
           commune: string
+          contract_type: string | null
           created_at: string
           description: string
           elderly: number
+          forwarded_to_operator_at: string | null
+          forwarded_to_operator_by: string | null
           id: string
           impacted_people: number
+          j3_author_notified: boolean | null
+          j7_author_notified: boolean | null
           last_reminder_at: string | null
           latitude: number | null
           location: string
           longitude: number | null
+          meter_number: string | null
           photo_url: string | null
           photo_urls: string[] | null
           pregnant: number
@@ -622,19 +752,28 @@ export type Database = {
           validated_at: string | null
           validated_by: string | null
           verifications: number
+          whatsapp_reminder_needed_at: string | null
         }
         Insert: {
           babies?: number
+          cie_ticket_number?: string | null
+          cie_ticket_submitted_at?: string | null
           commune?: string
+          contract_type?: string | null
           created_at?: string
           description: string
           elderly?: number
+          forwarded_to_operator_at?: string | null
+          forwarded_to_operator_by?: string | null
           id?: string
           impacted_people?: number
+          j3_author_notified?: boolean | null
+          j7_author_notified?: boolean | null
           last_reminder_at?: string | null
           latitude?: number | null
           location: string
           longitude?: number | null
+          meter_number?: string | null
           photo_url?: string | null
           photo_urls?: string[] | null
           pregnant?: number
@@ -655,19 +794,28 @@ export type Database = {
           validated_at?: string | null
           validated_by?: string | null
           verifications?: number
+          whatsapp_reminder_needed_at?: string | null
         }
         Update: {
           babies?: number
+          cie_ticket_number?: string | null
+          cie_ticket_submitted_at?: string | null
           commune?: string
+          contract_type?: string | null
           created_at?: string
           description?: string
           elderly?: number
+          forwarded_to_operator_at?: string | null
+          forwarded_to_operator_by?: string | null
           id?: string
           impacted_people?: number
+          j3_author_notified?: boolean | null
+          j7_author_notified?: boolean | null
           last_reminder_at?: string | null
           latitude?: number | null
           location?: string
           longitude?: number | null
+          meter_number?: string | null
           photo_url?: string | null
           photo_urls?: string[] | null
           pregnant?: number
@@ -688,6 +836,7 @@ export type Database = {
           validated_at?: string | null
           validated_by?: string | null
           verifications?: number
+          whatsapp_reminder_needed_at?: string | null
         }
         Relationships: []
       }
@@ -733,6 +882,30 @@ export type Database = {
         }
         Relationships: []
       }
+      ux_events: {
+        Row: {
+          created_at: string
+          event: string
+          id: string
+          properties: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event: string
+          id?: string
+          properties?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event?: string
+          id?: string
+          properties?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -751,6 +924,7 @@ export type Database = {
         }
         Returns: number
       }
+      cancel_repair: { Args: { p_report_id: string }; Returns: undefined }
       confirm_repair: { Args: { p_report_id: string }; Returns: undefined }
       corroborate_report: { Args: { p_report_id: string }; Returns: undefined }
       count_user_daily_reports: { Args: { p_user_id: string }; Returns: number }
@@ -900,6 +1074,24 @@ export type Database = {
           total_signalements: number
         }[]
       }
+      get_landing_nearby_reports: {
+        Args: {
+          p_lat: number
+          p_limit?: number
+          p_lon: number
+          p_rayon_m?: number
+        }
+        Returns: {
+          commune: string
+          created_at: string
+          description: string
+          id: string
+          quartier: string
+          report_category: string
+          service_type: string
+          verifications: number
+        }[]
+      }
       get_landing_stats: { Args: never; Returns: Json }
       get_my_commune_subscriptions: { Args: never; Returns: string[] }
       get_nearby_reports: {
@@ -945,6 +1137,7 @@ export type Database = {
           latitude: number
           location: string
           longitude: number
+          report_category: string
           reporter_type: string
           resolved_at: string
           service_type: string
