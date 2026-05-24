@@ -216,8 +216,8 @@ const VerificationPage = () => {
                 </>
               ) : notifReportType?.serviceType === "electricity" ? (
                 <>
-                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-yellow-500/10">
-                    <Zap className="h-8 w-8 text-yellow-500" />
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-electricity/10">
+                    <Zap className="h-8 w-8 text-electricity" />
                   </div>
                   <h1 className="font-display text-2xl font-bold text-foreground">L'électricité est coupée</h1>
                   <p className="mt-2 text-sm text-muted-foreground">
@@ -226,8 +226,8 @@ const VerificationPage = () => {
                 </>
               ) : notifReportType?.serviceType === "water" ? (
                 <>
-                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/10">
-                    <Droplets className="h-8 w-8 text-blue-500" />
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-water/10">
+                    <Droplets className="h-8 w-8 text-water" />
                   </div>
                   <h1 className="font-display text-2xl font-bold text-foreground">L'eau est coupée</h1>
                   <p className="mt-2 text-sm text-muted-foreground">

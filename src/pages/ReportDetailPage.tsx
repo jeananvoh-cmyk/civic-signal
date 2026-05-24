@@ -61,10 +61,10 @@ const URGENCY_LABELS: Record<string, string> = {
 };
 
 const URGENCY_COLORS: Record<string, string> = {
-  low: "bg-green-500/10 text-green-700 border-green-500/30",
-  medium: "bg-yellow-500/10 text-yellow-700 border-yellow-500/30",
-  high: "bg-orange-500/10 text-orange-700 border-orange-500/30",
-  critical: "bg-red-500/10 text-red-700 border-red-500/30",
+  low: "bg-success/10 text-success border-success/30",
+  medium: "bg-warning/10 text-warning border-warning/30",
+  high: "bg-warning/10 text-warning border-warning/30",
+  critical: "bg-destructive/10 text-destructive border-destructive/30",
 };
 
 const TimelineStep = ({
@@ -228,23 +228,23 @@ const ReportDetailPage = () => {
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl border-2 border-emerald-500/40 bg-emerald-500/8 p-4"
+              className="rounded-2xl border-2 border-success/40 bg-success/8 p-4"
             >
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15">
-                  <PartyPopper className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success/15">
+                  <PartyPopper className="h-5 w-5 text-success" />
                 </div>
                 <div>
-                  <p className="font-bold text-emerald-700 dark:text-emerald-300">
+                  <p className="font-bold text-success">
                     {isInfra ? "Problème résolu !" : "Coupure terminée !"}
                   </p>
-                  <p className="text-xs text-emerald-600/80 dark:text-emerald-400/70 mt-0.5">
+                  <p className="text-xs text-success/80 mt-0.5">
                     {isInfra
                       ? "Ce problème d'infrastructure a été pris en charge."
                       : `Le service ${isElec ? "électrique" : "en eau"} a été rétabli${resolutionDuration ? ` en ${resolutionDuration}` : ""}.`}
                   </p>
                   {report.verifications > 0 && (
-                    <p className="text-xs text-emerald-600/70 dark:text-emerald-400/60 mt-1">
+                    <p className="text-xs text-success/70 mt-1">
                       {isInfra
                         ? <>Merci aux <strong>{report.verifications} citoyen{report.verifications > 1 ? "s" : ""}</strong> qui ont soutenu ce signalement.</>
                         : <>Merci aux <strong>{report.verifications} voisin{report.verifications > 1 ? "s" : ""}</strong> qui ont confirmé cette coupure.</>}
@@ -252,11 +252,11 @@ const ReportDetailPage = () => {
                   )}
                 </div>
               </div>
-              <div className="mt-3 pt-3 border-t border-emerald-500/20">
-                <p className="text-[11px] text-emerald-600/70 dark:text-emerald-400/60 mb-2">
+              <div className="mt-3 pt-3 border-t border-success/20">
+                <p className="text-[11px] text-success/70 mb-2">
                   {isInfra ? "Un autre problème dans votre quartier ?" : "Un nouveau problème dans votre quartier ?"}
                 </p>
-                <Button asChild size="sm" variant="outline" className="border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 text-xs gap-1.5">
+                <Button asChild size="sm" variant="outline" className="border-success/40 text-success hover:bg-success/10 text-xs gap-1.5">
                   <Link to="/signaler">
                     {isInfra ? <Wrench className="h-3.5 w-3.5" /> : <Zap className="h-3.5 w-3.5" />}
                     {isInfra ? "Signaler un problème" : "Signaler une coupure"}
@@ -272,10 +272,10 @@ const ReportDetailPage = () => {
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-2.5 rounded-xl border border-red-500/30 bg-red-500/5 px-4 py-2.5"
+            className="flex items-center gap-2.5 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2.5"
           >
-            <Radio className="h-4 w-4 text-red-500 animate-pulse shrink-0" />
-            <p className="text-xs font-semibold text-red-700 dark:text-red-400">
+            <Radio className="h-4 w-4 text-destructive animate-pulse shrink-0" />
+            <p className="text-xs font-semibold text-destructive">
               {isInfra
                 ? "Problème toujours présent · En attente d'intervention"
                 : `Coupure de ${isElec ? "courant" : "d'eau"} en cours · Toujours sans intervention`}
@@ -288,16 +288,16 @@ const ReportDetailPage = () => {
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl border-2 border-red-500/40 bg-red-500/8 p-4 flex items-start gap-3"
+            className="rounded-2xl border-2 border-destructive/40 bg-destructive/8 p-4 flex items-start gap-3"
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-500/15">
-              <AlertOctagon className="h-4.5 w-4.5 text-red-600" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-destructive/15">
+              <AlertOctagon className="h-4.5 w-4.5 text-destructive" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-red-700 dark:text-red-300">
+              <p className="font-bold text-destructive">
                 Problème chronique — {ageDays} jours sans résolution
               </p>
-              <p className="text-xs text-red-600/80 dark:text-red-400/70 mt-0.5">
+              <p className="text-xs text-destructive/80 mt-0.5">
                 Ce signalement dépasse 14 jours sans intervention. Partagez-le pour maintenir la pression collective.
               </p>
               <ShareButton
@@ -306,7 +306,7 @@ const ReportDetailPage = () => {
                 url={`${window.location.origin}/signalement/${report.id}`}
                 variant="outline"
                 size="sm"
-                className="mt-2.5 border-red-500/40 text-red-700 dark:text-red-400 hover:bg-red-500/10 text-xs gap-1.5"
+                className="mt-2.5 border-destructive/40 text-destructive hover:bg-destructive/10 text-xs gap-1.5"
               />
             </div>
           </motion.div>
@@ -317,16 +317,16 @@ const ReportDetailPage = () => {
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl border-2 border-amber-500/40 bg-amber-500/8 p-4 flex items-start gap-3"
+            className="rounded-2xl border-2 border-warning/40 bg-warning/8 p-4 flex items-start gap-3"
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-500/15">
-              <AlertOctagon className="h-4.5 w-4.5 text-amber-600" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-warning/15">
+              <AlertOctagon className="h-4.5 w-4.5 text-warning" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-amber-700 dark:text-amber-300">
+              <p className="font-bold text-warning">
                 {ageDays} jours sans prise en charge
               </p>
-              <p className="text-xs text-amber-600/80 dark:text-amber-400/70 mt-0.5">
+              <p className="text-xs text-warning/80 mt-0.5">
                 {isInfra ? "Aucun citoyen n'a encore soutenu ce signalement." : "Aucun voisin n'a encore confirmé cette coupure."}
                 {canCorroborate
                   ? " Soyez le premier à le corroborer pour augmenter sa priorité."
@@ -364,7 +364,7 @@ const ReportDetailPage = () => {
             </div>
 
             {/* Description */}
-            <p className="text-sm text-foreground leading-relaxed">{isInfra ? cleanDescription(report.description) : report.description}</p>
+            <p className="text-sm text-foreground leading-relaxed line-clamp-6">{isInfra ? cleanDescription(report.description) : report.description}</p>
 
             {/* Tags */}
             <div className="flex flex-wrap gap-2">
@@ -416,7 +416,7 @@ const ReportDetailPage = () => {
 
             {/* Personnes vulnérables */}
             {hasVulnerable && (
-              <div className="rounded-xl bg-orange-500/10 border border-orange-500/20 px-3 py-2 text-xs text-orange-700 dark:text-orange-300 space-y-0.5">
+              <div className="rounded-xl bg-warning/10 border border-warning/20 px-3 py-2 text-xs text-warning space-y-0.5">
                 <p className="font-semibold">Personnes vulnérables signalées</p>
                 <div className="flex gap-3 flex-wrap">
                   {report.babies > 0 && <span>👶 {report.babies} bébé{report.babies > 1 ? "s" : ""}</span>}

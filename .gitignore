@@ -20,8 +20,21 @@ dist-ssr
 # Supabase temp
 supabase/.temp/
 
-# Claude
+# Claude Code
 **/.claude/
+.claudeignore
+.mcp.json
+CLAUDE.md
+skills-lock.json
+
+# Build archives
+*.zip
+
+# Lovable AI artifacts
+.lovable/
+
+# TWA Android signing (keystores + manifests contiennent des mots de passe)
+twa/
 
 # Editor directories and files
 .vscode/*

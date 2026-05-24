@@ -973,7 +973,7 @@ const DashboardPage = () => {
                   </div>
 
                   <div className="h-2 w-full rounded-full bg-muted overflow-hidden mb-4">
-                    <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.max(tauxCapacite, 1)}%`, backgroundColor: c.couleur }} />
+                    <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${Math.max(tauxCapacite, 1)}%`, backgroundColor: c.couleur }} />
                   </div>
 
                   <div className="grid grid-cols-3 gap-3">

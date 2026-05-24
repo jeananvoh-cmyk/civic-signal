@@ -57,7 +57,7 @@
     --radius: 0.625rem;
 
     /* Custom tokens */
-    --water: 193 78% 40%;
+    --water: 193 78% 33%;
     --water-foreground: 0 0% 100%;
     --water-light: 193 60% 93%;
 
@@ -66,7 +66,7 @@
     --electricity-foreground: 40 90% 10%;
     --electricity-light: 40 70% 92%;
 
-    --success: 150 60% 38%;
+    --success: 150 60% 30%;
     --success-foreground: 0 0% 100%;
 
     --warning: 30 90% 52%;
@@ -84,13 +84,13 @@
 
     --gradient-hero: linear-gradient(135deg, hsl(220 70% 10%), hsl(207 85% 18%), hsl(213 50% 14%));
     --gradient-hero-radial: radial-gradient(ellipse 80% 60% at 20% 40%, hsl(207 85% 36% / 0.4), transparent), radial-gradient(ellipse 60% 50% at 80% 60%, hsl(29 70% 50% / 0.15), transparent);
-    --gradient-water: linear-gradient(135deg, hsl(193 78% 40%), hsl(193 65% 50%));
+    --gradient-water: linear-gradient(135deg, hsl(193 78% 33%), hsl(193 65% 43%));
     --gradient-electricity: linear-gradient(135deg, hsl(40 95% 50%), hsl(35 90% 55%));
     --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.08), hsl(0 0% 100% / 0.02));
 
     --shadow-card: 0 1px 2px hsl(213 20% 80% / 0.7), 0 0 0 1px hsl(213 20% 85% / 0.4);
     --shadow-elevated: 0 4px 16px hsl(207 40% 70% / 0.35);
-    --shadow-glow-water: 0 0 40px hsl(193 78% 40% / 0.3);
+    --shadow-glow-water: 0 0 40px hsl(193 78% 33% / 0.3);
     --shadow-glow-electricity: 0 0 40px hsl(40 95% 50% / 0.3);
 
     --sidebar-background: 0 0% 100%;
@@ -102,8 +102,8 @@
     --sidebar-border: 220 16% 88%;
     --sidebar-ring: 207 85% 36%;
     --chart-1: 207 85% 36%;
-    --chart-2: 193 78% 40%;
-    --chart-3: 150 60% 38%;
+    --chart-2: 193 78% 33%;
+    --chart-3: 150 60% 30%;
     --chart-4: 40 95% 50%;
     --chart-5: 29 85% 45%;
     --sidebar: 0 0% 100%;
@@ -156,7 +156,7 @@
     --accent-foreground: 29 65% 75%;
     --accent-mid: 29 60% 48%;
 
-    --destructive: 0 65% 58%;
+    --destructive: 0 65% 62%;
     --destructive-foreground: 0 0% 100%;
 
     /* Semantic — valeurs plus lumineuses pour contraste sur fond sombre */
@@ -164,7 +164,7 @@
     --success-foreground: 0 0% 100%;
 
     --warning: 32 90% 62%;             /* L62% → ratio ≈ 4.6:1 vs L14% */
-    --warning-foreground: 0 0% 100%;   /* blanc en dark (était marron foncé) */
+    --warning-foreground: 30 90% 10%;  /* foncé — blanc échouait à 2.04:1 sur badge */
 
     --urgent: 0 72% 65%;               /* L65% → ratio ≈ 4.9:1 vs L14% */
     --urgent-foreground: 0 0% 100%;
@@ -180,7 +180,7 @@
     --electricity-text: 40 85% 80%;
     --electricity-light: 40 65% 12%;   /* surface sombre */
 
-    --infra: 265 55% 65%;
+    --infra: 265 55% 70%;
     --infra-foreground: 0 0% 100%;
     --infra-light: 265 40% 18%;
 

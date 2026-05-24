@@ -652,9 +652,9 @@ const ReportPage = () => {
         pregnant,
         elderly,
         meter_number: meterNumber || null,
-        contract_type: (selectedType.id === "electricity_outage" || selectedType.id === "water_outage")
-          ? contractType
-          : null,
+        ...(selectedType.id === "electricity_outage" || selectedType.id === "water_outage"
+          ? { contract_type: contractType || null }
+          : {}),
       };
 
       // -- Offline: save to queue and exit ----------------------------------
@@ -1463,6 +1463,24 @@ const ReportPage = () => {
                 </div>
               ) : (
                 <div className="fixed bottom-16 left-0 right-0 z-20 border-t border-border bg-background/95 backdrop-blur-md px-4 py-3 space-y-3 md:static md:z-auto md:bg-transparent md:backdrop-blur-none md:border-0 md:px-0 md:py-0">
+                  {/* Avertissement GPS manquant */}
+                  {!gpsLoading && latitude === null && (
+                    <div className="flex items-center gap-2.5 rounded-xl border border-warning/40 bg-warning/8 px-3 py-2.5">
+                      <Navigation className="h-4 w-4 text-warning shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-warning">Position GPS requise</p>
+                        <p className="text-[11px] text-muted-foreground">Activez la géolocalisation ou ajoutez une photo avec GPS intégré</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => captureGPS(true)}
+                        className="shrink-0 rounded-lg bg-warning/15 px-2.5 py-1.5 text-[11px] font-semibold text-warning hover:bg-warning/25 transition-colors"
+                      >
+                        Localiser
+                      </button>
+                    </div>
+                  )}
+
                   {/* Consentement GPS */}
                   <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
                     <div className="flex items-start gap-3">
@@ -1487,11 +1505,13 @@ const ReportPage = () => {
                       backgroundColor: selectedCommuneData?.couleur || selectedType.color,
                       color: "white",
                     }}
-                    disabled={submitting || limitReached || !gpsConsent}
+                    disabled={submitting || limitReached || !gpsConsent || latitude === null}
                     onClick={handleSubmit}
                   >
                     {submitting ? (
                       <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Envoi en cours...</>
+                    ) : gpsLoading ? (
+                      <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Localisation...</>
                     ) : (
                       <><Send className="mr-2 h-5 w-5" /> Alerter mes voisins</>
                     )}

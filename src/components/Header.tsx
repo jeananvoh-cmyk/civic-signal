@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import { Zap, Menu, X, LogOut, User, Shield, Moon, Sun, Monitor, Map, Wrench, ChevronDown, Search } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import GlobalSearch from "@/components/GlobalSearch";
@@ -96,14 +97,14 @@ const Header = () => {
               <Link
                 key={link.to}
                 to={link.to}
-                className={[
+                className={cn(
                   "relative rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-150",
                   isActive(link.to)
                     ? "text-primary bg-primary/8 font-semibold"
                     : (link as any).cta
                     ? "text-primary border border-primary/30 hover:bg-primary/8"
-                    : "text-foreground/65 hover:text-foreground hover:bg-muted/60",
-                ].join(" ")}
+                    : "text-foreground/65 hover:text-foreground hover:bg-muted/60"
+                )}
               >
                 {link.label}
                 {isActive(link.to) && (
@@ -119,12 +120,12 @@ const Header = () => {
                 aria-expanded={mapDropdownOpen}
                 aria-haspopup="true"
                 aria-controls="signalements-dropdown"
-                className={[
-                  "flex items-center gap-1 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                className={cn(
+                  "flex items-center gap-1 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                   isMapActive
                     ? "text-primary bg-primary/8 font-semibold"
-                    : "text-foreground/65 hover:text-foreground hover:bg-muted/60",
-                ].join(" ")}
+                    : "text-foreground/65 hover:text-foreground hover:bg-muted/60"
+                )}
               >
                 <Map className="h-3.5 w-3.5" aria-hidden="true" />
                 Signalements
@@ -140,16 +141,17 @@ const Header = () => {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -4, scale: 0.97 }}
                     transition={{ duration: 0.15, ease: "easeOut" }}
-                    className="absolute top-full left-0 mt-2 w-80 rounded-xl border border-border bg-card shadow-xl shadow-black/10 dark:shadow-black/40 py-1.5 z-50"
+                    className="absolute top-full left-0 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-card shadow-xl shadow-black/10 dark:shadow-black/40 py-1.5 z-50"
                   >
                     <Link
                       to="/carte"
                       onClick={() => setMapDropdownOpen(false)}
-                      className={`flex items-start gap-3 px-4 py-3 text-sm transition-colors rounded-lg mx-1.5 ${
+                      className={cn(
+                        "flex items-start gap-3 px-4 py-3 text-sm transition-colors rounded-lg mx-1.5",
                         location.pathname === "/carte"
                           ? "bg-primary/8 text-primary"
                           : "text-foreground/80 hover:bg-muted/60"
-                      }`}
+                      )}
                     >
                       <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-water/10 border border-water/15">
                         <Map className="h-4 w-4 text-water" />
@@ -163,11 +165,12 @@ const Header = () => {
                     <Link
                       to="/infrastructures"
                       onClick={() => setMapDropdownOpen(false)}
-                      className={`flex items-start gap-3 px-4 py-3 text-sm transition-colors rounded-lg mx-1.5 ${
+                      className={cn(
+                        "flex items-start gap-3 px-4 py-3 text-sm transition-colors rounded-lg mx-1.5",
                         location.pathname === "/infrastructures"
                           ? "bg-primary/8 text-primary"
                           : "text-foreground/80 hover:bg-muted/60"
-                      }`}
+                      )}
                     >
                       <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-infra/10 border border-infra/15">
                         <Wrench className="h-4 w-4 text-infra" />
@@ -286,14 +289,14 @@ const Header = () => {
                   <Link
                     key={link.to}
                     to={link.to}
-                    className={[
+                    className={cn(
                       "flex items-center rounded-lg px-4 py-3 text-[14px] font-medium transition-colors",
                       isActive(link.to)
                         ? "bg-primary/8 text-primary font-semibold"
                         : (link as any).cta
                         ? "text-primary border border-primary/25 hover:bg-primary/8"
-                        : "text-foreground/70 hover:bg-muted/60 hover:text-foreground",
-                    ].join(" ")}
+                        : "text-foreground/70 hover:bg-muted/60 hover:text-foreground"
+                    )}
                   >
                     {link.label}
                   </Link>
@@ -303,14 +306,14 @@ const Header = () => {
                   <p className="px-4 py-1.5 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-[0.08em]">Cartes & signalements</p>
                   <Link
                     to="/carte"
-                    className={`flex items-center gap-2.5 rounded-lg px-4 py-3 text-[14px] font-medium transition-colors ${isActive("/carte") ? "bg-primary/8 text-primary" : "text-foreground/70 hover:bg-muted/60 hover:text-foreground"}`}
+                    className={cn("flex items-center gap-2.5 rounded-lg px-4 py-3 text-[14px] font-medium transition-colors", isActive("/carte") ? "bg-primary/8 text-primary" : "text-foreground/70 hover:bg-muted/60 hover:text-foreground")}
                   >
                     <Map className="h-4 w-4 text-water" />
                     Coupures eau & électricité
                   </Link>
                   <Link
                     to="/infrastructures"
-                    className={`flex items-center gap-2.5 rounded-lg px-4 py-3 text-[14px] font-medium transition-colors ${isActive("/infrastructures") ? "bg-primary/8 text-primary" : "text-foreground/70 hover:bg-muted/60 hover:text-foreground"}`}
+                    className={cn("flex items-center gap-2.5 rounded-lg px-4 py-3 text-[14px] font-medium transition-colors", isActive("/infrastructures") ? "bg-primary/8 text-primary" : "text-foreground/70 hover:bg-muted/60 hover:text-foreground")}
                   >
                     <Wrench className="h-4 w-4 text-infra" />
                     Infrastructures publiques
@@ -323,7 +326,7 @@ const Header = () => {
                       {(isAdmin || isModerator) && (
                         <Link
                           to="/admin"
-                          className={`flex items-center gap-2.5 rounded-lg px-4 py-3 text-[14px] font-medium transition-colors ${isAdmin ? "text-primary hover:bg-primary/8" : "text-warning hover:bg-warning/8"}`}
+                          className={cn("flex items-center gap-2.5 rounded-lg px-4 py-3 text-[14px] font-medium transition-colors", isAdmin ? "text-primary hover:bg-primary/8" : "text-warning hover:bg-warning/8")}
                         >
                           <Shield className="h-4 w-4" />
                           {isAdmin ? "Administration" : "Modération"}

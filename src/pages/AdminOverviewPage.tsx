@@ -223,7 +223,7 @@ const AdminOverviewPage = () => {
       </motion.div>
 
       {/* ── KPIs actionnables ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-4">
         {!totalStats ? (
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="rounded-xl border border-border bg-card p-4 animate-pulse">
@@ -278,7 +278,7 @@ const AdminOverviewPage = () => {
       </div>
 
       {/* ── Aperçu général — compact ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-8">
         {[
           { label: "Total signalements", value: stats.total, icon: FileText },
           { label: "Coupures actives", value: stats.active, icon: Zap },
@@ -338,7 +338,7 @@ const AdminOverviewPage = () => {
 
       {/* ── Raccourcis ── */}
       <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Raccourcis</p>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-8">
         {[
           { label: "Utilisateurs", path: "/admin/utilisateurs", icon: Users, color: "text-primary" },
           { label: "Suppressions", path: "/admin/suppressions", icon: Trash2, count: deletionsCount, color: "text-destructive" },
@@ -459,22 +459,22 @@ const AdminOverviewPage = () => {
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     onClick={() => setThresholdInput(Math.max(1, currentThreshold - 1))}
-                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-border hover:bg-muted transition-colors"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-border hover:bg-muted transition-colors"
                   >
-                    <Minus className="h-3 w-3" />
+                    <Minus className="h-4 w-4" />
                   </button>
                   <span className="w-10 text-center text-sm font-bold text-foreground">{currentThreshold}j</span>
                   <button
                     onClick={() => setThresholdInput(Math.min(30, currentThreshold + 1))}
-                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-border hover:bg-muted transition-colors"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-border hover:bg-muted transition-colors"
                   >
-                    <Plus className="h-3 w-3" />
+                    <Plus className="h-4 w-4" />
                   </button>
                   {thresholdInput !== null && thresholdInput !== (typeof neglectThreshold === "number" ? neglectThreshold : 7) && (
                     <button
                       onClick={() => saveThreshold.mutate(thresholdInput)}
                       disabled={saveThreshold.isPending}
-                      className="ml-1 h-7 px-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
+                      className="ml-1 h-9 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
                     >
                       {saveThreshold.isPending ? "…" : "Sauver"}
                     </button>
