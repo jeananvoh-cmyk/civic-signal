@@ -234,7 +234,7 @@ const AdminOverviewPage = () => {
           ))
         ) : (
           <>
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} onClick={() => navigate("/admin/signalements")} className="cursor-pointer">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} onClick={() => navigate("/admin/signalements")} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && navigate("/admin/signalements")} className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl">
               <Card className="border-warning/20 hover:shadow-md transition-shadow">
                 <CardContent className="p-4 text-center">
                   <Clock className="h-5 w-5 mx-auto mb-2 text-warning" />
@@ -244,7 +244,7 @@ const AdminOverviewPage = () => {
               </Card>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} onClick={() => navigate("/admin/signalements")} className="cursor-pointer">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} onClick={() => navigate("/admin/signalements")} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && navigate("/admin/signalements")} className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl">
               <Card className="border-destructive/20 hover:shadow-md transition-shadow">
                 <CardContent className="p-4 text-center">
                   <AlertTriangle className="h-5 w-5 mx-auto mb-2 text-destructive" />
@@ -254,7 +254,7 @@ const AdminOverviewPage = () => {
               </Card>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} onClick={() => navigate("/admin/signalements")} className="cursor-pointer">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} onClick={() => navigate("/admin/signalements")} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && navigate("/admin/signalements")} className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl">
               <Card className={`hover:shadow-md transition-shadow ${neglectedCount > 0 ? "border-warning/20" : ""}`}>
                 <CardContent className="p-4 text-center">
                   <AlertOctagon className={`h-5 w-5 mx-auto mb-2 ${neglectedCount > 0 ? "text-warning" : "text-muted-foreground"}`} />
@@ -264,7 +264,7 @@ const AdminOverviewPage = () => {
               </Card>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} onClick={() => navigate("/admin/relay")} className="cursor-pointer">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} onClick={() => navigate("/admin/relay")} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && navigate("/admin/relay")} className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl">
               <Card className={`hover:shadow-md transition-shadow ${pendingRelayCount > 0 ? "border-warning/20" : ""}`}>
                 <CardContent className="p-4 text-center">
                   <MailCheck className={`h-5 w-5 mx-auto mb-2 ${pendingRelayCount > 0 ? "text-warning" : "text-muted-foreground"}`} />
@@ -382,7 +382,7 @@ const AdminOverviewPage = () => {
                     </p>
                   </div>
                 </div>
-                <Switch checked={!!partnersEnabled} onCheckedChange={(checked) => togglePartners.mutate(checked)} disabled={togglePartners.isPending} />
+                <Switch checked={!!partnersEnabled} onCheckedChange={(checked) => togglePartners.mutate(checked)} disabled={togglePartners.isPending} aria-label={partnersEnabled ? "Masquer la page Partenaires" : "Afficher la page Partenaires"} />
               </div>
 
               <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">

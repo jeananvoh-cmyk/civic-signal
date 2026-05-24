@@ -402,11 +402,11 @@ const DashboardPage = () => {
           className="bg-destructive/10 border-b border-destructive/30 py-2.5"
         >
           <div className="container flex items-center justify-center gap-2 text-sm font-semibold text-destructive">
-            <Siren className="h-4 w-4 animate-pulse" />
+            <Siren className="h-4 w-4 animate-pulse motion-reduce:animate-none" />
             <span>
               Situation critique — {totalActifs} coupures actives en ce moment sur les 7 communes pilotes
             </span>
-            <Siren className="h-4 w-4 animate-pulse" />
+            <Siren className="h-4 w-4 animate-pulse motion-reduce:animate-none" />
           </div>
         </motion.div>
       )}
@@ -425,7 +425,7 @@ const DashboardPage = () => {
             <div className="mt-1 flex items-center gap-2">
               <p className="text-muted-foreground">7 communes pilotes — Abidjan</p>
               <span className={`flex items-center gap-1 text-xs font-medium transition-colors ${realtimeActive ? "text-success" : "text-muted-foreground"}`}>
-                <Radio className={`h-3 w-3 ${realtimeActive ? "animate-pulse" : ""}`} />
+                <Radio className={`h-3 w-3 ${realtimeActive ? "animate-pulse motion-reduce:animate-none" : ""}`} />
                 Live
               </span>
             </div>

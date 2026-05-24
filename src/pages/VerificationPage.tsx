@@ -31,7 +31,7 @@ interface MyReport {
 }
 
 const NoActiveReportsSVG = () => (
-  <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="mx-auto mb-5 h-24 w-auto">
+  <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="mx-auto mb-5 h-24 w-auto" aria-hidden="true">
     <rect x="0" y="74" width="160" height="1.5" rx="1" fill="currentColor" opacity="0.12" />
     <rect x="12" y="48" width="36" height="27" rx="3" fill="currentColor" opacity="0.1" />
     <path d="M8 50L30 29L52 50" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" fill="none" opacity="0.2" />
@@ -467,11 +467,12 @@ const VerificationPage = () => {
 
                   {!isInfra && (
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
+                      <label htmlFor="resolve-time" className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                        <Clock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                         À quelle heure c'est revenu ?
                       </label>
                       <Input
+                        id="resolve-time"
                         type="datetime-local"
                         value={resolveTime}
                         onChange={(e) => setResolveTime(e.target.value)}

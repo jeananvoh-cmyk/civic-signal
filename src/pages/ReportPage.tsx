@@ -1080,9 +1080,10 @@ const ReportPage = () => {
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="rounded-full p-2 hover:bg-muted transition-colors"
+                  aria-label="Retour à l'étape précédente"
+                  className="rounded-full p-2 hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
-                  <ArrowLeft className="h-4 w-4" />
+                  <ArrowLeft className="h-4 w-4" aria-hidden="true" />
                 </button>
                 <h1 className="font-bold text-xl">Finaliser l'alerte</h1>
               </div>
@@ -1307,17 +1308,19 @@ const ReportPage = () => {
                                   <button
                                     type="button"
                                     onClick={() => set(Math.max(min, val - 1))}
-                                    className="flex h-7 w-7 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
+                                    aria-label={`Diminuer ${label}`}
+                                    className="flex h-8 w-8 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                                   >
-                                    <Minus className="h-3 w-3" />
+                                    <Minus className="h-3 w-3" aria-hidden="true" />
                                   </button>
-                                  <span className="w-5 text-center text-sm font-bold tabular-nums">{val}</span>
+                                  <span className="w-5 text-center text-sm font-bold tabular-nums" aria-live="polite">{val}</span>
                                   <button
                                     type="button"
                                     onClick={() => set(Math.min(max, val + 1))}
-                                    className="flex h-7 w-7 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors"
+                                    aria-label={`Augmenter ${label}`}
+                                    className="flex h-8 w-8 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                                   >
-                                    <Plus className="h-3 w-3" />
+                                    <Plus className="h-3 w-3" aria-hidden="true" />
                                   </button>
                                 </div>
                               </div>
@@ -1408,10 +1411,11 @@ const ReportPage = () => {
                     >
                       <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
                         <div className="flex-1">
-                          <p className="text-sm font-medium">Début de la coupure</p>
+                          <label htmlFor="start-time" className="text-sm font-medium">Début de la coupure</label>
                           <p className="text-xs text-muted-foreground">Laissez vide si ça vient de commencer</p>
                         </div>
                         <Input
+                          id="start-time"
                           type="time"
                           value={startTime}
                           onChange={(e) => setStartTime(e.target.value)}
