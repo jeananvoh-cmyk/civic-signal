@@ -86,7 +86,7 @@ export default function BottomNav() {
           <div className="flex items-center justify-center">
             <Link
               to="/signaler"
-              className="flex items-center justify-center h-[52px] w-[52px] rounded-[18px] bg-primary shadow-[0_4px_16px_hsl(var(--primary)/0.45)] active:scale-[0.96] transition-transform -mt-4"
+              className="flex items-center justify-center h-[52px] w-[52px] rounded-[18px] bg-primary shadow-[0_4px_16px_hsl(var(--primary)/0.45)] active:scale-[0.96] transition-transform duration-150 -mt-4"
               aria-label="Signaler un problème"
             >
               <Plus className="h-6 w-6 text-white stroke-[2.5]" />

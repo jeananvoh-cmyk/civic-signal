@@ -829,7 +829,7 @@ const ReportPage = () => {
                       }
                       <span className="text-xs font-semibold leading-tight text-foreground">{type.label}</span>
                       {type.description && (
-                        <span className="text-[10px] leading-tight text-muted-foreground">{type.description}</span>
+                        <span className="text-xs leading-tight text-muted-foreground">{type.description}</span>
                       )}
                     </motion.button>
                   );
@@ -923,18 +923,18 @@ const ReportPage = () => {
                             {latitude.toFixed(5)}, {longitude.toFixed(5)}
                           </p>
                           {gpsAccuracy !== null && (
-                            <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium border ${
+                            <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium border ${
                               gpsAccuracy <= 80
-                                ? "bg-green-50 text-green-700 border-green-200"
+                                ? "bg-success/10 text-success border-success/25"
                                 : gpsAccuracy <= 200
-                                ? "bg-yellow-50 text-yellow-700 border-yellow-200"
-                                : "bg-red-50 text-red-700 border-red-200"
+                                ? "bg-warning/10 text-warning border-warning/25"
+                                : "bg-destructive/10 text-destructive border-destructive/25"
                             }`}>
                               ± {Math.round(gpsAccuracy)} m
                             </span>
                           )}
                           {gpsSource && (
-                            <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium border bg-muted text-muted-foreground border-border">
+                            <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium border bg-muted text-muted-foreground border-border">
                               {gpsSource === "geojson" ? "polygone" : gpsSource}
                             </span>
                           )}
@@ -957,7 +957,7 @@ const ReportPage = () => {
                             <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
                               📍 Position mémorisée il y a {storedGpsAgeMin < 60 ? `${storedGpsAgeMin} min` : `${Math.round(storedGpsAgeMin / 60)}h`}
                             </p>
-                            <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+                            <p className="text-xs text-muted-foreground leading-snug mt-0.5">
                               Vous avez peut-être quitté le lieu — vous pouvez quand même finaliser votre signalement.
                             </p>
                           </div>
@@ -1195,7 +1195,7 @@ const ReportPage = () => {
                         <p className="text-sm font-bold text-foreground leading-tight">
                           Informations {selectedType.id === "electricity_outage" ? "CIE" : "SODECI"} <span className="text-muted-foreground font-normal text-xs">(optionnel)</span>
                         </p>
-                        <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
+                        <p className="text-xs text-muted-foreground leading-snug mt-0.5">
                           SIGNA-CI transmettra votre signalement à l'opérateur — ces infos accélèrent la prise en charge
                         </p>
                       </div>
@@ -1253,7 +1253,7 @@ const ReportPage = () => {
                           Personnes vulnérables dans votre foyer ?
                         </span>
                         {(babies + pregnant + elderly > 0) && (
-                          <span className="inline-flex items-center rounded-full bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 text-[10px] font-bold text-red-600">
+                          <span className="inline-flex items-center rounded-full bg-destructive/10 border border-destructive/20 px-1.5 py-0.5 text-xs font-bold text-destructive">
                             ⚠️ Priorité haute
                           </span>
                         )}
@@ -1473,12 +1473,12 @@ const ReportPage = () => {
                       <Navigation className="h-4 w-4 text-warning shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-semibold text-warning">Position GPS requise</p>
-                        <p className="text-[11px] text-muted-foreground">Activez la géolocalisation ou ajoutez une photo avec GPS intégré</p>
+                        <p className="text-xs text-muted-foreground">Activez la géolocalisation ou ajoutez une photo avec GPS intégré</p>
                       </div>
                       <button
                         type="button"
                         onClick={() => captureGPS(true)}
-                        className="shrink-0 rounded-lg bg-warning/15 px-2.5 py-1.5 text-[11px] font-semibold text-warning hover:bg-warning/25 transition-colors"
+                        className="shrink-0 rounded-lg bg-warning/15 px-2.5 py-1.5 text-xs font-semibold text-warning hover:bg-warning/25 transition-colors"
                       >
                         Localiser
                       </button>
@@ -1570,7 +1570,7 @@ const ReportPage = () => {
                     </div>
                     <CorroborationStatus verifications={r.verifications} compact />
                     <Button
-                      className="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold"
+                      className="w-full bg-warning text-warning-foreground hover:bg-warning/90 font-semibold"
                       onClick={() => handleCorroborateExisting(r.id)}
                       disabled={corroborating === r.id}
                     >

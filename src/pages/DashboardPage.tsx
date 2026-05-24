@@ -168,20 +168,20 @@ const ReportRow = ({ r, variant }: { r: PriorityReport; variant: "critical" | "h
         </div>
         <p className="text-sm font-semibold text-foreground leading-snug">{cleanDesc}</p>
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground">
+          <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
             <MapPin className="h-3 w-3" />{r.location}
           </span>
           {people !== null && (
-            <span className="flex items-center gap-0.5 text-[11px] font-semibold text-foreground">
+            <span className="flex items-center gap-0.5 text-xs font-semibold text-foreground">
               👤 {people} personne{people > 1 ? "s" : ""} impactée{people > 1 ? "s" : ""}
             </span>
           )}
           {r.verifications === 0 ? (
-            <span className="text-[10px] italic text-muted-foreground">
+            <span className="text-xs italic text-muted-foreground">
               {isInfra ? "Pas encore soutenu pour réparation" : "Pas encore vérifié par les voisins"}
             </span>
           ) : (
-            <span className="flex items-center gap-0.5 text-[10px] font-semibold text-success">
+            <span className="flex items-center gap-0.5 text-xs font-semibold text-success">
               {isInfra
                 ? `✓ ${r.verifications} soutien${r.verifications > 1 ? "s" : ""} pour réparation`
                 : `✓ ${r.verifications} voisin${r.verifications > 1 ? "s" : ""} confirm${r.verifications > 1 ? "ent" : "e"}`}
@@ -447,7 +447,7 @@ const DashboardPage = () => {
             >
               <Siren className="h-5 w-5" />
               <span className="text-sm font-bold">Signaler</span>
-              <span className="text-[10px] opacity-80">Eau · électricité · voirie</span>
+              <span className="text-xs opacity-80">Eau · électricité · voirie</span>
             </button>
             <button
               onClick={() => navigate("/verification")}
@@ -455,7 +455,7 @@ const DashboardPage = () => {
             >
               <CheckCircle2 className="h-5 w-5" />
               <span className="text-sm font-bold">Corroborer</span>
-              <span className="text-[10px] text-muted-foreground">Confirmer dans votre quartier</span>
+              <span className="text-xs text-muted-foreground">Confirmer dans votre quartier</span>
             </button>
           </motion.div>
         )}
@@ -520,7 +520,7 @@ const DashboardPage = () => {
                     </div>
                     <div>
                       <h2 className="font-display text-lg font-bold text-foreground">Électricité</h2>
-                      <p className="text-[10px] text-muted-foreground">Coupures réseau CIE</p>
+                      <p className="text-xs text-muted-foreground">Coupures réseau CIE</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4 text-center mt-4">
@@ -529,12 +529,12 @@ const DashboardPage = () => {
                     <div><p className="font-display text-2xl font-extrabold text-foreground">{totalElecTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
                   </div>
                   {totalElecTotal > 0 && (
-                    <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground border-t border-border pt-3">
+                    <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-3">
                       <span>{totalElecVerified > 0 ? `✓ ${totalElecVerified} confirmé${totalElecVerified > 1 ? "s" : ""} par voisins` : "Aucune confirmation"}</span>
                       <span className="font-semibold text-foreground">{elecResolutionRate}% résolues</span>
                     </div>
                   )}
-                  <p className="mt-2 text-[11px] text-muted-foreground/70 italic">
+                  <p className="mt-2 text-xs text-muted-foreground/70 italic">
                     « Résolu » = confirmé par l'auteur ou 3 voisins
                   </p>
                 </div>
@@ -550,7 +550,7 @@ const DashboardPage = () => {
                     </div>
                     <div>
                       <h2 className="font-display text-lg font-bold text-foreground">Eau</h2>
-                      <p className="text-[10px] text-muted-foreground">Coupures réseau SODECI</p>
+                      <p className="text-xs text-muted-foreground">Coupures réseau SODECI</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4 text-center mt-4">
@@ -559,12 +559,12 @@ const DashboardPage = () => {
                     <div><p className="font-display text-2xl font-extrabold text-foreground">{totalEauTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
                   </div>
                   {totalEauTotal > 0 && (
-                    <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground border-t border-border pt-3">
+                    <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-3">
                       <span>{totalEauVerified > 0 ? `✓ ${totalEauVerified} confirmé${totalEauVerified > 1 ? "s" : ""} par voisins` : "Aucune confirmation"}</span>
                       <span className="font-semibold text-foreground">{eauResolutionRate}% résolues</span>
                     </div>
                   )}
-                  <p className="mt-2 text-[11px] text-muted-foreground/70 italic">
+                  <p className="mt-2 text-xs text-muted-foreground/70 italic">
                     « Résolu » = confirmé par l'auteur ou 3 voisins
                   </p>
                 </div>
@@ -580,7 +580,7 @@ const DashboardPage = () => {
                     </div>
                     <div>
                       <h2 className="font-display text-lg font-bold text-foreground">Voirie & Infra</h2>
-                      <p className="text-[10px] text-muted-foreground">Lampadaires · Caniveaux · Routes · Dépôts</p>
+                      <p className="text-xs text-muted-foreground">Lampadaires · Caniveaux · Routes · Dépôts</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4 text-center mt-4">
@@ -589,12 +589,12 @@ const DashboardPage = () => {
                     <div><p className="font-display text-2xl font-extrabold text-foreground">{totalMairieTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
                   </div>
                   {totalMairieTotal > 0 && (
-                    <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground border-t border-border pt-3">
+                    <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-3">
                       <span>{totalMairieVerified > 0 ? `✓ ${totalMairieVerified} soutenu${totalMairieVerified > 1 ? "s" : ""} pour réparation` : "Aucun soutien citoyen"}</span>
                       <span className="font-semibold text-foreground">{mairieResolutionRate}% réparés</span>
                     </div>
                   )}
-                  <p className="mt-2 text-[11px] text-muted-foreground/70 italic">« Résolu » = réparation confirmée par l'auteur ou 3 citoyens</p>
+                  <p className="mt-2 text-xs text-muted-foreground/70 italic">« Résolu » = réparation confirmée par l'auteur ou 3 citoyens</p>
                 </div>
               </>
             )}
