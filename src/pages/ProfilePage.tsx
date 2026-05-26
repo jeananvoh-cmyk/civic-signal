@@ -770,6 +770,10 @@ const ProfilePage = () => {
     setHistoryLoading(false);
   };
 
+  const sanitizePreviewImageUrl = (url: string): string => {
+    return url.startsWith("blob:") ? url : "";
+  };
+
   const handleOcrScan = async (file: File, hint: "electricity" | "water") => {
     setOcrLoading(hint);
     const previewUrl = URL.createObjectURL(file);
@@ -1466,7 +1470,7 @@ const ProfilePage = () => {
                         </div>
                         {ocrPreview?.type === "water" && (
                           <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-2">
-                            <img src={ocrPreview.url} alt="Aperçu" className="h-14 w-14 rounded object-cover shrink-0" />
+                            <img src={sanitizePreviewImageUrl(ocrPreview.url)} alt="Aperçu" className="h-14 w-14 rounded object-cover shrink-0" />
                             <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin text-blue-500" />Extraction des numéros en cours…</div>
                           </div>
                         )}
