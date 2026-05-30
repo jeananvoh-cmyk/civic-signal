@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Zap, Droplets, MapPin, Clock, ThumbsUp, CheckCircle,
-  Filter, TrendingUp, AlertCircle, ChevronDown, Lightbulb, TriangleAlert, Info, MoreHorizontal, Building2, Map, Trash2, Waves, ExternalLink, X as XIcon
+  Filter, TrendingUp, AlertCircle, ChevronDown, Lightbulb, TriangleAlert, Info, MoreHorizontal, Building2, Map, Trash2, Waves, ExternalLink, X as XIcon, Pencil
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
@@ -55,6 +55,8 @@ const InfrastructurePage = () => {
   const [communeFilter, setCommuneFilter] = useState<string | null>(null);
   const [openSection, setOpenSection] = useState<string | null>(null);
   const toggleSection = (key: string) => setOpenSection((prev) => (prev === key ? null : key));
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
 
   const fetchReports = async (pageNum: number, append = false) => {
     const setter = append ? setLoadingMore : setLoading;
@@ -69,7 +71,7 @@ const InfrastructurePage = () => {
         .select("id, user_id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, support_count")
         .eq("report_category", "infrastructure")
         .eq("status", "active")
-        .order("support_count", { ascending: false })
+        .order("created_at", { ascending: false })
         .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
 
       if (filter !== "all") {
@@ -97,6 +99,7 @@ const InfrastructurePage = () => {
       if (error) { setter(false); return; }
 
       let rows = (data ?? []) as InfraReport[];
+      rows.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
       // Filtres côté client pour les anonymes
       if (filter !== "all") {
@@ -222,6 +225,24 @@ const InfrastructurePage = () => {
     });
   };
 
+  const handleEditSave = async (reportId: string) => {
+    const trimmed = editText.trim();
+    if (!trimmed || !user) return;
+    const original = reports.find((r) => r.id === reportId)?.description ?? "";
+    const prefix = original.match(/^(\[[^\]]+\]\s*)/)?.[1] ?? "";
+    const suffix = original.match(/(\s*\[\d+[^\]]*\])\s*$/)?.[1] ?? "";
+    const newDescription = `${prefix}${trimmed}${suffix}`;
+    const { error } = await supabase
+      .from("reports")
+      .update({ description: newDescription })
+      .eq("id", reportId)
+      .eq("user_id", user.id);
+    if (error) { toast.error("Impossible de modifier le signalement"); return; }
+    setReports((prev) => prev.map((r) => r.id === reportId ? { ...r, description: newDescription } : r));
+    setEditingId(null);
+    toast.success("Signalement modifié");
+  };
+
   const timeAgo = (date: string) =>
     formatDistanceToNow(new Date(date), { addSuffix: true, locale: fr });
 
@@ -302,7 +323,7 @@ const InfrastructurePage = () => {
                       <Zap className="h-4 w-4 text-[hsl(var(--electricity))] shrink-0" />
                       <span className="text-xs font-bold text-foreground uppercase tracking-wide">Électricité · CIE</span>
                       {activeHere && (
-                        <span className="rounded-full bg-[hsl(var(--electricity))]/20 px-2 py-0.5 text-[10px] font-semibold text-[hsl(var(--electricity))]">{subFilter}</span>
+                        <span className="rounded-full bg-[hsl(var(--electricity))]/20 px-2 py-0.5 text-xs font-semibold text-[hsl(var(--electricity))]">{subFilter}</span>
                       )}
                     </div>
                     <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""}`} />
@@ -335,7 +356,7 @@ const InfrastructurePage = () => {
                               )}
                             >
                               {item.icon}
-                              <span className="text-[10px] font-semibold text-foreground leading-tight">{item.label}</span>
+                              <span className="text-xs font-semibold text-foreground leading-tight">{item.label}</span>
                             </button>
                           ))}
                         </div>
@@ -361,7 +382,7 @@ const InfrastructurePage = () => {
                       <Droplets className="h-4 w-4 text-[hsl(var(--water))] shrink-0" />
                       <span className="text-xs font-bold text-foreground uppercase tracking-wide">Eau · SODECI</span>
                       {activeHere && (
-                        <span className="rounded-full bg-[hsl(var(--water))]/20 px-2 py-0.5 text-[10px] font-semibold text-[hsl(var(--water))]">{subFilter}</span>
+                        <span className="rounded-full bg-[hsl(var(--water))]/20 px-2 py-0.5 text-xs font-semibold text-[hsl(var(--water))]">{subFilter}</span>
                       )}
                     </div>
                     <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""}`} />
@@ -394,7 +415,7 @@ const InfrastructurePage = () => {
                               )}
                             >
                               {item.icon}
-                              <span className="text-[10px] font-semibold text-foreground leading-tight">{item.label}</span>
+                              <span className="text-xs font-semibold text-foreground leading-tight">{item.label}</span>
                             </button>
                           ))}
                         </div>
@@ -420,7 +441,7 @@ const InfrastructurePage = () => {
                       <Map className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                       <span className="text-xs font-bold text-foreground uppercase tracking-wide">Voirie · Mairie</span>
                       {activeHere && (
-                        <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">{subFilter}</span>
+                        <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">{subFilter}</span>
                       )}
                     </div>
                     <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""}`} />
@@ -453,7 +474,7 @@ const InfrastructurePage = () => {
                               )}
                             >
                               {item.icon}
-                              <span className="text-[10px] font-semibold text-foreground leading-tight">{item.label}</span>
+                              <span className="text-xs font-semibold text-foreground leading-tight">{item.label}</span>
                             </button>
                           ))}
                         </div>
@@ -579,11 +600,35 @@ const InfrastructurePage = () => {
                   </div>
                 </div>
 
-                {/* Post content — cleaned description */}
+                {/* Post content */}
                 <div className="px-4 pb-3">
-                  <p className="text-sm font-medium text-foreground leading-relaxed">
-                    {cleanDescription(report.description)}
-                  </p>
+                  {editingId === report.id ? (
+                    <div className="space-y-2">
+                      <textarea
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        className="w-full rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                        rows={3}
+                        maxLength={500}
+                        autoFocus
+                      />
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">{editText.length}/500</span>
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setEditingId(null)}>
+                            Annuler
+                          </Button>
+                          <Button size="sm" className="h-7 text-xs" onClick={() => handleEditSave(report.id)} disabled={!editText.trim()}>
+                            Enregistrer
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm font-medium text-foreground leading-relaxed">
+                      {cleanDescription(report.description)}
+                    </p>
+                  )}
                 </div>
 
                 {/* Photos cliquables */}
@@ -594,6 +639,7 @@ const InfrastructurePage = () => {
                       : report.photo_url ? [report.photo_url] : []
                   }
                   thumbHeight="h-64"
+                  reportDate={report.created_at}
                 />
 
                 {/* Stats bar */}
@@ -626,10 +672,26 @@ const InfrastructurePage = () => {
                 {/* Action buttons */}
                 <div className="px-2 py-2 flex items-center gap-2">
                   {user && report.user_id === user.id ? (
-                    <span className="flex-1 text-xs text-muted-foreground flex items-center gap-1.5 px-3 py-1.5">
-                      <ThumbsUp className="h-4 w-4" />
-                      Mon signalement
-                    </span>
+                    <>
+                      <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground">
+                        <ThumbsUp className="h-4 w-4" />
+                        Mon signalement
+                      </span>
+                      {report.status === "active" && editingId !== report.id && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-1 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+                          onClick={() => {
+                            setEditingId(report.id);
+                            setEditText(cleanDescription(report.description));
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Modifier
+                        </Button>
+                      )}
+                    </>
                   ) : (
                     <Button
                       variant={supported.has(report.id) ? "outline" : "default"}

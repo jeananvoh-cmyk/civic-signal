@@ -473,7 +473,7 @@ const AdminRelayPage = () => {
         </div>
         <div className="flex items-center gap-2">
           {dataUpdatedAt > 0 && (
-            <span className="text-[11px] text-muted-foreground hidden sm:block">
+            <span className="text-xs text-muted-foreground hidden sm:block">
               {format(new Date(dataUpdatedAt), "HH:mm:ss")}
             </span>
           )}
@@ -507,7 +507,7 @@ const AdminRelayPage = () => {
           <div key={kpi.label} className="rounded-xl border border-border bg-card p-4 flex flex-col gap-1">
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <kpi.icon className="h-3.5 w-3.5" />
-              <span className="text-[11px] font-medium">{kpi.label}</span>
+              <span className="text-xs font-medium">{kpi.label}</span>
             </div>
             <p className={`font-display text-2xl font-extrabold ${kpi.color}`}>{kpi.value}</p>
           </div>
@@ -534,7 +534,7 @@ const AdminRelayPage = () => {
                 <p className="text-xs font-semibold text-foreground truncate">{m.label}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-lg font-extrabold text-orange-600">{m.total}</span>
-                  <div className="flex flex-col text-[10px] leading-tight text-muted-foreground">
+                  <div className="flex flex-col text-xs leading-tight text-muted-foreground">
                     {m.pending > 0 && (
                       <span className="text-amber-600 font-medium">{m.pending} en attente</span>
                     )}
@@ -582,7 +582,7 @@ const AdminRelayPage = () => {
         >
           À envoyer
           {stats.pending > 0 && (
-            <span className="ml-2 rounded-full bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5">
+            <span className="ml-2 rounded-full bg-amber-500 text-white text-xs font-bold px-1.5 py-0.5">
               {stats.pending}
             </span>
           )}
@@ -597,7 +597,7 @@ const AdminRelayPage = () => {
         >
           Historique
           {historyLogs.length > 0 && (
-            <span className="ml-2 text-[11px] text-muted-foreground">
+            <span className="ml-2 text-xs text-muted-foreground">
               ({historyLogs.length})
             </span>
           )}
@@ -613,7 +613,7 @@ const AdminRelayPage = () => {
           <Settings className="h-3.5 w-3.5" />
           Paramètres
           {relayConfig?.test_mode === "true" && (
-            <span className="rounded-full bg-amber-500/20 text-amber-600 text-[10px] font-bold px-1.5 py-0.5 border border-amber-500/30">
+            <span className="rounded-full bg-amber-500/20 text-amber-600 text-xs font-bold px-1.5 py-0.5 border border-amber-500/30">
               TEST
             </span>
           )}
@@ -665,12 +665,12 @@ const AdminRelayPage = () => {
                             Commune de {group.commune}
                           </span>
                           {group.hasCritical && (
-                            <span className="rounded-full bg-red-500/10 text-red-600 text-[10px] font-bold px-2 py-0.5 border border-red-500/30">
+                            <span className="rounded-full bg-red-500/10 text-red-600 text-xs font-bold px-2 py-0.5 border border-red-500/30">
                               CRITIQUE
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-3 mt-0.5 text-[11px] text-muted-foreground">
+                        <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <MapPin className="h-3 w-3" />
                             {group.quartiers.length} quartier{group.quartiers.length > 1 ? "s" : ""}
@@ -802,7 +802,7 @@ const AdminRelayPage = () => {
                             <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                             <span className="text-sm text-foreground font-medium">{q.name}</span>
                             {q.count && q.count > 1 && (
-                              <span className="text-[10px] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5">
+                              <span className="text-xs text-muted-foreground bg-muted rounded-full px-1.5 py-0.5">
                                 {q.count} signalements
                               </span>
                             )}
@@ -825,17 +825,17 @@ const AdminRelayPage = () => {
                       {/* Statut envoi WA */}
                       <div className="flex flex-wrap items-center gap-3">
                         {group.waSentAt ? (
-                          <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-2.5 py-1">
+                          <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-2.5 py-1">
                             <MessageCircle className="h-3 w-3" />
                             WhatsApp envoyé · {format(new Date(group.waSentAt), "dd MMM HH:mm", { locale: fr })}
                           </span>
                         ) : (
-                          <span className="text-[11px] text-muted-foreground italic">
+                          <span className="text-xs text-muted-foreground italic">
                             WhatsApp non encore envoyé
                           </span>
                         )}
                         {group.cieTicketNumber && (
-                          <span className="flex items-center gap-1.5 text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-full px-2.5 py-1 font-mono">
+                          <span className="flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-full px-2.5 py-1 font-mono">
                             <TicketCheck className="h-3 w-3" />
                             {group.cieTicketNumber}
                           </span>
@@ -845,7 +845,7 @@ const AdminRelayPage = () => {
                       {/* Abonnés avec contacts */}
                       {group.reporters.length > 0 && (
                         <div className="space-y-1">
-                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
                             <PhoneCall className="h-3 w-3" />
                             Abonnés concernés ({group.reporters.length})
                           </p>
@@ -856,7 +856,7 @@ const AdminRelayPage = () => {
                                   <span className="font-mono font-semibold">⚡ {r.meterNumber}</span>
                                 )}
                                 {r.contractType && (
-                                  <span className="text-muted-foreground rounded-full bg-muted px-1.5 py-0.5 text-[10px]">
+                                  <span className="text-muted-foreground rounded-full bg-muted px-1.5 py-0.5 text-xs">
                                     {r.contractType === "postpaid" ? "Postpayé" : "Prépayé"}
                                   </span>
                                 )}
@@ -876,7 +876,7 @@ const AdminRelayPage = () => {
                       {/* Saisie ticket CIE */}
                       {!group.cieTicketNumber && group.waSentAt && (
                         <div className="space-y-1.5">
-                          <p className="text-[11px] font-semibold text-foreground">
+                          <p className="text-xs font-semibold text-foreground">
                             Ticket reçu de la {group.operator === "CIE" ? "CIE" : "SODECI"} ?
                           </p>
                           <div className="flex gap-2">
@@ -899,7 +899,7 @@ const AdminRelayPage = () => {
                               <TicketCheck className="h-3.5 w-3.5" />
                             </Button>
                           </div>
-                          <p className="text-[10px] text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             Enregistrer le numéro de sollicitation reçu en réponse WhatsApp
                           </p>
                         </div>
@@ -956,12 +956,12 @@ const AdminRelayPage = () => {
                           </>
                         )}
                       </div>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {log.email_to} · {format(new Date(log.created_at), "d MMM yyyy à HH:mm", { locale: fr })}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusCfg.bg} ${statusCfg.color}`}>
+                      <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusCfg.bg} ${statusCfg.color}`}>
                         <statusCfg.icon className="h-3 w-3" />
                         {statusCfg.label}
                       </span>
@@ -1189,12 +1189,12 @@ const AdminRelayPage = () => {
                           {label}
                         </span>
                         {isEnabled && hasEmail && (
-                          <span className="rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-bold px-1.5 py-0.5 border border-emerald-500/20">
+                          <span className="rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-bold px-1.5 py-0.5 border border-emerald-500/20">
                             Actif
                           </span>
                         )}
                         {isEnabled && !hasEmail && (
-                          <span className="rounded-full bg-amber-500/10 text-amber-600 text-[10px] font-bold px-1.5 py-0.5 border border-amber-500/20">
+                          <span className="rounded-full bg-amber-500/10 text-amber-600 text-xs font-bold px-1.5 py-0.5 border border-amber-500/20">
                             Email manquant
                           </span>
                         )}

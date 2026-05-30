@@ -577,7 +577,7 @@ const AdminStatsPage = () => {
                         <tr key={p.id} className="hover:bg-muted/30 transition-colors">
                           <td className="px-4 py-3 font-medium text-foreground">{p.organization_name}</td>
                           <td className="px-4 py-3 text-center">
-                            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold bg-primary/10 text-primary">
+                            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold bg-primary/10 text-primary">
                               {PARTNER_TYPE_LABELS[p.partner_type] ?? p.partner_type}
                               {p.commune && ` — ${p.commune}`}
                             </span>

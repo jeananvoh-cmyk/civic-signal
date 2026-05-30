@@ -181,7 +181,7 @@ const HowItWorksSection = React.memo(() => (
               </span>
             </div>
             <h3 className="font-display text-base font-bold text-foreground">{step.title}</h3>
-            <p className={`mt-0.5 text-[11px] font-bold uppercase tracking-wider ${step.color}`}>{step.headline}</p>
+            <p className={`mt-0.5 text-xs font-bold uppercase tracking-wider ${step.color}`}>{step.headline}</p>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{step.desc}</p>
           </motion.div>
         ))}
@@ -624,7 +624,7 @@ const Index = () => {
           transition={{ delay: 1.2 }}
           className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/50"
         >
-          <span className="text-[10px] tracking-[0.2em] uppercase">Découvrir</span>
+          <span className="text-xs tracking-[0.2em] uppercase">Découvrir</span>
           <motion.div animate={{ y: [0, 5, 0] }} transition={{ repeat: Infinity, duration: 1.6 }}>
             <ChevronDown className="h-4 w-4" />
           </motion.div>
@@ -722,12 +722,12 @@ const Index = () => {
                   <div key={key} className="rounded-xl bg-secondary p-3 text-center">
                     <p className="text-lg mb-1">{icon}</p>
                     <p className={`font-display text-xl font-extrabold ${color}`}>{display}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{label}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
                   </div>
                 );
               })}
             </div>
-            <p className="mt-3 text-[10px] text-muted-foreground text-center italic">Basé sur les signalements résolus · mis à jour en temps réel</p>
+            <p className="mt-3 text-xs text-muted-foreground text-center italic">Basé sur les signalements résolus · mis à jour en temps réel</p>
           </motion.div>
         </section>
       )}
@@ -747,7 +747,7 @@ const Index = () => {
               <div className="flex items-center gap-2">
                 <Radio className="h-4 w-4 text-amber-500 animate-pulse" />
                 <h2 className="font-display text-base font-bold text-foreground">Mes signalements en cours</h2>
-                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-bold text-amber-600 dark:text-amber-400">
                   {myActiveReports.length} actif{myActiveReports.length > 1 ? "s" : ""}
                 </span>
               </div>
@@ -774,11 +774,11 @@ const Index = () => {
                       <span className="text-xl shrink-0">{icon}</span>
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-foreground truncate">{label} · {r.commune}</p>
-                        <p className="text-[10px] text-muted-foreground">{r.quartier && `${r.quartier} · `}{new Date(r.created_at).toLocaleDateString("fr-FR")}{r.verifications > 0 ? ` · ${verifLabel}` : ""}</p>
+                        <p className="text-xs text-muted-foreground">{r.quartier && `${r.quartier} · `}{new Date(r.created_at).toLocaleDateString("fr-FR")}{r.verifications > 0 ? ` · ${verifLabel}` : ""}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 rounded-full px-2 py-0.5">En cours</span>
+                      <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 rounded-full px-2 py-0.5">En cours</span>
                       <ChevronDown className="h-4 w-4 text-muted-foreground -rotate-90 group-hover:text-primary transition-colors" />
                     </div>
                   </Link>
@@ -829,7 +829,7 @@ const Index = () => {
               </button>
 
               {/* Pastille "Nouveau" */}
-              <span className="inline-flex items-center gap-1 rounded-full bg-yellow-500/20 border border-yellow-500/30 px-2.5 py-0.5 text-[10px] font-bold text-yellow-700 dark:text-yellow-400 mb-3">
+              <span className="inline-flex items-center gap-1 rounded-full bg-yellow-500/20 border border-yellow-500/30 px-2.5 py-0.5 text-xs font-bold text-yellow-700 dark:text-yellow-400 mb-3">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-500 opacity-75" />
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-yellow-500" />
@@ -857,17 +857,17 @@ const Index = () => {
 
                   {/* Mini métriques illustratives */}
                   <div className="flex items-center gap-3 mt-2.5">
-                    <div className="flex items-center gap-1 text-[11px] font-semibold text-yellow-700 dark:text-yellow-400">
+                    <div className="flex items-center gap-1 text-xs font-semibold text-yellow-700 dark:text-yellow-400">
                       <TrendingDown className="h-3 w-3" />
                       <span>Conso/jour</span>
                     </div>
                     <div className="h-3 w-px bg-border" />
-                    <div className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                    <div className="flex items-center gap-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                       <BatteryFull className="h-3 w-3" />
                       <span>Jours restants</span>
                     </div>
                     <div className="h-3 w-px bg-border" />
-                    <div className="flex items-center gap-1 text-[11px] font-semibold text-sky-700 dark:text-sky-400">
+                    <div className="flex items-center gap-1 text-xs font-semibold text-sky-700 dark:text-sky-400">
                       <Zap className="h-3 w-3" />
                       <span>Historique</span>
                     </div>
@@ -966,12 +966,12 @@ const Index = () => {
                         {isInfra ? (
                           <div className="flex items-center gap-1.5 mt-0.5">
                             {infraLabel && (
-                              <span className="inline-flex items-center rounded-full bg-teal-500/10 px-2 py-0.5 text-[10px] font-semibold text-teal-700 dark:text-teal-400 shrink-0">
+                              <span className="inline-flex items-center rounded-full bg-teal-500/10 px-2 py-0.5 text-xs font-semibold text-teal-700 dark:text-teal-400 shrink-0">
                                 {infraLabel}
                               </span>
                             )}
                             {r.verifications > 0 && (
-                              <span className="text-[10px] text-muted-foreground truncate">
+                              <span className="text-xs text-muted-foreground truncate">
                                 · {r.verifications} demande{r.verifications > 1 ? "s" : ""} de réparation
                               </span>
                             )}
@@ -981,9 +981,9 @@ const Index = () => {
                         )}
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-[10px] text-muted-foreground">{timeAgo}</p>
+                        <p className="text-xs text-muted-foreground">{timeAgo}</p>
                         {!isInfra && r.verifications > 0 && (
-                          <p className="text-[10px] font-semibold text-green-600">{r.verifications} confirm.</p>
+                          <p className="text-xs font-semibold text-green-600">{r.verifications} confirm.</p>
                         )}
                       </div>
                     </Link>

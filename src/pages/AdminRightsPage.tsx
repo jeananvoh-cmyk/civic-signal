@@ -222,7 +222,7 @@ function ContactEditor({
           <div className="flex gap-2 p-3">
             {/* Phone number */}
             <div className="flex-1 space-y-1">
-              <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
                 <Phone className="h-3 w-3" /> Numéro téléphone
               </label>
               <Input
@@ -233,12 +233,12 @@ function ContactEditor({
                 maxLength={30}
                 type="tel"
               />
-              <p className="text-[10px] text-muted-foreground">Numéro d'appel — sera un lien tel:</p>
+              <p className="text-xs text-muted-foreground">Numéro d'appel — sera un lien tel:</p>
             </div>
 
             {/* WhatsApp number */}
             <div className="flex-1 space-y-1">
-              <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
                 <WhatsAppSVG /> WhatsApp (optionnel)
               </label>
               <Input
@@ -249,18 +249,18 @@ function ContactEditor({
                 maxLength={30}
                 type="tel"
               />
-              <p className="text-[10px] text-muted-foreground">Format international sans espaces · lien wa.me/</p>
+              <p className="text-xs text-muted-foreground">Format international sans espaces · lien wa.me/</p>
             </div>
           </div>
 
           {/* Preview */}
           {(c.number || c.whatsapp) && (
             <div className="px-3 pb-3 flex items-center gap-2">
-              <span className="text-[10px] text-muted-foreground">Aperçu :</span>
+              <span className="text-xs text-muted-foreground">Aperçu :</span>
               {c.number && (
                 <a
                   href={`tel:${c.number.replace(/\s/g, "")}`}
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-primary bg-primary/8 rounded px-2 py-0.5 hover:bg-primary/15"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-primary bg-primary/8 rounded px-2 py-0.5 hover:bg-primary/15"
                   onClick={(e) => e.preventDefault()}
                 >
                   <Phone className="h-2.5 w-2.5" /> {c.number}
@@ -271,7 +271,7 @@ function ContactEditor({
                   href={`https://wa.me/${c.whatsapp.replace(/\D/g, "")}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-[#25D366] bg-[#25D366]/10 rounded px-2 py-0.5 hover:bg-[#25D366]/20"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-[#25D366] bg-[#25D366]/10 rounded px-2 py-0.5 hover:bg-[#25D366]/20"
                   onClick={(e) => e.preventDefault()}
                 >
                   <WhatsAppSVG /> {c.whatsapp}

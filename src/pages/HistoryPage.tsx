@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Zap, Droplets, Loader2, History, Calendar, ArrowLeft, ChevronRight, CheckCircle2, AlertTriangle, Wrench } from "lucide-react";
@@ -114,15 +114,15 @@ const HistoryPage = () => {
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-5 grid grid-cols-3 gap-3">
             <div className="rounded-xl border border-border bg-card p-3 text-center">
               <p className="text-2xl font-extrabold text-foreground">{reports.length}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Total</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Total</p>
             </div>
             <div className="rounded-xl border border-warning/30 bg-warning/5 dark:border-warning/25 dark:bg-warning/10 p-3 text-center">
               <p className="text-2xl font-extrabold text-warning">{totalActive}</p>
-              <p className="text-[10px] text-warning/80 mt-0.5">En cours</p>
+              <p className="text-xs text-warning/80 mt-0.5">En cours</p>
             </div>
             <div className="rounded-xl border border-success/30 bg-success/5 dark:border-success/25 dark:bg-success/10 p-3 text-center">
               <p className="text-2xl font-extrabold text-success">{totalResolved}</p>
-              <p className="text-[10px] text-success/80 mt-0.5">R\u00e9solus</p>
+              <p className="text-xs text-success/80 mt-0.5">Résolus</p>
             </div>
           </motion.div>
         )}
@@ -219,7 +219,7 @@ const HistoryPage = () => {
                         verifications={r.verifications}
                       />
                       {r.status === "active" && r.verifications === 0 && (Date.now() - new Date(r.created_at).getTime()) > 7 * 86400000 && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 border border-warning/30 px-2 py-0.5 text-[10px] font-semibold text-warning">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 border border-warning/30 px-2 py-0.5 text-xs font-semibold text-warning">
                           ⚠ Non pris en charge
                         </span>
                       )}

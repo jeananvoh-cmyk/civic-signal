@@ -627,15 +627,15 @@ const MapPage = () => {
                   </strong> en ce moment
                   {mode === "coupures" && coupureFilter === "all" && (
                     <span className="ml-2 inline-flex items-center gap-2 text-sm">
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">⚡ {ct.elec}</span>
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">💧 {ct.eau}</span>
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">⚡ {ct.elec}</span>
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">💧 {ct.eau}</span>
                     </span>
                   )}
                   {mode === "infrastructures" && infraFilter === "all" && (
                     <span className="ml-2 inline-flex items-center gap-2 text-sm">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"><img src={INFRA_CATEGORY_ICONS.cie} className="h-3.5 w-3.5 object-contain inline" /> {it.cie}</span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"><img src={INFRA_CATEGORY_ICONS.sodeci} className="h-3.5 w-3.5 object-contain inline" /> {it.sod}</span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"><img src={INFRA_CATEGORY_ICONS.mairie} className="h-3.5 w-3.5 object-contain inline" /> {it.mai}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"><img src={INFRA_CATEGORY_ICONS.cie} className="h-3.5 w-3.5 object-contain inline" /> {it.cie}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"><img src={INFRA_CATEGORY_ICONS.sodeci} className="h-3.5 w-3.5 object-contain inline" /> {it.sod}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"><img src={INFRA_CATEGORY_ICONS.mairie} className="h-3.5 w-3.5 object-contain inline" /> {it.mai}</span>
                     </span>
                   )}
                 </>
@@ -830,7 +830,7 @@ const MapPage = () => {
         {mode === "coupures" && (
           <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-2.5 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
-              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border-2 border-success bg-success/10 text-[10px] font-bold text-success">✓</span>
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border-2 border-success bg-success/10 text-xs font-bold text-success">✓</span>
               <span>Coupure confirmée par les voisins</span>
             </span>
             <span className="hidden sm:inline text-border">|</span>

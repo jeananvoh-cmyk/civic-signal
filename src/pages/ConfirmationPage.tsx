@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -158,10 +158,10 @@ const ConfirmationPage = () => {
                   <Award className="h-8 w-8 text-amber-500" />
                 </div>
               </div>
-              <p className="text-xs font-semibold text-amber-600 uppercase tracking-widest mb-1">Badge d\u00e9bloqu\u00e9</p>
+              <p className="text-xs font-semibold text-amber-600 uppercase tracking-widest mb-1">Badge débloqué</p>
               <h2 className="font-display text-xl font-extrabold text-foreground mb-2">Premier Signalement !</h2>
               <p className="text-sm text-muted-foreground mb-6">
-                F\u00e9licitations ! Vous venez de faire votre premier signalement citoyen. Continuez comme \u00e7a !
+                Félicitations ! Vous venez de faire votre premier signalement citoyen. Continuez comme ça !
               </p>
               <Button onClick={() => setShowBadge(false)} className="w-full">
                 Super !
@@ -327,7 +327,7 @@ const ConfirmationPage = () => {
                   Dès que votre signalement est confirmé par vos voisins, notre équipe le transmet directement à la {operatorName} via WhatsApp en votre nom. Vous n'avez rien d'autre à faire.
                 </p>
                 {neighborCount !== null && neighborCount > 0 && (
-                  <p className="text-[11px] text-amber-700 dark:text-amber-400 font-semibold mt-1.5">
+                  <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold mt-1.5">
                     ✓ {neighborCount + 1} signalement{neighborCount > 0 ? "s" : ""} déjà dans ce secteur — transmission prioritaire
                   </p>
                 )}
@@ -374,7 +374,7 @@ const ConfirmationPage = () => {
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
-            <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
+            <p className="mt-1.5 text-center text-xs text-muted-foreground">
               Retrouvez cette page à tout moment depuis <strong>Mon espace → Historique</strong>
             </p>
           </motion.div>
@@ -417,7 +417,7 @@ const ConfirmationPage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
-            className="mt-6 text-center text-[10px] text-muted-foreground/60"
+            className="mt-6 text-center text-xs text-muted-foreground/60"
           >
             {pollError ? "Reconnexion en cours…" : "Mise à jour automatique"}
           </motion.p>

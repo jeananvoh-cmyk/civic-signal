@@ -3,6 +3,8 @@ import { ChevronLeft, ChevronRight, X, Maximize2 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useSignedUrl } from "@/hooks/useSignedUrl";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 // ── Vignette individuelle ─────────────────────────────────────────────────────
 function GalleryThumb({
@@ -55,6 +57,8 @@ interface PhotoGalleryProps {
   className?: string;
   /** Hauteur des vignettes (Tailwind), défaut "h-48" */
   thumbHeight?: string;
+  /** ISO date du signalement — affichée dans le lightbox */
+  reportDate?: string;
 }
 
 /**
@@ -65,6 +69,7 @@ const PhotoGallery = ({
   photos,
   className = "",
   thumbHeight = "h-48",
+  reportDate,
 }: PhotoGalleryProps) => {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
@@ -202,6 +207,17 @@ const PhotoGallery = ({
               aria-atomic="true"
             >
               {lightboxIndex + 1} / {photos.length}
+            </div>
+          )}
+
+          {/* Date du signalement — FixMyStreet style */}
+          {reportDate && lightboxIndex !== null && (
+            <div className={cn(
+              "absolute left-3 bg-black/60 text-white text-xs rounded-full px-3 py-1.5",
+              photos.length > 1 ? "bottom-9" : "bottom-3"
+            )}>
+              Signalé le{" "}
+              {format(new Date(reportDate), "EEE d MMM yyyy 'à' HH:mm", { locale: fr })}
             </div>
           )}
         </DialogContent>

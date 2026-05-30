@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   BarChart3, CheckCircle2, Clock, Users, TrendingUp,
@@ -253,7 +253,7 @@ const TransparencyPage = () => {
                   <h2 className="text-base font-bold text-foreground mb-1 flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-primary" /> Classement — meilleures communes
                   </h2>
-                  <p className="text-xs text-muted-foreground mb-5">Communes avec le meilleur taux de r\u00e9solution des signalements</p>
+                  <p className="text-xs text-muted-foreground mb-5">Communes avec le meilleur taux de résolution des signalements</p>
                   {/* Podium visuel — top 3 */}
                   <div className="flex items-end justify-center gap-3 mb-6">
                     {[sorted[1], sorted[0], sorted[2]].map((c, pos) => {
@@ -389,7 +389,7 @@ const TransparencyPage = () => {
                         <p className="text-sm font-bold text-foreground">
                           {row.actual !== null ? fmtHours(row.actual) : "–"}
                         </p>
-                        <span className={`text-[10px] font-semibold rounded-full border px-1.5 py-0.5 ${badgeClass}`}>
+                        <span className={`text-xs font-semibold rounded-full border px-1.5 py-0.5 ${badgeClass}`}>
                           {badge}
                         </span>
                       </div>

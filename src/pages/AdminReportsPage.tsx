@@ -421,7 +421,7 @@ const AdminReportsPage = () => {
             <TabsTrigger value="neglected" className="relative">
               Négligés
               {neglectedReports.length > 0 && (
-                <Badge variant="destructive" className="ml-1.5 h-4 min-w-4 px-1 text-[10px] leading-none">
+                <Badge variant="destructive" className="ml-1.5 h-4 min-w-4 px-1 text-xs leading-none">
                   {neglectedReports.length}
                 </Badge>
               )}
@@ -430,7 +430,7 @@ const AdminReportsPage = () => {
               <ShieldAlert className="h-3.5 w-3.5 mr-1" />
               Escalades
               {unreadEscalades > 0 && (
-                <Badge variant="destructive" className="ml-1.5 h-4 min-w-4 px-1 text-[10px] leading-none">
+                <Badge variant="destructive" className="ml-1.5 h-4 min-w-4 px-1 text-xs leading-none">
                   {unreadEscalades}
                 </Badge>
               )}
@@ -562,12 +562,12 @@ const AdminReportsPage = () => {
                               </p>
                               <Badge
                                 variant="outline"
-                                className="text-[10px] px-1.5 py-0 border-amber-500/40 text-amber-600 bg-amber-500/5"
+                                className="text-xs px-1.5 py-0 border-amber-500/40 text-amber-600 bg-amber-500/5"
                               >
                                 {ageDays}j sans prise en charge
                               </Badge>
                               {r.report_category === "infrastructure" && (
-                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-emerald-500/40 text-emerald-600 bg-emerald-500/5">
+                                <Badge variant="outline" className="text-xs px-1.5 py-0 border-emerald-500/40 text-emerald-600 bg-emerald-500/5">
                                   {infraEmoji(extractInfraLabel(r.description))} {extractInfraLabel(r.description) ?? "Infrastructure"}
                                 </Badge>
                               )}
@@ -639,7 +639,7 @@ const AdminReportsPage = () => {
 
                         {/* Pied : date + indicateur notification J+3/J+7 */}
                         <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/50">
-                          <p className="text-[11px] text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             Signalé le {format(new Date(r.created_at), "d MMM yyyy", { locale: fr })}
                             {" · "}
                             {formatDistanceToNow(new Date(r.created_at), { locale: fr, addSuffix: true })}
@@ -647,7 +647,7 @@ const AdminReportsPage = () => {
                           {r.whatsapp_reminder_needed_at && (
                             <Badge
                               variant="outline"
-                              className="text-[10px] px-1.5 py-0 border-violet-500/40 text-violet-600 bg-violet-500/5"
+                              className="text-xs px-1.5 py-0 border-violet-500/40 text-violet-600 bg-violet-500/5"
                             >
                               Rappel WhatsApp envoyé à l'app
                             </Badge>
@@ -731,7 +731,7 @@ const AdminReportsPage = () => {
                         </div>
                         <div className="flex items-center gap-1">
                           {!isRead && <span className="h-2 w-2 rounded-full bg-destructive" />}
-                          <span className="text-[10px] text-muted-foreground">
+                          <span className="text-xs text-muted-foreground">
                             {formatDistanceToNow(new Date(notif.created_at), { locale: fr, addSuffix: true })}
                           </span>
                         </div>
@@ -751,18 +751,18 @@ const AdminReportsPage = () => {
                               <span className="text-sm font-semibold text-foreground">
                                 {report.commune}{report.quartier ? `, ${report.quartier}` : ""}
                               </span>
-                              <Badge variant="outline" className={`text-[10px] px-1.5 ${
+                              <Badge variant="outline" className={`text-xs px-1.5 ${
                                 isChronic ? "border-destructive/50 text-destructive" : "border-orange-500/50 text-orange-600"
                               }`}>
                                 {isChronic ? "🔴 Chronique" : "🟠 Actif"}
                               </Badge>
                               {ageDays !== null && (
-                                <Badge variant="outline" className="text-[10px] px-1.5 border-border text-muted-foreground">
+                                <Badge variant="outline" className="text-xs px-1.5 border-border text-muted-foreground">
                                   {ageDays}j sans intervention
                                 </Badge>
                               )}
                             </div>
-                            <div className="flex gap-3 text-[11px] text-muted-foreground">
+                            <div className="flex gap-3 text-xs text-muted-foreground">
                               <span>{isInfra ? (infraLbl ?? "Infrastructure") : "Coupure"} — {operatorName}</span>
                               <span>{report.verifications} {isInfra ? `soutien${report.verifications > 1 ? "s" : ""}` : `confirmation${report.verifications > 1 ? "s" : ""}`}</span>
                             </div>

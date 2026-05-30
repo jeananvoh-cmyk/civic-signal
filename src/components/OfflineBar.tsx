@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { WifiOff, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { useOfflineQueue } from "@/hooks/useOfflineQueue";
@@ -20,8 +20,8 @@ const OfflineBar = () => {
         wasOfflineRef.current = false;
         const sent = await flush();
         if (sent && sent > 0) {
-          toast.success(`${sent} signalement${sent > 1 ? "s" : ""} envoy\u00E9${sent > 1 ? "s" : ""}`, {
-            description: "Vos signalements hors ligne ont \u00E9t\u00E9 transmis.",
+          toast.success(`${sent} signalement${sent > 1 ? "s" : ""} envoyé${sent > 1 ? "s" : ""}`, {
+            description: "Vos signalements hors ligne ont été transmis.",
           });
         }
       }
@@ -34,7 +34,7 @@ const OfflineBar = () => {
     };
   }, [flush]);
 
-  // R\u00E9afficher la banni\u00E8re si de nouveaux \u00E9l\u00E9ments arrivent en queue
+  // Réafficher la bannière si de nouveaux éléments arrivent en queue
   useEffect(() => {
     if (queue.length > 0) setPendingDismissed(false);
   }, [queue.length]);

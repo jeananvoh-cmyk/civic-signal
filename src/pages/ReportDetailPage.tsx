@@ -259,7 +259,7 @@ const ReportDetailPage = () => {
                 </div>
               </div>
               <div className="mt-3 pt-3 border-t border-success/20">
-                <p className="text-[11px] text-success/70 mb-2">
+                <p className="text-xs text-success/70 mb-2">
                   {isInfra ? "Un autre problème dans votre quartier ?" : "Un nouveau problème dans votre quartier ?"}
                 </p>
                 <Button asChild size="sm" variant="outline" className="border-success/40 text-success hover:bg-success/10 text-xs gap-1.5">
@@ -494,7 +494,7 @@ const ReportDetailPage = () => {
               )}
               {corroborated ? corroboratedLabel : corroborateLabel}
             </Button>
-            <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
+            <p className="mt-1.5 text-center text-xs text-muted-foreground">
               {isInfra
                 ? "Votre soutien renforce la demande auprès des autorités"
                 : "Votre confirmation augmente la priorité de traitement"}
@@ -530,7 +530,7 @@ const ReportDetailPage = () => {
               ].map((b) => (
                 <div key={b.text} className="rounded-xl bg-background/60 border border-border px-2 py-2">
                   <p className="text-xl">{b.icon}</p>
-                  <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">{b.text}</p>
+                  <p className="text-xs font-semibold text-muted-foreground mt-0.5">{b.text}</p>
                 </div>
               ))}
             </div>
@@ -549,7 +549,7 @@ const ReportDetailPage = () => {
                 </Link>
               </Button>
             </div>
-            <p className="text-center text-[10px] text-muted-foreground">
+            <p className="text-center text-xs text-muted-foreground">
               Inscription en 30 secondes · Aucune publicité · Données protégées
             </p>
           </motion.div>
@@ -596,7 +596,7 @@ const ReportDetailPage = () => {
           >
             <div>
               <p className="text-xs font-semibold text-foreground">C'est votre signalement</p>
-              <p className="text-[10px] text-muted-foreground">Partagez-le pour obtenir plus de confirmations</p>
+              <p className="text-xs text-muted-foreground">Partagez-le pour obtenir plus de confirmations</p>
             </div>
             <Link to="/verification">
               <Button size="sm" variant="outline" className="text-xs gap-1">

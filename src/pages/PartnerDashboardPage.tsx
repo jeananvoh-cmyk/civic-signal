@@ -409,7 +409,7 @@ const PartnerDashboardPage = () => {
                   className="resize-none text-sm"
                 />
                 {actionComment.length > 150 && (
-                  <p className="text-[10px] text-muted-foreground text-right">{actionComment.length}/200</p>
+                  <p className="text-xs text-muted-foreground text-right">{actionComment.length}/200</p>
                 )}
               </div>
               <div className="flex gap-2 pt-1">

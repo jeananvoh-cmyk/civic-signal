@@ -394,7 +394,7 @@ const SuiviPage = () => {
         {/* Norm reference banner */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.28 }} className="mb-4 rounded-xl border border-border bg-card px-4 py-3 flex items-start gap-2">
           <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-          <div className="text-[11px] text-muted-foreground leading-relaxed">
+          <div className="text-xs text-muted-foreground leading-relaxed">
             <span className="font-semibold text-foreground">Priorisation basée sur les normes internationales</span> — 
             OMS (eau potable, seuil 24h en climat tropical) • IEEE 1366 (fiabilité électrique) • Sphère Handbook (populations vulnérables). 
             Pondéré pour le contexte d'Abidjan.
@@ -493,11 +493,11 @@ const SuiviPage = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
                           <PriorityBadge priority={r.priority} showScore={canValidate} showFactors={canValidate} />
-                          <span className={`inline-flex items-center gap-1 text-[10px] font-medium rounded-full px-2 py-0.5 ${meta.pill}`}>
+                          <span className={`inline-flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5 ${meta.pill}`}>
                             {meta.emoji} {meta.label}
                           </span>
                           {isInfra && infraLabel && (
-                            <span className="inline-flex items-center rounded-full bg-teal-500/10 px-2 py-0.5 text-[10px] font-semibold text-teal-700 dark:text-teal-400">
+                            <span className="inline-flex items-center rounded-full bg-teal-500/10 px-2 py-0.5 text-xs font-semibold text-teal-700 dark:text-teal-400">
                               {infraLabel}
                             </span>
                           )}

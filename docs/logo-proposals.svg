@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 540" font-family="Inter, system-ui, -apple-system, sans-serif">
+
+  <!-- Fond général -->
+  <rect width="840" height="540" fill="#F5F2EE"/>
+
+  <!-- Barre header -->
+  <rect x="0" y="0" width="840" height="54" fill="#EDE9E4"/>
+  <text x="420" y="34" text-anchor="middle" font-size="10.5" fill="#999" letter-spacing="3.5" font-weight="600">PROPOSITIONS LOGO — SIGNA·CI</text>
+
+  <!-- Séparateurs colonnes -->
+  <line x1="280" y1="54" x2="280" y2="440" stroke="#D8D3CC" stroke-width="1"/>
+  <line x1="560" y1="54" x2="560" y2="440" stroke="#D8D3CC" stroke-width="1"/>
+
+
+  <!-- ══════════════════════════════════════════════════
+       CONCEPT A — Le Pin·Signal  (RECOMMANDÉ)
+  ══════════════════════════════════════════════════ -->
+
+  <text x="140" y="78" text-anchor="middle" font-size="9" fill="#BBB" letter-spacing="2.5">CONCEPT A</text>
+
+  <!--
+    Pin shape:
+    Cercle : centre (140, 200), r=44
+    Points gauche/droite du cercle : (96, 200) et (184, 200)
+    Pointe : (140, 292)
+    Arc du haut : CCW (sweep=0) de gauche vers droite = passe par le sommet (140, 156)
+  -->
+  <path d="M 140,292 C 112,260 96,234 96,200 A 44,44 0 0,0 184,200 C 184,234 168,260 140,292 Z"
+        fill="#1472BE"/>
+
+  <!--
+    Signal WiFi — blanc, ancre (140, 207)
+    Arcs ouverts vers le haut (CCW en SVG = sweep=0)
+    sin(75°)=0.9659  cos(75°)=0.2588
+
+    r=8  : start(132.3, 209.1)  end(147.7, 209.1)
+    r=15 : start(125.5, 210.9)  end(154.5, 210.9)
+    r=22 : start(118.7, 212.7)  end(161.3, 212.7)
+  -->
+  <circle cx="140" cy="207" r="3.5" fill="white"/>
+  <path d="M 132.3,209.1 A 8,8 0 0,0 147.7,209.1"  fill="none" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M 125.5,210.9 A 15,15 0 0,0 154.5,210.9" fill="none" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M 118.7,212.7 A 22,22 0 0,0 161.3,212.7" fill="none" stroke="white" stroke-width="2.4" stroke-linecap="round"/>
+
+  <!-- Wordmark A -->
+  <text x="140" y="325" text-anchor="middle" font-size="21" font-weight="700" fill="#1472BE" letter-spacing="-0.8">SIGNA·CI</text>
+  <text x="140" y="342" text-anchor="middle" font-size="8.5" fill="#AAA" letter-spacing="3">SIGNALEMENTS CITOYENS</text>
+
+  <!-- Variante : wordmark avec fond -->
+  <rect x="87" y="355" width="106" height="22" rx="11" fill="#1472BE" opacity="0.1"/>
+  <text x="140" y="370" text-anchor="middle" font-size="9.5" fill="#1472BE" font-weight="700">★  Recommandé</text>
+
+  <!-- Description -->
+  <text x="140" y="400" text-anchor="middle" font-size="9.5" fill="#777">Pin géolocalisé + signal WiFi inversé</text>
+  <text x="140" y="416" text-anchor="middle" font-size="8.5" fill="#AAA">Je suis ici · je signale · je protège</text>
+
+
+  <!-- ══════════════════════════════════════════════════
+       CONCEPT B — L'Onde Citoyenne
+  ══════════════════════════════════════════════════ -->
+
+  <text x="420" y="78" text-anchor="middle" font-size="9" fill="#BBB" letter-spacing="2.5">CONCEPT B</text>
+
+  <!-- Rings concentriques (sonar/ping) centrés en (420, 198) -->
+  <circle cx="420" cy="198" r="64" fill="none" stroke="#1472BE" stroke-width="1.2" opacity="0.15"/>
+  <circle cx="420" cy="198" r="47" fill="none" stroke="#1472BE" stroke-width="1.6" opacity="0.28"/>
+  <circle cx="420" cy="198" r="31" fill="none" stroke="#1472BE" stroke-width="2.2" opacity="0.48"/>
+  <circle cx="420" cy="198" r="16" fill="none" stroke="#1472BE" stroke-width="2.8" opacity="0.72"/>
+  <!-- Dot central -->
+  <circle cx="420" cy="198" r="6.5" fill="#1472BE"/>
+  <!-- Pointe pin vers le bas -->
+  <path d="M 415,204 C 415,214 420,229 420,229 C 420,229 425,214 425,204 Z" fill="#1472BE"/>
+
+  <!-- Wordmark B -->
+  <text x="420" y="325" text-anchor="middle" font-size="21" font-weight="700" fill="#191C21" letter-spacing="-0.8">SIGNA·CI</text>
+  <text x="420" y="342" text-anchor="middle" font-size="8.5" fill="#AAA" letter-spacing="3">SIGNALEMENTS CITOYENS</text>
+
+  <!-- Description B -->
+  <text x="420" y="400" text-anchor="middle" font-size="9.5" fill="#777">Sonar · Propagation communautaire</text>
+  <text x="420" y="416" text-anchor="middle" font-size="8.5" fill="#AAA">Numérique · Réseau · Abidjan pulse</text>
+
+
+  <!-- ══════════════════════════════════════════════════
+       CONCEPT C — L'Hexagone Signal
+  ══════════════════════════════════════════════════ -->
+
+  <text x="700" y="78" text-anchor="middle" font-size="9" fill="#BBB" letter-spacing="2.5">CONCEPT C</text>
+
+  <!--
+    Hexagone pointy-top (sommet en haut), circumradius=52, centre (700, 200)
+    Vertices:
+      top        (700, 148)
+      upper-right (745, 174)
+      lower-right (745, 226)
+      bottom     (700, 252)
+      lower-left  (655, 226)
+      upper-left  (655, 174)
+  -->
+  <polygon points="700,148 745,174 745,226 700,252 655,226 655,174" fill="#1472BE"/>
+
+  <!--
+    Signal WiFi — blanc, ancre (700, 208)
+    r=8  : start(692.3,210.1) end(707.7,210.1)
+    r=15 : start(685.5,211.9) end(714.5,211.9)
+    r=22 : start(678.7,213.7) end(721.3,213.7)
+  -->
+  <circle cx="700" cy="208" r="3.5" fill="white"/>
+  <path d="M 692.3,210.1 A 8,8 0 0,0 707.7,210.1"  fill="none" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 685.5,211.9 A 15,15 0 0,0 714.5,211.9" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 678.7,213.7 A 22,22 0 0,0 721.3,213.7" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Wordmark C -->
+  <text x="700" y="325" text-anchor="middle" font-size="21" font-weight="700" fill="#191C21" letter-spacing="-0.8">SIGNA·CI</text>
+  <text x="700" y="342" text-anchor="middle" font-size="8.5" fill="#AAA" letter-spacing="3">SIGNALEMENTS CITOYENS</text>
+
+  <!-- Description C -->
+  <text x="700" y="400" text-anchor="middle" font-size="9.5" fill="#777">Hexagone civic + badge signal</text>
+  <text x="700" y="416" text-anchor="middle" font-size="8.5" fill="#AAA">Autorité · Officiel · Institutionnel</text>
+
+
+  <!-- ══════════════════════════════════════════════════
+       Ligne de comparaison — fond sombre (dark mode)
+  ══════════════════════════════════════════════════ -->
+
+  <rect x="0" y="438" width="840" height="2" fill="#D8D3CC"/>
+
+  <!-- Fond sombre -->
+  <rect x="0" y="440" width="840" height="100" fill="#1B1F26"/>
+
+  <text x="48" y="466" font-size="9" fill="#555" letter-spacing="2">MODE SOMBRE</text>
+
+  <!-- A dark -->
+  <path d="M 140,510 C 124,497 116,489 116,480 A 14,14 0 0,0 164,480 C 164,489 156,497 140,510 Z" fill="#3AA3E8"/>
+  <circle cx="140" cy="483" r="1.6" fill="white"/>
+  <path d="M 135.2,484.2 A 4.5,4.5 0 0,0 144.8,484.2" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M 132.1,485.2 A 7.5,7.5 0 0,0 147.9,485.2" fill="none" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+  <path d="M 129,486.2 A 11,11 0 0,0 151,486.2"  fill="none" stroke="white" stroke-width="1.3" stroke-linecap="round"/>
+  <text x="140" y="524" text-anchor="middle" font-size="11" font-weight="700" fill="#3AA3E8" letter-spacing="-0.4">SIGNA·CI</text>
+
+  <!-- B dark -->
+  <circle cx="420" cy="483" r="20" fill="none" stroke="#3AA3E8" stroke-width="0.8" opacity="0.2"/>
+  <circle cx="420" cy="483" r="13" fill="none" stroke="#3AA3E8" stroke-width="1" opacity="0.4"/>
+  <circle cx="420" cy="483" r="7" fill="none" stroke="#3AA3E8" stroke-width="1.3" opacity="0.65"/>
+  <circle cx="420" cy="483" r="2.8" fill="#3AA3E8"/>
+  <path d="M 418,486 C 418,490 420,494 420,494 C 420,494 422,490 422,486 Z" fill="#3AA3E8"/>
+  <text x="420" y="524" text-anchor="middle" font-size="11" font-weight="700" fill="#F0F4FA" letter-spacing="-0.4">SIGNA·CI</text>
+
+  <!-- C dark -->
+  <polygon points="700,462 716,471 716,489 700,498 684,489 684,471" fill="#3AA3E8"/>
+  <circle cx="700" cy="482" r="1.6" fill="white"/>
+  <path d="M 695.2,483.2 A 4.5,4.5 0 0,0 704.8,483.2" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M 691.5,484.3 A 8,8 0 0,0 708.5,484.3"   fill="none" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+  <text x="700" y="524" text-anchor="middle" font-size="11" font-weight="700" fill="#F0F4FA" letter-spacing="-0.4">SIGNA·CI</text>
+
+  <!-- Footer spec -->
+  <text x="420" y="537" text-anchor="middle" font-size="8.5" fill="#888">
+    #1472BE (hsl 207 85% 36%) · dark: #3AA3E8 · Fond light: #F5F2EE · Inter Bold · Moyen dot · U+00B7
+  </text>
+
+</svg>

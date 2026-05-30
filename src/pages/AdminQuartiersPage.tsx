@@ -65,7 +65,7 @@ const AgeBadge = ({ date }: { date: string }) => {
   return (
     <Badge
       variant="outline"
-      className={`text-[10px] px-1.5 py-0 ml-1 ${
+      className={`text-xs px-1.5 py-0 ml-1 ${
         isOld
           ? "border-red-400 text-red-500 bg-red-50 dark:bg-red-950"
           : "border-yellow-400 text-yellow-600 bg-yellow-50 dark:bg-yellow-950"
@@ -84,7 +84,7 @@ const AliasesBadges = ({ aliases }: { aliases: string[] }) => {
       {aliases.map((a) => (
         <span
           key={a}
-          className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground bg-muted rounded px-1.5 py-0.5"
+          className="inline-flex items-center gap-0.5 text-xs text-muted-foreground bg-muted rounded px-1.5 py-0.5"
         >
           <Tag className="h-2.5 w-2.5" />
           {a}
@@ -717,7 +717,7 @@ const AdminQuartiersPage = () => {
             <Clock className="h-4 w-4 mr-1.5" />
             En attente
             {stats.pending > 0 && (
-              <span className="ml-1.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none">
+              <span className="ml-1.5 bg-destructive text-destructive-foreground text-xs font-bold rounded-full px-1.5 py-0.5 leading-none">
                 {stats.pending}
               </span>
             )}
@@ -1708,7 +1708,7 @@ function AliasesTab() {
                 value={form.alias}
                 onChange={(e) => setForm((f) => ({ ...f, alias: e.target.value }))}
               />
-              <p className="text-[10px] text-muted-foreground">Nom tel qu'il peut être saisi dans l'app</p>
+              <p className="text-xs text-muted-foreground">Nom tel qu'il peut être saisi dans l'app</p>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Nom canonique (officiel) *</Label>
@@ -1717,7 +1717,7 @@ function AliasesTab() {
                 value={form.canonical}
                 onChange={(e) => setForm((f) => ({ ...f, canonical: e.target.value }))}
               />
-              <p className="text-[10px] text-muted-foreground">Nom vers lequel les signalements seront unifiés</p>
+              <p className="text-xs text-muted-foreground">Nom vers lequel les signalements seront unifiés</p>
             </div>
           </div>
           <DialogFooter>

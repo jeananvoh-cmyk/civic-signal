@@ -71,7 +71,7 @@ function SetupMeter({ onCreate }: { onCreate: (label: string, meterNumber?: stri
                 N° de compteur <span className="font-normal text-muted-foreground">(optionnel)</span>
               </label>
               {prefilled && (
-                <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                <span className="flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                   <CheckCircle2 className="h-3 w-3" />
                   Récupéré depuis votre profil
                 </span>
@@ -88,7 +88,7 @@ function SetupMeter({ onCreate }: { onCreate: (label: string, meterNumber?: stri
                   : "border-border bg-background"
               }`}
             />
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {prefilled
                 ? "Ce numéro provient du scan de votre facture CIE. Vous pouvez le modifier."
                 : "Visible dans vos SMS de recharge (Ctr: …)"}
@@ -166,7 +166,7 @@ export default function CompteurPage() {
             <div>
               <p className="font-bold text-foreground text-sm leading-tight">{activeMeter?.label}</p>
               {activeMeter?.meter_number && (
-                <p className="text-[10px] text-muted-foreground font-mono">Ctr: {activeMeter.meter_number}</p>
+                <p className="text-xs text-muted-foreground font-mono">Ctr: {activeMeter.meter_number}</p>
               )}
             </div>
           </div>
@@ -396,14 +396,14 @@ export default function CompteurPage() {
                   <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
                     Première mise à jour recommandée
                   </p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                     Regardez l'écran de votre compteur et saisissez les kWh affichés.
                     L'estimation démarrera automatiquement.
                   </p>
                 </div>
                 <button
                   onClick={() => setShowReadingSheet(true)}
-                  className="shrink-0 rounded-lg bg-amber-500/15 border border-amber-500/30 px-2.5 py-1.5 text-[11px] font-bold text-amber-700 dark:text-amber-400 whitespace-nowrap"
+                  className="shrink-0 rounded-lg bg-amber-500/15 border border-amber-500/30 px-2.5 py-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 whitespace-nowrap"
                 >
                   Saisir
                 </button>
@@ -458,9 +458,9 @@ export default function CompteurPage() {
                   <div key={r.id} className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2.5">
                     <div>
                       <p className="text-sm font-bold text-foreground">{r.kwh_remaining} kWh restants</p>
-                      {r.note && <p className="text-[11px] text-muted-foreground">{r.note}</p>}
+                      {r.note && <p className="text-xs text-muted-foreground">{r.note}</p>}
                     </div>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       {format(new Date(r.read_at), "d MMM · HH:mm", { locale: fr })}
                     </p>
                   </div>
@@ -517,11 +517,11 @@ export default function CompteurPage() {
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-extrabold text-foreground">{r.kwh_purchased} kWh</p>
                         {r.amount_fcfa && (
-                          <span className="text-[11px] text-muted-foreground">
+                          <span className="text-xs text-muted-foreground">
                             {r.amount_fcfa.toLocaleString("fr-FR")} FCFA
                           </span>
                         )}
-                        <span className={`text-[10px] rounded-full px-1.5 py-0.5 font-medium ${
+                        <span className={`text-xs rounded-full px-1.5 py-0.5 font-medium ${
                           r.source === "sms"
                             ? "bg-sky-500/10 text-sky-700 dark:text-sky-400"
                             : "bg-muted text-muted-foreground"
@@ -529,11 +529,11 @@ export default function CompteurPage() {
                           {r.source === "sms" ? "SMS" : "Manuel"}
                         </span>
                       </div>
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {format(new Date(r.recharged_at), "d MMMM yyyy · HH:mm", { locale: fr })}
                       </p>
                       {r.token_code && (
-                        <p className="text-[10px] font-mono text-muted-foreground mt-0.5">
+                        <p className="text-xs font-mono text-muted-foreground mt-0.5">
                           🔑 {r.token_code}
                         </p>
                       )}
@@ -555,7 +555,7 @@ export default function CompteurPage() {
 
                 {/* Détails montants si disponibles */}
                 {(r.energy_fcfa || r.taxes_fcfa) && (
-                  <div className="px-4 pb-3 flex gap-4 text-[11px] text-muted-foreground">
+                  <div className="px-4 pb-3 flex gap-4 text-xs text-muted-foreground">
                     {r.energy_fcfa && <span>Énergie : {r.energy_fcfa.toLocaleString("fr-FR")} F</span>}
                     {r.taxes_fcfa && <span>Taxes : {r.taxes_fcfa.toLocaleString("fr-FR")} F</span>}
                   </div>

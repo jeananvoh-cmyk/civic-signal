@@ -541,7 +541,7 @@ const ReportPage = () => {
     try {
       const { error } = await supabase.rpc("corroborate_report", { p_report_id: reportId });
       if (error) throw error;
-      toast.success("✅ Merci ! Votre confirmation a été enregistrée. Le signalement existant est renforcé.");
+      toast.success("Corroboration ajoutée. Le signalement existant est renforcé.");
       setShowDuplicateDialog(false);
       navigate("/");
     } catch (err: any) {
@@ -596,7 +596,7 @@ const ReportPage = () => {
     }
     if (!gpsConsent) { toast.error("Acceptez l'utilisation de votre position GPS"); return; }
     if (selectedType.reportCategory === "infrastructure" && photoUrls.length === 0) {
-      toast.error("📸 Une photo est obligatoire pour ce type de signalement");
+      toast.error("Une photo est obligatoire pour ce type de signalement");
       setShowPhoto(true);
       return;
     }
@@ -668,8 +668,7 @@ const ReportPage = () => {
       if (!isOnline) {
         localStorage.removeItem(DRAFT_KEY);
         enqueue(reportPayload);
-        toast.success("📶 Signalement sauvegardé", {
-          description: "Il sera envoyé automatiquement dès que vous serez reconnecté.",
+        toast.success("Sauvegardé. Sera envoyé à la reconnexion.", {
           duration: 6000,
         });
         setSubmitting(false);
@@ -707,7 +706,7 @@ const ReportPage = () => {
       });
       // Retour haptique sur mobile
       if ("vibrate" in navigator) navigator.vibrate(200);
-      toast.success("✅ Signalement envoyé !");
+      toast.success("Signalement envoyé");
       const reportId = (insertData as any)?.id;
       const params = new URLSearchParams({
         commune,
@@ -724,9 +723,9 @@ const ReportPage = () => {
     } catch (error: any) {
       const msg = error?.message || "";
       if (msg.includes("daily_limit_exceeded")) {
-        toast.error(`🚫 Limite de ${DAILY_LIMIT} signalements / jour atteinte`);
+        toast.error(`Limite de ${DAILY_LIMIT} signalements / jour atteinte`);
       } else if (msg.includes("Rate limit exceeded")) {
-        toast.error("⏱️ Trop de signalements ! Attendez 1 minute.");
+        toast.error("Trop de signalements. Attendez 1 minute.");
       } else {
         const detail = error?.message || error?.details;
         toast.error(getUserFriendlyError(error, "Erreur lors de l'envoi"), {
@@ -785,8 +784,8 @@ const ReportPage = () => {
               : "border-border bg-card text-muted-foreground"
           }`}>
             {limitReached
-              ? `🚫 Limite atteinte : ${dailyCount}/${DAILY_LIMIT} signalements aujourd'hui`
-              : `📊 ${dailyCount}/${DAILY_LIMIT} signalements utilisés aujourd'hui`}
+              ? `Limite atteinte : ${dailyCount}/${DAILY_LIMIT} signalements aujourd'hui`
+              : `${dailyCount}/${DAILY_LIMIT} signalements utilisés aujourd'hui`}
           </div>
         )}
 
@@ -888,7 +887,7 @@ const ReportPage = () => {
                       }
                       <span className="text-xs font-semibold leading-tight text-foreground">{type.label}</span>
                       {type.description && (
-                        <span className="text-[10px] leading-tight text-muted-foreground">{type.description}</span>
+                        <span className="text-xs leading-tight text-muted-foreground">{type.description}</span>
                       )}
                     </motion.button>
                   );
@@ -926,8 +925,9 @@ const ReportPage = () => {
                     {/* Champ libre si "Autre" */}
                     {selectedType.id === "other" && (
                       <div className="rounded-xl border border-border bg-card p-4 space-y-2">
-                        <label className="text-sm font-semibold block">Précisez le problème *</label>
+                        <label htmlFor="custom-type-desc" className="text-sm font-semibold block">Précisez le problème *</label>
                         <Input
+                          id="custom-type-desc"
                           placeholder="Ex: Arbre tombé, route inondée..."
                           value={customTypeDesc}
                           onChange={(e) => setCustomTypeDesc(e.target.value)}
@@ -939,8 +939,8 @@ const ReportPage = () => {
 
                     {/* Hint GPS */}
                     <p className="flex items-start gap-1.5 text-xs text-muted-foreground px-1">
-                      <Navigation className="h-3.5 w-3.5 shrink-0 mt-0.5 text-primary/60" />
-                      <span>📍 Soyez <strong>proche du problème</strong> pour une meilleure localisation.</span>
+                      <Navigation className="h-3.5 w-3.5 shrink-0 mt-0.5 text-primary/60" aria-hidden="true" />
+                      <span>Soyez <strong>proche du problème</strong> pour une meilleure localisation.</span>
                     </p>
 
                     {/* Bannière GPS */}
@@ -1054,7 +1054,7 @@ const ReportPage = () => {
                         </h3>
                         <p className="text-xs text-muted-foreground leading-relaxed">
                           {outsidePilotZone
-                            ? "SIGNA-CI est actuellement disponible dans 7 communes d'Abidjan : Abobo, Adjamé, Bingerville, Cocody, Koumassi, Port-Bouët et Yopougon. Nous travaillons à étendre notre couverture très bientôt. Merci pour votre intérêt ! 🙏"
+                            ? "SIGNA·CI est actuellement disponible dans 7 communes d'Abidjan : Abobo, Adjamé, Bingerville, Cocody, Koumassi, Port-Bouët et Yopougon. Nous travaillons à étendre notre couverture très bientôt."
                             : "Pour signaler un problème, nous avons besoin de votre position GPS afin de vérifier que vous êtes dans une commune pilote. Veuillez autoriser la géolocalisation dans les paramètres de votre navigateur."}
                         </p>
                         <Button
@@ -1091,13 +1091,17 @@ const ReportPage = () => {
                             onChange={setQuartier}
                           />
                           {quartier === "__other" && (
-                            <Input
-                              placeholder="Nom du quartier"
-                              value={customQuartier}
-                              onChange={(e) => setCustomQuartier(e.target.value)}
-                              maxLength={100}
-                              autoFocus
-                            />
+                            <>
+                              <label htmlFor="custom-quartier" className="text-xs font-medium text-muted-foreground">Nom du quartier *</label>
+                              <Input
+                                id="custom-quartier"
+                                placeholder="Ex: Williamsville plateau"
+                                value={customQuartier}
+                                onChange={(e) => setCustomQuartier(e.target.value)}
+                                maxLength={100}
+                                autoFocus
+                              />
+                            </>
                           )}
                         </div>
 
@@ -1181,7 +1185,7 @@ const ReportPage = () => {
               <div className="space-y-3">
                 <p className="text-xs text-center text-muted-foreground">
                   {selectedType.reportCategory === "infrastructure"
-                    ? "📸 Une photo est obligatoire pour ce type de signalement"
+                    ? "Une photo est obligatoire pour ce type de signalement"
                     : "Ajoutez des détails pour aider vos voisins (optionnel)"}
                 </p>
 
@@ -1191,6 +1195,8 @@ const ReportPage = () => {
                   <button
                     type="button"
                     onClick={() => setShowDesc(!showDesc)}
+                    aria-expanded={showDesc}
+                    aria-controls="panel-note"
                     className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
                       showDesc
                         ? "border-primary bg-primary/10 text-primary"
@@ -1206,6 +1212,8 @@ const ReportPage = () => {
                   <button
                     type="button"
                     onClick={() => setShowPhoto(!showPhoto)}
+                    aria-expanded={showPhoto}
+                    aria-controls="panel-photo"
                     className={cn(
                       "flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all",
                       showPhoto
@@ -1231,6 +1239,8 @@ const ReportPage = () => {
                     <button
                       type="button"
                       onClick={() => setShowTime(!showTime)}
+                      aria-expanded={showTime}
+                      aria-controls="panel-time"
                       className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
                         showTime
                           ? "border-primary bg-primary/10 text-primary"
@@ -1255,7 +1265,7 @@ const ReportPage = () => {
                           Informations {selectedType.id === "electricity_outage" ? "CIE" : "SODECI"} <span className="text-muted-foreground font-normal text-xs">(optionnel)</span>
                         </p>
                         <p className="text-xs text-muted-foreground leading-snug mt-0.5">
-                          SIGNA-CI transmettra votre signalement à l'opérateur — ces infos accélèrent la prise en charge
+                          SIGNA·CI transmettra votre signalement à l'opérateur — ces infos accélèrent la prise en charge
                         </p>
                       </div>
                     </div>
@@ -1282,10 +1292,11 @@ const ReportPage = () => {
                       </div>
                       {/* Numéro de compteur */}
                       <div>
-                        <label className="text-xs font-semibold text-foreground block mb-1.5">
+                        <label htmlFor="meter-number" className="text-xs font-semibold text-foreground block mb-1.5">
                           Numéro de compteur
                         </label>
                         <Input
+                          id="meter-number"
                           placeholder="Ex: 1234567890"
                           value={meterNumber}
                           onChange={(e) => setMeterNumber(e.target.value.trim())}
@@ -1293,7 +1304,7 @@ const ReportPage = () => {
                           inputMode="numeric"
                           className="bg-background"
                         />
-                        <p className="text-[10px] text-muted-foreground mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           Permet à la {selectedType.id === "electricity_outage" ? "CIE" : "SODECI"} de vous identifier et vous contacter directement
                         </p>
                       </div>
@@ -1401,13 +1412,16 @@ const ReportPage = () => {
                   {showDesc && (
                     <motion.div
                       key="desc"
+                      id="panel-note"
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
                       className="overflow-hidden"
                     >
                       <div className="rounded-xl border border-border bg-card p-3 space-y-2">
+                        <label htmlFor="description" className="text-xs font-medium text-muted-foreground">Note complémentaire</label>
                         <Textarea
+                          id="description"
                           placeholder="Décrivez la situation en quelques mots..."
                           value={description}
                           onChange={(e) => setDescription(e.target.value.slice(0, MAX_DESCRIPTION_LENGTH))}
@@ -1425,6 +1439,7 @@ const ReportPage = () => {
                   {showPhoto && (
                     <motion.div
                       key="photo"
+                      id="panel-photo"
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
@@ -1463,6 +1478,7 @@ const ReportPage = () => {
                   {showTime && selectedType.reportCategory === "outage" && (
                     <motion.div
                       key="time"
+                      id="panel-time"
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
@@ -1606,7 +1622,7 @@ const ReportPage = () => {
                 const isElec = r.service_type === "electricity";
                 const timeAgo = (() => {
                   const mins = (Date.now() - new Date(r.created_at).getTime()) / 60000;
-                  if (mins < 60) return `il y a ${Math.round(mins)}min`;
+                  if (mins < 60) return `il y a ${Math.round(mins)} min`;
                   const h = Math.floor(mins / 60);
                   if (h < 24) return `il y a ${h}h`;
                   return `il y a ${Math.floor(h / 24)}j`;

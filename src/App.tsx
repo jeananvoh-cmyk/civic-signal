@@ -37,6 +37,7 @@ const AdminRelayPage = lazy(() => import("./pages/AdminRelayPage"));
 const CommuneDetailPage = lazy(() => import("./pages/CommuneDetailPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
+const CguPage = lazy(() => import("./pages/CguPage"));
 const HistoryPage = lazy(() => import("./pages/HistoryPage"));
 const DonationPage = lazy(() => import("./pages/DonationPage"));
 const InfrastructurePage = lazy(() => import("./pages/InfrastructurePage"));
@@ -87,6 +88,7 @@ const App = () => (
               <Route path="/historique" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
               <Route path="/a-propos" element={<AboutPage />} />
               <Route path="/confidentialite" element={<PrivacyPolicyPage />} />
+              <Route path="/cgu" element={<CguPage />} />
               <Route path="/dons" element={<DonationPage />} />
               <Route path="/infrastructures" element={<InfrastructurePage />} />
               <Route path="/install" element={<InstallPage />} />

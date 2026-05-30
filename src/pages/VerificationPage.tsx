@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { COMMUNE_COLORS } from "@/lib/communes";
 import { cn } from "@/lib/utils";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { RESOLUTION } from "@/lib/content";
 import { toast } from "sonner";
 
 interface MyReport {
@@ -173,11 +174,9 @@ const VerificationPage = () => {
           ? Date.now() - cardOpenedAt.current[resolvedId]
           : null,
       });
-      const successMsg = isInfra
-        ? "🎉 Problème résolu ! Merci pour le suivi."
-        : resolveTarget.service_type === "electricity"
-          ? "🎉 L'électricité est de retour ! Merci."
-          : "🎉 L'eau est de retour ! Merci.";
+      const successMsg = RESOLUTION[isInfra ? "infrastructure" : "outage"].toastSuccess(
+        resolveTarget.service_type,
+      );
       setJustResolved(resolvedId);
       setResolveTarget(null);
       toast.success(successMsg);
@@ -396,7 +395,7 @@ const VerificationPage = () => {
                       <div className="flex items-center justify-center gap-2 p-6">
                         <PartyPopper className="h-6 w-6 text-success" />
                         <span className="font-bold text-success">
-                          {isInfra ? "Problème résolu !" : "Service rétabli !"}
+                          {RESOLUTION[isInfra ? "infrastructure" : "outage"].cardResolved}
                         </span>
                       </div>
                     ) : (
@@ -424,7 +423,7 @@ const VerificationPage = () => {
                             className="w-full py-5 text-base bg-success text-success-foreground hover:bg-success/90 font-bold shadow-sm"
                           >
                             <Power className="mr-2 h-5 w-5" />
-                            {isInfra ? "C'est réparé" : "C'est rétabli"}
+                            {RESOLUTION[isInfra ? "infrastructure" : "outage"].resolvedCta}
                           </Button>
                           <Button
                             onClick={() => handleConfirmStillOngoing(r)}
@@ -438,7 +437,7 @@ const VerificationPage = () => {
                             ) : (
                               <AlertTriangle className="mr-1.5 h-3.5 w-3.5" />
                             )}
-                            {isInfra ? "Problème persiste" : "Toujours coupé"}
+                            {RESOLUTION[isInfra ? "infrastructure" : "outage"].ongoingCta}
                           </Button>
                         </div>
                         
@@ -469,8 +468,8 @@ const VerificationPage = () => {
               <DialogTitle className="flex items-center gap-2 text-success">
                 <CheckCircle2 className="h-5 w-5" />
                 {resolveTarget?.report_category === "infrastructure"
-                  ? "Problème résolu"
-                  : "Service rétabli"}
+                  ? RESOLUTION.infrastructure.dialogTitle
+                  : RESOLUTION.outage.dialogTitle}
               </DialogTitle>
             </DialogHeader>
             {resolveTarget && (() => {

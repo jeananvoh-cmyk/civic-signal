@@ -58,7 +58,7 @@ function CieRelayStatus({ reportId, serviceType }: { reportId: string; serviceTy
         <MessageCircle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
         <div>
           <p className="text-sm font-semibold text-foreground">SIGNA-CI contactera la {serviceType === "electricity" ? "CIE" : "SODECI"} pour vous</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+          <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
             Dès 2 confirmations de voisins, votre signalement sera transmis directement à l'opérateur via WhatsApp.
           </p>
         </div>
@@ -79,12 +79,12 @@ function CieRelayStatus({ reportId, serviceType }: { reportId: string; serviceTy
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-foreground">Suivi {operatorName} via SIGNA-CI</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             SIGNA-CI vous représente auprès de l'opérateur
           </p>
         </div>
         {hasTicket && (
-          <span className="flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300/50 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold px-2 py-0.5 shrink-0">
+          <span className="flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300/50 text-emerald-700 dark:text-emerald-400 text-xs font-bold px-2 py-0.5 shrink-0">
             <TicketCheck className="h-3 w-3" />
             Ticket
           </span>
@@ -134,7 +134,7 @@ function CieRelayStatus({ reportId, serviceType }: { reportId: string; serviceTy
 
       {/* Message si envoyé mais pas encore de ticket */}
       {(isSentViaWa || isSentViaEmail) && !hasTicket && (
-        <p className="text-[11px] text-muted-foreground border-t border-border pt-2">
+        <p className="text-xs text-muted-foreground border-t border-border pt-2">
           En attente de la réponse de {operatorName}. Vous serez notifié dès qu'un ticket sera attribué.
         </p>
       )}
@@ -536,7 +536,7 @@ const SignalementDetailPage = () => {
           </div>
 
           {/* Référence normative */}
-          <div className="mb-4 flex items-start gap-1.5 text-[10px] text-muted-foreground">
+          <div className="mb-4 flex items-start gap-1.5 text-xs text-muted-foreground">
             <Info className="h-3 w-3 shrink-0 mt-0.5" />
             <span>Priorité calculée selon : {normRef}</span>
           </div>
@@ -665,7 +665,7 @@ const SignalementDetailPage = () => {
                       <span className="text-xs font-medium text-foreground">
                         {c.user_id === user?.id ? "Vous" : "Un voisin"}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(c.created_at), { addSuffix: true, locale: fr })}
                       </span>
                     </div>
@@ -686,7 +686,7 @@ const SignalementDetailPage = () => {
                     rows={2}
                     className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary pr-10"
                   />
-                  <span className="absolute bottom-2.5 right-3 text-[10px] text-muted-foreground">
+                  <span className="absolute bottom-2.5 right-3 text-xs text-muted-foreground">
                     {commentText.length}/200
                   </span>
                 </div>

@@ -235,11 +235,11 @@ const RightsTabContent = () => {
                 <div className="flex gap-2">
                   <div className="flex-1 flex items-center gap-2 rounded-lg border border-border bg-background p-2 text-left">
                     <span className="text-base">💧</span>
-                    <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400">ODD 6 — Eau propre</span>
+                    <span className="text-xs font-bold text-blue-600 dark:text-blue-400">ODD 6 — Eau propre</span>
                   </div>
                   <div className="flex-1 flex items-center gap-2 rounded-lg border border-border bg-background p-2 text-left">
                     <span className="text-base">⚡</span>
-                    <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">ODD 7 — Énergie</span>
+                    <span className="text-xs font-bold text-amber-600 dark:text-amber-400">ODD 7 — Énergie</span>
                   </div>
                 </div>
               </div>
@@ -260,7 +260,7 @@ const RightsTabContent = () => {
             <div className="flex items-center gap-2">
               <Phone className="h-4 w-4 text-destructive shrink-0" />
               <span className="font-semibold text-sm text-foreground">Numéros utiles</span>
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 ml-1">{rights.contacts.length}</Badge>
+              <Badge variant="secondary" className="text-xs px-1.5 py-0 h-4 ml-1">{rights.contacts.length}</Badge>
             </div>
             <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${openSections.has("contacts") ? "rotate-90" : ""}`} />
           </button>
@@ -285,7 +285,7 @@ const RightsTabContent = () => {
                             className="flex flex-1 items-center gap-2.5 p-3 hover:bg-accent transition-colors border-r border-border">
                             <Phone className={`h-4 w-4 ${color} shrink-0`} />
                             <div>
-                              <p className="text-[11px] text-muted-foreground leading-tight">{c.name}</p>
+                              <p className="text-xs text-muted-foreground leading-tight">{c.name}</p>
                               <p className={`text-sm font-bold ${color}`}>{c.number}</p>
                             </div>
                           </a>
@@ -293,7 +293,7 @@ const RightsTabContent = () => {
                             className="flex flex-1 items-center gap-2.5 p-3 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
                             <WhatsAppIcon />
                             <div>
-                              <p className="text-[11px] text-muted-foreground leading-tight">WhatsApp</p>
+                              <p className="text-xs text-muted-foreground leading-tight">WhatsApp</p>
                               <p className="text-sm font-bold text-[#25D366]">{waNumber}</p>
                             </div>
                           </a>
@@ -313,7 +313,7 @@ const RightsTabContent = () => {
                               className="flex items-center gap-2.5 rounded-lg border border-green-200 dark:border-green-800/40 p-2.5 bg-background hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
                               <WhatsAppIcon />
                               <div className="min-w-0">
-                                <p className="text-[11px] text-muted-foreground leading-tight truncate">{c.name}</p>
+                                <p className="text-xs text-muted-foreground leading-tight truncate">{c.name}</p>
                                 <p className="text-xs font-bold text-[#25D366]">{c.number}</p>
                               </div>
                             </a>
@@ -324,7 +324,7 @@ const RightsTabContent = () => {
                             className="flex items-center gap-2.5 rounded-lg border border-border p-2.5 bg-background hover:bg-accent transition-colors">
                             <Phone className={`h-4 w-4 ${color} shrink-0`} />
                             <div className="min-w-0">
-                              <p className="text-[11px] text-muted-foreground leading-tight truncate">{c.name}</p>
+                              <p className="text-xs text-muted-foreground leading-tight truncate">{c.name}</p>
                               <p className={`text-xs font-bold ${color}`}>{c.number}</p>
                             </div>
                           </a>
@@ -335,14 +335,14 @@ const RightsTabContent = () => {
                 {/* WhatsApp relay_config CIE / SODECI — si configurés par l'admin */}
                 {(relayWA.cie || relayWA.sodeci) && (
                   <div className="mt-3 pt-3 border-t border-border">
-                    <p className="text-[11px] text-muted-foreground font-semibold mb-2 uppercase tracking-wide">Contact WhatsApp direct</p>
+                    <p className="text-xs text-muted-foreground font-semibold mb-2 uppercase tracking-wide">Contact WhatsApp direct</p>
                     <div className="grid gap-2 grid-cols-2">
                       {relayWA.cie && (
                         <a href={`https://wa.me/${relayWA.cie.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
                           className="flex items-center gap-2.5 rounded-lg border border-green-200 dark:border-green-800/40 p-2.5 bg-background hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
                           <WhatsAppIcon />
                           <div className="min-w-0">
-                            <p className="text-[11px] text-muted-foreground leading-tight">CIE WhatsApp</p>
+                            <p className="text-xs text-muted-foreground leading-tight">CIE WhatsApp</p>
                             <p className="text-xs font-bold text-[#25D366]">{relayWA.cie}</p>
                           </div>
                         </a>
@@ -352,7 +352,7 @@ const RightsTabContent = () => {
                           className="flex items-center gap-2.5 rounded-lg border border-green-200 dark:border-green-800/40 p-2.5 bg-background hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
                           <WhatsAppIcon />
                           <div className="min-w-0">
-                            <p className="text-[11px] text-muted-foreground leading-tight">SODECI WhatsApp</p>
+                            <p className="text-xs text-muted-foreground leading-tight">SODECI WhatsApp</p>
                             <p className="text-xs font-bold text-[#25D366]">{relayWA.sodeci}</p>
                           </div>
                         </a>
@@ -381,7 +381,7 @@ const RightsTabContent = () => {
               <div className="flex items-center gap-2">
                 {s.icon}
                 <span className="font-semibold text-sm text-foreground">{s.title}</span>
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">{s.count}</Badge>
+                <Badge variant="secondary" className="text-xs px-1.5 py-0 h-4">{s.count}</Badge>
               </div>
               <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`} />
             </button>
@@ -417,7 +417,7 @@ const RightsTabContent = () => {
                             <span className="text-base shrink-0">{tip.icon}</span>
                             <div>
                               <p className="text-xs font-semibold text-foreground">{tip.title}</p>
-                              <p className="text-[11px] text-muted-foreground mt-0.5">{tip.description}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{tip.description}</p>
                             </div>
                           </div>
                         ))}
@@ -440,10 +440,10 @@ const RightsTabContent = () => {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">{r.title}</p>
-                              <p className="text-[11px] text-muted-foreground truncate">{r.description}</p>
+                              <p className="text-xs text-muted-foreground truncate">{r.description}</p>
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
-                              <span className="text-[10px] font-medium text-muted-foreground bg-muted rounded px-1.5 py-0.5">{r.format}</span>
+                              <span className="text-xs font-medium text-muted-foreground bg-muted rounded px-1.5 py-0.5">{r.format}</span>
                               <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors" />
                             </div>
                           </a>
@@ -513,12 +513,12 @@ function ElectricityWidget() {
             </div>
             <div>
               <p className="text-sm font-bold text-foreground leading-tight">{activeMeter?.label ?? "Mon compteur"}</p>
-              <p className="text-[10px] text-muted-foreground font-mono">
+              <p className="text-xs text-muted-foreground font-mono">
                 {activeMeter?.meter_number ? `Ctr: ${activeMeter.meter_number}` : "Suivi électricité prépayée"}
               </p>
             </div>
           </div>
-          <Link to="/compteur" className="text-[11px] font-medium text-primary hover:underline flex items-center gap-0.5">
+          <Link to="/compteur" className="text-xs font-medium text-primary hover:underline flex items-center gap-0.5">
             Détails <ChevronRight className="h-3 w-3" />
           </Link>
         </div>
@@ -528,7 +528,7 @@ function ElectricityWidget() {
           <div className="grid grid-cols-3 gap-2">
             {/* kWh restants */}
             <div className="rounded-xl bg-white/60 dark:bg-card/60 border border-border px-3 py-2.5 text-center">
-              <p className="text-[10px] text-muted-foreground leading-tight mb-0.5">kWh restants</p>
+              <p className="text-xs text-muted-foreground leading-tight mb-0.5">kWh restants</p>
               <p className={`text-xl font-extrabold leading-tight ${
                 (estimate.current_kwh ?? 0) <= 10 ? "text-red-600" :
                 (estimate.current_kwh ?? 0) <= 25 ? "text-orange-600" : "text-foreground"
@@ -538,7 +538,7 @@ function ElectricityWidget() {
             </div>
             {/* Jours restants */}
             <div className="rounded-xl bg-white/60 dark:bg-card/60 border border-border px-3 py-2.5 text-center">
-              <p className="text-[10px] text-muted-foreground leading-tight mb-0.5">Autonomie</p>
+              <p className="text-xs text-muted-foreground leading-tight mb-0.5">Autonomie</p>
               <p className={`text-base font-extrabold leading-tight ${
                 (estimate.days_remaining ?? 99) <= 3 ? "text-red-600" :
                 (estimate.days_remaining ?? 99) <= 7 ? "text-orange-600" : "text-foreground"
@@ -548,10 +548,10 @@ function ElectricityWidget() {
             </div>
             {/* Conso/jour */}
             <div className="rounded-xl bg-white/60 dark:bg-card/60 border border-border px-3 py-2.5 text-center">
-              <p className="text-[10px] text-muted-foreground leading-tight mb-0.5">Conso/jour</p>
+              <p className="text-xs text-muted-foreground leading-tight mb-0.5">Conso/jour</p>
               <p className="text-base font-extrabold text-foreground leading-tight">
                 {estimate.avg_kwh_per_day !== null ? `${estimate.avg_kwh_per_day}` : "—"}
-                {estimate.avg_kwh_per_day !== null && <span className="text-[10px] font-medium text-muted-foreground"> kWh</span>}
+                {estimate.avg_kwh_per_day !== null && <span className="text-xs font-medium text-muted-foreground"> kWh</span>}
               </p>
             </div>
           </div>
@@ -566,7 +566,7 @@ function ElectricityWidget() {
         )}
 
         {/* Disclaimer estimation */}
-        <p className="text-[10px] text-muted-foreground leading-tight px-0.5">
+        <p className="text-xs text-muted-foreground leading-tight px-0.5">
           ⓘ Estimation basée uniquement sur vos données saisies. La quantité réelle peut différer.
         </p>
 
@@ -1043,15 +1043,15 @@ const ProfilePage = () => {
                 <div className="mt-4 grid grid-cols-3 divide-x divide-border rounded-2xl border border-border bg-card/80 overflow-hidden">
                   <div className="flex flex-col items-center py-3 px-2">
                     <span className="text-lg font-bold text-destructive">{activeReportsCount ?? 0}</span>
-                    <span className="text-[10px] text-muted-foreground mt-0.5">En cours</span>
+                    <span className="text-xs text-muted-foreground mt-0.5">En cours</span>
                   </div>
                   <div className="flex flex-col items-center py-3 px-2">
                     <span className="text-lg font-bold text-green-600">{resolvedReportsCount}</span>
-                    <span className="text-[10px] text-muted-foreground mt-0.5">Résolus</span>
+                    <span className="text-xs text-muted-foreground mt-0.5">Résolus</span>
                   </div>
                   <div className="flex flex-col items-center py-3 px-2">
                     <span className="text-lg font-bold" style={{ color: conformityColor }}>{conformityPercent}%</span>
-                    <span className="text-[10px] text-muted-foreground mt-0.5">Complétude</span>
+                    <span className="text-xs text-muted-foreground mt-0.5">Complétude</span>
                   </div>
                 </div>
 
@@ -1059,12 +1059,12 @@ const ProfilePage = () => {
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <button onClick={() => setShowOddDialog("odd6")} className="flex items-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/5 p-2.5 hover:bg-blue-500/10 transition-colors text-left">
                     <span className="text-lg shrink-0">💧</span>
-                    <div className="min-w-0"><p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 leading-tight">ODD 6</p><p className="text-[10px] text-muted-foreground leading-tight">Eau propre</p></div>
+                    <div className="min-w-0"><p className="text-xs font-bold text-blue-600 dark:text-blue-400 leading-tight">ODD 6</p><p className="text-xs text-muted-foreground leading-tight">Eau propre</p></div>
                     <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto shrink-0" />
                   </button>
                   <button onClick={() => setShowOddDialog("odd7")} className="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 p-2.5 hover:bg-amber-500/10 transition-colors text-left">
                     <span className="text-lg shrink-0">⚡</span>
-                    <div className="min-w-0"><p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 leading-tight">ODD 7</p><p className="text-[10px] text-muted-foreground leading-tight">Énergie propre</p></div>
+                    <div className="min-w-0"><p className="text-xs font-bold text-amber-600 dark:text-amber-400 leading-tight">ODD 7</p><p className="text-xs text-muted-foreground leading-tight">Énergie propre</p></div>
                     <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto shrink-0" />
                   </button>
                 </div>
@@ -1074,7 +1074,7 @@ const ProfilePage = () => {
               <div className="px-4 space-y-3 mt-4">
                 {/* Mon compte */}
                 <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
-                  <p className="px-4 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider bg-muted/30">Mon compte</p>
+                  <p className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider bg-muted/30">Mon compte</p>
                   {[
                     { key: "profile", icon: <User className="h-5 w-5 text-primary" />, label: "Mon profil", sub: "Prénom, nom, téléphone", bg: "bg-primary/10" },
                     { key: "location", icon: <MapPin className="h-5 w-5 text-blue-600" />, label: "Ma localisation", sub: profile.commune || "Commune, quartier", bg: "bg-blue-500/10" },
@@ -1089,7 +1089,7 @@ const ProfilePage = () => {
 
                 {/* Mon activité */}
                 <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
-                  <p className="px-4 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider bg-muted/30">Mon activité</p>
+                  <p className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider bg-muted/30">Mon activité</p>
                   {[
                     { key: "history", icon: <History className="h-5 w-5 text-green-600" />, label: "Mes signalements", sub: `${historyStats.total} signalement${historyStats.total > 1 ? "s" : ""}`, bg: "bg-green-500/10", badge: (activeReportsCount ?? 0) > 0 ? `${activeReportsCount} actif${(activeReportsCount ?? 0) > 1 ? "s" : ""}` : null, dot: false },
                     { key: "utility", icon: <Zap className="h-5 w-5 text-amber-500" />, label: "Mes compteurs", sub: "CIE · SODECI", bg: "bg-amber-500/10", badge: null, dot: true },
@@ -1097,7 +1097,7 @@ const ProfilePage = () => {
                     <button key={item.key} onClick={() => goToSection(item.key)} className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/40 active:bg-muted/60 transition-colors text-left ${i < arr.length - 1 ? "border-b border-border" : ""}`}>
                       <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${item.bg}`}>{item.icon}</div>
                       <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-foreground">{item.label}</p><p className="text-xs text-muted-foreground">{item.sub}</p></div>
-                      {item.badge && <span className="text-[10px] font-bold text-destructive bg-destructive/10 border border-destructive/20 rounded-full px-2 py-0.5 shrink-0 mr-1">{item.badge}</span>}
+                      {item.badge && <span className="text-xs font-bold text-destructive bg-destructive/10 border border-destructive/20 rounded-full px-2 py-0.5 shrink-0 mr-1">{item.badge}</span>}
                       {item.dot && <span className="h-2 w-2 rounded-full bg-violet-500 shrink-0 mr-1" />}
                       <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                     </button>
@@ -1106,7 +1106,7 @@ const ProfilePage = () => {
 
                 {/* Informations */}
                 <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
-                  <p className="px-4 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider bg-muted/30">Informations</p>
+                  <p className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider bg-muted/30">Informations</p>
                   <button onClick={() => goToSection("rights")} className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/40 active:bg-muted/60 transition-colors text-left">
                     <div className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0 bg-teal-500/10"><Scale className="h-5 w-5 text-teal-600" /></div>
                     <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-foreground">Eau & Énergie</p><p className="text-xs text-muted-foreground">Droits, contacts, tarifs</p></div>
@@ -1116,7 +1116,7 @@ const ProfilePage = () => {
 
                 {/* Préférences */}
                 <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
-                  <p className="px-4 py-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider bg-muted/30">Préférences</p>
+                  <p className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider bg-muted/30">Préférences</p>
                   {[
                     { key: "notifications", icon: <Bell className="h-5 w-5 text-purple-600" />, label: "Notifications", sub: profile.notifications_enabled ? "Activées" : "Désactivées", bg: "bg-purple-500/10" },
                     { key: "appearance", icon: <Palette className="h-5 w-5 text-pink-500" />, label: "Apparence & thème", sub: profile.theme === "system" ? "Système" : profile.theme === "dark" ? "Sombre" : "Clair", bg: "bg-pink-500/10" },
@@ -1221,7 +1221,7 @@ const ProfilePage = () => {
                           <div className="flex items-center gap-3 h-11 rounded-xl border border-border bg-muted/40 px-3">
                             <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
                             <span className="text-sm text-muted-foreground truncate flex-1">{user?.email}</span>
-                            <span className="text-[10px] font-medium text-muted-foreground bg-muted rounded px-1.5 py-0.5 shrink-0">Non modifiable</span>
+                            <span className="text-xs font-medium text-muted-foreground bg-muted rounded px-1.5 py-0.5 shrink-0">Non modifiable</span>
                           </div>
                         </div>
                         <div className="space-y-1.5">
@@ -1246,12 +1246,12 @@ const ProfilePage = () => {
                           <button type="button" onClick={() => update("user_type", "household")} className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all ${profile.user_type === "household" ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-background hover:border-primary/40"}`}>
                             {profile.user_type === "household" && <div className="absolute top-2 right-2 h-4 w-4 rounded-full bg-primary flex items-center justify-center"><CheckCircle2 className="h-3 w-3 text-white" /></div>}
                             <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${profile.user_type === "household" ? "bg-primary/15" : "bg-muted"}`}><Home className={`h-5 w-5 ${profile.user_type === "household" ? "text-primary" : "text-muted-foreground"}`} /></div>
-                            <div className="text-center"><p className={`text-sm font-semibold ${profile.user_type === "household" ? "text-primary" : "text-foreground"}`}>Ménage</p><p className="text-[11px] text-muted-foreground">Particulier / Famille</p></div>
+                            <div className="text-center"><p className={`text-sm font-semibold ${profile.user_type === "household" ? "text-primary" : "text-foreground"}`}>Ménage</p><p className="text-xs text-muted-foreground">Particulier / Famille</p></div>
                           </button>
                           <button type="button" onClick={() => update("user_type", "business")} className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all ${profile.user_type === "business" ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-background hover:border-primary/40"}`}>
                             {profile.user_type === "business" && <div className="absolute top-2 right-2 h-4 w-4 rounded-full bg-primary flex items-center justify-center"><CheckCircle2 className="h-3 w-3 text-white" /></div>}
                             <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${profile.user_type === "business" ? "bg-primary/15" : "bg-muted"}`}><Building2 className={`h-5 w-5 ${profile.user_type === "business" ? "text-primary" : "text-muted-foreground"}`} /></div>
-                            <div className="text-center"><p className={`text-sm font-semibold ${profile.user_type === "business" ? "text-primary" : "text-foreground"}`}>Entreprise</p><p className="text-[11px] text-muted-foreground">Commerce / Structure</p></div>
+                            <div className="text-center"><p className={`text-sm font-semibold ${profile.user_type === "business" ? "text-primary" : "text-foreground"}`}>Entreprise</p><p className="text-xs text-muted-foreground">Commerce / Structure</p></div>
                           </button>
                         </div>
                       </div>
@@ -1373,7 +1373,7 @@ const ProfilePage = () => {
                                           <span className={`sm:hidden text-sm ${isInfra ? "text-teal-600" : isElec ? "text-amber-500" : "text-blue-500"}`}>{isInfra ? <span className="text-sm leading-none">{infraEmoji(infraLabel)}</span> : isElec ? <Zap className="h-3.5 w-3.5 inline" /> : <Droplets className="h-3.5 w-3.5 inline" />}</span>
                                           <span className="font-semibold text-sm text-foreground">{r.commune}</span>
                                           {r.quartier && <span className="text-xs text-muted-foreground">· {r.quartier}</span>}
-                                          {isInfra && infraLabel && <span className="inline-flex items-center rounded-full bg-teal-500/10 px-2 py-0.5 text-[10px] font-semibold text-teal-700 dark:text-teal-400">{infraLabel}</span>}
+                                          {isInfra && infraLabel && <span className="inline-flex items-center rounded-full bg-teal-500/10 px-2 py-0.5 text-xs font-semibold text-teal-700 dark:text-teal-400">{infraLabel}</span>}
                                         </div>
                                         <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{cleanDescription(r.description)}</p>
                                         <div className="flex flex-wrap items-center gap-1.5">
@@ -1430,7 +1430,7 @@ const ProfilePage = () => {
                             {ocrLoading === "water" ? <><Loader2 className="h-4 w-4 animate-spin" />Analyse…</> : <><Camera className="h-4 w-4" /><Droplets className="h-3.5 w-3.5" />Scanner SODECI</>}
                           </button>
                         </div>
-                        <p className="text-[10px] text-muted-foreground text-center">Vérifiez toujours les valeurs extraites avant d'enregistrer</p>
+                        <p className="text-xs text-muted-foreground text-center">Vérifiez toujours les valeurs extraites avant d'enregistrer</p>
                       </div>
                       <div className="space-y-4">
                         <div className="flex items-center gap-2">

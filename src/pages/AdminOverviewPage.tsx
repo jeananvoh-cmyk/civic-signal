@@ -290,7 +290,7 @@ const AdminOverviewPage = () => {
               <item.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
               <div>
                 <p className="font-display text-xl font-bold text-foreground">{item.value}</p>
-                <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                <p className="text-xs text-muted-foreground">{item.label}</p>
               </div>
             </div>
           </motion.div>
@@ -337,7 +337,7 @@ const AdminOverviewPage = () => {
       )}
 
       {/* ── Raccourcis ── */}
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Raccourcis</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Raccourcis</p>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-8">
         {[
           { label: "Utilisateurs", path: "/admin/utilisateurs", icon: Users, color: "text-primary" },
@@ -350,7 +350,7 @@ const AdminOverviewPage = () => {
               <action.icon className={`h-5 w-5 ${action.color}`} />
               <span className="text-xs font-medium">{action.label}</span>
               {action.count !== undefined && action.count > 0 && (
-                <Badge className="absolute -top-2 -right-2 h-5 min-w-5 px-1.5 text-[10px]" variant="destructive">
+                <Badge className="absolute -top-2 -right-2 h-5 min-w-5 px-1.5 text-xs" variant="destructive">
                   {action.count}
                 </Badge>
               )}
@@ -360,7 +360,7 @@ const AdminOverviewPage = () => {
       </div>
 
       {/* ── Configuration ── */}
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Configuration</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Configuration</p>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="mb-8">
         <Card>
           <CardContent className="p-5">

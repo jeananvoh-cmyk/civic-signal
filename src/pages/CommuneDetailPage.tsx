@@ -162,11 +162,11 @@ const CommuneDetailPage = () => {
               <Zap className="h-5 w-5 text-amber-500" />
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-500/70">Électricité</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-500/70">Électricité</p>
               <p className="font-display text-xl font-extrabold text-amber-500">
                 {loading ? "..." : totalElecActifs} <span className="text-sm font-medium">en cours</span>
               </p>
-              <p className="text-[11px] text-muted-foreground">{totalElecTotal} signalement{totalElecTotal !== 1 ? "s" : ""} au total</p>
+              <p className="text-xs text-muted-foreground">{totalElecTotal} signalement{totalElecTotal !== 1 ? "s" : ""} au total</p>
             </div>
             <ArrowRight className="ml-auto h-4 w-4 text-amber-500/50 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-amber-500" />
           </button>
@@ -178,11 +178,11 @@ const CommuneDetailPage = () => {
               <Droplets className="h-5 w-5 text-blue-500" />
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-500/70">Eau</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-500/70">Eau</p>
               <p className="font-display text-xl font-extrabold text-blue-500">
                 {loading ? "..." : totalEauActifs} <span className="text-sm font-medium">en cours</span>
               </p>
-              <p className="text-[11px] text-muted-foreground">{totalEauTotal} signalement{totalEauTotal !== 1 ? "s" : ""} au total</p>
+              <p className="text-xs text-muted-foreground">{totalEauTotal} signalement{totalEauTotal !== 1 ? "s" : ""} au total</p>
             </div>
             <ArrowRight className="ml-auto h-4 w-4 text-blue-500/50 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-blue-500" />
           </button>
@@ -210,7 +210,7 @@ const CommuneDetailPage = () => {
                     <CheckCircle2 className="h-4 w-4 text-green-500" />
                   </div>
                   <p className="font-display text-2xl font-extrabold text-green-500">{resRate}%</p>
-                  <p className="text-[11px] text-muted-foreground leading-tight">Taux de résolution</p>
+                  <p className="text-xs text-muted-foreground leading-tight">Taux de résolution</p>
                   <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden mt-1">
                     <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${resRate}%` }} />
                   </div>
@@ -221,8 +221,8 @@ const CommuneDetailPage = () => {
                     <Wrench className="h-4 w-4 text-orange-500" />
                   </div>
                   <p className="font-display text-2xl font-extrabold text-orange-500">{impactStats.infra_reports}</p>
-                  <p className="text-[11px] text-muted-foreground leading-tight">Infra signalées</p>
-                  <p className="text-[10px] text-muted-foreground">(caniveaux, routes…)</p>
+                  <p className="text-xs text-muted-foreground leading-tight">Infra signalées</p>
+                  <p className="text-xs text-muted-foreground">(caniveaux, routes…)</p>
                 </div>
                 {/* Tendance 7j */}
                 <div className="flex flex-col items-center text-center gap-1">
@@ -230,8 +230,8 @@ const CommuneDetailPage = () => {
                     <TrendIcon className={`h-4 w-4 ${trendColor}`} />
                   </div>
                   <p className={`font-display text-2xl font-extrabold ${trendColor}`}>{impactStats.reports_last_7}</p>
-                  <p className="text-[11px] text-muted-foreground leading-tight">Cette semaine</p>
-                  <p className={`text-[10px] font-semibold ${trendColor}`}>{trendLabel}</p>
+                  <p className="text-xs text-muted-foreground leading-tight">Cette semaine</p>
+                  <p className={`text-xs font-semibold ${trendColor}`}>{trendLabel}</p>
                 </div>
               </div>
             </motion.div>
@@ -262,15 +262,15 @@ const CommuneDetailPage = () => {
                       <p className="font-display text-2xl font-extrabold text-amber-500">
                         {formatMinutes(elecDuration.avg_duration_minutes)}
                       </p>
-                      <span className="text-[10px] text-muted-foreground">en moyenne</span>
+                      <span className="text-xs text-muted-foreground">en moyenne</span>
                     </div>
                     <div className="flex items-baseline gap-2">
                       <p className="font-display text-sm font-bold text-foreground">
                         {formatMinutes(elecDuration.longest_duration_minutes)}
                       </p>
-                      <span className="text-[10px] text-muted-foreground">la plus longue</span>
+                      <span className="text-xs text-muted-foreground">la plus longue</span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       {elecDuration.total_resolved} résolu{elecDuration.total_resolved > 1 ? "s" : ""} · {elecDuration.total_active} actif{elecDuration.total_active > 1 ? "s" : ""}
                     </p>
                   </div>
@@ -289,15 +289,15 @@ const CommuneDetailPage = () => {
                       <p className="font-display text-2xl font-extrabold text-blue-500">
                         {formatMinutes(waterDuration.avg_duration_minutes)}
                       </p>
-                      <span className="text-[10px] text-muted-foreground">en moyenne</span>
+                      <span className="text-xs text-muted-foreground">en moyenne</span>
                     </div>
                     <div className="flex items-baseline gap-2">
                       <p className="font-display text-sm font-bold text-foreground">
                         {formatMinutes(waterDuration.longest_duration_minutes)}
                       </p>
-                      <span className="text-[10px] text-muted-foreground">la plus longue</span>
+                      <span className="text-xs text-muted-foreground">la plus longue</span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       {waterDuration.total_resolved} résolu{waterDuration.total_resolved > 1 ? "s" : ""} · {waterDuration.total_active} actif{waterDuration.total_active > 1 ? "s" : ""}
                     </p>
                   </div>
