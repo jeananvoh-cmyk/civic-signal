@@ -3,8 +3,6 @@ import { ChevronLeft, ChevronRight, X, Maximize2 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useSignedUrl } from "@/hooks/useSignedUrl";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 
 // ── Vignette individuelle ─────────────────────────────────────────────────────
 function GalleryThumb({
@@ -217,7 +215,7 @@ const PhotoGallery = ({
               photos.length > 1 ? "bottom-9" : "bottom-3"
             )}>
               Signalé le{" "}
-              {format(new Date(reportDate), "EEE d MMM yyyy 'à' HH:mm", { locale: fr })}
+              {new Date(reportDate).toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
             </div>
           )}
         </DialogContent>
