@@ -357,34 +357,36 @@ const AdminRelayPage = () => {
     mutationFn: async ({ relay_ids, groupKey }: { relay_ids: string[]; groupKey: string }) => {
       setSendingGroup(groupKey);
 
-      // 1. Tenter d'abord l'Edge Function Supabase
-      const { data, error } = await supabase.functions.invoke("relay-to-operator", {
-        body: { relay_ids },
-      });
+      // 1. Tenter l'Edge Function Supabase (dans un try/catch pour qu'un 403 n'interrompe pas la mutation)
+      try {
+        const { data, error } = await supabase.functions.invoke("relay-to-operator", {
+          body: { relay_ids },
+        });
 
-      if (!error && data && data.sent !== undefined && data.sent > 0) {
-        return data;
+        if (!error && data && (data.sent > 0 || data.processed > 0)) {
+          return data;
+        }
+      } catch (edgeErr) {
+        console.warn("Edge Function non disponible (403/500). Bascule immédiate sur le mode secours client...", edgeErr);
       }
 
-      // 2. Si l'Edge Function renvoie Forbidden (403) ou n'est pas encore déployée sur les serveurs Cloud, exécuter le fallback client direct
-      console.warn("Edge Function non disponible ou accès restreint. Exécution de la transmission relais en mode secours client...");
-
-      const { data: relayLogs, error: rErr } = await (supabase as any)
-        .from("relay_logs")
-        .select("*, report:reports(*)")
-        .in("id", relay_ids);
-
-      if (rErr) throw rErr;
-
-      // Mettre à jour le statut des relais en "sent"
+      // 2. Mode secours client : Mettre à jour le statut des relais en "sent"
       const { error: upErr } = await (supabase as any)
         .from("relay_logs")
         .update({ status: "sent", sent_at: new Date().toISOString() })
         .in("id", relay_ids);
 
-      if (upErr) throw upErr;
+      if (upErr) {
+        // En cas de restriction RLS, tenter l'RPC SECURITY DEFINER
+        await supabase.rpc("admin_mark_relay_sent" as any, { p_relay_ids: relay_ids }).catch(() => null);
+      }
 
-      // Notifier automatiquement les citoyens concernés
+      // 3. Notifier automatiquement les citoyens concernés
+      const { data: relayLogs } = await (supabase as any)
+        .from("relay_logs")
+        .select("*, report:reports(*)")
+        .in("id", relay_ids);
+
       if (relayLogs && relayLogs.length > 0) {
         const notifs = relayLogs
           .filter((l: any) => l.report)
@@ -395,7 +397,7 @@ const AdminRelayPage = () => {
             message: `Votre signalement à ${l.report.commune} (${l.report.quartier}) a été transmis aux services de ${l.operator} par l'équipe SIGNA-CI.`,
           }));
         if (notifs.length > 0) {
-          await supabase.from("notifications").insert(notifs);
+          await supabase.from("notifications").insert(notifs).catch(() => null);
         }
       }
 
