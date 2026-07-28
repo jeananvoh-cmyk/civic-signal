@@ -131,14 +131,24 @@ function resolveCommuneName(
   profileCommune?: string | null,
   description?: string | null,
   addressText?: string | null,
-  landmark?: string | null
+  landmark?: string | null,
+  notifTitle?: string | null,
+  notifMessage?: string | null
 ): string {
   // 1. Si la commune est valide et spécifique (ex: Cocody, Yopougon, Port-Bouët...)
   if (!isGenericCommune(commune)) {
     return commune!.trim();
   }
 
-  // 2. Si GPS présent, trouver la vraie commune géolocalisée par coordonnées
+  // 2. Chercher dans notifTitle & notifMessage (ex: "💡 Infra. CIE — Cocody, Riviéra Bonoumin")
+  const notifText = `${notifTitle ?? ""} ${notifMessage ?? ""}`;
+  if (notifText.trim()) {
+    for (const kc of KNOWN_COMMUNES) {
+      if (notifText.toLowerCase().includes(kc.toLowerCase())) return kc;
+    }
+  }
+
+  // 3. Si GPS présent, trouver la vraie commune géolocalisée par coordonnées
   if (lat && lng && lat !== 0 && lng !== 0) {
     const res = findNearestCommune(lat, lng);
     if (res.commune?.nom) {
@@ -146,14 +156,14 @@ function resolveCommuneName(
     }
   }
 
-  // 3. Chercher dans location (ex: "Cocody, Riviéra 2" -> "Cocody")
+  // 4. Chercher dans location (ex: "Cocody, Riviéra 2" -> "Cocody")
   if (!isGenericCommune(location)) {
     for (const kc of KNOWN_COMMUNES) {
       if (location!.toLowerCase().includes(kc.toLowerCase())) return kc;
     }
   }
 
-  // 4. Chercher dans description / addressText / landmark
+  // 5. Chercher dans description / addressText / landmark
   const combinedText = `${description ?? ""} ${addressText ?? ""} ${landmark ?? ""}`;
   if (combinedText.trim()) {
     for (const kc of KNOWN_COMMUNES) {
@@ -161,7 +171,7 @@ function resolveCommuneName(
     }
   }
 
-  // 5. Chercher dans le profil de l'utilisateur
+  // 6. Chercher dans le profil de l'utilisateur
   if (!isGenericCommune(profileCommune)) {
     return profileCommune!.trim();
   }
@@ -177,7 +187,9 @@ function cleanQuartierName(
   profileQuartier?: string | null,
   description?: string | null,
   location?: string | null,
-  reportId?: string | null
+  reportId?: string | null,
+  notifTitle?: string | null,
+  notifMessage?: string | null
 ): string {
   // 1. Si custom_quartier est saisi et valide (ex: "Bonoumin", "Maroc", "Remblais"...)
   if (!isGenericQuartier(customQuartier)) {
@@ -189,7 +201,18 @@ function cleanQuartierName(
     return quartier!.trim();
   }
 
-  // 3. Tenter d'extraire le quartier de location (ex: "Cocody, Riviéra Bonoumin" -> "Riviéra Bonoumin")
+  // 3. Extraire du titre de notification (ex: "💡 Infra. CIE — Cocody, Riviéra Bonoumin" -> "Riviéra Bonoumin")
+  if (notifTitle && notifTitle.includes("—")) {
+    const afterDash = notifTitle.split("—")[1]?.trim();
+    if (afterDash && afterDash.includes(",")) {
+      const qPart = afterDash.split(",")[1]?.trim();
+      if (!isGenericQuartier(qPart)) return qPart;
+    } else if (afterDash && !isGenericQuartier(afterDash)) {
+      return afterDash;
+    }
+  }
+
+  // 4. Tenter d'extraire le quartier de location (ex: "Cocody, Riviéra Bonoumin" -> "Riviéra Bonoumin")
   if (location && location.trim()) {
     const parts = location.split(/[,·\-]/).map((p) => p.trim()).filter((p) => p.length > 0);
     for (const part of parts) {
@@ -199,22 +222,22 @@ function cleanQuartierName(
     }
   }
 
-  // 4. Si un repère ou lieu-dit est saisi (ex: "Près du carrefour Sodeci")
+  // 5. Si un repère ou lieu-dit est saisi (ex: "Près du carrefour Sodeci")
   if (landmark && landmark.trim()) {
     return `Secteur ${landmark.trim()}`;
   }
 
-  // 5. Si une adresse texte est saisie
+  // 6. Si une adresse texte est saisie
   if (addressText && addressText.trim()) {
     return addressText.trim();
   }
 
-  // 6. Si le profil utilisateur contient un quartier valide
+  // 7. Si le profil utilisateur contient un quartier valide
   if (!isGenericQuartier(profileQuartier)) {
     return profileQuartier!.trim();
   }
 
-  // 7. Extraire une adresse/quartier de la description (ex: "Coupure vers la pharmacie...")
+  // 8. Extraire une adresse/quartier de la description (ex: "Coupure vers la pharmacie...")
   if (description && description.trim()) {
     const cleanDesc = description.replace(/\[.*?\]/g, "").trim();
     if (cleanDesc.length > 0) {
@@ -222,7 +245,7 @@ function cleanQuartierName(
     }
   }
 
-  // 8. Rendre chaque signalement unique avec sa référence si tout le reste est manquant
+  // 9. Rendre chaque signalement unique avec sa référence si tout le reste est manquant
   return reportId ? `Secteur non spécifié (#${reportId.slice(0, 6)})` : "Secteur non spécifié";
 }
 
@@ -780,14 +803,23 @@ function useRelayLogs(enabled: boolean = true) {
           ? await supabase.from("profiles").select("user_id, phone, commune, quartier").in("user_id", userIds as string[])
           : { data: [] };
 
+        const { data: notifs } = await supabase
+          .from("notifications")
+          .select("report_id, title, message")
+          .in("report_id", reportIds);
+
+        const notifMap = new Map((notifs ?? []).map((n: any) => [n.report_id, n]));
         const profileMap = new Map((profiles ?? []).map((p: any) => [p.user_id, p]));
         const reportMap = new Map((reports ?? []).map((r: any) => {
           const prof = profileMap.get(r.user_id);
+          const notif = notifMap.get(r.id);
           return [r.id, {
             ...r,
             reporter_phone: prof?.phone ?? null,
             profile_commune: prof?.commune ?? null,
             profile_quartier: prof?.quartier ?? null,
+            notif_title: notif?.title ?? null,
+            notif_message: notif?.message ?? null,
           }];
         }));
 
@@ -814,7 +846,7 @@ function groupPending(logs: RelayLog[] = []): RelayGroup[] {
   for (const log of logs) {
     if (!log || (log.status && log.status !== "pending")) continue;
     const operator = log.operator || "MAIRIE";
-    const rep = log.report ?? {
+    const rep: any = log.report ?? {
       id: log.report_id || "unknown",
       created_at: log.created_at || new Date().toISOString(),
       commune: "Abidjan",
@@ -833,7 +865,9 @@ function groupPending(logs: RelayLog[] = []): RelayGroup[] {
       rep.profile_commune,
       rep.description,
       rep.address_text,
-      rep.landmark
+      rep.landmark,
+      rep.notif_title,
+      rep.notif_message
     );
 
     const key = `${operator}::${communeName}`;
@@ -886,7 +920,9 @@ function groupPending(logs: RelayLog[] = []): RelayGroup[] {
       rep.profile_quartier,
       rep.description,
       rep.location,
-      rep.id
+      rep.id,
+      rep.notif_title,
+      rep.notif_message
     );
     const existing = g.quartiers.find((q) => q.reportId && q.reportId === rep.id);
     if (existing) {
