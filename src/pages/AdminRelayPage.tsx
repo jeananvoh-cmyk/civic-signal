@@ -160,34 +160,17 @@ async function sendResendDirectEmail({
   const cleanKey = apiKey.trim();
   const cleanTo = toEmail.trim();
 
-  // 1. Tenter d'abord via l'Edge Function Supabase (contourne nativement le blocage CORS du navigateur)
-  try {
-    const { data, error } = await supabase.functions.invoke("relay-to-operator", {
-      body: {
-        action: "test_email",
-        resend_api_key: cleanKey,
-        to_email: cleanTo,
-        subject,
-        html: htmlContent,
-      },
-    });
-
-    if (!error && data) {
-      if (data.ok) {
-        return { ok: true, data: JSON.stringify(data) };
-      } else if (data.error) {
-        return { ok: false, status: 400, error: data.error };
-      }
-    }
-  } catch (_) {
-    // Si l'Edge Function renvoie une exception, passer au fallback
+  if (!cleanKey) {
+    return { ok: false, status: 400, error: "Aucune clé API Resend renseignée." };
   }
 
-  // 2. Tenter via le proxy Same-Origin Vercel (/api/resend-proxy) puis direct
+  // Tenter l'envoi direct via le proxy Same-Origin Vercel (/api/resend-proxy) puis directement vers l'API Resend
   const endpoints = [
     "/api/resend-proxy",
     "https://api.resend.com/emails",
   ];
+
+  let lastError = "Impossible de contacter l'API Resend.";
 
   for (const endpoint of endpoints) {
     try {
@@ -206,27 +189,27 @@ async function sendResendDirectEmail({
       });
 
       const resText = await res.text();
+      let parsed: any = null;
+      try {
+        parsed = JSON.parse(resText);
+      } catch (_) {}
+
       if (res.ok) {
-        return { ok: true, data: resText };
+        return { ok: true, data: resText, id: parsed?.id };
       }
 
-      let errorMsg = resText;
-      try {
-        const parsed = JSON.parse(resText);
-        if (parsed.message) errorMsg = parsed.message;
-      } catch (_) {
-        // En cas de texte brut non-JSON, conserver le message brut
-      }
+      const errorMsg = parsed?.message || parsed?.name || resText || `Erreur HTTP ${res.status}`;
+      lastError = errorMsg;
 
       if (res.status === 401 || res.status === 403 || res.status === 422) {
         return { ok: false, status: res.status, error: errorMsg };
       }
-    } catch (_) {
-      // continuer sur le point de terminaison suivant en cas d'erreur reseau
+    } catch (err: any) {
+      lastError = err?.message || lastError;
     }
   }
 
-  return { ok: false, status: 500, error: "Impossible de contacter l'API Resend." };
+  return { ok: false, status: 500, error: lastError };
 }
 
 function buildBatchEmailHtmlClient(group: RelayGroup): string {
