@@ -612,6 +612,7 @@ const ProfilePage = () => {
   const [isDirty, setIsDirty] = useState(false);
   const [ocrLoading, setOcrLoading] = useState<"electricity" | "water" | null>(null);
   const [ocrPreview, setOcrPreview] = useState<{ type: "electricity" | "water"; url: string } | null>(null);
+  const trustedPreviewUrlsRef = useRef<Set<string>>(new Set());
   const elecFileRef = useRef<HTMLInputElement>(null);
   const waterFileRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<ProfileData>({
@@ -770,10 +771,21 @@ const ProfilePage = () => {
     setHistoryLoading(false);
   };
 
+  const isSafePreviewUrl = (url: string) => {
+    return url.startsWith("blob:");
+  };
+
   const handleOcrScan = async (file: File, hint: "electricity" | "water") => {
     setOcrLoading(hint);
     const previewUrl = URL.createObjectURL(file);
-    setOcrPreview({ type: hint, url: previewUrl });
+    trustedPreviewUrlsRef.current.add(previewUrl);
+    setOcrPreview((prev) => {
+      if (prev?.url) {
+        URL.revokeObjectURL(prev.url);
+        trustedPreviewUrlsRef.current.delete(prev.url);
+      }
+      return { type: hint, url: previewUrl };
+    });
 
     try {
       // Convertir en base64
@@ -834,6 +846,13 @@ const ProfilePage = () => {
       if (waterFileRef.current) waterFileRef.current.value = "";
     }
   };
+
+  useEffect(() => {
+    return () => {
+      trustedPreviewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      trustedPreviewUrlsRef.current.clear();
+    };
+  }, []);
 
   const handleSave = async () => {
     if (!user) return;
@@ -1440,7 +1459,7 @@ const ProfilePage = () => {
                         </div>
                         {ocrPreview?.type === "electricity" && (
                           <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-2">
-                            <img src={ocrPreview.url} alt="Aperçu" className="h-14 w-14 rounded object-cover shrink-0" />
+                            <img src={trustedPreviewUrlsRef.current.has(ocrPreview.url) ? ocrPreview.url : undefined} alt="Aperçu" className="h-14 w-14 rounded object-cover shrink-0" />
                             <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin text-amber-500" />Extraction des numéros en cours…</div>
                           </div>
                         )}
