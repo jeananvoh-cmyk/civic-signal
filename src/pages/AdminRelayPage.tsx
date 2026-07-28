@@ -77,11 +77,12 @@ interface RelayGroup {
 }
 
 function cleanQuartierName(quartier?: string | null, customQuartier?: string | null, addressText?: string | null, landmark?: string | null): string {
-  if (customQuartier && customQuartier.trim() !== "" && customQuartier !== "__other") {
-    return customQuartier.trim();
+  const isInvalid = (val?: string | null) => !val || !val.trim() || val.trim() === "__other" || val.trim().toLowerCase() === "autre";
+  if (!isInvalid(customQuartier)) {
+    return customQuartier!.trim();
   }
-  if (quartier && quartier.trim() !== "" && quartier !== "__other") {
-    return quartier.trim();
+  if (!isInvalid(quartier)) {
+    return quartier!.trim();
   }
   if (landmark && landmark.trim() !== "") {
     return `Secteur ${landmark.trim()}`;
@@ -841,13 +842,27 @@ const AdminRelayPage = () => {
         }
       }
 
-      return { sent: relay_ids.length, fallback: true };
+      return { sent: relay_ids.length, finalTo, isTest };
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: any, variables: { relay_ids: string[]; groupKey: string }) => {
+      queryClient.setQueryData(["admin-relay-logs-all"], (old: RelayLog[] | undefined) => {
+        if (!old) return [];
+        return old.map((log) => {
+          if (variables.relay_ids.includes(log.id)) {
+            return { ...log, status: "sent", sent_at: new Date().toISOString() };
+          }
+          return log;
+        });
+      });
       queryClient.invalidateQueries({ queryKey: ["admin-relay-logs-all"] });
+
+      const destMsg = data?.isTest
+        ? `Transmis à votre e-mail de test (${data?.finalTo})`
+        : `Transmis au destinataire officiel (${data?.finalTo})`;
+
       toast({
-        title: "Relais transmis avec succès",
-        description: `${data?.sent ?? 0} signalement(s) transmis aux relais ! Les citoyens ont été notifiés automatiquement.`,
+        title: "✉️ Email Resend transmis avec succès",
+        description: `${data?.sent ?? 0} signalement(s) traités. ${destMsg}. Vérifiez également votre dossier Spam / Courrier indésirable.`,
       });
     },
     onError: (err: any) => {
@@ -1382,19 +1397,25 @@ const AdminRelayPage = () => {
                   <div className="divide-y divide-border">
                     {group.quartiers.map((q, idx) => {
                       const urgCfg = URGENCY_CONFIG[q.urgency] ?? URGENCY_CONFIG.low;
+                      const displayName = (q.name === "__other" || q.name === "Autre") ? "Secteur non spécifié" : q.name;
+                      const isInfra = group.operator === "MAIRIE" || q.category === "infrastructure" || q.category === "eclairage_public" || q.category === "voirie";
+                      const confirmationBadge = isInfra
+                        ? `${q.verifications} citoyen(s) votant(s)`
+                        : `${q.verifications} foyer(s)`;
+
                       return (
                         <div
                           key={idx}
                           className="flex items-center justify-between px-4 py-2.5"
                         >
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-foreground">{q.name}</span>
+                            <span className="text-sm font-semibold text-foreground">{displayName}</span>
                             {q.count && q.count > 1 && (
                               <span className="text-xs text-muted-foreground">({q.count} signalements)</span>
                             )}
                           </div>
                           <div className="flex items-center gap-3 text-xs">
-                            <span className="text-primary font-bold">{q.verifications} foyer(s)</span>
+                            <span className="text-emerald-600 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">{confirmationBadge}</span>
                             <span className={urgCfg.color}>{urgCfg.label}</span>
                           </div>
                         </div>
