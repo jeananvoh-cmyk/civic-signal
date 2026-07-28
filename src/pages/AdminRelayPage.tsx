@@ -508,10 +508,13 @@ function buildWhatsAppMessage(group: RelayGroup): string {
     ``,
     `Merci de prendre les dispositions nécessaires.`,
     ``,
-    `— *Équipe SIGNA-CI*`,
-    `signa.ci`,
+    `— L'équipe SIGNA-CI (https://signa.ci)`,
   ];
   return lines.join("\n");
+}
+
+function buildBatchEmailTextClient(group: RelayGroup): string {
+  return buildWhatsAppMessage(group);
 }
 
 const MAIRIES_PILOTES = [
