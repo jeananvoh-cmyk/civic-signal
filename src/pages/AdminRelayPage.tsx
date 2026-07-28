@@ -92,31 +92,44 @@ function resolveCommuneName(
   profileCommune?: string | null,
   description?: string | null
 ): string {
-  const isGeneric = (c?: string | null) => !c || !c.trim() || c.trim().toLowerCase() === "abidjan";
+  const knownCommunes = ["Yopougon", "Cocody", "Abobo", "Adjamé", "Koumassi", "Port-Bouët", "Bingerville", "Marcory", "Treichville", "Attécoubé", "Songon", "Anyama"];
+
+  const isGeneric = (c?: string | null) => {
+    if (!c || !c.trim()) return true;
+    const lower = c.trim().toLowerCase();
+    return lower === "abidjan" || lower === "commune de abidjan" || lower === "commune d'abidjan";
+  };
   
   if (!isGeneric(commune)) {
     return commune!.trim();
   }
-  if (!isGeneric(location)) {
-    return location!.trim();
-  }
-  if (!isGeneric(profileCommune)) {
-    return profileCommune!.trim();
-  }
+
   if (lat && lng) {
     const res = findNearestCommune(lat, lng);
     if (res.commune?.nom) {
       return res.commune.nom;
     }
   }
+
+  if (!isGeneric(location)) {
+    for (const c of knownCommunes) {
+      if (location!.toLowerCase().includes(c.toLowerCase())) return c;
+    }
+    return location!.trim();
+  }
+
   if (description) {
-    const knownCommunes = ["Yopougon", "Cocody", "Abobo", "Adjamé", "Koumassi", "Port-Bouët", "Bingerville", "Marcory", "Treichville", "Attécoubé", "Songon", "Anyama"];
     for (const c of knownCommunes) {
       if (description.toLowerCase().includes(c.toLowerCase())) {
         return c;
       }
     }
   }
+
+  if (!isGeneric(profileCommune)) {
+    return profileCommune!.trim();
+  }
+
   return "Abidjan";
 }
 
@@ -126,7 +139,8 @@ function cleanQuartierName(
   addressText?: string | null,
   landmark?: string | null,
   profileQuartier?: string | null,
-  description?: string | null
+  description?: string | null,
+  reportId?: string | null
 ): string {
   const isInvalid = (val?: string | null) => !val || !val.trim() || val.trim() === "__other" || val.trim().toLowerCase() === "autre" || val.trim().toLowerCase() === "autre quartier";
   if (!isInvalid(customQuartier)) {
@@ -147,10 +161,10 @@ function cleanQuartierName(
   if (description && description.trim() !== "") {
     const cleanDesc = description.replace(/\[.*?\]/g, "").trim();
     if (cleanDesc.length > 0) {
-      return cleanDesc.length > 40 ? cleanDesc.slice(0, 37) + "…" : cleanDesc;
+      return cleanDesc.length > 35 ? cleanDesc.slice(0, 32) + "…" : cleanDesc;
     }
   }
-  return "Secteur non spécifié";
+  return reportId ? `Secteur non spécifié (#${reportId.slice(0, 6)})` : "Secteur non spécifié";
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -795,26 +809,16 @@ function groupPending(logs: RelayLog[] = []): RelayGroup[] {
     if (!g.waSentAt && log.wa_sent_at) g.waSentAt = log.wa_sent_at;
     if (!g.cieTicketNumber && log.cie_ticket_number) g.cieTicketNumber = log.cie_ticket_number;
 
-    const cleanQ = cleanQuartierName(rep.quartier, rep.custom_quartier, rep.address_text, rep.landmark, rep.profile_quartier, rep.description);
-    const existing = g.quartiers.find((q) => q.name === cleanQ);
+    const cleanQ = cleanQuartierName(rep.quartier, rep.custom_quartier, rep.address_text, rep.landmark, rep.profile_quartier, rep.description, rep.id);
+    const existing = g.quartiers.find((q) => q.reportId && q.reportId === rep.id);
     if (existing) {
       existing.verifications += rep.verifications || 1;
-      existing.count = (existing.count ?? 1) + 1;
       const urgencyRank: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
       if ((urgencyRank[rep.urgency] ?? 0) > (urgencyRank[existing.urgency] ?? 0)) {
         existing.urgency = rep.urgency;
       }
       if (!existing.createdAt && (rep.created_at || log.created_at)) {
         existing.createdAt = rep.created_at || log.created_at;
-      }
-      if (!existing.serviceType && rep.service_type) existing.serviceType = rep.service_type;
-      if (!existing.landmark && rep.landmark) existing.landmark = rep.landmark;
-      if (!existing.addressText && rep.address_text) existing.addressText = rep.address_text;
-      if (!existing.description && rep.description) existing.description = rep.description;
-      if (!existing.category && rep.category) existing.category = rep.category;
-      if (!existing.lat && rep.latitude) {
-        existing.lat = rep.latitude;
-        existing.lng = rep.longitude;
       }
     } else {
       g.quartiers.push({
