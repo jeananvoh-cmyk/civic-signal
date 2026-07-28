@@ -263,8 +263,9 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
 
   const nowStr = format(new Date(), "d MMMM yyyy 'à' HH:mm", { locale: fr });
 
-  const introText = isMairie
-    ? `Ce signalement d'infrastructure publique a été <strong style="color: #16a34a;">soutenu par ${group.totalConfirmations} citoyen(s)</strong> votant pour une intervention et réparation rapide dans la commune via <span style="background: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">SIGNA-CI</span>. Il nécessite l'intervention des services techniques municipaux.`
+  const isInfraGroup = isMairie || group.operator === "MAIRIE" || group.quartiers.some(q => q.category === "infrastructure" || q.category === "eclairage_public" || q.category === "voirie" || q.category === "lampadaire");
+  const introText = isInfraGroup
+    ? `Ce signalement d'infrastructure publique a été <strong style="color: #16a34a;">soutenu par ${group.totalConfirmations} citoyen(s)</strong> votant pour une intervention et réparation rapide dans la commune via <span style="background: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">SIGNA-CI</span>. Il nécessite l'intervention des services techniques.`
     : `Ce signalement a été <strong style="color: #16a34a;">confirmé par ${group.totalConfirmations} foyer(s) ou plus</strong> dans le même quartier via la plateforme <span style="background: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">SIGNA-CI</span>. Il nécessite votre intervention.`;
 
   const cardsHtml = group.quartiers.map((q, idx) => {
@@ -305,8 +306,9 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
     if (q.addressText && q.addressText.trim()) locParts.push(`Adresse : ${q.addressText.trim()}`);
     const fullDesc = locParts.length > 0 ? locParts.join(" · ") : `${serviceTitle} à ${group.commune}`;
 
-    const confirmationLabel = isMairie ? "Soutien & votes citoyens" : "Confirmations voisins";
-    const confirmationValue = isMairie
+    const isInfra = isMairie || group.operator === "MAIRIE" || q.category === "infrastructure" || q.category === "eclairage_public" || q.category === "voirie" || q.category === "lampadaire";
+    const confirmationLabel = isInfra ? "Soutien & votes citoyens" : "Confirmations voisins";
+    const confirmationValue = isInfra
       ? `<span style="color: #16a34a; font-weight: 800;">${q.verifications} citoyen(s) votant pour réparation urgente</span>`
       : `<span style="color: #16a34a; font-weight: 800;">${q.verifications} foyer(s) impacté(s)</span>`;
 
@@ -1582,7 +1584,7 @@ const AdminRelayPage = () => {
                             <>
                               <span className="text-muted-foreground text-xs">·</span>
                               <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors truncate flex items-center gap-1">
-                                {log.report.quartier} ({log.report.commune})
+                                {cleanQuartierName(log.report.quartier, log.report.custom_quartier, log.report.address_text, log.report.landmark)} ({log.report.commune})
                                 <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
                               </span>
                             </>
@@ -1635,8 +1637,17 @@ const AdminRelayPage = () => {
                             <strong className="text-foreground">{log.report.category || log.report.service_type}</strong>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Votes / Soutiens :</span>{" "}
-                            <strong className="text-emerald-600 font-bold">{log.report.verifications || 1} citoyen(s)</strong>
+                            {(() => {
+                              const isInfraRep = log.operator === "MAIRIE" || log.report.service_type === "infrastructure" || log.report.category === "infrastructure" || log.report.category === "eclairage_public" || log.report.category === "voirie" || log.report.category === "lampadaire";
+                              return (
+                                <>
+                                  <span className="text-muted-foreground">{isInfraRep ? "Votes & soutiens citoyens :" : "Confirmations voisins :"}</span>{" "}
+                                  <strong className="text-emerald-600 font-bold">
+                                    {log.report.verifications || 1} {isInfraRep ? "citoyen(s) votant(s)" : "foyer(s) impacté(s)"}
+                                  </strong>
+                                </>
+                              );
+                            })()}
                           </div>
                           <div>
                             <span className="text-muted-foreground">Urgence :</span>{" "}
