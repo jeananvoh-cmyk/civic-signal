@@ -795,7 +795,7 @@ function useRelayLogs(enabled: boolean = true) {
 
         const { data: reports } = await supabase
           .from("reports")
-          .select("id, created_at, commune, location, quartier, custom_quartier, address_text, landmark, description, category, service_type, report_category, verifications, urgency, meter_number, contract_type, latitude, longitude, user_id")
+          .select("*")
           .in("id", reportIds);
 
         const userIds = [...new Set((reports ?? []).map((r: any) => r?.user_id).filter(Boolean))];
