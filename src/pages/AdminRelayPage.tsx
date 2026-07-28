@@ -224,13 +224,23 @@ function groupPending(logs: RelayLog[]): RelayGroup[] {
   const map = new Map<string, RelayGroup>();
 
   for (const log of logs.filter((l) => l.status === "pending")) {
-    if (!log.report) continue;
-    const key = `${log.operator}::${log.report.commune}`;
+    const rep = log.report ?? {
+      id: log.report_id,
+      commune: "Abidjan",
+      quartier: "Secteur non spécifié",
+      service_type: log.operator === "CIE" ? "electricity" : log.operator === "SODECI" ? "water" : "infrastructure",
+      verifications: 1,
+      urgency: "medium",
+      reporter_phone: null,
+    };
+
+    const communeName = rep.commune || "Abidjan";
+    const key = `${log.operator}::${communeName}`;
     if (!map.has(key)) {
       map.set(key, {
         key,
         operator: log.operator,
-        commune: log.report.commune,
+        commune: communeName,
         email_to: log.email_to,
         relayIds: [],
         quartiers: [],
@@ -245,21 +255,21 @@ function groupPending(logs: RelayLog[]): RelayGroup[] {
     const g = map.get(key)!;
     g.relayIds.push(log.id);
 
-    if (log.report.meter_number && !g.meterNumbers.includes(log.report.meter_number)) {
-      g.meterNumbers.push(log.report.meter_number);
+    if (rep.meter_number && !g.meterNumbers.includes(rep.meter_number)) {
+      g.meterNumbers.push(rep.meter_number);
     }
 
-    const hasContact = log.report.reporter_phone || log.report.meter_number;
+    const hasContact = rep.reporter_phone || rep.meter_number;
     if (hasContact) {
       const alreadyAdded = g.reporters.some(
-        (r) => r.phone === log.report!.reporter_phone && r.meterNumber === log.report!.meter_number
+        (r) => r.phone === rep.reporter_phone && r.meterNumber === rep.meter_number
       );
       if (!alreadyAdded) {
         g.reporters.push({
-          phone: log.report.reporter_phone ?? null,
-          meterNumber: log.report.meter_number ?? null,
-          contractType: log.report.contract_type ?? null,
-          quartier: log.report.quartier,
+          phone: rep.reporter_phone ?? null,
+          meterNumber: rep.meter_number ?? null,
+          contractType: rep.contract_type ?? null,
+          quartier: rep.quartier || "Quartier",
         });
       }
     }
@@ -267,24 +277,25 @@ function groupPending(logs: RelayLog[]): RelayGroup[] {
     if (!g.waSentAt && log.wa_sent_at) g.waSentAt = log.wa_sent_at;
     if (!g.cieTicketNumber && log.cie_ticket_number) g.cieTicketNumber = log.cie_ticket_number;
 
-    const existing = g.quartiers.find((q) => q.name === log.report!.quartier);
+    const qName = rep.quartier || "Secteur non spécifié";
+    const existing = g.quartiers.find((q) => q.name === qName);
     if (existing) {
-      existing.verifications += log.report.verifications;
+      existing.verifications += rep.verifications || 1;
       existing.count = (existing.count ?? 1) + 1;
       const urgencyRank: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
-      if ((urgencyRank[log.report.urgency] ?? 0) > (urgencyRank[existing.urgency] ?? 0)) {
-        existing.urgency = log.report.urgency;
+      if ((urgencyRank[rep.urgency] ?? 0) > (urgencyRank[existing.urgency] ?? 0)) {
+        existing.urgency = rep.urgency;
       }
     } else {
       g.quartiers.push({
-        name: log.report.quartier,
-        verifications: log.report.verifications,
-        urgency: log.report.urgency,
+        name: qName,
+        verifications: rep.verifications || 1,
+        urgency: rep.urgency || "medium",
         count: 1,
       });
     }
-    g.totalConfirmations += log.report.verifications;
-    if (log.report.urgency === "critical") g.hasCritical = true;
+    g.totalConfirmations += rep.verifications || 1;
+    if (rep.urgency === "critical") g.hasCritical = true;
   }
 
   return [...map.values()].sort(

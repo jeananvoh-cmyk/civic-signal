@@ -239,14 +239,45 @@ const AdminReportsPage = () => {
       }
 
       for (const item of relays) {
-        const { error } = await (supabase as any)
+        const { data: existing } = await (supabase as any)
           .from("relay_logs")
-          .upsert(item, { onConflict: "report_id,operator" });
-        if (error) throw error;
+          .select("id")
+          .eq("report_id", item.report_id)
+          .eq("operator", item.operator)
+          .maybeSingle();
+
+        if (existing) {
+          await (supabase as any)
+            .from("relay_logs")
+            .update({ status: "pending", email_to: item.email_to, error_message: null })
+            .eq("id", existing.id);
+        } else {
+          const { error } = await (supabase as any)
+            .from("relay_logs")
+            .insert(item);
+          if (error) throw error;
+        }
       }
+
+      // Décrémenter le compteur d’escalades non lues en marquant l'alerte correspondante comme lue
+      if (report.id) {
+        await supabase
+          .from("notifications")
+          .update({ read: true })
+          .or(`report_id.eq.${report.id},message.ilike.%${report.id}%`);
+      }
+
+      // Marquer transmis sur le signalement
+      await supabase
+        .from("reports")
+        .update({ forwarded_to_operator_at: new Date().toISOString() })
+        .eq("id", report.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-relay-logs-all"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-escalades"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-reports-validated"] });
+      refetchEscalades();
       toast.success("Signalement transmis aux relais d'intervention !");
     },
     onError: (err: any) => {
