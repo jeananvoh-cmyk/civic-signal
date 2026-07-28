@@ -236,8 +236,8 @@ async function sendResendDirectEmail({
     "https://api.resend.com/emails",
   ];
 
-  let lastError = "Impossible d'expédier le courriel via l'API Resend.";
-  let lastStatus = 500;
+  let bestError = "Impossible de contacter le serveur d'envoi Resend.";
+  let bestStatus = 500;
 
   // 1. Tenter l'envoi direct via le proxy Same-Origin et l'API Resend avec toutes les variantes d'expéditeur
   for (const fromAddr of fromVariants) {
@@ -271,15 +271,21 @@ async function sendResendDirectEmail({
         }
 
         const errorMsg = parsed?.message || parsed?.name || resText || `Erreur HTTP ${res.status}`;
-        lastError = errorMsg;
-        lastStatus = res.status;
+        bestError = errorMsg;
+        bestStatus = res.status;
+
+        if (errorMsg.toLowerCase().includes("sandbox") || errorMsg.toLowerCase().includes("only send to") || errorMsg.toLowerCase().includes("domain")) {
+          break;
+        }
       } catch (err: any) {
-        lastError = err?.message || lastError;
+        if (err?.message && !err.message.includes("fetch")) {
+          bestError = err.message;
+        }
       }
     }
   }
 
-  // 2. Tenter l'Edge Function Supabase comme secours silencieux
+  // 2. Tenter l'Edge Function Supabase comme secours silencieux (ne surcharge JAMAIS bestError)
   try {
     const { data: edgeRes, error: edgeErr } = await supabase.functions.invoke("relay-to-operator", {
       body: {
@@ -294,9 +300,15 @@ async function sendResendDirectEmail({
     if (!edgeErr && edgeRes && edgeRes.ok) {
       return { ok: true, data: JSON.stringify(edgeRes), id: edgeRes.id || "edge-sent" };
     }
-  } catch (_) {}
+  } catch (_) {
+    // Ignorer pour conserver le message d'erreur Resend d'origine
+  }
 
-  return { ok: false, status: lastStatus, error: lastError };
+  if (bestStatus === 403 || bestError.toLowerCase().includes("only send to") || bestError.toLowerCase().includes("sandbox")) {
+    bestError = `Resend restreint l'envoi en Mode Sandbox vers (${cleanTo}). Pour envoyer à cette adresse, activez le Mode TEST avec votre email personnel dans Paramètres, ou ajoutez le domaine sur Resend.com.`;
+  }
+
+  return { ok: false, status: bestStatus, error: bestError };
 }
 
 function buildBatchEmailHtmlClient(group: RelayGroup): string {
