@@ -138,8 +138,14 @@ const AdminReportsPage = () => {
       if (error) throw error;
       if (!notifs || notifs.length === 0) return [];
 
-      // Récupérer les rapports liés (avec report_id)
-      const reportIds = [...new Set(notifs.filter((n) => n.report_id).map((n) => n.report_id as string))];
+      // Récupérer les rapports liés (avec report_id ou extrait du lien dans le message)
+      const extractId = (n: any): string | null => {
+        if (n.report_id) return n.report_id;
+        const match = (n.message || "").match(/\/signalement\/([a-f0-9-]{36})/i);
+        return match ? match[1] : null;
+      };
+
+      const reportIds = [...new Set(notifs.map(extractId).filter(Boolean) as string[])];
       let reportsMap: Record<string, any> = {};
       if (reportIds.length > 0) {
         const { data: reports } = await supabase
@@ -151,19 +157,22 @@ const AdminReportsPage = () => {
         }
       }
 
-      // Fetch relay_config WhatsApp CIE/SODECI
+      // Fetch relay_config WhatsApp
       const { data: relayRows } = await supabase
         .from("relay_config")
-        .select("key, value")
-        .in("key", ["whatsapp_cie", "whatsapp_sodeci"]);
+        .select("key, value");
       const relayWA: Record<string, string> = {};
       for (const row of relayRows ?? []) relayWA[row.key] = row.value ?? "";
 
-      return notifs.map((n) => ({
-        ...n,
-        report: n.report_id ? reportsMap[n.report_id] ?? null : null,
-        relayWA,
-      }));
+      return notifs.map((n) => {
+        const rid = extractId(n);
+        return {
+          ...n,
+          extracted_report_id: rid,
+          report: rid ? reportsMap[rid] ?? null : null,
+          relayWA,
+        };
+      });
     },
     enabled: !!user?.id,
   });
@@ -863,12 +872,20 @@ const AdminReportsPage = () => {
                               <ExternalLink className="h-3 w-3" /> Voir le signalement
                             </Button>
                           )}
-                          {report && (
+                          {(report || notif.extracted_report_id) && (
                             <Button
                               size="sm" variant="outline"
                               className="h-7 text-xs gap-1 border-primary/40 text-primary hover:bg-primary/10"
                               disabled={addToRelayMutation.isPending}
-                              onClick={() => addToRelayMutation.mutate(report)}
+                              onClick={async () => {
+                                if (report) {
+                                  addToRelayMutation.mutate(report);
+                                } else if (notif.extracted_report_id) {
+                                  const { data } = await supabase.from("reports").select("*").eq("id", notif.extracted_report_id).single();
+                                  if (data) addToRelayMutation.mutate(data);
+                                  else toast.error("Signalement introuvable");
+                                }
+                              }}
                             >
                               <Send className="h-3 w-3" /> Relayer (Email)
                             </Button>
