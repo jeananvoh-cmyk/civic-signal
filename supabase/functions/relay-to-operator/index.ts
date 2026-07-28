@@ -411,18 +411,6 @@ Deno.serve(async (req) => {
     const emailONEP   = config["email_onep"]   || "reclamation@onep.ci";
     const emailANARE  = config["email_anare"]  || "reclamation@anare.ci";
 
-    if (!resendApiKey && !isTestMode) {
-      return new Response(
-        JSON.stringify({
-          error: "RESEND_API_KEY non configuré dans Supabase. Activez le Mode TEST dans l'onglet Paramètres pour simuler l'envoi d'emails.",
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
-
     const body =
       req.method === "POST" ? await req.json().catch(() => ({})) : {};
 
@@ -451,6 +439,18 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ ok: testRes.ok, error: testRes.error }),
         { status: testRes.ok ? 200 : 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!resendApiKey && !isTestMode) {
+      return new Response(
+        JSON.stringify({
+          error: "RESEND_API_KEY non configuré dans Supabase. Activez le Mode TEST dans l'onglet Paramètres pour simuler l'envoi d'emails.",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 

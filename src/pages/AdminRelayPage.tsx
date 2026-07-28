@@ -510,7 +510,7 @@ const AdminRelayPage = () => {
   const [testingKey, setTestingKey] = useState(false);
 
   const handleTestKey = async () => {
-    const key = (effectiveConfig?.resend_api_key || "").trim();
+    const key = (draftConfig?.resend_api_key || effectiveConfig?.resend_api_key || "").trim();
     if (!key) {
       toast({
         title: "Aucune clé Resend",
