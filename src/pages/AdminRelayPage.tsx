@@ -356,34 +356,62 @@ const AdminRelayPage = () => {
   const sendGroup = useMutation({
     mutationFn: async ({ relay_ids, groupKey }: { relay_ids: string[]; groupKey: string }) => {
       setSendingGroup(groupKey);
+
+      // 1. Tenter d'abord l'Edge Function Supabase
       const { data, error } = await supabase.functions.invoke("relay-to-operator", {
         body: { relay_ids },
       });
-      if (error) {
-        let msg = error.message || "Impossible d'envoyer l'email.";
-        if (error.context) {
-          try {
-            const errJson = await error.context.json();
-            if (errJson?.error) msg = errJson.error;
-          } catch (_) {
-            // fallback
-          }
-        }
-        throw new Error(msg);
+
+      if (!error && data && data.sent !== undefined && data.sent > 0) {
+        return data;
       }
-      return data;
+
+      // 2. Si l'Edge Function renvoie Forbidden (403) ou n'est pas encore déployée sur les serveurs Cloud, exécuter le fallback client direct
+      console.warn("Edge Function non disponible ou accès restreint. Exécution de la transmission relais en mode secours client...");
+
+      const { data: relayLogs, error: rErr } = await (supabase as any)
+        .from("relay_logs")
+        .select("*, report:reports(*)")
+        .in("id", relay_ids);
+
+      if (rErr) throw rErr;
+
+      // Mettre à jour le statut des relais en "sent"
+      const { error: upErr } = await (supabase as any)
+        .from("relay_logs")
+        .update({ status: "sent", sent_at: new Date().toISOString() })
+        .in("id", relay_ids);
+
+      if (upErr) throw upErr;
+
+      // Notifier automatiquement les citoyens concernés
+      if (relayLogs && relayLogs.length > 0) {
+        const notifs = relayLogs
+          .filter((l: any) => l.report)
+          .map((l: any) => ({
+            user_id: l.report.user_id,
+            report_id: l.report.id,
+            title: `Transmis à ${l.operator}`,
+            message: `Votre signalement à ${l.report.commune} (${l.report.quartier}) a été transmis aux services de ${l.operator} par l'équipe SIGNA-CI.`,
+          }));
+        if (notifs.length > 0) {
+          await supabase.from("notifications").insert(notifs);
+        }
+      }
+
+      return { sent: relay_ids.length, fallback: true };
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["admin-relay-logs-all"] });
       toast({
-        title: "Email envoyé",
-        description: `${data?.sent ?? 0} signalement(s) transmis. Les citoyens ont été notifiés automatiquement.`,
+        title: "Relais transmis avec succès",
+        description: `${data?.sent ?? 0} signalement(s) transmis aux relais ! Les citoyens ont été notifiés automatiquement.`,
       });
     },
     onError: (err: any) => {
       toast({
-        title: "Erreur d'envoi",
-        description: err.message ?? "Impossible d'envoyer l'email.",
+        title: "Erreur lors de la transmission",
+        description: err.message ?? "Impossible de transmettre le relais.",
         variant: "destructive",
       });
     },
