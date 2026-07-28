@@ -234,61 +234,76 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
   const isSODECI = group.operator === "SODECI";
   const isANARE = group.operator === "ANARE";
   const isONEP = group.operator === "ONEP";
-  const isMairie = group.operator === "MAIRIE";
 
-  const operatorName = OPERATOR_CONFIG[group.operator]?.label ?? group.operator;
-  const accentColor = isCIE ? "#f59e0b" : isSODECI ? "#0ea5e9" : isANARE ? "#d97706" : isONEP ? "#0284c7" : "#ea580c";
+  const serviceEmoji = isCIE ? "⚡" : isSODECI ? "💧" : isANARE ? "⚡" : isONEP ? "💧" : "🏗️";
+  const serviceTitle = isCIE ? "Coupure d'électricité" : isSODECI ? "Coupure d'eau / Inondation" : "Signalement d'Infrastructure";
 
-  // En-tête destinataire institutionnel précis
-  let recipientHeader = `À l'attention des services de <strong>${operatorName}</strong> — Commune de <strong>${group.commune}</strong>`;
-  if (isCIE) {
-    recipientHeader = `À l'attention de la <strong>Direction Régionale CIE & du Service Dépannage</strong> — Section <strong>${group.commune}</strong>`;
-  } else if (isSODECI) {
-    recipientHeader = `À l'attention de la <strong>Direction Régionale SODECI & de l'Exploitation Eau</strong> — Section <strong>${group.commune}</strong>`;
-  } else if (isMairie) {
-    recipientHeader = `À l'attention de <strong>Monsieur le Maire & de la Direction des Services Techniques (DST)</strong> — Mairie de <strong>${group.commune}</strong>`;
-  } else if (isANARE || isONEP) {
-    recipientHeader = `À l'attention de la <strong>Direction du Suivi des Concessions & Régulation</strong> — <strong>${operatorName}</strong>`;
-  }
+  const gradientHeader = isCIE
+    ? "linear-gradient(135deg, #0284c7 0%, #d97706 100%)"
+    : isSODECI
+    ? "linear-gradient(135deg, #0284c7 0%, #0891b2 100%)"
+    : "linear-gradient(135deg, #ea580c 0%, #d97706 100%)";
 
-  const highestUrgency = group.hasCritical ? "critical" : group.quartiers.some(q => q.urgency === "high") ? "high" : "medium";
-  const urgencyLabel = (URGENCY_CONFIG[highestUrgency]?.label || highestUrgency).toUpperCase();
-  const urgencyBg = highestUrgency === "critical" ? "#fee2e2" : highestUrgency === "high" ? "#ffedd5" : "#fef3c7";
-  const urgencyColor = highestUrgency === "critical" ? "#b91c1c" : highestUrgency === "high" ? "#c2410c" : "#b45309";
+  const nowStr = format(new Date(), "d MMMM yyyy 'à' HH:mm", { locale: fr });
 
-  const rowsHtml = group.quartiers.map((q, idx) => {
-    const uLabel = (URGENCY_CONFIG[q.urgency]?.label || q.urgency).toUpperCase();
-    const uBg = q.urgency === "critical" ? "#fee2e2" : q.urgency === "high" ? "#ffedd5" : "#fef3c7";
-    const uText = q.urgency === "critical" ? "#b91c1c" : q.urgency === "high" ? "#c2410c" : "#b45309";
+  const cardsHtml = group.quartiers.map((q, idx) => {
+    const isCrit = q.urgency === "critical";
+    const isHigh = q.urgency === "high";
+    const urgencyDot = isCrit ? "🔴" : isHigh ? "🟠" : "🟡";
+    const urgencyText = (URGENCY_CONFIG[q.urgency]?.label || q.urgency).toUpperCase();
 
     const locParts: string[] = [];
-    if (q.landmark && q.landmark.trim()) locParts.push(`<strong>Repère :</strong> ${q.landmark.trim()}`);
-    if (q.addressText && q.addressText.trim()) locParts.push(`<strong>Adresse :</strong> ${q.addressText.trim()}`);
-    if (q.description && q.description.trim()) locParts.push(`<em>« ${q.description.trim()} »</em>`);
-    const locationStr = locParts.length > 0 ? locParts.join(" · ") : null;
+    if (q.category) locParts.push(`[${q.category}]`);
+    if (q.description && q.description.trim()) locParts.push(q.description.trim());
+    if (q.landmark && q.landmark.trim()) locParts.push(`Repère : ${q.landmark.trim()}`);
+    if (q.addressText && q.addressText.trim()) locParts.push(`Adresse : ${q.addressText.trim()}`);
+    const fullDesc = locParts.length > 0 ? locParts.join(" · ") : `${serviceTitle} à ${group.commune}`;
 
     const mapsBtn = (q.lat && q.lng)
-      ? `<a href="https://www.google.com/maps/search/?api=1&query=${q.lat},${q.lng}" target="_blank" style="display: inline-block; margin-top: 6px; padding: 4px 10px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 11px; font-weight: 600; text-decoration: none;">📍 Voir la géolocalisation GPS</a>`
+      ? `<div style="margin-top: 6px;"><a href="https://www.google.com/maps/search/?api=1&query=${q.lat},${q.lng}" target="_blank" style="display: inline-block; padding: 4px 10px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 11px; font-weight: 700; text-decoration: none;">📍 Localiser sur Google Maps</a></div>`
       : "";
 
     return `
-      <tr style="border-top: 1px solid #e5e7eb; background: ${idx % 2 === 0 ? "#ffffff" : "#f9fafb"};">
-        <td style="padding: 14px; vertical-align: top;">
-          <div style="font-weight: 700; color: #111827; font-size: 14px;">${q.name}</div>
-          ${q.category ? `<div style="font-size: 12px; color: #4b5563; margin-top: 2px;"><strong>Nature :</strong> ${q.category}</div>` : ""}
-          ${locationStr ? `<div style="font-size: 12px; color: #6b7280; margin-top: 4px; line-height: 1.4;">${locationStr}</div>` : ""}
-          ${mapsBtn}
-        </td>
-        <td style="padding: 14px; text-align: center; vertical-align: top; font-weight: 800; color: ${accentColor}; font-size: 14px;">
-          ${q.verifications} foyer(s)
-          ${q.count && q.count > 1 ? `<div style="font-size: 11px; font-weight: 500; color: #6b7280;">(${q.count} alerte${q.count > 1 ? "s" : ""})</div>` : ""}
-        </td>
-        <td style="padding: 14px; text-align: center; vertical-align: top;">
-          <span style="background: ${uBg}; color: ${uText}; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; display: inline-block;">
-            ${uLabel}
-          </span>
-        </td>
-      </tr>
+      <div style="border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; background: #ffffff; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
+        <div style="background: #f8fafc; padding: 12px 20px; border-bottom: 1px solid #e5e7eb; font-size: 11px; font-weight: 800; color: #64748b; letter-spacing: 1px; text-transform: uppercase;">
+          DÉTAILS DU SIGNALEMENT ${group.quartiers.length > 1 ? `#${idx + 1}` : ""}
+        </div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+          <tbody>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 500; width: 35%;">Commune</td>
+              <td style="padding: 14px 20px; color: #0f172a; font-weight: 800;">${group.commune}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Quartier</td>
+              <td style="padding: 14px 20px; color: #0f172a; font-weight: 800;">${q.name}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Signalé le</td>
+              <td style="padding: 14px 20px; color: #334155; font-weight: 600;">${nowStr}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Confirmations voisins</td>
+              <td style="padding: 14px 20px; color: #16a34a; font-weight: 800;">${q.verifications} citoyens</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Urgence</td>
+              <td style="padding: 14px 20px; color: #0f172a; font-weight: 800;">
+                <span style="display: inline-flex; align-items: center; gap: 6px;">
+                  ${urgencyDot} <strong>${urgencyText}</strong>
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 500; vertical-align: top;">Description</td>
+              <td style="padding: 14px 20px; color: #334155; font-weight: 500; line-height: 1.5;">
+                ${fullDesc}
+                ${mapsBtn}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     `;
   }).join("");
 
@@ -297,61 +312,37 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
     <html>
     <head><meta charset="utf-8"/></head>
     <body style="font-family: system-ui, -apple-system, sans-serif; background-color: #f3f4f6; margin: 0; padding: 24px;">
-      <div style="max-width: 650px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e5e7eb; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);">
+      <div style="max-width: 620px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e5e7eb; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08);">
         
-        <!-- Header -->
-        <div style="background: ${accentColor}; padding: 28px 24px; text-align: center; color: #ffffff;">
-          <div style="font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.9; margin-bottom: 4px;">SIGNA-CI — Plateforme Citoyenne Certifiée</div>
-          <h1 style="margin: 0; font-size: 22px; font-weight: 900; letter-spacing: -0.5px;">RAPPORT RELAIS D'INTERVENTION</h1>
-          <p style="margin: 6px 0 0; font-size: 14px; opacity: 0.95;">Transmission officielle aux services d'exploitation</p>
+        <!-- Prototype Gradient Header -->
+        <div style="background: ${gradientHeader}; padding: 28px 24px; color: #ffffff;">
+          <div style="display: table; width: 100%; margin-bottom: 12px;">
+            <div style="display: table-cell; vertical-align: middle; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.95);">
+              SIGNALEMENT CITOYEN VÉRIFIÉ — <span style="background: rgba(255,255,255,0.25); padding: 2px 6px; border-radius: 4px; color: #ffffff;">SIGNA-CI</span>
+            </div>
+            <div style="display: table-cell; vertical-align: middle; text-align: right;">
+              <span style="background: rgba(255,255,255,0.25); color: #ffffff; padding: 4px 14px; border-radius: 20px; font-weight: 800; font-size: 12px; display: inline-block;">
+                ${group.operator}
+              </span>
+            </div>
+          </div>
+          <h1 style="margin: 0; font-size: 26px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px;">
+            ${serviceEmoji} ${serviceTitle}
+          </h1>
         </div>
 
-        <!-- Body -->
-        <div style="padding: 28px 24px;">
+        <!-- Body Content -->
+        <div style="padding: 24px;">
           
-          <!-- Recipient Header -->
-          <div style="background: #f8fafc; border-left: 4px solid ${accentColor}; padding: 14px 16px; border-radius: 0 8px 8px 0; margin-bottom: 20px; font-size: 14px; color: #1e293b;">
-            ${recipientHeader}
-          </div>
-
-          <!-- Summary Badges -->
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden;">
-            <tr>
-              <td style="padding: 14px; text-align: center; width: 33%;">
-                <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: 700;">Commune</div>
-                <div style="font-size: 15px; font-weight: 800; color: #111827; margin-top: 2px;">${group.commune}</div>
-              </td>
-              <td style="padding: 14px; text-align: center; width: 33%; border-left: 1px solid #e5e7eb;">
-                <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: 700;">Impact Certifié</div>
-                <div style="font-size: 15px; font-weight: 800; color: ${accentColor}; margin-top: 2px;">${group.totalConfirmations} foyer(s)</div>
-              </td>
-              <td style="padding: 14px; text-align: center; width: 34%; border-left: 1px solid #e5e7eb;">
-                <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; font-weight: 700;">Urgence Max</div>
-                <div style="margin-top: 2px;"><span style="background: ${urgencyBg}; color: ${urgencyColor}; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 800;">${urgencyLabel}</span></div>
-              </td>
-            </tr>
-          </table>
-
-          <p style="margin: 0 0 16px; font-size: 14px; color: #374151; line-height: 1.6;">
-            La plateforme citoyenne <strong>SIGNA-CI</strong> vous transmet ci-dessous le détail géographique des pannes et dysfonctionnements vérifiés par les abonnés de la commune de <strong>${group.commune}</strong> :
+          <p style="margin: 0 0 20px; font-size: 15px; color: #374151; line-height: 1.6;">
+            Ce signalement a été <strong style="color: #16a34a;">confirmé par ${group.totalConfirmations} citoyen(s) ou plus</strong> dans le même quartier via la plateforme <span style="background: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">SIGNA-CI</span>. Il nécessite votre intervention.
           </p>
 
-          <!-- Main Table -->
-          <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
-            <thead>
-              <tr style="background: #1e293b; color: #ffffff; text-align: left;">
-                <th style="padding: 12px 14px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Quartier & Localisation</th>
-                <th style="padding: 12px 14px; text-align: center; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Foyers</th>
-                <th style="padding: 12px 14px; text-align: center; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Priorité</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-            </tbody>
-          </table>
+          <!-- Cards per quartier/report -->
+          ${cardsHtml}
 
           ${group.reporters && group.reporters.length > 0 ? `
-            <div style="margin-top: 24px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+            <div style="margin-top: 20px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
               <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 8px;">📋 Contacts Abonnés Référents :</div>
               <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: #334155; line-height: 1.6;">
                 ${group.reporters.map(r => `
@@ -366,9 +357,8 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
           ` : ""}
 
           <!-- Footer -->
-          <div style="margin-top: 28px; padding-top: 18px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 11px; color: #6b7280; line-height: 1.5;">
-            <strong>SIGNA-CI</strong> · Système National Citoyen d'Alerte et de Transparence des Infrastructures Publiques en Côte d'Ivoire<br/>
-            Ce rapport est transmis automatiquement aux services techniques habilités. Pour toute assistance, contactez l'équipe d'administration SIGNA-CI.
+          <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 11px; color: #6b7280; line-height: 1.5;">
+            <strong>SIGNA-CI</strong> · Plateforme Citoyenne Ivoirienne d'Alerte et de Suivi des Infrastructures Publiques
           </div>
 
         </div>
