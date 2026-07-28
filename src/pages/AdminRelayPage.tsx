@@ -796,6 +796,47 @@ const AdminRelayPage = () => {
   // Polling automatique actif seulement en mode pending/history (desactivé en mode settings pour éviter les sauts)
   const { data: logs = [], isLoading, dataUpdatedAt } = useRelayLogs(tab !== "settings");
 
+  const safeParseDate = (dateStr?: string | null): Date | null => {
+    if (!dateStr || typeof dateStr !== "string") return null;
+    try {
+      const parsed = parseISO(dateStr);
+      if (isNaN(parsed.getTime())) return null;
+      return parsed;
+    } catch (_) {
+      return null;
+    }
+  };
+
+  const safeIsToday = (dateStr?: string | null): boolean => {
+    const d = safeParseDate(dateStr);
+    return d ? isToday(d) : false;
+  };
+
+  const safeIsThisWeek = (dateStr?: string | null): boolean => {
+    const d = safeParseDate(dateStr);
+    return d ? isThisWeek(d, { locale: fr }) : false;
+  };
+
+  const safeIsThisMonth = (dateStr?: string | null): boolean => {
+    const d = safeParseDate(dateStr);
+    return d ? isThisMonth(d) : false;
+  };
+
+  const safeIsThisYear = (dateStr?: string | null): boolean => {
+    const d = safeParseDate(dateStr);
+    return d ? isThisYear(d) : false;
+  };
+
+  const safeFormatDate = (dateStr?: string | null, pattern: string = "d MMMM yyyy à HH:mm"): string => {
+    const d = safeParseDate(dateStr);
+    if (!d) return "Date inconnue";
+    try {
+      return format(d, pattern, { locale: fr });
+    } catch (_) {
+      return "Date inconnue";
+    }
+  };
+
   const pendingGroups = groupPending(logs);
   const historyLogs   = logs.filter((l) => l.status !== "pending");
 
@@ -803,20 +844,19 @@ const AdminRelayPage = () => {
     if (historyPeriod === "all") return true;
     const dateStr = log.sent_at || log.created_at;
     if (!dateStr) return true;
-    const date = parseISO(dateStr);
-    if (historyPeriod === "today") return isToday(date);
-    if (historyPeriod === "week") return isThisWeek(date, { locale: fr });
-    if (historyPeriod === "month") return isThisMonth(date);
-    if (historyPeriod === "year") return isThisYear(date);
+    if (historyPeriod === "today") return safeIsToday(dateStr);
+    if (historyPeriod === "week") return safeIsThisWeek(dateStr);
+    if (historyPeriod === "month") return safeIsThisMonth(dateStr);
+    if (historyPeriod === "year") return safeIsThisYear(dateStr);
     return true;
   });
 
   const historyPeriodCounts = {
     all: historyLogs.length,
-    today: historyLogs.filter((l) => l.sent_at || l.created_at ? isToday(parseISO(l.sent_at || l.created_at)) : false).length,
-    week: historyLogs.filter((l) => l.sent_at || l.created_at ? isThisWeek(parseISO(l.sent_at || l.created_at), { locale: fr }) : false).length,
-    month: historyLogs.filter((l) => l.sent_at || l.created_at ? isThisMonth(parseISO(l.sent_at || l.created_at)) : false).length,
-    year: historyLogs.filter((l) => l.sent_at || l.created_at ? isThisYear(parseISO(l.sent_at || l.created_at)) : false).length,
+    today: historyLogs.filter((l) => safeIsToday(l.sent_at || l.created_at)).length,
+    week: historyLogs.filter((l) => safeIsThisWeek(l.sent_at || l.created_at)).length,
+    month: historyLogs.filter((l) => safeIsThisMonth(l.sent_at || l.created_at)).length,
+    year: historyLogs.filter((l) => safeIsThisYear(l.sent_at || l.created_at)).length,
   };
 
   const stats = {
@@ -1732,7 +1772,7 @@ const AdminRelayPage = () => {
                           )}
                           <span>·</span>
                           <span className="font-medium text-foreground/80">
-                            {format(new Date(log.sent_at || log.created_at), "d MMMM yyyy à HH:mm", { locale: fr })}
+                            {safeFormatDate(log.sent_at || log.created_at)}
                           </span>
                         </p>
                       </div>

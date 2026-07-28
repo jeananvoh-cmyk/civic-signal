@@ -14,6 +14,8 @@ import OfflineBar from "@/components/OfflineBar";
 import BottomNav from "@/components/BottomNav";
 import OnboardingSlides from "@/components/OnboardingSlides";
 
+import ErrorBoundary from "@/components/ErrorBoundary";
+
 const Index = lazy(() => import("./pages/Index"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const ReportPage = lazy(() => import("./pages/ReportPage"));
@@ -75,52 +77,54 @@ const App = () => (
           <ProfileCompletionNotifier />
           <PWAInstallBanner />
           <OnboardingSlides />
-          <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/signaler" element={<ReportPage />} />
-              <Route path="/tableau-de-bord" element={<DashboardPage />} />
-              <Route path="/carte" element={<MapPage />} />
-              <Route path="/commune/:communeName" element={<CommuneDetailPage />} />
-              <Route path="/verification" element={<ProtectedRoute><VerificationPage /></ProtectedRoute>} />
-              <Route path="/profil" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-              <Route path="/historique" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
-              <Route path="/a-propos" element={<AboutPage />} />
-              <Route path="/confidentialite" element={<PrivacyPolicyPage />} />
-              <Route path="/cgu" element={<CguPage />} />
-              <Route path="/dons" element={<DonationPage />} />
-              <Route path="/infrastructures" element={<InfrastructurePage />} />
-              <Route path="/install" element={<InstallPage />} />
-              <Route path="/confirmation" element={<ConfirmationPage />} />
-              <Route path="/signalement/:id" element={<ReportDetailPage />} />
-              <Route path="/transparence" element={<TransparencyPage />} />
-              <Route path="/update-password" element={<UpdatePasswordPage />} />
-              <Route path="/suivi" element={<SuiviPage />} />
-              <Route path="/compteur" element={<ProtectedRoute><CompteurPage /></ProtectedRoute>} />
+          <ErrorBoundary>
+            <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/signaler" element={<ReportPage />} />
+                <Route path="/tableau-de-bord" element={<DashboardPage />} />
+                <Route path="/carte" element={<MapPage />} />
+                <Route path="/commune/:communeName" element={<CommuneDetailPage />} />
+                <Route path="/verification" element={<ProtectedRoute><VerificationPage /></ProtectedRoute>} />
+                <Route path="/profil" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+                <Route path="/historique" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
+                <Route path="/a-propos" element={<AboutPage />} />
+                <Route path="/confidentialite" element={<PrivacyPolicyPage />} />
+                <Route path="/cgu" element={<CguPage />} />
+                <Route path="/dons" element={<DonationPage />} />
+                <Route path="/infrastructures" element={<InfrastructurePage />} />
+                <Route path="/install" element={<InstallPage />} />
+                <Route path="/confirmation" element={<ConfirmationPage />} />
+                <Route path="/signalement/:id" element={<ReportDetailPage />} />
+                <Route path="/transparence" element={<TransparencyPage />} />
+                <Route path="/update-password" element={<UpdatePasswordPage />} />
+                <Route path="/suivi" element={<SuiviPage />} />
+                <Route path="/compteur" element={<ProtectedRoute><CompteurPage /></ProtectedRoute>} />
 
-              {/* Admin routes */}
-              <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
-                <Route index element={<AdminOverviewPage />} />
-                <Route path="signalements" element={<AdminReportsPage />} />
-                <Route path="utilisateurs" element={<AdminUsersPage />} />
-                <Route path="suppressions" element={<AdminDeletionsPage />} />
-                <Route path="purge" element={<AdminPurgePage />} />
-                <Route path="stats" element={<AdminStatsPage />} />
-                <Route path="journal" element={<AdminAuditPage />} />
-                <Route path="vulnerables" element={<AdminVulnerablePage />} />
-                <Route path="messagerie" element={<AdminMessagingPage />} />
-                <Route path="quartiers" element={<AdminQuartiersPage />} />
-                <Route path="droits" element={<AdminRightsPage />} />
-                <Route path="relay" element={<AdminRelayPage />} />
-                <Route path="relais" element={<AdminRelayPage />} />
-              </Route>
+                {/* Admin routes */}
+                <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+                  <Route index element={<AdminOverviewPage />} />
+                  <Route path="signalements" element={<AdminReportsPage />} />
+                  <Route path="utilisateurs" element={<AdminUsersPage />} />
+                  <Route path="suppressions" element={<AdminDeletionsPage />} />
+                  <Route path="purge" element={<AdminPurgePage />} />
+                  <Route path="stats" element={<AdminStatsPage />} />
+                  <Route path="journal" element={<AdminAuditPage />} />
+                  <Route path="vulnerables" element={<AdminVulnerablePage />} />
+                  <Route path="messagerie" element={<AdminMessagingPage />} />
+                  <Route path="quartiers" element={<AdminQuartiersPage />} />
+                  <Route path="droits" element={<AdminRightsPage />} />
+                  <Route path="relay" element={<AdminRelayPage />} />
+                  <Route path="relais" element={<AdminRelayPage />} />
+                </Route>
 
-              <Route path="/partner/dashboard" element={<ProtectedRoute><PartnerDashboardPage /></ProtectedRoute>} />
-              <Route path="/partenaires" element={<PartnersPage />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
+                <Route path="/partner/dashboard" element={<ProtectedRoute><PartnerDashboardPage /></ProtectedRoute>} />
+                <Route path="/partenaires" element={<PartnersPage />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
           <BottomNav />
           </PullToRefresh>
         </BrowserRouter>
