@@ -209,69 +209,71 @@ const AdminReportsPage = () => {
   /** Ajout manuel d'un signalement aux relais d'intervention (CIE / SODECI / ANARE / ONEP / Mairie) */
   const addToRelayMutation = useMutation({
     mutationFn: async (report: any) => {
-      const relays: Array<{ report_id: string; operator: "CIE" | "SODECI" | "MAIRIE" | "ONEP" | "ANARE"; email_to: string; status: string }> = [];
+      const reportId = report.id;
+      if (!reportId) throw new Error("ID du signalement introuvable");
 
-      if (report.service_type === "electricity") {
-        relays.push({ report_id: report.id, operator: "CIE", email_to: "reclamation@cie.ci", status: "pending" });
-      } else if (report.service_type === "water") {
-        relays.push({ report_id: report.id, operator: "SODECI", email_to: "reclamation@sodeci.ci", status: "pending" });
-      } else if (report.service_type === "streetlighting" || report.service_type === "electricity_quality") {
-        // Dual routage : Concessionnaire CIE (terrain) + Régulateur ANARE-CI (contrôle)
-        relays.push({ report_id: report.id, operator: "CIE", email_to: "reclamation@cie.ci", status: "pending" });
-        relays.push({ report_id: report.id, operator: "ANARE", email_to: "reclamation@anare.ci", status: "pending" });
-      } else if (report.service_type === "water_quality") {
-        // Dual routage : Concessionnaire SODECI (terrain) + Régulateur ONEP (contrôle)
-        relays.push({ report_id: report.id, operator: "SODECI", email_to: "reclamation@sodeci.ci", status: "pending" });
-        relays.push({ report_id: report.id, operator: "ONEP", email_to: "reclamation@onep.ci", status: "pending" });
-      } else if (report.report_category === "infrastructure") {
-        const infraOp = infraOperator(extractInfraLabel(report.description || ""), report.commune || "");
-        if (infraOp === "CIE") {
-          relays.push({ report_id: report.id, operator: "CIE", email_to: "reclamation@cie.ci", status: "pending" });
-          relays.push({ report_id: report.id, operator: "ANARE", email_to: "reclamation@anare.ci", status: "pending" });
-        } else if (infraOp === "SODECI") {
-          relays.push({ report_id: report.id, operator: "SODECI", email_to: "reclamation@sodeci.ci", status: "pending" });
-          relays.push({ report_id: report.id, operator: "ONEP", email_to: "reclamation@onep.ci", status: "pending" });
+      // Essayer d'abord via la RPC SQL (bypasse le RLS et met à jour les compteurs en 1 appel)
+      const { data: rpcData, error: rpcError } = await supabase.rpc("admin_relay_report", {
+        p_report_id: reportId,
+      });
+
+      if (rpcError) {
+        // Fallback local si l'RPC n'est pas encore exécutée en BDD
+        const relays: Array<{ report_id: string; operator: "CIE" | "SODECI" | "MAIRIE" | "ONEP" | "ANARE"; email_to: string; status: string }> = [];
+
+        if (report.service_type === "electricity") {
+          relays.push({ report_id: reportId, operator: "CIE", email_to: "reclamation@cie.ci", status: "pending" });
+        } else if (report.service_type === "water") {
+          relays.push({ report_id: reportId, operator: "SODECI", email_to: "reclamation@sodeci.ci", status: "pending" });
+        } else if (report.service_type === "streetlighting" || report.service_type === "electricity_quality") {
+          relays.push({ report_id: reportId, operator: "CIE", email_to: "reclamation@cie.ci", status: "pending" });
+          relays.push({ report_id: reportId, operator: "ANARE", email_to: "reclamation@anare.ci", status: "pending" });
+        } else if (report.service_type === "water_quality") {
+          relays.push({ report_id: reportId, operator: "SODECI", email_to: "reclamation@sodeci.ci", status: "pending" });
+          relays.push({ report_id: reportId, operator: "ONEP", email_to: "reclamation@onep.ci", status: "pending" });
+        } else if (report.report_category === "infrastructure") {
+          const infraOp = infraOperator(extractInfraLabel(report.description || ""), report.commune || "");
+          if (infraOp === "CIE") {
+            relays.push({ report_id: reportId, operator: "CIE", email_to: "reclamation@cie.ci", status: "pending" });
+            relays.push({ report_id: reportId, operator: "ANARE", email_to: "reclamation@anare.ci", status: "pending" });
+          } else if (infraOp === "SODECI") {
+            relays.push({ report_id: reportId, operator: "SODECI", email_to: "reclamation@sodeci.ci", status: "pending" });
+            relays.push({ report_id: reportId, operator: "ONEP", email_to: "reclamation@onep.ci", status: "pending" });
+          } else {
+            relays.push({ report_id: reportId, operator: "MAIRIE", email_to: `mairie:${report.commune}`, status: "pending" });
+          }
         } else {
-          relays.push({ report_id: report.id, operator: "MAIRIE", email_to: `mairie:${report.commune}`, status: "pending" });
+          relays.push({ report_id: reportId, operator: "MAIRIE", email_to: `mairie:${report.commune}`, status: "pending" });
         }
-      } else {
-        relays.push({ report_id: report.id, operator: "MAIRIE", email_to: `mairie:${report.commune}`, status: "pending" });
-      }
 
-      for (const item of relays) {
-        const { data: existing } = await (supabase as any)
-          .from("relay_logs")
-          .select("id")
-          .eq("report_id", item.report_id)
-          .eq("operator", item.operator)
-          .maybeSingle();
+        for (const item of relays) {
+          const { data: existing } = await (supabase as any)
+            .from("relay_logs")
+            .select("id")
+            .eq("report_id", item.report_id)
+            .eq("operator", item.operator)
+            .maybeSingle();
 
-        if (existing) {
-          await (supabase as any)
-            .from("relay_logs")
-            .update({ status: "pending", email_to: item.email_to, error_message: null })
-            .eq("id", existing.id);
-        } else {
-          const { error } = await (supabase as any)
-            .from("relay_logs")
-            .insert(item);
-          if (error) throw error;
+          if (existing) {
+            await (supabase as any)
+              .from("relay_logs")
+              .update({ status: "pending", email_to: item.email_to, error_message: null })
+              .eq("id", existing.id);
+          } else {
+            await (supabase as any).from("relay_logs").insert(item);
+          }
         }
-      }
 
-      // Décrémenter le compteur d’escalades non lues en marquant l'alerte correspondante comme lue
-      if (report.id) {
         await supabase
           .from("notifications")
           .update({ read: true })
-          .or(`report_id.eq.${report.id},message.ilike.%${report.id}%`);
-      }
+          .or(`report_id.eq.${reportId},message.ilike.%${reportId}%`);
 
-      // Marquer transmis sur le signalement
-      await supabase
-        .from("reports")
-        .update({ forwarded_to_operator_at: new Date().toISOString() })
-        .eq("id", report.id);
+        await supabase
+          .from("reports")
+          .update({ forwarded_to_operator_at: new Date().toISOString() })
+          .eq("id", reportId);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-relay-logs-all"] });
