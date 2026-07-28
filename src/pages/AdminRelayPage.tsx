@@ -379,7 +379,9 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
     const urgencyDot = isCrit ? "🔴" : isHigh ? "🟠" : "🟡";
     const urgencyText = (URGENCY_CONFIG[q.urgency]?.label || q.urgency).toUpperCase();
 
-    const categoryLabel = q.category
+    const categoryLabel = (q.description && q.description.trim())
+      ? q.description.trim().toUpperCase()
+      : q.category
       ? q.category.replace(/_/g, " ").toUpperCase()
       : isMairie ? "INFRASTRUCTURE / VOIRIE" : isCIE ? "ÉLECTRICITÉ" : "EAU POTABLE";
 
@@ -567,11 +569,17 @@ function buildWhatsAppMessage(group: RelayGroup): string {
     const dateStr = q.createdAt ? safeFormatDate(q.createdAt, "d MMMM yyyy à HH:mm") : null;
     const durationStr = q.createdAt ? safeFormatDuration(q.createdAt) : null;
 
-    return `• Quartier ${q.name}${sigCount}\n` +
-           `  - Commune : ${group.commune}\n` +
-           `  - Type : ${q.serviceType === "electricity" ? "Électricité" : q.serviceType === "water" ? "Eau potable" : "Voirie & Infrastructure"}\n` +
-           (dateStr ? `  - Date : Signalé le ${dateStr}${durationStr ? ` (${durationStr})` : ""}\n` : "") +
-           `  - Soutiens / Votants : ${q.verifications} citoyen.ne(s) — Urgence ${urgLabel}`;
+    const details: string[] = [];
+    details.push(`• *Incident à ${group.commune} · ${q.name}*${sigCount}`);
+    details.push(`  - Type : ${q.description ? `"${q.description}"` : q.category ? q.category.replace(/_/g, " ") : (q.serviceType === "electricity" ? "Électricité" : q.serviceType === "water" ? "Eau potable" : "Voirie & Infrastructure")}`);
+    if (q.landmark) details.push(`  - Repère : ${q.landmark}`);
+    if (q.addressText) details.push(`  - Adresse : ${q.addressText}`);
+    if (dateStr) details.push(`  - Date : Signalé le ${dateStr}${durationStr ? ` (${durationStr})` : ""}`);
+    details.push(`  - Soutiens / Votants : ${q.verifications} citoyen.ne(s) — Urgence ${urgLabel}`);
+    if (q.lat && q.lng) details.push(`  - Localisation GPS : https://www.google.com/maps/search/?api=1&query=${q.lat},${q.lng}`);
+    if (q.reportId) details.push(`  - Fiche Incident : https://signa.ci/signalement/${q.reportId}`);
+
+    return details.join("\n");
   });
 
   const reporterLines: string[] = [];
@@ -1705,7 +1713,11 @@ const AdminRelayPage = () => {
                           const confirmationBadge = `${q.verifications} citoyen.ne(s) votant(s)`;
                           const targetReportId = q.reportId || group.relayIds[0];
 
-                          const typeLabel = q.serviceType === "electricity"
+                          const specificLabel = q.description && q.description.trim() ? q.description.trim() : null;
+                          const iconPrefix = q.serviceType === "electricity" ? "⚡" : q.serviceType === "water" ? "💧" : (q.category === "eclairage_public" || specificLabel?.toLowerCase().includes("lampadaire")) ? "💡" : "🏛️";
+                          const typeLabel = specificLabel
+                            ? `${iconPrefix} ${specificLabel}`
+                            : q.serviceType === "electricity"
                             ? "⚡ Électricité"
                             : q.serviceType === "water"
                             ? "💧 Eau"

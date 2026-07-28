@@ -371,11 +371,19 @@ const AdminReportsPage = () => {
     if (!digits || digits.length < 8) return null;
     const phone = digits.startsWith("0") ? "225" + digits.slice(1) : digits;
     const ageDays = Math.floor((Date.now() - new Date(report.created_at).getTime()) / 86400000);
-    const categoryLabel = isInfra ? "problème d'infrastructure" : "coupure";
+    const issueTitle = report.description || (isInfra ? "Problème d'infrastructure" : "Coupure de service");
+    const landmarkText = report.landmark ? ` [Repère : ${report.landmark}]` : "";
+    const addressText = report.address_text ? ` (Adresse : ${report.address_text})` : "";
+    const linkUrl = `https://signa.ci/signalement/${report.id}`;
+
     const msg = encodeURIComponent(
-      `Bonjour, nous vous contactons depuis SIGNA-CI concernant un ${categoryLabel} ` +
-      `signalé à ${report.commune}, ${report.quartier} depuis ${ageDays} jours. ` +
-      `Ce signalement est toujours actif et sans intervention de ${operatorName}. ` +
+      `🚨 *SIGNA-CI — Transmission d'incident ${operatorName}*\n\n` +
+      `Bonjour ${operatorName},\n` +
+      `Nous vous contactons concernant un incident signalé sur notre plateforme :\n\n` +
+      `📍 *Commune & Quartier :* ${report.commune}, ${report.quartier}${landmarkText}${addressText}\n` +
+      `⚠️ *Incident :* ${issueTitle}\n` +
+      `📅 *Ancienneté :* Signalé il y a ${ageDays} jours (Toujours en cours sans intervention)\n` +
+      `🔗 *Fiche complète du signalement :* ${linkUrl}\n\n` +
       `Pouvez-vous nous indiquer le délai d'intervention prévu ? Merci.`
     );
     return `https://wa.me/${phone}?text=${msg}`;
