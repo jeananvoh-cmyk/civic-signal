@@ -185,15 +185,15 @@ function useRelayLogs(enabled: boolean = true) {
       // 1. Récupérer d'abord TOUS les logs en attente (pending ou null)
       const { data: pendingData, error: pendingErr } = await (supabase as any)
         .from("relay_logs")
-        .select("id, report_id, operator, email_to, status, error_message, created_at, sent_at, wa_sent_at, cie_ticket_number, cie_ticket_at")
+        .select("*")
         .or("status.eq.pending,status.is.null")
         .order("created_at", { ascending: false });
-      if (pendingErr) throw pendingErr;
+      if (pendingErr) console.warn("pendingData query warning:", pendingErr);
 
       // 2. Récupérer l'historique récent (sent / error)
       const { data: historyData } = await (supabase as any)
         .from("relay_logs")
-        .select("id, report_id, operator, email_to, status, error_message, created_at, sent_at, wa_sent_at, cie_ticket_number, cie_ticket_at")
+        .select("*")
         .not("status", "is", null)
         .neq("status", "pending")
         .order("created_at", { ascending: false })
@@ -452,9 +452,73 @@ const AdminRelayPage = () => {
     },
   });
 
+  // ── Synchronisation rétroactive de tous les signalements validés dans la file ──
+  const syncAllMutation = useMutation({
+    mutationFn: async () => {
+      const { data: valReports, error } = await supabase
+        .from("reports")
+        .select("*")
+        .eq("validated", true)
+        .or("status.eq.active,status.eq.chronic");
+      if (error) throw error;
+      if (!valReports || valReports.length === 0) return 0;
+
+      let count = 0;
+      for (const report of valReports) {
+        const relays: Array<{ report_id: string; operator: "CIE" | "SODECI" | "MAIRIE" | "ONEP" | "ANARE"; email_to: string; status: string }> = [];
+
+        if (report.service_type === "electricity") {
+          relays.push({ report_id: report.id, operator: "CIE", email_to: "reclamation@cie.ci", status: "pending" });
+        } else if (report.service_type === "water") {
+          relays.push({ report_id: report.id, operator: "SODECI", email_to: "reclamation@sodeci.ci", status: "pending" });
+        } else if (report.service_type === "streetlighting" || report.service_type === "electricity_quality") {
+          relays.push({ report_id: report.id, operator: "CIE", email_to: "reclamation@cie.ci", status: "pending" });
+          relays.push({ report_id: report.id, operator: "ANARE", email_to: "reclamation@anare.ci", status: "pending" });
+        } else if (report.service_type === "water_quality") {
+          relays.push({ report_id: report.id, operator: "SODECI", email_to: "reclamation@sodeci.ci", status: "pending" });
+          relays.push({ report_id: report.id, operator: "ONEP", email_to: "reclamation@onep.ci", status: "pending" });
+        } else {
+          relays.push({ report_id: report.id, operator: "MAIRIE", email_to: `mairie:${report.commune}`, status: "pending" });
+        }
+
+        for (const item of relays) {
+          const { data: existing } = await (supabase as any)
+            .from("relay_logs")
+            .select("id")
+            .eq("report_id", item.report_id)
+            .eq("operator", item.operator)
+            .maybeSingle();
+
+          if (!existing) {
+            const { error: inErr } = await (supabase as any).from("relay_logs").insert(item);
+            if (inErr && (item.operator === "ANARE" || item.operator === "ONEP")) {
+              const fbOp = item.operator === "ANARE" ? "CIE" : "SODECI";
+              await (supabase as any).from("relay_logs").insert({ ...item, operator: fbOp });
+            }
+            count++;
+          }
+        }
+      }
+      return count;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-relay-logs-all"] });
+      toast({
+        title: "Synchronisation terminée",
+        description: `${count} signalement(s) validé(s) ajouté(s) ou mis à jour dans la file d'attente !`,
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Erreur de synchronisation",
+        description: err.message ?? "Impossible de synchroniser les relais.",
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
-
       {/* En-tête */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
@@ -470,12 +534,22 @@ const AdminRelayPage = () => {
             Validation manuelle avant transmission CIE / SODECI / ANARE-CI / ONEP / Mairies
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {dataUpdatedAt > 0 && (
             <span className="text-xs text-muted-foreground hidden sm:block">
               {format(new Date(dataUpdatedAt), "HH:mm:ss")}
             </span>
           )}
+          <Button
+            size="sm"
+            variant="default"
+            disabled={syncAllMutation.isPending}
+            onClick={() => syncAllMutation.mutate()}
+            className="gap-1.5 bg-primary text-primary-foreground font-semibold shadow-sm"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${syncAllMutation.isPending ? "animate-spin" : ""}`} />
+            {syncAllMutation.isPending ? "Synchronisation..." : "Synchroniser les relais validés"}
+          </Button>
           <Button
             size="sm"
             variant="outline"
