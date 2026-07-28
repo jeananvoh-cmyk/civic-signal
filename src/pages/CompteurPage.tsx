@@ -19,7 +19,7 @@ import AddReadingSheet from "@/components/electricity/AddReadingSheet";
 
 // ─── Setup compteur (premier lancement) ──────────────────────────────────────
 
-function SetupMeter({ onCreate }: { onCreate: (label: string, meterNumber?: string) => void }) {
+function SetupMeter({ onCreate, onBack, isPending }: { onCreate: (label: string, meterNumber?: string) => void; onBack: () => void; isPending?: boolean }) {
   const { user } = useAuth();
   const [label, setLabel] = useState("Mon compteur");
   const [meterNumber, setMeterNumber] = useState("");
@@ -95,13 +95,14 @@ function SetupMeter({ onCreate }: { onCreate: (label: string, meterNumber?: stri
             </p>
           </div>
           <button
-            onClick={() => label.trim() && onCreate(label.trim(), meterNumber || undefined)}
-            className="w-full rounded-2xl bg-primary py-3.5 text-sm font-bold text-white active:scale-95 transition-transform"
+            onClick={() => label.trim() && !isPending && onCreate(label.trim(), meterNumber || undefined)}
+            disabled={!label.trim() || isPending}
+            className="w-full rounded-2xl bg-primary py-3.5 text-sm font-bold text-white active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
-            Commencer le suivi
+            {isPending ? "Création en cours…" : "Commencer le suivi"}
           </button>
         </div>
-        <button onClick={goBack} className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <button onClick={onBack} className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-3.5 w-3.5" />
           Retour
         </button>
@@ -144,10 +145,16 @@ export default function CompteurPage() {
   if (!hasData) {
     return (
       <SetupMeter
+        isPending={createMeter.isPending}
         onCreate={async (label, meterNumber) => {
-          await createMeter.mutateAsync({ label, meter_number: meterNumber });
-          toast.success("Compteur créé ! Enregistrez votre première recharge.");
+          try {
+            await createMeter.mutateAsync({ label, meter_number: meterNumber });
+            toast.success("Compteur créé ! Enregistrez votre première recharge.");
+          } catch {
+            toast.error("Impossible de créer le compteur. Réessayez.");
+          }
         }}
+        onBack={goBack}
       />
     );
   }
@@ -160,7 +167,7 @@ export default function CompteurPage() {
       <div className="sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={goBack} className="text-muted-foreground hover:text-foreground transition-colors">
+            <button onClick={goBack} aria-label="Retour" className="p-2 -ml-2 rounded-xl text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div>
@@ -171,7 +178,7 @@ export default function CompteurPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-xl bg-yellow-500/10 flex items-center justify-center">
+            <div className="h-7 w-7 rounded-xl bg-yellow-500/10 flex items-center justify-center" aria-hidden="true">
               <Zap className="h-4 w-4 text-yellow-500" />
             </div>
           </div>
@@ -201,7 +208,7 @@ export default function CompteurPage() {
             <History className="h-3.5 w-3.5" />
             Historique
             {recharges.length > 0 && (
-              <span className="ml-1 rounded-full bg-muted text-muted-foreground text-[9px] font-bold px-1.5 py-0.5">
+              <span className="ml-1 rounded-full bg-muted text-muted-foreground text-[11px] font-bold px-1.5 py-0.5">
                 {recharges.length}
               </span>
             )}
@@ -257,7 +264,8 @@ export default function CompteurPage() {
                   </div>
                   <button
                     onClick={() => setShowPostRechargeBanner(false)}
-                    className="text-muted-foreground hover:text-foreground shrink-0"
+                    aria-label="Fermer"
+                    className="p-1.5 -mr-1 shrink-0 rounded-lg text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                   >
                     <XCircle className="h-4 w-4" />
                   </button>
@@ -300,7 +308,8 @@ export default function CompteurPage() {
                   </div>
                   <button
                     onClick={() => setPendingMeterNumber(null)}
-                    className="text-muted-foreground hover:text-foreground shrink-0"
+                    aria-label="Ignorer"
+                    className="p-1.5 -mr-1 shrink-0 rounded-lg text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                   >
                     <XCircle className="h-4 w-4" />
                   </button>
@@ -349,7 +358,8 @@ export default function CompteurPage() {
                   </div>
                   <button
                     onClick={() => setPendingCieRef(null)}
-                    className="text-muted-foreground hover:text-foreground shrink-0"
+                    aria-label="Ignorer"
+                    className="p-1.5 -mr-1 shrink-0 rounded-lg text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                   >
                     <XCircle className="h-4 w-4" />
                   </button>
@@ -403,7 +413,7 @@ export default function CompteurPage() {
                 </div>
                 <button
                   onClick={() => setShowReadingSheet(true)}
-                  className="shrink-0 rounded-lg bg-amber-500/15 border border-amber-500/30 px-2.5 py-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 whitespace-nowrap"
+                  className="shrink-0 rounded-lg bg-amber-500/15 border border-amber-500/30 px-3 py-2.5 text-xs font-bold text-amber-700 dark:text-amber-400 whitespace-nowrap min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40"
                 >
                   Saisir
                 </button>
@@ -542,12 +552,18 @@ export default function CompteurPage() {
                   <button
                     onClick={async () => {
                       setDeleting(r.id);
-                      await deleteRecharge.mutateAsync(r.id);
-                      setDeleting(null);
-                      toast.success("Recharge supprimée");
+                      try {
+                        await deleteRecharge.mutateAsync(r.id);
+                        toast.success("Recharge supprimée");
+                      } catch {
+                        toast.error("Impossible de supprimer. Réessayez.");
+                      } finally {
+                        setDeleting(null);
+                      }
                     }}
                     disabled={deleting === r.id}
-                    className="text-muted-foreground hover:text-destructive transition-colors"
+                    aria-label="Supprimer cette recharge"
+                    className="p-2 -mr-2 rounded-xl text-muted-foreground hover:text-destructive transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40"
                   >
                     <Trash2 className={`h-4 w-4 ${deleting === r.id ? "animate-pulse" : ""}`} />
                   </button>
@@ -571,15 +587,19 @@ export default function CompteurPage() {
         <AddRechargeSheet
           meterId={activeMeter.id}
           onSave={async (data) => {
-            await addRecharge.mutateAsync(data);
-            toast.success(`${data.kwh_purchased} kWh enregistrés`);
-            setShowPostRechargeBanner(true);
-            setActiveTab("dashboard");
-            if (data.meter_number && data.meter_number !== activeMeter.meter_number) {
-              setPendingMeterNumber(data.meter_number);
-            }
-            if (data.cie_ref) {
-              setPendingCieRef(data.cie_ref);
+            try {
+              await addRecharge.mutateAsync(data);
+              toast.success(`${data.kwh_purchased} kWh enregistrés`);
+              setShowPostRechargeBanner(true);
+              setActiveTab("dashboard");
+              if (data.meter_number && data.meter_number !== activeMeter.meter_number) {
+                setPendingMeterNumber(data.meter_number);
+              }
+              if (data.cie_ref) {
+                setPendingCieRef(data.cie_ref);
+              }
+            } catch {
+              toast.error("Impossible d'enregistrer la recharge. Réessayez.");
             }
           }}
           onClose={() => setShowRechargeSheet(false)}
@@ -590,8 +610,12 @@ export default function CompteurPage() {
           meterId={activeMeter.id}
           currentEstimate={estimate.current_kwh}
           onSave={async (data) => {
-            await addReading.mutateAsync(data);
-            toast.success("Mise à jour enregistrée");
+            try {
+              await addReading.mutateAsync(data);
+              toast.success("Mise à jour enregistrée");
+            } catch {
+              toast.error("Impossible d'enregistrer la lecture. Réessayez.");
+            }
           }}
           onClose={() => setShowReadingSheet(false)}
         />

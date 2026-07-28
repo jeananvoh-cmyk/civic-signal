@@ -5,6 +5,8 @@
  * L'admin sélectionne un groupe (commune + opérateur) depuis le dashboard
  * et envoie UN email consolidé listant tous les quartiers touchés.
  *
+ * Supporte : CIE, SODECI, MAIRIE, ONEP, ANARE
+ *
  * Body attendu : { relay_ids: string[] }
  *
  * Variables d'environnement requises (Supabase Secrets) :
@@ -27,7 +29,7 @@ const corsHeaders = {
 interface RelayLog {
   id: string;
   report_id: string;
-  operator: "CIE" | "SODECI" | "MAIRIE";
+  operator: "CIE" | "SODECI" | "MAIRIE" | "ONEP" | "ANARE";
   email_to: string;
 }
 
@@ -55,24 +57,42 @@ function buildBatchEmailHtml(
   const isMairie = operator === "MAIRIE";
   const isCIE = operator === "CIE";
   const isSODECI = operator === "SODECI";
+  const isONEP = operator === "ONEP";
+  const isANARE = operator === "ANARE";
 
   const serviceLabel = isCIE
     ? "Coupures d'électricité"
     : isSODECI
       ? "Coupures d'eau"
-      : "Voirie & Infrastructures urbaines";
-  const serviceIcon = isCIE ? "⚡" : isSODECI ? "💧" : "🏗️";
+      : isANARE
+        ? "Qualité électricité & Éclairage public (ANARE-CI)"
+        : isONEP
+          ? "Régulation & Qualité d'eau potable (ONEP)"
+          : "Voirie & Infrastructures urbaines";
+
+  const serviceIcon = isCIE || isANARE ? "⚡" : isSODECI || isONEP ? "💧" : "🏗️";
 
   // Couleur d'accent selon opérateur
-  const accentColor = isCIE ? "#f59e0b" : isSODECI ? "#0ea5e9" : "#16a34a";
+  const accentColor = isCIE
+    ? "#f59e0b"
+    : isSODECI
+      ? "#0ea5e9"
+      : isANARE
+        ? "#d97706"
+        : isONEP
+          ? "#0284c7"
+          : "#16a34a";
+
   const headerGradient = isCIE
     ? "linear-gradient(135deg,#f59e0b,#d97706)"
     : isSODECI
       ? "linear-gradient(135deg,#0ea5e9,#0284c7)"
-      : "linear-gradient(135deg,#16a34a,#15803d)";
+      : isANARE
+        ? "linear-gradient(135deg,#d97706,#b45309)"
+        : isONEP
+          ? "linear-gradient(135deg,#0284c7,#0369a1)"
+          : "linear-gradient(135deg,#16a34a,#15803d)";
 
-  // Pour MAIRIE : total des personnes demandant réparation (= votes "Je veux que ça soit réparé")
-  // Pour CIE/SODECI : total des vérifications (foyers confirmant la panne)
   const totalCitizens = reports.reduce((sum, r) => sum + r.verifications, 0);
 
   function signaleSince(createdAt: string): string {
@@ -98,10 +118,11 @@ function buildBatchEmailHtml(
     }
   }
 
-  // Intitulé de la colonne selon opérateur
   const citizenColLabel = isMairie
     ? "Citoyens demandant réparation"
-    : "Foyers confirmant la panne";
+    : isANARE || isONEP
+      ? "Citoyens/Abonnés ayant réclamé"
+      : "Foyers confirmant la panne";
 
   const reportRows = [...byQuartier.entries()]
     .map(([quartier, entry]) => {
@@ -139,8 +160,7 @@ function buildBatchEmailHtml(
         ? ` <span style="font-size:11px;color:#6b7280;font-weight:400;">(${entry.reports.length} signalements)</span>`
         : "";
 
-      // Badge urgence pour MAIRIE
-      const urgencyBadge = isMairie && entry.maxUrgency === "critical"
+      const urgencyBadge = (isMairie || isANARE) && entry.maxUrgency === "critical"
         ? `<span style="display:inline-block;background:#fee2e2;color:#dc2626;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:6px;text-transform:uppercase;">Urgent</span>`
         : "";
 
@@ -158,9 +178,13 @@ function buildBatchEmailHtml(
 
   const salutation = isMairie
     ? `Monsieur le Directeur des Services Techniques,<br>Monsieur le Maire de la Commune de <strong>${escapeHtml(commune)}</strong>,`
-    : isCIE
-      ? `Madame, Monsieur,<br>À l'attention du <strong>Service Clientèle CIE</strong> — Direction Régionale d'Abidjan`
-      : `Madame, Monsieur,<br>À l'attention du <strong>Service Clientèle SODECI</strong> — Direction Régionale d'Abidjan`;
+    : isANARE
+      ? `Madame, Monsieur,<br>À l'attention de la <strong>Direction de la Régulation ANARE-CI</strong> (Électricité & Éclairage Public)`
+      : isONEP
+        ? `Madame, Monsieur,<br>À l'attention de la <strong>Direction Générale de l'ONEP</strong> (Office National de l'Eau Potable)`
+        : isCIE
+          ? `Madame, Monsieur,<br>À l'attention du <strong>Service Clientèle CIE</strong> — Direction Régionale d'Abidjan`
+          : `Madame, Monsieur,<br>À l'attention du <strong>Service Clientèle SODECI</strong> — Direction Régionale d'Abidjan`;
 
   const introBody = isMairie
     ? `
@@ -168,70 +192,40 @@ function buildBatchEmailHtml(
         Nous avons l'honneur de vous adresser le présent courrier électronique afin de porter à votre connaissance
         des problèmes de <strong style="color:#111827;">voirie et d'infrastructures urbaines</strong> signalés par les habitants
         de la commune de <strong style="color:#111827;">${escapeHtml(commune)}</strong> via la plateforme citoyenne <strong>SIGNA-CI</strong>.
+      </p>`
+    : isANARE
+      ? `
+      <p style="margin:0 0 14px;color:#374151;font-size:14px;line-height:1.8;">
+        En votre qualité d'autorité de régulation du secteur de l'électricité, nous vous adressons ce rapport consolidé concernant
+        des réclamations sur la <strong style="color:#111827;">qualité du service électrique et les lampadaires/éclairages publics hors service</strong>
+        dans la commune de <strong style="color:#111827;">${escapeHtml(commune)}</strong>.
       </p>
       <p style="margin:0 0 20px;color:#374151;font-size:14px;line-height:1.8;">
-        Ces signalements sont accompagnés de demandes explicites de réparation formulées par
-        <strong style="color:#111827;">${totalCitizens} citoyen${totalCitizens > 1 ? "s" : ""}</strong> de votre commune.
-        Chaque citoyen a expressément cliqué sur « Je demande la réparation » — il ne s'agit donc pas d'un signalement isolé,
-        mais d'une demande collective documentée, géolocalisée et transmise à votre service pour action.
+        Ces signalements citoyens permettent à l'ANARE-CI de suivre l'efficacité des interventions de rétablissement et d'exercer sa mission de contrôle de la qualité de service au bénéfice des abonnés.
       </p>`
-    : `
+      : isONEP
+        ? `
+      <p style="margin:0 0 14px;color:#374151;font-size:14px;line-height:1.8;">
+        En votre qualité d'office national régissant l'approvisionnement en eau potable, nous vous transmettons ces réclamations citoyennes sur
+        la <strong style="color:#111827;">continuité du service et la qualité de l'eau potable</strong> dans la commune de <strong style="color:#111827;">${escapeHtml(commune)}</strong>.
+      </p>`
+        : `
       <p style="margin:0 0 14px;color:#374151;font-size:14px;line-height:1.8;">
         Des habitants de la commune de <strong style="color:#111827;">${escapeHtml(commune)}</strong>
         ont signalé des ${serviceLabel.toLowerCase()} via l'application citoyenne <strong>SIGNA-CI</strong>.
-      </p>
-      <p style="margin:0 0 20px;color:#374151;font-size:14px;line-height:1.8;">
-        Ces signalements ont été corroborés par <strong style="color:#111827;">${totalCitizens} foyer${totalCitizens > 1 ? "s" : ""}</strong>
-        confirmant indépendamment la panne depuis le même quartier, et ont été validés manuellement
-        par l'équipe SIGNA-CI avant cette transmission.
       </p>`;
 
-  // ── Bloc "Ce que SIGNA-CI a vérifié" ────────────────────────────────────────
-
-  const verifiedBlock = isMairie
-    ? `
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;margin-bottom:20px;">
-            <tr><td style="padding:14px 16px;">
-              <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:0.5px;">Garanties de fiabilité SIGNA-CI</p>
-              <ul style="margin:0;padding:0 0 0 18px;font-size:13px;color:#374151;line-height:1.9;">
-                <li><strong>Demandes individuelles authentifiées :</strong> chaque citoyen comptabilisé a créé un compte vérifié et cliqué explicitement sur « Je demande la réparation » — une démarche volontaire, pas une simple vue.</li>
-                <li><strong>Dédoublonnage géographique :</strong> les signalements du même secteur ont été fusionnés ; le nombre reflète des personnes distinctes, pas des doublons.</li>
-                <li><strong>Validation manuelle :</strong> un administrateur SIGNA-CI a examiné et approuvé cette transmission avant envoi.</li>
-              </ul>
-              <p style="margin:10px 0 0;font-size:12px;color:#6b7280;font-style:italic;">
-                Les coordonnées GPS et témoignages ci-dessous proviennent directement des citoyens — ils permettent à vos équipes de terrain de localiser précisément chaque zone concernée.
-              </p>
-            </td></tr>
-          </table>`
-    : `
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;margin-bottom:20px;">
-            <tr><td style="padding:14px 16px;">
-              <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.5px;">Ce que la plateforme a vérifié</p>
-              <ul style="margin:0;padding:0 0 0 18px;font-size:13px;color:#374151;line-height:1.8;">
-                <li><strong>Confirmation croisée :</strong> chaque signalement a été corroboré indépendamment par plusieurs foyers du même quartier (pas un signalement isolé).</li>
-                <li><strong>Dédoublonnage automatique :</strong> les signalements similaires (même zone, même type de panne) ont été détectés et fusionnés pour éviter le bruit.</li>
-                <li><strong>Validation manuelle admin :</strong> un administrateur SIGNA-CI a examiné, approuvé et déclenché manuellement cette transmission.</li>
-              </ul>
-              <p style="margin:8px 0 0;font-size:12px;color:#6b7280;font-style:italic;">
-                Les coordonnées GPS et descriptions ci-dessous proviennent directement des citoyens — elles permettent à vos équipes de terrain de localiser rapidement la zone concernée.
-              </p>
-            </td></tr>
-          </table>`;
-
-  // ── Phrase de clôture ────────────────────────────────────────────────────────
-
-  const closingText = isMairie
-    ? `Nous vous remercions de l'attention que vous porterez à ces demandes citoyennes et restons disponibles
-       pour tout échange complémentaire. Nous espérons que ces informations facilitent l'intervention de vos équipes de terrain.`
-    : `Nous vous remercions de bien vouloir prendre en compte ces signalements dans vos interventions planifiées.
-       Vos équipes de terrain peuvent utiliser les liens GPS ci-dessus pour localiser rapidement chaque zone.`;
-
-  const footerText = isMairie
-    ? `Ce message est transmis par <strong>SIGNA-CI</strong>, plateforme citoyenne de signalement des services publics en Côte d'Ivoire.
-       Il représente une demande collective de citoyens de votre commune, validée par notre équipe avant transmission.
-       SIGNA-CI n'est pas un organe administratif — nous relayons la voix des citoyens auprès des services compétents.`
-    : `Ce message est envoyé par <strong>SIGNA-CI</strong>, plateforme citoyenne de signalement des services publics en Côte d'Ivoire.
-       Il a été validé manuellement par l'équipe SIGNA-CI avant transmission.`;
+  const verifiedBlock = `
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;margin-bottom:20px;">
+      <tr><td style="padding:14px 16px;">
+        <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.5px;">Garanties de fiabilité SIGNA-CI</p>
+        <ul style="margin:0;padding:0 0 0 18px;font-size:13px;color:#374151;line-height:1.8;">
+          <li><strong>Confirmations authentifiées :</strong> signalements vérifiés et corroborés par les habitants.</li>
+          <li><strong>Dédoublonnage géographique :</strong> fusion des pannes d'une même zone.</li>
+          <li><strong>Validation manuelle admin :</strong> contrôle préalable par l'équipe SIGNA-CI.</li>
+        </ul>
+      </td></tr>
+    </table>`;
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -253,21 +247,17 @@ function buildBatchEmailHtml(
             <p style="margin:10px 0 0;font-size:14px;color:rgba(255,255,255,0.92);line-height:1.6;">
               Commune de <strong>${escapeHtml(commune)}</strong>
               &nbsp;·&nbsp;${byQuartier.size} quartier${byQuartier.size > 1 ? "s" : ""}
-              &nbsp;·&nbsp;<strong>${totalCitizens}</strong> ${isMairie ? `citoyen${totalCitizens > 1 ? "s" : ""} demandant réparation` : `foyer${totalCitizens > 1 ? "s" : ""} concerné${totalCitizens > 1 ? "s" : ""}`}
+              &nbsp;·&nbsp;<strong>${totalCitizens}</strong> citoyen${totalCitizens > 1 ? "s" : ""} concerné${totalCitizens > 1 ? "s" : ""}
             </p>
           </td>
         </tr>
 
         <!-- Corps -->
         <tr><td style="padding:28px 32px;">
-
-          <!-- Salutation -->
           <p style="margin:0 0 18px;color:#374151;font-size:14px;line-height:1.8;">
             ${salutation}
           </p>
-
           ${introBody}
-
           ${verifiedBlock}
 
           <!-- Tableau des quartiers -->
@@ -281,35 +271,20 @@ function buildBatchEmailHtml(
             ${reportRows}
           </table>
 
-          <!-- Clôture -->
           <p style="margin:0 0 24px;color:#374151;font-size:14px;line-height:1.8;">
-            ${closingText}
+            Nous restons à votre disposition pour mesurer et publier l'avancement des actions de résolution en faveur des usagers.
           </p>
 
-          ${isMairie ? `
-          <p style="margin:0 0 24px;color:#374151;font-size:14px;line-height:1.8;">
-            Veuillez agréer, Monsieur le Directeur, l'expression de notre considération distinguée.
-          </p>
-          <p style="margin:0 0 24px;color:#374151;font-size:13px;line-height:1.6;">
-            <strong>L'équipe SIGNA-CI</strong><br>
-            Plateforme citoyenne de signalement des services publics<br>
-            <a href="https://civic-signal-ten.vercel.app" style="color:${accentColor};text-decoration:none;">signa.ci</a>
-            &nbsp;·&nbsp;
-            <a href="mailto:contact@signa.ci" style="color:${accentColor};text-decoration:none;">contact@signa.ci</a>
-          </p>` : ""}
-
-          <!-- Bouton -->
           <table width="100%"><tr><td align="center" style="padding-bottom:24px;">
             <a href="https://civic-signal-ten.vercel.app/tableau-de-bord"
                style="background:${headerGradient};color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:13px 30px;border-radius:8px;display:inline-block;letter-spacing:0.2px;">
-              Voir les signalements en ligne →
+              Voir le suivi en ligne →
             </a>
           </td></tr></table>
 
           <p style="margin:0;color:#9ca3af;font-size:12px;line-height:1.7;border-top:1px solid #e5e7eb;padding-top:20px;">
-            ${footerText}
+            Ce message est transmis par <strong>SIGNA-CI</strong>, plateforme citoyenne de suivi des services publics en Côte d'Ivoire.
           </p>
-
         </td></tr>
       </table>
     </td></tr>
@@ -383,7 +358,6 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Vérifier que le caller est un admin authentifié
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -412,7 +386,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Lire la config depuis relay_config
     const { data: configRows } = await supabase
       .from("relay_config")
       .select("key, value");
@@ -423,8 +396,9 @@ Deno.serve(async (req) => {
     const testEmail   = config["test_email"]  ?? "";
     const emailCIE    = config["email_cie"]    || "reclamation@cie.ci";
     const emailSODECI = config["email_sodeci"] || "reclamation@sodeci.ci";
+    const emailONEP   = config["email_onep"]   || "reclamation@onep.ci";
+    const emailANARE  = config["email_anare"]  || "reclamation@anare.ci";
 
-    // relay_ids obligatoires : mode manuel uniquement
     const body =
       req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const { relay_ids } = body as { relay_ids?: string[] };
@@ -442,7 +416,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 1. Charger les relay_logs sélectionnés (pending uniquement)
     const { data: relays, error: relayErr } = await supabase
       .from("relay_logs")
       .select("id, report_id, operator, email_to")
@@ -460,7 +433,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 2. Charger les signalements associés
     const reportIds = (relays as RelayLog[]).map((r) => r.report_id);
     const { data: reports } = await supabase
       .from("reports")
@@ -473,7 +445,6 @@ Deno.serve(async (req) => {
       (reports ?? []).map((r: any) => [r.id, r as Report]),
     );
 
-    // 3. Grouper par operator + commune → 1 email par groupe
     type Group = {
       operator: string;
       commune: string;
@@ -487,14 +458,16 @@ Deno.serve(async (req) => {
       const report = reportMap.get(relay.report_id);
       if (!report) continue;
 
-      // Résoudre l'email réel depuis la config
       let resolvedEmail: string;
       if (relay.operator === "CIE") {
         resolvedEmail = emailCIE;
       } else if (relay.operator === "SODECI") {
         resolvedEmail = emailSODECI;
+      } else if (relay.operator === "ONEP") {
+        resolvedEmail = emailONEP;
+      } else if (relay.operator === "ANARE") {
+        resolvedEmail = emailANARE;
       } else {
-        // MAIRIE — email par commune pilote
         const slug = report.commune
           .toLowerCase()
           .normalize("NFD")
@@ -505,7 +478,6 @@ Deno.serve(async (req) => {
         resolvedEmail = (enabled && email) ? email : "";
       }
 
-      // Mairie non configurée → ignorer ce relay
       if (!resolvedEmail) continue;
 
       const key = `${relay.operator}::${report.commune}`;
@@ -532,7 +504,11 @@ Deno.serve(async (req) => {
           ? "Coupure d'électricité"
           : group.operator === "SODECI"
             ? "Coupure d'eau"
-            : "Voirie / Infrastructure";
+            : group.operator === "ANARE"
+              ? "Qualité Électricité / Lampadaires (ANARE-CI)"
+              : group.operator === "ONEP"
+                ? "Qualité Eau / Régulation (ONEP)"
+                : "Voirie / Infrastructure";
       const quartiersStr = group.reports
         .map((r) => r.quartier)
         .join(", ");
@@ -543,7 +519,6 @@ Deno.serve(async (req) => {
         group.reports,
       );
 
-      // Mode test : rediriger vers testEmail, sinon email opérateur réel
       const finalTo = (isTestMode && testEmail) ? testEmail : group.email_to;
       const finalSubject = (isTestMode && testEmail)
         ? `[TEST → ${group.email_to}] ${subject}`
@@ -558,19 +533,21 @@ Deno.serve(async (req) => {
       });
 
       if (result.ok) {
-        // Marquer comme envoyés
         await supabase
           .from("relay_logs")
           .update({ status: "sent", sent_at: new Date().toISOString() })
           .in("id", group.relayIds);
 
-        // Notifier automatiquement chaque citoyen concerné
         const operatorName =
           group.operator === "CIE"
             ? "CIE (Électricité)"
             : group.operator === "SODECI"
               ? "SODECI (Eau)"
-              : `la Mairie de ${group.commune}`;
+              : group.operator === "ANARE"
+                ? "ANARE-CI (Régulateur Électricité)"
+                : group.operator === "ONEP"
+                  ? "ONEP (Régulateur Eau)"
+                  : `la Mairie de ${group.commune}`;
         const notifs = group.reports.map((r) => ({
           user_id: r.user_id,
           report_id: r.id,

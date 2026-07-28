@@ -13,8 +13,8 @@ import PWAInstallBanner from "@/components/PWAInstallBanner";
 import OfflineBar from "@/components/OfflineBar";
 import BottomNav from "@/components/BottomNav";
 import OnboardingSlides from "@/components/OnboardingSlides";
-import Index from "./pages/Index";
 
+const Index = lazy(() => import("./pages/Index"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const ReportPage = lazy(() => import("./pages/ReportPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
