@@ -425,6 +425,35 @@ Deno.serve(async (req) => {
 
     const body =
       req.method === "POST" ? await req.json().catch(() => ({})) : {};
+
+    // Mode direct de test de la clé Resend ou d'envoi de secours sans blocage CORS
+    if (body.action === "test_email" || body.action === "test_resend_key") {
+      const keyToUse = (body.resend_api_key || resendApiKey || "").trim();
+      const targetTo = (body.to_email || testEmail || "jeananvoh@gmail.com").trim();
+      const subjectToUse = body.subject || "[SIGNA-CI] Test de connexion API Resend";
+      const htmlToUse = body.html || "<p>Test de validation de la clé API Resend réussi !</p>";
+
+      if (!keyToUse) {
+        return new Response(
+          JSON.stringify({ ok: false, error: "Aucune clé API Resend fournie" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const testRes = await sendEmail({
+        to: targetTo,
+        subject: subjectToUse,
+        html: htmlToUse,
+        fromEmail,
+        apiKey: keyToUse,
+      });
+
+      return new Response(
+        JSON.stringify({ ok: testRes.ok, error: testRes.error }),
+        { status: testRes.ok ? 200 : 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { relay_ids } = body as { relay_ids?: string[] };
 
     if (!relay_ids || relay_ids.length === 0) {

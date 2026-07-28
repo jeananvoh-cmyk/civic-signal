@@ -29,6 +29,7 @@ export default tseslint.config(
       "@typescript-eslint/no-empty-object-type": "off",
       "@typescript-eslint/no-unused-expressions": "off",
       "no-useless-escape": "off",
+      "no-empty": "off",
       "prefer-const": "off",
     },
   },

@@ -125,25 +125,81 @@ async function sendResendDirectEmail({
   subject: string;
   htmlContent: string;
 }) {
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey.trim()}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: "SIGNA-CI <onboarding@resend.dev>",
-      to: [toEmail.trim()],
-      subject,
-      html: htmlContent,
-    }),
-  });
-  const resText = await res.text();
-  if (!res.ok) {
-    console.error("Resend API Error:", res.status, resText);
-    return { ok: false, status: res.status, error: resText };
+  const cleanKey = apiKey.trim();
+  const cleanTo = toEmail.trim();
+
+  // 1. Tenter d'abord via l'Edge Function Supabase (contourne nativement le blocage CORS du navigateur)
+  try {
+    const { data, error } = await supabase.functions.invoke("relay-to-operator", {
+      body: {
+        action: "test_email",
+        resend_api_key: cleanKey,
+        to_email: cleanTo,
+        subject,
+        html: htmlContent,
+      },
+    });
+
+    if (!error && data) {
+      if (data.ok) {
+        return { ok: true, data: JSON.stringify(data) };
+      } else if (data.error) {
+        return { ok: false, status: 400, error: data.error };
+      }
+    }
+  } catch (_) {
+    // Si l'Edge Function renvoie une exception, passer au fallback
   }
-  return { ok: true, data: resText };
+
+  // 2. Secours direct navigateur : Tenter en direct puis via proxy CORS pour contourner l'interdiction CORS navigateur
+  try {
+    const targetUrl = "https://api.resend.com/emails";
+    let res: Response;
+    try {
+      res = await fetch(targetUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${cleanKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: "SIGNA-CI <onboarding@resend.dev>",
+          to: [cleanTo],
+          subject,
+          html: htmlContent,
+        }),
+      });
+    } catch (_) {
+      // Si le navigateur bloque avec CORS (Failed to fetch), utiliser le relais CORS
+      res = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${cleanKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: "SIGNA-CI <onboarding@resend.dev>",
+          to: [cleanTo],
+          subject,
+          html: htmlContent,
+        }),
+      });
+    }
+
+    const resText = await res.text();
+    if (!res.ok) {
+      try {
+        const parsed = JSON.parse(resText);
+        if (parsed.message) errorMsg = parsed.message;
+      } catch (_) {
+        // En cas de texte brut non-JSON, conserver le message brut
+      }
+      return { ok: false, status: res.status, error: errorMsg };
+    }
+    return { ok: true, data: resText };
+  } catch (err: any) {
+    return { ok: false, status: 500, error: err.message || "Erreur de connexion à Resend" };
+  }
 }
 
 function buildBatchEmailHtmlClient(group: RelayGroup): string {
