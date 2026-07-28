@@ -240,20 +240,34 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
     const urgencyDot = isCrit ? "🔴" : isHigh ? "🟠" : "🟡";
     const urgencyText = (URGENCY_CONFIG[q.urgency]?.label || q.urgency).toUpperCase();
 
-    const locParts: string[] = [];
-    if (q.category) locParts.push(`[${q.category}]`);
-    if (q.description && q.description.trim()) locParts.push(q.description.trim());
-    if (q.landmark && q.landmark.trim()) locParts.push(`Repère : ${q.landmark.trim()}`);
-    if (q.addressText && q.addressText.trim()) locParts.push(`Adresse : ${q.addressText.trim()}`);
-    const fullDesc = locParts.length > 0 ? locParts.join(" · ") : `${serviceTitle} à ${group.commune}`;
+    const categoryLabel = q.category
+      ? q.category.replace(/_/g, " ").toUpperCase()
+      : isMairie ? "INFRASTRUCTURE / VOIRIE" : isCIE ? "ÉLECTRICITÉ" : "EAU POTABLE";
 
-    const mapsBtn = (q.lat && q.lng)
-      ? `<div style="margin-top: 6px;"><a href="https://www.google.com/maps/search/?api=1&query=${q.lat},${q.lng}" target="_blank" style="display: inline-block; padding: 4px 10px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 11px; font-weight: 700; text-decoration: none;">📍 Localiser sur Google Maps</a></div>`
-      : "";
+    const gpsRow = (q.lat && q.lng)
+      ? `
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Géolocalisation GPS</td>
+          <td style="padding: 14px 20px; color: #0f172a; font-weight: 700;">
+            📍 Lat: <code>${q.lat.toFixed(5)}</code>, Lng: <code>${q.lng.toFixed(5)}</code>
+            <div style="margin-top: 6px;">
+              <a href="https://www.google.com/maps/search/?api=1&query=${q.lat},${q.lng}" target="_blank" style="display: inline-block; padding: 6px 12px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 11px; font-weight: 700; text-decoration: none;">
+                📍 Localiser l'incident sur Google Maps
+              </a>
+            </div>
+          </td>
+        </tr>
+      `
+      : `
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Géolocalisation GPS</td>
+          <td style="padding: 14px 20px; color: #94a3b8; font-style: italic;">Non transmise par le citoyen</td>
+        </tr>
+      `;
 
     const confirmationLabel = isMairie ? "Soutien & votes citoyens" : "Confirmations voisins";
     const confirmationValue = isMairie
-      ? `<span style="color: #16a34a; font-weight: 800;">${q.verifications} citoyen(s) votant pour réparation</span>`
+      ? `<span style="color: #16a34a; font-weight: 800;">${q.verifications} citoyen(s) votant pour réparation urgente</span>`
       : `<span style="color: #16a34a; font-weight: 800;">${q.verifications} foyer(s) impacté(s)</span>`;
 
     return `
@@ -264,23 +278,28 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
         <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
           <tbody>
             <tr style="border-bottom: 1px solid #f1f5f9;">
-              <td style="padding: 14px 20px; color: #64748b; font-weight: 500; width: 38%;">Commune</td>
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 500; width: 38%;">Type / Catégorie</td>
+              <td style="padding: 14px 20px; color: #0284c7; font-weight: 800;">${categoryLabel}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Commune</td>
               <td style="padding: 14px 20px; color: #0f172a; font-weight: 800;">${group.commune}</td>
             </tr>
             <tr style="border-bottom: 1px solid #f1f5f9;">
-              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Quartier</td>
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Quartier / Secteur</td>
               <td style="padding: 14px 20px; color: #0f172a; font-weight: 800;">${q.name}</td>
+            </tr>
+            ${gpsRow}
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">${confirmationLabel}</td>
+              <td style="padding: 14px 20px;">${confirmationValue}</td>
             </tr>
             <tr style="border-bottom: 1px solid #f1f5f9;">
               <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Signalé le</td>
               <td style="padding: 14px 20px; color: #334155; font-weight: 600;">${nowStr}</td>
             </tr>
             <tr style="border-bottom: 1px solid #f1f5f9;">
-              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">${confirmationLabel}</td>
-              <td style="padding: 14px 20px;">${confirmationValue}</td>
-            </tr>
-            <tr style="border-bottom: 1px solid #f1f5f9;">
-              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Urgence</td>
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Niveau d'urgence</td>
               <td style="padding: 14px 20px; color: #0f172a; font-weight: 800;">
                 <span style="display: inline-flex; align-items: center; gap: 6px;">
                   ${urgencyDot} <strong>${urgencyText}</strong>
@@ -288,10 +307,9 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
               </td>
             </tr>
             <tr>
-              <td style="padding: 14px 20px; color: #64748b; font-weight: 500; vertical-align: top;">Description</td>
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 500; vertical-align: top;">Description / Précisions</td>
               <td style="padding: 14px 20px; color: #334155; font-weight: 500; line-height: 1.5;">
                 ${fullDesc}
-                ${mapsBtn}
               </td>
             </tr>
           </tbody>
@@ -488,7 +506,7 @@ function useRelayLogs(enabled: boolean = true) {
 
       const { data: reports } = await supabase
         .from("reports")
-        .select("id, commune, quartier, custom_quartier, address_text, landmark, description, category, service_type, verifications, urgency, meter_number, contract_type, latitude, longitude, user_id")
+        .select("id, commune, quartier, custom_quartier, address_text, landmark, description, category, service_type, report_category, verifications, urgency, meter_number, contract_type, latitude, longitude, user_id")
         .in("id", reportIds as string[]);
 
       const userIds = [...new Set((reports ?? []).map((r: any) => r.user_id).filter(Boolean))];
@@ -784,12 +802,12 @@ const AdminRelayPage = () => {
       }
 
       // 2. Mettre à jour le statut des relais en "sent" dans la base Supabase
-      try {
-        await (supabase as any).rpc("admin_mark_relay_sent", { p_relay_ids: relay_ids });
-      } catch (_) {
+      const nowIso = new Date().toISOString();
+      const { error: rpcErr } = await (supabase as any).rpc("admin_mark_relay_sent", { p_relay_ids: relay_ids });
+      if (rpcErr) {
         await (supabase as any)
           .from("relay_logs")
-          .update({ status: "sent", sent_at: new Date().toISOString() })
+          .update({ status: "sent", sent_at: nowIso })
           .in("id", relay_ids);
       }
 
@@ -1440,14 +1458,17 @@ const AdminRelayPage = () => {
                   key={log.id}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="rounded-xl border border-border bg-card overflow-hidden shadow-xs hover:border-primary/30 transition-colors"
+                  className="rounded-xl border border-border bg-card overflow-hidden shadow-xs hover:border-primary/40 transition-colors"
                 >
                   <div
-                    onClick={() => setExpandedId(isExpanded ? null : log.id)}
-                    className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/20 transition-colors"
+                    className="flex items-center justify-between p-4 hover:bg-muted/20 transition-colors"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${opCfg.bg}`}>
+                    <div
+                      onClick={() => window.open(`/admin/signalements?id=${log.report_id}`, "_blank")}
+                      className="flex items-center gap-3 min-w-0 cursor-pointer group"
+                      title="Cliquer pour ouvrir les détails de ce signalement"
+                    >
+                      <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${opCfg.bg} shrink-0 group-hover:scale-105 transition-transform`}>
                         <opCfg.icon className={`h-4 w-4 ${opCfg.color}`} />
                       </div>
                       <div className="min-w-0">
@@ -1456,14 +1477,15 @@ const AdminRelayPage = () => {
                           {log.report && (
                             <>
                               <span className="text-muted-foreground text-xs">·</span>
-                              <span className="text-sm font-semibold text-foreground truncate">
+                              <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors truncate flex items-center gap-1">
                                 {log.report.quartier} ({log.report.commune})
+                                <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
                               </span>
                             </>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
-                          <span>Cible : {log.email_to}</span>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap mt-0.5">
+                          <span>Destinataire : <strong className="text-foreground/80">{log.email_to}</strong></span>
                           {relayConfig?.test_mode === "true" && (
                             <span className="text-amber-600 font-semibold bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 text-[10px]">
                               TEST → {relayConfig?.test_email || "Email personnel de test"}
@@ -1478,16 +1500,66 @@ const AdminRelayPage = () => {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() => window.open(`/admin/signalements?id=${log.report_id}`, "_blank")}
+                        className="gap-1.5 text-xs h-8 bg-primary text-primary-foreground font-semibold shadow-xs"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        Ouvrir
+                      </Button>
                       <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusCfg.bg} ${statusCfg.color}`}>
                         <statusCfg.icon className="h-3 w-3" />
                         {statusCfg.label}
                       </span>
-                      {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                      <button
+                        onClick={() => setExpandedId(isExpanded ? null : log.id)}
+                        className="p-1 hover:bg-muted rounded-md transition-colors"
+                      >
+                        {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                      </button>
                     </div>
                   </div>
 
                   {isExpanded && (
                     <div className="border-t border-border bg-muted/30 p-4 space-y-3 text-xs">
+                      {log.report && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 bg-card p-3 rounded-lg border border-border">
+                          <div>
+                            <span className="text-muted-foreground">Catégorie :</span>{" "}
+                            <strong className="text-foreground">{log.report.category || log.report.service_type}</strong>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Votes / Soutiens :</span>{" "}
+                            <strong className="text-emerald-600 font-bold">{log.report.verifications || 1} citoyen(s)</strong>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Urgence :</span>{" "}
+                            <strong className="text-foreground">{log.report.urgency || "medium"}</strong>
+                          </div>
+                          {log.report.latitude && log.report.longitude && (
+                            <div className="col-span-full">
+                              <span className="text-muted-foreground">Coordonnées GPS :</span>{" "}
+                              <code className="text-foreground font-mono">{log.report.latitude.toFixed(5)}, {log.report.longitude.toFixed(5)}</code>
+                              <a
+                                href={`https://www.google.com/maps/search/?api=1&query=${log.report.latitude},${log.report.longitude}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="ml-2 text-primary hover:underline font-semibold"
+                              >
+                                📍 Voir sur Google Maps
+                              </a>
+                            </div>
+                          )}
+                          {log.report.description && (
+                            <div className="col-span-full border-t border-border pt-2 mt-1">
+                              <span className="text-muted-foreground">Description :</span>{" "}
+                              <p className="text-foreground/90 mt-0.5 italic">{log.report.description}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
                       {log.status === "error" && log.error_message && (
                         <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-red-600 font-mono">
                           {log.error_message}
@@ -1507,11 +1579,11 @@ const AdminRelayPage = () => {
                         )}
                         <Button
                           size="sm"
-                          variant="ghost"
+                          variant="outline"
                           onClick={() => window.open(`/admin/signalements?id=${log.report_id}`, "_blank")}
-                          className="gap-1 text-xs"
+                          className="gap-1.5 text-xs font-medium"
                         >
-                          <ExternalLink className="h-3 w-3" /> Voir le signalement
+                          <ExternalLink className="h-3.5 w-3.5 text-primary" /> Voir la fiche complète du signalement
                         </Button>
                       </div>
                     </div>
