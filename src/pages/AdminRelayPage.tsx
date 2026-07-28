@@ -6,13 +6,13 @@ import {
   Zap, Droplets, AlertTriangle, MailCheck, MapPin, Users,
   ChevronDown, ChevronUp, ExternalLink, Settings, FlaskConical,
   ShieldCheck, Save, Ban, MessageCircle, Building2, TicketCheck,
-  Scale, Copy, Eye, EyeOff, KeyRound,
+  Scale, Copy, Eye, EyeOff, KeyRound, Calendar, Filter,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, isToday, isThisWeek, isThisMonth, isThisYear, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -633,6 +633,7 @@ function groupPending(logs: RelayLog[]): RelayGroup[] {
 const AdminRelayPage = () => {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<"pending" | "history" | "settings">("pending");
+  const [historyPeriod, setHistoryPeriod] = useState<"all" | "today" | "week" | "month" | "year">("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sendingGroup, setSendingGroup] = useState<string | null>(null);
 
@@ -694,6 +695,26 @@ const AdminRelayPage = () => {
 
   const pendingGroups = groupPending(logs);
   const historyLogs   = logs.filter((l) => l.status !== "pending");
+
+  const filteredHistoryLogs = historyLogs.filter((log) => {
+    if (historyPeriod === "all") return true;
+    const dateStr = log.sent_at || log.created_at;
+    if (!dateStr) return true;
+    const date = parseISO(dateStr);
+    if (historyPeriod === "today") return isToday(date);
+    if (historyPeriod === "week") return isThisWeek(date, { locale: fr });
+    if (historyPeriod === "month") return isThisMonth(date);
+    if (historyPeriod === "year") return isThisYear(date);
+    return true;
+  });
+
+  const historyPeriodCounts = {
+    all: historyLogs.length,
+    today: historyLogs.filter((l) => l.sent_at || l.created_at ? isToday(parseISO(l.sent_at || l.created_at)) : false).length,
+    week: historyLogs.filter((l) => l.sent_at || l.created_at ? isThisWeek(parseISO(l.sent_at || l.created_at), { locale: fr }) : false).length,
+    month: historyLogs.filter((l) => l.sent_at || l.created_at ? isThisMonth(parseISO(l.sent_at || l.created_at)) : false).length,
+    year: historyLogs.filter((l) => l.sent_at || l.created_at ? isThisYear(parseISO(l.sent_at || l.created_at)) : false).length,
+  };
 
   const stats = {
     pending: logs.filter((l) => l.status === "pending").length,
@@ -799,19 +820,14 @@ const AdminRelayPage = () => {
         });
       }
 
-      // 3. Mettre à jour le statut des relais en "sent"
-      const { error: upErr } = await (supabase as any)
-        .from("relay_logs")
-        .update({ status: "sent", sent_at: new Date().toISOString() })
-        .in("id", relay_ids);
-
-      if (upErr) {
-        // En cas de restriction RLS, tenter l'RPC SECURITY DEFINER
-        try {
-          await supabase.rpc("admin_mark_relay_sent" as any, { p_relay_ids: relay_ids });
-        } catch (_) {
-          // ignore
-        }
+      // 3. Mettre à jour le statut des relais en "sent" (priorité RPC SECURITY DEFINER pour contourner RLS)
+      try {
+        await (supabase as any).rpc("admin_mark_relay_sent", { p_relay_ids: relay_ids });
+      } catch (_) {
+        await (supabase as any)
+          .from("relay_logs")
+          .update({ status: "sent", sent_at: new Date().toISOString() })
+          .in("id", relay_ids);
       }
 
       // 4. Notifier automatiquement les citoyens concernés
@@ -1405,94 +1421,142 @@ const AdminRelayPage = () => {
       ) : tab === "history" ? (
 
         /* ── VUE : HISTORIQUE ───────────────────────────────────────────── */
-        <div className="space-y-3">
-          {historyLogs.map((log) => {
-            const statusCfg = STATUS_CONFIG[log.status] ?? STATUS_CONFIG.pending;
-            const opCfg     = OPERATOR_CONFIG[log.operator] ?? OPERATOR_CONFIG.MAIRIE;
-            const isExpanded = expandedId === log.id;
-
-            return (
-              <motion.div
-                key={log.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="rounded-xl border border-border bg-card overflow-hidden"
-              >
-                <div
-                  onClick={() => setExpandedId(isExpanded ? null : log.id)}
-                  className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/20 transition-colors"
+        <div className="space-y-4">
+          {/* Barre de filtres par Période (Date, Semaine, Mois, Année) */}
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-card p-3 rounded-xl border border-border shadow-sm">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+              <Filter className="h-3.5 w-3.5 text-primary" />
+              <span>Organiser l'historique :</span>
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {[
+                { id: "all", label: "Toutes les dates", count: historyPeriodCounts.all },
+                { id: "today", label: "Aujourd'hui", count: historyPeriodCounts.today },
+                { id: "week", label: "Cette Semaine", count: historyPeriodCounts.week },
+                { id: "month", label: "Ce Mois", count: historyPeriodCounts.month },
+                { id: "year", label: "Cette Année", count: historyPeriodCounts.year },
+              ].map((p) => (
+                <Button
+                  key={p.id}
+                  size="sm"
+                  variant={historyPeriod === p.id ? "default" : "outline"}
+                  onClick={() => setHistoryPeriod(p.id as any)}
+                  className={`h-7 text-xs px-2.5 gap-1.5 font-medium transition-all ${
+                    historyPeriod === p.id
+                      ? "bg-primary text-primary-foreground font-bold shadow-sm"
+                      : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                  }`}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${opCfg.bg}`}>
-                      <opCfg.icon className={`h-4 w-4 ${opCfg.color}`} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={`font-bold text-xs ${opCfg.color}`}>{opCfg.label}</span>
-                        {log.report && (
-                          <>
-                            <span className="text-muted-foreground text-xs">·</span>
-                            <span className="text-sm font-semibold text-foreground truncate">
-                              {log.report.quartier} ({log.report.commune})
+                  <span>{p.label}</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                    historyPeriod === p.id
+                      ? "bg-primary-foreground/20 text-primary-foreground"
+                      : "bg-muted-foreground/10 text-muted-foreground"
+                  }`}>
+                    {p.count}
+                  </span>
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {filteredHistoryLogs.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground text-sm border border-dashed rounded-xl p-8 bg-card/50">
+              <Calendar className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+              <p className="font-semibold">Aucun envoi dans l'historique pour cette période.</p>
+              <p className="text-xs text-muted-foreground mt-1">Sélectionnez un autre filtre ou transmettez un nouveau rapport depuis l'onglet « À envoyer ».</p>
+            </div>
+          ) : (
+            filteredHistoryLogs.map((log) => {
+              const statusCfg = STATUS_CONFIG[log.status] ?? STATUS_CONFIG.pending;
+              const opCfg     = OPERATOR_CONFIG[log.operator] ?? OPERATOR_CONFIG.MAIRIE;
+              const isExpanded = expandedId === log.id;
+
+              return (
+                <motion.div
+                  key={log.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="rounded-xl border border-border bg-card overflow-hidden shadow-xs hover:border-primary/30 transition-colors"
+                >
+                  <div
+                    onClick={() => setExpandedId(isExpanded ? null : log.id)}
+                    className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/20 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${opCfg.bg}`}>
+                        <opCfg.icon className={`h-4 w-4 ${opCfg.color}`} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={`font-bold text-xs ${opCfg.color}`}>{opCfg.label}</span>
+                          {log.report && (
+                            <>
+                              <span className="text-muted-foreground text-xs">·</span>
+                              <span className="text-sm font-semibold text-foreground truncate">
+                                {log.report.quartier} ({log.report.commune})
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                          <span>Cible : {log.email_to}</span>
+                          {relayConfig?.test_mode === "true" && (
+                            <span className="text-amber-600 font-semibold bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 text-[10px]">
+                              TEST → {relayConfig?.test_email || "Email personnel de test"}
                             </span>
-                          </>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
-                        <span>Cible : {log.email_to}</span>
-                        {relayConfig?.test_mode === "true" && (
-                          <span className="text-amber-600 font-semibold bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 text-[10px]">
-                            TEST → {relayConfig?.test_email || "Email personnel de test"}
+                          )}
+                          <span>·</span>
+                          <span className="font-medium text-foreground/80">
+                            {format(new Date(log.sent_at || log.created_at), "d MMMM yyyy à HH:mm", { locale: fr })}
                           </span>
-                        )}
-                        <span>·</span>
-                        <span>{format(new Date(log.created_at), "d MMM yyyy à HH:mm", { locale: fr })}</span>
-                      </p>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusCfg.bg} ${statusCfg.color}`}>
+                        <statusCfg.icon className="h-3 w-3" />
+                        {statusCfg.label}
+                      </span>
+                      {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusCfg.bg} ${statusCfg.color}`}>
-                      <statusCfg.icon className="h-3 w-3" />
-                      {statusCfg.label}
-                    </span>
-                    {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-                  </div>
-                </div>
-
-                {isExpanded && (
-                  <div className="border-t border-border bg-muted/30 p-4 space-y-3 text-xs">
-                    {log.status === "error" && log.error_message && (
-                      <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-red-600 font-mono">
-                        {log.error_message}
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2">
-                      {log.status === "error" && (
+                  {isExpanded && (
+                    <div className="border-t border-border bg-muted/30 p-4 space-y-3 text-xs">
+                      {log.status === "error" && log.error_message && (
+                        <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-red-600 font-mono">
+                          {log.error_message}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        {log.status === "error" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => retryRelay.mutate(log.id)}
+                            disabled={retryRelay.isPending}
+                            className="gap-1 text-xs"
+                          >
+                            <RefreshCw className="h-3 w-3" /> Réessayer
+                          </Button>
+                        )}
                         <Button
                           size="sm"
-                          variant="outline"
-                          onClick={() => retryRelay.mutate(log.id)}
-                          disabled={retryRelay.isPending}
+                          variant="ghost"
+                          onClick={() => window.open(`/admin/signalements?id=${log.report_id}`, "_blank")}
                           className="gap-1 text-xs"
                         >
-                          <RefreshCw className="h-3 w-3" /> Réessayer
+                          <ExternalLink className="h-3 w-3" /> Voir le signalement
                         </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => window.open(`/admin/signalements?id=${log.report_id}`, "_blank")}
-                        className="gap-1 text-xs"
-                      >
-                        <ExternalLink className="h-3 w-3" /> Voir le signalement
-                      </Button>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </motion.div>
-            );
-          })}
+                  )}
+                </motion.div>
+              );
+            })
+          )}
         </div>
 
       ) : tab === "settings" && effectiveConfig ? (
