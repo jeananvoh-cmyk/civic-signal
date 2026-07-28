@@ -6,7 +6,7 @@ import {
   Zap, Droplets, AlertTriangle, MailCheck, MapPin, Users,
   ChevronDown, ChevronUp, ExternalLink, Settings, FlaskConical,
   ShieldCheck, Save, Ban, MessageCircle, Building2, TicketCheck,
-  Scale, Copy,
+  Scale, Copy, Eye, EyeOff, KeyRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -99,6 +99,17 @@ interface RelayConfig {
   whatsapp_onep:  string;
   whatsapp_anare: string;
   [key: string]: string;
+}
+
+// ─── Masquage sécurisé des clés API ─────────────────────────────────────────
+
+function maskApiKey(key: string | undefined | null): string {
+  if (!key || key.trim() === "") return "";
+  const trimmed = key.trim();
+  if (trimmed.length <= 6) return "••••••••";
+  const prefix = trimmed.startsWith("re_") ? "re_" : trimmed.slice(0, 3);
+  const suffix = trimmed.slice(-4);
+  return `${prefix}••••••••${suffix}`;
 }
 
 // ─── Envoi direct d'emails via l'API Resend ──────────────────────────────────
@@ -438,6 +449,55 @@ const AdminRelayPage = () => {
   const { data: relayConfig, refetch: refetchConfig } = useRelayConfig();
   const [draftConfig, setDraftConfig] = useState<RelayConfig | null>(null);
   const effectiveConfig = draftConfig ?? relayConfig;
+
+  const [showResendKey, setShowResendKey] = useState(false);
+  const [testingKey, setTestingKey] = useState(false);
+
+  const handleTestKey = async () => {
+    const key = (effectiveConfig?.resend_api_key || "").trim();
+    if (!key) {
+      toast({
+        title: "Aucune clé Resend",
+        description: "Veuillez d'abord saisir votre clé API Resend (re_...).",
+        variant: "destructive",
+      });
+      return;
+    }
+    setTestingKey(true);
+    try {
+      const targetEmail = (effectiveConfig?.test_email || "jeananvoh@gmail.com").trim();
+      const res = await sendResendDirectEmail({
+        apiKey: key,
+        toEmail: targetEmail,
+        subject: "[SIGNA-CI] Test de connexion Clé API Resend",
+        htmlContent: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #10b981; border-radius: 8px;">
+          <h2 style="color: #10b981;">✅ Clé API Resend Fonctionnelle</h2>
+          <p>Félicitations ! Votre clé API Resend est correctement configurée et active sur SIGNA-CI.</p>
+          <p style="color: #6b7280; font-size: 12px;">Test réalisé le ${new Date().toLocaleString("fr-FR")}</p>
+        </div>`,
+      });
+      if (res.ok) {
+        toast({
+          title: "✅ Clé API Resend Valide !",
+          description: `Un email de test de confirmation a été distribué à ${targetEmail}.`,
+        });
+      } else {
+        toast({
+          title: "❌ Échec de la validation Resend",
+          description: `Resend a refusé la clé (${res.status}) : ${res.error}`,
+          variant: "destructive",
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Erreur lors du test",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setTestingKey(false);
+    }
+  };
 
   // Polling automatique actif seulement en mode pending/history (desactivé en mode settings pour éviter les sauts)
   const { data: logs = [], isLoading, dataUpdatedAt } = useRelayLogs(tab !== "settings");
@@ -1298,22 +1358,68 @@ const AdminRelayPage = () => {
                   />
                 </div>
 
-                <div className="pt-2 border-t border-border/50">
-                  <label className="text-xs font-semibold text-foreground flex items-center justify-between mb-1.5">
-                    <span>Clé API Resend (`re_...`)</span>
-                    <span className="text-[10px] text-muted-foreground font-normal">Depuis votre compte resend.com/api-keys</span>
-                  </label>
-                  <input
-                    type="password"
-                    value={effectiveConfig.resend_api_key ?? ""}
-                    onChange={(e) =>
-                      setDraftConfig({ ...(effectiveConfig as RelayConfig), resend_api_key: e.target.value })
-                    }
-                    placeholder="re_123456789..."
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/40"
-                  />
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    Insérez ici votre clé API Resend pour recevoir les vrais emails HTML formatés dans votre boîte mail.
+                <div className="pt-3 border-t border-border/50 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <KeyRound className="h-3.5 w-3.5 text-primary" />
+                      <span>Clé API Resend (`re_...`)</span>
+                    </label>
+                    <span className="text-[10px] text-muted-foreground font-normal">Depuis resend.com/api-keys</span>
+                  </div>
+
+                  {/* Indicateur visuel de statut de la clé */}
+                  {effectiveConfig.resend_api_key && effectiveConfig.resend_api_key.trim() !== "" ? (
+                    <div className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <div>
+                          <span className="font-semibold">Clé configurée &amp; sécurisée : </span>
+                          <code className="font-mono text-xs bg-emerald-500/20 px-1.5 py-0.5 rounded">
+                            {maskApiKey(effectiveConfig.resend_api_key)}
+                          </code>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={handleTestKey}
+                        disabled={testingKey}
+                        className="h-7 text-[11px] border-emerald-500/40 hover:bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 gap-1"
+                      >
+                        <Zap className={`h-3 w-3 ${testingKey ? "animate-spin" : ""}`} />
+                        {testingKey ? "Test..." : "Tester la clé"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+                      <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                      <span>Aucune clé API Resend enregistrée (Emails uniquement simulés).</span>
+                    </div>
+                  )}
+
+                  {/* Saisie avec bouton Oeil de masquage */}
+                  <div className="relative">
+                    <input
+                      type={showResendKey ? "text" : "password"}
+                      value={effectiveConfig.resend_api_key ?? ""}
+                      onChange={(e) =>
+                        setDraftConfig({ ...(effectiveConfig as RelayConfig), resend_api_key: e.target.value })
+                      }
+                      placeholder="Collez votre clé re_123456789..."
+                      className="w-full rounded-lg border border-border bg-background pl-3 pr-10 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowResendKey(!showResendKey)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                      title={showResendKey ? "Masquer la clé" : "Afficher la clé"}
+                    >
+                      {showResendKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    🔒 La clé est stockée de manière sécurisée. Seuls les 4 derniers caractères apparaissent dans l'indicateur de statut.
                   </p>
                 </div>
               </div>
