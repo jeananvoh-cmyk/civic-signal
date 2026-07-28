@@ -729,6 +729,9 @@ const AdminRelayPage = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sendingGroup, setSendingGroup] = useState<string | null>(null);
 
+  const [pendingOpFilter, setPendingOpFilter] = useState<string>("ALL");
+  const [bulkSending, setBulkSending] = useState<boolean>(false);
+
   const { data: relayConfig, refetch: refetchConfig } = useRelayConfig();
   const [draftConfig, setDraftConfig] = useState<RelayConfig | null>(null);
   const effectiveConfig = draftConfig ?? relayConfig;
@@ -963,6 +966,35 @@ const AdminRelayPage = () => {
     },
     onSettled: () => setSendingGroup(null),
   });
+
+  const sendAllOperatorGroups = async (opFilter: string) => {
+    const targets = pendingGroups.filter((g) => opFilter === "ALL" || g.operator === opFilter);
+    if (targets.length === 0) return;
+
+    setBulkSending(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const group of targets) {
+      try {
+        await sendGroup.mutateAsync({
+          relay_ids: group.relayIds,
+          groupKey: group.key,
+        });
+        successCount++;
+      } catch (_) {
+        failCount++;
+      }
+    }
+
+    setBulkSending(false);
+    toast({
+      title: `⚡ Envoi des relais terminé (${successCount}/${targets.length})`,
+      description: failCount > 0 
+        ? `${successCount} groupe(s) transmis avec succès. ${failCount} groupe(s) ont rencontré une alerte.`
+        : `Tous les ${successCount} groupe(s) de signalements ${opFilter !== "ALL" ? opFilter : ""} ont été transmis par e-mail avec succès.`,
+    });
+  };
 
   // ── Sauvegarder la config ──────────────────────────────────────────────────
   const saveConfig = useMutation({
@@ -1300,256 +1332,304 @@ const AdminRelayPage = () => {
       ) : tab === "pending" ? (
 
         /* ── VUE : À ENVOYER ───────────────────────────────────────────── */
-        pendingGroups.length === 0 ? (
-          <div className="rounded-2xl border border-border bg-card p-10 text-center space-y-4 shadow-sm">
-            <CheckCircle2 className="h-12 w-12 mx-auto text-emerald-500/70" />
-            <div className="space-y-1 max-w-lg mx-auto">
-              <h3 className="text-foreground font-bold text-lg">Aucun signalement en attente dans la file.</h3>
-              <p className="text-muted-foreground text-xs leading-relaxed">
-                Cliquez ci-dessous pour importer et synchroniser automatiquement tous les signalements validés de la plateforme (CIE, SODECI, ANARE-CI, ONEP et Mairies).
-              </p>
-            </div>
-            <div className="pt-2">
-              <Button
-                size="lg"
-                variant="default"
-                disabled={syncAllMutation.isPending}
-                onClick={() => syncAllMutation.mutate()}
-                className="gap-2 bg-primary text-primary-foreground font-bold shadow-md hover:scale-105 transition-transform"
-              >
-                <RefreshCw className={`h-4 w-4 ${syncAllMutation.isPending ? "animate-spin" : ""}`} />
-                {syncAllMutation.isPending ? "Synchronisation en cours..." : "⚡ Synchroniser tous les signalements validés"}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {pendingGroups.map((group) => {
-              const opCfg    = OPERATOR_CONFIG[group.operator] ?? OPERATOR_CONFIG.MAIRIE;
-              const isSending = sendingGroup === group.key;
+        (() => {
+          const filteredPendingGroups = pendingGroups.filter(
+            (g) => pendingOpFilter === "ALL" || g.operator === pendingOpFilter
+          );
 
-              return (
-                <motion.div
-                  key={group.key}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`rounded-xl border bg-card overflow-hidden ${
-                    group.hasCritical ? "border-red-500/50" : "border-border"
-                  }`}
-                >
-                  {/* Header du groupe */}
-                  <div className={`flex items-center justify-between gap-4 p-4 ${
-                    group.hasCritical ? "bg-red-500/5" : "bg-muted/20"
-                  }`}>
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-xl shrink-0 ${opCfg.bg} border ${opCfg.border}`}>
-                        <opCfg.icon className={`h-5 w-5 ${opCfg.color}`} />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className={`font-bold text-sm ${opCfg.color}`}>{opCfg.label}</span>
-                          <span className="text-muted-foreground text-xs">·</span>
-                          <span className="font-semibold text-sm text-foreground">
-                            Commune de {group.commune}
-                          </span>
-                          {group.hasCritical && (
-                            <span className="rounded-full bg-red-500/10 text-red-600 text-xs font-bold px-2 py-0.5 border border-red-500/30">
-                              CRITIQUE
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {group.quartiers.length} quartier{group.quartiers.length > 1 ? "s" : ""}
-                          </span>
-                          <span className="flex items-center gap-1 font-medium text-emerald-700 dark:text-emerald-400">
-                            <Users className="h-3 w-3 text-emerald-600" />
-                            {group.totalConfirmations} citoyen.ne(s) votant(s)
-                          </span>
-                          <span className="hidden sm:block">{group.email_to}</span>
-                        </div>
-                      </div>
-                    </div>
+          return (
+            <div className="space-y-4">
+              {/* Barre de filtrage par opérateur & Envoi groupé */}
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-card border border-border p-3 rounded-xl shadow-xs">
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                  {[
+                    { id: "ALL", label: "Tous les relais", count: pendingGroups.length },
+                    { id: "CIE", label: "⚡ CIE", count: pendingGroups.filter((g) => g.operator === "CIE").length },
+                    { id: "SODECI", label: "💧 SODECI", count: pendingGroups.filter((g) => g.operator === "SODECI").length },
+                    { id: "MAIRIE", label: "🏛️ Mairies", count: pendingGroups.filter((g) => g.operator === "MAIRIE").length },
+                    { id: "ANARE", label: "⚖️ ANARE-CI", count: pendingGroups.filter((g) => g.operator === "ANARE").length },
+                    { id: "ONEP", label: "🛡️ ONEP", count: pendingGroups.filter((g) => g.operator === "ONEP").length },
+                  ].map((f) => (
+                    <Button
+                      key={f.id}
+                      size="sm"
+                      variant={pendingOpFilter === f.id ? "default" : "outline"}
+                      onClick={() => setPendingOpFilter(f.id)}
+                      className="h-8 text-xs font-semibold gap-1.5"
+                    >
+                      <span>{f.label}</span>
+                      <span
+                        className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                          pendingOpFilter === f.id ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {f.count}
+                      </span>
+                    </Button>
+                  ))}
+                </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      {rejectConfirm === group.key ? (
-                        <>
-                          <span className="text-xs text-muted-foreground hidden sm:block">Confirmer ?</span>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-1.5 text-red-600 border-red-500/40 hover:bg-red-500/10 text-xs h-8"
-                            onClick={() => rejectGroup.mutate(group.relayIds)}
-                            disabled={rejectGroup.isPending}
-                          >
-                            <Ban className="h-3.5 w-3.5" />
-                            Oui, rejeter
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-xs h-8"
-                            onClick={() => setRejectConfirm(null)}
-                          >
-                            Annuler
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setRejectConfirm(group.key)}
-                            disabled={isSending}
-                            className="gap-1.5 text-slate-500 border-slate-400/40 hover:bg-slate-500/10 text-xs h-8"
-                          >
-                            <Ban className="h-3.5 w-3.5" />
-                            Rejeter
-                          </Button>
+                {filteredPendingGroups.length > 0 && (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    disabled={bulkSending}
+                    onClick={() => sendAllOperatorGroups(pendingOpFilter)}
+                    className="h-8 text-xs font-bold gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-sm"
+                  >
+                    <Send className={`h-3.5 w-3.5 ${bulkSending ? "animate-spin" : ""}`} />
+                    {bulkSending
+                      ? "Envoi en masse..."
+                      : pendingOpFilter === "ALL"
+                      ? `Tout envoyer par Email (${pendingGroups.length})`
+                      : `Envoyer tous les relais ${OPERATOR_CONFIG[pendingOpFilter]?.label || pendingOpFilter} (${filteredPendingGroups.length})`}
+                  </Button>
+                )}
+              </div>
 
-                          {/* WhatsApp bouton */}
-                          {(() => {
-                            const waKeyMap: Record<string, string> = {
-                              CIE: "whatsapp_cie",
-                              SODECI: "whatsapp_sodeci",
-                              ANARE: "whatsapp_anare",
-                              ONEP: "whatsapp_onep",
-                            };
-                            const waKey = waKeyMap[group.operator];
-                            const waNumber = waKey ? effectiveConfig?.[waKey]?.replace(/\D/g, "") : null;
-                            if (!waNumber) return null;
-
-                            const waMsg = buildWhatsAppMessage(group);
-                            const url = `https://wa.me/${waNumber}?text=${encodeURIComponent(waMsg)}`;
-                            const alreadySent = !!group.waSentAt;
-                            return (
-                              <div className="flex items-center gap-1.5">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="gap-1 text-muted-foreground text-xs h-8 px-2"
-                                  title="Copier le message"
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(waMsg);
-                                    toast({ title: "Message copié", description: "Collez-le dans WhatsApp." });
-                                  }}
-                                >
-                                  <Copy className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className={`gap-1.5 text-xs h-8 ${
-                                    alreadySent
-                                      ? "text-emerald-700 border-emerald-500/50 bg-emerald-500/10"
-                                      : "text-emerald-600 border-emerald-500/40 hover:bg-emerald-500/10"
-                                  }`}
-                                  onClick={() => {
-                                    window.open(url, "_blank", "noopener,noreferrer");
-                                    if (!alreadySent) {
-                                      markWaSent.mutate(group.relayIds);
-                                    }
-                                  }}
-                                >
-                                  <MessageCircle className="h-3.5 w-3.5" />
-                                  {alreadySent ? "WA renvoyé" : "WhatsApp"}
-                                </Button>
-                              </div>
-                            );
-                          })()}
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-1.5 text-slate-600 border-slate-300 hover:bg-slate-100 text-xs h-8"
-                            title="Copier le sujet et le contenu HTML du mail pour l'envoyer depuis votre boîte mail"
-                            onClick={() => {
-                              const html = buildBatchEmailHtmlClient(group);
-                              const isTest = (draftConfig?.test_mode ?? effectiveConfig?.test_mode) === "true";
-                              const testEmail = (draftConfig?.test_email || effectiveConfig?.test_email || "jeananvoh@gmail.com").trim();
-                              const finalTo = isTest ? testEmail : group.email_to;
-                              const subject = isTest
-                                ? `[TEST → ${group.email_to}] [SIGNA-CI] Rapport d'intervention — ${group.commune} (${OPERATOR_CONFIG[group.operator]?.label || group.operator})`
-                                : `[SIGNA-CI] Rapport d'intervention — ${group.commune} (${OPERATOR_CONFIG[group.operator]?.label || group.operator})`;
-                              navigator.clipboard.writeText(`DESTINATAIRE: ${finalTo}\nSUJET: ${subject}\n\n${html}`);
-                              toast({
-                                title: "📋 Email copié !",
-                                description: `Le sujet et le contenu HTML ont été copiés dans le presse-papier pour ${finalTo}.`,
-                              });
-                            }}
-                          >
-                            <Copy className="h-3.5 w-3.5 text-slate-500" />
-                            Copier Mail
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            onClick={() =>
-                              sendGroup.mutate({
-                                relay_ids: group.relayIds,
-                                groupKey: group.key,
-                              })
-                            }
-                            disabled={isSending}
-                            className={`gap-1.5 ${
-                              group.hasCritical
-                                ? "bg-red-600 hover:bg-red-700 text-white"
-                                : "bg-primary text-primary-foreground hover:bg-primary/90"
-                            }`}
-                          >
-                            <Send className="h-3.5 w-3.5" />
-                            {isSending ? "Envoi…" : `Email ${opCfg.label}`}
-                          </Button>
-                        </>
-                      )}
-                    </div>
+              {filteredPendingGroups.length === 0 ? (
+                <div className="rounded-2xl border border-border bg-card p-10 text-center space-y-4 shadow-sm">
+                  <CheckCircle2 className="h-12 w-12 mx-auto text-emerald-500/70" />
+                  <div className="space-y-1 max-w-lg mx-auto">
+                    <h3 className="text-foreground font-bold text-lg">
+                      {pendingOpFilter === "ALL"
+                        ? "Aucun signalement en attente dans la file."
+                        : `Aucun signalement ${pendingOpFilter} en attente dans cette catégorie.`}
+                    </h3>
+                    <p className="text-muted-foreground text-xs leading-relaxed">
+                      Cliquez ci-dessous pour importer et synchroniser automatiquement tous les signalements validés de la plateforme (CIE, SODECI, ANARE-CI, ONEP et Mairies).
+                    </p>
                   </div>
+                  <div className="pt-2">
+                    <Button
+                      size="lg"
+                      variant="default"
+                      disabled={syncAllMutation.isPending}
+                      onClick={() => syncAllMutation.mutate()}
+                      className="gap-2 bg-primary text-primary-foreground font-bold shadow-md hover:scale-105 transition-transform"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${syncAllMutation.isPending ? "animate-spin" : ""}`} />
+                      {syncAllMutation.isPending ? "Synchronisation en cours..." : "⚡ Synchroniser tous les signalements validés"}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                filteredPendingGroups.map((group) => {
+                  const opCfg = OPERATOR_CONFIG[group.operator] ?? OPERATOR_CONFIG.MAIRIE;
+                  const isSending = sendingGroup === group.key;
 
-                  {/* Liste des quartiers */}
-                  <div className="divide-y divide-border">
-                    {group.quartiers.map((q, idx) => {
-                      const urgCfg = URGENCY_CONFIG[q.urgency] ?? URGENCY_CONFIG.low;
-                      const displayName = (q.name === "__other" || q.name === "Autre") ? "Secteur non spécifié" : q.name;
-                      const confirmationBadge = `${q.verifications} citoyen.ne(s) votant(s)`;
-                      const targetReportId = q.reportId || group.relayIds[0];
-
-                      return (
-                        <div
-                          key={idx}
-                          className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/10 transition-colors"
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-sm font-semibold text-foreground truncate">{displayName}</span>
-                            {q.count && q.count > 1 && (
-                              <span className="text-xs text-muted-foreground shrink-0">({q.count} signalements)</span>
-                            )}
+                  return (
+                    <motion.div
+                      key={group.key}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`rounded-xl border bg-card overflow-hidden ${
+                        group.hasCritical ? "border-red-500/50" : "border-border"
+                      }`}
+                    >
+                      {/* Header du groupe */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-card border-b border-border">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${opCfg.bg} shrink-0`}>
+                            <opCfg.icon className={`h-5 w-5 ${opCfg.color}`} />
                           </div>
-                          <div className="flex items-center gap-2 text-xs shrink-0">
-                            <span className="text-emerald-600 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">{confirmationBadge}</span>
-                            <span className={urgCfg.color}>{urgCfg.label}</span>
-                            {targetReportId && (
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`font-bold text-sm ${opCfg.color}`}>{opCfg.label}</span>
+                              <span className="text-muted-foreground text-xs">·</span>
+                              <span className="font-semibold text-sm text-foreground">
+                                Commune de {group.commune}
+                              </span>
+                              {group.hasCritical && (
+                                <span className="rounded-full bg-red-500/10 text-red-600 text-xs font-bold px-2 py-0.5 border border-red-500/30">
+                                  CRITIQUE
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                {group.quartiers.length} quartier{group.quartiers.length > 1 ? "s" : ""}
+                              </span>
+                              <span className="flex items-center gap-1 font-medium text-emerald-700 dark:text-emerald-400">
+                                <Users className="h-3 w-3 text-emerald-600" />
+                                {group.totalConfirmations} citoyen.ne(s) votant(s)
+                              </span>
+                              <span className="hidden sm:block">{group.email_to}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {rejectConfirm === group.key ? (
+                            <>
+                              <span className="text-xs text-muted-foreground hidden sm:block">Confirmer ?</span>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => window.open(`/signalement/${targetReportId}`, "_blank")}
-                                className="gap-1 text-xs h-7 px-2 border-primary/40 text-primary hover:bg-primary/10 font-semibold"
-                                title="Ouvrir la fiche complète du signalement"
+                                className="gap-1.5 text-red-600 border-red-500/40 hover:bg-red-500/10 text-xs h-8"
+                                onClick={() => rejectGroup.mutate(group.relayIds)}
+                                disabled={rejectGroup.isPending}
                               >
-                                <ExternalLink className="h-3 w-3" />
-                                Voir le signalement
+                                <Ban className="h-3.5 w-3.5" />
+                                Oui, rejeter
                               </Button>
-                            )}
-                          </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-xs h-8"
+                                onClick={() => setRejectConfirm(null)}
+                              >
+                                Annuler
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setRejectConfirm(group.key)}
+                                disabled={isSending}
+                                className="gap-1.5 text-slate-500 border-slate-400/40 hover:bg-slate-500/10 text-xs h-8"
+                              >
+                                <Ban className="h-3.5 w-3.5" />
+                                Rejeter
+                              </Button>
+
+                              {/* WhatsApp bouton */}
+                              {(() => {
+                                const waKeyMap: Record<string, string> = {
+                                  CIE: "whatsapp_cie",
+                                  SODECI: "whatsapp_sodeci",
+                                  ANARE: "whatsapp_anare",
+                                  ONEP: "whatsapp_onep",
+                                };
+                                const waKey = waKeyMap[group.operator];
+                                const waNumber = waKey ? effectiveConfig?.[waKey]?.replace(/\D/g, "") : null;
+
+                                const text = buildBatchEmailTextClient(group);
+                                const encoded = encodeURIComponent(text);
+                                const url = waNumber
+                                  ? `https://wa.me/${waNumber}?text=${encoded}`
+                                  : `https://wa.me/?text=${encoded}`;
+
+                                const alreadySent = !!group.waSentAt;
+
+                                return (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className={`gap-1.5 text-xs h-8 ${
+                                      alreadySent
+                                        ? "text-emerald-700 border-emerald-500/50 bg-emerald-500/10"
+                                        : "text-emerald-600 border-emerald-500/40 hover:bg-emerald-500/10"
+                                    }`}
+                                    onClick={() => {
+                                      window.open(url, "_blank", "noopener,noreferrer");
+                                      if (!alreadySent) {
+                                        markWaSent.mutate(group.relayIds);
+                                      }
+                                    }}
+                                  >
+                                    <MessageCircle className="h-3.5 w-3.5" />
+                                    {alreadySent ? "WA renvoyé" : "WhatsApp"}
+                                  </Button>
+                                );
+                              })()}
+
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1.5 text-slate-600 border-slate-300 hover:bg-slate-100 text-xs h-8"
+                                title="Copier le sujet et le contenu HTML du mail pour l'envoyer depuis votre boîte mail"
+                                onClick={() => {
+                                  const html = buildBatchEmailHtmlClient(group);
+                                  const isTest = (draftConfig?.test_mode ?? effectiveConfig?.test_mode) === "true";
+                                  const testEmail = (draftConfig?.test_email || effectiveConfig?.test_email || "jeananvoh@gmail.com").trim();
+                                  const finalTo = isTest ? testEmail : group.email_to;
+                                  const subject = isTest
+                                    ? `[TEST → ${group.email_to}] [SIGNA-CI] Rapport d'intervention — ${group.commune} (${OPERATOR_CONFIG[group.operator]?.label || group.operator})`
+                                    : `[SIGNA-CI] Rapport d'intervention — ${group.commune} (${OPERATOR_CONFIG[group.operator]?.label || group.operator})`;
+                                  navigator.clipboard.writeText(`DESTINATAIRE: ${finalTo}\nSUJET: ${subject}\n\n${html}`);
+                                  toast({
+                                    title: "📋 Email copié !",
+                                    description: `Le sujet et le contenu HTML ont été copiés dans le presse-papier pour ${finalTo}.`,
+                                  });
+                                }}
+                              >
+                                <Copy className="h-3.5 w-3.5 text-slate-500" />
+                                Copier Mail
+                              </Button>
+
+                              <Button
+                                size="sm"
+                                onClick={() =>
+                                  sendGroup.mutate({
+                                    relay_ids: group.relayIds,
+                                    groupKey: group.key,
+                                  })
+                                }
+                                disabled={isSending}
+                                className={`gap-1.5 ${
+                                  group.hasCritical
+                                    ? "bg-red-600 hover:bg-red-700 text-white"
+                                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                                }`}
+                              >
+                                <Send className="h-3.5 w-3.5" />
+                                {isSending ? "Envoi…" : `Email ${opCfg.label}`}
+                              </Button>
+                            </>
+                          )}
                         </div>
-                      );
-                    })}
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        )
+                      </div>
+
+                      {/* Liste des quartiers */}
+                      <div className="divide-y divide-border">
+                        {group.quartiers.map((q, idx) => {
+                          const urgCfg = URGENCY_CONFIG[q.urgency] ?? URGENCY_CONFIG.low;
+                          const displayName = (q.name === "__other" || q.name === "Autre") ? "Secteur non spécifié" : q.name;
+                          const confirmationBadge = `${q.verifications} citoyen.ne(s) votant(s)`;
+                          const targetReportId = q.reportId || group.relayIds[0];
+
+                          return (
+                            <div
+                              key={idx}
+                              className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/10 transition-colors"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-sm font-semibold text-foreground truncate">{displayName}</span>
+                                {q.count && q.count > 1 && (
+                                  <span className="text-xs text-muted-foreground shrink-0">({q.count} signalements)</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 text-xs shrink-0">
+                                <span className="text-emerald-600 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">{confirmationBadge}</span>
+                                <span className={urgCfg.color}>{urgCfg.label}</span>
+                                {targetReportId && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => window.open(`/signalement/${targetReportId}`, "_blank")}
+                                    className="gap-1 text-xs h-7 px-2 border-primary/40 text-primary hover:bg-primary/10 font-semibold"
+                                    title="Ouvrir la fiche complète du signalement"
+                                  >
+                                    <ExternalLink className="h-3 w-3" />
+                                    Voir le signalement
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  );
+                })
+              )}
+            </div>
+          );
+        })()
       ) : tab === "history" ? (
 
         /* ── VUE : HISTORIQUE ───────────────────────────────────────────── */
