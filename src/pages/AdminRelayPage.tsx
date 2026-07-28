@@ -151,55 +151,50 @@ async function sendResendDirectEmail({
     // Si l'Edge Function renvoie une exception, passer au fallback
   }
 
-  // 2. Secours direct navigateur : Tenter en direct puis via proxy CORS pour contourner l'interdiction CORS navigateur
-  try {
-    const targetUrl = "https://api.resend.com/emails";
-    let res: Response;
-    try {
-      res = await fetch(targetUrl, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${cleanKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: "SIGNA-CI <onboarding@resend.dev>",
-          to: [cleanTo],
-          subject,
-          html: htmlContent,
-        }),
-      });
-    } catch (_) {
-      // Si le navigateur bloque avec CORS (Failed to fetch), utiliser le relais CORS
-      res = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${cleanKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: "SIGNA-CI <onboarding@resend.dev>",
-          to: [cleanTo],
-          subject,
-          html: htmlContent,
-        }),
-      });
-    }
+  // 2. Tenter via le proxy Same-Origin Vercel (/api/resend-proxy) puis direct
+  const endpoints = [
+    "/api/resend-proxy",
+    "https://api.resend.com/emails",
+  ];
 
-    const resText = await res.text();
-    if (!res.ok) {
+  for (const endpoint of endpoints) {
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${cleanKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: "SIGNA-CI <onboarding@resend.dev>",
+          to: [cleanTo],
+          subject,
+          html: htmlContent,
+        }),
+      });
+
+      const resText = await res.text();
+      if (res.ok) {
+        return { ok: true, data: resText };
+      }
+
+      let errorMsg = resText;
       try {
         const parsed = JSON.parse(resText);
         if (parsed.message) errorMsg = parsed.message;
       } catch (_) {
         // En cas de texte brut non-JSON, conserver le message brut
       }
-      return { ok: false, status: res.status, error: errorMsg };
+
+      if (res.status === 401 || res.status === 403 || res.status === 422) {
+        return { ok: false, status: res.status, error: errorMsg };
+      }
+    } catch (_) {
+      // continuer sur le point de terminaison suivant en cas d'erreur reseau
     }
-    return { ok: true, data: resText };
-  } catch (err: any) {
-    return { ok: false, status: 500, error: err.message || "Erreur de connexion à Resend" };
   }
+
+  return { ok: false, status: 500, error: "Impossible de contacter l'API Resend." };
 }
 
 function buildBatchEmailHtmlClient(group: RelayGroup): string {

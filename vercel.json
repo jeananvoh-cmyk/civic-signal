@@ -3,6 +3,10 @@
   "installCommand": "npm install",
   "rewrites": [
     {
+      "source": "/api/resend-proxy",
+      "destination": "https://api.resend.com/emails"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
