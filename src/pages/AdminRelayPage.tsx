@@ -160,54 +160,83 @@ async function sendResendDirectEmail({
   htmlContent: string;
 }) {
   const cleanKey = apiKey.trim();
-  const cleanTo = toEmail.trim();
+  const cleanTo = toEmail.trim().toLowerCase();
 
   if (!cleanKey) {
-    return { ok: false, status: 400, error: "Aucune clé API Resend renseignée." };
+    return { ok: false, status: 400, error: "Aucune clé API Resend renseignée dans Paramètres." };
   }
 
-  // Tenter l'envoi direct via le proxy Same-Origin Vercel (/api/resend-proxy) puis directement vers l'API Resend
+  // 1. Tenter d'abord l'Edge Function Supabase (si l'admin est connecté, contourne les adblockers et CORS)
+  try {
+    const { data: edgeRes, error: edgeErr } = await supabase.functions.invoke("relay-to-operator", {
+      body: {
+        action: "test_email",
+        resend_api_key: cleanKey,
+        to_email: cleanTo,
+        subject,
+        html: htmlContent,
+      },
+    });
+
+    if (!edgeErr && edgeRes && edgeRes.ok) {
+      return { ok: true, data: JSON.stringify(edgeRes), id: edgeRes.id || "edge-sent" };
+    }
+  } catch (_) {
+    // Continuer vers les requêtes directes Resend
+  }
+
+  // 2. Tenter via le proxy Vercel (/api/resend-proxy) et l'API directe Resend
   const endpoints = [
     "/api/resend-proxy",
     "https://api.resend.com/emails",
   ];
 
+  const fromVariants = [
+    "onboarding@resend.dev",
+    "SIGNA-CI <onboarding@resend.dev>",
+  ];
+
   let lastError = "Impossible de contacter l'API Resend.";
 
   for (const endpoint of endpoints) {
-    try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${cleanKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: "SIGNA-CI <onboarding@resend.dev>",
-          to: [cleanTo],
-          subject,
-          html: htmlContent,
-        }),
-      });
-
-      const resText = await res.text();
-      let parsed: any = null;
+    for (const fromAddr of fromVariants) {
       try {
-        parsed = JSON.parse(resText);
-      } catch (_) {}
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${cleanKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: fromAddr,
+            to: [cleanTo],
+            subject,
+            html: htmlContent,
+          }),
+        });
 
-      if (res.ok) {
-        return { ok: true, data: resText, id: parsed?.id };
+        const resText = await res.text();
+        let parsed: any = null;
+        try {
+          parsed = JSON.parse(resText);
+        } catch (_) {}
+
+        if (res.ok && parsed?.id) {
+          return { ok: true, data: resText, id: parsed.id };
+        }
+        if (res.ok) {
+          return { ok: true, data: resText, id: "sent-ok" };
+        }
+
+        const errorMsg = parsed?.message || parsed?.name || resText || `Erreur HTTP ${res.status}`;
+        lastError = errorMsg;
+
+        if (res.status === 401 || res.status === 403 || res.status === 422) {
+          return { ok: false, status: res.status, error: errorMsg };
+        }
+      } catch (err: any) {
+        lastError = err?.message || lastError;
       }
-
-      const errorMsg = parsed?.message || parsed?.name || resText || `Erreur HTTP ${res.status}`;
-      lastError = errorMsg;
-
-      if (res.status === 401 || res.status === 403 || res.status === 422) {
-        return { ok: false, status: res.status, error: errorMsg };
-      }
-    } catch (err: any) {
-      lastError = err?.message || lastError;
     }
   }
 
@@ -808,7 +837,13 @@ const AdminRelayPage = () => {
       });
 
       if (!resendRes.ok) {
-        throw new Error(`Resend a refusé l'envoi (${resendRes.status}) : ${resendRes.error || "Vérifiez que votre adresse e-mail destinataire est autorisée dans Resend."}`);
+        let diag = resendRes.error || "Refus d'envoi par l'API Resend.";
+        if (resendRes.status === 403 || diag.toLowerCase().includes("only send to your own")) {
+          diag = `Resend en Mode Sandbox restreint l'envoi vers l'adresse exacte de votre compte Resend.com. Pour envoyer à (${finalTo}), renseignez cette adresse comme 'Email de test' dans l'onglet Paramètres ou ajoutez votre domaine sur Resend.com.`;
+        } else if (resendRes.status === 401 || diag.toLowerCase().includes("invalid api key")) {
+          diag = "La clé API Resend renseignée est invalide. Veuillez vérifier votre clé (re_...) dans l'onglet Paramètres.";
+        }
+        throw new Error(diag);
       }
 
       // 2. Mettre à jour le statut des relais en "sent" dans la base Supabase
@@ -1371,6 +1406,30 @@ const AdminRelayPage = () => {
                               </div>
                             );
                           })()}
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 text-slate-600 border-slate-300 hover:bg-slate-100 text-xs h-8"
+                            title="Copier le sujet et le contenu HTML du mail pour l'envoyer depuis votre boîte mail"
+                            onClick={() => {
+                              const html = buildBatchEmailHtmlClient(group);
+                              const isTest = (draftConfig?.test_mode ?? effectiveConfig?.test_mode) === "true";
+                              const testEmail = (draftConfig?.test_email || effectiveConfig?.test_email || "jeananvoh@gmail.com").trim();
+                              const finalTo = isTest ? testEmail : group.email_to;
+                              const subject = isTest
+                                ? `[TEST → ${group.email_to}] [SIGNA-CI] Rapport d'intervention — ${group.commune} (${OPERATOR_CONFIG[group.operator]?.label || group.operator})`
+                                : `[SIGNA-CI] Rapport d'intervention — ${group.commune} (${OPERATOR_CONFIG[group.operator]?.label || group.operator})`;
+                              navigator.clipboard.writeText(`DESTINATAIRE: ${finalTo}\nSUJET: ${subject}\n\n${html}`);
+                              toast({
+                                title: "📋 Email copié !",
+                                description: `Le sujet et le contenu HTML ont été copiés dans le presse-papier pour ${finalTo}.`,
+                              });
+                            }}
+                          >
+                            <Copy className="h-3.5 w-3.5 text-slate-500" />
+                            Copier Mail
+                          </Button>
 
                           <Button
                             size="sm"
