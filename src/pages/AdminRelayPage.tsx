@@ -291,6 +291,65 @@ async function sendResendDirectEmail({
   return { ok: false, status: bestStatus, error: bestError };
 }
 
+// ─── Helpers de Date Sécurisés ────────────────────────────────────────────────
+
+function safeParseDate(dateStr?: string | null): Date | null {
+  if (!dateStr || typeof dateStr !== "string") return null;
+  try {
+    const parsed = parseISO(dateStr);
+    if (isNaN(parsed.getTime())) return null;
+    return parsed;
+  } catch (_) {
+    return null;
+  }
+}
+
+function safeIsToday(dateStr?: string | null): boolean {
+  const d = safeParseDate(dateStr);
+  return d ? isToday(d) : false;
+}
+
+function safeIsThisWeek(dateStr?: string | null): boolean {
+  const d = safeParseDate(dateStr);
+  return d ? isThisWeek(d, { locale: fr }) : false;
+}
+
+function safeIsThisMonth(dateStr?: string | null): boolean {
+  const d = safeParseDate(dateStr);
+  return d ? isThisMonth(d) : false;
+}
+
+function safeIsThisYear(dateStr?: string | null): boolean {
+  const d = safeParseDate(dateStr);
+  return d ? isThisYear(d) : false;
+}
+
+function safeFormatDate(dateStr?: string | null, pattern: string = "d MMMM yyyy à HH:mm"): string {
+  const d = safeParseDate(dateStr);
+  if (!d) return "Date inconnue";
+  try {
+    return format(d, pattern, { locale: fr });
+  } catch (_) {
+    return "Date inconnue";
+  }
+}
+
+function safeFormatDuration(dateStr?: string | null): string {
+  const d = safeParseDate(dateStr);
+  if (!d) return "";
+  try {
+    const diffMs = Date.now() - d.getTime();
+    if (diffMs <= 0) return "Aujourd'hui";
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays <= 0) return `En cours depuis ${diffHours}h`;
+    const remHours = diffHours % 24;
+    return `En cours depuis ${diffDays}j ${remHours}h`;
+  } catch (_) {
+    return "";
+  }
+}
+
 function buildBatchEmailHtmlClient(group: RelayGroup): string {
   const isCIE = group.operator === "CIE";
   const isSODECI = group.operator === "SODECI";
@@ -842,63 +901,6 @@ const AdminRelayPage = () => {
 
   // Polling automatique actif seulement en mode pending/history (desactivé en mode settings pour éviter les sauts)
   const { data: logs = [], isLoading, dataUpdatedAt } = useRelayLogs(tab !== "settings");
-
-  const safeParseDate = (dateStr?: string | null): Date | null => {
-    if (!dateStr || typeof dateStr !== "string") return null;
-    try {
-      const parsed = parseISO(dateStr);
-      if (isNaN(parsed.getTime())) return null;
-      return parsed;
-    } catch (_) {
-      return null;
-    }
-  };
-
-  const safeIsToday = (dateStr?: string | null): boolean => {
-    const d = safeParseDate(dateStr);
-    return d ? isToday(d) : false;
-  };
-
-  const safeIsThisWeek = (dateStr?: string | null): boolean => {
-    const d = safeParseDate(dateStr);
-    return d ? isThisWeek(d, { locale: fr }) : false;
-  };
-
-  const safeIsThisMonth = (dateStr?: string | null): boolean => {
-    const d = safeParseDate(dateStr);
-    return d ? isThisMonth(d) : false;
-  };
-
-  const safeIsThisYear = (dateStr?: string | null): boolean => {
-    const d = safeParseDate(dateStr);
-    return d ? isThisYear(d) : false;
-  };
-
-  const safeFormatDate = (dateStr?: string | null, pattern: string = "d MMMM yyyy à HH:mm"): string => {
-    const d = safeParseDate(dateStr);
-    if (!d) return "Date inconnue";
-    try {
-      return format(d, pattern, { locale: fr });
-    } catch (_) {
-      return "Date inconnue";
-    }
-  };
-
-  const safeFormatDuration = (dateStr?: string | null): string => {
-    const d = safeParseDate(dateStr);
-    if (!d) return "";
-    try {
-      const diffMs = Date.now() - d.getTime();
-      if (diffMs <= 0) return "Aujourd'hui";
-      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-      const diffDays = Math.floor(diffHours / 24);
-      if (diffDays <= 0) return `En cours depuis ${diffHours}h`;
-      const remHours = diffHours % 24;
-      return `En cours depuis ${diffDays}j ${remHours}h`;
-    } catch (_) {
-      return "";
-    }
-  };
 
   const pendingGroups = groupPending(logs);
   const historyLogs   = logs.filter((l) => l.status !== "pending");
