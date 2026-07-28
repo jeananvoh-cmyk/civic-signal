@@ -1154,8 +1154,30 @@ const AdminRelayPage = () => {
         <motion.div
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-5"
+          className="space-y-5 pb-20"
         >
+          {/* En-tête des paramètres avec bouton de sauvegarde immédiat */}
+          <div className="flex items-center justify-between bg-card p-4 rounded-xl border border-border">
+            <div>
+              <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+                <Settings className="h-4 w-4 text-primary" />
+                Configuration des canaux & passerelles
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Gérez les adresses emails, numéros WhatsApp et la clé d'expedition Resend.
+              </p>
+            </div>
+            <Button
+              onClick={() => draftConfig && saveConfig.mutate(draftConfig)}
+              disabled={!draftConfig || saveConfig.isPending}
+              size="default"
+              className="gap-2 bg-primary text-primary-foreground font-bold shadow-md"
+            >
+              <Save className={`h-4 w-4 ${saveConfig.isPending ? "animate-spin" : ""}`} />
+              {saveConfig.isPending ? "Sauvegarde..." : "Enregistrer la config"}
+            </Button>
+          </div>
+
           {/* Mode test / production */}
           <div className={`rounded-xl border p-5 ${
             effectiveConfig.test_mode === "true"
@@ -1371,38 +1393,33 @@ const AdminRelayPage = () => {
             </div>
           </div>
 
-          {/* Bouton sauvegarder */}
-          {(() => {
-            const testModeBlocked =
-              effectiveConfig.test_mode === "true" &&
-              !effectiveConfig.test_email?.trim();
-            const hasDraft = draftConfig !== null;
-            return (
-              <div className="space-y-2">
-                {testModeBlocked && (
-                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-                    <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
-                      Mode TEST actif — renseignez l'email de test avant de sauvegarder.
-                    </p>
-                  </div>
-                )}
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground">
-                    {hasDraft ? "Modifications non sauvegardées" : "Configuration à jour"}
-                  </p>
-                  <Button
-                    onClick={() => draftConfig && saveConfig.mutate(draftConfig)}
-                    disabled={!hasDraft || saveConfig.isPending || testModeBlocked}
-                    className="gap-1.5"
-                  >
-                    <Save className="h-4 w-4" />
-                    {saveConfig.isPending ? "Sauvegarde…" : "Sauvegarder"}
-                  </Button>
-                </div>
+          {/* Barre de sauvegarde fixe / flottante en bas d'écran */}
+          {draftConfig !== null && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="sticky bottom-6 z-30 flex items-center justify-between rounded-2xl border border-primary/30 bg-card p-4 shadow-xl backdrop-blur-md"
+            >
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                </span>
+                <span className="text-xs font-bold text-foreground">
+                  Modifications non sauvegardées dans la configuration
+                </span>
               </div>
-            );
-          })()}
+              <Button
+                onClick={() => saveConfig.mutate(draftConfig)}
+                disabled={saveConfig.isPending}
+                size="default"
+                className="gap-2 bg-primary text-primary-foreground font-bold shadow-lg"
+              >
+                <Save className={`h-4 w-4 ${saveConfig.isPending ? "animate-spin" : ""}`} />
+                {saveConfig.isPending ? "Enregistrement..." : "💾 Enregistrer les modifications"}
+              </Button>
+            </motion.div>
+          )}
         </motion.div>
 
       ) : null}
