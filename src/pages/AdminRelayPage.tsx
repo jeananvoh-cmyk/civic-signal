@@ -265,6 +265,13 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
         </tr>
       `;
 
+    const locParts: string[] = [];
+    if (q.category) locParts.push(`[${q.category.replace(/_/g, " ")}]`);
+    if (q.description && q.description.trim()) locParts.push(q.description.trim());
+    if (q.landmark && q.landmark.trim()) locParts.push(`Repère : ${q.landmark.trim()}`);
+    if (q.addressText && q.addressText.trim()) locParts.push(`Adresse : ${q.addressText.trim()}`);
+    const fullDesc = locParts.length > 0 ? locParts.join(" · ") : `${serviceTitle} à ${group.commune}`;
+
     const confirmationLabel = isMairie ? "Soutien & votes citoyens" : "Confirmations voisins";
     const confirmationValue = isMairie
       ? `<span style="color: #16a34a; font-weight: 800;">${q.verifications} citoyen(s) votant pour réparation urgente</span>`
