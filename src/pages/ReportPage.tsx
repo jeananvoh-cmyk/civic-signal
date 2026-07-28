@@ -637,6 +637,10 @@ const ReportPage = () => {
       const hasVulnerable = babies > 0 || pregnant > 0 || elderly > 0;
 
       const canonicalQuartier = normalizeQuartier(resolvedQuartier, commune);
+      const effectiveQuartierName =
+        quartier === "__other" && customQuartier && customQuartier.trim() !== ""
+          ? customQuartier.trim()
+          : canonicalQuartier;
 
       const reportPayload = {
         user_id: user.id,
@@ -645,7 +649,8 @@ const ReportPage = () => {
         description: fullDesc,
         location: commune,
         commune,
-        quartier: canonicalQuartier,
+        quartier: effectiveQuartierName,
+        custom_quartier: quartier === "__other" ? customQuartier?.trim() || null : null,
         latitude,
         longitude,
         urgency: hasVulnerable ? "high" : "medium",

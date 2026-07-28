@@ -1315,9 +1315,9 @@ const AdminRelayPage = () => {
                             <MapPin className="h-3 w-3" />
                             {group.quartiers.length} quartier{group.quartiers.length > 1 ? "s" : ""}
                           </span>
-                          <span className="flex items-center gap-1">
-                            <Users className="h-3 w-3" />
-                            {group.totalConfirmations} confirmation{group.totalConfirmations > 1 ? "s" : ""}
+                          <span className="flex items-center gap-1 font-medium text-emerald-700 dark:text-emerald-400">
+                            <Users className="h-3 w-3 text-emerald-600" />
+                            {group.totalConfirmations} citoyen.ne(s) votant(s)
                           </span>
                           <span className="hidden sm:block">{group.email_to}</span>
                         </div>
@@ -1463,10 +1463,7 @@ const AdminRelayPage = () => {
                     {group.quartiers.map((q, idx) => {
                       const urgCfg = URGENCY_CONFIG[q.urgency] ?? URGENCY_CONFIG.low;
                       const displayName = (q.name === "__other" || q.name === "Autre") ? "Secteur non spécifié" : q.name;
-                      const isInfra = group.operator === "MAIRIE" || q.category === "infrastructure" || q.category === "eclairage_public" || q.category === "voirie";
-                      const confirmationBadge = isInfra
-                        ? `${q.verifications} citoyen(s) votant(s)`
-                        : `${q.verifications} foyer(s)`;
+                      const confirmationBadge = `${q.verifications} citoyen.ne(s) votant(s)`;
                       const targetReportId = q.reportId || group.relayIds[0];
 
                       return (
