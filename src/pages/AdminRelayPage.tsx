@@ -182,11 +182,11 @@ function useRelayLogs(enabled: boolean = true) {
   return useQuery({
     queryKey: ["admin-relay-logs-all"],
     queryFn: async () => {
-      // 1. Récupérer d'abord TOUS les logs en attente (pending)
+      // 1. Récupérer d'abord TOUS les logs en attente (pending ou null)
       const { data: pendingData, error: pendingErr } = await (supabase as any)
         .from("relay_logs")
         .select("id, report_id, operator, email_to, status, error_message, created_at, sent_at, wa_sent_at, cie_ticket_number, cie_ticket_at")
-        .eq("status", "pending")
+        .or("status.eq.pending,status.is.null")
         .order("created_at", { ascending: false });
       if (pendingErr) throw pendingErr;
 
@@ -194,6 +194,7 @@ function useRelayLogs(enabled: boolean = true) {
       const { data: historyData } = await (supabase as any)
         .from("relay_logs")
         .select("id, report_id, operator, email_to, status, error_message, created_at, sent_at, wa_sent_at, cie_ticket_number, cie_ticket_at")
+        .not("status", "is", null)
         .neq("status", "pending")
         .order("created_at", { ascending: false })
         .limit(150);
@@ -225,7 +226,7 @@ function useRelayLogs(enabled: boolean = true) {
       })) as RelayLog[];
     },
     refetchInterval: enabled ? 15_000 : false,
-    staleTime: 10_000,
+    staleTime: 5_000,
   });
 }
 
@@ -234,7 +235,7 @@ function useRelayLogs(enabled: boolean = true) {
 function groupPending(logs: RelayLog[]): RelayGroup[] {
   const map = new Map<string, RelayGroup>();
 
-  for (const log of logs.filter((l) => l.status === "pending")) {
+  for (const log of logs.filter((l) => !l.status || l.status === "pending")) {
     const rep = log.report ?? {
       id: log.report_id,
       commune: "Abidjan",

@@ -280,7 +280,17 @@ const AdminReportsPage = () => {
             if (upErr) console.error("Error updating relay_log:", upErr);
           } else {
             const { error: inErr } = await (supabase as any).from("relay_logs").insert(item);
-            if (inErr) console.error("Error inserting relay_log:", inErr);
+            if (inErr) {
+              console.error("Error inserting relay_log:", inErr);
+              if (item.operator === "ANARE" || item.operator === "ONEP") {
+                const fbOp = item.operator === "ANARE" ? "CIE" : "SODECI";
+                const { error: fbErr } = await (supabase as any).from("relay_logs").insert({
+                  ...item,
+                  operator: fbOp,
+                });
+                if (fbErr) console.error("Fallback insert relay_log error:", fbErr);
+              }
+            }
           }
         }
 
@@ -1022,6 +1032,15 @@ const AdminReportsPage = () => {
                               onClick={() => resolveFromEscaladeMutation.mutate(report.id)}
                             >
                               <CheckCircle className="h-3 w-3" /> Marquer résolu
+                            </Button>
+                          )}
+                          {!isRead && (
+                            <Button
+                              size="sm" variant="ghost"
+                              className="h-7 text-xs gap-1 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50"
+                              onClick={() => dismissEscaladeMutation.mutate(notif.id)}
+                            >
+                              <CheckCheck className="h-3 w-3" /> Marquer lu
                             </Button>
                           )}
                           <Button
