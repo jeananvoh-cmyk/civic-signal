@@ -157,6 +157,18 @@ const AdminReportsPage = () => {
         }
       }
 
+      // Récupérer les statuts de transmission dans relay_logs
+      let relayedMap: Record<string, boolean> = {};
+      if (reportIds.length > 0) {
+        const { data: relayLogs } = await (supabase as any)
+          .from("relay_logs")
+          .select("report_id")
+          .in("report_id", reportIds);
+        if (relayLogs) {
+          for (const l of relayLogs) relayedMap[l.report_id] = true;
+        }
+      }
+
       // Fetch relay_config WhatsApp
       const { data: relayRows } = await supabase
         .from("relay_config")
@@ -166,10 +178,13 @@ const AdminReportsPage = () => {
 
       return notifs.map((n) => {
         const rid = extractId(n);
+        const rep = rid ? reportsMap[rid] ?? null : null;
+        const isRelayed = !!(rid && (relayedMap[rid] || rep?.forwarded_to_operator_at));
         return {
           ...n,
           extracted_report_id: rid,
-          report: rid ? reportsMap[rid] ?? null : null,
+          report: rep,
+          is_relayed: isRelayed,
           relayWA,
         };
       });
@@ -177,6 +192,7 @@ const AdminReportsPage = () => {
     enabled: !!user?.id,
   });
 
+  const [escaladeFilter, setEscaladeFilter] = useState<"all" | "unrelayed" | "relayed">("all");
   const unreadEscalades = escaladeNotifs.filter((n) => !n.read).length;
 
   const dismissEscaladeMutation = useMutation({
@@ -811,31 +827,65 @@ const AdminReportsPage = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {/* En-tête avec actions globales */}
-                <div className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-2.5">
-                  <p className="text-xs text-muted-foreground">
-                    {unreadEscalades > 0 ? (
-                      <span className="font-semibold text-destructive">{unreadEscalades} alerte{unreadEscalades > 1 ? "s" : ""} non lue{unreadEscalades > 1 ? "s" : ""}</span>
-                    ) : (
-                      <span>Toutes les alertes ont été consultées</span>
-                    )}
-                    {" "} · {escaladeNotifs.length} au total
-                  </p>
-                  <Button
-                    size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground"
-                    onClick={async () => {
-                      const unreadIds = escaladeNotifs.filter((n) => !n.read).map((n) => n.id);
-                      if (unreadIds.length > 0) {
-                        await supabase.from("notifications").update({ read: true }).in("id", unreadIds);
-                        refetchEscalades();
-                      }
-                    }}
-                  >
-                    <CheckCheck className="h-3.5 w-3.5 mr-1" /> Tout marquer lu
-                  </Button>
+                {/* Barre de filtres et d'actions globales */}
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card p-3">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <Button
+                      size="sm"
+                      variant={escaladeFilter === "all" ? "default" : "outline"}
+                      className="h-8 text-xs font-medium"
+                      onClick={() => setEscaladeFilter("all")}
+                    >
+                      Toutes les alertes ({escaladeNotifs.length})
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={escaladeFilter === "unrelayed" ? "destructive" : "outline"}
+                      className={`h-8 text-xs font-medium ${escaladeFilter !== "unrelayed" ? "border-amber-500/50 text-amber-700 dark:text-amber-400" : ""}`}
+                      onClick={() => setEscaladeFilter("unrelayed")}
+                    >
+                      🚨 À relayer ({escaladeNotifs.filter((n: any) => !n.is_relayed).length})
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={escaladeFilter === "relayed" ? "default" : "outline"}
+                      className={`h-8 text-xs font-medium ${escaladeFilter !== "relayed" ? "border-emerald-500/50 text-emerald-700 dark:text-emerald-400" : "bg-emerald-600 hover:bg-emerald-700"}`}
+                      onClick={() => setEscaladeFilter("relayed")}
+                    >
+                      🟢 Déjà transmis ({escaladeNotifs.filter((n: any) => n.is_relayed).length})
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-muted-foreground hidden sm:block">
+                      {unreadEscalades > 0 ? (
+                        <span className="font-semibold text-destructive">{unreadEscalades} non lue{unreadEscalades > 1 ? "s" : ""}</span>
+                      ) : (
+                        <span>Tout consultés</span>
+                      )}
+                    </p>
+                    <Button
+                      size="sm" variant="ghost" className="h-8 text-xs text-muted-foreground"
+                      onClick={async () => {
+                        const unreadIds = escaladeNotifs.filter((n) => !n.read).map((n) => n.id);
+                        if (unreadIds.length > 0) {
+                          await supabase.from("notifications").update({ read: true }).in("id", unreadIds);
+                          refetchEscalades();
+                        }
+                      }}
+                    >
+                      <CheckCheck className="h-3.5 w-3.5 mr-1" /> Tout marquer lu
+                    </Button>
+                  </div>
                 </div>
 
-                {escaladeNotifs.map((notif: any) => {
+                {escaladeNotifs
+                  .filter((n: any) => {
+                    if (escaladeFilter === "unrelayed") return !n.is_relayed;
+                    if (escaladeFilter === "relayed") return n.is_relayed;
+                    return true;
+                  })
+                  .map((notif: any) => {
                   const report = notif.report;
                   const isElec = report?.service_type === "electricity";
                   const isInfra = report?.report_category === "infrastructure";
@@ -847,27 +897,37 @@ const AdminReportsPage = () => {
                     : isElec ? "CIE" : "SODECI";
                   const waLink = report ? buildOperatorWhatsAppLink(report, notif.relayWA) : null;
                   const isRead = notif.read;
+                  const isRelayed = notif.is_relayed;
 
                   return (
                     <motion.div
                       key={notif.id}
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`rounded-2xl border bg-card overflow-hidden transition-colors ${
-                        isRead ? "border-border opacity-75" : "border-destructive/40 shadow-sm"
+                      className={`rounded-2xl border bg-card overflow-hidden transition-all ${
+                        !isRelayed ? "border-amber-500/50 shadow-md ring-1 ring-amber-500/20" : isRead ? "border-border opacity-75" : "border-destructive/40 shadow-sm"
                       }`}
                     >
                       {/* Header bande colorée */}
                       <div className={`flex items-center justify-between px-4 py-2 ${
-                        isChronic ? "bg-destructive/10" : "bg-orange-500/10"
+                        isChronic ? "bg-destructive/10" : !isRelayed ? "bg-amber-500/10" : "bg-orange-500/10"
                       }`}>
                         <div className="flex items-center gap-2">
-                          <ShieldAlert className={`h-4 w-4 ${isChronic ? "text-destructive" : "text-orange-600"}`} />
-                          <span className={`text-xs font-bold ${isChronic ? "text-destructive" : "text-orange-700 dark:text-orange-400"}`}>
+                          <ShieldAlert className={`h-4 w-4 ${isChronic ? "text-destructive" : !isRelayed ? "text-amber-600" : "text-orange-600"}`} />
+                          <span className={`text-xs font-bold ${isChronic ? "text-destructive" : !isRelayed ? "text-amber-700 dark:text-amber-400" : "text-orange-700 dark:text-orange-400"}`}>
                             {notif.title}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-2">
+                          {isRelayed ? (
+                            <Badge className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 text-[10px] py-0 px-1.5 font-semibold gap-1">
+                              <CheckCircle className="h-3 w-3 text-emerald-600" /> Transmis aux relais
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/40 text-[10px] py-0 px-1.5 font-semibold gap-1">
+                              <Clock className="h-3 w-3 text-amber-600" /> À relayer
+                            </Badge>
+                          )}
                           {!isRead && <span className="h-2 w-2 rounded-full bg-destructive" />}
                           <span className="text-xs text-muted-foreground">
                             {formatDistanceToNow(new Date(notif.created_at), { locale: fr, addSuffix: true })}
@@ -920,8 +980,12 @@ const AdminReportsPage = () => {
                           )}
                           {(report || notif.extracted_report_id) && (
                             <Button
-                              size="sm" variant="outline"
-                              className="h-7 text-xs gap-1 border-primary/40 text-primary hover:bg-primary/10"
+                              size="sm" variant={isRelayed ? "ghost" : "default"}
+                              className={`h-7 text-xs gap-1 ${
+                                isRelayed
+                                  ? "text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300"
+                                  : "bg-primary text-primary-foreground font-semibold shadow-sm"
+                              }`}
                               disabled={addToRelayMutation.isPending}
                               onClick={async () => {
                                 if (report) {
@@ -933,7 +997,7 @@ const AdminReportsPage = () => {
                                 }
                               }}
                             >
-                              <Send className="h-3 w-3" /> Relayer (Email)
+                              <Send className="h-3 w-3" /> {isRelayed ? "✓ Déjà relayé (Renvoyer)" : "📩 Relayer aux Opérateurs"}
                             </Button>
                           )}
                           {waLink && (

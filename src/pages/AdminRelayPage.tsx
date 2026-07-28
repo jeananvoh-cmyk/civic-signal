@@ -182,12 +182,23 @@ function useRelayLogs(enabled: boolean = true) {
   return useQuery({
     queryKey: ["admin-relay-logs-all"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      // 1. Récupérer d'abord TOUS les logs en attente (pending)
+      const { data: pendingData, error: pendingErr } = await (supabase as any)
         .from("relay_logs")
         .select("id, report_id, operator, email_to, status, error_message, created_at, sent_at, wa_sent_at, cie_ticket_number, cie_ticket_at")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      if (pendingErr) throw pendingErr;
+
+      // 2. Récupérer l'historique récent (sent / error)
+      const { data: historyData } = await (supabase as any)
+        .from("relay_logs")
+        .select("id, report_id, operator, email_to, status, error_message, created_at, sent_at, wa_sent_at, cie_ticket_number, cie_ticket_at")
+        .neq("status", "pending")
         .order("created_at", { ascending: false })
-        .limit(200);
-      if (error) throw error;
+        .limit(150);
+
+      const data = [...(pendingData ?? []), ...(historyData ?? [])];
 
       const reportIds = [...new Set((data as any[]).map((r: any) => r.report_id))];
       if (reportIds.length === 0) return [] as RelayLog[];
