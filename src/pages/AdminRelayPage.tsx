@@ -89,6 +89,7 @@ const URGENCY_CONFIG: Record<string, { label: string; color: string }> = {
 interface RelayConfig {
   test_mode:      string;
   test_email:     string;
+  resend_api_key?: string;
   email_cie:      string;
   email_sodeci:   string;
   email_onep:     string;
@@ -98,6 +99,96 @@ interface RelayConfig {
   whatsapp_onep:  string;
   whatsapp_anare: string;
   [key: string]: string;
+}
+
+// ─── Envoi direct d'emails via l'API Resend ──────────────────────────────────
+
+async function sendResendDirectEmail({
+  apiKey,
+  toEmail,
+  subject,
+  htmlContent,
+}: {
+  apiKey: string;
+  toEmail: string;
+  subject: string;
+  htmlContent: string;
+}) {
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey.trim()}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: "SIGNA-CI <onboarding@resend.dev>",
+      to: [toEmail.trim()],
+      subject,
+      html: htmlContent,
+    }),
+  });
+  const resText = await res.text();
+  if (!res.ok) {
+    console.error("Resend API Error:", res.status, resText);
+    return { ok: false, status: res.status, error: resText };
+  }
+  return { ok: true, data: resText };
+}
+
+function buildBatchEmailHtmlClient(group: RelayGroup): string {
+  const isCIE = group.operator === "CIE";
+  const isSODECI = group.operator === "SODECI";
+  const isANARE = group.operator === "ANARE";
+  const isONEP = group.operator === "ONEP";
+
+  const operatorName = OPERATOR_CONFIG[group.operator]?.label ?? group.operator;
+  const accentColor = isCIE ? "#f59e0b" : isSODECI ? "#0ea5e9" : isANARE ? "#d97706" : isONEP ? "#0284c7" : "#16a34a";
+
+  const quartierRows = group.quartiers.map(q => `
+    <tr style="border-top: 1px solid #e5e7eb;">
+      <td style="padding: 10px 14px; font-weight: 600; color: #111827;">${q.name} ${q.count && q.count > 1 ? `(${q.count} signalements)` : ""}</td>
+      <td style="padding: 10px 14px; text-align: center; color: ${accentColor}; font-weight: 800;">${q.verifications} foyer(s)</td>
+      <td style="padding: 10px 14px; text-align: center;"><span style="background: #fef3c7; color: #b45309; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">${(URGENCY_CONFIG[q.urgency]?.label || q.urgency).toUpperCase()}</span></td>
+    </tr>
+  `).join("");
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"/></head>
+    <body style="font-family: system-ui, -apple-system, sans-serif; background-color: #f9fafb; margin: 0; padding: 24px;">
+      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e5e7eb; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div style="background: ${accentColor}; padding: 24px; text-align: center; color: #ffffff;">
+          <h1 style="margin: 0; font-size: 20px; font-weight: 800;">SIGNA-CI — Relais Opérateur</h1>
+          <p style="margin: 6px 0 0; font-size: 13px; opacity: 0.9;">Transmission des signalements citoyens certifiés</p>
+        </div>
+        <div style="padding: 24px;">
+          <p style="margin: 0 0 16px; font-size: 14px; color: #374151;">
+            À l'attention des services de <strong>${operatorName}</strong> — Commune de <strong>${group.commune}</strong>
+          </p>
+          <p style="margin: 0 0 20px; font-size: 13px; color: #4b5563; line-height: 1.6;">
+            La plateforme citoyenne <strong>SIGNA-CI</strong> vous transmet le rapport consolidé des pannes et dysfonctionnements constatés par les habitants de la commune de <strong>${group.commune}</strong> :
+          </p>
+          <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px;">
+            <thead>
+              <tr style="background: #f3f4f6; color: #4b5563; text-align: left;">
+                <th style="padding: 10px 14px;">Quartier</th>
+                <th style="padding: 10px 14px; text-align: center;">Confirmations</th>
+                <th style="padding: 10px 14px; text-align: center;">Urgence</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${quartierRows}
+            </tbody>
+          </table>
+          <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 11px; color: #9ca3af;">
+            SIGNA-CI · Plateforme Citoyenne Ivoirienne d'Alerte et de Suivi des Infrastructures Publiques
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
 }
 
 // ─── WhatsApp message builder ─────────────────────────────────────────────────
@@ -370,7 +461,29 @@ const AdminRelayPage = () => {
         console.warn("Edge Function non disponible (403/500). Bascule immédiate sur le mode secours client...", edgeErr);
       }
 
-      // 2. Mode secours client : Mettre à jour le statut des relais en "sent"
+      // 2. Tenter l'envoi effectif via l'API Resend si une clé API Resend est configurée
+      const resendApiKey = effectiveConfig?.resend_api_key || "";
+      if (resendApiKey) {
+        const targetGroup = pendingGroups.find((g) => g.key === groupKey);
+        if (targetGroup) {
+          const isTest = effectiveConfig?.test_mode === "true";
+          const testEmail = effectiveConfig?.test_email || "jeananvoh@gmail.com";
+          const finalTo = isTest ? testEmail : targetGroup.email_to;
+          const subject = isTest
+            ? `[TEST → ${targetGroup.email_to}] [SIGNA-CI] Rapport d'intervention — ${targetGroup.commune} (${OPERATOR_CONFIG[targetGroup.operator]?.label || targetGroup.operator})`
+            : `[SIGNA-CI] Rapport d'intervention — ${targetGroup.commune} (${OPERATOR_CONFIG[targetGroup.operator]?.label || targetGroup.operator})`;
+
+          const html = buildBatchEmailHtmlClient(targetGroup);
+          await sendResendDirectEmail({
+            apiKey: resendApiKey,
+            toEmail: finalTo,
+            subject,
+            htmlContent: html,
+          }).catch((err) => console.error("Erreur lors de l'envoi direct via Resend:", err));
+        }
+      }
+
+      // 3. Mettre à jour le statut des relais en "sent"
       const { error: upErr } = await (supabase as any)
         .from("relay_logs")
         .update({ status: "sent", sent_at: new Date().toISOString() })
@@ -1080,19 +1193,40 @@ const AdminRelayPage = () => {
             </div>
 
             {effectiveConfig.test_mode === "true" && (
-              <div className="mt-4">
-                <label className="text-xs font-semibold text-foreground block mb-1.5">
-                  Email de test — reçoit tous les emails à la place des opérateurs
-                </label>
-                <input
-                  type="email"
-                  value={effectiveConfig.test_email ?? ""}
-                  onChange={(e) =>
-                    setDraftConfig({ ...(effectiveConfig as RelayConfig), test_email: e.target.value })
-                  }
-                  placeholder="votre@email.com"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-                />
+              <div className="mt-4 space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-foreground block mb-1.5">
+                    Email de test — reçoit tous les emails à la place des opérateurs
+                  </label>
+                  <input
+                    type="email"
+                    value={effectiveConfig.test_email ?? ""}
+                    onChange={(e) =>
+                      setDraftConfig({ ...(effectiveConfig as RelayConfig), test_email: e.target.value })
+                    }
+                    placeholder="votre@email.com"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                </div>
+
+                <div className="pt-2 border-t border-border/50">
+                  <label className="text-xs font-semibold text-foreground flex items-center justify-between mb-1.5">
+                    <span>Clé API Resend (`re_...`)</span>
+                    <span className="text-[10px] text-muted-foreground font-normal">Depuis votre compte resend.com/api-keys</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={effectiveConfig.resend_api_key ?? ""}
+                    onChange={(e) =>
+                      setDraftConfig({ ...(effectiveConfig as RelayConfig), resend_api_key: e.target.value })
+                    }
+                    placeholder="re_123456789..."
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Insérez ici votre clé API Resend pour recevoir les vrais emails HTML formatés dans votre boîte mail.
+                  </p>
+                </div>
               </div>
             )}
           </div>
