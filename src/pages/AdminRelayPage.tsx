@@ -567,53 +567,58 @@ function useRelayLogs(enabled: boolean = true) {
   return useQuery({
     queryKey: ["admin-relay-logs-all"],
     queryFn: async () => {
-      // 1. Récupérer d'abord TOUS les logs en attente (pending ou null)
-      const { data: pendingData, error: pendingErr } = await (supabase as any)
-        .from("relay_logs")
-        .select("*")
-        .or("status.eq.pending,status.is.null")
-        .order("created_at", { ascending: false });
-      if (pendingErr) console.warn("pendingData query warning:", pendingErr);
+      try {
+        // 1. Récupérer d'abord TOUS les logs en attente (pending ou null)
+        const { data: pendingData, error: pendingErr } = await (supabase as any)
+          .from("relay_logs")
+          .select("*")
+          .or("status.eq.pending,status.is.null")
+          .order("created_at", { ascending: false });
+        if (pendingErr) console.warn("pendingData query warning:", pendingErr);
 
-      // 2. Récupérer l'historique récent (sent / error)
-      const { data: historyData } = await (supabase as any)
-        .from("relay_logs")
-        .select("*")
-        .not("status", "is", null)
-        .neq("status", "pending")
-        .order("created_at", { ascending: false })
-        .limit(150);
+        // 2. Récupérer l'historique récent (sent / error)
+        const { data: historyData } = await (supabase as any)
+          .from("relay_logs")
+          .select("*")
+          .not("status", "is", null)
+          .neq("status", "pending")
+          .order("created_at", { ascending: false })
+          .limit(150);
 
-      const data = [...(pendingData ?? []), ...(historyData ?? [])];
+        const data = [...(pendingData ?? []), ...(historyData ?? [])];
 
-      const reportIds = [...new Set((data as any[]).map((r: any) => r.report_id))];
-      if (reportIds.length === 0) return [] as RelayLog[];
+        const reportIds = [...new Set((data as any[]).map((r: any) => r?.report_id).filter((id): id is string => typeof id === "string" && id.trim().length > 5))];
+        if (reportIds.length === 0) return (data as any[]).map((log: any) => ({ ...log, report: null })) as RelayLog[];
 
-      const { data: reports } = await supabase
-        .from("reports")
-        .select("id, commune, quartier, custom_quartier, address_text, landmark, description, category, service_type, report_category, verifications, urgency, meter_number, contract_type, latitude, longitude, user_id")
-        .in("id", reportIds as string[]);
+        const { data: reports } = await supabase
+          .from("reports")
+          .select("id, commune, quartier, custom_quartier, address_text, landmark, description, category, service_type, report_category, verifications, urgency, meter_number, contract_type, latitude, longitude, user_id")
+          .in("id", reportIds);
 
-      const userIds = [...new Set((reports ?? []).map((r: any) => r.user_id).filter(Boolean))];
-      const { data: profiles } = userIds.length > 0
-        ? await supabase.from("profiles").select("user_id, phone, commune, quartier").in("user_id", userIds as string[])
-        : { data: [] };
+        const userIds = [...new Set((reports ?? []).map((r: any) => r?.user_id).filter(Boolean))];
+        const { data: profiles } = userIds.length > 0
+          ? await supabase.from("profiles").select("user_id, phone, commune, quartier").in("user_id", userIds as string[])
+          : { data: [] };
 
-      const profileMap = new Map((profiles ?? []).map((p: any) => [p.user_id, p]));
-      const reportMap = new Map((reports ?? []).map((r: any) => {
-        const prof = profileMap.get(r.user_id);
-        return [r.id, {
-          ...r,
-          reporter_phone: prof?.phone ?? null,
-          profile_commune: prof?.commune ?? null,
-          profile_quartier: prof?.quartier ?? null,
-        }];
-      }));
+        const profileMap = new Map((profiles ?? []).map((p: any) => [p.user_id, p]));
+        const reportMap = new Map((reports ?? []).map((r: any) => {
+          const prof = profileMap.get(r.user_id);
+          return [r.id, {
+            ...r,
+            reporter_phone: prof?.phone ?? null,
+            profile_commune: prof?.commune ?? null,
+            profile_quartier: prof?.quartier ?? null,
+          }];
+        }));
 
-      return (data as any[]).map((log: any) => ({
-        ...log,
-        report: reportMap.get(log.report_id),
-      })) as RelayLog[];
+        return (data as any[]).map((log: any) => ({
+          ...log,
+          report: reportMap.get(log.report_id) ?? null,
+        })) as RelayLog[];
+      } catch (err) {
+        console.error("Erreur critique chargement relay_logs:", err);
+        return [] as RelayLog[];
+      }
     },
     refetchInterval: enabled ? 15_000 : false,
     staleTime: 5_000,
@@ -622,22 +627,25 @@ function useRelayLogs(enabled: boolean = true) {
 
 // ─── Groupement des pending ───────────────────────────────────────────────────
 
-function groupPending(logs: RelayLog[]): RelayGroup[] {
+function groupPending(logs: RelayLog[] = []): RelayGroup[] {
+  if (!Array.isArray(logs)) return [];
   const map = new Map<string, RelayGroup>();
 
-  for (const log of logs.filter((l) => !l.status || l.status === "pending")) {
+  for (const log of logs) {
+    if (!log || (log.status && log.status !== "pending")) continue;
+    const operator = log.operator || "MAIRIE";
     const rep = log.report ?? {
-      id: log.report_id,
+      id: log.report_id || "unknown",
       commune: "Abidjan",
       quartier: "Secteur non spécifié",
-      service_type: log.operator === "CIE" ? "electricity" : log.operator === "SODECI" ? "water" : "infrastructure",
+      service_type: operator === "CIE" ? "electricity" : operator === "SODECI" ? "water" : "infrastructure",
       verifications: 1,
       urgency: "medium",
       reporter_phone: null,
     };
 
     const communeName = resolveCommuneName(rep.commune, rep.location, rep.latitude, rep.longitude, rep.profile_commune, rep.description);
-    const key = `${log.operator}::${communeName}`;
+    const key = `${operator}::${communeName}`;
     if (!map.has(key)) {
       map.set(key, {
         key,
