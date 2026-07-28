@@ -543,14 +543,13 @@ const AdminRelayPage = () => {
         }
       }
 
-      // 3. Notifier automatiquement les citoyens concernés
-      const { data: relayLogs } = await (supabase as any)
-        .from("relay_logs")
-        .select("*, report:reports(*)")
-        .in("id", relay_ids);
+      // 4. Notifier automatiquement les citoyens concernés
+      const notifLogs = relayLogs && relayLogs.length > 0
+        ? relayLogs
+        : (await (supabase as any).from("relay_logs").select("*, report:reports(*)").in("id", relay_ids)).data;
 
-      if (relayLogs && relayLogs.length > 0) {
-        const notifs = relayLogs
+      if (notifLogs && notifLogs.length > 0) {
+        const notifs = notifLogs
           .filter((l: any) => l.report)
           .map((l: any) => ({
             user_id: l.report.user_id,
