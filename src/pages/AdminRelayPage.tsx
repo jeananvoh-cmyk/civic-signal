@@ -183,45 +183,29 @@ async function sendResendDirectEmail({
   const cleanTo = toEmail.trim().toLowerCase();
 
   if (!cleanKey) {
-    return { ok: false, status: 400, error: "Aucune clé API Resend renseignée dans Paramètres." };
+    return { ok: false, status: 400, error: "Aucune clé API Resend renseignée dans l'onglet Paramètres." };
   }
 
-  // 1. Tenter d'abord l'Edge Function Supabase (si l'admin est connecté, contourne les adblockers et CORS)
-  try {
-    const { data: edgeRes, error: edgeErr } = await supabase.functions.invoke("relay-to-operator", {
-      body: {
-        action: "test_email",
-        resend_api_key: cleanKey,
-        to_email: cleanTo,
-        subject,
-        html: htmlContent,
-      },
-    });
+  const fromVariants = [
+    "SIGNA-CI <contact@signa.ci>",
+    "contact@signa.ci",
+    "SIGNA-CI <relais@signa.ci>",
+    "relais@signa.ci",
+    "SIGNA-CI <onboarding@resend.dev>",
+    "onboarding@resend.dev",
+  ];
 
-    if (!edgeErr && edgeRes && edgeRes.ok) {
-      return { ok: true, data: JSON.stringify(edgeRes), id: edgeRes.id || "edge-sent" };
-    }
-  } catch (_) {
-    // Continuer vers les requêtes directes Resend
-  }
-
-  // 2. Tenter via le proxy Vercel (/api/resend-proxy) et l'API directe Resend
   const endpoints = [
     "/api/resend-proxy",
     "https://api.resend.com/emails",
   ];
 
-  const fromVariants = [
-    "SIGNA-CI <contact@signa.ci>",
-    "SIGNA-CI <relais@signa.ci>",
-    "SIGNA-CI <onboarding@resend.dev>",
-    "onboarding@resend.dev",
-  ];
+  let lastError = "Impossible d'expédier le courriel via l'API Resend.";
+  let lastStatus = 500;
 
-  let lastError = "Impossible de contacter l'API Resend.";
-
-  for (const endpoint of endpoints) {
-    for (const fromAddr of fromVariants) {
+  // 1. Tenter l'envoi direct via le proxy Same-Origin et l'API Resend avec toutes les variantes d'expéditeur
+  for (const fromAddr of fromVariants) {
+    for (const endpoint of endpoints) {
       try {
         const res = await fetch(endpoint, {
           method: "POST",
@@ -252,17 +236,31 @@ async function sendResendDirectEmail({
 
         const errorMsg = parsed?.message || parsed?.name || resText || `Erreur HTTP ${res.status}`;
         lastError = errorMsg;
-
-        if (res.status === 401 || res.status === 403 || res.status === 422) {
-          return { ok: false, status: res.status, error: errorMsg };
-        }
+        lastStatus = res.status;
       } catch (err: any) {
         lastError = err?.message || lastError;
       }
     }
   }
 
-  return { ok: false, status: 500, error: lastError };
+  // 2. Tenter l'Edge Function Supabase comme secours silencieux
+  try {
+    const { data: edgeRes, error: edgeErr } = await supabase.functions.invoke("relay-to-operator", {
+      body: {
+        action: "test_email",
+        resend_api_key: cleanKey,
+        to_email: cleanTo,
+        subject,
+        html: htmlContent,
+      },
+    });
+
+    if (!edgeErr && edgeRes && edgeRes.ok) {
+      return { ok: true, data: JSON.stringify(edgeRes), id: edgeRes.id || "edge-sent" };
+    }
+  } catch (_) {}
+
+  return { ok: false, status: lastStatus, error: lastError };
 }
 
 function buildBatchEmailHtmlClient(group: RelayGroup): string {

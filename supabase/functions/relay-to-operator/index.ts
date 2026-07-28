@@ -344,13 +344,17 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     const fromEmail =
-      Deno.env.get("RELAY_FROM_EMAIL") ?? "onboarding@resend.dev";
+      Deno.env.get("RELAY_FROM_EMAIL") ?? "contact@signa.ci";
 
-    if (!resendApiKey) {
+    const body =
+      req.method === "POST" ? await req.json().catch(() => ({})) : {};
+    const keyToUse = (body.resend_api_key || resendApiKey || "").trim();
+
+    if (!keyToUse && body.action !== "relay") {
       return new Response(
         JSON.stringify({ error: "RESEND_API_KEY non configuré" }),
         {
-          status: 500,
+          status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
       );
