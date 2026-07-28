@@ -978,8 +978,15 @@ const AdminRelayPage = () => {
                           </>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {log.email_to} · {format(new Date(log.created_at), "d MMM yyyy à HH:mm", { locale: fr })}
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                        <span>Cible : {log.email_to}</span>
+                        {relayConfig?.test_mode === "true" && (
+                          <span className="text-amber-600 font-semibold bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 text-[10px]">
+                            TEST → {relayConfig?.test_email || "Email personnel de test"}
+                          </span>
+                        )}
+                        <span>·</span>
+                        <span>{format(new Date(log.created_at), "d MMM yyyy à HH:mm", { locale: fr })}</span>
                       </p>
                     </div>
                   </div>
