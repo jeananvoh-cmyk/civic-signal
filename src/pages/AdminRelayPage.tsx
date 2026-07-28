@@ -234,9 +234,10 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
   const isSODECI = group.operator === "SODECI";
   const isANARE = group.operator === "ANARE";
   const isONEP = group.operator === "ONEP";
+  const isMairie = group.operator === "MAIRIE";
 
   const serviceEmoji = isCIE ? "⚡" : isSODECI ? "💧" : isANARE ? "⚡" : isONEP ? "💧" : "🏗️";
-  const serviceTitle = isCIE ? "Coupure d'électricité" : isSODECI ? "Coupure d'eau / Inondation" : "Signalement d'Infrastructure";
+  const serviceTitle = isCIE ? "Coupure d'électricité" : isSODECI ? "Coupure d'eau / Inondation" : "Signalement Voirie & Infrastructure";
 
   const gradientHeader = isCIE
     ? "linear-gradient(135deg, #0284c7 0%, #d97706 100%)"
@@ -245,6 +246,10 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
     : "linear-gradient(135deg, #ea580c 0%, #d97706 100%)";
 
   const nowStr = format(new Date(), "d MMMM yyyy 'à' HH:mm", { locale: fr });
+
+  const introText = isMairie
+    ? `Ce signalement d'infrastructure publique a été <strong style="color: #16a34a;">soutenu par ${group.totalConfirmations} citoyen(s)</strong> votant pour une intervention et réparation rapide dans la commune via <span style="background: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">SIGNA-CI</span>. Il nécessite l'intervention des services techniques municipaux.`
+    : `Ce signalement a été <strong style="color: #16a34a;">confirmé par ${group.totalConfirmations} foyer(s) ou plus</strong> dans le même quartier via la plateforme <span style="background: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">SIGNA-CI</span>. Il nécessite votre intervention.`;
 
   const cardsHtml = group.quartiers.map((q, idx) => {
     const isCrit = q.urgency === "critical";
@@ -263,6 +268,11 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
       ? `<div style="margin-top: 6px;"><a href="https://www.google.com/maps/search/?api=1&query=${q.lat},${q.lng}" target="_blank" style="display: inline-block; padding: 4px 10px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 11px; font-weight: 700; text-decoration: none;">📍 Localiser sur Google Maps</a></div>`
       : "";
 
+    const confirmationLabel = isMairie ? "Soutien & votes citoyens" : "Confirmations voisins";
+    const confirmationValue = isMairie
+      ? `<span style="color: #16a34a; font-weight: 800;">${q.verifications} citoyen(s) votant pour réparation</span>`
+      : `<span style="color: #16a34a; font-weight: 800;">${q.verifications} foyer(s) impacté(s)</span>`;
+
     return `
       <div style="border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; background: #ffffff; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
         <div style="background: #f8fafc; padding: 12px 20px; border-bottom: 1px solid #e5e7eb; font-size: 11px; font-weight: 800; color: #64748b; letter-spacing: 1px; text-transform: uppercase;">
@@ -271,7 +281,7 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
         <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
           <tbody>
             <tr style="border-bottom: 1px solid #f1f5f9;">
-              <td style="padding: 14px 20px; color: #64748b; font-weight: 500; width: 35%;">Commune</td>
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 500; width: 38%;">Commune</td>
               <td style="padding: 14px 20px; color: #0f172a; font-weight: 800;">${group.commune}</td>
             </tr>
             <tr style="border-bottom: 1px solid #f1f5f9;">
@@ -283,8 +293,8 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
               <td style="padding: 14px 20px; color: #334155; font-weight: 600;">${nowStr}</td>
             </tr>
             <tr style="border-bottom: 1px solid #f1f5f9;">
-              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Confirmations voisins</td>
-              <td style="padding: 14px 20px; color: #16a34a; font-weight: 800;">${q.verifications} citoyens</td>
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">${confirmationLabel}</td>
+              <td style="padding: 14px 20px;">${confirmationValue}</td>
             </tr>
             <tr style="border-bottom: 1px solid #f1f5f9;">
               <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Urgence</td>
@@ -335,7 +345,7 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
         <div style="padding: 24px;">
           
           <p style="margin: 0 0 20px; font-size: 15px; color: #374151; line-height: 1.6;">
-            Ce signalement a été <strong style="color: #16a34a;">confirmé par ${group.totalConfirmations} citoyen(s) ou plus</strong> dans le même quartier via la plateforme <span style="background: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">SIGNA-CI</span>. Il nécessite votre intervention.
+            ${introText}
           </p>
 
           <!-- Cards per quartier/report -->
@@ -343,7 +353,7 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
 
           ${group.reporters && group.reporters.length > 0 ? `
             <div style="margin-top: 20px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
-              <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 8px;">📋 Contacts Abonnés Référents :</div>
+              <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 8px;">📋 Contacts Citoyens Référents :</div>
               <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: #334155; line-height: 1.6;">
                 ${group.reporters.map(r => `
                   <li>
