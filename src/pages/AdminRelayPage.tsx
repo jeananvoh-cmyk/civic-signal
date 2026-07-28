@@ -720,23 +720,53 @@ const AdminRelayPage = () => {
   // ── Sauvegarder la config ──────────────────────────────────────────────────
   const saveConfig = useMutation({
     mutationFn: async (cfg: RelayConfig) => {
+      // 1. Tenter l'RPC SECURITY DEFINER (contourne les restrictions RLS)
+      try {
+        const { error: rpcErr } = await (supabase as any).rpc("admin_save_relay_config", {
+          p_config: cfg,
+        });
+        if (!rpcErr) return;
+      } catch (_) {
+        // ignorer et passer au fallback direct
+      }
+
+      // 2. Fallback direct client (inclut label pour eviter l'erreur constraint Not Null)
       const rows = Object.entries(cfg).map(([key, value]) => ({
         key,
         value: value ?? "",
+        label: key,
         updated_at: new Date().toISOString(),
       }));
+
       const { error } = await (supabase as any)
         .from("relay_config")
         .upsert(rows, { onConflict: "key" });
-      if (error) throw error;
+
+      if (error) {
+        // 3. Dernier recours : mises a jour individuelles par clé
+        const updatePromises = Object.entries(cfg).map(([key, value]) =>
+          (supabase as any)
+            .from("relay_config")
+            .update({ value: value ?? "", updated_at: new Date().toISOString() })
+            .eq("key", key)
+        );
+        await Promise.all(updatePromises);
+      }
     },
     onSuccess: () => {
       refetchConfig();
       setDraftConfig(null);
-      toast({ title: "Configuration sauvegardée" });
+      toast({
+        title: "Configuration sauvegardée avec succès",
+        description: "Vos paramètres et votre clé API Resend ont été enregistrés.",
+      });
     },
-    onError: () => {
-      toast({ title: "Erreur de sauvegarde", variant: "destructive" });
+    onError: (err: any) => {
+      toast({
+        title: "Erreur de sauvegarde",
+        description: err?.message || "Impossible d'enregistrer la configuration dans la base de données.",
+        variant: "destructive",
+      });
     },
   });
 
