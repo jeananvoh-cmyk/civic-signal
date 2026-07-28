@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { format, isToday, isThisWeek, isThisMonth, isThisYear, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { findNearestCommune } from "@/lib/communes";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -32,6 +33,7 @@ interface RelayLog {
   report?: {
     id: string;
     commune: string;
+    location?: string | null;
     quartier: string;
     custom_quartier?: string | null;
     address_text?: string | null;
@@ -56,7 +58,7 @@ interface RelayGroup {
   commune: string;
   email_to: string;
   relayIds: string[];
-  quartiers: {
+  quartiers: Array<{
     name: string;
     verifications: number;
     urgency: string;
@@ -68,13 +70,31 @@ interface RelayGroup {
     lat?: number | null;
     lng?: number | null;
     reportId?: string | null;
-  }[];
+  }>;
   totalConfirmations: number;
   hasCritical: boolean;
   meterNumbers: string[];
   reporters: Array<{ phone: string | null; meterNumber: string | null; contractType: string | null; quartier: string }>;
   waSentAt: string | null;
   cieTicketNumber: string | null;
+}
+
+function resolveCommuneName(commune?: string | null, location?: string | null, lat?: number | null, lng?: number | null): string {
+  const isGeneric = (c?: string | null) => !c || !c.trim() || c.trim().toLowerCase() === "abidjan";
+  
+  if (!isGeneric(commune)) {
+    return commune!.trim();
+  }
+  if (!isGeneric(location)) {
+    return location!.trim();
+  }
+  if (lat && lng) {
+    const res = findNearestCommune(lat, lng);
+    if (res.commune?.nom) {
+      return res.commune.nom;
+    }
+  }
+  return "Abidjan";
 }
 
 function cleanQuartierName(quartier?: string | null, customQuartier?: string | null, addressText?: string | null, landmark?: string | null): string {
@@ -588,7 +608,7 @@ function groupPending(logs: RelayLog[]): RelayGroup[] {
       reporter_phone: null,
     };
 
-    const communeName = rep.commune || "Abidjan";
+    const communeName = resolveCommuneName(rep.commune, rep.location, rep.latitude, rep.longitude);
     const key = `${log.operator}::${communeName}`;
     if (!map.has(key)) {
       map.set(key, {
@@ -1581,7 +1601,7 @@ const AdminRelayPage = () => {
                             <>
                               <span className="text-muted-foreground text-xs">·</span>
                               <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors truncate flex items-center gap-1">
-                                {cleanQuartierName(log.report.quartier, log.report.custom_quartier, log.report.address_text, log.report.landmark)} ({log.report.commune})
+                                {cleanQuartierName(log.report.quartier, log.report.custom_quartier, log.report.address_text, log.report.landmark)} ({resolveCommuneName(log.report.commune, log.report.location, log.report.latitude, log.report.longitude)})
                                 <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
                               </span>
                             </>
