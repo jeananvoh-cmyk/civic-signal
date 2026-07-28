@@ -32,6 +32,7 @@ interface RelayLog {
   cie_ticket_at: string | null;
   report?: {
     id: string;
+    created_at?: string | null;
     commune: string;
     location?: string | null;
     quartier: string;
@@ -69,6 +70,8 @@ interface RelayGroup {
     landmark?: string | null;
     description?: string | null;
     category?: string | null;
+    serviceType?: string | null;
+    createdAt?: string | null;
     lat?: number | null;
     lng?: number | null;
     reportId?: string | null;
@@ -380,8 +383,11 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
               <td style="padding: 14px 20px;">${confirmationValue}</td>
             </tr>
             <tr style="border-bottom: 1px solid #f1f5f9;">
-              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Signalé le</td>
-              <td style="padding: 14px 20px; color: #334155; font-weight: 600;">${nowStr}</td>
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Date du signalement</td>
+              <td style="padding: 14px 20px; color: #334155; font-weight: 700;">
+                📅 ${q.createdAt ? safeFormatDate(q.createdAt, "d MMMM yyyy 'à' HH:mm") : nowStr}
+                ${q.createdAt && safeFormatDuration(q.createdAt) ? `<span style="color: #dc2626; font-size: 12px; font-weight: 800; margin-left: 8px;">(${safeFormatDuration(q.createdAt)})</span>` : ""}
+              </td>
             </tr>
             <tr style="border-bottom: 1px solid #f1f5f9;">
               <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Niveau d'urgence</td>
@@ -391,12 +397,22 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
                 </span>
               </td>
             </tr>
-            <tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
               <td style="padding: 14px 20px; color: #64748b; font-weight: 500; vertical-align: top;">Description / Précisions</td>
               <td style="padding: 14px 20px; color: #334155; font-weight: 500; line-height: 1.5;">
                 ${fullDesc}
               </td>
             </tr>
+            ${q.reportId ? `
+            <tr>
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Fiche de l'incident</td>
+              <td style="padding: 14px 20px;">
+                <a href="https://signa.ci/signalement/${q.reportId}" target="_blank" style="display: inline-block; padding: 6px 14px; background: #0284c7; color: #ffffff; border-radius: 6px; font-size: 12px; font-weight: 800; text-decoration: none;">
+                  🔗 Consulter le déroulé de l'incident sur SIGNA-CI
+                </a>
+              </td>
+            </tr>
+            ` : ""}
           </tbody>
         </table>
       </div>
@@ -475,7 +491,14 @@ function buildWhatsAppMessage(group: RelayGroup): string {
   const quartierLines = group.quartiers.map((q) => {
     const urgLabel = URGENCY_CONFIG[q.urgency]?.label ?? q.urgency;
     const sigCount = q.count && q.count > 1 ? ` (${q.count} signalements)` : "";
-    return `• ${q.name}${sigCount} — ${q.verifications} confirmation${q.verifications > 1 ? "s" : ""} — ${urgLabel}`;
+    const dateStr = q.createdAt ? safeFormatDate(q.createdAt, "d MMMM yyyy à HH:mm") : null;
+    const durationStr = q.createdAt ? safeFormatDuration(q.createdAt) : null;
+
+    return `• Quartier ${q.name}${sigCount}\n` +
+           `  - Commune : ${group.commune}\n` +
+           `  - Type : ${q.serviceType === "electricity" ? "Électricité" : q.serviceType === "water" ? "Eau potable" : "Voirie & Infrastructure"}\n` +
+           (dateStr ? `  - Date : Signalé le ${dateStr}${durationStr ? ` (${durationStr})` : ""}\n` : "") +
+           `  - Soutiens / Votants : ${q.verifications} citoyen.ne(s) — Urgence ${urgLabel}`;
   });
 
   const reporterLines: string[] = [];
@@ -595,7 +618,7 @@ function useRelayLogs(enabled: boolean = true) {
 
         const { data: reports } = await supabase
           .from("reports")
-          .select("id, commune, quartier, custom_quartier, address_text, landmark, description, category, service_type, report_category, verifications, urgency, meter_number, contract_type, latitude, longitude, user_id")
+          .select("id, created_at, commune, location, quartier, custom_quartier, address_text, landmark, description, category, service_type, report_category, verifications, urgency, meter_number, contract_type, latitude, longitude, user_id")
           .in("id", reportIds);
 
         const userIds = [...new Set((reports ?? []).map((r: any) => r?.user_id).filter(Boolean))];
@@ -639,6 +662,7 @@ function groupPending(logs: RelayLog[] = []): RelayGroup[] {
     const operator = log.operator || "MAIRIE";
     const rep = log.report ?? {
       id: log.report_id || "unknown",
+      created_at: log.created_at || new Date().toISOString(),
       commune: "Abidjan",
       quartier: "Secteur non spécifié",
       service_type: operator === "CIE" ? "electricity" : operator === "SODECI" ? "water" : "infrastructure",
@@ -699,6 +723,10 @@ function groupPending(logs: RelayLog[] = []): RelayGroup[] {
       if ((urgencyRank[rep.urgency] ?? 0) > (urgencyRank[existing.urgency] ?? 0)) {
         existing.urgency = rep.urgency;
       }
+      if (!existing.createdAt && (rep.created_at || log.created_at)) {
+        existing.createdAt = rep.created_at || log.created_at;
+      }
+      if (!existing.serviceType && rep.service_type) existing.serviceType = rep.service_type;
       if (!existing.landmark && rep.landmark) existing.landmark = rep.landmark;
       if (!existing.addressText && rep.address_text) existing.addressText = rep.address_text;
       if (!existing.description && rep.description) existing.description = rep.description;
@@ -717,6 +745,8 @@ function groupPending(logs: RelayLog[] = []): RelayGroup[] {
         landmark: rep.landmark,
         description: rep.description,
         category: rep.category,
+        serviceType: rep.service_type,
+        createdAt: rep.created_at || log.created_at,
         lat: rep.latitude,
         lng: rep.longitude,
         reportId: rep.id,
@@ -837,6 +867,22 @@ const AdminRelayPage = () => {
       return format(d, pattern, { locale: fr });
     } catch (_) {
       return "Date inconnue";
+    }
+  };
+
+  const safeFormatDuration = (dateStr?: string | null): string => {
+    const d = safeParseDate(dateStr);
+    if (!d) return "";
+    try {
+      const diffMs = Date.now() - d.getTime();
+      if (diffMs <= 0) return "Aujourd'hui";
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffDays = Math.floor(diffHours / 24);
+      if (diffDays <= 0) return `En cours depuis ${diffHours}h`;
+      const remHours = diffHours % 24;
+      return `En cours depuis ${diffDays}j ${remHours}h`;
+    } catch (_) {
+      return "";
     }
   };
 
@@ -1643,27 +1689,65 @@ const AdminRelayPage = () => {
                           const confirmationBadge = `${q.verifications} citoyen.ne(s) votant(s)`;
                           const targetReportId = q.reportId || group.relayIds[0];
 
+                          const typeLabel = q.serviceType === "electricity"
+                            ? "⚡ Électricité"
+                            : q.serviceType === "water"
+                            ? "💧 Eau"
+                            : q.serviceType === "streetlighting" || q.category === "eclairage_public"
+                            ? "💡 Éclairage public"
+                            : "🏛️ Infrastructure / Voirie";
+
+                          const dateFormatted = q.createdAt ? safeFormatDate(q.createdAt, "d MMMM yyyy à HH:mm") : null;
+                          const durationFormatted = q.createdAt ? safeFormatDuration(q.createdAt) : null;
+
                           return (
                             <div
                               key={idx}
-                              className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/10 transition-colors"
+                              className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 gap-2 hover:bg-muted/10 transition-colors"
                             >
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span className="text-sm font-semibold text-foreground truncate">{displayName}</span>
-                                {q.count && q.count > 1 && (
-                                  <span className="text-xs text-muted-foreground shrink-0">({q.count} signalements)</span>
-                                )}
+                              <div className="flex flex-col gap-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 shrink-0">
+                                    {typeLabel}
+                                  </span>
+                                  <span className="text-sm font-bold text-foreground">
+                                    {group.commune} <span className="text-muted-foreground font-normal">·</span> {displayName}
+                                  </span>
+                                  {q.count && q.count > 1 && (
+                                    <span className="text-xs text-muted-foreground shrink-0 font-medium">({q.count} signalements)</span>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                                  {dateFormatted && (
+                                    <span className="flex items-center gap-1 font-medium text-slate-700 dark:text-slate-300">
+                                      <Calendar className="h-3 w-3 text-primary shrink-0" />
+                                      Signalé le {dateFormatted}
+                                      {durationFormatted && (
+                                        <span className="text-red-600 dark:text-red-400 font-bold ml-1">
+                                          ({durationFormatted})
+                                        </span>
+                                      )}
+                                    </span>
+                                  )}
+                                  {q.description && (
+                                    <span className="truncate max-w-md italic text-muted-foreground">
+                                      "{q.description}"
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2 text-xs shrink-0">
-                                <span className="text-emerald-600 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">{confirmationBadge}</span>
+
+                              <div className="flex items-center gap-2 text-xs shrink-0 self-end sm:self-center">
+                                <span className="text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">{confirmationBadge}</span>
                                 <span className={urgCfg.color}>{urgCfg.label}</span>
                                 {targetReportId && (
                                   <Button
                                     size="sm"
                                     variant="outline"
                                     onClick={() => window.open(`/signalement/${targetReportId}`, "_blank")}
-                                    className="gap-1 text-xs h-7 px-2 border-primary/40 text-primary hover:bg-primary/10 font-semibold"
-                                    title="Ouvrir la fiche complète du signalement"
+                                    className="gap-1 text-xs h-7 px-2.5 border-primary/40 text-primary hover:bg-primary/10 font-bold shadow-xs"
+                                    title="Ouvrir la fiche complète du déroulé de l'incident"
                                   >
                                     <ExternalLink className="h-3 w-3" />
                                     Voir le signalement
