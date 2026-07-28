@@ -49,6 +49,8 @@ interface RelayLog {
     longitude?: number | null;
     user_id?: string;
     reporter_phone?: string | null;
+    profile_commune?: string | null;
+    profile_quartier?: string | null;
   };
 }
 
@@ -79,7 +81,14 @@ interface RelayGroup {
   cieTicketNumber: string | null;
 }
 
-function resolveCommuneName(commune?: string | null, location?: string | null, lat?: number | null, lng?: number | null): string {
+function resolveCommuneName(
+  commune?: string | null,
+  location?: string | null,
+  lat?: number | null,
+  lng?: number | null,
+  profileCommune?: string | null,
+  description?: string | null
+): string {
   const isGeneric = (c?: string | null) => !c || !c.trim() || c.trim().toLowerCase() === "abidjan";
   
   if (!isGeneric(commune)) {
@@ -88,17 +97,35 @@ function resolveCommuneName(commune?: string | null, location?: string | null, l
   if (!isGeneric(location)) {
     return location!.trim();
   }
+  if (!isGeneric(profileCommune)) {
+    return profileCommune!.trim();
+  }
   if (lat && lng) {
     const res = findNearestCommune(lat, lng);
     if (res.commune?.nom) {
       return res.commune.nom;
     }
   }
+  if (description) {
+    const knownCommunes = ["Yopougon", "Cocody", "Abobo", "Adjamé", "Koumassi", "Port-Bouët", "Bingerville", "Marcory", "Treichville", "Attécoubé", "Songon", "Anyama"];
+    for (const c of knownCommunes) {
+      if (description.toLowerCase().includes(c.toLowerCase())) {
+        return c;
+      }
+    }
+  }
   return "Abidjan";
 }
 
-function cleanQuartierName(quartier?: string | null, customQuartier?: string | null, addressText?: string | null, landmark?: string | null): string {
-  const isInvalid = (val?: string | null) => !val || !val.trim() || val.trim() === "__other" || val.trim().toLowerCase() === "autre";
+function cleanQuartierName(
+  quartier?: string | null,
+  customQuartier?: string | null,
+  addressText?: string | null,
+  landmark?: string | null,
+  profileQuartier?: string | null,
+  description?: string | null
+): string {
+  const isInvalid = (val?: string | null) => !val || !val.trim() || val.trim() === "__other" || val.trim().toLowerCase() === "autre" || val.trim().toLowerCase() === "autre quartier";
   if (!isInvalid(customQuartier)) {
     return customQuartier!.trim();
   }
@@ -110,6 +137,15 @@ function cleanQuartierName(quartier?: string | null, customQuartier?: string | n
   }
   if (addressText && addressText.trim() !== "") {
     return addressText.trim();
+  }
+  if (!isInvalid(profileQuartier)) {
+    return profileQuartier!.trim();
+  }
+  if (description && description.trim() !== "") {
+    const cleanDesc = description.replace(/\[.*?\]/g, "").trim();
+    if (cleanDesc.length > 0) {
+      return cleanDesc.length > 40 ? cleanDesc.slice(0, 37) + "…" : cleanDesc;
+    }
   }
   return "Secteur non spécifié";
 }
@@ -571,14 +607,19 @@ function useRelayLogs(enabled: boolean = true) {
 
       const userIds = [...new Set((reports ?? []).map((r: any) => r.user_id).filter(Boolean))];
       const { data: profiles } = userIds.length > 0
-        ? await supabase.from("profiles").select("user_id, phone").in("user_id", userIds as string[])
+        ? await supabase.from("profiles").select("user_id, phone, commune, quartier").in("user_id", userIds as string[])
         : { data: [] };
 
-      const phoneMap = new Map((profiles ?? []).map((p: any) => [p.user_id, p.phone as string | null]));
-      const reportMap = new Map((reports ?? []).map((r: any) => [r.id, {
-        ...r,
-        reporter_phone: phoneMap.get(r.user_id) ?? null,
-      }]));
+      const profileMap = new Map((profiles ?? []).map((p: any) => [p.user_id, p]));
+      const reportMap = new Map((reports ?? []).map((r: any) => {
+        const prof = profileMap.get(r.user_id);
+        return [r.id, {
+          ...r,
+          reporter_phone: prof?.phone ?? null,
+          profile_commune: prof?.commune ?? null,
+          profile_quartier: prof?.quartier ?? null,
+        }];
+      }));
 
       return (data as any[]).map((log: any) => ({
         ...log,
@@ -606,7 +647,7 @@ function groupPending(logs: RelayLog[]): RelayGroup[] {
       reporter_phone: null,
     };
 
-    const communeName = resolveCommuneName(rep.commune, rep.location, rep.latitude, rep.longitude);
+    const communeName = resolveCommuneName(rep.commune, rep.location, rep.latitude, rep.longitude, rep.profile_commune, rep.description);
     const key = `${log.operator}::${communeName}`;
     if (!map.has(key)) {
       map.set(key, {
@@ -649,7 +690,7 @@ function groupPending(logs: RelayLog[]): RelayGroup[] {
     if (!g.waSentAt && log.wa_sent_at) g.waSentAt = log.wa_sent_at;
     if (!g.cieTicketNumber && log.cie_ticket_number) g.cieTicketNumber = log.cie_ticket_number;
 
-    const cleanQ = cleanQuartierName(rep.quartier, rep.custom_quartier, rep.address_text, rep.landmark);
+    const cleanQ = cleanQuartierName(rep.quartier, rep.custom_quartier, rep.address_text, rep.landmark, rep.profile_quartier, rep.description);
     const existing = g.quartiers.find((q) => q.name === cleanQ);
     if (existing) {
       existing.verifications += rep.verifications || 1;
@@ -1599,7 +1640,7 @@ const AdminRelayPage = () => {
                             <>
                               <span className="text-muted-foreground text-xs">·</span>
                               <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors truncate flex items-center gap-1">
-                                {cleanQuartierName(log.report.quartier, log.report.custom_quartier, log.report.address_text, log.report.landmark)} ({resolveCommuneName(log.report.commune, log.report.location, log.report.latitude, log.report.longitude)})
+                                {cleanQuartierName(log.report.quartier, log.report.custom_quartier, log.report.address_text, log.report.landmark, log.report.profile_quartier, log.report.description)} ({resolveCommuneName(log.report.commune, log.report.location, log.report.latitude, log.report.longitude, log.report.profile_commune, log.report.description)})
                                 <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
                               </span>
                             </>
