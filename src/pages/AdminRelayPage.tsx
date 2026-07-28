@@ -192,8 +192,10 @@ async function sendResendDirectEmail({
   ];
 
   const fromVariants = [
-    "onboarding@resend.dev",
+    "SIGNA-CI <contact@signa.ci>",
+    "SIGNA-CI <relais@signa.ci>",
     "SIGNA-CI <onboarding@resend.dev>",
+    "onboarding@resend.dev",
   ];
 
   let lastError = "Impossible de contacter l'API Resend.";
