@@ -140,7 +140,7 @@ Exemple de réponse :
     }
 
     // ── Nettoyer les valeurs (retirer espaces, tirets superflus) ─────────────
-    const clean = (v: unknown) => typeof v === "string" ? v.replace(/[\s\-\.]/g, "").trim() : undefined;
+    const clean = (v: unknown) => typeof v === "string" ? v.replace(/[\s.-]/g, "").trim() : undefined;
     const keep = (v: unknown) => typeof v === "string" ? v.trim() : undefined;
 
     const extracted = {
