@@ -1,8 +1,10 @@
-/// <reference lib="webworker" />
-import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from "workbox-precaching";
-import { NavigationRoute, registerRoute } from "workbox-routing";
+import { clientsClaim } from "workbox-core";
 
 declare const self: ServiceWorkerGlobalScope;
+
+// Forcer la mise à jour immédiate du Service Worker sans attendre la fermeture des onglets
+self.skipWaiting();
+clientsClaim();
 
 // Injected by VitePWA at build time
 precacheAndRoute(self.__WB_MANIFEST);
