@@ -740,20 +740,6 @@ const AdminRelayPage = () => {
     mutationFn: async ({ relay_ids, groupKey }: { relay_ids: string[]; groupKey: string }) => {
       setSendingGroup(groupKey);
 
-      // 1. Tenter l'Edge Function Supabase
-      try {
-        const { data, error } = await supabase.functions.invoke("relay-to-operator", {
-          body: { relay_ids },
-        });
-
-        if (!error && data && data.ok === true && data.sent > 0) {
-          return data;
-        }
-      } catch (edgeErr) {
-        console.warn("Edge Function non disponible. Bascule sur le mode secours client...", edgeErr);
-      }
-
-      // 2. Tenter l'envoi effectif via l'API Resend si une clé API Resend est configurée
       const resendApiKey = (draftConfig?.resend_api_key || effectiveConfig?.resend_api_key || "").trim();
       let targetGroup = pendingGroups.find((g) => g.key === groupKey);
 
@@ -785,42 +771,36 @@ const AdminRelayPage = () => {
         };
       }
 
-      if (resendApiKey && targetGroup) {
-        const isTest = (draftConfig?.test_mode ?? effectiveConfig?.test_mode) === "true";
-        const testEmail = (draftConfig?.test_email || effectiveConfig?.test_email || "jeananvoh@gmail.com").trim();
-        const finalTo = isTest ? testEmail : targetGroup.email_to;
-        const subject = isTest
-          ? `[TEST → ${targetGroup.email_to}] [SIGNA-CI] Rapport d'intervention — ${targetGroup.commune} (${OPERATOR_CONFIG[targetGroup.operator]?.label || targetGroup.operator})`
-          : `[SIGNA-CI] Rapport d'intervention — ${targetGroup.commune} (${OPERATOR_CONFIG[targetGroup.operator]?.label || targetGroup.operator})`;
-
-        const html = buildBatchEmailHtmlClient(targetGroup);
-        const resendRes = await sendResendDirectEmail({
-          apiKey: resendApiKey,
-          toEmail: finalTo,
-          subject,
-          htmlContent: html,
-        });
-
-        if (!resendRes.ok) {
-          toast({
-            title: "Avertissement Resend API",
-            description: `Erreur Resend (${resendRes.status}) : ${resendRes.error || "Vérifiez votre clé API ou le destinataire autorise en mode gratuit."}`,
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Email Resend distribué !",
-            description: `Le rapport a été expédié directement vers ${finalTo} via Resend.`,
-          });
-        }
-      } else if (!resendApiKey) {
-        toast({
-          title: "Clé Resend non configurée",
-          description: "Pour recevoir les vrais e-mails HTML dans votre boîte mail, saisissez votre clé API Resend dans l'onglet Paramètres.",
-        });
+      if (!resendApiKey) {
+        throw new Error("Aucune clé API Resend n'est configurée dans l'onglet Paramètres. Veuillez saisir votre clé API Resend (re_...).");
       }
 
-      // 3. Mettre à jour le statut des relais en "sent" (priorité RPC SECURITY DEFINER pour contourner RLS)
+      if (!targetGroup) {
+        throw new Error("Impossible de récupérer les détails du groupe de signalements.");
+      }
+
+      const isTest = (draftConfig?.test_mode ?? effectiveConfig?.test_mode) === "true";
+      const testEmail = (draftConfig?.test_email || effectiveConfig?.test_email || "jeananvoh@gmail.com").trim();
+      const finalTo = isTest ? testEmail : targetGroup.email_to;
+      const subject = isTest
+        ? `[TEST → ${targetGroup.email_to}] [SIGNA-CI] Rapport d'intervention — ${targetGroup.commune} (${OPERATOR_CONFIG[targetGroup.operator]?.label || targetGroup.operator})`
+        : `[SIGNA-CI] Rapport d'intervention — ${targetGroup.commune} (${OPERATOR_CONFIG[targetGroup.operator]?.label || targetGroup.operator})`;
+
+      const html = buildBatchEmailHtmlClient(targetGroup);
+
+      // 1. Tenter l'envoi réel Resend via le proxy client Same-Origin (garantit l'utilisation de la vraie clé admin)
+      const resendRes = await sendResendDirectEmail({
+        apiKey: resendApiKey,
+        toEmail: finalTo,
+        subject,
+        htmlContent: html,
+      });
+
+      if (!resendRes.ok) {
+        throw new Error(`Resend a refusé l'envoi (${resendRes.status}) : ${resendRes.error || "Vérifiez que votre adresse e-mail destinataire est autorisée dans Resend."}`);
+      }
+
+      // 2. Mettre à jour le statut des relais en "sent" dans la base Supabase
       try {
         await (supabase as any).rpc("admin_mark_relay_sent", { p_relay_ids: relay_ids });
       } catch (_) {
@@ -830,7 +810,7 @@ const AdminRelayPage = () => {
           .in("id", relay_ids);
       }
 
-      // 4. Notifier automatiquement les citoyens concernés
+      // 3. Notifier automatiquement les citoyens concernés
       const notifLogs = relayLogs && relayLogs.length > 0
         ? relayLogs
         : (await (supabase as any).from("relay_logs").select("*, report:reports(*)").in("id", relay_ids)).data;
