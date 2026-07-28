@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
 
     if (reports) {
       const photoPaths = reports
-        .map((r: any) => r.photo_url)
+        .map((r: { photo_url: string | null }) => r.photo_url)
         .filter(Boolean)
         .map((url: string) => {
           // Extract path from full URL or path

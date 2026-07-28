@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
           .in("role", ["admin", "moderator"]);
 
         if (adminRoles && adminRoles.length > 0) {
-          const adminIds = adminRoles.map((r: any) => r.user_id).filter((uid: string) => uid !== report.user_id);
+          const adminIds = adminRoles.map((r: { user_id: string }) => r.user_id).filter((uid: string) => uid !== report.user_id);
           if (adminIds.length > 0) {
             const categoryFull = isInfra ? `problème d'infrastructure` : `coupure de ${isElec ? "courant" : "d'eau"}`;
             await supabase.from("notifications").insert(
@@ -231,7 +231,7 @@ Deno.serve(async (req) => {
           .neq("user_id", report.user_id);
 
         if (neighbors && neighbors.length > 0) {
-          const uniqueNeighborIds = [...new Set(neighbors.map((n: any) => n.user_id))];
+          const uniqueNeighborIds = [...new Set(neighbors.map((n: { user_id: string }) => n.user_id))];
           await supabase.from("notifications").insert(
             uniqueNeighborIds.map((uid) => ({
               user_id: uid,

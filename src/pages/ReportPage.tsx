@@ -278,7 +278,6 @@ const ReportPage = () => {
       if (draft.quartier) setQuartier(draft.quartier);
       if (draft.description) setDescription(draft.description);
     } catch { /* brouillon corrompu → ignoré */ }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sauvegarder le brouillon à chaque changement pertinent
@@ -472,7 +471,6 @@ const ReportPage = () => {
       pendingSubmitRef.current = false;
       handleSubmit();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userPhone, userProfileCommune, userProfileQuartier]);
 
   // Charger les quartiers validés depuis Supabase (enrichit la liste statique)

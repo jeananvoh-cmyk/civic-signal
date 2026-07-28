@@ -123,7 +123,6 @@ const InfrastructurePage = () => {
   useEffect(() => {
     setPage(0);
     fetchReports(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, subFilter, communeFilter]);
 
   const handleCategoryClick = (category: string, type: FilterType) => {

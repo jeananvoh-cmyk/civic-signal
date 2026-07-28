@@ -27,7 +27,7 @@ const AdminOverviewPage = () => {
     if (last && last !== "/admin" && !(location.state as any)?.internal) {
       navigate(last, { replace: true, state: { internal: true } });
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const queryClient = useQueryClient();
   const { data: donationsEnabled = true } = useSiteSetting("donations_enabled");

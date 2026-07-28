@@ -388,7 +388,7 @@ Deno.serve(async (req) => {
 
     const rolesSet = new Set<string>();
     if (profile?.role) rolesSet.add(profile.role);
-    (userRoles ?? []).forEach((r: any) => rolesSet.add(r.role));
+    (userRoles ?? []).forEach((r: { role: string }) => rolesSet.add(r.role));
 
     const isAllowed = rolesSet.has("admin") || rolesSet.has("moderator");
     if (!isAllowed) {
@@ -495,7 +495,7 @@ Deno.serve(async (req) => {
       .in("id", reportIds);
 
     const reportMap = new Map(
-      (reports ?? []).map((r: any) => [r.id, r as Report]),
+      (reports ?? []).map((r: Report) => [r.id, r]),
     );
 
     type Group = {

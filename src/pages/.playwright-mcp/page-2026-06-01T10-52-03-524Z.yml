@@ -1,0 +1,255 @@
+- generic [active] [ref=e1]:
+  - list:
+    - listitem
+    - listitem
+  - list:
+    - listitem
+  - generic [ref=e2]:
+    - link "Skip to content" [ref=e3] [cursor=pointer]:
+      - /url: "#main"
+    - banner [ref=e4]:
+      - generic [ref=e6]:
+        - link "Tamal Sen" [ref=e9] [cursor=pointer]:
+          - /url: https://tamalsen.dev/
+          - img "Tamal Sen" [ref=e11]
+        - navigation [ref=e12]:
+          - generic [ref=e13]:
+            - text: 
+            - list [ref=e16]:
+              - listitem [ref=e17]:
+                - link "// home" [ref=e18] [cursor=pointer]:
+                  - /url: /#hero-section
+                  - generic [ref=e19]: // home
+              - listitem [ref=e20]:
+                - link "// expertise" [ref=e21] [cursor=pointer]:
+                  - /url: /#expertise
+                  - generic [ref=e22]: // expertise
+              - listitem [ref=e23]:
+                - link "// work" [ref=e24] [cursor=pointer]:
+                  - /url: /#work
+                  - generic [ref=e25]: // work
+              - listitem [ref=e26]:
+                - link "// experience" [ref=e27] [cursor=pointer]:
+                  - /url: /#experience
+                  - generic [ref=e28]: // experience
+              - listitem [ref=e29]:
+                - link "// contact" [ref=e30] [cursor=pointer]:
+                  - /url: /#contact
+                  - generic [ref=e31]: // contact
+    - generic [ref=e33]:
+      - generic [ref=e38]:
+        - heading "Tamal Sen" [level=1] [ref=e45]
+        - heading "Software Engineer, Front end & App Developer." [level=5] [ref=e51]
+        - generic [ref=e55]:
+          - generic [ref=e58]: As featured in
+          - generic [ref=e62]:
+            - generic [ref=e63]:
+              - group "5 / 9" [ref=e64]:
+                - link [ref=e65] [cursor=pointer]:
+                  - /url: https://www.frontendmentor.io/articles/building-an-effective-frontend-developer-portfolio--7cE8BfMG_
+                  - img [ref=e66]
+              - group "6 / 9" [ref=e67]:
+                - link [ref=e68] [cursor=pointer]:
+                  - /url: https://www.wearedevelopers.com/magazine/web-developer-portfolio-examples
+                  - img [ref=e69]
+              - group "7 / 9" [ref=e70]:
+                - link [ref=e71] [cursor=pointer]:
+                  - /url: https://colorlib.com/wp/developer-portfolios/
+                  - img [ref=e72]
+              - group "8 / 9" [ref=e73]:
+                - link [ref=e74] [cursor=pointer]:
+                  - /url: https://www.masaischool.com/blog/10-web-developer-portfolio-examples-to-get-inspired/
+                  - img [ref=e75]
+              - group "9 / 9" [ref=e76]:
+                - link [ref=e77] [cursor=pointer]:
+                  - /url: https://www.blogduwebdesign.com/blog/graphisme/inspiration-graphique/portfolios-developpeurs.html
+                  - img [ref=e78]
+              - group "1 / 9" [ref=e79]:
+                - link [ref=e80] [cursor=pointer]:
+                  - /url: https://blog.featured.com/what-should-be-in-a-portfolio-for-web-developer/
+                  - img [ref=e81]
+              - group "2 / 9" [ref=e82]:
+                - link [ref=e83] [cursor=pointer]:
+                  - /url: https://www.hostinger.com/tutorials/web-developer-portfolio
+                  - img [ref=e84]
+              - group "3 / 9" [ref=e85]:
+                - link [ref=e86] [cursor=pointer]:
+                  - /url: https://www.upwork.com/resources/web-developer-portfolio-examples
+                  - img [ref=e87]
+              - group "4 / 9" [ref=e88]:
+                - link [ref=e89] [cursor=pointer]:
+                  - /url: https://careerfoundry.com/en/blog/web-development/software-engineer-portfolio/
+                  - img [ref=e90]
+              - group "5 / 9" [ref=e91]:
+                - link [ref=e92] [cursor=pointer]:
+                  - /url: https://www.frontendmentor.io/articles/building-an-effective-frontend-developer-portfolio--7cE8BfMG_
+                  - img [ref=e93]
+              - group "6 / 9" [ref=e94]:
+                - link [ref=e95] [cursor=pointer]:
+                  - /url: https://www.wearedevelopers.com/magazine/web-developer-portfolio-examples
+                  - img [ref=e96]
+              - group "7 / 9" [ref=e97]:
+                - link [ref=e98] [cursor=pointer]:
+                  - /url: https://colorlib.com/wp/developer-portfolios/
+                  - img [ref=e99]
+              - group "8 / 9" [ref=e100]:
+                - link [ref=e101] [cursor=pointer]:
+                  - /url: https://www.masaischool.com/blog/10-web-developer-portfolio-examples-to-get-inspired/
+                  - img [ref=e102]
+              - group "9 / 9" [ref=e103]:
+                - link [ref=e104] [cursor=pointer]:
+                  - /url: https://www.blogduwebdesign.com/blog/graphisme/inspiration-graphique/portfolios-developpeurs.html
+                  - img [ref=e105]
+              - group "1 / 9" [ref=e106]:
+                - link [ref=e107] [cursor=pointer]:
+                  - /url: https://blog.featured.com/what-should-be-in-a-portfolio-for-web-developer/
+                  - img [ref=e108]
+              - group "2 / 9" [ref=e109]:
+                - link [ref=e110] [cursor=pointer]:
+                  - /url: https://www.hostinger.com/tutorials/web-developer-portfolio
+                  - img [ref=e111]
+              - group "3 / 9" [ref=e112]:
+                - link [ref=e113] [cursor=pointer]:
+                  - /url: https://www.upwork.com/resources/web-developer-portfolio-examples
+                  - img [ref=e114]
+              - group "4 / 9" [ref=e115]:
+                - link [ref=e116] [cursor=pointer]:
+                  - /url: https://careerfoundry.com/en/blog/web-development/software-engineer-portfolio/
+                  - img [ref=e117]
+              - group "5 / 9" [ref=e118]:
+                - link [ref=e119] [cursor=pointer]:
+                  - /url: https://www.frontendmentor.io/articles/building-an-effective-frontend-developer-portfolio--7cE8BfMG_
+                  - img [ref=e120]
+            - button "Previous slide" [ref=e122] [cursor=pointer]:
+              - generic [ref=e123]: 
+              - generic [ref=e124]: Previous
+            - button "Next slide" [ref=e125] [cursor=pointer]:
+              - generic [ref=e126]: 
+              - generic [ref=e127]: Next
+        - link [ref=e130] [cursor=pointer]:
+          - /url: "#expertise"
+          - img [ref=e133]
+      - generic [ref=e148]:
+        - generic [ref=e153]:
+          - text: Deployed scalable travel, event and telemedicine web and hybrid mobile apps using React SPA and PWA.
+          - text: Collaborated in 140+ projects with 50+ clients all around the world. I am also interested in data analytics and visualization.
+        - generic [ref=e155]:
+          - heading "Featured Project" [level=4] [ref=e164]
+          - heading "Tryotel App" [level=4] [ref=e167]
+          - link "View Project" [ref=e171] [cursor=pointer]:
+            - /url: /project/tryotel-cross-platform-travel-app/
+            - generic [ref=e173]: View Project
+      - generic [ref=e188]:
+        - generic [ref=e189]:
+          - generic [ref=e190]:
+            - heading "Senior Lead Software Engineer @ Saimon Global Ltd 2019 - 2024" [level=6] [ref=e191]:
+              - generic [ref=e192]:
+                - generic [ref=e193]: Senior Lead Software Engineer @ Saimon Global Ltd
+                - generic [ref=e194]: 2019 - 2024
+            - generic [ref=e196] [cursor=pointer]: 
+          - generic [ref=e203]:
+            - list [ref=e206]:
+              - listitem [ref=e207]:
+                - generic [ref=e209]: 
+                - generic [ref=e210]: Dhaka, Bangladesh
+              - listitem [ref=e211]:
+                - link "saimonglobal.com" [ref=e212] [cursor=pointer]:
+                  - /url: https://saimonglobal.com
+                  - generic [ref=e214]: 
+                  - generic [ref=e215]: saimonglobal.com
+            - paragraph [ref=e218]: Led a frontend team to design and develop robust B2C and B2B Travel Tech solutions, utilizing React/Next.js for web applications and Flutter SDK for cross-platform mobile apps, with a focus on responsive design, scalability, and enhanced user experience.
+            - list [ref=e221]:
+              - listitem [ref=e222]:
+                - generic [ref=e223]: JS
+              - listitem [ref=e224]:
+                - generic [ref=e225]: TS
+              - listitem [ref=e226]:
+                - generic [ref=e227]: Dart
+              - listitem [ref=e228]:
+                - generic [ref=e229]: React
+              - listitem [ref=e230]:
+                - generic [ref=e231]: NextJS
+              - listitem [ref=e232]:
+                - generic [ref=e233]: Flutter
+        - generic [ref=e238]:
+          - generic [ref=e239]:
+            - heading "Web Developer @ influenceTHIS Canada 2018-2019" [level=6] [ref=e240]:
+              - generic [ref=e241]:
+                - generic [ref=e242]: Web Developer @ influenceTHIS Canada
+                - generic [ref=e243]: 2018-2019
+            - generic [ref=e245] [cursor=pointer]: 
+          - generic [ref=e252]:
+            - list [ref=e255]:
+              - listitem [ref=e256]:
+                - generic [ref=e258]: 
+                - generic [ref=e259]: Remote (Toronto, Canada)
+              - listitem [ref=e260]:
+                - link "influencethis.ca" [ref=e261] [cursor=pointer]:
+                  - /url: https://www.influencethis.ca/
+                  - generic [ref=e263]: 
+                  - generic [ref=e264]: influencethis.ca
+            - paragraph [ref=e267]: Developed the UI and UX eco-system for a conference event platform using modular component structures with JS, SCSS, Gulp on Node.
+            - list [ref=e270]:
+              - listitem [ref=e271]:
+                - generic [ref=e272]: JS
+              - listitem [ref=e273]:
+                - generic [ref=e274]: GULP
+              - listitem [ref=e275]:
+                - generic [ref=e276]: SCSS
+              - listitem [ref=e277]:
+                - generic [ref=e278]: Nodejs
+        - generic [ref=e283]:
+          - generic [ref=e284]:
+            - heading "Top Rated Web Developer @ Upwork Inc. 2017 - Present" [level=6] [ref=e285]:
+              - generic [ref=e286]:
+                - generic [ref=e287]: Top Rated Web Developer @ Upwork Inc.
+                - generic [ref=e288]: 2017 - Present
+            - generic [ref=e290] [cursor=pointer]: 
+          - generic [ref=e297]:
+            - list [ref=e300]:
+              - listitem [ref=e301]:
+                - generic [ref=e303]: 
+                - generic [ref=e304]: Remote
+              - listitem [ref=e305]:
+                - link "upwork.com" [ref=e306] [cursor=pointer]:
+                  - /url: /go/upwork
+                  - generic [ref=e308]: 
+                  - generic [ref=e309]: upwork.com
+            - paragraph [ref=e312]: Top-Rated developer on Upwork specializing in Front-end (React, WordPress) technologies with a 100% job success rate and client satisfaction rating (based on 150+ Jobs, 2500+ hours).
+            - list [ref=e315]:
+              - listitem [ref=e316]:
+                - generic [ref=e317]: Javascript
+              - listitem [ref=e318]:
+                - generic [ref=e319]: PHP
+              - listitem [ref=e320]:
+                - generic [ref=e321]: HTML
+              - listitem [ref=e322]:
+                - generic [ref=e323]: CSS
+              - listitem [ref=e324]:
+                - generic [ref=e325]: Figma
+      - generic [ref=e345]:
+        - generic [ref=e347]:
+          - paragraph [ref=e352]: Since 2018 Tamal has been responsible for the development of our website which has been instrumental to the growth of our company. Even while working remotely he’s been highly responsive, organized and strategic in his thinking. In addition to staying on top of day-to-day site changes and builds, he’s provided us with great advice to stay on top of the current changes in web technologies. He’s also implemented effective project management and Q&A processes. As a result Tamal has been an highly valued and impactful member of our team.
+          - heading "- Mark Greenspan Founder at influenceTHIS Canada" [level=4] [ref=e355]:
+            - text: "- Mark Greenspan"
+            - text: Founder at
+            - link "influenceTHIS Canada" [ref=e356] [cursor=pointer]:
+              - /url: https://influencethis.ca
+        - generic [ref=e358]:
+          - paragraph [ref=e363]: Tamal is AMAZING! If you have any doubt about hiring him, ask me – I am really impressed by this guy!
+          - heading "- Wilfried Hajek Agile Coach | Speaker | Trainer" [level=4] [ref=e366]:
+            - text: "- Wilfried Hajek"
+            - text: Agile Coach | Speaker | Trainer
+        - generic [ref=e368]:
+          - paragraph [ref=e373]: Tamal is one of the best professionals that we have known in web development skills. Between his skills you can find good communication and accuracy with the planning in complex projects.
+          - heading "- Jonathan Castro CEO & Founder at The Cliff" [level=4] [ref=e376]:
+            - text: "- Jonathan Castro"
+            - text: CEO & Founder at
+            - link "The Cliff" [ref=e377] [cursor=pointer]:
+              - /url: https://the-cliff.com/
+  - generic [ref=e378]: desktop
+  - document:
+    - generic:
+      - text: 
+      - generic:
+        - navigation

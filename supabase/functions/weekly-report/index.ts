@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
       `→ Tableau admin : ${APP_URL}/admin`;
 
     // ── Envoyer la notification à tous les admins ──
-    const adminIds = adminRoles.map((r: any) => r.user_id);
+    const adminIds = adminRoles.map((r: { user_id: string }) => r.user_id);
     await supabase.from("notifications").insert(
       adminIds.map((uid: string) => ({
         user_id: uid,

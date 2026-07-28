@@ -327,7 +327,7 @@ Deno.serve(async (req) => {
     // 3. Pour chaque partenaire, récupérer l'email via admin API
     const matchingPartners: PartnerProfile[] = [];
 
-    for (const partner of partners as any[]) {
+    for (const partner of partners as PartnerProfile[]) {
       const { data: userData } = await supabase.auth.admin.getUserById(partner.user_id);
       const email = userData?.user?.email;
       if (!email) continue;
