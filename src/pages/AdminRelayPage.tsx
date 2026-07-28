@@ -359,7 +359,18 @@ const AdminRelayPage = () => {
       const { data, error } = await supabase.functions.invoke("relay-to-operator", {
         body: { relay_ids },
       });
-      if (error) throw error;
+      if (error) {
+        let msg = error.message || "Impossible d'envoyer l'email.";
+        if (error.context) {
+          try {
+            const errJson = await error.context.json();
+            if (errJson?.error) msg = errJson.error;
+          } catch (_) {
+            // fallback
+          }
+        }
+        throw new Error(msg);
+      }
       return data;
     },
     onSuccess: (data: any) => {

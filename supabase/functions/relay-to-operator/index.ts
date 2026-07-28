@@ -374,13 +374,25 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { data: callerProfile } = await supabase
+
+    // Vérifier rôle (admin ou moderator dans user_roles ou profiles)
+    const { data: userRoles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id);
+    const { data: profile } = await supabase
       .from("profiles")
       .select("role")
       .eq("user_id", user.id)
-      .single();
-    if (callerProfile?.role !== "admin") {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
+      .maybeSingle();
+
+    const rolesSet = new Set<string>();
+    if (profile?.role) rolesSet.add(profile.role);
+    (userRoles ?? []).forEach((r: any) => rolesSet.add(r.role));
+
+    const isAllowed = rolesSet.has("admin") || rolesSet.has("moderator");
+    if (!isAllowed) {
+      return new Response(JSON.stringify({ error: "Accès refusé : Rôle admin ou modérateur requis." }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -398,6 +410,18 @@ Deno.serve(async (req) => {
     const emailSODECI = config["email_sodeci"] || "reclamation@sodeci.ci";
     const emailONEP   = config["email_onep"]   || "reclamation@onep.ci";
     const emailANARE  = config["email_anare"]  || "reclamation@anare.ci";
+
+    if (!resendApiKey && !isTestMode) {
+      return new Response(
+        JSON.stringify({
+          error: "RESEND_API_KEY non configuré dans Supabase. Activez le Mode TEST dans l'onglet Paramètres pour simuler l'envoi d'emails.",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
 
     const body =
       req.method === "POST" ? await req.json().catch(() => ({})) : {};
@@ -524,13 +548,18 @@ Deno.serve(async (req) => {
         ? `[TEST → ${group.email_to}] ${subject}`
         : subject;
 
-      const result = await sendEmail({
-        to: finalTo,
-        subject: finalSubject,
-        html,
-        fromEmail,
-        apiKey: resendApiKey,
-      });
+      let result: { ok: boolean; error?: string } = { ok: true };
+      if (resendApiKey) {
+        result = await sendEmail({
+          to: finalTo,
+          subject: finalSubject,
+          html,
+          fromEmail,
+          apiKey: resendApiKey,
+        });
+      } else {
+        console.log(`[MODE TEST SIMULÉ] Envoi simulé à ${finalTo} (${group.reports.length} signalements)`);
+      }
 
       if (result.ok) {
         await supabase
