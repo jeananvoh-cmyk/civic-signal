@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
-import { CheckCircle, XCircle, MapPin, Zap, Droplets, Clock, Eye, Construction, Download, Square, CheckSquare, Trash2, MessageCircle, PhoneCall, AlertOctagon, Bell, ExternalLink, CheckCheck, Wrench, ShieldAlert } from "lucide-react";
+import { CheckCircle, XCircle, MapPin, Zap, Droplets, Clock, Eye, Construction, Download, Square, CheckSquare, Trash2, MessageCircle, PhoneCall, AlertOctagon, Bell, ExternalLink, CheckCheck, Wrench, ShieldAlert, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -197,21 +197,104 @@ const AdminReportsPage = () => {
     onError: (err: any) => toast.error(getUserFriendlyError(err)),
   });
 
-  /** Lien WhatsApp vers l'opérateur (CIE ou SODECI) depuis relay_config */
+  /** Ajout manuel d'un signalement aux relais d'intervention (CIE / SODECI / ANARE / ONEP / Mairie) */
+  const addToRelayMutation = useMutation({
+    mutationFn: async (report: any) => {
+      let operator: "CIE" | "SODECI" | "MAIRIE" | "ONEP" | "ANARE" = "MAIRIE";
+      let email = `mairie:${report.commune}`;
+
+      if (report.service_type === "electricity") {
+        operator = "CIE";
+        email = "reclamation@cie.ci";
+      } else if (report.service_type === "water") {
+        operator = "SODECI";
+        email = "reclamation@sodeci.ci";
+      } else if (report.service_type === "streetlighting" || report.service_type === "electricity_quality") {
+        operator = "ANARE";
+        email = "reclamation@anare.ci";
+      } else if (report.service_type === "water_quality") {
+        operator = "ONEP";
+        email = "reclamation@onep.ci";
+      } else if (report.report_category === "infrastructure") {
+        const infraOp = infraOperator(extractInfraLabel(report.description || ""), report.commune || "");
+        if (infraOp === "CIE") {
+          operator = "CIE";
+          email = "reclamation@cie.ci";
+        } else if (infraOp === "SODECI") {
+          operator = "SODECI";
+          email = "reclamation@sodeci.ci";
+        } else {
+          operator = "MAIRIE";
+          email = `mairie:${report.commune}`;
+        }
+      }
+
+      const { error } = await (supabase as any)
+        .from("relay_logs")
+        .upsert(
+          { report_id: report.id, operator, email_to: email, status: "pending" },
+          { onConflict: "report_id" }
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-relay-logs-all"] });
+      toast.success("Signalement ajouté aux relais en attente d'envoi !");
+    },
+    onError: (err: any) => {
+      toast.error("Erreur lors de l'ajout aux relais: " + (err.message || "Erreur"));
+    },
+  });
+
+  /** Lien WhatsApp vers l'opérateur (CIE, SODECI, ANARE, ONEP, Mairie) depuis relay_config */
   const buildOperatorWhatsAppLink = (report: any, relayWA: Record<string, string>): string | null => {
-    const isCIE = report.service_type === "electricity";
-    const key = isCIE ? "whatsapp_cie" : "whatsapp_sodeci";
+    if (!report) return null;
+    const isInfra = report.report_category === "infrastructure";
+    const isElec = report.service_type === "electricity";
+    const isWater = report.service_type === "water";
+    const isStreetlight = report.service_type === "streetlighting" || report.service_type === "electricity_quality";
+    const isWaterQuality = report.service_type === "water_quality";
+
+    let key = "whatsapp_cie";
+    let operatorName = "CIE";
+
+    if (isStreetlight) {
+      key = "whatsapp_anare";
+      operatorName = "ANARE-CI";
+    } else if (isWaterQuality) {
+      key = "whatsapp_onep";
+      operatorName = "ONEP";
+    } else if (isWater) {
+      key = "whatsapp_sodeci";
+      operatorName = "SODECI";
+    } else if (isElec) {
+      key = "whatsapp_cie";
+      operatorName = "CIE";
+    } else {
+      const infraOp = infraOperator(extractInfraLabel(report.description || ""), report.commune || "");
+      if (infraOp === "CIE") {
+        key = "whatsapp_cie";
+        operatorName = "CIE";
+      } else if (infraOp === "SODECI") {
+        key = "whatsapp_sodeci";
+        operatorName = "SODECI";
+      } else {
+        const slug = (report.commune || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+        key = `mairie_${slug}_whatsapp` in relayWA ? `mairie_${slug}_whatsapp` : "whatsapp_cie";
+        operatorName = `Mairie de ${report.commune}`;
+      }
+    }
+
     const raw = relayWA[key] ?? "";
     const digits = raw.replace(/\D/g, "");
     if (!digits || digits.length < 8) return null;
     const phone = digits.startsWith("0") ? "225" + digits.slice(1) : digits;
     const ageDays = Math.floor((Date.now() - new Date(report.created_at).getTime()) / 86400000);
-    const operator = isCIE ? "CIE" : "SODECI";
-    const categoryLabel = report.report_category === "infrastructure" ? "problème d'infrastructure" : "coupure";
+    const categoryLabel = isInfra ? "problème d'infrastructure" : "coupure";
     const msg = encodeURIComponent(
       `Bonjour, nous vous contactons depuis SIGNA-CI concernant un ${categoryLabel} ` +
       `signalé à ${report.commune}, ${report.quartier} depuis ${ageDays} jours. ` +
-      `Ce signalement est toujours actif et sans intervention de ${operator}. ` +
+      `Ce signalement est toujours actif et sans intervention de ${operatorName}. ` +
       `Pouvez-vous nous indiquer le délai d'intervention prévu ? Merci.`
     );
     return `https://wa.me/${phone}?text=${msg}`;
@@ -780,6 +863,16 @@ const AdminReportsPage = () => {
                               <ExternalLink className="h-3 w-3" /> Voir le signalement
                             </Button>
                           )}
+                          {report && (
+                            <Button
+                              size="sm" variant="outline"
+                              className="h-7 text-xs gap-1 border-primary/40 text-primary hover:bg-primary/10"
+                              disabled={addToRelayMutation.isPending}
+                              onClick={() => addToRelayMutation.mutate(report)}
+                            >
+                              <Send className="h-3 w-3" /> Relayer (Email)
+                            </Button>
+                          )}
                           {waLink && (
                             <Button
                               size="sm" variant="outline"
@@ -911,6 +1004,15 @@ const AdminReportsPage = () => {
                 )}
                 {selectedReport.validated && selectedReport.status === "active" && (
                   <div className="flex flex-col gap-2 pt-2">
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2 border-primary/40 text-primary hover:bg-primary/10"
+                      disabled={addToRelayMutation.isPending}
+                      onClick={() => addToRelayMutation.mutate(selectedReport)}
+                    >
+                      <Send className="h-4 w-4" />
+                      Ajouter aux relais d'intervention (Email)
+                    </Button>
                     {/* Transmettre à l'opérateur */}
                     {!(selectedReport as any).forwarded_to_operator_at ? (
                       <Button
