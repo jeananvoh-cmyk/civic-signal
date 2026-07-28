@@ -378,7 +378,11 @@ const AdminRelayPage = () => {
 
       if (upErr) {
         // En cas de restriction RLS, tenter l'RPC SECURITY DEFINER
-        await supabase.rpc("admin_mark_relay_sent" as any, { p_relay_ids: relay_ids }).catch(() => null);
+        try {
+          await supabase.rpc("admin_mark_relay_sent" as any, { p_relay_ids: relay_ids });
+        } catch (_) {
+          // ignore
+        }
       }
 
       // 3. Notifier automatiquement les citoyens concernés
@@ -397,7 +401,11 @@ const AdminRelayPage = () => {
             message: `Votre signalement à ${l.report.commune} (${l.report.quartier}) a été transmis aux services de ${l.operator} par l'équipe SIGNA-CI.`,
           }));
         if (notifs.length > 0) {
-          await supabase.from("notifications").insert(notifs).catch(() => null);
+          try {
+            await supabase.from("notifications").insert(notifs);
+          } catch (_) {
+            // ignore
+          }
         }
       }
 
