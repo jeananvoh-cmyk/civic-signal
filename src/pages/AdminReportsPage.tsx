@@ -209,46 +209,45 @@ const AdminReportsPage = () => {
   /** Ajout manuel d'un signalement aux relais d'intervention (CIE / SODECI / ANARE / ONEP / Mairie) */
   const addToRelayMutation = useMutation({
     mutationFn: async (report: any) => {
-      let operator: "CIE" | "SODECI" | "MAIRIE" | "ONEP" | "ANARE" = "MAIRIE";
-      let email = `mairie:${report.commune}`;
+      const relays: Array<{ report_id: string; operator: "CIE" | "SODECI" | "MAIRIE" | "ONEP" | "ANARE"; email_to: string; status: string }> = [];
 
       if (report.service_type === "electricity") {
-        operator = "CIE";
-        email = "reclamation@cie.ci";
+        relays.push({ report_id: report.id, operator: "CIE", email_to: "reclamation@cie.ci", status: "pending" });
       } else if (report.service_type === "water") {
-        operator = "SODECI";
-        email = "reclamation@sodeci.ci";
+        relays.push({ report_id: report.id, operator: "SODECI", email_to: "reclamation@sodeci.ci", status: "pending" });
       } else if (report.service_type === "streetlighting" || report.service_type === "electricity_quality") {
-        operator = "ANARE";
-        email = "reclamation@anare.ci";
+        // Dual routage : Concessionnaire CIE (terrain) + Régulateur ANARE-CI (contrôle)
+        relays.push({ report_id: report.id, operator: "CIE", email_to: "reclamation@cie.ci", status: "pending" });
+        relays.push({ report_id: report.id, operator: "ANARE", email_to: "reclamation@anare.ci", status: "pending" });
       } else if (report.service_type === "water_quality") {
-        operator = "ONEP";
-        email = "reclamation@onep.ci";
+        // Dual routage : Concessionnaire SODECI (terrain) + Régulateur ONEP (contrôle)
+        relays.push({ report_id: report.id, operator: "SODECI", email_to: "reclamation@sodeci.ci", status: "pending" });
+        relays.push({ report_id: report.id, operator: "ONEP", email_to: "reclamation@onep.ci", status: "pending" });
       } else if (report.report_category === "infrastructure") {
         const infraOp = infraOperator(extractInfraLabel(report.description || ""), report.commune || "");
         if (infraOp === "CIE") {
-          operator = "CIE";
-          email = "reclamation@cie.ci";
+          relays.push({ report_id: report.id, operator: "CIE", email_to: "reclamation@cie.ci", status: "pending" });
+          relays.push({ report_id: report.id, operator: "ANARE", email_to: "reclamation@anare.ci", status: "pending" });
         } else if (infraOp === "SODECI") {
-          operator = "SODECI";
-          email = "reclamation@sodeci.ci";
+          relays.push({ report_id: report.id, operator: "SODECI", email_to: "reclamation@sodeci.ci", status: "pending" });
+          relays.push({ report_id: report.id, operator: "ONEP", email_to: "reclamation@onep.ci", status: "pending" });
         } else {
-          operator = "MAIRIE";
-          email = `mairie:${report.commune}`;
+          relays.push({ report_id: report.id, operator: "MAIRIE", email_to: `mairie:${report.commune}`, status: "pending" });
         }
+      } else {
+        relays.push({ report_id: report.id, operator: "MAIRIE", email_to: `mairie:${report.commune}`, status: "pending" });
       }
 
-      const { error } = await (supabase as any)
-        .from("relay_logs")
-        .upsert(
-          { report_id: report.id, operator, email_to: email, status: "pending" },
-          { onConflict: "report_id" }
-        );
-      if (error) throw error;
+      for (const item of relays) {
+        const { error } = await (supabase as any)
+          .from("relay_logs")
+          .upsert(item, { onConflict: "report_id,operator" });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-relay-logs-all"] });
-      toast.success("Signalement ajouté aux relais en attente d'envoi !");
+      toast.success("Signalement transmis aux relais d'intervention !");
     },
     onError: (err: any) => {
       toast.error("Erreur lors de l'ajout aux relais: " + (err.message || "Erreur"));
