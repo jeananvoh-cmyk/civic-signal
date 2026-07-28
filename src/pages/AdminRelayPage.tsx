@@ -15,6 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import { format, isToday, isThisWeek, isThisMonth, isThisYear, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { findNearestCommune } from "@/lib/communes";
+import { extractInfraLabel, infraEmoji } from "@/lib/report-display";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -466,7 +467,7 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
 
   const isInfraGroup = isMairie || group.operator === "MAIRIE" || group.quartiers.some(q => q.category === "infrastructure" || q.category === "eclairage_public" || q.category === "voirie" || q.category === "lampadaire");
   const introText = isInfraGroup
-    ? `Ce signalement d'infrastructure publique a été <strong style="color: #16a34a;">soutenu par ${group.totalConfirmations} citoyen(s)</strong> votant pour une intervention et réparation rapide dans la commune via <span style="background: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">SIGNA-CI</span>. Il nécessite l'intervention des services techniques.`
+    ? `Ce signalement d'infrastructure publique via <strong>SIGNA-CI</strong> a été vu et est soutenu par <strong style="color: #16a34a;">${group.totalConfirmations} citoyen.ne(s)</strong> voulant une intervention et réparation rapide. L'intervention des services techniques de la mairie de <strong>${group.commune}</strong>.`
     : `Ce signalement a été <strong style="color: #16a34a;">confirmé par ${group.totalConfirmations} foyer(s) ou plus</strong> dans le même quartier via la plateforme <span style="background: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">SIGNA-CI</span>. Il nécessite votre intervention.`;
 
   const cardsHtml = group.quartiers.map((q, idx) => {
@@ -475,11 +476,11 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
     const urgencyDot = isCrit ? "🔴" : isHigh ? "🟠" : "🟡";
     const urgencyText = (URGENCY_CONFIG[q.urgency]?.label || q.urgency).toUpperCase();
 
-    const categoryLabel = (q.description && q.description.trim())
-      ? q.description.trim().toUpperCase()
-      : q.category
-      ? q.category.replace(/_/g, " ").toUpperCase()
-      : isMairie ? "INFRASTRUCTURE / VOIRIE" : isCIE ? "ÉLECTRICITÉ" : "EAU POTABLE";
+    const extractedTag = (q.description && q.description.trim()) ? extractInfraLabel(q.description.trim()) : null;
+    const typeLabel = extractedTag || (q.category ? q.category.replace(/_/g, " ") : null);
+    const categoryLabel = typeLabel
+      ? `${infraEmoji(typeLabel)} ${typeLabel.toUpperCase()}`
+      : isMairie ? "🏗️ INFRASTRUCTURE / VOIRIE" : isCIE ? "⚡ ÉLECTRICITÉ" : "💧 EAU POTABLE";
 
     const gpsRow = (q.lat && q.lng)
       ? `
@@ -512,7 +513,7 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
     const isInfra = isMairie || group.operator === "MAIRIE" || q.category === "infrastructure" || q.category === "eclairage_public" || q.category === "voirie" || q.category === "lampadaire";
     const confirmationLabel = isInfra ? "Soutien & votes citoyens" : "Confirmations voisins";
     const confirmationValue = isInfra
-      ? `<span style="color: #16a34a; font-weight: 800;">${q.verifications} citoyen(s) votant pour réparation urgente</span>`
+      ? `<span style="color: #16a34a; font-weight: 800;">${q.verifications} citoyen.ne(s) soutiennent pour une réparation urgente</span>`
       : `<span style="color: #16a34a; font-weight: 800;">${q.verifications} foyer(s) impacté(s)</span>`;
 
     return `
