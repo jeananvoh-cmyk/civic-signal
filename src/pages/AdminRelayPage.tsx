@@ -225,8 +225,6 @@ async function sendResendDirectEmail({
   const fromVariants = [
     "SIGNA-CI <contact@signa.ci>",
     "contact@signa.ci",
-    "SIGNA-CI <relais@signa.ci>",
-    "relais@signa.ci",
     "SIGNA-CI <onboarding@resend.dev>",
     "onboarding@resend.dev",
   ];
@@ -239,7 +237,6 @@ async function sendResendDirectEmail({
   let bestError = "Impossible de contacter le serveur d'envoi Resend.";
   let bestStatus = 500;
 
-  // 1. Tenter l'envoi direct via le proxy Same-Origin et l'API Resend avec toutes les variantes d'expéditeur
   for (const fromAddr of fromVariants) {
     for (const endpoint of endpoints) {
       try {
@@ -263,18 +260,15 @@ async function sendResendDirectEmail({
           parsed = JSON.parse(resText);
         } catch (_) {}
 
-        if (res.ok && parsed?.id) {
-          return { ok: true, data: resText, id: parsed.id };
-        }
-        if (res.ok) {
-          return { ok: true, data: resText, id: "sent-ok" };
+        if (res.ok && (parsed?.id || res.status === 200)) {
+          return { ok: true, data: resText, id: parsed?.id || "sent-ok" };
         }
 
         const errorMsg = parsed?.message || parsed?.name || resText || `Erreur HTTP ${res.status}`;
         bestError = errorMsg;
         bestStatus = res.status;
 
-        if (errorMsg.toLowerCase().includes("sandbox") || errorMsg.toLowerCase().includes("only send to") || errorMsg.toLowerCase().includes("domain")) {
+        if (res.status === 403 || errorMsg.toLowerCase().includes("sandbox") || errorMsg.toLowerCase().includes("only send to")) {
           break;
         }
       } catch (err: any) {
@@ -285,27 +279,10 @@ async function sendResendDirectEmail({
     }
   }
 
-  // 2. Tenter l'Edge Function Supabase comme secours silencieux (ne surcharge JAMAIS bestError)
-  try {
-    const { data: edgeRes, error: edgeErr } = await supabase.functions.invoke("relay-to-operator", {
-      body: {
-        action: "test_email",
-        resend_api_key: cleanKey,
-        to_email: cleanTo,
-        subject,
-        html: htmlContent,
-      },
-    });
-
-    if (!edgeErr && edgeRes && edgeRes.ok) {
-      return { ok: true, data: JSON.stringify(edgeRes), id: edgeRes.id || "edge-sent" };
-    }
-  } catch (_) {
-    // Ignorer pour conserver le message d'erreur Resend d'origine
-  }
-
   if (bestStatus === 403 || bestError.toLowerCase().includes("only send to") || bestError.toLowerCase().includes("sandbox")) {
-    bestError = `Resend restreint l'envoi en Mode Sandbox vers (${cleanTo}). Pour envoyer à cette adresse, activez le Mode TEST avec votre email personnel dans Paramètres, ou ajoutez le domaine sur Resend.com.`;
+    bestError = `Resend restreint l'envoi vers (${cleanTo}). Pour tester l'envoi, renseignez votre email dans "Email de test" dans l'onglet Paramètres ou basculez en mode TEST.`;
+  } else if (bestStatus === 401 || bestError.toLowerCase().includes("api key")) {
+    bestError = "La clé API Resend renseignée est invalide. Veuillez vérifier votre clé (re_...) dans Paramètres.";
   }
 
   return { ok: false, status: bestStatus, error: bestError };
