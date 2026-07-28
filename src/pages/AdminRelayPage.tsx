@@ -684,9 +684,26 @@ const AdminRelayPage = () => {
 
         /* ── VUE : À ENVOYER ───────────────────────────────────────────── */
         pendingGroups.length === 0 ? (
-          <div className="rounded-xl border border-border bg-card p-12 text-center space-y-2">
-            <CheckCircle2 className="h-8 w-8 mx-auto text-emerald-500/40" />
-            <p className="text-muted-foreground text-sm">Aucun signalement en attente d'envoi.</p>
+          <div className="rounded-2xl border border-border bg-card p-10 text-center space-y-4 shadow-sm">
+            <CheckCircle2 className="h-12 w-12 mx-auto text-emerald-500/70" />
+            <div className="space-y-1 max-w-lg mx-auto">
+              <h3 className="text-foreground font-bold text-lg">Aucun signalement en attente dans la file.</h3>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                Cliquez ci-dessous pour importer et synchroniser automatiquement tous les signalements validés de la plateforme (CIE, SODECI, ANARE-CI, ONEP et Mairies).
+              </p>
+            </div>
+            <div className="pt-2">
+              <Button
+                size="lg"
+                variant="default"
+                disabled={syncAllMutation.isPending}
+                onClick={() => syncAllMutation.mutate()}
+                className="gap-2 bg-primary text-primary-foreground font-bold shadow-md hover:scale-105 transition-transform"
+              >
+                <RefreshCw className={`h-4 w-4 ${syncAllMutation.isPending ? "animate-spin" : ""}`} />
+                {syncAllMutation.isPending ? "Synchronisation en cours..." : "⚡ Synchroniser tous les signalements validés"}
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
