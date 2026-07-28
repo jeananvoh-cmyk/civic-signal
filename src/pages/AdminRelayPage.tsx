@@ -377,18 +377,32 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
               <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Quartier / Secteur</td>
               <td style="padding: 14px 20px; color: #0f172a; font-weight: 800;">${q.name}</td>
             </tr>
-            ${gpsRow}
+            ${(q.lat && q.lng) ? `
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Géolocalisation GPS</td>
+              <td style="padding: 14px 20px; color: #0f172a; font-weight: 700;">
+                📍 Lat: <code>${q.lat.toFixed(5)}</code>, Lng: <code>${q.lng.toFixed(5)}</code>
+                <div style="margin-top: 6px;">
+                  <a href="https://www.google.com/maps/search/?api=1&query=${q.lat},${q.lng}" target="_blank" style="display: inline-block; padding: 6px 12px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 11px; font-weight: 700; text-decoration: none;">
+                    📍 Localiser l'incident sur Google Maps
+                  </a>
+                </div>
+              </td>
+            </tr>
+            ` : ""}
             <tr style="border-bottom: 1px solid #f1f5f9;">
               <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">${confirmationLabel}</td>
               <td style="padding: 14px 20px;">${confirmationValue}</td>
             </tr>
+            ${q.createdAt ? `
             <tr style="border-bottom: 1px solid #f1f5f9;">
               <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Date du signalement</td>
               <td style="padding: 14px 20px; color: #334155; font-weight: 700;">
-                📅 ${q.createdAt ? safeFormatDate(q.createdAt, "d MMMM yyyy 'à' HH:mm") : nowStr}
-                ${q.createdAt && safeFormatDuration(q.createdAt) ? `<span style="color: #dc2626; font-size: 12px; font-weight: 800; margin-left: 8px;">(${safeFormatDuration(q.createdAt)})</span>` : ""}
+                📅 ${safeFormatDate(q.createdAt, "d MMMM yyyy 'à' HH:mm")}
+                ${safeFormatDuration(q.createdAt) ? `<span style="color: #dc2626; font-size: 12px; font-weight: 800; margin-left: 8px;">(${safeFormatDuration(q.createdAt)})</span>` : ""}
               </td>
             </tr>
+            ` : ""}
             <tr style="border-bottom: 1px solid #f1f5f9;">
               <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Niveau d'urgence</td>
               <td style="padding: 14px 20px; color: #0f172a; font-weight: 800;">
