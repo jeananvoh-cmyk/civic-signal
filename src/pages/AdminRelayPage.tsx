@@ -580,17 +580,17 @@ const AdminRelayPage = () => {
     mutationFn: async ({ relay_ids, groupKey }: { relay_ids: string[]; groupKey: string }) => {
       setSendingGroup(groupKey);
 
-      // 1. Tenter l'Edge Function Supabase (dans un try/catch pour qu'un 403 n'interrompe pas la mutation)
+      // 1. Tenter l'Edge Function Supabase
       try {
         const { data, error } = await supabase.functions.invoke("relay-to-operator", {
           body: { relay_ids },
         });
 
-        if (!error && data && (data.sent > 0 || data.processed > 0)) {
+        if (!error && data && data.ok === true && data.sent > 0) {
           return data;
         }
       } catch (edgeErr) {
-        console.warn("Edge Function non disponible (403/500). Bascule immédiate sur le mode secours client...", edgeErr);
+        console.warn("Edge Function non disponible. Bascule sur le mode secours client...", edgeErr);
       }
 
       // 2. Tenter l'envoi effectif via l'API Resend si une clé API Resend est configurée
@@ -626,7 +626,7 @@ const AdminRelayPage = () => {
       }
 
       if (resendApiKey && targetGroup) {
-        const isTest = effectiveConfig?.test_mode === "true";
+        const isTest = (draftConfig?.test_mode ?? effectiveConfig?.test_mode) === "true";
         const testEmail = (draftConfig?.test_email || effectiveConfig?.test_email || "jeananvoh@gmail.com").trim();
         const finalTo = isTest ? testEmail : targetGroup.email_to;
         const subject = isTest
