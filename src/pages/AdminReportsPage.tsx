@@ -208,17 +208,19 @@ const AdminReportsPage = () => {
 
   /** Ajout manuel d'un signalement aux relais d'intervention (CIE / SODECI / ANARE / ONEP / Mairie) */
   const addToRelayMutation = useMutation({
-    mutationFn: async (report: any) => {
+    mutationFn: async ({ report, notifId }: { report: any; notifId?: string }) => {
       const reportId = report.id;
       if (!reportId) throw new Error("ID du signalement introuvable");
 
-      // Essayer d'abord via la RPC SQL (bypasse le RLS et met à jour les compteurs en 1 appel)
-      const { data: rpcData, error: rpcError } = await supabase.rpc("admin_relay_report", {
+      // 1. Essayer d'abord la RPC SQL admin_relay_report
+      const { error: rpcError } = await supabase.rpc("admin_relay_report", {
         p_report_id: reportId,
       });
 
       if (rpcError) {
-        // Fallback local si l'RPC n'est pas encore exécutée en BDD
+        console.warn("RPC admin_relay_report error, executing JS fallback:", rpcError);
+
+        // Fallback JS si la RPC SQL n'a pas encore été créée
         const relays: Array<{ report_id: string; operator: "CIE" | "SODECI" | "MAIRIE" | "ONEP" | "ANARE"; email_to: string; status: string }> = [];
 
         if (report.service_type === "electricity") {
@@ -255,25 +257,36 @@ const AdminReportsPage = () => {
             .maybeSingle();
 
           if (existing) {
-            await (supabase as any)
+            const { error: upErr } = await (supabase as any)
               .from("relay_logs")
               .update({ status: "pending", email_to: item.email_to, error_message: null })
               .eq("id", existing.id);
+            if (upErr) console.error("Error updating relay_log:", upErr);
           } else {
-            await (supabase as any).from("relay_logs").insert(item);
+            const { error: inErr } = await (supabase as any).from("relay_logs").insert(item);
+            if (inErr) console.error("Error inserting relay_log:", inErr);
           }
         }
-
-        await supabase
-          .from("notifications")
-          .update({ read: true })
-          .or(`report_id.eq.${reportId},message.ilike.%${reportId}%`);
 
         await supabase
           .from("reports")
           .update({ forwarded_to_operator_at: new Date().toISOString() })
           .eq("id", reportId);
       }
+
+      // Marquer toujours la notification spécifique comme lue pour décrémenter le compteur d'alertes
+      if (notifId) {
+        const { error: notifErr } = await supabase
+          .from("notifications")
+          .update({ read: true })
+          .eq("id", notifId);
+        if (notifErr) console.error("Error marking notification as read:", notifErr);
+      }
+
+      await supabase
+        .from("notifications")
+        .update({ read: true })
+        .or(`report_id.eq.${reportId},message.ilike.%${reportId}%`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-relay-logs-all"] });
@@ -283,6 +296,7 @@ const AdminReportsPage = () => {
       toast.success("Signalement transmis aux relais d'intervention !");
     },
     onError: (err: any) => {
+      console.error("addToRelayMutation error:", err);
       toast.error("Erreur lors de l'ajout aux relais: " + (err.message || "Erreur"));
     },
   });
@@ -911,10 +925,10 @@ const AdminReportsPage = () => {
                               disabled={addToRelayMutation.isPending}
                               onClick={async () => {
                                 if (report) {
-                                  addToRelayMutation.mutate(report);
+                                  addToRelayMutation.mutate({ report, notifId: notif.id });
                                 } else if (notif.extracted_report_id) {
                                   const { data } = await supabase.from("reports").select("*").eq("id", notif.extracted_report_id).single();
-                                  if (data) addToRelayMutation.mutate(data);
+                                  if (data) addToRelayMutation.mutate({ report: data, notifId: notif.id });
                                   else toast.error("Signalement introuvable");
                                 }
                               }}
@@ -926,7 +940,12 @@ const AdminReportsPage = () => {
                             <Button
                               size="sm" variant="outline"
                               className="h-7 text-xs gap-1 border-green-500/40 text-green-700 hover:bg-green-500/10"
-                              onClick={() => window.open(waLink, "_blank")}
+                              onClick={() => {
+                                window.open(waLink, "_blank");
+                                if (report) {
+                                  addToRelayMutation.mutate({ report, notifId: notif.id });
+                                }
+                              }}
                             >
                               <MessageCircle className="h-3 w-3" /> Contacter {operatorName}
                             </Button>
