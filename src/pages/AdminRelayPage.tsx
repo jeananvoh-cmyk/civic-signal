@@ -67,6 +67,7 @@ interface RelayGroup {
     category?: string | null;
     lat?: number | null;
     lng?: number | null;
+    reportId?: string | null;
   }[];
   totalConfirmations: number;
   hasCritical: boolean;
@@ -626,6 +627,7 @@ function groupPending(logs: RelayLog[]): RelayGroup[] {
         category: rep.category,
         lat: rep.latitude,
         lng: rep.longitude,
+        reportId: rep.id,
       });
     }
     g.totalConfirmations += rep.verifications || 1;
@@ -1402,21 +1404,34 @@ const AdminRelayPage = () => {
                       const confirmationBadge = isInfra
                         ? `${q.verifications} citoyen(s) votant(s)`
                         : `${q.verifications} foyer(s)`;
+                      const targetReportId = q.reportId || group.relayIds[0];
 
                       return (
                         <div
                           key={idx}
-                          className="flex items-center justify-between px-4 py-2.5"
+                          className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/10 transition-colors"
                         >
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-foreground">{displayName}</span>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-sm font-semibold text-foreground truncate">{displayName}</span>
                             {q.count && q.count > 1 && (
-                              <span className="text-xs text-muted-foreground">({q.count} signalements)</span>
+                              <span className="text-xs text-muted-foreground shrink-0">({q.count} signalements)</span>
                             )}
                           </div>
-                          <div className="flex items-center gap-3 text-xs">
+                          <div className="flex items-center gap-2 text-xs shrink-0">
                             <span className="text-emerald-600 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">{confirmationBadge}</span>
                             <span className={urgCfg.color}>{urgCfg.label}</span>
+                            {targetReportId && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => window.open(`/signalement/${targetReportId}`, "_blank")}
+                                className="gap-1 text-xs h-7 px-2 border-primary/40 text-primary hover:bg-primary/10 font-semibold"
+                                title="Ouvrir la fiche complète du signalement"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                Voir le signalement
+                              </Button>
+                            )}
                           </div>
                         </div>
                       );
@@ -1492,7 +1507,7 @@ const AdminRelayPage = () => {
                     className="flex items-center justify-between p-4 hover:bg-muted/20 transition-colors"
                   >
                     <div
-                      onClick={() => window.open(`/admin/signalements?id=${log.report_id}`, "_blank")}
+                      onClick={() => window.open(`/signalement/${log.report_id}`, "_blank")}
                       className="flex items-center gap-3 min-w-0 cursor-pointer group"
                       title="Cliquer pour ouvrir les détails de ce signalement"
                     >
@@ -1531,7 +1546,7 @@ const AdminRelayPage = () => {
                       <Button
                         size="sm"
                         variant="default"
-                        onClick={() => window.open(`/admin/signalements?id=${log.report_id}`, "_blank")}
+                        onClick={() => window.open(`/signalement/${log.report_id}`, "_blank")}
                         className="gap-1.5 text-xs h-8 bg-primary text-primary-foreground font-semibold shadow-xs"
                       >
                         <ExternalLink className="h-3.5 w-3.5" />
@@ -1608,7 +1623,7 @@ const AdminRelayPage = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => window.open(`/admin/signalements?id=${log.report_id}`, "_blank")}
+                          onClick={() => window.open(`/signalement/${log.report_id}`, "_blank")}
                           className="gap-1.5 text-xs font-medium"
                         >
                           <ExternalLink className="h-3.5 w-3.5 text-primary" /> Voir la fiche complète du signalement
