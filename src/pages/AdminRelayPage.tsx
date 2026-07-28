@@ -251,6 +251,20 @@ const MAIRIES_PILOTES = [
   { slug: "yopougon",    label: "Yopougon" },
 ] as const;
 
+const DEFAULT_CONFIG: RelayConfig = {
+  test_mode: "true",
+  test_email: "jeananvoh@gmail.com",
+  resend_api_key: "",
+  email_cie: "reclamation@cie.ci",
+  email_sodeci: "contact@sodeci.ci",
+  email_anare: "info@anareci.org",
+  email_onep: "contact@onep.ci",
+  email_mairie_cocody: "technique@cocody.ci",
+  email_mairie_adjame: "technique@adjame.ci",
+  email_mairie_portbouet: "technique@portbouet.ci",
+  email_mairie_yopougon: "technique@yopougon.ci",
+};
+
 function useRelayConfig() {
   return useQuery({
     queryKey: ["relay-config"],
@@ -258,10 +272,17 @@ function useRelayConfig() {
       const { data, error } = await (supabase as any)
         .from("relay_config")
         .select("key, value");
-      if (error) throw error;
-      return Object.fromEntries(
+      if (error) {
+        console.warn("Erreur lecture relay_config, utilisation defaults:", error);
+        return DEFAULT_CONFIG;
+      }
+      const fetched = Object.fromEntries(
         (data as { key: string; value: string }[]).map((r) => [r.key, r.value]),
-      ) as RelayConfig;
+      );
+      return {
+        ...DEFAULT_CONFIG,
+        ...fetched,
+      } as RelayConfig;
     },
     staleTime: 60_000,
   });
@@ -588,13 +609,15 @@ const AdminRelayPage = () => {
   // ── Sauvegarder la config ──────────────────────────────────────────────────
   const saveConfig = useMutation({
     mutationFn: async (cfg: RelayConfig) => {
-      const updates = Object.entries(cfg).map(([key, value]) =>
-        (supabase as any)
-          .from("relay_config")
-          .update({ value, updated_at: new Date().toISOString() })
-          .eq("key", key),
-      );
-      await Promise.all(updates);
+      const rows = Object.entries(cfg).map(([key, value]) => ({
+        key,
+        value: value ?? "",
+        updated_at: new Date().toISOString(),
+      }));
+      const { error } = await (supabase as any)
+        .from("relay_config")
+        .upsert(rows, { onConflict: "key" });
+      if (error) throw error;
     },
     onSuccess: () => {
       refetchConfig();
