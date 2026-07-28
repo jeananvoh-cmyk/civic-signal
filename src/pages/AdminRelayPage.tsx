@@ -462,25 +462,70 @@ const AdminRelayPage = () => {
       }
 
       // 2. Tenter l'envoi effectif via l'API Resend si une clé API Resend est configurée
-      const resendApiKey = effectiveConfig?.resend_api_key || "";
-      if (resendApiKey) {
-        const targetGroup = pendingGroups.find((g) => g.key === groupKey);
-        if (targetGroup) {
-          const isTest = effectiveConfig?.test_mode === "true";
-          const testEmail = effectiveConfig?.test_email || "jeananvoh@gmail.com";
-          const finalTo = isTest ? testEmail : targetGroup.email_to;
-          const subject = isTest
-            ? `[TEST → ${targetGroup.email_to}] [SIGNA-CI] Rapport d'intervention — ${targetGroup.commune} (${OPERATOR_CONFIG[targetGroup.operator]?.label || targetGroup.operator})`
-            : `[SIGNA-CI] Rapport d'intervention — ${targetGroup.commune} (${OPERATOR_CONFIG[targetGroup.operator]?.label || targetGroup.operator})`;
+      const resendApiKey = (draftConfig?.resend_api_key || effectiveConfig?.resend_api_key || "").trim();
+      let targetGroup = pendingGroups.find((g) => g.key === groupKey);
 
-          const html = buildBatchEmailHtmlClient(targetGroup);
-          await sendResendDirectEmail({
-            apiKey: resendApiKey,
-            toEmail: finalTo,
-            subject,
-            htmlContent: html,
-          }).catch((err) => console.error("Erreur lors de l'envoi direct via Resend:", err));
+      // Si le groupe n'est pas dans la liste courante, le reconstituer depuis la base
+      const { data: relayLogs } = await (supabase as any)
+        .from("relay_logs")
+        .select("*, report:reports(*)")
+        .in("id", relay_ids);
+
+      if (!targetGroup && relayLogs && relayLogs.length > 0) {
+        const first = relayLogs[0];
+        targetGroup = {
+          key: groupKey,
+          operator: first.operator,
+          commune: first.report?.commune || "Abidjan",
+          email_to: first.email_to || "reclamation@cie.ci",
+          relayIds: relay_ids,
+          quartiers: relayLogs.map((l: any) => ({
+            name: l.report?.quartier || "Quartier",
+            verifications: l.report?.verifications || 1,
+            urgency: l.report?.urgency || "medium",
+          })),
+          totalConfirmations: relayLogs.reduce((s: number, l: any) => s + (l.report?.verifications || 1), 0),
+          hasCritical: relayLogs.some((l: any) => l.report?.urgency === "critical"),
+          meterNumbers: [],
+          reporters: [],
+          waSentAt: null,
+          cieTicketNumber: null,
+        };
+      }
+
+      if (resendApiKey && targetGroup) {
+        const isTest = effectiveConfig?.test_mode === "true";
+        const testEmail = (draftConfig?.test_email || effectiveConfig?.test_email || "jeananvoh@gmail.com").trim();
+        const finalTo = isTest ? testEmail : targetGroup.email_to;
+        const subject = isTest
+          ? `[TEST → ${targetGroup.email_to}] [SIGNA-CI] Rapport d'intervention — ${targetGroup.commune} (${OPERATOR_CONFIG[targetGroup.operator]?.label || targetGroup.operator})`
+          : `[SIGNA-CI] Rapport d'intervention — ${targetGroup.commune} (${OPERATOR_CONFIG[targetGroup.operator]?.label || targetGroup.operator})`;
+
+        const html = buildBatchEmailHtmlClient(targetGroup);
+        const resendRes = await sendResendDirectEmail({
+          apiKey: resendApiKey,
+          toEmail: finalTo,
+          subject,
+          htmlContent: html,
+        });
+
+        if (!resendRes.ok) {
+          toast({
+            title: "Avertissement Resend API",
+            description: `Erreur Resend (${resendRes.status}) : ${resendRes.error || "Vérifiez votre clé API ou le destinataire autorise en mode gratuit."}`,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Email Resend distribué !",
+            description: `Le rapport a été expédié directement vers ${finalTo} via Resend.`,
+          });
         }
+      } else if (!resendApiKey) {
+        toast({
+          title: "Clé Resend non configurée",
+          description: "Pour recevoir les vrais e-mails HTML dans votre boîte mail, saisissez votre clé API Resend dans l'onglet Paramètres.",
+        });
       }
 
       // 3. Mettre à jour le statut des relais en "sent"
