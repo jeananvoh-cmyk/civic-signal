@@ -84,49 +84,85 @@ interface RelayGroup {
   cieTicketNumber: string | null;
 }
 
+const KNOWN_COMMUNES = [
+  "Abobo", "Adjamé", "Attécoubé", "Anyama", "Bingerville",
+  "Cocody", "Koumassi", "Marcory", "Port-Bouët", "Songon",
+  "Treichville", "Yopougon", "Bouaké", "Yamoussoukro", "San-Pédro",
+  "Korhogo", "Man", "Daloa", "Gagnoa", "Grand-Bassam"
+];
+
+function isGenericCommune(c?: string | null): boolean {
+  if (!c || !c.trim()) return true;
+  const lower = c.trim().toLowerCase();
+  return (
+    lower === "abidjan" ||
+    lower === "commune de abidjan" ||
+    lower === "commune d'abidjan" ||
+    lower === "ville d'abidjan" ||
+    lower === "inconnu" ||
+    lower === "__other" ||
+    lower === "autre"
+  );
+}
+
+function isGenericQuartier(q?: string | null): boolean {
+  if (!q || !q.trim()) return true;
+  const lower = q.trim().toLowerCase();
+  return (
+    lower === "secteur non spécifié" ||
+    lower === "non spécifié" ||
+    lower === "non renseigné" ||
+    lower === "__other" ||
+    lower === "autre" ||
+    lower === "autre quartier" ||
+    lower === "autre secteur" ||
+    lower === "aucun" ||
+    lower === "inconnu" ||
+    lower === "abidjan" ||
+    lower === "commune de abidjan"
+  );
+}
+
 function resolveCommuneName(
   commune?: string | null,
   location?: string | null,
   lat?: number | null,
   lng?: number | null,
   profileCommune?: string | null,
-  description?: string | null
+  description?: string | null,
+  addressText?: string | null,
+  landmark?: string | null
 ): string {
-  const knownCommunes = ["Yopougon", "Cocody", "Abobo", "Adjamé", "Koumassi", "Port-Bouët", "Bingerville", "Marcory", "Treichville", "Attécoubé", "Songon", "Anyama"];
-
-  const isGeneric = (c?: string | null) => {
-    if (!c || !c.trim()) return true;
-    const lower = c.trim().toLowerCase();
-    return lower === "abidjan" || lower === "commune de abidjan" || lower === "commune d'abidjan";
-  };
-  
-  if (!isGeneric(commune)) {
+  // 1. Si la commune est valide et spécifique (ex: Cocody, Yopougon, Port-Bouët...)
+  if (!isGenericCommune(commune)) {
     return commune!.trim();
   }
 
-  if (lat && lng) {
+  // 2. Si GPS présent, trouver la vraie commune géolocalisée par coordonnées
+  if (lat && lng && lat !== 0 && lng !== 0) {
     const res = findNearestCommune(lat, lng);
     if (res.commune?.nom) {
       return res.commune.nom;
     }
   }
 
-  if (!isGeneric(location)) {
-    for (const c of knownCommunes) {
-      if (location!.toLowerCase().includes(c.toLowerCase())) return c;
-    }
-    return location!.trim();
-  }
-
-  if (description) {
-    for (const c of knownCommunes) {
-      if (description.toLowerCase().includes(c.toLowerCase())) {
-        return c;
-      }
+  // 3. Chercher dans location (ex: "Cocody, Riviéra 2" -> "Cocody")
+  if (!isGenericCommune(location)) {
+    for (const kc of KNOWN_COMMUNES) {
+      if (location!.toLowerCase().includes(kc.toLowerCase())) return kc;
     }
   }
 
-  if (!isGeneric(profileCommune)) {
+  // 4. Chercher dans description / addressText / landmark
+  const combinedText = `${description ?? ""} ${addressText ?? ""} ${landmark ?? ""}`;
+  if (combinedText.trim()) {
+    for (const kc of KNOWN_COMMUNES) {
+      if (combinedText.toLowerCase().includes(kc.toLowerCase())) return kc;
+    }
+  }
+
+  // 5. Chercher dans le profil de l'utilisateur
+  if (!isGenericCommune(profileCommune)) {
     return profileCommune!.trim();
   }
 
@@ -140,30 +176,53 @@ function cleanQuartierName(
   landmark?: string | null,
   profileQuartier?: string | null,
   description?: string | null,
+  location?: string | null,
   reportId?: string | null
 ): string {
-  const isInvalid = (val?: string | null) => !val || !val.trim() || val.trim() === "__other" || val.trim().toLowerCase() === "autre" || val.trim().toLowerCase() === "autre quartier";
-  if (!isInvalid(customQuartier)) {
+  // 1. Si custom_quartier est saisi et valide (ex: "Bonoumin", "Maroc", "Remblais"...)
+  if (!isGenericQuartier(customQuartier)) {
     return customQuartier!.trim();
   }
-  if (!isInvalid(quartier)) {
+
+  // 2. Si quartier est saisi et valide (ex: "Gonzagueville", "Angré"...)
+  if (!isGenericQuartier(quartier)) {
     return quartier!.trim();
   }
-  if (landmark && landmark.trim() !== "") {
+
+  // 3. Tenter d'extraire le quartier de location (ex: "Cocody, Riviéra Bonoumin" -> "Riviéra Bonoumin")
+  if (location && location.trim()) {
+    const parts = location.split(/[,·\-]/).map((p) => p.trim()).filter((p) => p.length > 0);
+    for (const part of parts) {
+      if (!isGenericCommune(part) && !isGenericQuartier(part)) {
+        return part;
+      }
+    }
+  }
+
+  // 4. Si un repère ou lieu-dit est saisi (ex: "Près du carrefour Sodeci")
+  if (landmark && landmark.trim()) {
     return `Secteur ${landmark.trim()}`;
   }
-  if (addressText && addressText.trim() !== "") {
+
+  // 5. Si une adresse texte est saisie
+  if (addressText && addressText.trim()) {
     return addressText.trim();
   }
-  if (!isInvalid(profileQuartier)) {
+
+  // 6. Si le profil utilisateur contient un quartier valide
+  if (!isGenericQuartier(profileQuartier)) {
     return profileQuartier!.trim();
   }
-  if (description && description.trim() !== "") {
+
+  // 7. Extraire une adresse/quartier de la description (ex: "Coupure vers la pharmacie...")
+  if (description && description.trim()) {
     const cleanDesc = description.replace(/\[.*?\]/g, "").trim();
     if (cleanDesc.length > 0) {
       return cleanDesc.length > 35 ? cleanDesc.slice(0, 32) + "…" : cleanDesc;
     }
   }
+
+  // 8. Rendre chaque signalement unique avec sa référence si tout le reste est manquant
   return reportId ? `Secteur non spécifié (#${reportId.slice(0, 6)})` : "Secteur non spécifié";
 }
 
@@ -766,7 +825,17 @@ function groupPending(logs: RelayLog[] = []): RelayGroup[] {
       reporter_phone: null,
     };
 
-    const communeName = resolveCommuneName(rep.commune, rep.location, rep.latitude, rep.longitude, rep.profile_commune, rep.description);
+    const communeName = resolveCommuneName(
+      rep.commune,
+      rep.location,
+      rep.latitude,
+      rep.longitude,
+      rep.profile_commune,
+      rep.description,
+      rep.address_text,
+      rep.landmark
+    );
+
     const key = `${operator}::${communeName}`;
     if (!map.has(key)) {
       map.set(key, {
@@ -809,7 +878,16 @@ function groupPending(logs: RelayLog[] = []): RelayGroup[] {
     if (!g.waSentAt && log.wa_sent_at) g.waSentAt = log.wa_sent_at;
     if (!g.cieTicketNumber && log.cie_ticket_number) g.cieTicketNumber = log.cie_ticket_number;
 
-    const cleanQ = cleanQuartierName(rep.quartier, rep.custom_quartier, rep.address_text, rep.landmark, rep.profile_quartier, rep.description, rep.id);
+    const cleanQ = cleanQuartierName(
+      rep.quartier,
+      rep.custom_quartier,
+      rep.address_text,
+      rep.landmark,
+      rep.profile_quartier,
+      rep.description,
+      rep.location,
+      rep.id
+    );
     const existing = g.quartiers.find((q) => q.reportId && q.reportId === rep.id);
     if (existing) {
       existing.verifications += rep.verifications || 1;
