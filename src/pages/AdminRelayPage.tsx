@@ -6,7 +6,7 @@ import {
   Zap, Droplets, AlertTriangle, MailCheck, MapPin, Users,
   ChevronDown, ChevronUp, ExternalLink, Settings, FlaskConical,
   ShieldCheck, Save, Ban, MessageCircle, Building2, TicketCheck,
-  Scale, Copy, Eye, EyeOff, KeyRound, Calendar, Filter,
+  Scale, Copy, Eye, EyeOff, KeyRound, Calendar, Filter, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -278,18 +278,20 @@ const URGENCY_CONFIG: Record<string, { label: string; color: string }> = {
 // ─── Hook : relay config ──────────────────────────────────────────────────────
 
 interface RelayConfig {
-  test_mode:      string;
-  test_email:     string;
-  cc_email:       string;
-  resend_api_key?: string;
-  email_cie:      string;
-  email_sodeci:   string;
-  email_onep:     string;
-  email_anare:    string;
-  whatsapp_cie:   string;
-  whatsapp_sodeci: string;
-  whatsapp_onep:  string;
-  whatsapp_anare: string;
+  test_mode:           string;
+  test_email:          string;
+  cc_email:            string;
+  resend_api_key?:     string;
+  email_cie:           string;
+  email_sodeci:        string;
+  email_onep:          string;
+  email_anare:         string;
+  whatsapp_cie:        string;
+  whatsapp_sodeci:     string;
+  whatsapp_onep:       string;
+  whatsapp_anare:      string;
+  anare_auto_dispatch?: string;
+  onep_auto_dispatch?:  string;
   [key: string]: string;
 }
 
@@ -1299,6 +1301,36 @@ const AdminRelayPage = () => {
     onSettled: () => setSendingGroup(null),
   });
 
+  // ── Suppression définitive d'un ou plusieurs relais de la file ───────────
+  const deleteRelayGroup = useMutation({
+    mutationFn: async (relayIds: string[]) => {
+      const { error } = await (supabase as any)
+        .from("relay_logs")
+        .delete()
+        .in("id", relayIds);
+      if (error) throw error;
+      return relayIds;
+    },
+    onSuccess: (deletedIds: string[]) => {
+      queryClient.setQueryData(["admin-relay-logs-all"], (old: RelayLog[] | undefined) => {
+        if (!old) return [];
+        return old.filter((log) => !deletedIds.includes(log.id));
+      });
+      queryClient.invalidateQueries({ queryKey: ["admin-relay-logs-all"] });
+      toast({
+        title: "🗑️ Fiche de relais retirée",
+        description: "La fiche a été supprimée de la file d'attente avec succès.",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Erreur lors de la suppression",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const sendAllOperatorGroups = async (opFilter: string) => {
     const targets = pendingGroups.filter((g) => opFilter === "ALL" || g.operator === opFilter);
     if (targets.length === 0) return;
@@ -1474,10 +1506,14 @@ const AdminRelayPage = () => {
 
         if (isCieRelated) {
           relays.push({ report_id: report.id, operator: "CIE", email_to: "reclamation@cie.ci", status: "pending" });
-          relays.push({ report_id: report.id, operator: "ANARE", email_to: "reclamation@anare.ci", status: "pending" });
+          if (effectiveConfig?.anare_auto_dispatch !== "false") {
+            relays.push({ report_id: report.id, operator: "ANARE", email_to: "reclamation@anare.ci", status: "pending" });
+          }
         } else if (isSodeciRelated) {
           relays.push({ report_id: report.id, operator: "SODECI", email_to: "reclamation@sodeci.ci", status: "pending" });
-          relays.push({ report_id: report.id, operator: "ONEP", email_to: "reclamation@onep.ci", status: "pending" });
+          if (effectiveConfig?.onep_auto_dispatch !== "false") {
+            relays.push({ report_id: report.id, operator: "ONEP", email_to: "reclamation@onep.ci", status: "pending" });
+          }
         } else {
           relays.push({ report_id: report.id, operator: "MAIRIE", email_to: `mairie:${report.commune}`, status: "pending" });
         }
@@ -1884,6 +1920,23 @@ const AdminRelayPage = () => {
                               >
                                 <Ban className="h-3.5 w-3.5" />
                                 Rejeter
+                              </Button>
+
+                              {/* Bouton Retirer / Supprimer de la file */}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (window.confirm(`Voulez-vous vraiment retirer la fiche ${group.operator} (${group.commune}) de la file d'attente ?`)) {
+                                    deleteRelayGroup.mutate(group.relayIds);
+                                  }
+                                }}
+                                disabled={isSending || deleteRelayGroup.isPending}
+                                className="gap-1.5 text-red-600 border-red-500/40 hover:bg-red-500/10 text-xs h-8 font-semibold"
+                                title="Retirer cette fiche de la file d'attente"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                <span>Retirer</span>
                               </Button>
 
                               {/* WhatsApp bouton */}
@@ -2430,6 +2483,67 @@ const AdminRelayPage = () => {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Dispatching Automatique des Régulateurs (ANARE-CI & ONEP) */}
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4 shadow-sm">
+            <div>
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Scale className="h-4 w-4 text-primary" />
+                Dispatching Automatique des Régulateurs (ANARE-CI & ONEP)
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Choisissez d'inclure ou d'exclure automatiquement les régulateurs lors de la synchronisation des signalements.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {/* ANARE-CI Switch */}
+              <div className="flex items-center justify-between p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/5">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-xs text-foreground">⚖️ ANARE-CI — Régulateur Électricité</span>
+                    {effectiveConfig.anare_auto_dispatch !== "false" ? (
+                      <span className="text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-extrabold px-2 py-0.5 rounded">Activé par défaut</span>
+                    ) : (
+                      <span className="text-[10px] bg-slate-500/20 text-slate-600 dark:text-slate-400 font-extrabold px-2 py-0.5 rounded">Désactivé</span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Génère automatiquement une fiche vers l'ANARE-CI pour tout incident d'électricité (CIE).
+                  </p>
+                </div>
+                <Switch
+                  checked={effectiveConfig.anare_auto_dispatch !== "false"}
+                  onCheckedChange={(checked) =>
+                    setDraftConfig({ ...(effectiveConfig as RelayConfig), anare_auto_dispatch: checked ? "true" : "false" })
+                  }
+                />
+              </div>
+
+              {/* ONEP Switch */}
+              <div className="flex items-center justify-between p-3.5 rounded-xl border border-cyan-500/30 bg-cyan-500/5">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-xs text-foreground">💧 ONEP — Office National de l'Eau Potable</span>
+                    {effectiveConfig.onep_auto_dispatch !== "false" ? (
+                      <span className="text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-extrabold px-2 py-0.5 rounded">Activé par défaut</span>
+                    ) : (
+                      <span className="text-[10px] bg-slate-500/20 text-slate-600 dark:text-slate-400 font-extrabold px-2 py-0.5 rounded">Désactivé</span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Génère automatiquement une fiche vers l'ONEP pour tout incident d'eau potable (SODECI).
+                  </p>
+                </div>
+                <Switch
+                  checked={effectiveConfig.onep_auto_dispatch !== "false"}
+                  onCheckedChange={(checked) =>
+                    setDraftConfig({ ...(effectiveConfig as RelayConfig), onep_auto_dispatch: checked ? "true" : "false" })
+                  }
+                />
+              </div>
+            </div>
           </div>
 
           {/* Emails + WhatsApp opérateurs réseau & régulateurs */}

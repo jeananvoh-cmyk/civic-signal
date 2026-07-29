@@ -263,12 +263,20 @@ const AdminReportsPage = () => {
             report.description.toLowerCase().includes("eau potable")
           ));
 
+        const { data: cfgRows } = await (supabase as any).from("relay_config").select("*");
+        const cfgMap: Record<string, string> = {};
+        if (cfgRows) cfgRows.forEach((r: any) => { cfgMap[r.key] = r.value; });
+
         if (isCieRelated) {
           relays.push({ report_id: reportId, operator: "CIE", email_to: "reclamation@cie.ci", status: "pending" });
-          relays.push({ report_id: reportId, operator: "ANARE", email_to: "reclamation@anare.ci", status: "pending" });
+          if (cfgMap.anare_auto_dispatch !== "false") {
+            relays.push({ report_id: reportId, operator: "ANARE", email_to: "reclamation@anare.ci", status: "pending" });
+          }
         } else if (isSodeciRelated) {
           relays.push({ report_id: reportId, operator: "SODECI", email_to: "reclamation@sodeci.ci", status: "pending" });
-          relays.push({ report_id: reportId, operator: "ONEP", email_to: "reclamation@onep.ci", status: "pending" });
+          if (cfgMap.onep_auto_dispatch !== "false") {
+            relays.push({ report_id: reportId, operator: "ONEP", email_to: "reclamation@onep.ci", status: "pending" });
+          }
         } else {
           relays.push({ report_id: reportId, operator: "MAIRIE", email_to: `mairie:${report.commune}`, status: "pending" });
         }
