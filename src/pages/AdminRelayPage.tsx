@@ -110,7 +110,7 @@ function isGenericCommune(c?: string | null): boolean {
 function isGenericQuartier(q?: string | null): boolean {
   if (!q || !q.trim()) return true;
   const lower = q.trim().toLowerCase();
-  return (
+  if (
     lower === "secteur non spécifié" ||
     lower === "non spécifié" ||
     lower === "non renseigné" ||
@@ -122,7 +122,21 @@ function isGenericQuartier(q?: string | null): boolean {
     lower === "inconnu" ||
     lower === "abidjan" ||
     lower === "commune de abidjan"
-  );
+  ) {
+    return true;
+  }
+  // Filtrer les termes de statut/type d'incident qui ne sont PAS des noms de quartier
+  if (
+    lower.includes("intervention") ||
+    lower.includes("action requise") ||
+    lower.includes("réparation") ||
+    lower.includes("reparation") ||
+    lower.includes("signalement") ||
+    lower.includes("urgence")
+  ) {
+    return true;
+  }
+  return false;
 }
 
 function resolveCommuneName(
@@ -187,23 +201,39 @@ function cleanQuartierName(
   addressText?: string | null,
   landmark?: string | null,
   profileQuartier?: string | null,
-  description?: string | null,
+  _description?: string | null,
   location?: string | null,
-  reportId?: string | null,
+  _reportId?: string | null,
   notifTitle?: string | null,
-  notifMessage?: string | null
+  _notifMessage?: string | null
 ): string {
   // 1. Si custom_quartier est saisi et valide (ex: "Bonoumin", "Maroc", "Remblais"...)
   if (!isGenericQuartier(customQuartier)) {
     return customQuartier!.trim();
   }
 
-  // 2. Si quartier est saisi et valide (ex: "Gonzagueville", "Angré"...)
+  // 2. Si quartier est choisi/saisi par l'utilisateur et valide (ex: "Gonzagueville", "Angré", "Mermoz"...)
   if (!isGenericQuartier(quartier)) {
     return quartier!.trim();
   }
 
-  // 3. Extraire du titre de notification (ex: "💡 Infra. CIE — Cocody, Riviéra Bonoumin" -> "Riviéra Bonoumin")
+  // 3. Si le profil utilisateur contient un quartier valide
+  if (!isGenericQuartier(profileQuartier)) {
+    return profileQuartier!.trim();
+  }
+
+  // 4. Si un repère précis (landmark) est saisi par l'utilisateur (ex: "Près du carrefour Sodeci")
+  if (landmark && landmark.trim() && !isGenericQuartier(landmark)) {
+    const cleanL = landmark.trim();
+    return cleanL.toLowerCase().startsWith("secteur") ? cleanL : `Secteur ${cleanL}`;
+  }
+
+  // 5. Si une adresse texte est saisie par l'utilisateur
+  if (addressText && addressText.trim() && !isGenericQuartier(addressText)) {
+    return addressText.trim();
+  }
+
+  // 6. Tenter d'extraire le quartier de notifTitle si présent (ex: "💡 Infra. CIE — Cocody, Riviéra 2" -> "Riviéra 2")
   if (notifTitle && notifTitle.includes("—")) {
     const afterDash = notifTitle.split("—")[1]?.trim();
     if (afterDash && afterDash.includes(",")) {
@@ -214,7 +244,7 @@ function cleanQuartierName(
     }
   }
 
-  // 4. Tenter d'extraire le quartier de location (ex: "Cocody, Riviéra Bonoumin" -> "Riviéra Bonoumin")
+  // 7. Tenter d'extraire le quartier de location si présent (ex: "Cocody, Riviéra 2" -> "Riviéra 2")
   if (location && location.trim()) {
     const parts = location.split(/[,·\-]/).map((p) => p.trim()).filter((p) => p.length > 0);
     for (const part of parts) {
@@ -224,31 +254,9 @@ function cleanQuartierName(
     }
   }
 
-  // 5. Si un repère ou lieu-dit est saisi (ex: "Près du carrefour Sodeci")
-  if (landmark && landmark.trim()) {
-    return `Secteur ${landmark.trim()}`;
-  }
-
-  // 6. Si une adresse texte est saisie
-  if (addressText && addressText.trim()) {
-    return addressText.trim();
-  }
-
-  // 7. Si le profil utilisateur contient un quartier valide
-  if (!isGenericQuartier(profileQuartier)) {
-    return profileQuartier!.trim();
-  }
-
-  // 8. Extraire une adresse/quartier de la description (ex: "Coupure vers la pharmacie...")
-  if (description && description.trim()) {
-    const cleanDesc = description.replace(/\[.*?\]/g, "").trim();
-    if (cleanDesc.length > 0) {
-      return cleanDesc.length > 35 ? cleanDesc.slice(0, 32) + "…" : cleanDesc;
-    }
-  }
-
-  // 9. Rendre chaque signalement unique avec sa référence si tout le reste est manquant
-  return reportId ? `Secteur non spécifié (#${reportId.slice(0, 6)})` : "Secteur non spécifié";
+  // 8. NE PAS INVENTER de quartier depuis la description !
+  // Si aucun nom de quartier ou repère spécifique n'a été spécifié, retourner "Secteur non spécifié"
+  return "Secteur non spécifié";
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -1277,9 +1285,29 @@ const AdminRelayPage = () => {
           email_to: getOperatorTargetEmail(first.operator, first.report?.commune || "Abidjan", effectiveConfig, first.email_to),
           relayIds: relay_ids,
           quartiers: relayLogs.map((l: any) => ({
-            name: l.report?.quartier || "Quartier",
+            name: cleanQuartierName(
+              l.report?.quartier,
+              l.report?.custom_quartier,
+              l.report?.address_text,
+              l.report?.landmark,
+              l.report?.profile_quartier,
+              l.report?.description,
+              l.report?.location,
+              l.report?.id,
+              l.report?.notif_title,
+              l.report?.notif_message
+            ),
             verifications: l.report?.verifications || 1,
             urgency: l.report?.urgency || "medium",
+            addressText: l.report?.address_text,
+            landmark: l.report?.landmark,
+            description: l.report?.description,
+            category: l.report?.category,
+            serviceType: l.report?.service_type,
+            createdAt: l.report?.created_at || l.created_at,
+            lat: l.report?.latitude,
+            lng: l.report?.longitude,
+            reportId: l.report?.id,
           })),
           totalConfirmations: relayLogs.reduce((s: number, l: any) => s + (l.report?.verifications || 1), 0),
           hasCritical: relayLogs.some((l: any) => l.report?.urgency === "critical"),
