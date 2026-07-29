@@ -496,13 +496,17 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
 
   const nowStr = format(new Date(), "d MMMM yyyy 'à' HH:mm", { locale: fr });
 
+  const citoyenText = group.totalConfirmations > 1
+    ? `${group.totalConfirmations} citoyen.ne.s`
+    : `1 citoyen.ne`;
+
   const introText = isANARE || group.operator === "ANARE"
-    ? `En tant qu'Autorité de Régulation du secteur de l'électricité (<strong>ANARE-CI</strong>), nous vous transmettons ce signalement d'infrastructure publique électrique à risque gérée par la <strong>CIE</strong>. Ce signalement via <strong>SIGNA-CI</strong> a été vu et est soutenu par <strong style="color: #16a34a;">${group.totalConfirmations} citoyen.ne(s)</strong> voulant une intervention et réparation rapide. Votre suivi réglementaire auprès de la CIE et l'intervention des services techniques seront appréciés pour une résolution rapide.`
+    ? `En tant qu'Autorité de Régulation du secteur de l'électricité (<strong>ANARE-CI</strong>), nous vous transmettons ce signalement d'infrastructure publique électrique à risque gérée par la <strong>CIE</strong>. Ce signalement via <strong>SIGNA-CI</strong> a été vu et est soutenu par <strong style="color: #16a34a;">${citoyenText}</strong> voulant une intervention et réparation rapide. Votre suivi réglementaire auprès de la CIE et l'intervention des services techniques seront appréciés pour une résolution rapide.`
     : isMairie || group.operator === "MAIRIE"
-    ? `Ce signalement d'infrastructure publique via <strong>SIGNA-CI</strong> a été vu et est soutenu par <strong style="color: #16a34a;">${group.totalConfirmations} citoyen.ne(s)</strong> voulant une intervention et réparation rapide. L'intervention des services techniques de la mairie de <strong>${group.commune}</strong>.`
+    ? `Ce signalement d'infrastructure publique via <strong>SIGNA-CI</strong> a été vu et est soutenu par <strong style="color: #16a34a;">${citoyenText}</strong> voulant une intervention et réparation rapide. L'intervention des services techniques de la mairie de <strong>${group.commune}</strong>.`
     : isInfraGroup
-    ? `Ce signalement d'infrastructure publique via <strong>SIGNA-CI</strong> a été vu et est soutenu par <strong style="color: #16a34a;">${group.totalConfirmations} citoyen.ne(s)</strong> voulant une intervention et réparation rapide. L'intervention de vos services techniques sera appréciée.`
-    : `Ce signalement a été <strong style="color: #16a34a;">confirmé par ${group.totalConfirmations} foyer(s) ou plus</strong> dans le même quartier via la plateforme <span style="background: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">SIGNA-CI</span>. Il nécessite votre intervention.`;
+    ? `Ce signalement d'infrastructure publique via <strong>SIGNA-CI</strong> a été vu et est soutenu par <strong style="color: #16a34a;">${citoyenText}</strong> voulant une intervention et réparation rapide. L'intervention de vos services techniques sera appréciée.`
+    : `Ce signalement a été <strong style="color: #16a34a;">confirmé par ${group.totalConfirmations > 1 ? `${group.totalConfirmations} foyers ou plus` : "1 foyer"}</strong> dans le même quartier via la plateforme <span style="background: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">SIGNA-CI</span>. Il nécessite votre intervention.`;
 
   const cardsHtml = group.quartiers.map((q, idx) => {
     const isCrit = q.urgency === "critical";
@@ -549,8 +553,8 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
     const isInfra = isMairie || group.operator === "MAIRIE" || isANARE || group.operator === "ANARE" || Boolean(extractedTag) || q.category === "infrastructure" || q.category === "eclairage_public" || q.category === "voirie" || q.category === "lampadaire" || q.category === "poteau_electrique" || q.category === "canalisation" || q.category === "egout" || q.category === "fuite_eau_exterieure";
     const confirmationLabel = isInfra ? "Soutien & votes citoyens" : "Confirmations voisins";
     const confirmationValue = isInfra
-      ? `<span style="color: #16a34a; font-weight: 800;">${q.verifications} citoyen.ne(s) soutiennent pour une réparation urgente</span>`
-      : `<span style="color: #16a34a; font-weight: 800;">${q.verifications} foyer(s) impacté(s)</span>`;
+      ? `<span style="color: #16a34a; font-weight: 800;">${q.verifications > 1 ? `${q.verifications} citoyen.ne.s soutiennent pour une réparation urgente` : "1 citoyen.ne soutient pour une réparation urgente"}</span>`
+      : `<span style="color: #16a34a; font-weight: 800;">${q.verifications > 1 ? `${q.verifications} foyers impactés` : "1 foyer impacté"}</span>`;
 
     return `
       <div style="border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; background: #ffffff; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
@@ -715,7 +719,7 @@ function buildWhatsAppMessage(group: RelayGroup): string {
     if (q.landmark) details.push(`  - Repère : ${q.landmark}`);
     if (q.addressText) details.push(`  - Adresse : ${q.addressText}`);
     if (dateStr) details.push(`  - Date : Signalé le ${dateStr}${durationStr ? ` (${durationStr})` : ""}`);
-    details.push(`  - Soutiens / Votants : ${q.verifications} citoyen.ne(s) — Urgence ${urgLabel}`);
+    details.push(`  - Soutiens / Votants : ${q.verifications > 1 ? `${q.verifications} citoyen.ne.s` : "1 citoyen.ne"} — Urgence ${urgLabel}`);
     if (q.lat && q.lng) details.push(`  - Localisation GPS : https://www.google.com/maps/search/?api=1&query=${q.lat},${q.lng}`);
     if (q.reportId) details.push(`  - Fiche Incident : https://signa.ci/signalement/${q.reportId}`);
 
@@ -1879,7 +1883,7 @@ const AdminRelayPage = () => {
                               </span>
                               <span className="flex items-center gap-1 font-medium text-emerald-700 dark:text-emerald-400">
                                 <Users className="h-3 w-3 text-emerald-600" />
-                                {group.totalConfirmations} citoyen.ne(s) votant(s)
+                                {group.totalConfirmations > 1 ? `${group.totalConfirmations} citoyen.ne.s votant.e.s` : "1 citoyen.ne votant.e"}
                               </span>
                               <span className="hidden sm:block">{group.email_to}</span>
                             </div>
@@ -2027,7 +2031,7 @@ const AdminRelayPage = () => {
                         {group.quartiers.map((q, idx) => {
                           const urgCfg = URGENCY_CONFIG[q.urgency] ?? URGENCY_CONFIG.low;
                           const displayName = (q.name === "__other" || q.name === "Autre") ? "Secteur non spécifié" : q.name;
-                          const confirmationBadge = `${q.verifications} citoyen.ne(s) votant(s)`;
+                          const confirmationBadge = q.verifications > 1 ? `${q.verifications} citoyen.ne.s votant.e.s` : "1 citoyen.ne votant.e";
                           const targetReportId = q.reportId || group.relayIds[0];
 
                           const specificLabel = q.description && q.description.trim() ? q.description.trim() : null;
