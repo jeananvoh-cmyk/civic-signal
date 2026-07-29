@@ -16,7 +16,7 @@ import { toast } from "@/hooks/use-toast";
 import { format, isToday, isThisWeek, isThisMonth, isThisYear, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { findNearestCommune } from "@/lib/communes";
-import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
+import { extractInfraLabel, infraEmoji, cleanDescription, INFRA_CIE, INFRA_SODECI } from "@/lib/report-display";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

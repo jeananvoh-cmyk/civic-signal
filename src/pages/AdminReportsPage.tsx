@@ -20,7 +20,7 @@ import { logAudit } from "@/lib/audit";
 import { format } from "date-fns";
 import PhotoGallery from "@/components/PhotoGallery";
 import CorroborationStatus from "@/components/CorroborationStatus";
-import { extractInfraLabel, cleanDescription, infraEmoji, infraOperator } from "@/lib/report-display";
+import { extractInfraLabel, cleanDescription, infraEmoji, infraOperator, INFRA_CIE, INFRA_SODECI } from "@/lib/report-display";
 
 const URGENCY_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   low: { label: "🟢 Faible", variant: "secondary" },
