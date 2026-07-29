@@ -238,8 +238,8 @@ function cleanQuartierName(
     const afterDash = notifTitle.split("—")[1]?.trim();
     if (afterDash && afterDash.includes(",")) {
       const qPart = afterDash.split(",")[1]?.trim();
-      if (!isGenericQuartier(qPart)) return qPart;
-    } else if (afterDash && !isGenericQuartier(afterDash)) {
+      if (!isGenericCommune(qPart) && !isGenericQuartier(qPart)) return qPart;
+    } else if (afterDash && !isGenericCommune(afterDash) && !isGenericQuartier(afterDash)) {
       return afterDash;
     }
   }
