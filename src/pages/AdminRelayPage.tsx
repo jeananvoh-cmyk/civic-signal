@@ -16,7 +16,7 @@ import { toast } from "@/hooks/use-toast";
 import { format, isToday, isThisWeek, isThisMonth, isThisYear, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { findNearestCommune } from "@/lib/communes";
-import { extractInfraLabel, infraEmoji } from "@/lib/report-display";
+import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -464,13 +464,22 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
   const isONEP = group.operator === "ONEP";
   const isMairie = group.operator === "MAIRIE";
 
+  const isInfraGroup = isMairie || group.operator === "MAIRIE" || isANARE || group.operator === "ANARE" || group.quartiers.some(q => {
+    const tag = q.description ? extractInfraLabel(q.description) : null;
+    return Boolean(tag) || q.category === "infrastructure" || q.category === "eclairage_public" || q.category === "voirie" || q.category === "lampadaire" || q.category === "poteau_electrique" || q.category === "canalisation" || q.category === "egout" || q.category === "fuite_eau_exterieure";
+  });
+
   const serviceEmoji = isCIE ? "⚡" : isSODECI ? "💧" : isANARE ? "⚖️" : isONEP ? "💧" : "🏗️";
   const serviceTitle = isANARE
     ? "Alerte Réglementaire — Infrastructure Électrique (CIE)"
     : isONEP
     ? "Alerte Réglementaire — Infrastructure Hydraulique (SODECI)"
+    : isCIE && isInfraGroup
+    ? "Signalement Infrastructure Publique (CIE)"
     : isCIE
     ? "Coupure d'électricité / Incident Électrique"
+    : isSODECI && isInfraGroup
+    ? "Signalement Infrastructure Publique (SODECI)"
     : isSODECI
     ? "Coupure d'eau / Inondation"
     : "Signalement Voirie & Infrastructure";
@@ -485,7 +494,6 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
 
   const nowStr = format(new Date(), "d MMMM yyyy 'à' HH:mm", { locale: fr });
 
-  const isInfraGroup = isMairie || group.operator === "MAIRIE" || isANARE || group.operator === "ANARE" || group.quartiers.some(q => q.category === "infrastructure" || q.category === "eclairage_public" || q.category === "voirie" || q.category === "lampadaire" || q.category === "poteau_electrique" || q.category === "canalisation" || q.category === "egout" || q.category === "fuite_eau_exterieure");
   const introText = isANARE || group.operator === "ANARE"
     ? `En tant qu'Autorité de Régulation du secteur de l'électricité (<strong>ANARE-CI</strong>), nous vous transmettons ce signalement d'infrastructure publique électrique à risque gérée par la <strong>CIE</strong>. Ce signalement via <strong>SIGNA-CI</strong> a été vu et est soutenu par <strong style="color: #16a34a;">${group.totalConfirmations} citoyen.ne(s)</strong> voulant une intervention et réparation rapide. Votre suivi réglementaire auprès de la CIE et l'intervention des services techniques seront appréciés pour une résolution rapide.`
     : isMairie || group.operator === "MAIRIE"
@@ -528,13 +536,15 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
       `;
 
     const locParts: string[] = [];
-    if (q.category) locParts.push(`[${q.category.replace(/_/g, " ")}]`);
-    if (q.description && q.description.trim()) locParts.push(q.description.trim());
+    if (q.description && q.description.trim()) {
+      const cleaned = cleanDescription(q.description.trim());
+      if (cleaned) locParts.push(cleaned);
+    }
     if (q.landmark && q.landmark.trim()) locParts.push(`Repère : ${q.landmark.trim()}`);
     if (q.addressText && q.addressText.trim()) locParts.push(`Adresse : ${q.addressText.trim()}`);
     const fullDesc = locParts.length > 0 ? locParts.join(" · ") : `${serviceTitle} à ${group.commune}`;
 
-    const isInfra = isMairie || group.operator === "MAIRIE" || q.category === "infrastructure" || q.category === "eclairage_public" || q.category === "voirie" || q.category === "lampadaire";
+    const isInfra = isMairie || group.operator === "MAIRIE" || isANARE || group.operator === "ANARE" || Boolean(extractedTag) || q.category === "infrastructure" || q.category === "eclairage_public" || q.category === "voirie" || q.category === "lampadaire" || q.category === "poteau_electrique" || q.category === "canalisation" || q.category === "egout" || q.category === "fuite_eau_exterieure";
     const confirmationLabel = isInfra ? "Soutien & votes citoyens" : "Confirmations voisins";
     const confirmationValue = isInfra
       ? `<span style="color: #16a34a; font-weight: 800;">${q.verifications} citoyen.ne(s) soutiennent pour une réparation urgente</span>`
