@@ -337,6 +337,58 @@ function getOperatorTargetEmail(
   return fallbackLogEmail || "reclamation@cie.ci";
 }
 
+// ─── Génération d'objets de mails professionnels et sérieux ─────────────────
+
+function generateProfessionalSubject(group: RelayGroup): string {
+  const operator = group.operator;
+  const commune = group.commune;
+  const firstQ = group.quartiers[0];
+  const extractedTag = firstQ?.description ? extractInfraLabel(firstQ.description) : null;
+  const tagOrCat = extractedTag || (firstQ?.category ? firstQ.category.replace(/_/g, " ") : null);
+
+  const isInfra = operator === "MAIRIE" || operator === "ANARE" || operator === "ONEP" || Boolean(extractedTag) || 
+    ["infrastructure", "eclairage_public", "voirie", "lampadaire", "poteau_electrique", "canalisation", "egout", "fuite_eau_exterieure"].includes(firstQ?.category || "");
+
+  if (operator === "ANARE") {
+    if (extractedTag) {
+      return `[SIGNA-CI] Transmission d'Incident d'Éclairage Public — ${extractedTag} (${commune})`;
+    }
+    return `[SIGNA-CI] Transmission & Suivi Réglementaire — Infrastructure Électrique (${commune})`;
+  }
+
+  if (operator === "ONEP") {
+    if (extractedTag) {
+      return `[SIGNA-CI] Transmission d'Incident d'Infrastructure Eau — ${extractedTag} (${commune})`;
+    }
+    return `[SIGNA-CI] Transmission & Suivi Réglementaire — Infrastructure Eau Potable (${commune})`;
+  }
+
+  if (operator === "MAIRIE") {
+    if (tagOrCat) {
+      return `[SIGNA-CI] Demande d'Intervention — Voirie & Infrastructure : ${tagOrCat} (${commune})`;
+    }
+    return `[SIGNA-CI] Transmission de Signalement Voirie & Infrastructure — Mairie de ${commune}`;
+  }
+
+  if (operator === "CIE") {
+    if (isInfra) {
+      const specificTitle = extractedTag || "Infrastructure Électrique / Éclairage Public";
+      return `[SIGNA-CI] Demande d'Intervention Technique — ${specificTitle} (${commune})`;
+    }
+    return `[SIGNA-CI] Alerte Interruption du Service Électrique — Commune de ${commune}`;
+  }
+
+  if (operator === "SODECI") {
+    if (isInfra) {
+      const specificTitle = extractedTag || "Infrastructure Eau / Canalisation";
+      return `[SIGNA-CI] Demande d'Intervention Technique — ${specificTitle} (${commune})`;
+    }
+    return `[SIGNA-CI] Alerte Interruption de la Distribution d'Eau — Commune de ${commune}`;
+  }
+
+  return `[SIGNA-CI] Transmission de Signalement Citoyen — Commune de ${commune}`;
+}
+
 // ─── Envoi direct d'emails via l'API Resend ──────────────────────────────────
 
 async function sendResendDirectEmail({
@@ -673,7 +725,7 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
         <div style="background: ${gradientHeader}; padding: 28px 24px; color: #ffffff;">
           <div style="display: table; width: 100%; margin-bottom: 12px;">
             <div style="display: table-cell; vertical-align: middle; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.95);">
-              SIGNALEMENT CITOYEN VÉRIFIÉ — <span style="background: rgba(255,255,255,0.25); padding: 2px 6px; border-radius: 4px; color: #ffffff;">SIGNA-CI</span>
+              SIGNALEMENT EFFECTUÉ SUR <span style="background: rgba(255,255,255,0.25); padding: 2px 6px; border-radius: 4px; color: #ffffff;">SIGNA-CI</span>
             </div>
             <div style="display: table-cell; vertical-align: middle; text-align: right;">
               <span style="background: rgba(255,255,255,0.25); color: #ffffff; padding: 4px 14px; border-radius: 20px; font-weight: 800; font-size: 12px; display: inline-block;">
@@ -696,9 +748,9 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
           <!-- Cards per quartier/report -->
           ${cardsHtml}
 
-          ${group.reporters && group.reporters.length > 0 ? `
+          ${!isInfraGroup && group.reporters && group.reporters.length > 0 ? `
             <div style="margin-top: 20px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
-              <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 8px;">📋 Contacts Citoyens Référents :</div>
+              <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 8px;">📋 Contacts Citoyens Référents (Coupure / Panne) :</div>
               <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: #334155; line-height: 1.6;">
                 ${group.reporters.map(r => `
                   <li>
@@ -757,8 +809,13 @@ function buildWhatsAppMessage(group: RelayGroup): string {
     return details.join("\n");
   });
 
+  const isInfraGroup = group.operator === "MAIRIE" || group.operator === "ANARE" || group.operator === "ONEP" || group.quartiers.some(q => {
+    const tag = q.description ? extractInfraLabel(q.description) : null;
+    return Boolean(tag) || q.category === "infrastructure" || q.category === "eclairage_public" || q.category === "voirie" || q.category === "lampadaire" || q.category === "poteau_electrique" || q.category === "canalisation" || q.category === "egout" || q.category === "fuite_eau_exterieure";
+  });
+
   const reporterLines: string[] = [];
-  if (group.reporters.length > 0) {
+  if (!isInfraGroup && group.reporters.length > 0) {
     for (const r of group.reporters) {
       const parts: string[] = [];
       if (r.meterNumber) parts.push(`Compteur ${r.meterNumber}${r.contractType ? ` (${r.contractType === "postpaid" ? "Postpayé" : "Prépayé"})` : ""}`);
@@ -1246,9 +1303,10 @@ const AdminRelayPage = () => {
       const ccEmail = (draftConfig?.cc_email || effectiveConfig?.cc_email || "jeananvoh@gmail.com").trim();
       const targetOperatorEmail = getOperatorTargetEmail(targetGroup.operator, targetGroup.commune, effectiveConfig, targetGroup.email_to);
       const finalTo = isTest ? testEmail : targetOperatorEmail;
+      const baseSubject = generateProfessionalSubject(targetGroup);
       const subject = isTest
-        ? `[TEST → ${targetOperatorEmail}] [SIGNA-CI] Rapport d'intervention — ${targetGroup.commune} (${OPERATOR_CONFIG[targetGroup.operator]?.label || targetGroup.operator})`
-        : `[SIGNA-CI] Rapport d'intervention — ${targetGroup.commune} (${OPERATOR_CONFIG[targetGroup.operator]?.label || targetGroup.operator})`;
+        ? `[TEST → ${targetOperatorEmail}] ${baseSubject}`
+        : baseSubject;
 
       const html = buildBatchEmailHtmlClient(targetGroup);
 
