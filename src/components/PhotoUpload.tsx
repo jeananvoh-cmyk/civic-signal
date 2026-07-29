@@ -247,41 +247,69 @@ const PhotoUpload = ({
         onChange={handleFileChange}
       />
 
-      {/* Grille de photos + bouton ajout */}
+      {/* Grille de photos + boutons d'ajout */}
       {(photoUrls.length > 0 || uploading) && (
-        <div className={`grid gap-2 ${photoUrls.length >= 2 ? "grid-cols-3" : "grid-cols-2"}`}>
-          {photoUrls.map((url, i) => (
-            <PhotoThumb key={url} path={url} onRemove={() => removePhoto(i)} />
-          ))}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between text-xs font-semibold text-foreground px-0.5">
+            <span>Photos du signalement ({photoUrls.length}/{MAX_PHOTOS})</span>
+            {canAddMore && (
+              <span className="text-[11px] text-muted-foreground font-normal">
+                Encore {MAX_PHOTOS - photoUrls.length} photo(s) possible(s)
+              </span>
+            )}
+          </div>
+
+          <div className={`grid gap-2 ${photoUrls.length >= 2 ? "grid-cols-3" : "grid-cols-2"}`}>
+            {photoUrls.map((url, i) => (
+              <PhotoThumb key={url} path={url} onRemove={() => removePhoto(i)} />
+            ))}
+
+            {canAddMore && !uploading && (
+              <div className="col-span-1 border-2 border-dashed border-border rounded-xl p-1.5 flex flex-col justify-center gap-1 bg-muted/20">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => cameraRef.current?.click()}
+                  className="h-7 text-[10px] font-semibold justify-start gap-1 px-1.5 hover:bg-primary/10 hover:text-primary text-foreground"
+                  title="Prendre une photo directe avec l'appareil photo"
+                >
+                  <Camera className="h-3.5 w-3.5 shrink-0 text-primary" />
+                  <span>Caméra</span>
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => galleryRef.current?.click()}
+                  className="h-7 text-[10px] font-semibold justify-start gap-1 px-1.5 hover:bg-blue-500/10 hover:text-blue-600 text-foreground"
+                  title="Sélectionner des photos dans la galerie"
+                >
+                  <ImageIcon className="h-3.5 w-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
+                  <span>Galerie</span>
+                </Button>
+              </div>
+            )}
+
+            {uploading && (
+              <div className="aspect-square rounded-xl border border-border flex flex-col items-center justify-center gap-1 bg-muted/30">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <span className="text-[10px] text-muted-foreground font-medium">Chargement…</span>
+              </div>
+            )}
+          </div>
 
           {gpsSource && photoUrls.length > 0 && (
             <div
-              className={`col-span-full flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium w-fit
+              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium w-fit
                 ${gpsSource === "photo"
-                  ? "bg-green-600/90 text-white"
-                  : "bg-black/60 text-white"}`}
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "bg-slate-700 text-white"}`}
             >
               <MapPin className="h-3 w-3" />
               {gpsSource === "photo"
-                ? "Position extraite de la photo"
+                ? "Position GPS extraite de la photo"
                 : "Position GPS de l'appareil"}
-            </div>
-          )}
-
-          {canAddMore && !uploading && (
-            <button
-              type="button"
-              onClick={() => galleryRef.current?.click()}
-              className="aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
-            >
-              <Plus className="h-5 w-5" />
-              <span className="text-[10px]">{photoUrls.length}/{MAX_PHOTOS}</span>
-            </button>
-          )}
-
-          {uploading && (
-            <div className="aspect-square rounded-xl border border-border flex items-center justify-center bg-muted/30">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           )}
         </div>
@@ -289,37 +317,48 @@ const PhotoUpload = ({
 
       {/* Boutons principaux — visibles uniquement si aucune photo encore */}
       {photoUrls.length === 0 && !uploading && (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2.5">
           <Button
             type="button"
             variant="outline"
-            className="h-20 border-dashed border-2 flex flex-col gap-1.5"
+            className="h-24 border-2 border-dashed border-primary/40 hover:border-primary hover:bg-primary/5 flex flex-col items-center justify-center gap-1.5 transition-all group"
             onClick={() => cameraRef.current?.click()}
           >
-            <Camera className="h-5 w-5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Prendre une photo</span>
+            <div className="p-2 rounded-full bg-primary/10 text-primary group-hover:scale-110 transition-transform">
+              <Camera className="h-5 w-5" />
+            </div>
+            <div className="text-center">
+              <span className="text-xs font-bold text-foreground block">Prendre une photo</span>
+              <span className="text-[10px] text-muted-foreground">Appareil photo en direct</span>
+            </div>
           </Button>
+
           <Button
             type="button"
             variant="outline"
-            className="h-20 border-dashed border-2 flex flex-col gap-1.5"
+            className="h-24 border-2 border-dashed border-blue-500/40 hover:border-blue-500 hover:bg-blue-500/5 flex flex-col items-center justify-center gap-1.5 transition-all group"
             onClick={() => galleryRef.current?.click()}
           >
-            <ImageIcon className="h-5 w-5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Choisir depuis la galerie</span>
+            <div className="p-2 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+              <ImageIcon className="h-5 w-5" />
+            </div>
+            <div className="text-center">
+              <span className="text-xs font-bold text-foreground block">Depuis la galerie</span>
+              <span className="text-[10px] text-muted-foreground">Sélectionner (jusqu'à 3)</span>
+            </div>
           </Button>
         </div>
       )}
 
       {photoUrls.length === 0 && uploading && (
-        <div className="w-full h-20 border rounded-xl flex flex-col items-center justify-center gap-2">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">Compression et upload…</span>
+        <div className="w-full h-20 border rounded-xl flex flex-col items-center justify-center gap-2 bg-muted/20">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <span className="text-xs text-muted-foreground font-medium">Compression et envoi des photos…</span>
         </div>
       )}
 
       <p className="text-xs text-muted-foreground">
-        Formats : JPG, PNG, HEIC, WEBP · Taille automatiquement optimisée · Max {MAX_PHOTOS} photos
+        📸 Appareil photo ou Galerie · JPG, PNG, HEIC, WEBP · Max {MAX_PHOTOS} photos
       </p>
 
       {/* Recommandations photo — infrastructure uniquement */}
