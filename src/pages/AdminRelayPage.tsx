@@ -306,6 +306,37 @@ function maskApiKey(key: string | undefined | null): string {
   return `${prefix}••••••••${suffix}`;
 }
 
+// ─── Résolution dynamique des adresses e-mails cibles ────────────────────────
+
+function getOperatorTargetEmail(
+  operator: "CIE" | "SODECI" | "MAIRIE" | "ONEP" | "ANARE" | string,
+  commune: string,
+  config: RelayConfig | null,
+  fallbackLogEmail?: string
+): string {
+  if (!config) return fallbackLogEmail || "reclamation@cie.ci";
+
+  if (operator === "CIE") {
+    return config.email_cie?.trim() || fallbackLogEmail || "reclamation@cie.ci";
+  }
+  if (operator === "ANARE") {
+    return config.email_anare?.trim() || fallbackLogEmail || "reclamation@anare.ci";
+  }
+  if (operator === "SODECI") {
+    return config.email_sodeci?.trim() || fallbackLogEmail || "reclamation@sodeci.ci";
+  }
+  if (operator === "ONEP") {
+    return config.email_onep?.trim() || fallbackLogEmail || "reclamation@onep.ci";
+  }
+  if (operator === "MAIRIE") {
+    const slug = (commune || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const mairieEmail = config[`mairie_${slug}_email`]?.trim();
+    if (mairieEmail) return mairieEmail;
+  }
+
+  return fallbackLogEmail || "reclamation@cie.ci";
+}
+
 // ─── Envoi direct d'emails via l'API Resend ──────────────────────────────────
 
 async function sendResendDirectEmail({
@@ -925,7 +956,7 @@ function groupPending(logs: RelayLog[] = []): RelayGroup[] {
         key,
         operator: log.operator,
         commune: communeName,
-        email_to: log.email_to,
+        email_to: getOperatorTargetEmail(log.operator, communeName, effectiveConfig, log.email_to),
         relayIds: [],
         quartiers: [],
         totalConfirmations: 0,
@@ -1186,7 +1217,7 @@ const AdminRelayPage = () => {
           key: groupKey,
           operator: first.operator,
           commune: first.report?.commune || "Abidjan",
-          email_to: first.email_to || "reclamation@cie.ci",
+          email_to: getOperatorTargetEmail(first.operator, first.report?.commune || "Abidjan", effectiveConfig, first.email_to),
           relayIds: relay_ids,
           quartiers: relayLogs.map((l: any) => ({
             name: l.report?.quartier || "Quartier",
@@ -1213,9 +1244,10 @@ const AdminRelayPage = () => {
       const isTest = (draftConfig?.test_mode ?? effectiveConfig?.test_mode) === "true";
       const testEmail = (draftConfig?.test_email || effectiveConfig?.test_email || "jeananvoh@gmail.com").trim();
       const ccEmail = (draftConfig?.cc_email || effectiveConfig?.cc_email || "jeananvoh@gmail.com").trim();
-      const finalTo = isTest ? testEmail : targetGroup.email_to;
+      const targetOperatorEmail = getOperatorTargetEmail(targetGroup.operator, targetGroup.commune, effectiveConfig, targetGroup.email_to);
+      const finalTo = isTest ? testEmail : targetOperatorEmail;
       const subject = isTest
-        ? `[TEST → ${targetGroup.email_to}] [SIGNA-CI] Rapport d'intervention — ${targetGroup.commune} (${OPERATOR_CONFIG[targetGroup.operator]?.label || targetGroup.operator})`
+        ? `[TEST → ${targetOperatorEmail}] [SIGNA-CI] Rapport d'intervention — ${targetGroup.commune} (${OPERATOR_CONFIG[targetGroup.operator]?.label || targetGroup.operator})`
         : `[SIGNA-CI] Rapport d'intervention — ${targetGroup.commune} (${OPERATOR_CONFIG[targetGroup.operator]?.label || targetGroup.operator})`;
 
       const html = buildBatchEmailHtmlClient(targetGroup);
@@ -1509,17 +1541,17 @@ const AdminRelayPage = () => {
           ));
 
         if (isCieRelated) {
-          relays.push({ report_id: report.id, operator: "CIE", email_to: "reclamation@cie.ci", status: "pending" });
+          relays.push({ report_id: report.id, operator: "CIE", email_to: getOperatorTargetEmail("CIE", report.commune, effectiveConfig), status: "pending" });
           if (effectiveConfig?.anare_auto_dispatch !== "false") {
-            relays.push({ report_id: report.id, operator: "ANARE", email_to: "reclamation@anare.ci", status: "pending" });
+            relays.push({ report_id: report.id, operator: "ANARE", email_to: getOperatorTargetEmail("ANARE", report.commune, effectiveConfig), status: "pending" });
           }
         } else if (isSodeciRelated) {
-          relays.push({ report_id: report.id, operator: "SODECI", email_to: "reclamation@sodeci.ci", status: "pending" });
+          relays.push({ report_id: report.id, operator: "SODECI", email_to: getOperatorTargetEmail("SODECI", report.commune, effectiveConfig), status: "pending" });
           if (effectiveConfig?.onep_auto_dispatch !== "false") {
-            relays.push({ report_id: report.id, operator: "ONEP", email_to: "reclamation@onep.ci", status: "pending" });
+            relays.push({ report_id: report.id, operator: "ONEP", email_to: getOperatorTargetEmail("ONEP", report.commune, effectiveConfig), status: "pending" });
           }
         } else {
-          relays.push({ report_id: report.id, operator: "MAIRIE", email_to: `mairie:${report.commune}`, status: "pending" });
+          relays.push({ report_id: report.id, operator: "MAIRIE", email_to: getOperatorTargetEmail("MAIRIE", report.commune, effectiveConfig), status: "pending" });
         }
 
         for (const item of relays) {

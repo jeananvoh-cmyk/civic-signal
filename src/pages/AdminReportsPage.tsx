@@ -267,18 +267,25 @@ const AdminReportsPage = () => {
         const cfgMap: Record<string, string> = {};
         if (cfgRows) cfgRows.forEach((r: any) => { cfgMap[r.key] = r.value; });
 
+        const emailCie = cfgMap.email_cie?.trim() || "reclamation@cie.ci";
+        const emailAnare = cfgMap.email_anare?.trim() || "reclamation@anare.ci";
+        const emailSodeci = cfgMap.email_sodeci?.trim() || "reclamation@sodeci.ci";
+        const emailOnep = cfgMap.email_onep?.trim() || "reclamation@onep.ci";
+
         if (isCieRelated) {
-          relays.push({ report_id: reportId, operator: "CIE", email_to: "reclamation@cie.ci", status: "pending" });
+          relays.push({ report_id: reportId, operator: "CIE", email_to: emailCie, status: "pending" });
           if (cfgMap.anare_auto_dispatch !== "false") {
-            relays.push({ report_id: reportId, operator: "ANARE", email_to: "reclamation@anare.ci", status: "pending" });
+            relays.push({ report_id: reportId, operator: "ANARE", email_to: emailAnare, status: "pending" });
           }
         } else if (isSodeciRelated) {
-          relays.push({ report_id: reportId, operator: "SODECI", email_to: "reclamation@sodeci.ci", status: "pending" });
+          relays.push({ report_id: reportId, operator: "SODECI", email_to: emailSodeci, status: "pending" });
           if (cfgMap.onep_auto_dispatch !== "false") {
-            relays.push({ report_id: reportId, operator: "ONEP", email_to: "reclamation@onep.ci", status: "pending" });
+            relays.push({ report_id: reportId, operator: "ONEP", email_to: emailOnep, status: "pending" });
           }
         } else {
-          relays.push({ report_id: reportId, operator: "MAIRIE", email_to: `mairie:${report.commune}`, status: "pending" });
+          const slug = (report.commune || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+          const mairieEmail = cfgMap[`mairie_${slug}_email`]?.trim() || `mairie:${report.commune}`;
+          relays.push({ report_id: reportId, operator: "MAIRIE", email_to: mairieEmail, status: "pending" });
         }
 
         for (const item of relays) {
