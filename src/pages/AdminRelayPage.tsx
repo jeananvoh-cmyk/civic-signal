@@ -919,7 +919,7 @@ function useRelayLogs(enabled: boolean = true) {
 
 // ─── Groupement des pending ───────────────────────────────────────────────────
 
-function groupPending(logs: RelayLog[] = []): RelayGroup[] {
+function groupPending(logs: RelayLog[] = [], config: RelayConfig | null = null): RelayGroup[] {
   if (!Array.isArray(logs)) return [];
   const map = new Map<string, RelayGroup>();
 
@@ -956,7 +956,7 @@ function groupPending(logs: RelayLog[] = []): RelayGroup[] {
         key,
         operator: log.operator,
         commune: communeName,
-        email_to: getOperatorTargetEmail(log.operator, communeName, effectiveConfig, log.email_to),
+        email_to: getOperatorTargetEmail(log.operator, communeName, config, log.email_to),
         relayIds: [],
         quartiers: [],
         totalConfirmations: 0,
@@ -1156,7 +1156,7 @@ const AdminRelayPage = () => {
   // Polling automatique actif seulement en mode pending/history (desactivé en mode settings pour éviter les sauts)
   const { data: logs = [], isLoading, dataUpdatedAt } = useRelayLogs(tab !== "settings");
 
-  const pendingGroups = groupPending(logs);
+  const pendingGroups = groupPending(logs, effectiveConfig);
   const historyLogs   = logs.filter((l) => l.status !== "pending");
 
   const filteredHistoryLogs = historyLogs.filter((log) => {
