@@ -1377,14 +1377,34 @@ const AdminRelayPage = () => {
       for (const report of valReports) {
         const relays: Array<{ report_id: string; operator: "CIE" | "SODECI" | "MAIRIE" | "ONEP" | "ANARE"; email_to: string; status: string }> = [];
 
-        if (report.service_type === "electricity") {
-          relays.push({ report_id: report.id, operator: "CIE", email_to: "reclamation@cie.ci", status: "pending" });
-        } else if (report.service_type === "water") {
-          relays.push({ report_id: report.id, operator: "SODECI", email_to: "reclamation@sodeci.ci", status: "pending" });
-        } else if (report.service_type === "streetlighting" || report.service_type === "electricity_quality") {
+        const label = extractInfraLabel(report.description || "");
+        const isCieRelated = report.service_type === "electricity" ||
+          report.service_type === "streetlighting" ||
+          report.service_type === "electricity_quality" ||
+          (label && INFRA_CIE.has(label)) ||
+          (report.description && (
+            report.description.toLowerCase().includes("éclairage") ||
+            report.description.toLowerCase().includes("eclairage") ||
+            report.description.toLowerCase().includes("lampadaire") ||
+            report.description.toLowerCase().includes("poteau") ||
+            report.description.toLowerCase().includes("branchement") ||
+            report.description.toLowerCase().includes("électricité") ||
+            report.description.toLowerCase().includes("electricite")
+          ));
+
+        const isSodeciRelated = report.service_type === "water" ||
+          report.service_type === "water_quality" ||
+          (label && INFRA_SODECI.has(label)) ||
+          (report.description && (
+            report.description.toLowerCase().includes("fuite d'eau") ||
+            report.description.toLowerCase().includes("canalisation") ||
+            report.description.toLowerCase().includes("eau potable")
+          ));
+
+        if (isCieRelated) {
           relays.push({ report_id: report.id, operator: "CIE", email_to: "reclamation@cie.ci", status: "pending" });
           relays.push({ report_id: report.id, operator: "ANARE", email_to: "reclamation@anare.ci", status: "pending" });
-        } else if (report.service_type === "water_quality") {
+        } else if (isSodeciRelated) {
           relays.push({ report_id: report.id, operator: "SODECI", email_to: "reclamation@sodeci.ci", status: "pending" });
           relays.push({ report_id: report.id, operator: "ONEP", email_to: "reclamation@onep.ci", status: "pending" });
         } else {
