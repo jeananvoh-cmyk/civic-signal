@@ -454,10 +454,20 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
   const isONEP = group.operator === "ONEP";
   const isMairie = group.operator === "MAIRIE";
 
-  const serviceEmoji = isCIE ? "⚡" : isSODECI ? "💧" : isANARE ? "⚡" : isONEP ? "💧" : "🏗️";
-  const serviceTitle = isCIE ? "Coupure d'électricité" : isSODECI ? "Coupure d'eau / Inondation" : "Signalement Voirie & Infrastructure";
+  const serviceEmoji = isCIE ? "⚡" : isSODECI ? "💧" : isANARE ? "⚖️" : isONEP ? "💧" : "🏗️";
+  const serviceTitle = isANARE
+    ? "Alerte Réglementaire — Infrastructure Électrique (CIE)"
+    : isONEP
+    ? "Alerte Réglementaire — Infrastructure Hydraulique (SODECI)"
+    : isCIE
+    ? "Coupure d'électricité / Incident Électrique"
+    : isSODECI
+    ? "Coupure d'eau / Inondation"
+    : "Signalement Voirie & Infrastructure";
 
-  const gradientHeader = isCIE
+  const gradientHeader = isANARE || isONEP
+    ? "linear-gradient(135deg, #1e3a8a 0%, #0284c7 100%)"
+    : isCIE
     ? "linear-gradient(135deg, #0284c7 0%, #d97706 100%)"
     : isSODECI
     ? "linear-gradient(135deg, #0284c7 0%, #0891b2 100%)"
@@ -465,8 +475,10 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
 
   const nowStr = format(new Date(), "d MMMM yyyy 'à' HH:mm", { locale: fr });
 
-  const isInfraGroup = isMairie || group.operator === "MAIRIE" || group.quartiers.some(q => q.category === "infrastructure" || q.category === "eclairage_public" || q.category === "voirie" || q.category === "lampadaire" || q.category === "poteau_electrique" || q.category === "canalisation" || q.category === "egout" || q.category === "fuite_eau_exterieure");
-  const introText = isMairie || group.operator === "MAIRIE"
+  const isInfraGroup = isMairie || group.operator === "MAIRIE" || isANARE || group.operator === "ANARE" || group.quartiers.some(q => q.category === "infrastructure" || q.category === "eclairage_public" || q.category === "voirie" || q.category === "lampadaire" || q.category === "poteau_electrique" || q.category === "canalisation" || q.category === "egout" || q.category === "fuite_eau_exterieure");
+  const introText = isANARE || group.operator === "ANARE"
+    ? `En tant qu'Autorité de Régulation du secteur de l'électricité (<strong>ANARE-CI</strong>), nous vous transmettons ce signalement d'infrastructure publique électrique à risque gérée par la <strong>CIE</strong>. Ce signalement via <strong>SIGNA-CI</strong> a été vu et est soutenu par <strong style="color: #16a34a;">${group.totalConfirmations} citoyen.ne(s)</strong> voulant une intervention et réparation rapide. Votre suivi réglementaire auprès de la CIE et l'intervention des services techniques seront appréciés pour une résolution rapide.`
+    : isMairie || group.operator === "MAIRIE"
     ? `Ce signalement d'infrastructure publique via <strong>SIGNA-CI</strong> a été vu et est soutenu par <strong style="color: #16a34a;">${group.totalConfirmations} citoyen.ne(s)</strong> voulant une intervention et réparation rapide. L'intervention des services techniques de la mairie de <strong>${group.commune}</strong>.`
     : isInfraGroup
     ? `Ce signalement d'infrastructure publique via <strong>SIGNA-CI</strong> a été vu et est soutenu par <strong style="color: #16a34a;">${group.totalConfirmations} citoyen.ne(s)</strong> voulant une intervention et réparation rapide. L'intervention de vos services techniques sera appréciée.`
@@ -639,6 +651,13 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
                   </li>
                 `).join("")}
               </ul>
+            </div>
+          ` : ""}
+
+          ${isANARE ? `
+            <div style="margin-top: 20px; padding: 16px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; font-size: 13px; color: #1e40af; line-height: 1.6;">
+              <strong>⚖️ Partenariat Réglementaire & Suivi Citoyen (ANARE-CI / SIGNA-CI) :</strong><br/>
+              Cette transmission directe s'inscrit dans le cadre du renforcement du suivi citoyen et de la régulation proactive des infrastructures électriques sur le territoire ivoirien. SIGNA-CI se tient à la disposition de l'ANARE-CI pour établir une passerelle d'échange permanente et optimiser la résolution des anomalies d'infrastructures auprès du concessionnaire CIE.
             </div>
           ` : ""}
 
