@@ -6,22 +6,36 @@
 
 /** Map of infra type label → display emoji */
 export const INFRA_LABEL_EMOJI: Record<string, string> = {
+  // CIE (Électricité & Éclairage Public)
+  "Éclairage public": "💡",
   "Lampadaire cassé": "💡",
   "Éclairage Public Hors Service": "💡",
-  "Poteau électrique": "🔌",
-  "Poteaux/Pylônes à risque": "🔌",
+  "Poteaux / Pylônes": "🗼",
+  "Poteaux/Pilônes": "🗼",
+  "Poteau électrique": "🗼",
+  "Poteaux/Pylônes à risque": "🗼",
+  "Branchements dangereux": "⚠️",
   "Branchement dangereux": "⚠️",
+  "Autres incidents CIE": "🚧",
+
+  // SODECI (Eau Potable & Assainissement)
+  "Canalisation publique": "🚰",
   "Fuite d'eau": "🚿",
   "Fuite d'eau à l'extérieur": "🚿",
-  "Canalisation publique": "🚰",
+  "Autre incident SODECI": "💧",
   "Égout bouché": "🕳️",
   "Débordement de regards": "🕳️",
-  "Caniveau bouché": "🚧",
+
+  // Mairie (Voirie & Propreté)
   "Nid de poule": "🛣️",
+  "Caniveau bouché": "🚧",
+  "Voirie & Trottoirs": "🛤️",
   "Voirie dégradée": "🛤️",
   "Égout à ciel ouvert": "🕳️",
   "Déchets de marché": "🏪",
+  "Dépôt sauvage & Ordures": "🗑️",
   "Dépôt sauvage": "🗑️",
+  "Autre (Mairie)": "🏗️",
   "Autre": "🏗️",
 };
 
@@ -56,18 +70,24 @@ export function infraEmoji(label: string | null): string {
 
 /** Infra types managed by CIE (electricity operator) */
 export const INFRA_CIE = new Set([
+  "Éclairage public",
   "Lampadaire cassé",
   "Éclairage Public Hors Service",
+  "Poteaux / Pylônes",
+  "Poteaux/Pilônes",
   "Poteau électrique",
   "Poteaux/Pylônes à risque",
-  "Branchement dangereux"
+  "Branchements dangereux",
+  "Branchement dangereux",
+  "Autres incidents CIE"
 ]);
 
 /** Infra types managed by SODECI (water operator) */
 export const INFRA_SODECI = new Set([
+  "Canalisation publique",
   "Fuite d'eau",
   "Fuite d'eau à l'extérieur",
-  "Canalisation publique",
+  "Autre incident SODECI",
   "Égout bouché",
   "Débordement de regards"
 ]);

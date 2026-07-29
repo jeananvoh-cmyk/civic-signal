@@ -41,10 +41,18 @@ import { cn } from "@/lib/utils";
 type ReportTypeId =
   | "electricity_outage"
   | "water_outage"
+  // --- CIE (Électricité & Éclairage Public) ---
   | "street_light"
+  | "cie_pole"
+  | "cie_hazard"
+  | "cie_other"
+  // --- SODECI (Eau Potable & Assainissement) ---
+  | "canalisation_sodeci"
   | "water_leak"
-  | "drain_blocked"
+  | "sodeci_other"
+  // --- MAIRIE (Voirie & Salubrité) ---
   | "pothole"
+  | "drain_blocked"
   | "road_damage"
   | "open_sewer"
   | "market_waste"
@@ -60,14 +68,17 @@ interface ReportTypeConfig {
   color: string;
   serviceType: ServiceType;
   reportCategory: "outage" | "infrastructure";
+  operator?: "CIE" | "SODECI" | "MAIRIE";
   defaultDesc: (commune: string) => string;
 }
 
 const REPORT_TYPES: ReportTypeConfig[] = [
+  // ─── Coupures de service ───────────────────────────────────────────
   {
     id: "electricity_outage",
     emoji: "⚡",
     label: "Coupure d'électricité",
+    description: "Interruption du courant chez vous ou dans la zone",
     color: "#F59E0B",
     serviceType: "electricity",
     reportCategory: "outage",
@@ -77,96 +88,150 @@ const REPORT_TYPES: ReportTypeConfig[] = [
     id: "water_outage",
     emoji: "💧",
     label: "Coupure d'eau",
+    description: "Interruption de distribution d'eau potable",
     color: "#3B82F6",
     serviceType: "water",
     reportCategory: "outage",
     defaultDesc: (c) => `Coupure d'eau à ${c}`,
   },
+
+  // ─── CIE (Électricité & Éclairage Public) ──────────────────────────
   {
     id: "street_light",
     emoji: "💡",
-    label: "Lampadaire cassé",
+    label: "Éclairage public",
+    description: "Lampadaire cassé, éteint ou éclairage public hors service",
     color: "#EAB308",
     serviceType: "electricity",
     reportCategory: "infrastructure",
-    defaultDesc: (c) => `Lampadaire cassé / éteint à ${c}`,
+    operator: "CIE",
+    defaultDesc: (c) => `Éclairage public / Lampadaire hors service à ${c}`,
+  },
+  {
+    id: "cie_pole",
+    emoji: "🗼",
+    label: "Poteaux / Pylônes",
+    description: "Poteau penché, câble électrique à terre, pylône à risque",
+    color: "#F59E0B",
+    serviceType: "electricity",
+    reportCategory: "infrastructure",
+    operator: "CIE",
+    defaultDesc: (c) => `Poteau / Pylône électrique dangereux à ${c}`,
+  },
+  {
+    id: "cie_hazard",
+    emoji: "⚠️",
+    label: "Branchements dangereux",
+    description: "Fils nus, étincelles, installation à risque élevé",
+    color: "#EF4444",
+    serviceType: "electricity",
+    reportCategory: "infrastructure",
+    operator: "CIE",
+    defaultDesc: (c) => `Branchement électrique dangereux à ${c}`,
+  },
+  {
+    id: "cie_other",
+    emoji: "🚧",
+    label: "Autres incidents CIE",
+    description: "Autre anomalie sur le réseau d'électricité",
+    color: "#F97316",
+    serviceType: "electricity",
+    reportCategory: "infrastructure",
+    operator: "CIE",
+    defaultDesc: (c) => `Incident réseau électrique CIE à ${c}`,
+  },
+
+  // ─── SODECI (Eau Potable & Assainissement) ────────────────────────
+  {
+    id: "canalisation_sodeci",
+    emoji: "🚰",
+    label: "Canalisation publique",
+    description: "Égout bouché, débordement de vos regards",
+    color: "#0284C7",
+    serviceType: "water",
+    reportCategory: "infrastructure",
+    operator: "SODECI",
+    defaultDesc: (c) => `Canalisation publique / Égout bouché à ${c}`,
   },
   {
     id: "water_leak",
     emoji: "🚿",
     label: "Fuite d'eau",
-    description: "À l'extérieur de votre maison",
+    description: "Fuite d'eau à l'extérieur de votre maison",
     image: fuiteEauIcon,
     color: "#06B6D4",
     serviceType: "water",
     reportCategory: "infrastructure",
-    defaultDesc: (c) => `Fuite d'eau à l'extérieur d'une maison à ${c}`,
+    operator: "SODECI",
+    defaultDesc: (c) => `Fuite d'eau à l'extérieur de la maison à ${c}`,
+  },
+  {
+    id: "sodeci_other",
+    emoji: "💧",
+    label: "Autre incident SODECI",
+    description: "Incident sur le réseau d'eau potable",
+    color: "#3B82F6",
+    serviceType: "water",
+    reportCategory: "infrastructure",
+    operator: "SODECI",
+    defaultDesc: (c) => `Incident réseau d'eau potable SODECI à ${c}`,
+  },
+
+  // ─── MAIRIE (Voirie & Salubrité) ──────────────────────────────────
+  {
+    id: "pothole",
+    emoji: "🛣️",
+    label: "Nid de poule",
+    description: "Trou sur la chaussée, bitume dégradé",
+    color: "#10B981",
+    serviceType: "mairie" as any,
+    reportCategory: "infrastructure",
+    operator: "MAIRIE",
+    defaultDesc: (c) => `Nid de poule / route dégradée à ${c}`,
   },
   {
     id: "drain_blocked",
     emoji: "🚧",
     label: "Caniveau bouché",
+    description: "Caniveau obstrué, eau stagnante sur la voie publique",
     color: "#10B981",
     serviceType: "mairie" as any,
     reportCategory: "infrastructure",
-    defaultDesc: (c) => `Caniveau bouché / débordement à ${c}`,
-  },
-  {
-    id: "pothole",
-    emoji: "🛣️",
-    label: "Nid de poule",
-    color: "#10B981",
-    serviceType: "mairie" as any,
-    reportCategory: "infrastructure",
-    defaultDesc: (c) => `Nid de poule / route dégradée à ${c}`,
+    operator: "MAIRIE",
+    defaultDesc: (c) => `Caniveau bouché à ${c}`,
   },
   {
     id: "road_damage",
     emoji: "🛤️",
-    label: "Voirie dégradée",
-    description: "Trottoir cassé, pavé, glissière...",
+    label: "Voirie & Trottoirs",
+    description: "Trottoir cassé, pavés abîmés, glissière endommagée",
     color: "#8B5CF6",
     serviceType: "mairie" as any,
     reportCategory: "infrastructure",
+    operator: "MAIRIE",
     defaultDesc: (c) => `Voirie / trottoir dégradé à ${c}`,
-  },
-  {
-    id: "open_sewer",
-    emoji: "🕳️",
-    label: "Égout à ciel ouvert",
-    description: "Bouche d'égout ouverte / dangereuse",
-    color: "#6B7280",
-    serviceType: "mairie" as any,
-    reportCategory: "infrastructure",
-    defaultDesc: (c) => `Égout ou bouche d'égout ouvert à ${c}`,
-  },
-  {
-    id: "market_waste",
-    emoji: "🏪",
-    label: "Déchets de marché",
-    description: "Ordures non ramassées autour du marché",
-    color: "#F97316",
-    serviceType: "mairie" as any,
-    reportCategory: "infrastructure",
-    defaultDesc: (c) => `Déchets non ramassés autour du marché à ${c}`,
   },
   {
     id: "illegal_dump",
     emoji: "🗑️",
-    label: "Dépôt sauvage",
+    label: "Dépôt sauvage & Ordures",
+    description: "Ordures ou déchets non ramassés sur le domaine public",
     color: "#10B981",
     serviceType: "mairie" as any,
     reportCategory: "infrastructure",
+    operator: "MAIRIE",
     defaultDesc: (c) => `Dépôt sauvage d'ordures à ${c}`,
   },
   {
     id: "other",
-    emoji: "➕",
-    label: "Autre",
-    color: "#10B981",
+    emoji: "🏗️",
+    label: "Autre (Mairie)",
+    description: "Autre anomalie relevant des services municipaux",
+    color: "#6B7280",
     serviceType: "mairie" as any,
     reportCategory: "infrastructure",
-    defaultDesc: (c) => `Signalement à ${c}`,
+    operator: "MAIRIE",
+    defaultDesc: (c) => `Signalement voirie / mairie à ${c}`,
   },
 ];
 
@@ -855,46 +920,150 @@ const ReportPage = () => {
                 })}
               </div>
 
-              {/* Grille des types — infrastructure */}
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Problème d'infrastructure</p>
-              <div className="grid grid-cols-2 gap-2">
-                {REPORT_TYPES.filter((t) => t.reportCategory === "infrastructure").map((type) => {
-                  const isSelected = selectedType?.id === type.id;
-                  return (
-                    <motion.button
-                      key={type.id}
-                      type="button"
-                      whileTap={{ scale: 0.94 }}
-                      onClick={() => handleTypeSelect(type)}
-                      className="group flex flex-col items-center gap-2 rounded-xl border-2 p-3.5 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                      style={{
-                        borderColor: isSelected ? type.color : undefined,
-                        backgroundColor: isSelected ? type.color + colorAlpha : undefined,
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isSelected) {
-                          e.currentTarget.style.borderColor = type.color;
-                          e.currentTarget.style.backgroundColor = type.color + hoverAlpha;
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isSelected) {
-                          e.currentTarget.style.borderColor = "";
-                          e.currentTarget.style.backgroundColor = "";
-                        }
-                      }}
-                    >
-                      {type.image
-                        ? <img src={type.image} alt={type.label} className="h-8 w-8 object-contain rounded-md" />
-                        : <span className="text-3xl leading-none">{type.emoji}</span>
-                      }
-                      <span className="text-xs font-semibold leading-tight text-foreground">{type.label}</span>
-                      {type.description && (
-                        <span className="text-xs leading-tight text-muted-foreground">{type.description}</span>
-                      )}
-                    </motion.button>
-                  );
-                })}
+              {/* Section Problème d'infrastructure par Opérateur */}
+              <div className="space-y-4 pt-1">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Signalement d'infrastructure par opérateur</p>
+
+                {/* --- CIE --- */}
+                <div className="space-y-2 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-md text-[11px] font-black tracking-wider bg-amber-500 text-white shadow-xs">CIE</span>
+                    <span className="text-xs font-bold text-amber-900 dark:text-amber-200">Électricité & Éclairage Public</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {REPORT_TYPES.filter((t) => t.operator === "CIE").map((type) => {
+                      const isSelected = selectedType?.id === type.id;
+                      return (
+                        <motion.button
+                          key={type.id}
+                          type="button"
+                          whileTap={{ scale: 0.94 }}
+                          onClick={() => handleTypeSelect(type)}
+                          className="group flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary bg-card"
+                          style={{
+                            borderColor: isSelected ? type.color : undefined,
+                            backgroundColor: isSelected ? type.color + colorAlpha : undefined,
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.borderColor = type.color;
+                              e.currentTarget.style.backgroundColor = type.color + hoverAlpha;
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.borderColor = "";
+                              e.currentTarget.style.backgroundColor = "";
+                            }
+                          }}
+                        >
+                          {type.image
+                            ? <img src={type.image} alt={type.label} className="h-8 w-8 object-contain rounded-md" />
+                            : <span className="text-2xl leading-none">{type.emoji}</span>
+                          }
+                          <span className="text-xs font-bold leading-tight text-foreground">{type.label}</span>
+                          {type.description && (
+                            <span className="text-[11px] leading-tight text-muted-foreground line-clamp-2">{type.description}</span>
+                          )}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* --- SODECI --- */}
+                <div className="space-y-2 rounded-xl border border-sky-500/20 bg-sky-500/5 p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-md text-[11px] font-black tracking-wider bg-sky-600 text-white shadow-xs">SODECI</span>
+                    <span className="text-xs font-bold text-sky-900 dark:text-sky-200">Eau Potable & Assainissement</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {REPORT_TYPES.filter((t) => t.operator === "SODECI").map((type) => {
+                      const isSelected = selectedType?.id === type.id;
+                      return (
+                        <motion.button
+                          key={type.id}
+                          type="button"
+                          whileTap={{ scale: 0.94 }}
+                          onClick={() => handleTypeSelect(type)}
+                          className="group flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary bg-card"
+                          style={{
+                            borderColor: isSelected ? type.color : undefined,
+                            backgroundColor: isSelected ? type.color + colorAlpha : undefined,
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.borderColor = type.color;
+                              e.currentTarget.style.backgroundColor = type.color + hoverAlpha;
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.borderColor = "";
+                              e.currentTarget.style.backgroundColor = "";
+                            }
+                          }}
+                        >
+                          {type.image
+                            ? <img src={type.image} alt={type.label} className="h-8 w-8 object-contain rounded-md" />
+                            : <span className="text-2xl leading-none">{type.emoji}</span>
+                          }
+                          <span className="text-xs font-bold leading-tight text-foreground">{type.label}</span>
+                          {type.description && (
+                            <span className="text-[11px] leading-tight text-muted-foreground line-clamp-2">{type.description}</span>
+                          )}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* --- MAIRIE --- */}
+                <div className="space-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-md text-[11px] font-black tracking-wider bg-emerald-600 text-white shadow-xs">MAIRIE</span>
+                    <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">Voirie & Salubrité Municipale</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {REPORT_TYPES.filter((t) => t.operator === "MAIRIE").map((type) => {
+                      const isSelected = selectedType?.id === type.id;
+                      return (
+                        <motion.button
+                          key={type.id}
+                          type="button"
+                          whileTap={{ scale: 0.94 }}
+                          onClick={() => handleTypeSelect(type)}
+                          className="group flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary bg-card"
+                          style={{
+                            borderColor: isSelected ? type.color : undefined,
+                            backgroundColor: isSelected ? type.color + colorAlpha : undefined,
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.borderColor = type.color;
+                              e.currentTarget.style.backgroundColor = type.color + hoverAlpha;
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.borderColor = "";
+                              e.currentTarget.style.backgroundColor = "";
+                            }
+                          }}
+                        >
+                          {type.image
+                            ? <img src={type.image} alt={type.label} className="h-8 w-8 object-contain rounded-md" />
+                            : <span className="text-2xl leading-none">{type.emoji}</span>
+                          }
+                          <span className="text-xs font-bold leading-tight text-foreground">{type.label}</span>
+                          {type.description && (
+                            <span className="text-[11px] leading-tight text-muted-foreground line-clamp-2">{type.description}</span>
+                          )}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               {/* Section localisation — visible après sélection du type */}
