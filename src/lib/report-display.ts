@@ -7,6 +7,10 @@
 /** Map of infra type label → display emoji */
 export const INFRA_LABEL_EMOJI: Record<string, string> = {
   "Lampadaire cassé": "💡",
+  "Éclairage Public Hors Service": "💡",
+  "Poteau électrique": "🔌",
+  "Poteaux/Pylônes à risque": "🔌",
+  "Branchement dangereux": "⚠️",
   "Fuite d'eau": "🚿",
   "Caniveau bouché": "🚧",
   "Nid de poule": "🛣️",
@@ -14,7 +18,6 @@ export const INFRA_LABEL_EMOJI: Record<string, string> = {
   "Égout à ciel ouvert": "🕳️",
   "Déchets de marché": "🏪",
   "Dépôt sauvage": "🗑️",
-  "Poteau électrique": "🔌",
   "Autre": "🏗️",
 };
 

@@ -465,9 +465,11 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
 
   const nowStr = format(new Date(), "d MMMM yyyy 'à' HH:mm", { locale: fr });
 
-  const isInfraGroup = isMairie || group.operator === "MAIRIE" || group.quartiers.some(q => q.category === "infrastructure" || q.category === "eclairage_public" || q.category === "voirie" || q.category === "lampadaire");
-  const introText = isInfraGroup
+  const isInfraGroup = isMairie || group.operator === "MAIRIE" || group.quartiers.some(q => q.category === "infrastructure" || q.category === "eclairage_public" || q.category === "voirie" || q.category === "lampadaire" || q.category === "poteau_electrique");
+  const introText = isMairie || group.operator === "MAIRIE"
     ? `Ce signalement d'infrastructure publique via <strong>SIGNA-CI</strong> a été vu et est soutenu par <strong style="color: #16a34a;">${group.totalConfirmations} citoyen.ne(s)</strong> voulant une intervention et réparation rapide. L'intervention des services techniques de la mairie de <strong>${group.commune}</strong>.`
+    : isInfraGroup
+    ? `Ce signalement d'infrastructure publique via <strong>SIGNA-CI</strong> a été vu et est soutenu par <strong style="color: #16a34a;">${group.totalConfirmations} citoyen.ne(s)</strong> voulant une intervention et réparation rapide. L'intervention de vos services techniques sera appréciée.`
     : `Ce signalement a été <strong style="color: #16a34a;">confirmé par ${group.totalConfirmations} foyer(s) ou plus</strong> dans le même quartier via la plateforme <span style="background: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">SIGNA-CI</span>. Il nécessite votre intervention.`;
 
   const cardsHtml = group.quartiers.map((q, idx) => {
