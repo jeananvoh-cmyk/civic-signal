@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { format, isToday, isThisWeek, isThisMonth, isThisYear, parseISO } from "date-fns";
@@ -279,6 +280,7 @@ const URGENCY_CONFIG: Record<string, { label: string; color: string }> = {
 interface RelayConfig {
   test_mode:      string;
   test_email:     string;
+  cc_email:       string;
   resend_api_key?: string;
   email_cie:      string;
   email_sodeci:   string;
@@ -307,16 +309,19 @@ function maskApiKey(key: string | undefined | null): string {
 async function sendResendDirectEmail({
   apiKey,
   toEmail,
+  ccEmail,
   subject,
   htmlContent,
 }: {
   apiKey: string;
   toEmail: string;
+  ccEmail?: string;
   subject: string;
   htmlContent: string;
 }) {
   const cleanKey = apiKey.trim();
   const cleanTo = toEmail.trim().toLowerCase();
+  const cleanCc = ccEmail ? ccEmail.trim().toLowerCase() : "";
 
   if (!cleanKey) {
     return { ok: false, status: 400, error: "Aucune clé API Resend renseignée dans l'onglet Paramètres." };
@@ -340,18 +345,23 @@ async function sendResendDirectEmail({
   for (const fromAddr of fromVariants) {
     for (const endpoint of endpoints) {
       try {
+        const payload: any = {
+          from: fromAddr,
+          to: [cleanTo],
+          subject,
+          html: htmlContent,
+        };
+        if (cleanCc && cleanCc !== cleanTo) {
+          payload.cc = [cleanCc];
+        }
+
         const res = await fetch(endpoint, {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${cleanKey}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            from: fromAddr,
-            to: [cleanTo],
-            subject,
-            html: htmlContent,
-          }),
+          body: JSON.stringify(payload),
         });
 
         const resText = await res.text();
@@ -752,6 +762,7 @@ const MAIRIES_PILOTES = [
 const DEFAULT_CONFIG: RelayConfig = {
   test_mode: "true",
   test_email: "jeananvoh@gmail.com",
+  cc_email: "jeananvoh@gmail.com",
   resend_api_key: "",
   email_cie: "reclamation@cie.ci",
   email_sodeci: "contact@sodeci.ci",
@@ -998,6 +1009,54 @@ const AdminRelayPage = () => {
   const [draftConfig, setDraftConfig] = useState<RelayConfig | null>(null);
   const effectiveConfig = draftConfig ?? relayConfig;
 
+  // Modale de confirmation de sécurité Mode Production
+  const [prodModalConfig, setProdModalConfig] = useState<{
+    isOpen: boolean;
+    isBulk: boolean;
+    relayIds?: string[];
+    groupKey?: string;
+    opFilter?: string;
+    targetTitle?: string;
+    destEmail?: string;
+    count?: number;
+  }>({ isOpen: false, isBulk: false });
+
+  const handleRequestSendSingle = (group: RelayGroup) => {
+    const isTest = (draftConfig?.test_mode ?? effectiveConfig?.test_mode) === "true";
+    if (!isTest) {
+      setProdModalConfig({
+        isOpen: true,
+        isBulk: false,
+        relayIds: group.relayIds,
+        groupKey: group.key,
+        targetTitle: `${group.commune} (${OPERATOR_CONFIG[group.operator]?.label || group.operator})`,
+        destEmail: group.email_to,
+        count: group.quartiers.length,
+      });
+    } else {
+      sendGroup.mutate({ relay_ids: group.relayIds, groupKey: group.key });
+    }
+  };
+
+  const handleRequestSendBulk = (opFilter: string) => {
+    const isTest = (draftConfig?.test_mode ?? effectiveConfig?.test_mode) === "true";
+    const targets = pendingGroups.filter((g) => opFilter === "ALL" || g.operator === opFilter);
+    if (targets.length === 0) return;
+
+    if (!isTest) {
+      setProdModalConfig({
+        isOpen: true,
+        isBulk: true,
+        opFilter,
+        targetTitle: opFilter === "ALL" ? "Tous les opérateurs" : OPERATOR_CONFIG[opFilter as keyof typeof OPERATOR_CONFIG]?.label || opFilter,
+        destEmail: opFilter === "ALL" ? "Adresses officielles de tous les groupes" : targets[0]?.email_to,
+        count: targets.length,
+      });
+    } else {
+      sendAllOperatorGroups(opFilter);
+    }
+  };
+
   const [showResendKey, setShowResendKey] = useState(false);
   const [testingKey, setTestingKey] = useState(false);
 
@@ -1137,6 +1196,7 @@ const AdminRelayPage = () => {
 
       const isTest = (draftConfig?.test_mode ?? effectiveConfig?.test_mode) === "true";
       const testEmail = (draftConfig?.test_email || effectiveConfig?.test_email || "jeananvoh@gmail.com").trim();
+      const ccEmail = (draftConfig?.cc_email || effectiveConfig?.cc_email || "jeananvoh@gmail.com").trim();
       const finalTo = isTest ? testEmail : targetGroup.email_to;
       const subject = isTest
         ? `[TEST → ${targetGroup.email_to}] [SIGNA-CI] Rapport d'intervention — ${targetGroup.commune} (${OPERATOR_CONFIG[targetGroup.operator]?.label || targetGroup.operator})`
@@ -1148,6 +1208,7 @@ const AdminRelayPage = () => {
       const resendRes = await sendResendDirectEmail({
         apiKey: resendApiKey,
         toEmail: finalTo,
+        ccEmail: ccEmail,
         subject,
         htmlContent: html,
       });
@@ -1449,6 +1510,44 @@ const AdminRelayPage = () => {
 
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
+      {/* Bannière d'alerte haute sécurité si Mode Production actif */}
+      {effectiveConfig?.test_mode === "false" && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-red-600 dark:bg-red-700 text-white font-bold p-3.5 px-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xl border-2 border-red-700"
+        >
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-6 w-6 text-yellow-300 shrink-0 animate-bounce" />
+            <div>
+              <div className="font-black text-sm tracking-wide flex items-center gap-2">
+                🚨 MODE PRODUCTION (RÉEL) ACTIF !
+                <span className="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded font-mono font-extrabold uppercase">DANGER ENVOI RÉEL</span>
+              </div>
+              <div className="text-xs text-red-100 font-medium mt-0.5">
+                Les e-mails seront transmis aux adresses officielles réelles des opérateurs.
+                {effectiveConfig?.cc_email && ` · Copie (CC) active : ${effectiveConfig.cc_email}`}
+              </div>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => {
+              const newCfg = { ...effectiveConfig, test_mode: "true" };
+              saveConfig.mutate(newCfg);
+              toast({
+                title: "🛡️ Mode TEST Sécurisé Activé",
+                description: "Les e-mails partent à présent uniquement vers votre e-mail de test sans contacter les opérateurs.",
+              });
+            }}
+            className="bg-white text-red-700 hover:bg-red-50 font-black border border-red-200 text-xs h-8 gap-1.5 shrink-0 shadow-md"
+          >
+            <FlaskConical className="h-4 w-4 text-amber-600" />
+            Basculer en Mode TEST Sécurisé
+          </Button>
+        </motion.div>
+      )}
+
       {/* En-tête */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
@@ -1655,7 +1754,7 @@ const AdminRelayPage = () => {
                     size="sm"
                     variant="default"
                     disabled={bulkSending}
-                    onClick={() => sendAllOperatorGroups(pendingOpFilter)}
+                    onClick={() => handleRequestSendBulk(pendingOpFilter)}
                     className="h-8 text-xs font-bold gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-sm"
                   >
                     <Send className={`h-3.5 w-3.5 ${bulkSending ? "animate-spin" : ""}`} />
@@ -1844,12 +1943,7 @@ const AdminRelayPage = () => {
 
                               <Button
                                 size="sm"
-                                onClick={() =>
-                                  sendGroup.mutate({
-                                    relay_ids: group.relayIds,
-                                    groupKey: group.key,
-                                  })
-                                }
+                                onClick={() => handleRequestSendSingle(group)}
                                 disabled={isSending}
                                 className={`gap-1.5 ${
                                   group.hasCritical
@@ -2223,6 +2317,26 @@ const AdminRelayPage = () => {
               />
             </div>
 
+            {/* Email en copie systématique (CC) pour le suivi admin */}
+            <div className="mt-4 pt-4 border-t border-border/50 space-y-2">
+              <label className="text-xs font-semibold text-foreground block flex items-center gap-1.5">
+                <MailCheck className="h-3.5 w-3.5 text-primary" />
+                <span>Email en copie systématique (CC) pour l'administrateur</span>
+              </label>
+              <input
+                type="email"
+                value={effectiveConfig.cc_email ?? "jeananvoh@gmail.com"}
+                onChange={(e) =>
+                  setDraftConfig({ ...(effectiveConfig as RelayConfig), cc_email: e.target.value })
+                }
+                placeholder="votre.email@gmail.com"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                📩 Cet e-mail recevra automatiquement une copie (CC) de <strong>tous les e-mails transmis aux opérateurs</strong>, que ce soit en mode Production ou en mode Test.
+              </p>
+            </div>
+
             {effectiveConfig.test_mode === "true" && (
               <div className="mt-4 space-y-3">
                 <div>
@@ -2478,6 +2592,86 @@ const AdminRelayPage = () => {
         </motion.div>
 
       ) : null}
+
+      {/* Modale de sécurité d'envoi en Production */}
+      <Dialog open={prodModalConfig.isOpen} onOpenChange={(open) => !open && setProdModalConfig({ ...prodModalConfig, isOpen: false })}>
+        <DialogContent className="max-w-md bg-card border-red-500/40 p-6 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 dark:text-red-500 flex items-center gap-2 text-base font-extrabold">
+              <AlertTriangle className="h-5 w-5 text-red-600 animate-pulse" />
+              🛑 CONFIRMATION DE SÉCURITÉ — MODE PRODUCTION
+            </DialogTitle>
+            <DialogDescription className="text-foreground/90 text-xs mt-1.5 font-medium">
+              Le <strong className="text-red-600 font-bold">MODE PRODUCTION (Réel)</strong> est actuellement activé sur SIGNA-CI.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 space-y-2.5 text-xs text-foreground mt-2">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground font-semibold">Cible / Opérateur :</span>
+              <strong className="text-foreground font-bold">{prodModalConfig.targetTitle}</strong>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground font-semibold">Destinataire principal :</span>
+              <code className="bg-background px-2 py-0.5 rounded font-mono font-bold text-red-600">{prodModalConfig.destEmail}</code>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground font-semibold">Copie conforme (CC) :</span>
+              <code className="bg-background px-2 py-0.5 rounded font-mono font-bold text-emerald-600">
+                {effectiveConfig?.cc_email || effectiveConfig?.test_email || "jeananvoh@gmail.com"}
+              </code>
+            </div>
+            {prodModalConfig.count && (
+              <div className="flex items-center justify-between pt-1 border-t border-red-500/20">
+                <span className="text-muted-foreground font-semibold">Relais concernés :</span>
+                <span className="font-bold text-foreground">{prodModalConfig.count} groupe(s)</span>
+              </div>
+            )}
+          </div>
+
+          <p className="text-[11px] text-muted-foreground italic mt-2">
+            ⚠️ Cet e-mail sera immédiatement transmis à l'adresse de production officielle de l'opérateur. Une copie conforme (CC) vous sera automatiquement délivrée.
+          </p>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2 mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const newCfg = { ...effectiveConfig, test_mode: "true" };
+                saveConfig.mutate(newCfg);
+                setProdModalConfig({ ...prodModalConfig, isOpen: false });
+                toast({
+                  title: "🛡️ Basculé en Mode TEST Sécurisé",
+                  description: "Le mode TEST est réactivé. Vous pouvez tester vos envois en toute sécurité.",
+                });
+              }}
+              className="w-full sm:w-auto text-amber-600 border-amber-500/40 hover:bg-amber-500/10 font-bold text-xs gap-1.5"
+            >
+              <FlaskConical className="h-4 w-4" />
+              Basculer en Mode TEST
+            </Button>
+
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                const cfg = prodModalConfig;
+                setProdModalConfig({ ...prodModalConfig, isOpen: false });
+                if (cfg.isBulk && cfg.opFilter) {
+                  sendAllOperatorGroups(cfg.opFilter);
+                } else if (cfg.relayIds && cfg.groupKey) {
+                  sendGroup.mutate({ relay_ids: cfg.relayIds, groupKey: cfg.groupKey });
+                }
+              }}
+              className="w-full sm:w-auto bg-red-600 hover:bg-red-700 font-extrabold text-xs gap-1.5 shadow-md"
+            >
+              <Send className="h-4 w-4" />
+              Confirmer l'Envoi PRODUCTION
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
