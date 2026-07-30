@@ -561,12 +561,9 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
   const isONEP = group.operator === "ONEP";
   const isMairie = group.operator === "MAIRIE";
 
-  const isInfraGroup = isMairie || group.operator === "MAIRIE" || isANARE || group.operator === "ANARE" || group.quartiers.some(q => {
-    const tag = q.description ? extractInfraLabel(q.description) : null;
-    return Boolean(tag) || q.category === "infrastructure" || q.category === "eclairage_public" || q.category === "voirie" || q.category === "lampadaire" || q.category === "poteau_electrique" || q.category === "canalisation" || q.category === "egout" || q.category === "fuite_eau_exterieure";
-  });
+  const isInfraGroup = isMairie || isANARE || isONEP || group.quartiers.some(q => checkIfInfra(q.category, q.description));
 
-  const serviceEmoji = isCIE ? "⚡" : isSODECI ? "💧" : isANARE ? "⚖️" : isONEP ? "💧" : "🏗️";
+  const serviceEmoji = isCIE && isInfraGroup ? "💡" : isCIE ? "⚡" : isSODECI && isInfraGroup ? "🚿" : isSODECI ? "💧" : isANARE ? "⚖️" : isONEP ? "💧" : "🏗️";
   const serviceTitle = isANARE
     ? "Alerte Réglementaire — Infrastructure Électrique (CIE)"
     : isONEP
@@ -574,12 +571,12 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
     : isCIE && isInfraGroup
     ? "Signalement Infrastructure Publique (CIE)"
     : isCIE
-    ? "Coupure d'électricité / Incident Électrique"
+    ? "Alerte Interruption de Service — Coupure d'électricité (CIE)"
     : isSODECI && isInfraGroup
     ? "Signalement Infrastructure Publique (SODECI)"
     : isSODECI
-    ? "Coupure d'eau / Inondation"
-    : "Signalement Voirie & Infrastructure";
+    ? "Alerte Interruption de Service — Coupure d'eau (SODECI)"
+    : "Signalement Voirie & Infrastructure Municipale";
 
   const gradientHeader = isANARE || isONEP
     ? "linear-gradient(135deg, #1e3a8a 0%, #0284c7 100%)"
@@ -589,8 +586,6 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
     ? "linear-gradient(135deg, #0284c7 0%, #0891b2 100%)"
     : "linear-gradient(135deg, #ea580c 0%, #d97706 100%)";
 
-  const nowStr = format(new Date(), "d MMMM yyyy 'à' HH:mm", { locale: fr });
-
   const citoyenText = group.totalConfirmations > 1
     ? `${group.totalConfirmations} citoyen.ne.s`
     : `1 citoyen.ne`;
@@ -598,10 +593,10 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
   const introText = isANARE || group.operator === "ANARE"
     ? `En tant qu'Autorité de Régulation du secteur de l'électricité (<strong>ANARE-CI</strong>), nous vous transmettons ce signalement d'infrastructure publique électrique à risque gérée par la <strong>CIE</strong>. Ce signalement via <strong>SIGNA-CI</strong> a été vu et est soutenu par <strong style="color: #16a34a;">${citoyenText}</strong> voulant une intervention et réparation rapide. Votre suivi réglementaire auprès de la CIE et l'intervention des services techniques seront appréciés pour une résolution rapide.`
     : isMairie || group.operator === "MAIRIE"
-    ? `Ce signalement d'infrastructure publique via <strong>SIGNA-CI</strong> a été vu et est soutenu par <strong style="color: #16a34a;">${citoyenText}</strong> voulant une intervention et réparation rapide. L'intervention des services techniques de la mairie de <strong>${group.commune}</strong>.`
+    ? `Ce signalement d'infrastructure publique via <strong>SIGNA-CI</strong> a été vu et est soutenu par <strong style="color: #16a34a;">${citoyenText}</strong> voulant une intervention et réparation rapide des services techniques de la Mairie de <strong>${group.commune}</strong>.`
     : isInfraGroup
     ? `Ce signalement d'infrastructure publique via <strong>SIGNA-CI</strong> a été vu et est soutenu par <strong style="color: #16a34a;">${citoyenText}</strong> voulant une intervention et réparation rapide. L'intervention de vos services techniques sera appréciée.`
-    : `Ce signalement a été <strong style="color: #16a34a;">confirmé par ${group.totalConfirmations > 1 ? `${group.totalConfirmations} foyers ou plus` : "1 foyer"}</strong> dans le même quartier via la plateforme <span style="background: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">SIGNA-CI</span>. Il nécessite votre intervention.`;
+    : `Ce signalement d'interruption de service a été <strong style="color: #16a34a;">confirmé par ${group.totalConfirmations > 1 ? `${group.totalConfirmations} foyers` : "1 foyer"}</strong> dans le quartier via la plateforme <span style="background: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">SIGNA-CI</span>. Il nécessite le rétablissement rapide du service.`;
 
   const cardsHtml = group.quartiers.map((q, idx) => {
     const isCrit = q.urgency === "critical";
@@ -610,31 +605,11 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
     const urgencyText = (URGENCY_CONFIG[q.urgency]?.label || q.urgency).toUpperCase();
 
     const extractedTag = (q.description && q.description.trim()) ? extractInfraLabel(q.description.trim()) : null;
-    const typeLabel = extractedTag || (q.category ? q.category.replace(/_/g, " ") : null);
+    const isQuartierInfra = isMairie || isANARE || isONEP || checkIfInfra(q.category, q.description);
+    const typeLabel = (extractedTag && isQuartierInfra) ? extractedTag : (q.category ? q.category.replace(/_/g, " ") : null);
     const categoryLabel = typeLabel
       ? `${infraEmoji(typeLabel)} ${typeLabel.toUpperCase()}`
       : isMairie ? "🏗️ INFRASTRUCTURE / VOIRIE" : isCIE ? "⚡ ÉLECTRICITÉ" : "💧 EAU POTABLE";
-
-    const gpsRow = (q.lat && q.lng)
-      ? `
-        <tr style="border-bottom: 1px solid #f1f5f9;">
-          <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Géolocalisation GPS</td>
-          <td style="padding: 14px 20px; color: #0f172a; font-weight: 700;">
-            📍 Lat: <code>${q.lat.toFixed(5)}</code>, Lng: <code>${q.lng.toFixed(5)}</code>
-            <div style="margin-top: 6px;">
-              <a href="https://www.google.com/maps/search/?api=1&query=${q.lat},${q.lng}" target="_blank" style="display: inline-block; padding: 6px 12px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 11px; font-weight: 700; text-decoration: none;">
-                📍 Localiser l'incident sur Google Maps
-              </a>
-            </div>
-          </td>
-        </tr>
-      `
-      : `
-        <tr style="border-bottom: 1px solid #f1f5f9;">
-          <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Géolocalisation GPS</td>
-          <td style="padding: 14px 20px; color: #94a3b8; font-style: italic;">Non transmise par le citoyen</td>
-        </tr>
-      `;
 
     const locParts: string[] = [];
     if (q.description && q.description.trim()) {
@@ -645,11 +620,10 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
     if (q.addressText && q.addressText.trim()) locParts.push(`Adresse : ${q.addressText.trim()}`);
     const fullDesc = locParts.length > 0 ? locParts.join(" · ") : `${serviceTitle} à ${group.commune}`;
 
-    const isInfra = isMairie || group.operator === "MAIRIE" || isANARE || group.operator === "ANARE" || Boolean(extractedTag) || q.category === "infrastructure" || q.category === "eclairage_public" || q.category === "voirie" || q.category === "lampadaire" || q.category === "poteau_electrique" || q.category === "canalisation" || q.category === "egout" || q.category === "fuite_eau_exterieure";
-    const confirmationLabel = isInfra ? "Soutien & votes citoyens" : "Confirmations voisins";
-    const confirmationValue = isInfra
+    const confirmationLabel = isQuartierInfra ? "Soutien & votes citoyens" : "Corroboration & confirmations quartier";
+    const confirmationValue = isQuartierInfra
       ? `<span style="color: #16a34a; font-weight: 800;">${q.verifications > 1 ? `${q.verifications} citoyen.ne.s soutiennent pour une réparation urgente` : "1 citoyen.ne soutient pour une réparation urgente"}</span>`
-      : `<span style="color: #16a34a; font-weight: 800;">${q.verifications > 1 ? `${q.verifications} foyers impactés` : "1 foyer impacté"}</span>`;
+      : `<span style="color: #16a34a; font-weight: 800;">${q.verifications > 1 ? `${q.verifications} foyers confirment la coupure dans le quartier` : "1 foyer confirme la coupure dans le quartier"}</span>`;
 
     return `
       <div style="border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; background: #ffffff; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">

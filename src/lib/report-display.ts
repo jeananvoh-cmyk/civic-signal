@@ -103,3 +103,19 @@ export function infraOperator(label: string | null, commune: string): string {
   if (label && INFRA_SODECI.has(label)) return "SODECI";
   return `Mairie de ${commune}`;
 }
+
+/** Checks if a label belongs to infrastructure (lampadaire, fuite, canalisation, poteau, etc.) vs outage (coupure) */
+export function isInfraLabel(label: string | null): boolean {
+  if (!label) return false;
+  const l = label.toLowerCase().trim();
+  if (l.includes("coupure") || l.includes("outage") || l.includes("interruption") || l.includes("panne")) return false;
+  return (
+    INFRA_CIE.has(label) ||
+    INFRA_SODECI.has(label) ||
+    [
+      "éclairage", "lampadaire", "poteau", "pylône", "branchement",
+      "fuite", "canalisation", "égout", "regard", "nid de poule", "caniveau",
+      "voirie", "trottoir", "ordures", "dépôt sauvage", "déchets", "infrastructure"
+    ].some(k => l.includes(k))
+  );
+}
