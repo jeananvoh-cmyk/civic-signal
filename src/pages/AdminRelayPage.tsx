@@ -628,12 +628,14 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
     : `1 citoyen.ne`;
 
   const introText = isANARE || group.operator === "ANARE"
-    ? `En tant qu'Autorité de Régulation du secteur de l'électricité (<strong>ANARE-CI</strong>), nous vous transmettons ce signalement d'infrastructure publique électrique à risque gérée par la <strong>CIE</strong>. Ce signalement via <strong>SIGNA-CI</strong> a été vu et est soutenu par <strong style="color: #16a34a;">${citoyenText}</strong> voulant une intervention et réparation rapide. Votre suivi réglementaire auprès de la CIE et l'intervention des services techniques seront appréciés pour une résolution rapide.`
+    ? `En tant qu'Autorité de Régulation du secteur de l'électricité (<strong>ANARE-CI</strong>), nous vous transmettons ce signalement d'infrastructure publique électrique gérée par la <strong>CIE</strong>. Ce signalement via <strong>SIGNA-CI</strong> a été vérifié et est soutenu par <strong style="color: #16a34a;">${citoyenText}</strong>. Votre suivi réglementaire auprès du concessionnaire CIE contribuera au maintien de la qualité du service public.`
+    : isONEP || group.operator === "ONEP"
+    ? `En tant qu'Office National de l'Eau Potable (<strong>ONEP</strong>), Maître d'Ouvrage et Régulateur du secteur de l'eau potable en Côte d'Ivoire, nous vous transmettons ce signalement relatif au réseau d'eau exploité par la <strong>SODECI</strong>. Ce signalement via <strong>SIGNA-CI</strong> a été vérifié et est soutenu par <strong style="color: #16a34a;">${citoyenText}</strong>. Votre suivi stratégique et patrimonial contribuera à la continuité de la fourniture d'eau aux populations.`
     : isMairie || group.operator === "MAIRIE"
-    ? `Ce signalement d'infrastructure publique via <strong>SIGNA-CI</strong> a été vu et est soutenu par <strong style="color: #16a34a;">${citoyenText}</strong> voulant une intervention et réparation rapide des services techniques de la Mairie de <strong>${group.commune}</strong>.`
+    ? `Ce signalement de voirie et salubrité urbaine via <strong>SIGNA-CI</strong> a été vérifié et est soutenu par <strong style="color: #16a34a;">${citoyenText}</strong> sollicitant une intervention des services techniques de la Mairie de <strong>${group.commune}</strong>.`
     : isInfraGroup
-    ? `Ce signalement d'infrastructure publique via <strong>SIGNA-CI</strong> a été vu et est soutenu par <strong style="color: #16a34a;">${citoyenText}</strong> voulant une intervention et réparation rapide. L'intervention de vos services techniques sera appréciée.`
-    : `Ce signalement d'interruption de service a été <strong style="color: #16a34a;">confirmé par ${group.totalConfirmations > 1 ? `${group.totalConfirmations} foyers` : "1 foyer"}</strong> dans le quartier via la plateforme <span style="background: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">SIGNA-CI</span>. Il nécessite le rétablissement rapide du service.`;
+    ? `Ce signalement d'infrastructure publique via <strong>SIGNA-CI</strong> a été vérifié et est soutenu par <strong style="color: #16a34a;">${citoyenText}</strong>. L'intervention technique de vos services sera particulièrement appréciée pour la sécurité des riverains.`
+    : `Ce signalement d'interruption de service public a été <strong style="color: #16a34a;">confirmé par ${group.totalConfirmations > 1 ? `${group.totalConfirmations} foyers` : "1 foyer"}</strong> dans le quartier via la plateforme <span style="background: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">SIGNA-CI</span>. Il appelle un rétablissement rapide du service.`;
 
   const cardsHtml = group.quartiers.map((q, idx) => {
     const isCrit = q.urgency === "critical";
@@ -1479,7 +1481,11 @@ const AdminRelayPage = () => {
   });
 
   const sendAllOperatorGroups = async (opFilter: string) => {
-    let targets = pendingGroups.filter((g) => opFilter === "ALL" || g.operator === opFilter);
+    let targets = pendingGroups.filter((g) => {
+      if (g.operator === "ANARE" && effectiveConfig?.anare_auto_dispatch === "false") return false;
+      if (g.operator === "ONEP" && effectiveConfig?.onep_auto_dispatch === "false") return false;
+      return opFilter === "ALL" || g.operator === opFilter;
+    });
 
     if (opFilter === "CIE" && effectiveConfig?.anare_auto_dispatch !== "false") {
       const anareTargets = pendingGroups.filter((g) => g.operator === "ANARE");
