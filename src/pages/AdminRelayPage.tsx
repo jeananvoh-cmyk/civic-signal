@@ -1545,21 +1545,17 @@ const AdminRelayPage = () => {
   // ── Rejeter un groupe de relays ───────────────────────────────────────────
   const [rejectConfirm, setRejectConfirm] = useState<string | null>(null);
 
-  const rejectGroup = useMutation({
-    mutationFn: async (relay_ids: string[]) => {
+  const rejectGroupMutation = useMutation({
+    mutationFn: async (relayIds: string[]) => {
       const { error } = await (supabase as any)
         .from("relay_logs")
-        .update({ status: "rejected", error_message: "Rejeté par l'administrateur" })
-        .in("id", relay_ids);
+        .update({ status: "cancelled" })
+        .in("id", relayIds);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-relay-logs-all"] });
-      setRejectConfirm(null);
-      toast({ title: "Signalement rejeté", description: "Le relay a été rejeté et ne sera pas transmis." });
-    },
-    onError: () => {
-      toast({ title: "Erreur", variant: "destructive" });
+      toast({ title: "Signalement(s) annulé(s)" });
     },
   });
 
@@ -1597,19 +1593,19 @@ const AdminRelayPage = () => {
   // ── Synchronisation rétroactive de tous les signalements validés dans la file ──
   const syncAllMutation = useMutation({
     mutationFn: async () => {
-      const { data: valReports, error } = await supabase
+      const { data: reports, error } = await supabase
         .from("reports")
         .select("*")
-        .eq("validated", true)
-        .or("status.eq.active,status.eq.chronic");
+        .or("status.eq.validated,verifications.gte.2");
+
       if (error) throw error;
-      if (!valReports || valReports.length === 0) return 0;
+      if (!reports || reports.length === 0) return 0;
 
       let count = 0;
-      for (const report of valReports) {
-        const relays: Array<{ report_id: string; operator: "CIE" | "SODECI" | "MAIRIE" | "ONEP" | "ANARE"; email_to: string; status: string }> = [];
-
+      for (const report of reports) {
+        const relays: { report_id: string; operator: string; email_to: string; status: string }[] = [];
         const label = extractInfraLabel(report.description || "");
+
         const isCieRelated = report.service_type === "electricity" ||
           report.service_type === "streetlighting" ||
           report.service_type === "electricity_quality" ||
@@ -1650,7 +1646,7 @@ const AdminRelayPage = () => {
         for (const item of relays) {
           const { data: existing } = await (supabase as any)
             .from("relay_logs")
-            .select("id")
+            .select("id, status")
             .eq("report_id", item.report_id)
             .eq("operator", item.operator)
             .maybeSingle();
@@ -2528,9 +2524,9 @@ const AdminRelayPage = () => {
               </label>
               <input
                 type="email"
-                value={effectiveConfig.cc_email ?? "jeananvoh@gmail.com"}
+                value={draftConfig?.cc_email ?? effectiveConfig?.cc_email ?? "jeananvoh@gmail.com"}
                 onChange={(e) =>
-                  setDraftConfig({ ...(effectiveConfig as RelayConfig), cc_email: e.target.value })
+                  setDraftConfig({ ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), cc_email: e.target.value })
                 }
                 placeholder="votre.email@gmail.com"
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium"
@@ -2548,9 +2544,9 @@ const AdminRelayPage = () => {
                   </label>
                   <input
                     type="email"
-                    value={effectiveConfig.test_email ?? ""}
+                    value={draftConfig?.test_email ?? effectiveConfig?.test_email ?? ""}
                     onChange={(e) =>
-                      setDraftConfig({ ...(effectiveConfig as RelayConfig), test_email: e.target.value })
+                      setDraftConfig({ ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), test_email: e.target.value })
                     }
                     placeholder="votre@email.com"
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
@@ -2601,9 +2597,9 @@ const AdminRelayPage = () => {
                   <div className="relative">
                     <input
                       type={showResendKey ? "text" : "password"}
-                      value={effectiveConfig.resend_api_key ?? ""}
+                      value={draftConfig?.resend_api_key ?? effectiveConfig?.resend_api_key ?? ""}
                       onChange={(e) =>
-                        setDraftConfig({ ...(effectiveConfig as RelayConfig), resend_api_key: e.target.value })
+                        setDraftConfig({ ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), resend_api_key: e.target.value })
                       }
                       placeholder="Collez votre clé re_123456789..."
                       className="w-full rounded-lg border border-border bg-background pl-3 pr-10 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/40"
@@ -2657,7 +2653,7 @@ const AdminRelayPage = () => {
                   checked={effectiveConfig.anare_auto_dispatch !== "false"}
                   onCheckedChange={(checked) => {
                     const newMode = checked ? "true" : "false";
-                    const newCfg = { ...(effectiveConfig as RelayConfig), anare_auto_dispatch: newMode };
+                    const newCfg = { ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), anare_auto_dispatch: newMode };
                     setDraftConfig(newCfg);
                     saveConfigMutation.mutate(newCfg, {
                       onSuccess: () => {
@@ -2687,7 +2683,7 @@ const AdminRelayPage = () => {
                   checked={effectiveConfig.onep_auto_dispatch !== "false"}
                   onCheckedChange={(checked) => {
                     const newMode = checked ? "true" : "false";
-                    const newCfg = { ...(effectiveConfig as RelayConfig), onep_auto_dispatch: newMode };
+                    const newCfg = { ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), onep_auto_dispatch: newMode };
                     setDraftConfig(newCfg);
                     saveConfigMutation.mutate(newCfg, {
                       onSuccess: () => {
@@ -2733,21 +2729,21 @@ const AdminRelayPage = () => {
                 {/* Email */}
                 <input
                   type="email"
-                  value={effectiveConfig[emailKey] ?? ""}
+                  value={draftConfig?.[emailKey] ?? effectiveConfig[emailKey] ?? ""}
                   onChange={(e) =>
-                    setDraftConfig({ ...(effectiveConfig as RelayConfig), [emailKey]: e.target.value })
+                    setDraftConfig({ ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), [emailKey]: e.target.value })
                   }
                   placeholder={emailPlaceholder}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium"
                 />
                 {/* WhatsApp */}
                 <div className="flex items-center gap-2">
                   <MessageCircle className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
                   <input
                     type="tel"
-                    value={effectiveConfig[waKey] ?? ""}
+                    value={draftConfig?.[waKey] ?? effectiveConfig[waKey] ?? ""}
                     onChange={(e) =>
-                      setDraftConfig({ ...(effectiveConfig as RelayConfig), [waKey]: e.target.value })
+                      setDraftConfig({ ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), [waKey]: e.target.value })
                     }
                     placeholder={waPlaceholder}
                     className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
@@ -2766,7 +2762,7 @@ const AdminRelayPage = () => {
               </p>
               <span className="text-xs text-muted-foreground">
                 {MAIRIES_PILOTES.filter(
-                  (m) => effectiveConfig[`mairie_${m.slug}_enabled`] === "true"
+                  (m) => (draftConfig?.[`mairie_${m.slug}_enabled`] ?? effectiveConfig[`mairie_${m.slug}_enabled`]) === "true"
                 ).length} / {MAIRIES_PILOTES.length} actives
               </span>
             </div>
@@ -2779,8 +2775,8 @@ const AdminRelayPage = () => {
               {MAIRIES_PILOTES.map(({ slug, label }) => {
                 const emailKey   = `mairie_${slug}_email`;
                 const enabledKey = `mairie_${slug}_enabled`;
-                const isEnabled  = effectiveConfig[enabledKey] === "true";
-                const email      = effectiveConfig[emailKey] ?? "";
+                const isEnabled  = (draftConfig?.[enabledKey] ?? effectiveConfig[enabledKey]) === "true";
+                const email      = draftConfig?.[emailKey] ?? effectiveConfig[emailKey] ?? "";
                 const hasEmail   = email.trim().length > 0;
 
                 return (
@@ -2813,12 +2809,15 @@ const AdminRelayPage = () => {
                       </div>
                       <Switch
                         checked={isEnabled}
-                        onCheckedChange={(checked) =>
-                          setDraftConfig({
+                        onCheckedChange={(checked) => {
+                          const newCfg = {
                             ...(effectiveConfig as RelayConfig),
+                            ...(draftConfig || {}),
                             [enabledKey]: checked ? "true" : "false",
-                          })
-                        }
+                          };
+                          setDraftConfig(newCfg);
+                          saveConfigMutation.mutate(newCfg);
+                        }}
                       />
                     </div>
 
@@ -2827,7 +2826,7 @@ const AdminRelayPage = () => {
                         type="email"
                         value={email}
                         onChange={(e) =>
-                          setDraftConfig({ ...(effectiveConfig as RelayConfig), [emailKey]: e.target.value })
+                          setDraftConfig({ ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), [emailKey]: e.target.value })
                         }
                         placeholder={`contact@mairie-${slug}.ci`}
                         disabled={!isEnabled}
