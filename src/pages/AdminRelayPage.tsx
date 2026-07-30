@@ -814,11 +814,17 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
 
 // ─── WhatsApp message builder ─────────────────────────────────────────────────
 
-function buildWhatsAppMessage(group: RelayGroup): string {
+function buildWhatsAppMessage(group: RelayGroup, focalName?: string | null): string {
+  const isMairie = group.operator === "MAIRIE";
   const isElec = group.operator === "CIE" || group.operator === "ANARE";
-  const serviceLabel = isElec ? "électricité" : "eau potable";
-  const serviceEmoji = isElec ? "⚡" : "💧";
-  const operatorName = OPERATOR_CONFIG[group.operator]?.label ?? group.operator;
+  const serviceLabel = isMairie ? "voirie, salubrité & infrastructure municipale" : (isElec ? "électricité" : "eau potable");
+  const serviceEmoji = isMairie ? "🏛️" : (isElec ? "⚡" : "💧");
+  const baseOpName = OPERATOR_CONFIG[group.operator]?.label ?? group.operator;
+  const operatorName = isMairie ? `Services Techniques Mairie de ${group.commune}` : baseOpName;
+
+  const greetingName = isMairie
+    ? (focalName ? `${focalName} (Services Techniques Mairie de ${group.commune})` : `Services Techniques Mairie de ${group.commune}`)
+    : operatorName;
 
   const quartierLines = group.quartiers.map((q) => {
     const urgLabel = URGENCY_CONFIG[q.urgency]?.label ?? q.urgency;
@@ -858,9 +864,9 @@ function buildWhatsAppMessage(group: RelayGroup): string {
   const lines = [
     `${serviceEmoji} *SIGNA-CI — Transmission officielle ${operatorName}*`,
     ``,
-    `Bonjour ${operatorName},`,
+    `Bonjour ${greetingName},`,
     ``,
-    `Nous vous contactons au nom de *${group.totalConfirmations} citoyen${group.totalConfirmations > 1 ? "s" : ""}* abonné${group.totalConfirmations > 1 ? "s" : ""} ayant réclamé concernant un problème de *${serviceLabel}* sur notre plateforme.`,
+    `Nous vous contactons au nom de *${group.totalConfirmations} citoyen${group.totalConfirmations > 1 ? "s" : ""}* ayant signalé un incident de *${serviceLabel}* sur notre plateforme.`,
     ``,
     `📍 *Commune :* ${group.commune}`,
     ``,
@@ -872,7 +878,7 @@ function buildWhatsAppMessage(group: RelayGroup): string {
       ...reporterLines,
     ] : []),
     ``,
-    `Merci de prendre les dispositions nécessaires.`,
+    `Merci de prendre les dispositions nécessaires pour le bien-être des usagers.`,
     ``,
     `— L'équipe SIGNA-CI (https://signa.ci)`,
   ];
@@ -883,15 +889,80 @@ function buildBatchEmailTextClient(group: RelayGroup): string {
   return buildWhatsAppMessage(group);
 }
 
-const MAIRIES_PILOTES = [
-  { slug: "abobo",       label: "Abobo" },
-  { slug: "adjame",      label: "Adjamé" },
-  { slug: "bingerville", label: "Bingerville" },
-  { slug: "cocody",      label: "Cocody" },
-  { slug: "koumassi",    label: "Koumassi" },
-  { slug: "portbouet",   label: "Port-Bouët" },
-  { slug: "yopougon",    label: "Yopougon" },
-] as const;
+export interface MairieEntry {
+  slug: string;
+  label: string;
+  region: string;
+}
+
+export const MAIRIES_COTE_DIVOIRE: MairieEntry[] = [
+  // District Autonome d'Abidjan
+  { slug: "abobo",       label: "Abobo",       region: "Abidjan" },
+  { slug: "adjame",      label: "Adjamé",      region: "Abidjan" },
+  { slug: "anyama",      label: "Anyama",      region: "Abidjan" },
+  { slug: "attecoube",   label: "Attécoubé",   region: "Abidjan" },
+  { slug: "bingerville", label: "Bingerville", region: "Abidjan" },
+  { slug: "cocody",      label: "Cocody",      region: "Abidjan" },
+  { slug: "koumassi",    label: "Koumassi",    region: "Abidjan" },
+  { slug: "marcory",     label: "Marcory",     region: "Abidjan" },
+  { slug: "plateau",     label: "Plateau",     region: "Abidjan" },
+  { slug: "portbouet",   label: "Port-Bouët",   region: "Abidjan" },
+  { slug: "songon",      label: "Songon",      region: "Abidjan" },
+  { slug: "treichville", label: "Treichville", region: "Abidjan" },
+  { slug: "yopougon",    label: "Yopougon",    region: "Abidjan" },
+
+  // Villes & Régions de Côte d'Ivoire
+  { slug: "bouake",        label: "Bouaké",        region: "Gbêkê" },
+  { slug: "yamoussoukro",  label: "Yamoussoukro",  region: "Bélier" },
+  { slug: "sanpedro",      label: "San-Pédro",      region: "San-Pédro" },
+  { slug: "korhogo",       label: "Korhogo",       region: "Poro" },
+  { slug: "daloa",         label: "Daloa",         region: "Haut-Sassandra" },
+  { slug: "man",           label: "Man",           region: "Tonkpi" },
+  { slug: "gagnoa",        label: "Gagnoa",        region: "Gôh" },
+  { slug: "soubre",        label: "Soubré",        region: "Nawa" },
+  { slug: "agboville",     label: "Agboville",     region: "Agnéby-Tiassa" },
+  { slug: "grandbassam",   label: "Grand-Bassam",  region: "Sud-Comoé" },
+  { slug: "dabou",         label: "Dabou",         region: "Grands-Ponts" },
+  { slug: "divo",          label: "Divo",          region: "Lôh-Djiboua" },
+  { slug: "abengourou",    label: "Abengourou",    region: "Indénié-Djuablin" },
+  { slug: "bondoukou",     label: "Bondoukou",     region: "Gontougo" },
+  { slug: "seguela",       label: "Séguéla",       region: "Worodougou" },
+  { slug: "ferkessedougou",label: "Ferkessédougou",region: "Tchologo" },
+  { slug: "katiola",       label: "Katiola",       region: "Hambol" },
+  { slug: "odienne",       label: "Odienné",       region: "Kabadougou" },
+  { slug: "toumodi",       label: "Toumodi",       region: "Bélier" },
+  { slug: "bouafle",       label: "Bouaflé",       region: "Marahoué" },
+  { slug: "oume",          label: "Oumé",          region: "Gôh" },
+  { slug: "issia",         label: "Issia",         region: "Haut-Sassandra" },
+  { slug: "guiglo",        label: "Guiglo",        region: "Cavally" },
+  { slug: "sassandra",     label: "Sassandra",     region: "GBÔKLÊ" },
+  { slug: "sinfra",        label: "Sinfra",        region: "Marahoué" },
+  { slug: "lakota",        label: "Lakota",        region: "Lôh-Djiboua" },
+  { slug: "jacqueville",   label: "Jacqueville",   region: "Grands-Ponts" },
+  { slug: "adzope",        label: "Adzopé",        region: "La Mé" },
+  { slug: "dabakala",      label: "Dabakala",      region: "Hambol" },
+  { slug: "boundiali",     label: "Boundiali",     region: "Bagoué" },
+  { slug: "daoukro",       label: "Daoukro",       region: "Iffou" },
+  { slug: "tanda",         label: "Tanda",         region: "Gontougo" },
+  { slug: "tiassale",      label: "Tiassalé",      region: "Agnéby-Tiassa" },
+  { slug: "bonoua",        label: "Bonoua",        region: "Sud-Comoé" },
+  { slug: "azaguie",       label: "Azaguié",       region: "Agnéby-Tiassa" },
+];
+
+const MAIRIES_PILOTES = MAIRIES_COTE_DIVOIRE;
+
+function getMairieConfig(communeName: string, config: RelayConfig | null | undefined) {
+  if (!communeName || !config) {
+    return { email: "", whatsapp: "", focalName: "", enabled: false, slug: "" };
+  }
+  const slug = communeName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+  const email = (config[`mairie_${slug}_email`] || config[`email_mairie_${slug}`] || "").trim();
+  const whatsapp = (config[`mairie_${slug}_whatsapp`] || config[`whatsapp_mairie_${slug}`] || "").trim();
+  const focalName = (config[`mairie_${slug}_focal_name`] || config[`focal_name_mairie_${slug}`] || "").trim();
+  const enabled = config[`mairie_${slug}_enabled`] === "true" || (email.length > 0);
+
+  return { email, whatsapp, focalName, enabled, slug };
+}
 
 const DEFAULT_CONFIG: RelayConfig = {
   test_mode: "true",
@@ -1139,6 +1210,8 @@ const AdminRelayPage = () => {
   const [sendingGroup, setSendingGroup] = useState<string | null>(null);
 
   const [pendingOpFilter, setPendingOpFilter] = useState<string>("ALL");
+  const [searchRelayQuery, setSearchRelayQuery] = useState<string>("");
+  const [searchMairieQuery, setSearchMairieQuery] = useState<string>("");
   const [bulkSending, setBulkSending] = useState<boolean>(false);
 
   const { data: relayConfig, refetch: refetchConfig } = useRelayConfig();
@@ -1973,40 +2046,70 @@ const AdminRelayPage = () => {
 
         /* ── VUE : À ENVOYER ───────────────────────────────────────────── */
         (() => {
-          const filteredPendingGroups = pendingGroups.filter(
-            (g) => pendingOpFilter === "ALL" || g.operator === pendingOpFilter
-          );
+          const filteredPendingGroups = pendingGroups.filter((g) => {
+            if (pendingOpFilter !== "ALL" && g.operator !== pendingOpFilter) return false;
+            if (!searchRelayQuery.trim()) return true;
+            const q = searchRelayQuery.toLowerCase().trim();
+            const matchCommune = g.commune.toLowerCase().includes(q);
+            const matchQuartier = g.quartiers.some(
+              (qItem) => qItem.name.toLowerCase().includes(q) || (qItem.description && qItem.description.toLowerCase().includes(q))
+            );
+            const matchOp = (OPERATOR_CONFIG[g.operator]?.label || g.operator).toLowerCase().includes(q);
+            return matchCommune || matchQuartier || matchOp;
+          });
 
           return (
             <div className="space-y-4">
-              {/* Barre de filtrage par opérateur & Envoi groupé */}
+              {/* Barre de filtrage par opérateur & recherche instantanée */}
               <div className="flex flex-wrap items-center justify-between gap-3 bg-card border border-border p-3 rounded-xl shadow-xs">
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-                  {[
-                    { id: "ALL", label: "Tous les relais", count: pendingGroups.length },
-                    { id: "CIE", label: "⚡ CIE", count: pendingGroups.filter((g) => g.operator === "CIE").length },
-                    { id: "SODECI", label: "💧 SODECI", count: pendingGroups.filter((g) => g.operator === "SODECI").length },
-                    { id: "MAIRIE", label: "🏛️ Mairies", count: pendingGroups.filter((g) => g.operator === "MAIRIE").length },
-                    { id: "ANARE", label: "⚖️ ANARE-CI", count: pendingGroups.filter((g) => g.operator === "ANARE").length },
-                    { id: "ONEP", label: "🛡️ ONEP", count: pendingGroups.filter((g) => g.operator === "ONEP").length },
-                  ].map((f) => (
-                    <Button
-                      key={f.id}
-                      size="sm"
-                      variant={pendingOpFilter === f.id ? "default" : "outline"}
-                      onClick={() => setPendingOpFilter(f.id)}
-                      className="h-8 text-xs font-semibold gap-1.5"
-                    >
-                      <span>{f.label}</span>
-                      <span
-                        className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                          pendingOpFilter === f.id ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
-                        }`}
+                <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+                  {/* Barre de recherche instantanée */}
+                  <div className="relative w-full sm:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={searchRelayQuery}
+                      onChange={(e) => setSearchRelayQuery(e.target.value)}
+                      placeholder="Rechercher commune, quartier, panne..."
+                      className="w-full pl-9 pr-7 py-1.5 rounded-lg border border-border bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium"
+                    />
+                    {searchRelayQuery && (
+                      <button
+                        onClick={() => setSearchRelayQuery("")}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs font-bold"
                       >
-                        {f.count}
-                      </span>
-                    </Button>
-                  ))}
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                    {[
+                      { id: "ALL", label: "Tous les relais", count: pendingGroups.length },
+                      { id: "CIE", label: "⚡ CIE", count: pendingGroups.filter((g) => g.operator === "CIE").length },
+                      { id: "SODECI", label: "💧 SODECI", count: pendingGroups.filter((g) => g.operator === "SODECI").length },
+                      { id: "MAIRIE", label: "🏛️ Mairies", count: pendingGroups.filter((g) => g.operator === "MAIRIE").length },
+                      { id: "ANARE", label: "⚖️ ANARE-CI", count: pendingGroups.filter((g) => g.operator === "ANARE").length },
+                      { id: "ONEP", label: "🛡️ ONEP", count: pendingGroups.filter((g) => g.operator === "ONEP").length },
+                    ].map((f) => (
+                      <Button
+                        key={f.id}
+                        size="sm"
+                        variant={pendingOpFilter === f.id ? "default" : "outline"}
+                        onClick={() => setPendingOpFilter(f.id)}
+                        className="h-8 text-xs font-semibold gap-1.5"
+                      >
+                        <span>{f.label}</span>
+                        <span
+                          className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                            pendingOpFilter === f.id ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {f.count}
+                        </span>
+                      </Button>
+                    ))}
+                  </div>
                 </div>
 
                 {filteredPendingGroups.length > 0 && (
@@ -2015,7 +2118,7 @@ const AdminRelayPage = () => {
                     variant="default"
                     disabled={bulkSending}
                     onClick={() => handleRequestSendBulk(pendingOpFilter)}
-                    className="h-8 text-xs font-bold gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-sm"
+                    className="h-8 text-xs font-bold gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-sm shrink-0"
                   >
                     <Send className={`h-3.5 w-3.5 ${bulkSending ? "animate-spin" : ""}`} />
                     {bulkSending
@@ -2102,6 +2205,30 @@ const AdminRelayPage = () => {
                               </span>
                               <span className="hidden sm:block">{group.email_to}</span>
                             </div>
+
+                            {/* Bandeau d'information Point Focal Mairie */}
+                            {group.operator === "MAIRIE" && (() => {
+                              const mCfg = getMairieConfig(group.commune, effectiveConfig);
+                              return (
+                                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                                  {mCfg.focalName && (
+                                    <span className="bg-orange-500/10 text-orange-700 dark:text-orange-300 px-2 py-0.5 rounded-md font-bold border border-orange-500/20 flex items-center gap-1">
+                                      👤 Point Focal ST : {mCfg.focalName}
+                                    </span>
+                                  )}
+                                  {mCfg.whatsapp && (
+                                    <span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-md font-semibold border border-emerald-500/20 flex items-center gap-1">
+                                      <MessageCircle className="h-3 w-3 text-emerald-600" /> WA ST : {mCfg.whatsapp}
+                                    </span>
+                                  )}
+                                  {mCfg.email && (
+                                    <span className="bg-muted/50 text-muted-foreground px-2 py-0.5 rounded-md font-medium border border-border">
+                                      ✉️ ST : {mCfg.email}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
 
@@ -2160,6 +2287,9 @@ const AdminRelayPage = () => {
 
                               {/* WhatsApp bouton */}
                               {(() => {
+                                const isMairie = group.operator === "MAIRIE";
+                                const mConfig = isMairie ? getMairieConfig(group.commune, effectiveConfig) : null;
+
                                 const waKeyMap: Record<string, string> = {
                                   CIE: "whatsapp_cie",
                                   SODECI: "whatsapp_sodeci",
@@ -2167,13 +2297,15 @@ const AdminRelayPage = () => {
                                   ONEP: "whatsapp_onep",
                                 };
                                 const waKey = waKeyMap[group.operator];
-                                const waNumber = waKey ? effectiveConfig?.[waKey]?.replace(/\D/g, "") : null;
+                                const waNumber = isMairie
+                                  ? (mConfig?.whatsapp?.replace(/\D/g, "") || effectiveConfig?.["whatsapp_mairie"]?.replace(/\D/g, "") || null)
+                                  : (waKey ? effectiveConfig?.[waKey]?.replace(/\D/g, "") : null);
 
-                                const text = buildBatchEmailTextClient(group);
+                                const text = buildWhatsAppMessage(group, mConfig?.focalName);
                                 const encoded = encodeURIComponent(text);
                                 const url = waNumber
                                   ? `https://wa.me/${waNumber}?text=${encoded}`
-                                  : `https://wa.me/?text=${encoded}`;
+                                  : `https://api.whatsapp.com/send?text=${encoded}`;
 
                                 const alreadySent = !!group.waSentAt;
 
@@ -2842,85 +2974,155 @@ const AdminRelayPage = () => {
             ))}
           </div>
 
-          {/* Mairies pilotes */}
-          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-orange-500" />
-                Mairies pilotes
-              </p>
-              <span className="text-xs text-muted-foreground">
-                {MAIRIES_PILOTES.filter(
-                  (m) => (draftConfig?.[`mairie_${m.slug}_enabled`] ?? effectiveConfig[`mairie_${m.slug}_enabled`]) === "true"
-                ).length} / {MAIRIES_PILOTES.length} actives
+          {/* Mairies & Services Techniques Municipaux de Côte d'Ivoire */}
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-orange-500" />
+                  Mairies & Services Techniques Municipaux (Côte d'Ivoire)
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Renseignez l'e-mail officiel et le <strong>numéro WhatsApp du Point Focal des Services Techniques</strong> de chaque mairie.
+                </p>
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-orange-500/10 text-orange-600 border border-orange-500/20">
+                {MAIRIES_COTE_DIVOIRE.filter(
+                  (m) => (draftConfig?.[`mairie_${m.slug}_enabled`] ?? effectiveConfig[`mairie_${m.slug}_enabled`]) === "true" ||
+                         Boolean(draftConfig?.[`mairie_${m.slug}_email`] ?? effectiveConfig[`mairie_${m.slug}_email`])
+                ).length} / {MAIRIES_COTE_DIVOIRE.length} mairies configurées
               </span>
             </div>
 
-            <p className="text-xs text-muted-foreground -mt-1">
-              Seules les mairies activées <strong>avec un email renseigné</strong> recevront les relais.
-            </p>
+            {/* Moteur de recherche Mairies */}
+            <div className="relative pt-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                value={searchMairieQuery}
+                onChange={(e) => setSearchMairieQuery(e.target.value)}
+                placeholder="Rechercher une commune ou région (ex: Bouaké, Cocody, Yamoussoukro, Poro...)"
+                className="w-full pl-9 pr-8 py-2 rounded-xl border border-border bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium"
+              />
+              {searchMairieQuery && (
+                <button
+                  onClick={() => setSearchMairieQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground hover:text-foreground"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
 
-            <div className="space-y-2">
-              {MAIRIES_PILOTES.map(({ slug, label }) => {
-                const emailKey   = `mairie_${slug}_email`;
-                const enabledKey = `mairie_${slug}_enabled`;
+            <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+              {MAIRIES_COTE_DIVOIRE.filter((m) => {
+                if (!searchMairieQuery.trim()) return true;
+                const q = searchMairieQuery.toLowerCase().trim();
+                return m.label.toLowerCase().includes(q) || m.region.toLowerCase().includes(q) || m.slug.includes(q);
+              }).map(({ slug, label, region }) => {
+                const emailKey     = `mairie_${slug}_email`;
+                const waKey        = `mairie_${slug}_whatsapp`;
+                const focalKey     = `mairie_${slug}_focal_name`;
+                const enabledKey   = `mairie_${slug}_enabled`;
+
                 const isEnabled  = (draftConfig?.[enabledKey] ?? effectiveConfig[enabledKey]) === "true";
                 const email      = draftConfig?.[emailKey] ?? effectiveConfig[emailKey] ?? "";
+                const whatsapp   = draftConfig?.[waKey] ?? effectiveConfig[waKey] ?? "";
+                const focalName  = draftConfig?.[focalKey] ?? effectiveConfig[focalKey] ?? "";
+
                 const hasEmail   = email.trim().length > 0;
+                const hasWa      = whatsapp.trim().length > 0;
 
                 return (
                   <div
                     key={slug}
-                    className={`rounded-lg border p-3 transition-colors ${
-                      isEnabled
-                        ? hasEmail
-                          ? "border-emerald-500/30 bg-emerald-500/5"
-                          : "border-amber-500/30 bg-amber-500/5"
-                        : "border-border bg-muted/20"
+                    className={`rounded-xl border p-3.5 transition-all ${
+                      isEnabled || hasEmail
+                        ? "border-orange-500/30 bg-orange-500/5 shadow-2xs"
+                        : "border-border bg-muted/10 opacity-80"
                     }`}
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <AlertTriangle className={`h-3.5 w-3.5 ${isEnabled ? "text-orange-500" : "text-muted-foreground/40"}`} />
-                        <span className={`text-sm font-semibold ${isEnabled ? "text-foreground" : "text-muted-foreground"}`}>
-                          {label}
-                        </span>
-                        {isEnabled && hasEmail && (
-                          <span className="rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-bold px-1.5 py-0.5 border border-emerald-500/20">
-                            Actif
+                        <Building2 className={`h-4 w-4 ${isEnabled || hasEmail ? "text-orange-600" : "text-muted-foreground/40"}`} />
+                        <div>
+                          <span className="text-sm font-bold text-foreground">{label}</span>
+                          <span className="text-xs text-muted-foreground ml-2 font-medium">({region})</span>
+                        </div>
+                        {(isEnabled || hasEmail) && (
+                          <span className="rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-bold px-2 py-0.5 border border-emerald-500/20">
+                            Active
                           </span>
                         )}
-                        {isEnabled && !hasEmail && (
-                          <span className="rounded-full bg-amber-500/10 text-amber-600 text-xs font-bold px-1.5 py-0.5 border border-amber-500/20">
-                            Email manquant
+                        {hasWa && (
+                          <span className="rounded-full bg-emerald-500/10 text-emerald-700 text-[10px] font-bold px-2 py-0.5 border border-emerald-500/20 flex items-center gap-1">
+                            <MessageCircle className="h-3 w-3" /> Point Focal WA
                           </span>
                         )}
                       </div>
-                      <Switch
-                        checked={isEnabled}
-                        onCheckedChange={(checked) => {
-                          const newCfg = {
-                            ...(effectiveConfig as RelayConfig),
-                            ...(draftConfig || {}),
-                            [enabledKey]: checked ? "true" : "false",
-                          };
-                          setDraftConfig(newCfg);
-                          saveConfigMutation.mutate(newCfg);
-                        }}
-                      />
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Activer</span>
+                        <Switch
+                          checked={isEnabled}
+                          onCheckedChange={(checked) => {
+                            const newCfg = {
+                              ...(effectiveConfig as RelayConfig),
+                              ...(draftConfig || {}),
+                              [enabledKey]: checked ? "true" : "false",
+                            };
+                            setDraftConfig(newCfg);
+                            saveConfigMutation.mutate(newCfg);
+                          }}
+                        />
+                      </div>
                     </div>
 
-                    <div className="mt-2.5">
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) =>
-                          setDraftConfig({ ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), [emailKey]: e.target.value })
-                        }
-                        placeholder={`contact@mairie-${slug}.ci`}
-                        disabled={!isEnabled}
-                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-40 disabled:cursor-not-allowed"
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-3 pt-2 border-t border-border/40">
+                      <div>
+                        <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
+                          ✉️ E-mail Services Techniques
+                        </label>
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) =>
+                            setDraftConfig({ ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), [emailKey]: e.target.value })
+                          }
+                          placeholder={`technique@mairie-${slug}.ci`}
+                          className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
+                          🟢 WhatsApp Point Focal ST
+                        </label>
+                        <input
+                          type="tel"
+                          value={whatsapp}
+                          onChange={(e) =>
+                            setDraftConfig({ ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), [waKey]: e.target.value })
+                          }
+                          placeholder="+225 07 00 00 00 00"
+                          className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/40 font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
+                          👤 Nom / Poste Point Focal ST
+                        </label>
+                        <input
+                          type="text"
+                          value={focalName}
+                          onChange={(e) =>
+                            setDraftConfig({ ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), [focalKey]: e.target.value })
+                          }
+                          placeholder="Ex: M. Kouassi (Chef Voirie)"
+                          className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                        />
+                      </div>
                     </div>
                   </div>
                 );
