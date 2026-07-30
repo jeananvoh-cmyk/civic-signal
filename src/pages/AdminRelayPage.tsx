@@ -6,7 +6,7 @@ import {
   Zap, Droplets, AlertTriangle, MailCheck, MapPin, Users,
   ChevronDown, ChevronUp, ExternalLink, Settings, FlaskConical,
   ShieldCheck, Save, Ban, MessageCircle, Building2, TicketCheck,
-  Scale, Copy, Eye, EyeOff, KeyRound, Calendar, Filter, Trash2,
+  Scale, Copy, Eye, EyeOff, KeyRound, Calendar, Filter, Trash2, Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
