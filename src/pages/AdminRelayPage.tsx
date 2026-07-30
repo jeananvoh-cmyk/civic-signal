@@ -799,9 +799,10 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
             </div>
           ` : ""}
 
-          <!-- Footer -->
-          <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 11px; color: #6b7280; line-height: 1.5;">
-            <strong>SIGNA-CI</strong> · Plateforme Citoyenne Ivoirienne d'Alerte et de Suivi des Infrastructures Publiques
+          <!-- Footer Institutionnel -->
+          <div style="margin-top: 28px; padding-top: 18px; border-top: 2px solid #e2e8f0; text-align: center; font-size: 11px; color: #475569; line-height: 1.6; font-family: sans-serif;">
+            <div style="font-weight: 800; color: #0f172a; font-size: 12px; margin-bottom: 3px;">🤝 SIGNA-CI · Plateforme Citoyenne Ivoirienne d'Alerte & de Suivi des Infrastructures Publiques</div>
+            <div>📍 Abidjan, Côte d'Ivoire · 🌐 <a href="https://signa.ci" style="color: #0284c7; text-decoration: none; font-weight: 700;">https://signa.ci</a> · ✉️ <a href="mailto:contact@signa.ci" style="color: #0284c7; text-decoration: none; font-weight: 600;">contact@signa.ci</a></div>
           </div>
 
         </div>

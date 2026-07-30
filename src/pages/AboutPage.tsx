@@ -113,17 +113,21 @@ const AboutPage = () => {
               <p><strong className="text-foreground">Données personnelles :</strong> Vos coordonnées GPS exactes ne sont jamais affichées publiquement. Seules les statistiques agrégées par commune sont visibles. Vos coordonnées GPS sont automatiquement supprimées lorsque votre signalement est résolu.</p>
               <p><strong className="text-foreground">Utilisation responsable :</strong> Les faux signalements sont interdits. Toute exagération sur le nombre de personnes impactées fausse les statistiques et pourrait entraîner une suspension de votre compte. Chaque utilisateur est limité à 5 signalements par jour.</p>
               <p><strong className="text-foreground">Propriété des données :</strong> Les données collectées sont utilisées exclusivement pour améliorer les services publics d'eau et d'électricité à Abidjan.</p>
-              <p><strong className="text-foreground">Contact :</strong> Pour toute question, contactez-nous à signaci@civictech.ci</p>
-              <p className="pt-2">
+              <p><strong className="text-foreground">Contact Officiel :</strong> Pour toute question, demande de renseignements ou partenariat institutionnel, contactez-nous à <a href="mailto:contact@signa.ci" className="text-primary font-semibold underline">contact@signa.ci</a>.</p>
+              <p className="pt-2 flex flex-wrap gap-4">
                 <Link to="/confidentialite" className="text-primary underline flex items-center gap-1">
-                  <Shield className="h-4 w-4" /> Consulter notre politique de confidentialité complète
+                  <Shield className="h-4 w-4" /> Politique de confidentialité
+                </Link>
+                <Link to="/cgu" className="text-primary underline flex items-center gap-1">
+                  <ExternalLink className="h-4 w-4" /> Conditions Générales d'Utilisation
                 </Link>
               </p>
             </div>
           </section>
 
-          <div className="text-center text-xs text-muted-foreground">
-            © 2026 SIGNA-CI — CivicTech Abidjan · Version pilote
+          <div className="text-center text-xs text-muted-foreground space-y-1">
+            <p>© 2026 SIGNA-CI — Plateforme Citoyenne d'Alerte et de Suivi des Infrastructures Publiques</p>
+            <p>📍 Abidjan, Côte d'Ivoire · ✉️ <a href="mailto:contact@signa.ci" className="hover:underline">contact@signa.ci</a> · 🌐 <a href="https://signa.ci" className="hover:underline">https://signa.ci</a></p>
           </div>
         </motion.div>
       </main>
