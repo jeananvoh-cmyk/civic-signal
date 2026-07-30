@@ -885,6 +885,8 @@ const DEFAULT_CONFIG: RelayConfig = {
   email_sodeci: "contact@sodeci.ci",
   email_anare: "info@anareci.org",
   email_onep: "contact@onep.ci",
+  anare_auto_dispatch: "true",
+  onep_auto_dispatch: "true",
   email_mairie_cocody: "technique@cocody.ci",
   email_mairie_adjame: "technique@adjame.ci",
   email_mairie_portbouet: "technique@portbouet.ci",
@@ -910,7 +912,7 @@ function useRelayConfig() {
         ...fetched,
       } as RelayConfig;
     },
-    staleTime: 60_000,
+    staleTime: 0,
   });
 }
 
@@ -1139,7 +1141,7 @@ const AdminRelayPage = () => {
   }>({ isOpen: false, isBulk: false });
 
   const handleRequestSendSingle = (group: RelayGroup) => {
-    const isTest = (draftConfig?.test_mode ?? effectiveConfig?.test_mode) === "true";
+    const isTest = effectiveConfig?.test_mode === "true";
     if (!isTest) {
       setProdModalConfig({
         isOpen: true,
@@ -1156,7 +1158,7 @@ const AdminRelayPage = () => {
   };
 
   const handleRequestSendBulk = (opFilter: string) => {
-    const isTest = (draftConfig?.test_mode ?? effectiveConfig?.test_mode) === "true";
+    const isTest = effectiveConfig?.test_mode === "true";
     const targets = pendingGroups.filter((g) => opFilter === "ALL" || g.operator === opFilter);
     if (targets.length === 0) return;
 
@@ -1331,7 +1333,7 @@ const AdminRelayPage = () => {
         throw new Error("Impossible de récupérer les détails du groupe de signalements.");
       }
 
-      const isTest = (draftConfig?.test_mode ?? effectiveConfig?.test_mode) === "true";
+      const isTest = effectiveConfig?.test_mode === "true";
       const testEmail = (draftConfig?.test_email || effectiveConfig?.test_email || "jeananvoh@gmail.com").trim();
       const ccEmail = (draftConfig?.cc_email || effectiveConfig?.cc_email || "jeananvoh@gmail.com").trim();
       const targetOperatorEmail = getOperatorTargetEmail(targetGroup.operator, targetGroup.commune, effectiveConfig, targetGroup.email_to);
@@ -2119,7 +2121,7 @@ const AdminRelayPage = () => {
                                 title="Copier le sujet et le contenu HTML du mail pour l'envoyer depuis votre boîte mail"
                                 onClick={() => {
                                   const html = buildBatchEmailHtmlClient(group);
-                                  const isTest = (draftConfig?.test_mode ?? effectiveConfig?.test_mode) === "true";
+                                  const isTest = effectiveConfig?.test_mode === "true";
                                   const testEmail = (draftConfig?.test_email || effectiveConfig?.test_email || "jeananvoh@gmail.com").trim();
                                   const finalTo = isTest ? testEmail : group.email_to;
                                   const subject = isTest
@@ -2653,9 +2655,16 @@ const AdminRelayPage = () => {
                 </div>
                 <Switch
                   checked={effectiveConfig.anare_auto_dispatch !== "false"}
-                  onCheckedChange={(checked) =>
-                    setDraftConfig({ ...(effectiveConfig as RelayConfig), anare_auto_dispatch: checked ? "true" : "false" })
-                  }
+                  onCheckedChange={(checked) => {
+                    const newMode = checked ? "true" : "false";
+                    const newCfg = { ...(effectiveConfig as RelayConfig), anare_auto_dispatch: newMode };
+                    setDraftConfig(newCfg);
+                    saveConfigMutation.mutate(newCfg, {
+                      onSuccess: () => {
+                        syncAllMutation.mutate();
+                      },
+                    });
+                  }}
                 />
               </div>
 
@@ -2676,9 +2685,16 @@ const AdminRelayPage = () => {
                 </div>
                 <Switch
                   checked={effectiveConfig.onep_auto_dispatch !== "false"}
-                  onCheckedChange={(checked) =>
-                    setDraftConfig({ ...(effectiveConfig as RelayConfig), onep_auto_dispatch: checked ? "true" : "false" })
-                  }
+                  onCheckedChange={(checked) => {
+                    const newMode = checked ? "true" : "false";
+                    const newCfg = { ...(effectiveConfig as RelayConfig), onep_auto_dispatch: newMode };
+                    setDraftConfig(newCfg);
+                    saveConfigMutation.mutate(newCfg, {
+                      onSuccess: () => {
+                        syncAllMutation.mutate();
+                      },
+                    });
+                  }}
                 />
               </div>
             </div>
