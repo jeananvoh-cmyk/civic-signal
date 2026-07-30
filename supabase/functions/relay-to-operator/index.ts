@@ -578,8 +578,8 @@ Deno.serve(async (req) => {
 
       const finalTo = (isTestMode && testEmail) ? testEmail : group.email_to;
       const finalSubject = (isTestMode && testEmail)
-        ? `[TEST → ${group.email_to}] ${subject}`
-        : subject;
+        ? `[MODE TEST → ${group.email_to}] ${subject}`
+        : `[OFFICIEL · SIGNA-CI] ${subject.replace("[SIGNA-CI] ", "")}`;
 
       let result: { ok: boolean; error?: string } = { ok: true };
       if (resendApiKey) {

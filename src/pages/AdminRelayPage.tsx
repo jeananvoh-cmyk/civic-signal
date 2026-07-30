@@ -1334,8 +1334,8 @@ const AdminRelayPage = () => {
       const finalTo = isTest ? testEmail : targetOperatorEmail;
       const baseSubject = generateProfessionalSubject(targetGroup);
       const subject = isTest
-        ? `[TEST → ${targetOperatorEmail}] ${baseSubject}`
-        : baseSubject;
+        ? `[MODE TEST → ${targetOperatorEmail}] ${baseSubject}`
+        : `[OFFICIEL · SIGNA-CI] ${baseSubject.replace("[SIGNA-CI] ", "")}`;
 
       const html = buildBatchEmailHtmlClient(targetGroup);
 
