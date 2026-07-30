@@ -1283,135 +1283,168 @@ const AdminRelayPage = () => {
     sent:    logs.filter((l) => l.operator === "MAIRIE" && l.report?.commune === m.label && l.status === "sent").length,
   })).filter((m) => m.total > 0);
 
+  // ── Envoi effectif d'un groupe d'e-mails (CIE / SODECI / ANARE / ONEP / MAIRIE) ──────
+  const sendSingleGroupInternal = async (group: RelayGroup) => {
+    const resendApiKey = (draftConfig?.resend_api_key || effectiveConfig?.resend_api_key || "").trim();
+    if (!resendApiKey) {
+      throw new Error("Aucune clé API Resend n'est configurée dans l'onglet Paramètres. Veuillez saisir votre clé API Resend (re_...).");
+    }
+
+    const isTest = effectiveConfig?.test_mode === "true";
+    const testEmail = (draftConfig?.test_email || effectiveConfig?.test_email || "jeananvoh@gmail.com").trim();
+    const ccEmail = (draftConfig?.cc_email || effectiveConfig?.cc_email || "jeananvoh@gmail.com").trim();
+    const targetOperatorEmail = getOperatorTargetEmail(group.operator, group.commune, effectiveConfig, group.email_to);
+    const finalTo = isTest ? testEmail : targetOperatorEmail;
+    const baseSubject = generateProfessionalSubject(group);
+    const subject = isTest
+      ? `[MODE TEST → ${targetOperatorEmail}] ${baseSubject}`
+      : `[OFFICIEL · SIGNA-CI] ${baseSubject.replace("[SIGNA-CI] ", "")}`;
+
+    const html = buildBatchEmailHtmlClient(group, isTest);
+
+    // 1. Tenter l'envoi réel Resend via le proxy client Same-Origin
+    const resendRes = await sendResendDirectEmail({
+      apiKey: resendApiKey,
+      toEmail: finalTo,
+      ccEmail: ccEmail,
+      subject,
+      htmlContent: html,
+    });
+
+    if (!resendRes.ok) {
+      let diag = resendRes.error || "Refus d'envoi par l'API Resend.";
+      if (resendRes.status === 403 || diag.toLowerCase().includes("only send to your own")) {
+        diag = `Resend en Mode Sandbox restreint l'envoi vers l'adresse exacte de votre compte Resend.com. Pour envoyer à (${finalTo}), renseignez cette adresse comme 'Email de test' dans l'onglet Paramètres ou ajoutez votre domaine sur Resend.com.`;
+      } else if (resendRes.status === 401 || diag.toLowerCase().includes("invalid api key")) {
+        diag = "La clé API Resend renseignée est invalide. Veuillez vérifier votre clé (re_...) dans l'onglet Paramètres.";
+      }
+      throw new Error(diag);
+    }
+
+    // 2. Mettre à jour le statut des relais en "sent" dans la base Supabase
+    const nowIso = new Date().toISOString();
+    const { error: rpcErr } = await (supabase as any).rpc("admin_mark_relay_sent", { p_relay_ids: group.relayIds });
+    if (rpcErr) {
+      await (supabase as any)
+        .from("relay_logs")
+        .update({ status: "sent", sent_at: nowIso })
+        .in("id", group.relayIds);
+    }
+
+    // 3. Notifier les citoyens
+    const { data: notifLogs } = await (supabase as any).from("relay_logs").select("*, report:reports(*)").in("id", group.relayIds);
+    if (notifLogs && notifLogs.length > 0) {
+      const notifs = notifLogs
+        .filter((l: any) => l.report)
+        .map((l: any) => ({
+          user_id: l.report.user_id,
+          report_id: l.report.id,
+          title: `Transmis à ${l.operator}`,
+          message: `Votre signalement à ${l.report.commune} (${l.report.quartier}) a été transmis aux services de ${l.operator} par l'équipe SIGNA-CI.`,
+        }));
+      if (notifs.length > 0) {
+        try {
+          await supabase.from("notifications").insert(notifs);
+        } catch (_) {}
+      }
+    }
+
+    return { sent: group.relayIds.length, finalTo, isTest };
+  };
+
   // ── Envoi manuel d'un groupe ───────────────────────────────────────────────
   const sendGroup = useMutation({
     mutationFn: async ({ relay_ids, groupKey }: { relay_ids: string[]; groupKey: string }) => {
       setSendingGroup(groupKey);
 
-      const resendApiKey = (draftConfig?.resend_api_key || effectiveConfig?.resend_api_key || "").trim();
       let targetGroup = pendingGroups.find((g) => g.key === groupKey);
 
       // Si le groupe n'est pas dans la liste courante, le reconstituer depuis la base
-      const { data: relayLogs } = await (supabase as any)
-        .from("relay_logs")
-        .select("*, report:reports(*)")
-        .in("id", relay_ids);
+      if (!targetGroup) {
+        const { data: relayLogs } = await (supabase as any)
+          .from("relay_logs")
+          .select("*, report:reports(*)")
+          .in("id", relay_ids);
 
-      if (!targetGroup && relayLogs && relayLogs.length > 0) {
-        const first = relayLogs[0];
-        targetGroup = {
-          key: groupKey,
-          operator: first.operator,
-          commune: first.report?.commune || "Abidjan",
-          email_to: getOperatorTargetEmail(first.operator, first.report?.commune || "Abidjan", effectiveConfig, first.email_to),
-          relayIds: relay_ids,
-          quartiers: relayLogs.map((l: any) => ({
-            name: cleanQuartierName(
-              l.report?.quartier,
-              l.report?.custom_quartier,
-              l.report?.address_text,
-              l.report?.landmark,
-              l.report?.profile_quartier,
-              l.report?.description,
-              l.report?.location,
-              l.report?.id,
-              l.report?.notif_title,
-              l.report?.notif_message
-            ),
-            verifications: l.report?.verifications || 1,
-            urgency: l.report?.urgency || "medium",
-            addressText: l.report?.address_text,
-            landmark: l.report?.landmark,
-            description: l.report?.description,
-            category: l.report?.category,
-            serviceType: l.report?.service_type,
-            createdAt: l.report?.created_at || l.created_at,
-            lat: l.report?.latitude,
-            lng: l.report?.longitude,
-            reportId: l.report?.id,
-          })),
-          totalConfirmations: relayLogs.reduce((s: number, l: any) => s + (l.report?.verifications || 1), 0),
-          hasCritical: relayLogs.some((l: any) => l.report?.urgency === "critical"),
-          meterNumbers: [],
-          reporters: [],
-          waSentAt: null,
-          cieTicketNumber: null,
-        };
-      }
-
-      if (!resendApiKey) {
-        throw new Error("Aucune clé API Resend n'est configurée dans l'onglet Paramètres. Veuillez saisir votre clé API Resend (re_...).");
+        if (relayLogs && relayLogs.length > 0) {
+          const first = relayLogs[0];
+          targetGroup = {
+            key: groupKey,
+            operator: first.operator,
+            commune: first.report?.commune || "Abidjan",
+            email_to: getOperatorTargetEmail(first.operator, first.report?.commune || "Abidjan", effectiveConfig, first.email_to),
+            relayIds: relay_ids,
+            quartiers: relayLogs.map((l: any) => ({
+              name: cleanQuartierName(
+                l.report?.quartier,
+                l.report?.custom_quartier,
+                l.report?.address_text,
+                l.report?.landmark,
+                l.report?.profile_quartier,
+                l.report?.description,
+                l.report?.location,
+                l.report?.id,
+                l.report?.notif_title,
+                l.report?.notif_message
+              ),
+              verifications: l.report?.verifications || 1,
+              urgency: l.report?.urgency || "medium",
+              addressText: l.report?.address_text,
+              landmark: l.report?.landmark,
+              description: l.report?.description,
+              category: l.report?.category,
+              serviceType: l.report?.service_type,
+              createdAt: l.report?.created_at || l.created_at,
+              lat: l.report?.latitude,
+              lng: l.report?.longitude,
+              reportId: l.report?.id,
+            })),
+            totalConfirmations: relayLogs.reduce((s: number, l: any) => s + (l.report?.verifications || 1), 0),
+            hasCritical: relayLogs.some((l: any) => l.report?.urgency === "critical"),
+            meterNumbers: [],
+            reporters: [],
+            waSentAt: null,
+            cieTicketNumber: null,
+          };
+        }
       }
 
       if (!targetGroup) {
         throw new Error("Impossible de récupérer les détails du groupe de signalements.");
       }
 
-      const isTest = effectiveConfig?.test_mode === "true";
-      const testEmail = (draftConfig?.test_email || effectiveConfig?.test_email || "jeananvoh@gmail.com").trim();
-      const ccEmail = (draftConfig?.cc_email || effectiveConfig?.cc_email || "jeananvoh@gmail.com").trim();
-      const targetOperatorEmail = getOperatorTargetEmail(targetGroup.operator, targetGroup.commune, effectiveConfig, targetGroup.email_to);
-      const finalTo = isTest ? testEmail : targetOperatorEmail;
-      const baseSubject = generateProfessionalSubject(targetGroup);
-      const subject = isTest
-        ? `[MODE TEST → ${targetOperatorEmail}] ${baseSubject}`
-        : `[OFFICIEL · SIGNA-CI] ${baseSubject.replace("[SIGNA-CI] ", "")}`;
+      // Envoi du groupe principal (ex: CIE ou SODECI)
+      const mainResult = await sendSingleGroupInternal(targetGroup);
 
-      const html = buildBatchEmailHtmlClient(targetGroup, isTest);
-
-      // 1. Tenter l'envoi réel Resend via le proxy client Same-Origin (garantit l'utilisation de la vraie clé admin)
-      const resendRes = await sendResendDirectEmail({
-        apiKey: resendApiKey,
-        toEmail: finalTo,
-        ccEmail: ccEmail,
-        subject,
-        htmlContent: html,
-      });
-
-      if (!resendRes.ok) {
-        let diag = resendRes.error || "Refus d'envoi par l'API Resend.";
-        if (resendRes.status === 403 || diag.toLowerCase().includes("only send to your own")) {
-          diag = `Resend en Mode Sandbox restreint l'envoi vers l'adresse exacte de votre compte Resend.com. Pour envoyer à (${finalTo}), renseignez cette adresse comme 'Email de test' dans l'onglet Paramètres ou ajoutez votre domaine sur Resend.com.`;
-        } else if (resendRes.status === 401 || diag.toLowerCase().includes("invalid api key")) {
-          diag = "La clé API Resend renseignée est invalide. Veuillez vérifier votre clé (re_...) dans l'onglet Paramètres.";
-        }
-        throw new Error(diag);
-      }
-
-      // 2. Mettre à jour le statut des relais en "sent" dans la base Supabase
-      const nowIso = new Date().toISOString();
-      const { error: rpcErr } = await (supabase as any).rpc("admin_mark_relay_sent", { p_relay_ids: relay_ids });
-      if (rpcErr) {
-        await (supabase as any)
-          .from("relay_logs")
-          .update({ status: "sent", sent_at: nowIso })
-          .in("id", relay_ids);
-      }
-
-      // 3. Notifier automatiquement les citoyens concernés
-      const notifLogs = relayLogs && relayLogs.length > 0
-        ? relayLogs
-        : (await (supabase as any).from("relay_logs").select("*, report:reports(*)").in("id", relay_ids)).data;
-
-      if (notifLogs && notifLogs.length > 0) {
-        const notifs = notifLogs
-          .filter((l: any) => l.report)
-          .map((l: any) => ({
-            user_id: l.report.user_id,
-            report_id: l.report.id,
-            title: `Transmis à ${l.operator}`,
-            message: `Votre signalement à ${l.report.commune} (${l.report.quartier}) a été transmis aux services de ${l.operator} par l'équipe SIGNA-CI.`,
-          }));
-        if (notifs.length > 0) {
+      // Si c'est un envoi CIE et que ANARE auto-dispatch est actif, envoyer aussi la fiche régulateur ANARE pour cette commune !
+      if (targetGroup.operator === "CIE" && effectiveConfig?.anare_auto_dispatch !== "false") {
+        const linkedAnare = pendingGroups.find(
+          (g) => g.operator === "ANARE" && g.commune === targetGroup!.commune
+        );
+        if (linkedAnare && linkedAnare.relayIds.length > 0) {
           try {
-            await supabase.from("notifications").insert(notifs);
-          } catch (_) {
-            // ignore
+            await sendSingleGroupInternal(linkedAnare);
+          } catch (err) {
+            console.warn("Auto-dispatch ANARE report warning:", err);
           }
         }
       }
 
-      return { sent: relay_ids.length, finalTo, isTest };
+      // Si c'est un envoi SODECI et que ONEP auto-dispatch est actif, envoyer aussi la fiche régulateur ONEP pour cette commune !
+      if (targetGroup.operator === "SODECI" && effectiveConfig?.onep_auto_dispatch !== "false") {
+        const linkedOnep = pendingGroups.find(
+          (g) => g.operator === "ONEP" && g.commune === targetGroup!.commune
+        );
+        if (linkedOnep && linkedOnep.relayIds.length > 0) {
+          try {
+            await sendSingleGroupInternal(linkedOnep);
+          } catch (err) {
+            console.warn("Auto-dispatch ONEP report warning:", err);
+          }
+        }
+      }
+
+      return mainResult;
     },
     onSuccess: (data: any, variables: { relay_ids: string[]; groupKey: string }) => {
       queryClient.setQueryData(["admin-relay-logs-all"], (old: RelayLog[] | undefined) => {
@@ -1475,7 +1508,18 @@ const AdminRelayPage = () => {
   });
 
   const sendAllOperatorGroups = async (opFilter: string) => {
-    const targets = pendingGroups.filter((g) => opFilter === "ALL" || g.operator === opFilter);
+    let targets = pendingGroups.filter((g) => opFilter === "ALL" || g.operator === opFilter);
+
+    if (opFilter === "CIE" && effectiveConfig?.anare_auto_dispatch !== "false") {
+      const anareTargets = pendingGroups.filter((g) => g.operator === "ANARE");
+      targets = [...targets, ...anareTargets.filter((a) => !targets.some((t) => t.key === a.key))];
+    }
+
+    if (opFilter === "SODECI" && effectiveConfig?.onep_auto_dispatch !== "false") {
+      const onepTargets = pendingGroups.filter((g) => g.operator === "ONEP");
+      targets = [...targets, ...onepTargets.filter((o) => !targets.some((t) => t.key === o.key))];
+    }
+
     if (targets.length === 0) return;
 
     setBulkSending(true);
@@ -1499,7 +1543,7 @@ const AdminRelayPage = () => {
       title: `⚡ Envoi des relais terminé (${successCount}/${targets.length})`,
       description: failCount > 0 
         ? `${successCount} groupe(s) transmis avec succès. ${failCount} groupe(s) ont rencontré une alerte.`
-        : `Tous les ${successCount} groupe(s) de signalements ${opFilter !== "ALL" ? opFilter : ""} ont été transmis par e-mail avec succès.`,
+        : `Tous les ${successCount} groupe(s) de signalements ${opFilter !== "ALL" ? opFilter : ""} (opérateurs & régulateurs) ont été transmis par e-mail avec succès.`,
     });
   };
 
