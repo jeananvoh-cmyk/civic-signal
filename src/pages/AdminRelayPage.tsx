@@ -16,9 +16,32 @@ import { toast } from "@/hooks/use-toast";
 import { format, isToday, isThisWeek, isThisMonth, isThisYear, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { findNearestCommune } from "@/lib/communes";
-import { extractInfraLabel, infraEmoji, cleanDescription, INFRA_CIE, INFRA_SODECI } from "@/lib/report-display";
+import { extractInfraLabel, infraEmoji, cleanDescription, INFRA_CIE, INFRA_SODECI, isInfraLabel } from "@/lib/report-display";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+/**
+ * Rigorously distinguishes Infrastructure reports (lampadaire, fuite, caniveau, poteau) from Service Outages (coupures d'eau/électricité).
+ */
+function checkIfInfra(category?: string | null, description?: string | null): boolean {
+  const desc = (description || "").trim();
+  const tag = desc ? extractInfraLabel(desc) : null;
+  
+  if (tag) {
+    const lowerTag = tag.toLowerCase();
+    // Explicit outage keywords override
+    if (lowerTag.includes("coupure") || lowerTag.includes("outage") || lowerTag.includes("interruption") || lowerTag.includes("panne d'électricité") || lowerTag.includes("panne d'eau")) {
+      return false;
+    }
+    if (INFRA_CIE.has(tag) || INFRA_SODECI.has(tag) || isInfraLabel(tag)) {
+      return true;
+    }
+  }
+
+  const cat = (category || "").toLowerCase();
+  if (cat === "outage" || cat.includes("outage") || cat.includes("coupure")) return false;
+  if (cat === "infrastructure" || cat.includes("infra") || cat.includes("eclairage") || cat.includes("voirie") || cat.includes("street_light") || cat.includes("water_leak")) return true;
+
+  return false;
+}
 
 interface RelayLog {
   id: string;
@@ -1979,7 +2002,12 @@ const AdminRelayPage = () => {
                               </span>
                               <span className="flex items-center gap-1 font-medium text-emerald-700 dark:text-emerald-400">
                                 <Users className="h-3 w-3 text-emerald-600" />
-                                {group.totalConfirmations > 1 ? `${group.totalConfirmations} citoyen.ne.s votant.e.s` : "1 citoyen.ne votant.e"}
+                                {(() => {
+                                  const isGroupInfra = group.operator === "MAIRIE" || group.operator === "ANARE" || group.operator === "ONEP" || group.quartiers.some(q => checkIfInfra(q.category, q.description));
+                                  return isGroupInfra
+                                    ? (group.totalConfirmations > 1 ? `${group.totalConfirmations} citoyen.ne.s soutiennent` : "1 citoyen.ne soutient")
+                                    : (group.totalConfirmations > 1 ? `${group.totalConfirmations} foyers (corroboration)` : "1 foyer (corroboration)");
+                                })()}
                               </span>
                               <span className="hidden sm:block">{group.email_to}</span>
                             </div>
@@ -2127,12 +2155,15 @@ const AdminRelayPage = () => {
                         {group.quartiers.map((q, idx) => {
                           const urgCfg = URGENCY_CONFIG[q.urgency] ?? URGENCY_CONFIG.low;
                           const displayName = (q.name === "__other" || q.name === "Autre") ? "Secteur non spécifié" : q.name;
-                          const confirmationBadge = q.verifications > 1 ? `${q.verifications} citoyen.ne.s votant.e.s` : "1 citoyen.ne votant.e";
+                          const isQuartierInfra = group.operator === "MAIRIE" || group.operator === "ANARE" || group.operator === "ONEP" || checkIfInfra(q.category, q.description);
+                          const confirmationBadge = isQuartierInfra
+                            ? (q.verifications > 1 ? `${q.verifications} citoyen.ne.s soutiennent` : "1 citoyen.ne soutient")
+                            : (q.verifications > 1 ? `${q.verifications} foyers (corroboration)` : "1 foyer (corroboration)");
                           const targetReportId = q.reportId || group.relayIds[0];
 
-                          const specificLabel = q.description && q.description.trim() ? q.description.trim() : null;
+                          const specificLabel = q.description && q.description.trim() ? extractInfraLabel(q.description.trim()) : null;
                           const iconPrefix = q.serviceType === "electricity" ? "⚡" : q.serviceType === "water" ? "💧" : (q.category === "eclairage_public" || specificLabel?.toLowerCase().includes("lampadaire")) ? "💡" : "🏛️";
-                          const typeLabel = specificLabel
+                          const typeLabel = (specificLabel && isQuartierInfra)
                             ? `${iconPrefix} ${specificLabel}`
                             : q.serviceType === "electricity"
                             ? "⚡ Électricité"
@@ -2175,9 +2206,9 @@ const AdminRelayPage = () => {
                                       )}
                                     </span>
                                   )}
-                                  {q.description && (
+                                  {q.description && cleanDescription(q.description) && (
                                     <span className="truncate max-w-md italic text-muted-foreground">
-                                      "{q.description}"
+                                      "{cleanDescription(q.description)}"
                                     </span>
                                   )}
                                 </div>
