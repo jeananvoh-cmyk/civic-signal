@@ -577,7 +577,7 @@ function safeFormatDuration(dateStr?: string | null): string {
   }
 }
 
-function buildBatchEmailHtmlClient(group: RelayGroup): string {
+function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): string {
   const isCIE = group.operator === "CIE";
   const isSODECI = group.operator === "SODECI";
   const isANARE = group.operator === "ANARE";
@@ -688,7 +688,7 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
             <tr style="border-bottom: 1px solid #f1f5f9;">
               <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Date du signalement</td>
               <td style="padding: 14px 20px; color: #334155; font-weight: 700;">
-                📅 ${safeFormatDate(q.createdAt, "d MMMM yyyy 'à' HH:mm")}
+                📅 ${safeFormatDate(q.createdAt, "d MMMM yyyy à HH:mm")}
                 ${safeFormatDuration(q.createdAt) ? `<span style="color: #dc2626; font-size: 12px; font-weight: 800; margin-left: 8px;">(${safeFormatDuration(q.createdAt)})</span>` : ""}
               </td>
             </tr>
@@ -723,6 +723,10 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
     `;
   }).join("");
 
+  const modeBadgeHtml = isTest
+    ? `<span style="background: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 4px; font-weight: 800; margin-left: 6px;">⚠️ MODE TEST</span>`
+    : `<span style="background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 4px; font-weight: 800; margin-left: 6px;">✅ OFFICIEL</span>`;
+
   return `
     <!DOCTYPE html>
     <html>
@@ -734,7 +738,7 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
         <div style="background: ${gradientHeader}; padding: 28px 24px; color: #ffffff;">
           <div style="display: table; width: 100%; margin-bottom: 12px;">
             <div style="display: table-cell; vertical-align: middle; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.95);">
-              TRANSMISSION D'INCIDENT — <span style="background: rgba(255,255,255,0.25); padding: 2px 6px; border-radius: 4px; color: #ffffff;">SIGNA-CI</span>
+              TRANSMISSION D'INCIDENT — <span style="background: rgba(255,255,255,0.25); padding: 2px 6px; border-radius: 4px; color: #ffffff;">SIGNA-CI</span> ${modeBadgeHtml}
             </div>
             <div style="display: table-cell; vertical-align: middle; text-align: right;">
               <span style="background: rgba(255,255,255,0.25); color: #ffffff; padding: 4px 14px; border-radius: 20px; font-weight: 800; font-size: 12px; display: inline-block;">
@@ -1337,7 +1341,7 @@ const AdminRelayPage = () => {
         ? `[MODE TEST → ${targetOperatorEmail}] ${baseSubject}`
         : `[OFFICIEL · SIGNA-CI] ${baseSubject.replace("[SIGNA-CI] ", "")}`;
 
-      const html = buildBatchEmailHtmlClient(targetGroup);
+      const html = buildBatchEmailHtmlClient(targetGroup, isTest);
 
       // 1. Tenter l'envoi réel Resend via le proxy client Same-Origin (garantit l'utilisation de la vraie clé admin)
       const resendRes = await sendResendDirectEmail({
@@ -2505,9 +2509,12 @@ const AdminRelayPage = () => {
               </div>
               <Switch
                 checked={effectiveConfig.test_mode === "true"}
-                onCheckedChange={(checked) =>
-                  setDraftConfig({ ...(effectiveConfig as RelayConfig), test_mode: checked ? "true" : "false" })
-                }
+                onCheckedChange={(checked) => {
+                  const newMode = checked ? "true" : "false";
+                  const newCfg = { ...(effectiveConfig as RelayConfig), test_mode: newMode };
+                  setDraftConfig(newCfg);
+                  saveConfigMutation.mutate(newCfg);
+                }}
               />
             </div>
 
