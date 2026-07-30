@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
-import { Zap, Droplets, Clock, Trophy, ChevronDown, Radio, Flame, AlertTriangle, MapPin, Siren, Construction, CheckCircle2, Info, Wrench, HelpCircle } from "lucide-react";
+import { Zap, Droplets, Clock, Trophy, ChevronDown, Radio, Flame, AlertTriangle, MapPin, Siren, Construction, CheckCircle2, Info, Wrench, HelpCircle, ShieldCheck, Send, Building2, Users, BarChart2, Filter, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import Header from "@/components/Header";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -439,7 +440,93 @@ const DashboardPage = () => {
           </div>
         </motion.div>
 
-        {/* Priority reports P1/P2 — remontés en priorité */}
+        {/* 👑 Centre de Commandement & Actions Rapides — Admin & Modérateurs */}
+        {canValidate && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/10 via-card to-card p-5 shadow-card backdrop-blur-md"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shrink-0">
+                  <ShieldCheck className="h-6 w-6" />
+                </div>
+                <div>
+                  <h2 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
+                    Centre de Commandement Admin
+                    <span className="rounded-full bg-primary/20 text-primary text-xs px-2.5 py-0.5 font-extrabold border border-primary/30">
+                      {isAdmin ? "Super-Admin" : "Modérateur"}
+                    </span>
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Pilotez la transmission aux opérateurs (CIE, SODECI, Mairies) et la modération en temps réel
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => navigate("/admin/relay")}
+                  className="gap-1.5 font-bold text-xs bg-gradient-to-r from-primary to-teal-600 hover:from-primary/90 hover:to-teal-700 text-primary-foreground shadow-xs h-9"
+                >
+                  <Send className="h-4 w-4" />
+                  Relais Opérateurs & Mairies
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => navigate("/verification")}
+                  className="gap-1.5 font-semibold text-xs border-primary/30 text-primary hover:bg-primary/10 h-9"
+                >
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  File de Modération
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => navigate("/admin/relay?tab=settings")}
+                  className="gap-1.5 font-semibold text-xs border-border text-foreground hover:bg-muted h-9"
+                >
+                  <Building2 className="h-4 w-4 text-amber-500" />
+                  Points Focaux Mairies
+                </Button>
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate("/admin/users")}
+                    className="gap-1.5 font-semibold text-xs border-border text-muted-foreground hover:text-foreground h-9"
+                  >
+                    <Users className="h-4 w-4 text-blue-500" />
+                    Utilisateurs
+                  </Button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* 🚨 Ticker d'urgence en direct */}
+        {!loading && highPriorityReports.length > 0 && (
+          <div className="mb-6 overflow-hidden rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2.5 flex items-center gap-3">
+            <span className="flex h-2.5 w-2.5 relative shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-destructive"></span>
+            </span>
+            <span className="text-xs font-extrabold text-destructive uppercase tracking-wider shrink-0 flex items-center gap-1">
+              <Siren className="h-3.5 w-3.5" /> Urgences Live :
+            </span>
+            <div className="overflow-x-auto whitespace-nowrap text-xs text-foreground font-semibold scrollbar-none flex-1">
+              {highPriorityReports.slice(0, 5).map((r, i) => (
+                <span key={r.id} className="mr-6 inline-flex items-center gap-1 bg-background/60 border border-destructive/20 rounded-md px-2 py-0.5">
+                  <span className="text-destructive font-bold">[{r.location}]</span> {r.description.slice(0, 65)} ({r.verifications} soutiens) {i < 4 ? "" : ""}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
         {!loading && highPriorityReports.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8">
             <Collapsible defaultOpen>
@@ -518,119 +605,112 @@ const DashboardPage = () => {
           </motion.div>
         )}
 
-        {/* Global totals — admin/moderator only */}
-        {canValidate && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {loading ? (
-              <>
-                <SkeletonCard />
-                <SkeletonCard />
-              </>
-            ) : isEmpty ? (
-              <div className="col-span-2 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card py-16 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary mb-4">
-                  <Zap className="h-7 w-7 text-muted-foreground" />
-                </div>
-                <p className="font-display text-lg font-bold text-foreground">Aucune coupure active</p>
-                <p className="mt-2 text-sm text-muted-foreground max-w-xs">
-                  Tout est normal pour le moment dans les 7 communes pilotes. Les signalements apparaîtront ici en temps réel.
-                </p>
+        {/* Global totals & KPIs — Électricité, Eau & Voirie */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {loading ? (
+            <>
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </>
+          ) : isEmpty ? (
+            <div className="col-span-3 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card py-12 text-center shadow-xs">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 mb-3">
+                <CheckCircle2 className="h-8 w-8" />
               </div>
-            ) : null}
-            {/* Electricity + Water + Infrastructure cards */}
-            {!loading && !isEmpty && (
-              <>
-                {/* Électricité */}
-                <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
-                  <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
-                    <img src={electricityIcon} alt="" className="h-full w-full object-contain" />
-                  </div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-electricity/15">
-                      <Zap className="h-5 w-5 text-electricity" />
-                    </div>
-                    <div>
-                      <h2 className="font-display text-lg font-bold text-foreground">Électricité</h2>
-                      <p className="text-xs text-muted-foreground">Coupures réseau CIE</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 text-center mt-4">
-                    <div><p className="font-display text-2xl font-extrabold text-electricity">{totalElecActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
-                    <div><p className="font-display text-2xl font-extrabold text-success">{totalElecResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
-                    <div><p className="font-display text-2xl font-extrabold text-foreground">{totalElecTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
-                  </div>
-                  {totalElecTotal > 0 && (
-                    <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-3">
-                      <span>{totalElecVerified > 0 ? `✓ ${totalElecVerified} confirmé${totalElecVerified > 1 ? "s" : ""} par voisins` : "Aucune confirmation"}</span>
-                      <span className="font-semibold text-foreground">{elecResolutionRate}% résolues</span>
-                    </div>
-                  )}
-                  <p className="mt-2 text-xs text-muted-foreground/70 italic">
-                    « Résolu » = confirmé par l'auteur ou 3 voisins
-                  </p>
-                </div>
+              <p className="font-display text-lg font-bold text-foreground">Situation stable — Aucune coupure active</p>
+              <p className="mt-1 text-xs text-muted-foreground max-w-sm">
+                Toutes les fournitures d'électricité, d'eau et les infrastructures de voirie fonctionnent normalement.
+              </p>
+            </div>
+          ) : null}
 
-                {/* Eau */}
-                <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
-                  <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
-                    <img src={waterIcon} alt="" className="h-full w-full object-contain" />
-                  </div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-water/15">
-                      <Droplets className="h-5 w-5 text-water" />
-                    </div>
-                    <div>
-                      <h2 className="font-display text-lg font-bold text-foreground">Eau</h2>
-                      <p className="text-xs text-muted-foreground">Coupures réseau SODECI</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 text-center mt-4">
-                    <div><p className="font-display text-2xl font-extrabold text-water">{totalEauActifs}</p><p className="text-xs text-muted-foreground">Actives</p></div>
-                    <div><p className="font-display text-2xl font-extrabold text-success">{totalEauResolus}</p><p className="text-xs text-muted-foreground">Résolues</p></div>
-                    <div><p className="font-display text-2xl font-extrabold text-foreground">{totalEauTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
-                  </div>
-                  {totalEauTotal > 0 && (
-                    <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-3">
-                      <span>{totalEauVerified > 0 ? `✓ ${totalEauVerified} confirmé${totalEauVerified > 1 ? "s" : ""} par voisins` : "Aucune confirmation"}</span>
-                      <span className="font-semibold text-foreground">{eauResolutionRate}% résolues</span>
-                    </div>
-                  )}
-                  <p className="mt-2 text-xs text-muted-foreground/70 italic">
-                    « Résolu » = confirmé par l'auteur ou 3 voisins
-                  </p>
+          {/* Electricity + Water + Infrastructure cards */}
+          {!loading && !isEmpty && (
+            <>
+              {/* Électricité */}
+              <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-card hover:shadow-md transition-shadow">
+                <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
+                  <img src={electricityIcon} alt="" className="h-full w-full object-contain" />
                 </div>
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-electricity/15 shadow-xs">
+                    <Zap className="h-5 w-5 text-electricity" />
+                  </div>
+                  <div>
+                    <h2 className="font-display text-base font-bold text-foreground">⚡ Électricité (CIE / ANARE)</h2>
+                    <p className="text-xs text-muted-foreground">Réseau basse & haute tension</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center mt-4 bg-muted/30 p-2.5 rounded-xl border border-border/50">
+                  <div><p className="font-display text-xl font-extrabold text-electricity">{totalElecActifs}</p><p className="text-[11px] text-muted-foreground font-semibold">Actives</p></div>
+                  <div><p className="font-display text-xl font-extrabold text-success">{totalElecResolus}</p><p className="text-[11px] text-muted-foreground font-semibold">Résolues</p></div>
+                  <div><p className="font-display text-xl font-extrabold text-foreground">{totalElecTotal}</p><p className="text-[11px] text-muted-foreground font-semibold">Total</p></div>
+                </div>
+                {totalElecTotal > 0 && (
+                  <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-2.5">
+                    <span>{totalElecVerified > 0 ? `✓ ${totalElecVerified} confirmé${totalElecVerified > 1 ? "s" : ""}` : "Non vérifié"}</span>
+                    <span className="font-bold text-foreground bg-primary/10 text-primary px-2 py-0.5 rounded-md">{elecResolutionRate}% résolues</span>
+                  </div>
+                )}
+              </div>
 
-                {/* Voirie & Infrastructure */}
-                <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-card">
-                  <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
-                    <Construction className="h-full w-full text-infra" />
-                  </div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-infra/15">
-                      <Construction className="h-5 w-5 text-infra" />
-                    </div>
-                    <div>
-                      <h2 className="font-display text-lg font-bold text-foreground">Voirie & Infra</h2>
-                      <p className="text-xs text-muted-foreground">Lampadaires · Caniveaux · Routes · Dépôts</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 text-center mt-4">
-                    <div><p className="font-display text-2xl font-extrabold text-infra">{totalMairieActifs}</p><p className="text-xs text-muted-foreground">Actifs</p></div>
-                    <div><p className="font-display text-2xl font-extrabold text-success">{totalMairieResolus}</p><p className="text-xs text-muted-foreground">Réparés</p></div>
-                    <div><p className="font-display text-2xl font-extrabold text-foreground">{totalMairieTotal}</p><p className="text-xs text-muted-foreground">Total</p></div>
-                  </div>
-                  {totalMairieTotal > 0 && (
-                    <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-3">
-                      <span>{totalMairieVerified > 0 ? `✓ ${totalMairieVerified} soutenu${totalMairieVerified > 1 ? "s" : ""} pour réparation` : "Aucun soutien citoyen"}</span>
-                      <span className="font-semibold text-foreground">{mairieResolutionRate}% réparés</span>
-                    </div>
-                  )}
-                  <p className="mt-2 text-xs text-muted-foreground/70 italic">« Résolu » = réparation confirmée par l'auteur ou 3 citoyens</p>
+              {/* Eau */}
+              <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-card hover:shadow-md transition-shadow">
+                <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
+                  <img src={waterIcon} alt="" className="h-full w-full object-contain" />
                 </div>
-              </>
-            )}
-          </motion.div>
-        )}
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-water/15 shadow-xs">
+                    <Droplets className="h-5 w-5 text-water" />
+                  </div>
+                  <div>
+                    <h2 className="font-display text-base font-bold text-foreground">💧 Eau Potable (SODECI / ONEP)</h2>
+                    <p className="text-xs text-muted-foreground">Distribution & fuites</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center mt-4 bg-muted/30 p-2.5 rounded-xl border border-border/50">
+                  <div><p className="font-display text-xl font-extrabold text-water">{totalEauActifs}</p><p className="text-[11px] text-muted-foreground font-semibold">Actives</p></div>
+                  <div><p className="font-display text-xl font-extrabold text-success">{totalEauResolus}</p><p className="text-[11px] text-muted-foreground font-semibold">Résolues</p></div>
+                  <div><p className="font-display text-xl font-extrabold text-foreground">{totalEauTotal}</p><p className="text-[11px] text-muted-foreground font-semibold">Total</p></div>
+                </div>
+                {totalEauTotal > 0 && (
+                  <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-2.5">
+                    <span>{totalEauVerified > 0 ? `✓ ${totalEauVerified} confirmé${totalEauVerified > 1 ? "s" : ""}` : "Non vérifié"}</span>
+                    <span className="font-bold text-foreground bg-primary/10 text-primary px-2 py-0.5 rounded-md">{eauResolutionRate}% résolues</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Voirie & Infrastructure */}
+              <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-card hover:shadow-md transition-shadow">
+                <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
+                  <Construction className="h-full w-full text-infra" />
+                </div>
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-infra/15 shadow-xs">
+                    <Construction className="h-5 w-5 text-infra" />
+                  </div>
+                  <div>
+                    <h2 className="font-display text-base font-bold text-foreground">🏛️ Mairies & Voirie</h2>
+                    <p className="text-xs text-muted-foreground">Lampadaires · Caniveaux · Salubrité</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center mt-4 bg-muted/30 p-2.5 rounded-xl border border-border/50">
+                  <div><p className="font-display text-xl font-extrabold text-infra">{totalMairieActifs}</p><p className="text-[11px] text-muted-foreground font-semibold">Actifs</p></div>
+                  <div><p className="font-display text-xl font-extrabold text-success">{totalMairieResolus}</p><p className="text-[11px] text-muted-foreground font-semibold">Réparés</p></div>
+                  <div><p className="font-display text-xl font-extrabold text-foreground">{totalMairieTotal}</p><p className="text-[11px] text-muted-foreground font-semibold">Total</p></div>
+                </div>
+                {totalMairieTotal > 0 && (
+                  <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-2.5">
+                    <span>{totalMairieVerified > 0 ? `✓ ${totalMairieVerified} soutenu${totalMairieVerified > 1 ? "s" : ""}` : "Aucun soutien"}</span>
+                    <span className="font-bold text-foreground bg-primary/10 text-primary px-2 py-0.5 rounded-md">{mairieResolutionRate}% réparés</span>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </motion.div>
 
         {/* ═══ Zones de coupure confirmées ═══ */}
         {!loading && confirmedZones.length > 0 && (() => {
