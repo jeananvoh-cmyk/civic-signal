@@ -374,31 +374,29 @@ function generateProfessionalSubject(group: RelayGroup): string {
   const operator = group.operator;
   const commune = group.commune;
   const firstQ = group.quartiers[0];
-  const rawQ = firstQ?.quartier || "";
-  const cleanedQ = cleanQuartierName(rawQ);
+  const qName = firstQ?.name || firstQ?.quartier || "";
+  const cleanedQ = (qName && qName !== "__other" && qName !== "Autre" && qName !== "Secteur non spécifié") ? qName : "";
   const quartierSuffix = cleanedQ ? ` · ${cleanedQ}` : "";
 
   const extractedTag = firstQ?.description ? extractInfraLabel(firstQ.description) : null;
-  const tagOrCat = extractedTag || (firstQ?.category ? firstQ.category.replace(/_/g, " ") : null);
-
-  const isInfra = operator === "MAIRIE" || operator === "ANARE" || operator === "ONEP" || Boolean(extractedTag) || 
-    ["infrastructure", "eclairage_public", "voirie", "lampadaire", "poteau_electrique", "canalisation", "egout", "fuite_eau_exterieure"].includes(firstQ?.category || "");
+  const isInfra = operator === "MAIRIE" || operator === "ANARE" || operator === "ONEP" || checkIfInfra(firstQ?.category, firstQ?.description);
 
   if (operator === "ANARE") {
-    if (extractedTag) {
+    if (extractedTag && isInfra) {
       return `[SIGNA-CI] Rapport de Réclamation — Éclairage Public : ${extractedTag} (${commune}${quartierSuffix})`;
     }
     return `[SIGNA-CI] Rapport de Suivi Réglementaire — Infrastructure Électrique (${commune}${quartierSuffix})`;
   }
 
   if (operator === "ONEP") {
-    if (extractedTag) {
+    if (extractedTag && isInfra) {
       return `[SIGNA-CI] Rapport de Réclamation — Infrastructure Eau : ${extractedTag} (${commune}${quartierSuffix})`;
     }
     return `[SIGNA-CI] Rapport de Suivi Réglementaire — Réseau d'Eau Potable (${commune}${quartierSuffix})`;
   }
 
   if (operator === "MAIRIE") {
+    const tagOrCat = (extractedTag && isInfra) ? extractedTag : (firstQ?.category ? firstQ.category.replace(/_/g, " ") : null);
     if (tagOrCat) {
       return `[SIGNA-CI] Demande d'Intervention — Voirie & Salubrité : ${tagOrCat} (${commune}${quartierSuffix})`;
     }
@@ -407,7 +405,7 @@ function generateProfessionalSubject(group: RelayGroup): string {
 
   if (operator === "CIE") {
     if (isInfra) {
-      const specificTitle = extractedTag || "Infrastructure Électrique / Éclairage Public";
+      const specificTitle = (extractedTag && isInfra) ? extractedTag : "Infrastructure Électrique / Éclairage Public";
       return `[SIGNA-CI] Demande d'Intervention Technique — ${specificTitle} (${commune}${quartierSuffix})`;
     }
     return `[SIGNA-CI] Alerte Interruption de Fourniture Électrique — Commune de ${commune}${quartierSuffix}`;
@@ -415,7 +413,7 @@ function generateProfessionalSubject(group: RelayGroup): string {
 
   if (operator === "SODECI") {
     if (isInfra) {
-      const specificTitle = extractedTag || "Infrastructure Eau / Canalisation";
+      const specificTitle = (extractedTag && isInfra) ? extractedTag : "Infrastructure Eau / Canalisation";
       return `[SIGNA-CI] Demande d'Intervention Technique — ${specificTitle} (${commune}${quartierSuffix})`;
     }
     return `[SIGNA-CI] Alerte Interruption de Distribution d'Eau Potable — Commune de ${commune}${quartierSuffix}`;
