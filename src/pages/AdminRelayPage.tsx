@@ -1643,17 +1643,22 @@ const AdminRelayPage = () => {
   // ── Marquer envoyé via WhatsApp ───────────────────────────────────────────
   const markWaSent = useMutation({
     mutationFn: async (relay_ids: string[]) => {
-      const { error } = await (supabase as any)
-        .from("relay_logs")
-        .update({ wa_sent_at: new Date().toISOString() })
-        .in("id", relay_ids);
-      if (error) throw error;
+      try {
+        const { error } = await (supabase as any)
+          .from("relay_logs")
+          .update({ wa_sent_at: new Date().toISOString() })
+          .in("id", relay_ids);
+        if (error) console.warn("WhatsApp update status warning:", error);
+      } catch (err) {
+        console.warn("WhatsApp update exception:", err);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-relay-logs-all"] });
-      toast({ title: "Envoi WhatsApp enregistré", description: "Le destinataire sera notifié." });
     },
-    onError: () => toast({ title: "Erreur", variant: "destructive" }),
+    onError: () => {
+      // Ignorer pour ne pas gêner l'ouverture de WhatsApp Web/App
+    },
   });
 
   // ── Enregistrer ticket / référence ─────────────────────────────────────────
