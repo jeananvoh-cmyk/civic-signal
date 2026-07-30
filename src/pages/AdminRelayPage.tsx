@@ -374,9 +374,11 @@ function generateProfessionalSubject(group: RelayGroup): string {
   const operator = group.operator;
   const commune = group.commune;
   const firstQ = group.quartiers[0];
-  const qName = firstQ?.name || firstQ?.quartier || "";
-  const cleanedQ = (qName && qName !== "__other" && qName !== "Autre" && qName !== "Secteur non spécifié") ? qName : "";
-  const quartierSuffix = cleanedQ ? ` · ${cleanedQ}` : "";
+  const validQuartiers = group.quartiers
+    .map((q) => q.name || q.quartier || "")
+    .filter((n) => n && n.trim() && n !== "__other" && n !== "Autre" && n !== "Secteur non spécifié");
+  const uniqueQuartiers = Array.from(new Set(validQuartiers));
+  const quartierSuffix = uniqueQuartiers.length > 0 ? ` · ${uniqueQuartiers.join(", ")}` : "";
 
   const extractedTag = firstQ?.description ? extractInfraLabel(firstQ.description) : null;
   const isInfra = operator === "MAIRIE" || operator === "ANARE" || operator === "ONEP" || checkIfInfra(firstQ?.category, firstQ?.description);
