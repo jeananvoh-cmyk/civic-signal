@@ -351,6 +351,10 @@ function generateProfessionalSubject(group: RelayGroup): string {
   const operator = group.operator;
   const commune = group.commune;
   const firstQ = group.quartiers[0];
+  const rawQ = firstQ?.quartier || "";
+  const cleanedQ = cleanQuartierName(rawQ);
+  const quartierSuffix = cleanedQ ? ` · ${cleanedQ}` : "";
+
   const extractedTag = firstQ?.description ? extractInfraLabel(firstQ.description) : null;
   const tagOrCat = extractedTag || (firstQ?.category ? firstQ.category.replace(/_/g, " ") : null);
 
@@ -359,42 +363,42 @@ function generateProfessionalSubject(group: RelayGroup): string {
 
   if (operator === "ANARE") {
     if (extractedTag) {
-      return `[SIGNA-CI] Transmission d'Incident d'Éclairage Public — ${extractedTag} (${commune})`;
+      return `[SIGNA-CI] Rapport de Réclamation — Éclairage Public : ${extractedTag} (${commune}${quartierSuffix})`;
     }
-    return `[SIGNA-CI] Transmission & Suivi Réglementaire — Infrastructure Électrique (${commune})`;
+    return `[SIGNA-CI] Rapport de Suivi Réglementaire — Infrastructure Électrique (${commune}${quartierSuffix})`;
   }
 
   if (operator === "ONEP") {
     if (extractedTag) {
-      return `[SIGNA-CI] Transmission d'Incident d'Infrastructure Eau — ${extractedTag} (${commune})`;
+      return `[SIGNA-CI] Rapport de Réclamation — Infrastructure Eau : ${extractedTag} (${commune}${quartierSuffix})`;
     }
-    return `[SIGNA-CI] Transmission & Suivi Réglementaire — Infrastructure Eau Potable (${commune})`;
+    return `[SIGNA-CI] Rapport de Suivi Réglementaire — Réseau d'Eau Potable (${commune}${quartierSuffix})`;
   }
 
   if (operator === "MAIRIE") {
     if (tagOrCat) {
-      return `[SIGNA-CI] Demande d'Intervention — Voirie & Infrastructure : ${tagOrCat} (${commune})`;
+      return `[SIGNA-CI] Demande d'Intervention — Voirie & Salubrité : ${tagOrCat} (${commune}${quartierSuffix})`;
     }
-    return `[SIGNA-CI] Transmission de Signalement Voirie & Infrastructure — Mairie de ${commune}`;
+    return `[SIGNA-CI] Signalement d'Infrastructure Urbaine — Mairie de ${commune}${quartierSuffix}`;
   }
 
   if (operator === "CIE") {
     if (isInfra) {
       const specificTitle = extractedTag || "Infrastructure Électrique / Éclairage Public";
-      return `[SIGNA-CI] Demande d'Intervention Technique — ${specificTitle} (${commune})`;
+      return `[SIGNA-CI] Demande d'Intervention Technique — ${specificTitle} (${commune}${quartierSuffix})`;
     }
-    return `[SIGNA-CI] Alerte Interruption du Service Électrique — Commune de ${commune}`;
+    return `[SIGNA-CI] Alerte Interruption de Fourniture Électrique — Commune de ${commune}${quartierSuffix}`;
   }
 
   if (operator === "SODECI") {
     if (isInfra) {
       const specificTitle = extractedTag || "Infrastructure Eau / Canalisation";
-      return `[SIGNA-CI] Demande d'Intervention Technique — ${specificTitle} (${commune})`;
+      return `[SIGNA-CI] Demande d'Intervention Technique — ${specificTitle} (${commune}${quartierSuffix})`;
     }
-    return `[SIGNA-CI] Alerte Interruption de la Distribution d'Eau — Commune de ${commune}`;
+    return `[SIGNA-CI] Alerte Interruption de Distribution d'Eau Potable — Commune de ${commune}${quartierSuffix}`;
   }
 
-  return `[SIGNA-CI] Transmission de Signalement Citoyen — Commune de ${commune}`;
+  return `[SIGNA-CI] Transmission de Signalement Citoyen — Commune de ${commune}${quartierSuffix}`;
 }
 
 // ─── Envoi direct d'emails via l'API Resend ──────────────────────────────────
@@ -733,7 +737,7 @@ function buildBatchEmailHtmlClient(group: RelayGroup): string {
         <div style="background: ${gradientHeader}; padding: 28px 24px; color: #ffffff;">
           <div style="display: table; width: 100%; margin-bottom: 12px;">
             <div style="display: table-cell; vertical-align: middle; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.95);">
-              SIGNALEMENT EFFECTUÉ SUR <span style="background: rgba(255,255,255,0.25); padding: 2px 6px; border-radius: 4px; color: #ffffff;">SIGNA-CI</span>
+              TRANSMISSION D'INCIDENT — <span style="background: rgba(255,255,255,0.25); padding: 2px 6px; border-radius: 4px; color: #ffffff;">SIGNA-CI</span>
             </div>
             <div style="display: table-cell; vertical-align: middle; text-align: right;">
               <span style="background: rgba(255,255,255,0.25); color: #ffffff; padding: 4px 14px; border-radius: 20px; font-weight: 800; font-size: 12px; display: inline-block;">

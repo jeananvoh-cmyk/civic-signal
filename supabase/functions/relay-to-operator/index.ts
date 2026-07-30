@@ -239,7 +239,7 @@ function buildBatchEmailHtml(
         <tr>
           <td style="background:${headerGradient};padding:28px 32px;">
             <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:1.2px;font-weight:600;">
-              Signalements citoyens · SIGNA-CI — Côte d'Ivoire
+              Transmission d'Incident · SIGNA-CI — Côte d'Ivoire
             </p>
             <h1 style="margin:8px 0 0;font-size:23px;font-weight:800;color:#ffffff;line-height:1.2;">
               ${serviceIcon} ${serviceLabel}
