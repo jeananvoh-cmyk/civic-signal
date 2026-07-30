@@ -1413,37 +1413,8 @@ const AdminRelayPage = () => {
         throw new Error("Impossible de récupérer les détails du groupe de signalements.");
       }
 
-      // Envoi du groupe principal (ex: CIE ou SODECI)
+      // Envoi du groupe principal (ex: CIE ou SODECI uniquement)
       const mainResult = await sendSingleGroupInternal(targetGroup);
-
-      // Si c'est un envoi CIE et que ANARE auto-dispatch est actif, envoyer aussi la fiche régulateur ANARE pour cette commune !
-      if (targetGroup.operator === "CIE" && effectiveConfig?.anare_auto_dispatch !== "false") {
-        const linkedAnare = pendingGroups.find(
-          (g) => g.operator === "ANARE" && g.commune === targetGroup!.commune
-        );
-        if (linkedAnare && linkedAnare.relayIds.length > 0) {
-          try {
-            await sendSingleGroupInternal(linkedAnare);
-          } catch (err) {
-            console.warn("Auto-dispatch ANARE report warning:", err);
-          }
-        }
-      }
-
-      // Si c'est un envoi SODECI et que ONEP auto-dispatch est actif, envoyer aussi la fiche régulateur ONEP pour cette commune !
-      if (targetGroup.operator === "SODECI" && effectiveConfig?.onep_auto_dispatch !== "false") {
-        const linkedOnep = pendingGroups.find(
-          (g) => g.operator === "ONEP" && g.commune === targetGroup!.commune
-        );
-        if (linkedOnep && linkedOnep.relayIds.length > 0) {
-          try {
-            await sendSingleGroupInternal(linkedOnep);
-          } catch (err) {
-            console.warn("Auto-dispatch ONEP report warning:", err);
-          }
-        }
-      }
-
       return mainResult;
     },
     onSuccess: (data: any, variables: { relay_ids: string[]; groupKey: string }) => {
@@ -1709,13 +1680,16 @@ const AdminRelayPage = () => {
             .eq("operator", item.operator)
             .maybeSingle();
 
-          if (!existing) {
-            const { error: inErr } = await (supabase as any).from("relay_logs").insert(item);
-            if (inErr && (item.operator === "ANARE" || item.operator === "ONEP")) {
-              const fbOp = item.operator === "ANARE" ? "CIE" : "SODECI";
-              await (supabase as any).from("relay_logs").insert({ ...item, operator: fbOp });
+          if (existing) {
+            if (existing.status === "pending" || existing.status === null) {
+              await (supabase as any)
+                .from("relay_logs")
+                .update({ email_to: item.email_to })
+                .eq("id", existing.id);
             }
-            count++;
+          } else {
+            const { error: inErr } = await (supabase as any).from("relay_logs").insert(item);
+            if (!inErr) count++;
           }
         }
       }
