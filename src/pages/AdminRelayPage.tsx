@@ -1415,8 +1415,53 @@ const AdminRelayPage = () => {
         throw new Error("Impossible de récupérer les détails du groupe de signalements.");
       }
 
-      // Envoi du groupe principal (ex: CIE ou SODECI uniquement)
+      // Envoi du groupe principal (ex: CIE ou SODECI)
       const mainResult = await sendSingleGroupInternal(targetGroup);
+
+      // Si c'est un groupe CIE et que ANARE est activé, envoyer obligatoirement le mail de régulation ANARE-CI
+      if (targetGroup.operator === "CIE" && effectiveConfig?.anare_auto_dispatch !== "false") {
+        let linkedAnare = pendingGroups.find(
+          (g) => g.operator === "ANARE" && g.commune === targetGroup!.commune
+        );
+        if (!linkedAnare) {
+          linkedAnare = {
+            ...targetGroup,
+            key: `ANARE::${targetGroup.commune}`,
+            operator: "ANARE",
+            email_to: getOperatorTargetEmail("ANARE", targetGroup.commune, effectiveConfig),
+          };
+        }
+        if (linkedAnare) {
+          try {
+            await sendSingleGroupInternal(linkedAnare);
+          } catch (err) {
+            console.warn("Auto-dispatch ANARE warning:", err);
+          }
+        }
+      }
+
+      // Si c'est un groupe SODECI et que ONEP est activé, envoyer obligatoirement le mail de régulation ONEP
+      if (targetGroup.operator === "SODECI" && effectiveConfig?.onep_auto_dispatch !== "false") {
+        let linkedOnep = pendingGroups.find(
+          (g) => g.operator === "ONEP" && g.commune === targetGroup!.commune
+        );
+        if (!linkedOnep) {
+          linkedOnep = {
+            ...targetGroup,
+            key: `ONEP::${targetGroup.commune}`,
+            operator: "ONEP",
+            email_to: getOperatorTargetEmail("ONEP", targetGroup.commune, effectiveConfig),
+          };
+        }
+        if (linkedOnep) {
+          try {
+            await sendSingleGroupInternal(linkedOnep);
+          } catch (err) {
+            console.warn("Auto-dispatch ONEP warning:", err);
+          }
+        }
+      }
+
       return mainResult;
     },
     onSuccess: (data: any, variables: { relay_ids: string[]; groupKey: string }) => {
