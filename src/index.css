@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -17,44 +17,45 @@
     color-scheme: light;
 
     /* ═══════════════════════════════════════════════════════════
-       THÈME SIGNA·CI — Bleu Institutionnel · Terracotta
-       Inspiré de viepublique.ci (#0168b3 + #7d3c00)
+       CHARTE GRAPHIQUE SIGNA·CI — Civic Tech Côte d'Ivoire
+       Identité : Civic Teal (#0D9488) · Civic Navy (#0F172A)
+       Domain Tokens : Électricité (#F59E0B) · Eau (#06B6D4) · Voirie (#EA580C)
        ═══════════════════════════════════════════════════════════ */
 
     /* Surfaces */
-    --background: 35 18% 96%;          /* ivoire subtil — lisible en conditions outdoor */
-    --foreground: 220 18% 9%;          /* #191c21 quasi-noir */
+    --background: 210 20% 98%;          /* Slate 50 ultra-frais */
+    --foreground: 222 47% 11%;          /* Slate 900 lisibilité maximale */
 
     --card: 0 0% 100%;
-    --card-foreground: 220 18% 9%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 18% 9%;
+    --popover-foreground: 222 47% 11%;
 
-    /* Primary — bleu institutionnel viepublique.ci */
-    --primary: 207 85% 36%;            /* #1472be — institutionnel, moins agressif */
+    /* Primary — Civic Teal (#0D9488) */
+    --primary: 173 80% 32%;            /* #0D9488 - Teal Civic Institutionnel */
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary — slate bleu */
-    --secondary: 213 27% 92%;          /* teinte douce du #48607e */
-    --secondary-foreground: 213 27% 30%;
+    /* Secondary — Slate Soft */
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 20%;
 
-    --muted: 35 12% 92%;
-    --muted-foreground: 213 15% 45%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
 
-    /* Accent — terracotta chaud (contraste avec le bleu) */
-    --accent: 29 70% 93%;              /* terracotta très clair */
-    --accent-foreground: 29 90% 28%;   /* #7d3c00 foncé */
-    --accent-mid: 29 65% 55%;          /* terracotta actionnable — badge, CTA secondaire */
+    /* Accent — Terracotta Chaud (#EA580C) */
+    --accent: 20 90% 96%;
+    --accent-foreground: 20 90% 30%;
+    --accent-mid: 20 90% 55%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 16% 88%;
-    --input: 220 16% 88%;
-    --ring: 207 85% 36%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 173 80% 32%;
 
-    --radius: 0.625rem;
+    --radius: 0.85rem;
 
     /* Custom tokens */
     --water: 193 78% 33%;

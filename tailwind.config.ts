@@ -15,6 +15,7 @@ export default {
   	extend: {
   		fontFamily: {
   			display: [
+  				'Plus Jakarta Sans',
   				'Inter',
   				'-apple-system',
   				'BlinkMacSystemFont',
