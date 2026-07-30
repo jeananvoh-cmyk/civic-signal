@@ -345,27 +345,41 @@ function getOperatorTargetEmail(
   config: RelayConfig | null,
   fallbackLogEmail?: string
 ): string {
-  if (!config) return fallbackLogEmail || "reclamation@cie.ci";
+  const defaultAdmin = (config?.cc_email || config?.test_email || "jeananvoh@gmail.com").trim();
+  if (!config) return fallbackLogEmail || defaultAdmin;
 
   if (operator === "CIE") {
-    return config.email_cie?.trim() || fallbackLogEmail || "reclamation@cie.ci";
+    const email = config.email_cie?.trim();
+    if (email && email.length > 0) return email;
+    return defaultAdmin;
   }
   if (operator === "ANARE") {
-    return config.email_anare?.trim() || fallbackLogEmail || "reclamation@anare.ci";
+    const email = config.email_anare?.trim();
+    if (email && email.length > 0) return email;
+    const cieEmail = config.email_cie?.trim();
+    if (cieEmail && cieEmail.length > 0) return cieEmail;
+    return defaultAdmin;
   }
   if (operator === "SODECI") {
-    return config.email_sodeci?.trim() || fallbackLogEmail || "reclamation@sodeci.ci";
+    const email = config.email_sodeci?.trim();
+    if (email && email.length > 0) return email;
+    return defaultAdmin;
   }
   if (operator === "ONEP") {
-    return config.email_onep?.trim() || fallbackLogEmail || "reclamation@onep.ci";
+    const email = config.email_onep?.trim();
+    if (email && email.length > 0) return email;
+    const sodeciEmail = config.email_sodeci?.trim();
+    if (sodeciEmail && sodeciEmail.length > 0) return sodeciEmail;
+    return defaultAdmin;
   }
   if (operator === "MAIRIE") {
     const slug = (commune || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-    const mairieEmail = config[`mairie_${slug}_email`]?.trim();
-    if (mairieEmail) return mairieEmail;
+    const mairieEmail = config[`mairie_${slug}_email`]?.trim() || config[`email_mairie_${slug}`]?.trim();
+    if (mairieEmail && mairieEmail.length > 0) return mairieEmail;
+    return defaultAdmin;
   }
 
-  return fallbackLogEmail || "reclamation@cie.ci";
+  return fallbackLogEmail || defaultAdmin;
 }
 
 // ─── Génération d'objets de mails professionnels et sérieux ─────────────────
