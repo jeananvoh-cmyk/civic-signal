@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/constants/communes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/repositories/report_repository.dart';
 import '../../../domain/models/report_model.dart';
 import '../auth/auth_screen.dart';
 import '../home/signa_logo.dart';
+import '../meter/meter_screen.dart';
 import '../reports/report_detail_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -35,19 +37,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
   List<ReportModel> _myReports = [];
   List<ReportModel> _historyReports = [];
 
-  final List<String> _communesList = [
-    'Abobo',
-    'Adjamé',
-    'Attécoubé',
-    'Bingerville',
-    'Cocody',
-    'Koumassi',
-    'Marcory',
-    'Plateau',
-    'Port-Bouët',
-    'Treichville',
-    'Yopougon',
-  ];
+  final List<String> _communesList = PILOT_COMMUNES.map((c) => c.nom).toList();
 
   @override
   void initState() {
@@ -556,7 +546,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
         const SizedBox(height: 18),
 
         // Identifiants Compteurs
-        const Text('⚡ Compteur Électricité CIE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('⚡ Compteur Électricité CIE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            TextButton.icon(
+              icon: const Icon(LucideIcons.gauge, size: 14),
+              label: const Text('Simulateur & Suivi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MeterScreen())),
+            ),
+          ],
+        ),
         const SizedBox(height: 8),
         Row(
           children: [
