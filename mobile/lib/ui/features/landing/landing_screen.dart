@@ -608,6 +608,115 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
               const SizedBox(height: 20),
 
               // ══════════════════════════════════════════════════════════
+              // 4.8. BANNIÈRE MAJEURE : FIL VOIRIE & INFRASTRUCTURES HD
+              // ══════════════════════════════════════════════════════════
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InfrastructureScreen())),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFEA580C), Color(0xFFC2410C), Color(0xFF9A3412)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFEA580C).withAlpha(80),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withAlpha(50),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    Icon(LucideIcons.radio, color: Colors.white, size: 12),
+                                    SizedBox(width: 6),
+                                    Text('FLUX EN DIRECT', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                                  ],
+                                ),
+                              ),
+                              const Spacer(),
+                              const Icon(LucideIcons.chevronRight, color: Colors.white70, size: 20),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withAlpha(40),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(LucideIcons.construction, color: Colors.white, size: 26),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: const [
+                                    Text(
+                                      'Fil Voirie & Infrastructures Publiques',
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16),
+                                    ),
+                                    SizedBox(height: 3),
+                                    Text(
+                                      'Nids de poules, lampadaires éteints, caniveaux bouchés et fuites avec photos HD.',
+                                      style: TextStyle(color: Color(0xFFFFEDD5), fontSize: 11, height: 1.3),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(LucideIcons.camera, color: Color(0xFFC2410C), size: 16),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Consulter les Photos & Voter "Moi aussi"',
+                                  style: TextStyle(color: Color(0xFFC2410C), fontWeight: FontWeight.bold, fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // ══════════════════════════════════════════════════════════
               // 5. 5 CATÉGORIES DE PROBLÈMES (1:1 Web)
               // ══════════════════════════════════════════════════════════
               Padding(

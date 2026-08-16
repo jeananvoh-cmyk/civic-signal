@@ -3,11 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_theme.dart';
 import '../dashboard/dashboard_screen.dart';
+import '../infrastructure/infrastructure_screen.dart';
 import '../landing/landing_screen.dart';
 import '../map/map_screen.dart';
 import '../profile/profile_screen.dart';
 import '../reports/create_report_screen.dart';
-import '../verification/verification_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -27,8 +27,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         children: const [
           LandingScreen(),
           DashboardScreen(),
+          InfrastructureScreen(),
           MapScreen(),
-          VerificationScreen(),
           ProfileScreen(),
         ],
       ),
@@ -63,12 +63,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             label: 'Dashboard',
           ),
           BottomNavigationBarItem(
-            icon: Icon(LucideIcons.map),
-            label: 'Carte',
+            icon: Icon(LucideIcons.hardHat),
+            activeIcon: Icon(LucideIcons.hardHat, color: Color(0xFFD97706)),
+            label: 'Voirie & Infra',
           ),
           BottomNavigationBarItem(
-            icon: Icon(LucideIcons.users),
-            label: 'Voisins',
+            icon: Icon(LucideIcons.map),
+            label: 'Carte',
           ),
           BottomNavigationBarItem(
             icon: Icon(LucideIcons.userCheck),

@@ -37,10 +37,52 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
     setState(() => _isLoading = true);
     try {
       final user = Supabase.instance.client.auth.currentUser;
-      var filterQuery = Supabase.instance.client
-          .from('reports')
-          .select('id, user_id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, support_count, report_category')
-          .eq('report_category', 'infrastructure');
+      List<Map<String, dynamic>> rawData = [];
+
+      // 1. Try public RPC first (SECURITY DEFINER, bypasses RLS for visitors & logged-in users)
+      try {
+        final rpcRes = await Supabase.instance.client.rpc(
+          'get_public_infrastructure_reports',
+          params: {'p_limit': 50, 'p_offset': 0},
+        );
+        if (rpcRes is List && rpcRes.isNotEmpty) {
+          rawData = List<Map<String, dynamic>>.from(rpcRes as List);
+        }
+      } catch (_) {}
+
+      // 2. If RPC returned empty or failed, query table directly with broad criteria
+      if (rawData.isEmpty) {
+        try {
+          final res = await Supabase.instance.client
+              .from('reports')
+              .select('id, user_id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, support_count, report_category')
+              .order('created_at', ascending: false)
+              .limit(50);
+          if (res is List) {
+            final allReports = List<Map<String, dynamic>>.from(res as List);
+            rawData = allReports.where((r) {
+              final cat = (r['report_category'] as String?)?.toLowerCase() ?? '';
+              final st = (r['service_type'] as String?)?.toLowerCase() ?? '';
+              final desc = (r['description'] as String?)?.toLowerCase() ?? '';
+              return cat == 'infrastructure' || 
+                     st == 'mairie' || 
+                     st == 'voirie' ||
+                     st == 'lighting' ||
+                     st == 'pothole' ||
+                     desc.contains('nid de poule') ||
+                     desc.contains('caniveau') ||
+                     desc.contains('lampadaire') ||
+                     desc.contains('poteau') ||
+                     desc.contains('fuite') ||
+                     (r['photo_url'] != null && (r['photo_url'] as String).isNotEmpty) ||
+                     (r['photo_urls'] != null && (r['photo_urls'] as List).isNotEmpty);
+            }).toList();
+          }
+        } catch (_) {}
+      }
+
+      // 3. Apply active filters (Service, Commune, Sub-filter)
+      List<Map<String, dynamic>> filtered = rawData;
 
       if (_selectedFilter != 'all') {
         final dbService = _selectedFilter == 'eau'
@@ -48,25 +90,32 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
             : _selectedFilter == 'electricite'
                 ? 'electricity'
                 : _selectedFilter;
-        filterQuery = filterQuery.eq('service_type', dbService);
+        filtered = filtered.where((r) {
+          final st = (r['service_type'] as String?)?.toLowerCase() ?? '';
+          final desc = (r['description'] as String?)?.toLowerCase() ?? '';
+          if (_selectedFilter == 'eau') {
+            return st == 'water' || desc.contains('eau') || desc.contains('fuite') || desc.contains('sodeci');
+          } else if (_selectedFilter == 'electricite') {
+            return st == 'electricity' || desc.contains('élec') || desc.contains('lampadaire') || desc.contains('poteau') || desc.contains('cie') || desc.contains('câble');
+          } else if (_selectedFilter == 'mairie') {
+            return st == 'mairie' || st == 'voirie' || desc.contains('nid de poule') || desc.contains('caniveau') || desc.contains('chaussée') || desc.contains('ordures');
+          }
+          return st == dbService;
+        }).toList();
       }
 
       if (_selectedCommune != 'all') {
-        filterQuery = filterQuery.eq('commune', _selectedCommune);
+        filtered = filtered.where((r) => r['commune'] == _selectedCommune).toList();
       }
 
-      final res = await filterQuery.order('created_at', ascending: false).limit(30);
-      final List<Map<String, dynamic>> data = List<Map<String, dynamic>>.from(res as List);
-
-      // Client-side sub-filter if text keyword selected
-      List<Map<String, dynamic>> filtered = data;
       if (_subFilter != null && _subFilter!.isNotEmpty) {
-        filtered = data.where((r) {
+        filtered = filtered.where((r) {
           final desc = (r['description'] as String?)?.toLowerCase() ?? '';
           return desc.contains(_subFilter!.toLowerCase());
         }).toList();
       }
 
+      // 4. Fetch user votes and repairs if logged in
       if (user != null) {
         try {
           final myVotes = await Supabase.instance.client
