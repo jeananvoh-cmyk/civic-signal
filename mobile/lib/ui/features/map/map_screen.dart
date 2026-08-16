@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/constants/communes.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../data/repositories/report_repository.dart';
 import '../../../domain/models/report_model.dart';
+import '../reports/create_report_screen.dart';
 import '../reports/report_detail_screen.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
@@ -20,231 +20,238 @@ class MapScreen extends ConsumerStatefulWidget {
 
 class _MapScreenState extends ConsumerState<MapScreen> {
   final MapController _mapController = MapController();
-  static final LatLng _defaultCenter = LatLng(5.3599517, -4.0082563);
-  String _selectedCategory = 'all'; // 'all', 'outage', 'infrastructure'
-  bool _isPartnerMode = false;
+  String _selectedService = 'all'; // 'all', 'electricity', 'water', 'mairie'
+  String _selectedMode = 'coupures'; // 'coupures', 'infrastructures'
+  String _selectedCommune = 'all';
+
+  List<ReportModel> _reports = [];
+  bool _isLoading = true;
   ReportModel? _selectedReport;
 
-  Future<void> _recenterToUserLocation() async {
+  @override
+  void initState() {
+    super.initState();
+    _fetchMapReports();
+  }
+
+  Future<void> _fetchMapReports() async {
+    setState(() => _isLoading = true);
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) return;
+      final res = await Supabase.instance.client
+          .from('reports')
+          .select()
+          .not('latitude', 'is', null)
+          .not('longitude', 'is', null)
+          .order('created_at', ascending: false)
+          .limit(100);
 
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) return;
+      if (res is List && mounted) {
+        setState(() {
+          _reports = (res as List).map((e) => ReportModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+          _isLoading = false;
+        });
       }
-
-      Position position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-      );
-
-      final userLatLng = LatLng(position.latitude, position.longitude);
-      _mapController.move(userLatLng, 14.5);
-    } catch (e) {
-      debugPrint('Erreur carte GPS: $e');
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _focusCommune(CommuneData commune) {
+    _mapController.move(LatLng(commune.centerLat, commune.centerLon), 13.5);
+    setState(() => _selectedCommune = commune.nom);
+  }
+
+  List<ReportModel> get _filteredReports {
+    return _reports.where((r) {
+      if (r.latitude == null || r.longitude == null) return false;
+      if (_selectedService != 'all' && r.serviceType != _selectedService) return false;
+      if (_selectedMode == 'coupures' && r.reportCategory != 'outage') return false;
+      if (_selectedMode == 'infrastructures' && r.reportCategory != 'infrastructure') return false;
+      if (_selectedCommune != 'all' && r.commune.toLowerCase() != _selectedCommune.toLowerCase()) return false;
+      return true;
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    final String? filterCategory = _selectedCategory == 'all' ? null : _selectedCategory;
-    final reportsAsync = ref.watch(reportsProvider(filterCategory));
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final filtered = _filteredReports;
 
     return Scaffold(
       body: Stack(
         children: [
-          // FlutterMap OpenStreetMap Renders
+          // ══════════════════════════════════════════════════════════
+          // 1. CARTE OPENSTREETMAP (Exact Leaflet Web)
+          // ══════════════════════════════════════════════════════════
           FlutterMap(
             mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _defaultCenter,
-              initialZoom: 12.0,
-              minZoom: 6.0,
+            options: const MapOptions(
+              initialCenter: LatLng(5.36, -4.01), // Abidjan Centre
+              initialZoom: 12.2,
+              minZoom: 10.0,
               maxZoom: 18.0,
-              onTap: (_, _) {
-                setState(() => _selectedReport = null);
-              },
             ),
             children: [
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'ci.signa.signa_mobile',
+                userAgentPackageName: 'ci.signa.app',
               ),
-              reportsAsync.when(
-                data: (reports) {
-                  const Map<String, LatLng> communeCoords = {
-                    'Cocody': LatLng(5.3599, -3.9850),
-                    'Yopougon': LatLng(5.3400, -4.0800),
-                    'Abobo': LatLng(5.4167, -4.0167),
-                    'Adjamé': LatLng(5.3569, -4.0239),
-                    'Koumassi': LatLng(5.3000, -3.9500),
-                    'Port-Bouët': LatLng(5.2500, -3.9300),
-                    'Marcory': LatLng(5.3000, -3.9800),
-                    'Treichville': LatLng(5.3000, -4.0000),
-                    'Plateau': LatLng(5.3200, -4.0200),
-                    'Bingerville': LatLng(5.3558, -3.8856),
-                  };
 
-                  final markers = reports.map((report) {
-                    final LatLng point = (report.latitude != null && report.longitude != null)
-                        ? LatLng(report.latitude!, report.longitude!)
-                        : (communeCoords[report.commune] ?? _defaultCenter);
-
-                    final Color color = report.alertColor;
-
-                    return Marker(
-                      point: point,
-                      width: 80,
-                      height: 54,
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() => _selectedReport = report);
-                        },
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Micro Duration Pill (Mode Citoyen vs Partner)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: color, width: 1.5),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withAlpha(30),
-                                    blurRadius: 3,
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    report.alertLevel == 'critical'
-                                        ? LucideIcons.alertTriangle
-                                        : LucideIcons.clock,
-                                    size: 9,
-                                    color: color,
-                                  ),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    _isPartnerMode
-                                        ? 'P: ${(report.impactedPeople * 10) + (report.verifications * 5)}'
-                                        : report.elapsedFormatted,
-                                    style: TextStyle(
-                                      color: color,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 9,
-                                    ),
-                                  ),
-                                ],
-                              ),
+              // Marqueurs des 7 Communes Pilotes
+              MarkerLayer(
+                markers: PILOT_COMMUNES.map((c) {
+                  return Marker(
+                    point: LatLng(c.centerLat, c.centerLon),
+                    width: 70,
+                    height: 70,
+                    child: GestureDetector(
+                      onTap: () => _focusCommune(c),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(color: c.couleur.withAlpha(120), blurRadius: 8, spreadRadius: 1),
+                              ],
+                              border: Border.all(color: c.couleur, width: 2),
                             ),
-                            const SizedBox(height: 1),
-
-                            // Map Pin Icon 28px
-                            Container(
-                              padding: const EdgeInsets.all(5),
-                              decoration: BoxDecoration(
-                                color: color,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: color.withAlpha(90),
-                                    blurRadius: 5,
-                                    spreadRadius: 1,
-                                  ),
-                                ],
-                                border: Border.all(color: Colors.white, width: 1.5),
-                              ),
-                              child: Icon(
-                                report.isOutage ? LucideIcons.zapOff : LucideIcons.wrench,
-                                color: Colors.white,
-                                size: 14,
-                              ),
+                            child: Image.asset(c.logoAsset, width: 24, height: 24, fit: BoxFit.contain, errorBuilder: (_, __, ___) => Icon(LucideIcons.mapPin, color: c.couleur, size: 20)),
+                          ),
+                          const SizedBox(height: 2),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: Colors.black87,
+                              borderRadius: BorderRadius.circular(6),
                             ),
-                          ],
-                        ),
+                            child: Text(c.nom, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
                       ),
-                    );
-                  }).toList();
+                    ),
+                  );
+                }).toList(),
+              ),
 
-                  return MarkerLayer(markers: markers);
-                },
-                loading: () => const SizedBox.shrink(),
-                error: (_, _) => const SizedBox.shrink(),
+              // Marqueurs des Signalements Réels
+              MarkerLayer(
+                markers: filtered.map((r) {
+                  final isElec = r.serviceType == 'electricity';
+                  final isEau = r.serviceType == 'water';
+                  final pinColor = isElec ? const Color(0xFFF59E0B) : isEau ? const Color(0xFF0284C7) : const Color(0xFF9333EA);
+                  final pinIcon = isElec ? LucideIcons.zap : isEau ? LucideIcons.droplets : LucideIcons.landmark;
+
+                  return Marker(
+                    point: LatLng(r.latitude!, r.longitude!),
+                    width: 44,
+                    height: 44,
+                    child: GestureDetector(
+                      onTap: () => _showReportDetailsModal(r),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: pinColor,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(color: pinColor.withAlpha(100), blurRadius: 6, offset: const Offset(0, 2)),
+                          ],
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: Icon(pinIcon, color: Colors.white, size: 20),
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
             ],
           ),
 
-          // Top Header & Category Filters Overlay
+          // ══════════════════════════════════════════════════════════
+          // 2. BARRE DE FILTRES SUPÉRIEURE (1:1 Web)
+          // ══════════════════════════════════════════════════════════
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Card(
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      child: Row(
-                        children: [
-                          const Icon(LucideIcons.map, color: AppTheme.primaryTeal, size: 20),
-                          const SizedBox(width: 6),
-                          Text(
-                            _isPartnerMode ? 'Mode Régulateur' : 'Carte Direct',
-                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14),
+                  // Sélecteur de mode (Coupures vs Infrastructures)
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withAlpha(15), blurRadius: 10, offset: const Offset(0, 4)),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => setState(() => _selectedMode = 'coupures'),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: _selectedMode == 'coupures' ? const Color(0xFFEA580C) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                '⚡ Coupures actives',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: _selectedMode == 'coupures' ? Colors.white : Colors.grey,
+                                ),
+                              ),
+                            ),
                           ),
-                          const Spacer(),
-                          _buildMiniFilterChip('Tous', 'all'),
-                          const SizedBox(width: 4),
-                          _buildMiniFilterChip('Coupures', 'outage'),
-                          const SizedBox(width: 4),
-                          _buildMiniFilterChip('Infra', 'infrastructure'),
-                        ],
-                      ),
+                        ),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => setState(() => _selectedMode = 'infrastructures'),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                color: _selectedMode == 'infrastructures' ? AppTheme.primaryTeal : Colors.transparent,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                '🏗️ Infrastructures',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: _selectedMode == 'infrastructures' ? Colors.white : Colors.grey,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                  const SizedBox(height: 8),
 
-                  // Mode Toggle Bar (Citoyen vs Professionnel / Partenaire)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6.0),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withAlpha(200),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            _isPartnerMode ? '🛡️ Mode Partenaire Actif' : '👥 Mode Citoyen',
-                            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                          ),
-                          Switch(
-                            value: _isPartnerMode,
-                            activeColor: AppTheme.amberAccent,
-                            onChanged: (val) {
-                              setState(() => _isPartnerMode = val);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    val
-                                        ? 'Mode Régulateur & Partenaire activé'
-                                        : 'Mode Citoyen épuré activé',
-                                  ),
-                                  duration: const Duration(seconds: 1),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
+                  // Sélecteur de services (Chips horizontaux)
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildFilterChip('Tous', 'all', LucideIcons.layers, const Color(0xFF0F172A)),
+                        const SizedBox(width: 6),
+                        _buildFilterChip('CIE (Électricité)', 'electricity', LucideIcons.zap, const Color(0xFFF59E0B)),
+                        const SizedBox(width: 6),
+                        _buildFilterChip('SODECI (Eau)', 'water', LucideIcons.droplets, const Color(0xFF0284C7)),
+                        const SizedBox(width: 6),
+                        _buildFilterChip('Mairie (Voirie)', 'mairie', LucideIcons.landmark, const Color(0xFF9333EA)),
+                      ],
                     ),
                   ),
                 ],
@@ -252,240 +259,158 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             ),
           ),
 
-          // Recenter GPS Button
+          // ══════════════════════════════════════════════════════════
+          // 3. BOUTONS D'ACTION FLOTTANTS
+          // ══════════════════════════════════════════════════════════
           Positioned(
             right: 16,
-            bottom: _selectedReport != null ? 300 : 20,
-            child: FloatingActionButton.small(
-              heroTag: 'recenter_gps',
-              onPressed: _recenterToUserLocation,
-              backgroundColor: Theme.of(context).cardColor,
-              child: const Icon(LucideIcons.locate, color: AppTheme.primaryTeal),
+            bottom: 24,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FloatingActionButton.small(
+                  heroTag: 'refresh_map_btn',
+                  backgroundColor: Colors.white,
+                  child: _isLoading
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(LucideIcons.refreshCw, color: Color(0xFF0F172A), size: 18),
+                  onPressed: _fetchMapReports,
+                ),
+                const SizedBox(height: 10),
+                FloatingActionButton.extended(
+                  heroTag: 'create_map_btn',
+                  backgroundColor: const Color(0xFFEA580C),
+                  icon: const Icon(LucideIcons.plus, color: Colors.white),
+                  label: const Text('Signaler', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateReportScreen())),
+                ),
+              ],
             ),
           ),
-
-          // Selected Report Preview Card (Bottom Sheet Overlay)
-          if (_selectedReport != null)
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 16,
-              child: _buildReportPreviewCard(context, _selectedReport!),
-            ),
         ],
       ),
     );
   }
 
-  Widget _buildMiniFilterChip(String label, String value) {
-    final bool isSelected = _selectedCategory == value;
-    return GestureDetector(
-      onTap: () {
-        setState(() => _selectedCategory = value);
-      },
+  Widget _buildFilterChip(String label, String serviceKey, IconData icon, Color activeColor) {
+    final isSelected = _selectedService == serviceKey;
+    return InkWell(
+      onTap: () => setState(() => _selectedService = serviceKey),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryTeal : Colors.grey.withAlpha(40),
-          borderRadius: BorderRadius.circular(14),
+          color: isSelected ? activeColor : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isSelected ? activeColor : const Color(0xFFE2E8F0)),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 4, offset: const Offset(0, 2)),
+          ],
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black87,
-            fontSize: 11,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildReportPreviewCard(BuildContext context, ReportModel report) {
-    final bool isOutage = report.isOutage;
-    final Color color = report.alertColor;
-
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: color.withAlpha(25),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: color.withAlpha(80)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isOutage ? LucideIcons.zapOff : LucideIcons.wrench,
-                        size: 14,
-                        color: color,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        isOutage ? 'Coupure ${report.serviceType}' : 'Infrastructure ${report.serviceType}',
-                        style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-
-                // Duration Badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: color.withAlpha(15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(LucideIcons.clock, size: 12, color: color),
-                      const SizedBox(width: 4),
-                      Text(
-                        report.elapsedFormatted,
-                        style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 11),
-                      ),
-                    ],
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(LucideIcons.x, size: 18),
-                  onPressed: () => setState(() => _selectedReport = null),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
+            Icon(icon, size: 14, color: isSelected ? Colors.white : activeColor),
+            const SizedBox(width: 6),
             Text(
-              report.description.isNotEmpty ? report.description : 'Signalement d\'incident',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(LucideIcons.mapPin, size: 14, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(
-                  '${report.commune} • ${report.quartier}',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                ),
-                const Spacer(),
-                Icon(LucideIcons.thumbsUp, size: 13, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(
-                  '${report.supportCount} corroboration(s)',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-
-            // Vulnerable Impact Badges (Bébés, Personnes âgées, Femmes enceintes)
-            if (report.babies > 0 || report.elderly > 0 || report.pregnant > 0) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                children: [
-                  if (report.babies > 0)
-                    _buildVulnerableChip('👶 ${report.babies} bébé(s)', Colors.pink),
-                  if (report.elderly > 0)
-                    _buildVulnerableChip('👵 ${report.elderly} senior(s)', Colors.purple),
-                  if (report.pregnant > 0)
-                    _buildVulnerableChip('🤰 ${report.pregnant} femme(s) enceinte(s)', Colors.amber[800]!),
-                ],
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.white : const Color(0xFF334155),
               ),
-            ],
-
-            const SizedBox(height: 14),
-
-            // Action Buttons
-            if (!_isPartnerMode)
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () {
-                        ref
-                            .read(reportRepositoryProvider)
-                            .corroborateReport(report.id, isOutage ? 'still_out' : 'still_broken');
-                        ref.invalidate(reportsProvider);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Merci pour votre confirmation !')),
-                        );
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppTheme.outageColor,
-                        side: const BorderSide(color: AppTheme.outageColor),
-                      ),
-                      child: Text(isOutage ? 'Toujours coupé' : 'Problème persiste'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        ref
-                            .read(reportRepositoryProvider)
-                            .corroborateReport(report.id, isOutage ? 'back_on' : 'fixed');
-                        ref.invalidate(reportsProvider);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Signalement mis à jour !')),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.secondaryEmerald,
-                      ),
-                      child: Text(isOutage ? 'Tout va bien' : 'Problème résolu'),
-                    ),
-                  ),
-                ],
-              )
-            else
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryTeal,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 44),
-                ),
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (ctx) => ReportDetailScreen(report: report),
-                    ),
-                  );
-                },
-                icon: const Icon(LucideIcons.shieldAlert, size: 18),
-                label: const Text('Fiche Technique & Intervention Partenaire →'),
-              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildVulnerableChip(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withAlpha(20),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withAlpha(60)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
-      ),
+  void _showReportDetailsModal(ReportModel r) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) {
+        final isElec = r.serviceType == 'electricity';
+        final isEau = r.serviceType == 'water';
+        final iconColor = isElec ? const Color(0xFFF59E0B) : isEau ? const Color(0xFF0284C7) : const Color(0xFF9333EA);
+
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: iconColor.withAlpha(30), borderRadius: BorderRadius.circular(10)),
+                    child: Icon(isElec ? LucideIcons.zap : isEau ? LucideIcons.droplets : LucideIcons.landmark, color: iconColor, size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('${r.commune} · ${r.quartier}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text(r.reportCategory == 'outage' ? 'Coupure déclarée' : 'Incident infrastructure', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                  IconButton(icon: const Icon(LucideIcons.x), onPressed: () => Navigator.pop(ctx)),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text(r.description, style: const TextStyle(fontSize: 13, height: 1.4)),
+              const SizedBox(height: 14),
+
+              if (r.photoUrls != null && r.photoUrls!.isNotEmpty) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(r.photoUrls!.first, height: 140, width: double.infinity, fit: BoxFit.cover),
+                ),
+                const SizedBox(height: 14),
+              ],
+
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      icon: const Icon(LucideIcons.checkCircle, size: 16, color: Color(0xFF16A34A)),
+                      label: const Text('Corroborer', style: TextStyle(color: Color(0xFF16A34A))),
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        try {
+                          await Supabase.instance.client.rpc('corroborate_report', params: {'p_report_id': r.id});
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('✓ Corroboration enregistrée !'), backgroundColor: AppTheme.secondaryEmerald),
+                          );
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryTeal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => ReportDetailScreen(report: r)));
+                      },
+                      child: const Text('Détails complets', style: TextStyle(color: Colors.white)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

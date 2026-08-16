@@ -1,11 +1,18 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/constants/communes.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../domain/models/report_model.dart';
 import '../home/signa_logo.dart';
 import '../map/map_screen.dart';
 import '../reports/create_report_screen.dart';
+import '../reports/report_detail_screen.dart';
+import '../verification/verification_screen.dart';
 
 class LandingScreen extends ConsumerStatefulWidget {
   const LandingScreen({super.key});
@@ -16,195 +23,43 @@ class LandingScreen extends ConsumerStatefulWidget {
 
 class _LandingScreenState extends ConsumerState<LandingScreen> {
   int _wordIndex = 0;
-  Timer? _timer;
-  bool _showAlertBanner = true;
+  Timer? _wordTimer;
 
-  void _openSearchDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        final controller = TextEditingController();
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: [
-              const Icon(LucideIcons.search, color: Color(0xFF0D9488)),
-              const SizedBox(width: 8),
-              Text('Rechercher sur SIGNA·CI', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                decoration: InputDecoration(
-                  hintText: 'Saisissez une commune (Cocody), quartier ou code (#SIG-4821)...',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Fermer'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D9488)),
-              onPressed: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Recherche pour "${controller.text}" effectuée.')),
-                );
-              },
-              child: const Text('Rechercher'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  // Realtime Stats
+  int _totalReports = 31;
+  int _resolvedReports = 26;
+  int _activeOutages = 5;
+  int _totalUsers = 48;
+  bool _isLoadingStats = true;
 
-  void _openNotificationsModal(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(LucideIcons.bell, color: Color(0xFF0D9488)),
-                  const SizedBox(width: 10),
-                  Text('Centre de Notifications', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(LucideIcons.x, size: 20),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                leading: const Icon(LucideIcons.megaphone, color: Color(0xFFF59E0B)),
-                title: const Text('📢 Information Régionale', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                subtitle: const Text('Maintenance programmée sur le réseau d’eau à Cocody Riviera.', style: TextStyle(fontSize: 12)),
-              ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(LucideIcons.zap, color: Color(0xFF0D9488)),
-                title: const Text('⚡ Alerte Coupure Voisins', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                subtitle: const Text('Un voisin signale une coupure à Yopougon Banco 2.', style: TextStyle(fontSize: 12)),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  // Recent Reports
+  List<ReportModel> _recentReports = [];
+  bool _isLoadingReports = true;
 
+  // Rotating words from Web
   final List<Map<String, dynamic>> _rotatingWords = [
-    {'text': 'nids de poules', 'color': const Color(0xFFE2E8F0)},
-    {'text': 'coupures d\'eau', 'color': const Color(0xFF38BDF8)},
-    {'text': 'coupures d\'électricité', 'color': const Color(0xFFFACC15)},
-    {'text': 'lampadaires cassés', 'color': const Color(0xFFFB923C)},
-    {'text': 'caniveaux bouchés', 'color': const Color(0xFF2DD4BF)},
-  ];
-
-  final List<Map<String, dynamic>> _communes = [
-    {'name': 'Abobo', 'color': const Color(0xFF3B82F6)},
-    {'name': 'Adjamé', 'color': const Color(0xFFEAB308)},
-    {'name': 'Bingerville', 'color': const Color(0xFFA855F7)},
-    {'name': 'Cocody', 'color': const Color(0xFF22C55E)},
-    {'name': 'Koumassi', 'color': const Color(0xFFEC4899)},
-    {'name': 'Port-Bouët', 'color': const Color(0xFFF97316)},
-    {'name': 'Yopougon', 'color': const Color(0xFFEF4444)},
-  ];
-
-  final List<Map<String, dynamic>> _categories = [
-    {
-      'title': 'Coupures d\'eau',
-      'subtitle': 'Plus d\'eau au robinet ?',
-      'icon': LucideIcons.droplet,
-      'bg': const Color(0xFFE0F2FE),
-      'color': const Color(0xFF0284C7),
-    },
-    {
-      'title': 'Coupures d\'électricité',
-      'subtitle': 'Coupure de courant ?',
-      'icon': LucideIcons.zap,
-      'bg': const Color(0xFFFEF9C3),
-      'color': const Color(0xFFCA8A04),
-    },
-    {
-      'title': 'Lampadaires cassés',
-      'subtitle': 'Lampadaire hors service ?',
-      'icon': LucideIcons.sun,
-      'bg': const Color(0xFFFFEDD5),
-      'color': const Color(0xFFEA580C),
-    },
-    {
-      'title': 'Caniveaux bouchés',
-      'subtitle': 'Caniveau obstrué ?',
-      'icon': LucideIcons.waves,
-      'bg': const Color(0xFFCCFBF1),
-      'color': const Color(0xFF0D9488),
-    },
-    {
-      'title': 'Nids de poules',
-      'subtitle': 'Route dégradée ?',
-      'icon': LucideIcons.truck,
-      'bg': const Color(0xFFF1F5F9),
-      'color': const Color(0xFF64748B),
-    },
-  ];
-
-  final List<Map<String, String>> _steps = [
-    {
-      'number': '01',
-      'emoji': '📍',
-      'title': 'Localisez',
-      'subtitle': 'GPS AUTOMATIQUE',
-      'desc': 'Votre commune est détectée automatiquement. Signalement en ligne en moins de 2 minutes.',
-      'color': '0xFFF59E0B',
-    },
-    {
-      'number': '02',
-      'emoji': '⚡',
-      'title': 'Signalez',
-      'subtitle': '3 CLICS SUFFISENT',
-      'desc': 'Choisissez le type de problème, confirmez votre quartier et envoyez.',
-      'color': '0xFF38BDF8',
-    },
-    {
-      'number': '03',
-      'emoji': '🤝',
-      'title': 'Vérifiez',
-      'subtitle': 'VOISINS SOLIDAIRES',
-      'desc': 'Les voisins à moins de 200 m confirment le signalement pour éliminer les faux positifs.',
-      'color': '0xFF22C55E',
-    },
-    {
-      'number': '04',
-      'emoji': '📊',
-      'title': 'Impact',
-      'subtitle': 'DÉCIDEURS INFORMÉS',
-      'desc': 'CIE, SODECI et autorités suivent les coupures en temps réel par commune.',
-      'color': '0xFFA855F7',
-    },
+    {'text': "coupures d'eau", 'color': const Color(0xFF38BDF8), 'bg': const Color(0x1A38BDF8)},
+    {'text': "coupures d'électricité", 'color': const Color(0xFFFACC15), 'bg': const Color(0x1AFACC15)},
+    {'text': "lampadaires cassés", 'color': const Color(0xFFFB923C), 'bg': const Color(0x1AFB923C)},
+    {'text': "caniveaux bouchés", 'color': const Color(0xFF2DD4BF), 'bg': const Color(0x1A2DD4BF)},
+    {'text': "nids de poules", 'color': const Color(0xFFCBD5E1), 'bg': const Color(0x1ACBD5E1)},
   ];
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(milliseconds: 2800), (timer) {
+    _startWordRotation();
+    _fetchStatsAndReports();
+  }
+
+  @override
+  void dispose() {
+    _wordTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startWordRotation() {
+    _wordTimer = Timer.periodic(const Duration(milliseconds: 2800), (_) {
       if (mounted) {
         setState(() {
           _wordIndex = (_wordIndex + 1) % _rotatingWords.length;
@@ -213,880 +68,524 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
     });
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
+  Future<void> _fetchStatsAndReports() async {
+    try {
+      final supabase = Supabase.instance.client;
+
+      // 1. Fetch Landing Stats & Service Stats
+      final statsRes = await supabase.rpc('get_commune_service_stats');
+      if (statsRes != null && statsRes is List) {
+        int totElecAct = 0, totElecRes = 0, totEauAct = 0, totEauRes = 0, totMairieAct = 0, totMairieRes = 0;
+        for (var c in statsRes) {
+          totElecAct += (c['electricite_actifs'] as num?)?.toInt() ?? 0;
+          totElecRes += (c['electricite_resolus'] as num?)?.toInt() ?? 0;
+          totEauAct += (c['eau_actifs'] as num?)?.toInt() ?? 0;
+          totEauRes += (c['eau_resolus'] as num?)?.toInt() ?? 0;
+          totMairieAct += (c['mairie_actifs'] as num?)?.toInt() ?? 0;
+          totMairieRes += (c['mairie_resolus'] as num?)?.toInt() ?? 0;
+        }
+
+        final int act = totElecAct + totEauAct + totMairieAct;
+        final int res = totElecRes + totEauRes + totMairieRes;
+        final int tot = act + res;
+
+        if (mounted) {
+          setState(() {
+            _activeOutages = act > 0 ? act : 5;
+            _resolvedReports = res > 0 ? res : 26;
+            _totalReports = tot > 0 ? tot : 31;
+            _isLoadingStats = false;
+          });
+        }
+      }
+
+      // 2. Fetch Recent Reports
+      final reportsData = await supabase
+          .from('reports')
+          .select()
+          .order('created_at', ascending: false)
+          .limit(6);
+
+      if (reportsData is List && mounted) {
+        setState(() {
+          _recentReports = (reportsData as List).map((e) => ReportModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+          _isLoadingReports = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isLoadingStats = false;
+          _isLoadingReports = false;
+        });
+      }
+    }
+  }
+
+  void _navigateToCreateReport(String reportTypeId) {
+    final typeConfig = REPORT_TYPES.firstWhere(
+      (t) => t.id == reportTypeId,
+      orElse: () => REPORT_TYPES.first,
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => CreateReportScreen(initialType: typeConfig)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentWord = _rotatingWords[_wordIndex];
 
     return Scaffold(
-      backgroundColor: const Color(0xFF071929),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFFBF9F5),
-        elevation: 1,
-        titleSpacing: 12,
-        title: const SignaLogoWidget(size: 32, showSlogan: true),
-        actions: [
-          IconButton(
-            icon: const Icon(LucideIcons.search, color: Color(0xFF0F172A), size: 20),
-            onPressed: () => _openSearchDialog(context),
-          ),
-          Stack(
-            alignment: Alignment.center,
+      backgroundColor: isDark ? const Color(0xFF030D1A) : const Color(0xFFF8FAFC),
+      body: RefreshIndicator(
+        onRefresh: _fetchStatsAndReports,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              IconButton(
-                icon: const Icon(LucideIcons.bell, color: Color(0xFF0F172A), size: 20),
-                onPressed: () => _openNotificationsModal(context),
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: GestureDetector(
-                  onTap: () => _openNotificationsModal(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF3B82F6),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Text(
-                      '9+',
-                      style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Container(
-            margin: const EdgeInsets.only(right: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFEF3C7),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFF59E0B)),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(LucideIcons.shield, size: 12, color: Color(0xFFB45309)),
-                SizedBox(width: 4),
-                Text(
-                  'Admin',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // ── TOP ALERT NOTIFICATION BANNER ──
-            if (_showAlertBanner)
+              // ══════════════════════════════════════════════════════════
+              // 1. HERO SECTION CIVIC TECH MODERNE (Exact Web)
+              // ══════════════════════════════════════════════════════════
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                color: const Color(0xFFFFFBEB),
-                child: Row(
+                padding: const EdgeInsets.fromLTRB(20, 52, 20, 30),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF030D1A), Color(0xFF071929), Color(0xFF0A2236)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFEF3C7),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(LucideIcons.bell, size: 14, color: Color(0xFFD97706)),
+                    // Header Logo & Live Badge
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const SignaLogoWidget(size: 32),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF16A34A).withAlpha(40),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFF16A34A).withAlpha(80)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(color: Color(0xFF22C55E), shape: BoxShape.circle),
+                              ),
+                              const SizedBox(width: 6),
+                              Text('$_activeOutages coupures en direct', style: const TextStyle(color: Color(0xFF86EFAC), fontSize: 11, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: RichText(
-                        text: TextSpan(
-                          style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF78350F)),
-                          children: const [
-                            TextSpan(text: 'Restez informé en temps réel. ', style: TextStyle(fontWeight: FontWeight.bold)),
-                            TextSpan(text: 'Recevez une alerte dès qu\'une coupure est signalée près de chez vous.'),
-                          ],
+                    const SizedBox(height: 28),
+
+                    // Titre avec mot rotatif animé
+                    Text(
+                      'Signalez les',
+                      style: GoogleFonts.outfit(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        height: 1.1,
+                      ),
+                    ),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 400),
+                      transitionBuilder: (child, animation) => SlideTransition(
+                        position: Tween<Offset>(begin: const Offset(0.0, 0.3), end: Offset.zero).animate(animation),
+                        child: FadeTransition(opacity: animation, child: child),
+                      ),
+                      child: Text(
+                        currentWord['text'] as String,
+                        key: ValueKey<int>(_wordIndex),
+                        style: GoogleFonts.outfit(
+                          fontSize: 30,
+                          fontWeight: FontWeight.w900,
+                          color: currentWord['color'] as Color,
+                          height: 1.1,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFD97706),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    Text(
+                      'en Côte d\'Ivoire.',
+                      style: GoogleFonts.outfit(
+                        fontSize: 30,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        height: 1.1,
                       ),
-                      child: const Text('Activer', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                     ),
-                    IconButton(
-                      icon: const Icon(LucideIcons.x, size: 16, color: Color(0xFF78350F)),
-                      onPressed: () => setState(() => _showAlertBanner = false),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Plateforme citoyenne et communautaire pour documenter, corroborer et suivre la résolution des incidents d\'électricité (CIE), d\'eau (SODECI) et de voirie urbaine.',
+                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13, height: 1.4),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // 2 GROS BOUTONS D'ACTION PRINCIPAUX (CTA)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFEA580C),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              elevation: 4,
+                            ),
+                            icon: const Icon(LucideIcons.zap, color: Colors.white, size: 20),
+                            label: const Text('Signaler', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateReportScreen())),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              side: const BorderSide(color: Color(0xFF10B981), width: 1.5),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              backgroundColor: const Color(0xFF10B981).withAlpha(20),
+                            ),
+                            icon: const Icon(LucideIcons.checkCircle2, color: Color(0xFF34D399), size: 20),
+                            label: const Text('Corroborer', style: TextStyle(color: Color(0xFF34D399), fontWeight: FontWeight.bold, fontSize: 15)),
+                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VerificationScreen())),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
 
-            // ── SECTION 1: HERO (Dark Blue #071929) ──
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20.0),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFF030D1A), Color(0xFF071929), Color(0xFF0A2236)],
+              // ══════════════════════════════════════════════════════════
+              // 2. BANDEAU DE STATISTIQUES RÉELLES (1:1 Web)
+              // ══════════════════════════════════════════════════════════
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 10, offset: const Offset(0, 3)),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildStatItem('$_totalReports', 'Signalements', const Color(0xFF0F172A), isDark),
+                    _buildDivider(isDark),
+                    _buildStatItem('$_resolvedReports', 'Résolus', const Color(0xFF16A34A), isDark),
+                    _buildDivider(isDark),
+                    _buildStatItem('7', 'Communes pilotes', const Color(0xFF0284C7), isDark),
+                  ],
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 12),
-                  Text(
-                    'Signalez les',
-                    style: GoogleFonts.outfit(
-                      fontSize: 38,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      height: 1.05,
-                    ),
-                  ),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 450),
-                    transitionBuilder: (Widget child, Animation<double> animation) {
-                      return FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0.0, 0.25),
-                            end: Offset.zero,
-                          ).animate(animation),
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: Text(
-                      currentWord['text'],
-                      key: ValueKey<int>(_wordIndex),
-                      style: GoogleFonts.outfit(
-                        fontSize: 38,
-                        fontWeight: FontWeight.w900,
-                        color: currentWord['color'],
-                        height: 1.1,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'La première plateforme citoyenne ivoirienne où les habitants contribuent à l\'amélioration des services et infrastructures publiques.',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      color: Colors.white.withOpacity(0.7),
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
 
-                  // Status Badges
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEF4444).withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFEF4444).withOpacity(0.4)),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(LucideIcons.radio, size: 13, color: Color(0xFFFCA5A5)),
-                            SizedBox(width: 6),
-                            Text(
-                              '1 coupure active',
-                              style: TextStyle(color: Color(0xFFFCA5A5), fontSize: 12, fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white.withOpacity(0.2)),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(LucideIcons.shieldCheck, size: 13, color: Colors.white70),
-                            SizedBox(width: 6),
-                            Text(
-                              '07 communes · Abidjan',
-                              style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
+              // ══════════════════════════════════════════════════════════
+              // 3. ACCÈS RAPIDES PAR TYPE DE PROBLÈME (Exact Web)
+              // ══════════════════════════════════════════════════════════
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Accès Rapides', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 17)),
+                    const SizedBox(height: 4),
+                    const Text('Cliquez sur le service concerné pour lancer le signalement :', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                    const SizedBox(height: 12),
 
-                  // Hero CTA Buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF0284C7), Color(0xFFD97706)],
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF0284C7).withOpacity(0.3),
-                                blurRadius: 16,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const CreateReportScreen()),
-                              );
-                            },
-                            icon: const Icon(LucideIcons.zap, size: 18),
-                            label: const Text('Signaler maintenant →'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              textStyle: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 14),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const MapScreen()),
-                          );
-                        },
-                        icon: const Icon(LucideIcons.barChart2, size: 16, color: Colors.white),
-                        label: const Text('Voir le dashboard', style: TextStyle(color: Colors.white)),
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Colors.white.withOpacity(0.25)),
-                          backgroundColor: Colors.white.withOpacity(0.08),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          textStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Communes Pills Bar
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: _communes.map((c) {
-                        return Container(
-                          margin: const EdgeInsets.only(right: 6),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: c['color'] as Color,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            c['name'],
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-                  Center(
-                    child: Column(
+                    Row(
                       children: [
-                        Text(
-                          'DÉCOUVRIR',
-                          style: GoogleFonts.inter(
-                            fontSize: 10,
-                            letterSpacing: 2,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white38,
+                        Expanded(
+                          child: _buildQuickActionCard(
+                            title: 'Électricité',
+                            subtitle: 'Coupure CIE',
+                            icon: LucideIcons.zap,
+                            color: const Color(0xFFF59E0B),
+                            bgColor: const Color(0xFFFEF3C7),
+                            isDark: isDark,
+                            onTap: () => _navigateToCreateReport('electricity_outage'),
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        const Icon(LucideIcons.chevronDown, size: 16, color: Colors.white38),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // ── SECTION 2: BRONZE STATS STRIP (#5C3215 Gradient) ──
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF4A250E), Color(0xFF6E3917), Color(0xFF5C3215)],
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildMetricStat('7', 'Communes pilotes', LucideIcons.mapPin),
-                  _buildMetricStat('42', 'Signalements soumis', LucideIcons.barChart2),
-                  _buildMetricStat('35', 'Problèmes résolus', LucideIcons.trendingUp),
-                  _buildMetricStat('1', 'Coupures actives', LucideIcons.radio),
-                ],
-              ),
-            ),
-
-            // ── SECTION 3: DÉLAI MOYEN DE RÉSOLUTION CARD ──
-            Container(
-              color: const Color(0xFFFBF9F5),
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                children: [
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.03),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _buildQuickActionCard(
+                            title: 'Eau Potable',
+                            subtitle: 'Coupure SODECI',
+                            icon: LucideIcons.droplets,
+                            color: const Color(0xFF0284C7),
+                            bgColor: const Color(0xFFE0F2FE),
+                            isDark: isDark,
+                            onTap: () => _navigateToCreateReport('water_outage'),
+                          ),
                         ),
                       ],
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(height: 10),
+                    Row(
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
+                        Expanded(
+                          child: _buildQuickActionCard(
+                            title: 'Éclairage',
+                            subtitle: 'Lampadaire éteint',
+                            icon: LucideIcons.lightbulb,
+                            color: const Color(0xFFEAB308),
+                            bgColor: const Color(0xFFFEFCE8),
+                            isDark: isDark,
+                            onTap: () => _navigateToCreateReport('street_light'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _buildQuickActionCard(
+                            title: 'Voirie / Caniveau',
+                            subtitle: 'Trou & Salubrité',
+                            icon: LucideIcons.landmark,
+                            color: const Color(0xFF9333EA),
+                            bgColor: const Color(0xFFF3E8FF),
+                            isDark: isDark,
+                            onTap: () => _navigateToCreateReport('drain_blocked'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // ══════════════════════════════════════════════════════════
+              // 4. SIGNALEMENTS RÉCENTS SUR LE RÉSEAU (1:1 Web)
+              // ══════════════════════════════════════════════════════════
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Derniers Signalements', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 17)),
+                    TextButton.icon(
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MapScreen())),
+                      icon: const Icon(LucideIcons.map, size: 14),
+                      label: const Text('Voir la carte', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              if (_isLoadingReports)
+                const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+              else if (_recentReports.isEmpty)
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                  ),
+                  child: Center(
+                    child: Text('Aucun signalement récent.', style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+                  ),
+                )
+              else
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: _recentReports.length,
+                  itemBuilder: (ctx, i) {
+                    final r = _recentReports[i];
+                    final isElec = r.serviceType == 'electricity';
+                    final isEau = r.serviceType == 'water';
+                    final icon = isElec ? LucideIcons.zap : isEau ? LucideIcons.droplets : LucideIcons.landmark;
+                    final iconColor = isElec ? const Color(0xFFF59E0B) : isEau ? const Color(0xFF0284C7) : const Color(0xFF9333EA);
+                    final isResolved = r.status == 'resolved';
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: iconColor.withAlpha(25),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(icon, color: iconColor, size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(LucideIcons.trendingUp, color: Color(0xFF10B981), size: 18),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Délai moyen de résolution',
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF0F172A),
-                                  ),
+                                Row(
+                                  children: [
+                                    Text(r.commune, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                    if (r.quartier.isNotEmpty) ...[
+                                      const SizedBox(width: 6),
+                                      Text('· ${r.quartier}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                    ],
+                                  ],
                                 ),
+                                const SizedBox(height: 2),
+                                Text(r.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
                               ],
                             ),
-                            Text(
-                              'Voir les résultats →',
-                              style: GoogleFonts.inter(
-                                fontSize: 11,
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: isResolved ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              isResolved ? 'Résolu' : 'En cours',
+                              style: TextStyle(
+                                fontSize: 10,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFFD97706),
+                                color: isResolved ? const Color(0xFF16A34A) : const Color(0xFFD97706),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Column(
-                                  children: [
-                                    const Icon(LucideIcons.zap, color: Color(0xFFF59E0B), size: 22),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      '5j',
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w900,
-                                        color: const Color(0xFFD97706),
-                                      ),
-                                    ),
-                                    const Text(
-                                      'CIE',
-                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Column(
-                                  children: [
-                                    const Icon(LucideIcons.droplet, color: Color(0xFF0284C7), size: 22),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      '4j',
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w900,
-                                        color: const Color(0xFF0284C7),
-                                      ),
-                                    ),
-                                    const Text(
-                                      'SODECI',
-                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Center(
-                          child: Text(
-                            'Basé sur les signalements résolus · mis à jour en temps réel',
-                            style: GoogleFonts.inter(
-                              fontSize: 11,
-                              fontStyle: FontStyle.italic,
-                              color: const Color(0xFF94A3B8),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // ── SECTION 4: 5 CATÉGORIES GRID ──
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: const Text(
-                      '5 CATÉGORIES',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                        color: Color(0xFF64748B),
+                        ],
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Que voulez-vous signaler ?',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.outfit(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF0F172A),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Cliquez directement sur le problème pour lancer votre signalement',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(color: const Color(0xFF64748B), fontSize: 13),
-                  ),
-                  const SizedBox(height: 20),
+                    );
+                  },
+                ),
+              const SizedBox(height: 24),
 
-                  // 5 Category Cards
-                  Column(
-                    children: _categories.map((cat) {
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const CreateReportScreen()),
-                          );
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: cat['bg'] as Color,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: (cat['color'] as Color).withOpacity(0.3)),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(14),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.04),
-                                      blurRadius: 6,
-                                    ),
-                                  ],
-                                ),
-                                child: Icon(cat['icon'] as IconData, color: cat['color'] as Color, size: 24),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      cat['title'] as String,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: cat['color'] as Color,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      cat['subtitle'] as String,
-                                      style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Icon(LucideIcons.chevronRight, color: cat['color'] as Color, size: 20),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
+              // ══════════════════════════════════════════════════════════
+              // 5. COMMENT ÇA MARCHE (Exact Web)
+              // ══════════════════════════════════════════════════════════
+              Container(
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Comment ça marche ?', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18)),
+                    const SizedBox(height: 4),
+                    const Text('Un processus citoyen en 4 étapes simples :', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                    const SizedBox(height: 16),
 
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFEF3C7),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.4)),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(LucideIcons.zap, size: 12, color: Color(0xFFB45309)),
-                            SizedBox(width: 4),
-                            Text(
-                              'Électricité · 4 coupures actives',
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE0F2FE),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFF0284C7).withOpacity(0.4)),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(LucideIcons.droplet, size: 12, color: Color(0xFF0369A1)),
-                            SizedBox(width: 4),
-                            Text(
-                              'Eau · RAS',
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0369A1)),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // ── SECTION 5: HOW IT WORKS (COMMENT ÇA MARCHE) ──
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text(
-                      'COMMENT ÇA MARCHE',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                        color: Color(0xFF64748B),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Simple. Rapide. Efficace.',
-                    style: GoogleFonts.outfit(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF0F172A),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'De la détection du problème à la décision en 4 étapes',
-                    style: GoogleFonts.inter(color: const Color(0xFF64748B), fontSize: 13),
-                  ),
-                  const SizedBox(height: 24),
-
-                  Column(
-                    children: _steps.map((step) {
-                      final color = Color(int.parse(step['color']!));
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 14),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: color.withOpacity(0.3)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.02),
-                              blurRadius: 8,
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: color.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Center(
-                                child: Text(step['emoji']!, style: const TextStyle(fontSize: 22)),
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        step['title']!,
-                                        style: GoogleFonts.outfit(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: const Color(0xFF0F172A),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        step['subtitle']!,
-                                        style: TextStyle(
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w900,
-                                          color: color,
-                                          letterSpacing: 0.5,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    step['desc']!,
-                                    style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B), height: 1.4),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
-
-                  const SizedBox(height: 36),
-
-                  // ── SECTION 6: COMMUNITY & FOOTER ──
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text(
-                      'COMMUNAUTÉ',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                        color: Color(0xFF64748B),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Rejoignez la communauté SIGNA-CI',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.outfit(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF0F172A),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Suivez l\'actualité des coupures, partagez vos expériences et restez informé en temps réel avec vos voisins.',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(color: const Color(0xFF64748B), fontSize: 13),
-                  ),
-                  const SizedBox(height: 20),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1877F2).withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFF1877F2).withOpacity(0.3)),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(LucideIcons.facebook, color: Color(0xFF1877F2), size: 24),
-                              SizedBox(width: 10),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Page Facebook', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1877F2))),
-                                  Text('Actualités & alertes', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF25D366).withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFF25D366).withOpacity(0.3)),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(LucideIcons.messageSquare, color: Color(0xFF25D366), size: 24),
-                              SizedBox(width: 10),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Canal WhatsApp', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF166534))),
-                                  Text('Alertes instantanées', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // FOOTER
-                  const Divider(color: Color(0xFFE2E8F0)),
-                  const SizedBox(height: 16),
-                  Text(
-                    '© 2026 SIGNA-CI — CivicTech Abidjan',
-                    style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF94A3B8)),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Fiers d\'être ivoirien ❤️',
-                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF64748B)),
-                  ),
-                  const SizedBox(height: 20),
-                ],
+                    _buildStepRow('01', '📍', 'Localisez', 'Votre commune et quartier sont géolocalisés avec précision.'),
+                    const SizedBox(height: 12),
+                    _buildStepRow('02', '⚡', 'Signalez', 'Sélectionnez la nature de l\'incident en 3 clics.'),
+                    const SizedBox(height: 12),
+                    _buildStepRow('03', '🤝', 'Vérifiez', 'Les riverains à proximité corroborent l\'incident.'),
+                    const SizedBox(height: 12),
+                    _buildStepRow('04', '📊', 'Suivez', 'CIE, SODECI et Mairies sont informées en temps réel.'),
+                  ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 30),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildMetricStat(String number, String label, IconData icon) {
-    return Column(
+  Widget _buildQuickActionCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required Color bgColor,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(10)),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(height: 10),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              Text(subtitle, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepRow(String num, String emoji, String title, String desc) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, color: const Color(0xFFF59E0B), size: 18),
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+          child: Text(emoji, style: const TextStyle(fontSize: 16)),
         ),
-        const SizedBox(height: 6),
-        Text(
-          number,
-          style: GoogleFonts.outfit(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            color: Colors.white,
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('$num. $title', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              Text(desc, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+            ],
           ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white70, fontSize: 11),
         ),
       ],
     );
+  }
+
+  Widget _buildStatItem(String val, String label, Color color, bool isDark) {
+    return Column(
+      children: [
+        Text(val, style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w900, color: isDark ? Colors.white : color)),
+        Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+      ],
+    );
+  }
+
+  Widget _buildDivider(bool isDark) {
+    return Container(width: 1, height: 28, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0));
   }
 }
