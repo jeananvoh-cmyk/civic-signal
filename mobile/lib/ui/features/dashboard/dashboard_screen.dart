@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/constants/communes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/repositories/report_repository.dart';
 import '../../../domain/models/report_model.dart';
@@ -61,16 +62,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // Realtime
   RealtimeChannel? _realtimeChannel;
-
-  final List<Map<String, dynamic>> _communeConfig = [
-    {'name': 'Cocody', 'color': Color(0xFF10B981), 'pop': 600000},
-    {'name': 'Yopougon', 'color': Color(0xFFF59E0B), 'pop': 1500000},
-    {'name': 'Abobo', 'color': Color(0xFFEF4444), 'pop': 1300000},
-    {'name': 'Koumassi', 'color': Color(0xFF8B5CF6), 'pop': 500000},
-    {'name': 'Marcory', 'color': Color(0xFF06B6D4), 'pop': 300000},
-    {'name': 'Port-Bouët', 'color': Color(0xFF3B82F6), 'pop': 400000},
-    {'name': 'Treichville', 'color': Color(0xFFEC4899), 'pop': 200000},
-  ];
 
   @override
   void initState() {
@@ -135,7 +126,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _fetchDashboardData() async {
     try {
-      final reports = await _repo.fetchReports(limit: 200);
+      final reports = await _repo.fetchReports(limit: 250);
 
       int elecAct = 0, elecRes = 0, elecTot = 0, elecVer = 0;
       int eauAct = 0, eauRes = 0, eauTot = 0, eauVer = 0;
@@ -284,30 +275,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final int mairiePct = _totalMairieTotal > 0 ? ((_totalMairieResolus / _totalMairieTotal) * 100).round() : 0;
 
     final canValidate = _isAdmin || _isModerator;
-    final String dashboardTitle = _isAdmin ? "Tableau opérateur" : _isModerator ? "Tableau modérateur" : "Tableau de bord";
+    final String dashboardTitle = _isAdmin ? "Tableau opérateur" : _isModerator ? "Tableau modérateur" : "Situation en direct";
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFFBF9F5),
       appBar: AppBar(
         backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         elevation: 1,
-        title: Row(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(dashboardTitle, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18)),
-            if (_isModerator) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryTeal.withAlpha(30),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  _moderatorName.isNotEmpty ? _moderatorName : 'Modérateur',
-                  style: const TextStyle(color: AppTheme.primaryTeal, fontSize: 10, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
+            Row(
+              children: [
+                Text(dashboardTitle, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 17)),
+                if (_isModerator) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1.5),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryTeal.withAlpha(30),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      _moderatorName.isNotEmpty ? _moderatorName : 'Modérateur',
+                      style: const TextStyle(color: AppTheme.primaryTeal, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            Row(
+              children: const [
+                Text('7 communes pilotes — Abidjan', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                SizedBox(width: 6),
+                Icon(LucideIcons.radio, size: 10, color: Color(0xFF16A34A)),
+                SizedBox(width: 2),
+                Text('Live', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF16A34A))),
+              ],
+            ),
           ],
         ),
         actions: [
@@ -316,7 +321,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onPressed: () {
               Clipboard.setData(ClipboardData(text: 'SIGNA·CI — $_totalActifs coupures actives signalées sur Abidjan. Suivez la situation en direct sur https://signa.ci'));
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Lien du tableau de bord copié dans le presse-papiers !'), backgroundColor: AppTheme.secondaryEmerald),
+                const SnackBar(content: Text('Lien copié dans le presse-papiers !'), backgroundColor: AppTheme.secondaryEmerald),
               );
             },
           ),
@@ -428,7 +433,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryTeal, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
                             icon: const Icon(LucideIcons.send, size: 14, color: Colors.white),
-                            label: const Text('Relais Opérateurs', style: TextStyle(color: Colors.white, fontSize: 11)),
+                            label: const Text('Relais Opérateurs & Mairies', style: TextStyle(color: Colors.white, fontSize: 11)),
                             onPressed: () {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Module Relais Opérateurs activé.')),
@@ -939,7 +944,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 24),
 
               // ══════════════════════════════════════════════════════════
-              // 10. CLASSEMENT DES COUPURES PAR COMMUNE (Leaderboard)
+              // 10. CLASSEMENT DES COUPURES PAR COMMUNE (LEADERBOARD AVEC LOGOS OFFICIELS)
               // ══════════════════════════════════════════════════════════
               Container(
                 decoration: BoxDecoration(
@@ -970,25 +975,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ListView.separated(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _communeConfig.length,
+                        itemCount: PILOT_COMMUNES.length,
                         separatorBuilder: (_, __) => const Divider(height: 1),
                         itemBuilder: (ctx, idx) {
-                          final c = _communeConfig[idx];
-                          final cName = c['name'] as String;
-                          final cReports = _allReports.where((r) => r.commune.toLowerCase() == cName.toLowerCase() && r.status == 'active').toList();
+                          final c = PILOT_COMMUNES[idx];
+                          final cReports = _allReports.where((r) => r.commune.toLowerCase() == c.nom.toLowerCase() && r.status == 'active').toList();
+                          final medal = idx == 0 ? "🥇" : idx == 1 ? "🥈" : idx == 2 ? "🥉" : "#${idx + 1}";
                           return Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                             child: Row(
                               children: [
-                                Text('#${idx + 1}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
+                                Text(medal, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
                                 const SizedBox(width: 10),
+                                // LOGO OFFICIEL COMMUNE
                                 Container(
-                                  width: 10,
-                                  height: 10,
-                                  decoration: BoxDecoration(color: c['color'] as Color, shape: BoxShape.circle),
+                                  width: 32,
+                                  height: 32,
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: Image.asset(
+                                    c.logoAsset,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      color: c.couleur,
+                                      alignment: Alignment.center,
+                                      child: Text(c.nom[0], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                    ),
+                                  ),
                                 ),
-                                const SizedBox(width: 8),
-                                Expanded(child: Text(cName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                                const SizedBox(width: 10),
+                                Expanded(child: Text(c.nom, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: c.couleur))),
                                 Text('${cReports.length} actives', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF0F172A))),
                               ],
                             ),
@@ -1002,7 +1022,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 24),
 
               // ══════════════════════════════════════════════════════════
-              // 11. DÉTAIL PAR COMMUNE AVEC FILTRE DROPDOWN (Exact Web)
+              // 11. DÉTAIL PAR COMMUNE AVEC FILTRE ALPHABÉTIQUE & LOGOS (1:1 Web)
               // ══════════════════════════════════════════════════════════
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1013,9 +1033,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     underline: const SizedBox(),
                     items: [
                       const DropdownMenuItem(value: 'all', child: Text('Toutes les communes', style: TextStyle(fontSize: 12))),
-                      ..._communeConfig.map((c) => DropdownMenuItem(
-                        value: c['name'] as String,
-                        child: Text(c['name'] as String, style: const TextStyle(fontSize: 12)),
+                      ...PILOT_COMMUNES.map((c) => DropdownMenuItem(
+                        value: c.nom,
+                        child: Row(
+                          children: [
+                            Container(width: 8, height: 8, decoration: BoxDecoration(color: c.couleur, shape: BoxShape.circle)),
+                            const SizedBox(width: 6),
+                            Text(c.nom, style: const TextStyle(fontSize: 12)),
+                          ],
+                        ),
                       )),
                     ],
                     onChanged: (v) => setState(() => _selectedCommune = v!),
@@ -1026,62 +1052,178 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: _communeConfig.where((c) => _selectedCommune == 'all' || c['name'] == _selectedCommune).length,
+                itemCount: PILOT_COMMUNES.where((c) => _selectedCommune == 'all' || c.nom == _selectedCommune).length,
                 itemBuilder: (ctx, i) {
-                  final c = _communeConfig.where((c) => _selectedCommune == 'all' || c['name'] == _selectedCommune).toList()[i];
-                  final cName = c['name'] as String;
-                  final cColor = c['color'] as Color;
-                  final int pop = c['pop'] as int;
+                  final c = PILOT_COMMUNES.where((c) => _selectedCommune == 'all' || c.nom == _selectedCommune).toList()[i];
+                  final cReports = _allReports.where((r) => r.commune.toLowerCase() == c.nom.toLowerCase()).toList();
 
-                  final cReports = _allReports.where((r) => r.commune.toLowerCase() == cName.toLowerCase()).toList();
-                  final cActive = cReports.where((r) => r.status == 'active').length;
-                  final cResolved = cReports.where((r) => r.status == 'resolved').length;
+                  final cElecActive = cReports.where((r) => r.status == 'active' && (r.serviceType.contains('elec') || r.serviceType == 'electricity')).length;
+                  final cElecResolved = cReports.where((r) => r.status == 'resolved' && (r.serviceType.contains('elec') || r.serviceType == 'electricity')).length;
+
+                  final cEauActive = cReports.where((r) => r.status == 'active' && (r.serviceType.contains('eau') || r.serviceType == 'water')).length;
+                  final cEauResolved = cReports.where((r) => r.status == 'resolved' && (r.serviceType.contains('eau') || r.serviceType == 'water')).length;
+
+                  final cMairieActive = cReports.where((r) => r.status == 'active' && (r.reportCategory == 'infrastructure' || r.serviceType == 'mairie')).length;
+                  final cMairieResolved = cReports.where((r) => r.status == 'resolved' && (r.reportCategory == 'infrastructure' || r.serviceType == 'mairie')).length;
+
+                  final int totalSignalements = cReports.length;
+                  final double pctPop = c.population > 0 ? (totalSignalements / c.population) * 100 : 0;
+                  final String pctPopDisplay = pctPop < 0.01 && totalSignalements > 0 ? "<0.01" : pctPop.toStringAsFixed(2);
+                  final int capacite = c.population ~/ 2;
+                  final double tauxCapacite = capacite > 0 ? ((totalSignalements / capacite) * 100).clamp(1.0, 100.0) : 1.0;
 
                   return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(14),
+                    margin: const EdgeInsets.only(bottom: 14),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 6, offset: const Offset(0, 2)),
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Header avec Logo Officiel de la Commune
                         Row(
                           children: [
                             Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(color: cColor, shape: BoxShape.circle),
+                              width: 44,
+                              height: 44,
+                              padding: const EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                              ),
+                              child: Image.asset(
+                                c.logoAsset,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => Container(
+                                  color: c.couleur,
+                                  alignment: Alignment.center,
+                                  child: Text(c.nom[0], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                ),
+                              ),
                             ),
-                            const SizedBox(width: 8),
-                            Text(cName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: cColor)),
-                            const Spacer(),
-                            Text('${(pop / 1000).toStringAsFixed(0)}k hab.', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(c.nom, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: c.couleur)),
+                                      Text('$pctPopDisplay% de la pop.', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: c.couleur)),
+                                    ],
+                                  ),
+                                  Text('${(c.population / 1000).toStringAsFixed(0)}k habitants', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
+
+                        // Barre de capacité
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: tauxCapacite / 100.0,
+                            backgroundColor: const Color(0xFFE2E8F0),
+                            valueColor: AlwaysStoppedAnimation<Color>(c.couleur),
+                            minHeight: 6,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // 3 Mini-Cartes : CIE, SODECI, Mairie
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                            Column(
-                              children: [
-                                Text('$cActive', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFFEA580C))),
-                                const Text('Actifs', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                              ],
+                            // CIE
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFEF3C7).withAlpha(60),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: const Color(0xFFFDE68A)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: const [
+                                        Icon(LucideIcons.zap, size: 12, color: Color(0xFFD97706)),
+                                        SizedBox(width: 4),
+                                        Text('CIE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF92400E))),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text('$cElecActive actifs', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFFD97706))),
+                                    Text('$cElecResolved résolus', style: const TextStyle(fontSize: 10, color: Color(0xFF16A34A))),
+                                  ],
+                                ),
+                              ),
                             ),
-                            Column(
-                              children: [
-                                Text('$cResolved', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF16A34A))),
-                                const Text('Résolus', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                              ],
+                            const SizedBox(width: 8),
+
+                            // SODECI
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE0F2FE).withAlpha(60),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: const Color(0xFFBAE6FD)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: const [
+                                        Icon(LucideIcons.droplets, size: 12, color: Color(0xFF0284C7)),
+                                        SizedBox(width: 4),
+                                        Text('SODECI', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF075985))),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text('$cEauActive actifs', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF0284C7))),
+                                    Text('$cEauResolved résolus', style: const TextStyle(fontSize: 10, color: Color(0xFF16A34A))),
+                                  ],
+                                ),
+                              ),
                             ),
-                            Column(
-                              children: [
-                                Text('${cReports.length}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0F172A))),
-                                const Text('Total', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                              ],
+                            const SizedBox(width: 8),
+
+                            // Mairie
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF3E8FF).withAlpha(60),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: const Color(0xFFE9D5FF)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: const [
+                                        Icon(LucideIcons.landmark, size: 12, color: Color(0xFF9333EA)),
+                                        SizedBox(width: 4),
+                                        Text('Mairie', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF6B21A8))),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text('$cMairieActive actifs', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF9333EA))),
+                                    Text('$cMairieResolved réparés', style: const TextStyle(fontSize: 10, color: Color(0xFF16A34A))),
+                                  ],
+                                ),
+                              ),
                             ),
                           ],
                         ),
