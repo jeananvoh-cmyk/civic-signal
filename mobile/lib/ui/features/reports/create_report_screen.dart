@@ -8,7 +8,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/supabase_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/repositories/report_repository.dart';
-import '../home/home_screen.dart';
 
 class CreateReportScreen extends ConsumerStatefulWidget {
   const CreateReportScreen({super.key});
