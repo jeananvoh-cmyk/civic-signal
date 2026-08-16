@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../core/theme/app_theme.dart';
+import '../dashboard/dashboard_screen.dart';
 import '../landing/landing_screen.dart';
 import '../map/map_screen.dart';
 import '../profile/profile_screen.dart';
 import '../reports/create_report_screen.dart';
-import '../trends/trends_screen.dart';
+import '../verification/verification_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -25,8 +26,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         index: _currentIndex,
         children: const [
           LandingScreen(),
+          DashboardScreen(),
           MapScreen(),
-          TrendsScreen(),
+          VerificationScreen(),
           ProfileScreen(),
         ],
       ),
@@ -57,12 +59,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             label: 'Accueil',
           ),
           BottomNavigationBarItem(
+            icon: Icon(LucideIcons.layoutDashboard),
+            label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(LucideIcons.map),
             label: 'Carte',
           ),
           BottomNavigationBarItem(
-            icon: Icon(LucideIcons.barChart2),
-            label: 'Tendances',
+            icon: Icon(LucideIcons.users),
+            label: 'Voisins',
           ),
           BottomNavigationBarItem(
             icon: Icon(LucideIcons.userCheck),

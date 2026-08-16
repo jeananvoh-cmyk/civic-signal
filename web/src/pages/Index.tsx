@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { SOCIAL_LINKS } from "@/lib/social-links";
-import SOSButtons from "@/components/SOSButtons";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -395,13 +394,6 @@ const Index = () => {
   const [showElecBanner, setShowElecBanner] = useState(
     () => localStorage.getItem("signa_elec_feature_v1") !== "dismissed"
   );
-
-  // Redirection automatique native mobile vers le Tableau de Bord
-  useEffect(() => {
-    if (Capacitor.isNativePlatform()) {
-      navigate("/tableau-de-bord", { replace: true });
-    }
-  }, [navigate]);
 
   // Batch landing stats + transparency stats — 1 round-trip instead of 2
   useEffect(() => {
@@ -1160,8 +1152,6 @@ const Index = () => {
       )}
 
       <Footer />
-
-      <SOSButtons />
     </div>
   );
 };

@@ -5,36 +5,87 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/repositories/report_repository.dart';
 
+import '../auth/auth_screen.dart';
+
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = Supabase.instance.client.auth.currentUser;
-    final String userEmail = user?.email ?? 'citoyen.abidjan@signa.ci';
+    final String userEmail = user?.email ?? 'Non connecté';
     final reportsAsync = ref.watch(reportsProvider(null));
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profil & CitizenScore', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
-          IconButton(
-            icon: const Icon(LucideIcons.logOut, color: AppTheme.dangerRose),
-            onPressed: () async {
-              await Supabase.instance.client.auth.signOut();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Déconnexion effectuée.')),
+          if (user != null)
+            IconButton(
+              icon: const Icon(LucideIcons.logOut, color: AppTheme.dangerRose),
+              onPressed: () async {
+                await Supabase.instance.client.auth.signOut();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Déconnexion effectuée.')),
+                  );
+                }
+              },
+            )
+          else
+            TextButton.icon(
+              icon: const Icon(LucideIcons.logIn, size: 18),
+              label: const Text('Connexion'),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (ctx) => const AuthScreen()),
                 );
-              }
-            },
-          ),
+              },
+            ),
         ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            if (user == null) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.amberAccent.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.amberAccent.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(LucideIcons.userPlus, color: AppTheme.amberAccent),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text('Connectez-vous à votre compte', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text('Accédez à vos signalements et synchronisez votre CitizenScore', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryTeal,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (ctx) => const AuthScreen()),
+                        );
+                      },
+                      child: const Text('Connexion'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             // ── CITIZEN SCORE CARD ──
             Container(
               padding: const EdgeInsets.all(20),

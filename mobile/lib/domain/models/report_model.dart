@@ -105,6 +105,7 @@ class ReportModel {
 
   bool get isOutage => reportCategory == 'outage';
   bool get isInfrastructure => reportCategory == 'infrastructure';
+  int get verifications => supportCount + repairVerifications;
 
   // ⏱️ Elapsed duration string (e.g. "< 2 min", "45 min", "3h 10min", "2j 5h")
   String get elapsedFormatted {
