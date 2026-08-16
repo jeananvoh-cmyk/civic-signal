@@ -10,8 +10,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/communes.dart';
 import '../../../core/constants/quartiers.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../domain/models/report_model.dart';
-import 'report_detail_screen.dart';
 
 // ─── Modèle de type de signalement (Miroir exact de Web ReportPage.tsx) ─────────
 class ReportTypeConfig {
