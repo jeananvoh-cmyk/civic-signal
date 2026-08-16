@@ -26,7 +26,6 @@ import { COMMUNES, type Commune } from "@/lib/communes";
 import { resolveCommune, type DetectionSource } from "@/lib/geolocation";
 import { getQuartiers, normalizeQuartier } from "@/lib/quartiers";
 import type { ServiceType } from "@/lib/data";
-import SOSButtons from "@/components/SOSButtons";
 import { fuiteEauIcon, caniveauIcon, voirieIcon, lampadaireIcon } from "@/lib/infra-icons";
 import QuartierSearch from "@/components/QuartierSearch";
 import OnboardingModal from "@/components/OnboardingModal";
@@ -494,6 +493,23 @@ const ReportPage = () => {
     }
 
     setGpsLoading(false);
+  };
+
+  const handleManualCommuneSelect = (selectedCommuneName: string) => {
+    const found = COMMUNES.find((c) => c.nom === selectedCommuneName);
+    if (!found) return;
+    setDetectedCommune(found);
+    setCommune(found.nom);
+    setOutsidePilotZone(false);
+    setGpsSource("manual");
+    if (latitude === null || longitude === null) {
+      setLatitude(found.centerLat);
+      setLongitude(found.centerLon);
+      setGpsAccuracy(1000);
+    }
+    toast.success(`Commune sélectionnée : ${found.nom}`, {
+      description: "Vous pouvez à présent choisir votre quartier ci-dessous.",
+    });
   };
 
   useEffect(() => { captureGPS(false); }, []);
@@ -1207,12 +1223,12 @@ const ReportPage = () => {
                       )}
                     </div>
 
-                    {/* Blocage hors zone pilote */}
-                    {!gpsLoading && (outsidePilotZone || (!detectedCommune && !gpsLoading)) && (
+                    {/* Fallback ou notification si GPS non détecté / hors zone */}
+                    {!gpsLoading && (!detectedCommune || outsidePilotZone) && (
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="rounded-2xl border-2 border-amber-500/30 bg-amber-500/5 p-5 text-center space-y-3"
+                        className="rounded-2xl border-2 border-amber-500/30 bg-amber-500/5 p-5 space-y-4 text-center"
                       >
                         <div className="flex justify-center">
                           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/15">
@@ -1222,12 +1238,12 @@ const ReportPage = () => {
                         <h3 className="font-bold text-foreground text-sm">
                           {outsidePilotZone
                             ? "Vous êtes en dehors de nos communes pilotes"
-                            : "Position GPS non disponible"}
+                            : "Position GPS non détectée"}
                         </h3>
                         <p className="text-xs text-muted-foreground leading-relaxed">
                           {outsidePilotZone
-                            ? "SIGNA·CI est actuellement disponible dans 7 communes d'Abidjan : Abobo, Adjamé, Bingerville, Cocody, Koumassi, Port-Bouët et Yopougon. Nous travaillons à étendre notre couverture très bientôt."
-                            : "Pour signaler un problème, nous avons besoin de votre position GPS afin de vérifier que vous êtes dans une commune pilote. Veuillez autoriser la géolocalisation dans les paramètres de votre navigateur."}
+                            ? "SIGNA·CI est disponible dans 7 communes d'Abidjan. Choisissez directement votre commune ci-dessous pour continuer votre signalement."
+                            : "Votre géolocalisation automatique n'a pas abouti. Vous pouvez réessayer ou sélectionner manuellement votre commune ci-dessous :"}
                         </p>
                         <Button
                           type="button"
@@ -1238,8 +1254,32 @@ const ReportPage = () => {
                           className="mx-auto"
                         >
                           <Navigation className="h-3.5 w-3.5 mr-1.5" />
-                          Réessayer la localisation
+                          Réessayer la géolocalisation
                         </Button>
+
+                        {/* Choix manuel direct de secours */}
+                        <div className="pt-3 border-t border-amber-500/20 text-left space-y-2">
+                          <label className="text-xs font-bold text-foreground block">
+                            📍 Choisir ma commune manuellement :
+                          </label>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {COMMUNES.map((c) => (
+                              <button
+                                key={c.nom}
+                                type="button"
+                                onClick={() => handleManualCommuneSelect(c.nom)}
+                                className={`flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-semibold rounded-xl border transition-all text-center ${
+                                  commune === c.nom
+                                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                                    : "border-border bg-card hover:bg-muted text-foreground"
+                                }`}
+                              >
+                                <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: c.couleur }} />
+                                <span>{c.nom}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       </motion.div>
                     )}
 
@@ -1247,12 +1287,27 @@ const ReportPage = () => {
                     {canReport && (
                       <>
                         <div className="space-y-2">
-                          <label className="text-sm font-semibold">Commune *</label>
-                          <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/50 px-4 py-3">
-                            <span className="h-3 w-3 rounded-full inline-block" style={{ backgroundColor: detectedCommune?.couleur }} />
-                            <span className="font-semibold text-sm text-foreground">{commune}</span>
-                            <span className="text-xs text-muted-foreground ml-auto">détectée par GPS</span>
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm font-semibold">Commune *</label>
+                            <span className="text-xs text-muted-foreground">
+                              {gpsSource === "manual" ? "sélection manuelle" : "détectée par GPS"}
+                            </span>
                           </div>
+                          <Select value={commune} onValueChange={handleManualCommuneSelect}>
+                            <SelectTrigger className="w-full h-12 rounded-xl bg-card border-border font-semibold text-sm">
+                              <SelectValue placeholder="Choisir une commune" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {COMMUNES.map((c) => (
+                                <SelectItem key={c.nom} value={c.nom}>
+                                  <div className="flex items-center gap-2">
+                                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: c.couleur }} />
+                                    <span>{c.nom}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
 
                         <div className="space-y-2">
@@ -1293,7 +1348,6 @@ const ReportPage = () => {
               </AnimatePresence>
 
               <div className="mt-2">
-                <SOSButtons />
               </div>
             </motion.div>
           )}
