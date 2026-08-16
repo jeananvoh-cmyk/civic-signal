@@ -13,6 +13,7 @@ import '../commune/commune_detail_screen.dart';
 import '../home/signa_logo.dart';
 import '../map/map_screen.dart';
 import '../donation/donation_screen.dart';
+import '../infrastructure/infrastructure_screen.dart';
 import '../meter/meter_screen.dart';
 import '../reports/create_report_screen.dart';
 import '../reports/report_detail_screen.dart';
@@ -856,6 +857,35 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                               ),
                               const SizedBox(height: 4),
                               const Text('Suivre un ticket #SIG', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InfrastructureScreen())),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: const [
+                                  Icon(LucideIcons.construction, size: 16, color: Color(0xFFEA580C)),
+                                  SizedBox(width: 6),
+                                  Text('Fil Voirie', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              const Text('Infrastructures HD', style: TextStyle(fontSize: 10, color: Colors.grey)),
                             ],
                           ),
                         ),

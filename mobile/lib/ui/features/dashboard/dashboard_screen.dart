@@ -7,6 +7,7 @@ import '../../../core/constants/communes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/models/report_model.dart';
 import '../commune/commune_detail_screen.dart';
+import '../infrastructure/infrastructure_screen.dart';
 import '../reports/create_report_screen.dart';
 import '../reports/report_detail_screen.dart';
 import '../verification/verification_screen.dart';
@@ -591,6 +592,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 bottomRightText: '$mairiePct% réparés',
                 bottomRightColor: const Color(0xFFEA580C),
                 isMairie: true,
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const InfrastructureScreen()),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    side: BorderSide(color: const Color(0xFFEA580C).withAlpha(120)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(LucideIcons.construction, size: 16, color: Color(0xFFEA580C)),
+                  label: const Text(
+                    'Consulter le Fil dédié Voirie & Infrastructures (Photos HD)',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFEA580C)),
+                  ),
+                ),
               ),
               const SizedBox(height: 24),
 

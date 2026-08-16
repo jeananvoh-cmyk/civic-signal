@@ -10,6 +10,7 @@ import '../../../domain/models/report_model.dart';
 import '../admin/admin_console_screen.dart';
 import '../auth/auth_screen.dart';
 import '../donation/donation_screen.dart';
+import '../infrastructure/infrastructure_screen.dart';
 import '../home/signa_logo.dart';
 import '../legal/about_screen.dart';
 import '../legal/cgu_screen.dart';
@@ -735,6 +736,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                 subtitle: const Text('Rechercher une panne par numéro de ticket', style: TextStyle(fontSize: 11, color: Colors.grey)),
                 trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrackingScreen())),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(LucideIcons.construction, color: Color(0xFFEA580C)),
+                title: const Text('Fil Voirie & Infrastructures Publiques', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                subtitle: const Text('Nids de poules, lampadaires, caniveaux avec photos', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InfrastructureScreen())),
               ),
               const Divider(height: 1),
               ListTile(
