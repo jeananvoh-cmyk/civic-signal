@@ -137,4 +137,47 @@ class ReportModel {
     if (level == 'warning') return const Color(0xFFEA580C);  // Orange
     return const Color(0xFF0D9488);                         // Teal
   }
+
+  // 🎯 Priority Score & Level (1:1 with Web priority.ts)
+  int get priorityScore {
+    int score = 0;
+    // Service base
+    if (serviceType.toLowerCase().contains('eau') || serviceType == 'water') {
+      score += 30;
+    } else if (serviceType.toLowerCase().contains('elec') || serviceType == 'electricity') {
+      score += 25;
+    } else {
+      score += 15;
+    }
+
+    // Elapsed duration (hours * 2)
+    final ref = startTime ?? createdAt;
+    final hours = DateTime.now().difference(ref).inHours.clamp(0, 48);
+    score += hours * 2;
+
+    // Verifications (5 pts each)
+    score += verifications * 5;
+
+    // Impacted people & vulnerability
+    score += impactedPeople * 2;
+    score += babies * 10;
+    score += elderly * 8;
+    score += pregnant * 8;
+
+    // Urgency level
+    if (urgency == 'critical') score += 40;
+    else if (urgency == 'high') score += 25;
+    else if (urgency == 'medium') score += 10;
+
+    return score;
+  }
+
+  String get priorityLevel {
+    final s = priorityScore;
+    if (s >= 70) return 'P1';
+    if (s >= 40) return 'P2';
+    if (s >= 20) return 'P3';
+    return 'P4';
+  }
 }
+

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/repositories/report_repository.dart';
@@ -314,7 +314,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           IconButton(
             icon: const Icon(LucideIcons.share2, size: 20),
             onPressed: () {
-              Share.share('SIGNA·CI — $_totalActifs coupures actives signalées sur Abidjan. Suivez la situation en direct.');
+              Clipboard.setData(ClipboardData(text: 'SIGNA·CI — $_totalActifs coupures actives signalées sur Abidjan. Suivez la situation en direct sur https://signa.ci'));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Lien du tableau de bord copié dans le presse-papiers !'), backgroundColor: AppTheme.secondaryEmerald),
+              );
             },
           ),
           IconButton(
