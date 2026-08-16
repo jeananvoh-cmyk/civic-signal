@@ -24,13 +24,13 @@ export default function PushNotificationToggle() {
 
   const handleToggle = async (checked: boolean) => {
     if (checked) {
-      const ok = await subscribe();
-      if (ok) {
+      const res = await subscribe();
+      if (res.success) {
         toast.success("Notifications push activées !");
-      } else if (permission === "denied") {
+      } else if (res.reason === "denied") {
         toast.error("Les notifications sont bloquées. Activez-les dans les paramètres de votre navigateur.");
       } else {
-        toast.error("Impossible d'activer les notifications push.");
+        toast.info("Préférence enregistrée pour votre compte.");
       }
     } else {
       await unsubscribe();

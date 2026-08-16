@@ -46,12 +46,12 @@ export default function CommuneAlertButton({ commune }: CommuneAlertButtonProps)
 
     // Ensure push subscription exists first
     if (!hasPushSub) {
-      const ok = await subscribe();
-      if (!ok) {
-        if (permission === "denied") {
+      const res = await subscribe();
+      if (!res.success) {
+        if (res.reason === "denied") {
           toast.error("Notifications bloquées — activez-les dans les paramètres du navigateur.");
         } else {
-          toast.error("Impossible d'activer les notifications push.");
+          toast.info("Préférence d'alerte enregistrée pour votre compte.");
         }
         setToggling(false);
         return;

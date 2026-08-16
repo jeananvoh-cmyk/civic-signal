@@ -51,7 +51,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Widget build(BuildContext context) {
     final String? filterCategory = _selectedCategory == 'all' ? null : _selectedCategory;
     final reportsAsync = ref.watch(reportsProvider(filterCategory));
-    final currentUser = Supabase.instance.client.auth.currentUser;
 
     return Scaffold(
       body: Stack(

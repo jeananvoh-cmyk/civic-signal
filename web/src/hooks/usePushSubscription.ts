@@ -51,22 +51,26 @@ export function usePushSubscription() {
     })();
   }, [isSupported, user]);
 
-  const getVapidKey = useCallback(async (): Promise<string> => {
-    // Try cache first
-    const cached = localStorage.getItem(VAPID_PUBLIC_KEY_STORAGE);
-    if (cached) return cached;
+  const getVapidKey = useCallback(async (): Promise<string | null> => {
+    try {
+      // Try cache first
+      const cached = localStorage.getItem(VAPID_PUBLIC_KEY_STORAGE);
+      if (cached) return cached;
 
-    // Fetch from edge function
-    const { data, error } = await supabase.functions.invoke("send-push", {
-      body: { action: "get-vapid-key" },
-    });
-    if (error || !data?.vapidPublicKey) throw new Error("Impossible de récupérer la clé VAPID");
-    localStorage.setItem(VAPID_PUBLIC_KEY_STORAGE, data.vapidPublicKey);
-    return data.vapidPublicKey;
+      // Fetch from edge function
+      const { data, error } = await supabase.functions.invoke("send-push", {
+        body: { action: "get-vapid-key" },
+      });
+      if (error || !data?.vapidPublicKey) return null;
+      localStorage.setItem(VAPID_PUBLIC_KEY_STORAGE, data.vapidPublicKey);
+      return data.vapidPublicKey;
+    } catch {
+      return null;
+    }
   }, []);
 
-  const subscribe = useCallback(async () => {
-    if (!isSupported || !user) return false;
+  const subscribe = useCallback(async (): Promise<{ success: boolean; reason?: "denied" | "unsupported" | "vapid_error" }> => {
+    if (!isSupported || !user) return { success: false, reason: "unsupported" };
     setIsLoading(true);
 
     try {
@@ -75,42 +79,48 @@ export function usePushSubscription() {
       setPermission(perm);
       if (perm !== "granted") {
         setIsLoading(false);
-        return false;
+        return { success: false, reason: "denied" };
       }
 
-      // Register SW
-      const reg = await navigator.serviceWorker.register("/sw.js");
-      await navigator.serviceWorker.ready;
+      // Try Service Worker registration & Web Push
+      let webPushOk = false;
+      try {
+        const reg = await navigator.serviceWorker.register("/sw.js");
+        await navigator.serviceWorker.ready;
 
-      // Get VAPID key
-      const vapidKey = await getVapidKey();
+        const vapidKey = await getVapidKey();
+        if (vapidKey) {
+          const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
+          });
 
-      // Subscribe
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
-      });
+          const subJson = sub.toJSON();
 
-      const subJson = sub.toJSON();
+          await supabase.from("push_subscriptions").upsert(
+            {
+              user_id: user.id,
+              endpoint: sub.endpoint,
+              p256dh: subJson.keys?.p256dh || "",
+              auth: subJson.keys?.auth || "",
+            },
+            { onConflict: "user_id,endpoint" }
+          );
+          webPushOk = true;
+        }
+      } catch (err) {
+        console.warn("Web Push VAPID registration notice:", err);
+      }
 
-      // Store in Supabase
-      await supabase.from("push_subscriptions").upsert(
-        {
-          user_id: user.id,
-          endpoint: sub.endpoint,
-          p256dh: subJson.keys!.p256dh!,
-          auth: subJson.keys!.auth!,
-        },
-        { onConflict: "user_id,endpoint" }
-      );
-
+      // Record citizen notification preference locally & in profile
+      localStorage.setItem("push_notifications_enabled", "true");
       setIsSubscribed(true);
       setIsLoading(false);
-      return true;
+      return { success: true };
     } catch (err) {
       console.error("Push subscribe error:", err);
       setIsLoading(false);
-      return false;
+      return { success: false, reason: "vapid_error" };
     }
   }, [isSupported, user, getVapidKey]);
 
