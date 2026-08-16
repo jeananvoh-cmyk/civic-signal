@@ -29,6 +29,18 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
   bool _isLoadingReports = false;
   String _statusFilter = 'all';
 
+  // Vulnerable Households tab (1:1 AdminVulnerablePage)
+  List<Map<String, dynamic>> _vulnerableReports = [];
+  bool _isLoadingVulnerable = false;
+  int _totalBabies = 0;
+  int _totalPregnant = 0;
+  int _totalElderly = 0;
+
+  // Users Management tab (1:1 AdminUsersPage)
+  List<Map<String, dynamic>> _usersList = [];
+  bool _isLoadingUsers = false;
+  String _userSearchQuery = '';
+
   // Site Settings toggles
   bool _transparencyEnabled = true;
   bool _donationsEnabled = true;
@@ -37,7 +49,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _checkAdminRole();
   }
 
@@ -72,6 +84,8 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
       if (hasRole) {
         _fetchOverviewData();
         _fetchAdminReports();
+        _fetchVulnerableData();
+        _fetchUsersData();
       }
     } catch (_) {
       setState(() {
@@ -122,6 +136,60 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
     }
   }
 
+  Future<void> _fetchVulnerableData() async {
+    setState(() => _isLoadingVulnerable = true);
+    try {
+      final res = await Supabase.instance.client
+          .from('reports')
+          .select('id, commune, quartier, description, status, urgency, has_babies, has_pregnant, has_elderly, medical_equipment, created_at')
+          .or('has_babies.eq.true,has_pregnant.eq.true,has_elderly.eq.true,medical_equipment.eq.true')
+          .order('created_at', ascending: false);
+
+      if (res is List && mounted) {
+        final list = List<Map<String, dynamic>>.from(res as List);
+        int babies = 0;
+        int pregnant = 0;
+        int elderly = 0;
+
+        for (final r in list) {
+          if (r['has_babies'] == true) babies++;
+          if (r['has_pregnant'] == true) pregnant++;
+          if (r['has_elderly'] == true) elderly++;
+        }
+
+        setState(() {
+          _vulnerableReports = list;
+          _totalBabies = babies;
+          _totalPregnant = pregnant;
+          _totalElderly = elderly;
+          _isLoadingVulnerable = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingVulnerable = false);
+    }
+  }
+
+  Future<void> _fetchUsersData() async {
+    setState(() => _isLoadingUsers = true);
+    try {
+      final res = await Supabase.instance.client
+          .from('profiles')
+          .select('id, display_name, first_name, last_name, phone, role, commune, created_at')
+          .order('created_at', ascending: false)
+          .limit(50);
+
+      if (res is List && mounted) {
+        setState(() {
+          _usersList = List<Map<String, dynamic>>.from(res as List);
+          _isLoadingUsers = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingUsers = false);
+    }
+  }
+
   Future<void> _updateReportStatus(String reportId, String newStatus) async {
     try {
       await Supabase.instance.client
@@ -137,6 +205,24 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erreur : $e'), backgroundColor: AppTheme.dangerRose),
+      );
+    }
+  }
+
+  Future<void> _updateUserRole(String userId, String newRole) async {
+    try {
+      await Supabase.instance.client
+          .from('profiles')
+          .update({'role': newRole})
+          .eq('id', userId);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('✓ Rôle utilisateur mis à jour : $newRole'), backgroundColor: AppTheme.secondaryEmerald),
+      );
+      _fetchUsersData();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur modification rôle : $e'), backgroundColor: AppTheme.dangerRose),
       );
     }
   }
@@ -192,12 +278,16 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
         title: Text('Super-Admin SIGNA·CI', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18)),
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
           indicatorColor: AppTheme.primaryTeal,
           labelColor: isDark ? Colors.white : AppTheme.primaryTeal,
           unselectedLabelColor: Colors.grey,
           tabs: const [
             Tab(icon: Icon(LucideIcons.layoutDashboard, size: 16), text: 'Vue Générale'),
             Tab(icon: Icon(LucideIcons.fileCheck, size: 16), text: 'Modération'),
+            Tab(icon: Icon(LucideIcons.heartPulse, size: 16), text: 'Foyers Vulnérables'),
+            Tab(icon: Icon(LucideIcons.users, size: 16), text: 'Utilisateurs'),
             Tab(icon: Icon(LucideIcons.sliders, size: 16), text: 'Paramètres Site'),
           ],
         ),
@@ -211,7 +301,13 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
           // ── TAB 2 : MODÉRATION DES SIGNALEMENTS ──
           _buildModerationTab(isDark),
 
-          // ── TAB 3 : PARAMÈTRES ET COMMANDE SITE ──
+          // ── TAB 3 : FOYERS VULNÉRABLES ──
+          _buildVulnerableTab(isDark),
+
+          // ── TAB 4 : GESTION DES UTILISATEURS ──
+          _buildUsersTab(isDark),
+
+          // ── TAB 5 : PARAMÈTRES ET COMMANDE SITE ──
           _buildSettingsTab(isDark),
         ],
       ),
@@ -317,6 +413,166 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
     );
   }
 
+  Widget _buildVulnerableTab(bool isDark) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Registre Prioritaire des Foyers Vulnérables', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
+          const SizedBox(height: 4),
+          const Text('Suivi en temps réel des ménages à risque impactés par les coupures.', style: TextStyle(fontSize: 11, color: Colors.grey)),
+          const SizedBox(height: 14),
+
+          Row(
+            children: [
+              Expanded(child: _buildMetricCard('👶 Bébés / Nourrissons', '$_totalBabies', LucideIcons.baby, const Color(0xFFEC4899), isDark)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildMetricCard('🤰 Femmes Enceintes', '$_totalPregnant', LucideIcons.heart, const Color(0xFF8B5CF6), isDark)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildMetricCard('🧓 Personnes Âgées', '$_totalElderly', LucideIcons.users, const Color(0xFFF59E0B), isDark)),
+            ],
+          ),
+          const SizedBox(height: 18),
+
+          if (_isLoadingVulnerable)
+            const Center(child: Padding(padding: EdgeInsets.all(30), child: CircularProgressIndicator()))
+          else if (_vulnerableReports.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE2E8F0))),
+              child: const Center(child: Text('Aucun foyer vulnérable actif signalé en ce moment')),
+            )
+          else
+            ..._vulnerableReports.map((r) => Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFFFF1F2),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFFECDD3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('🚨 ${r['commune']} · ${r['quartier']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFFBE123C))),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(color: const Color(0xFFBE123C), borderRadius: BorderRadius.circular(6)),
+                            child: const Text('PRIORITÉ ÉLEVÉE', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(r['description'] ?? '', style: const TextStyle(fontSize: 12, color: Color(0xFF4C0519))),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        children: [
+                          if (r['has_babies'] == true) const Chip(label: Text('👶 Bébés', style: TextStyle(fontSize: 10)), visualDensity: VisualDensity.compact),
+                          if (r['has_pregnant'] == true) const Chip(label: Text('🤰 Enceinte', style: TextStyle(fontSize: 10)), visualDensity: VisualDensity.compact),
+                          if (r['has_elderly'] == true) const Chip(label: Text('🧓 Âgée', style: TextStyle(fontSize: 10)), visualDensity: VisualDensity.compact),
+                          if (r['medical_equipment'] == true) const Chip(label: Text('🩺 Respirateur', style: TextStyle(fontSize: 10)), visualDensity: VisualDensity.compact),
+                        ],
+                      ),
+                    ],
+                  ),
+                )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUsersTab(bool isDark) {
+    final filtered = _usersList.where((u) {
+      if (_userSearchQuery.isEmpty) return true;
+      final q = _userSearchQuery.toLowerCase();
+      final name = '${u['first_name'] ?? ''} ${u['last_name'] ?? ''} ${u['display_name'] ?? ''}'.toLowerCase();
+      final phone = (u['phone'] ?? '').toLowerCase();
+      final commune = (u['commune'] ?? '').toLowerCase();
+      return name.contains(q) || phone.contains(q) || commune.contains(q);
+    }).toList();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: TextField(
+            onChanged: (v) => setState(() => _userSearchQuery = v),
+            decoration: InputDecoration(
+              hintText: 'Rechercher un utilisateur (nom, téléphone, commune)...',
+              prefixIcon: const Icon(LucideIcons.search, size: 18),
+              filled: true,
+              fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            ),
+          ),
+        ),
+        Expanded(
+          child: _isLoadingUsers
+              ? const Center(child: CircularProgressIndicator())
+              : filtered.isEmpty
+                  ? const Center(child: Text('Aucun utilisateur trouvé'))
+                  : ListView.separated(
+                      padding: const EdgeInsets.all(12),
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (ctx, i) {
+                        final u = filtered[i];
+                        final name = '${u['first_name'] ?? ''} ${u['last_name'] ?? ''}'.trim();
+                        final displayName = name.isNotEmpty ? name : (u['display_name'] ?? 'Citoyen');
+                        final role = u['role'] ?? 'citoyen';
+
+                        return Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                backgroundColor: AppTheme.primaryTeal.withAlpha(40),
+                                child: const Icon(LucideIcons.user, color: AppTheme.primaryTeal, size: 18),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(displayName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                    Text('${u['phone'] ?? 'Pas de numéro'} · ${u['commune'] ?? 'Abidjan'}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                  ],
+                                ),
+                              ),
+                              DropdownButton<String>(
+                                value: ['citoyen', 'moderateur', 'admin', 'partenaire'].contains(role) ? role : 'citoyen',
+                                underline: const SizedBox.shrink(),
+                                items: const [
+                                  DropdownMenuItem(value: 'citoyen', child: Text('Citoyen', style: TextStyle(fontSize: 11))),
+                                  DropdownMenuItem(value: 'moderateur', child: Text('Modérateur', style: TextStyle(fontSize: 11, color: Colors.orange))),
+                                  DropdownMenuItem(value: 'admin', child: Text('Admin', style: TextStyle(fontSize: 11, color: Colors.red))),
+                                  DropdownMenuItem(value: 'partenaire', child: Text('Partenaire', style: TextStyle(fontSize: 11, color: Colors.blue))),
+                                ],
+                                onChanged: (newRole) {
+                                  if (newRole != null) _updateUserRole(u['id'], newRole);
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSettingsTab(bool isDark) {
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -344,12 +600,12 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600)),
-              Icon(icon, color: color, size: 18),
+              Expanded(child: Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)),
+              Icon(icon, color: color, size: 16),
             ],
           ),
           const SizedBox(height: 10),
-          Text(value, style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.w900)),
+          Text(value, style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w900)),
         ],
       ),
     );
