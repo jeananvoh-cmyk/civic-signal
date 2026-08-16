@@ -559,43 +559,39 @@ const Index = () => {
               </div>
             </motion.div>
 
-            {/* CTA buttons */}
+            {/* CTA buttons — Dual CivicTech Standard (FixMyStreet / USHAHIDI) */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.5 }}
-              className="mt-6 sm:mt-8 flex flex-wrap gap-3"
+              className="mt-6 sm:mt-8 flex flex-wrap gap-4"
             >
               <Link
                 to="/signaler"
-                className="group inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-water to-electricity px-8 py-4 text-base font-extrabold text-white shadow-[0_8px_32px_rgba(14,165,233,0.4)] transition-all duration-200 hover:scale-[1.04] hover:shadow-[0_12px_48px_rgba(14,165,233,0.6)] active:scale-[0.97]"
+                className="group flex items-center gap-3.5 rounded-2xl bg-gradient-to-r from-[#0284C7] to-[#EA580C] px-7 py-3.5 text-white shadow-[0_8px_32px_rgba(2,132,199,0.4)] transition-all duration-200 hover:scale-[1.03] hover:shadow-[0_12px_44px_rgba(234,88,12,0.45)] active:scale-[0.97]"
               >
-                <Zap className="h-5 w-5" />
-                Signaler maintenant
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-xl backdrop-blur-sm">
+                  📢
+                </div>
+                <div className="flex flex-col text-left leading-tight">
+                  <span className="text-base font-extrabold tracking-wide">Signaler un problème</span>
+                  <span className="text-[11px] font-medium text-white/80">Eau · Courant · Voirie</span>
+                </div>
+                <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
               </Link>
-              {canInstall ? (
-                /* Bouton install — remplace "dashboard" si l'app n'est pas installée */
-                <button
-                  onClick={async () => {
-                    if (isIOS) { window.location.href = "/install"; return; }
-                    await install();
-                  }}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/8 px-8 py-4 text-base font-bold text-white backdrop-blur-md transition-all hover:bg-white/15 active:scale-[0.97]"
-                >
-                  {isIOS
-                    ? <><Share className="h-5 w-5" /> Ajouter à l'accueil</>
-                    : <><Download className="h-5 w-5" /> Installer l'app</>}
-                </button>
-              ) : (
-                <Link
-                  to="/tableau-de-bord"
-                  className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/8 px-8 py-4 text-base font-bold text-white backdrop-blur-md transition-all hover:bg-white/15 active:scale-[0.97]"
-                >
-                  <BarChart3 className="h-5 w-5" />
-                  Voir le dashboard
-                </Link>
-              )}
+
+              <Link
+                to="/verification"
+                className="group flex items-center gap-3.5 rounded-2xl border-2 border-emerald-400/40 bg-emerald-950/40 px-7 py-3.5 text-white backdrop-blur-md transition-all duration-200 hover:scale-[1.03] hover:border-emerald-400/80 hover:bg-emerald-900/50 hover:shadow-[0_8px_32px_rgba(16,185,129,0.3)] active:scale-[0.97]"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20 text-xl">
+                  🤝
+                </div>
+                <div className="flex flex-col text-left leading-tight">
+                  <span className="text-base font-extrabold tracking-wide text-emerald-200">Confirmer une alerte</span>
+                  <span className="text-[11px] font-medium text-emerald-300/80">Voisins solidaires</span>
+                </div>
+              </Link>
             </motion.div>
 
             {/* Communes pills */}

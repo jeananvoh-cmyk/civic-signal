@@ -7,6 +7,7 @@ import '../../../core/constants/communes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/repositories/report_repository.dart';
 import '../../../domain/models/report_model.dart';
+import '../admin/admin_console_screen.dart';
 import '../auth/auth_screen.dart';
 import '../donation/donation_screen.dart';
 import '../home/signa_logo.dart';
@@ -15,6 +16,7 @@ import '../legal/cgu_screen.dart';
 import '../legal/privacy_screen.dart';
 import '../meter/meter_screen.dart';
 import '../partner/partner_dashboard_screen.dart';
+import '../partners/partners_screen.dart';
 import '../reports/report_detail_screen.dart';
 import '../tracking/tracking_screen.dart';
 
@@ -676,6 +678,46 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
             ],
           ),
         ),
+        const SizedBox(height: 12),
+
+        // Espace Super-Admin (Restreint)
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F172A),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF334155)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: Colors.white.withAlpha(20), shape: BoxShape.circle),
+                child: const Icon(LucideIcons.shieldAlert, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text('Console Super-Admin', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)),
+                    Text('Modération, rôles et paramètres globaux', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
+                  ],
+                ),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryTeal,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminConsoleScreen())),
+                child: const Text('Ouvrir', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ),
         const SizedBox(height: 16),
 
         // Outils & Soutien Civique
@@ -721,6 +763,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                 title: const Text('À propos de SIGNA·CI', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                 trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen())),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(LucideIcons.building2, color: Color(0xFF0284C7)),
+                title: const Text('Espace Partenaires & Opérateurs', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                subtitle: const Text('CIE, SODECI, Mairies et Collectivités', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartnersScreen())),
               ),
               const Divider(height: 1),
               ListTile(
