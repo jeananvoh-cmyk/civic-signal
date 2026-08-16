@@ -5,9 +5,11 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/repositories/report_repository.dart';
 import '../../../domain/models/report_model.dart';
+import '../reports/report_detail_screen.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
   const MapScreen({super.key});
@@ -20,6 +22,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   final MapController _mapController = MapController();
   static final LatLng _defaultCenter = LatLng(5.3599517, -4.0082563);
   String _selectedCategory = 'all'; // 'all', 'outage', 'infrastructure'
+  bool _isPartnerMode = false;
   ReportModel? _selectedReport;
 
   Future<void> _recenterToUserLocation() async {
@@ -48,6 +51,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   Widget build(BuildContext context) {
     final String? filterCategory = _selectedCategory == 'all' ? null : _selectedCategory;
     final reportsAsync = ref.watch(reportsProvider(filterCategory));
+    final currentUser = Supabase.instance.client.auth.currentUser;
 
     return Scaffold(
       body: Stack(
@@ -79,8 +83,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
                     return Marker(
                       point: LatLng(report.latitude!, report.longitude!),
-                      width: 90,
-                      height: 60,
+                      width: 80,
+                      height: 54,
                       child: GestureDetector(
                         onTap: () {
                           setState(() => _selectedReport = report);
@@ -88,17 +92,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Duration Pill Badge on top of pin
+                            // Micro Duration Pill (Mode Citoyen vs Partner)
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(10),
                                 border: Border.all(color: color, width: 1.5),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withAlpha(40),
-                                    blurRadius: 4,
+                                    color: Colors.black.withAlpha(30),
+                                    blurRadius: 3,
                                   ),
                                 ],
                               ),
@@ -109,42 +113,44 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                                     report.alertLevel == 'critical'
                                         ? LucideIcons.alertTriangle
                                         : LucideIcons.clock,
-                                    size: 10,
+                                    size: 9,
                                     color: color,
                                   ),
                                   const SizedBox(width: 2),
                                   Text(
-                                    report.elapsedFormatted,
+                                    _isPartnerMode
+                                        ? 'P: ${(report.impactedPeople * 10) + (report.verifications * 5)}'
+                                        : report.elapsedFormatted,
                                     style: TextStyle(
                                       color: color,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 10,
+                                      fontSize: 9,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 1),
 
-                            // Map Pin Icon
+                            // Map Pin Icon 28px
                             Container(
-                              padding: const EdgeInsets.all(6),
+                              padding: const EdgeInsets.all(5),
                               decoration: BoxDecoration(
                                 color: color,
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: color.withAlpha(100),
-                                    blurRadius: 6,
-                                    spreadRadius: 2,
+                                    color: color.withAlpha(90),
+                                    blurRadius: 5,
+                                    spreadRadius: 1,
                                   ),
                                 ],
-                                border: Border.all(color: Colors.white, width: 2),
+                                border: Border.all(color: Colors.white, width: 1.5),
                               ),
                               child: Icon(
                                 isOutage ? LucideIcons.zapOff : LucideIcons.wrench,
                                 color: Colors.white,
-                                size: 16,
+                                size: 14,
                               ),
                             ),
                           ],
@@ -171,14 +177,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     elevation: 4,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                       child: Row(
                         children: [
-                          const Icon(LucideIcons.map, color: AppTheme.primaryTeal),
-                          const SizedBox(width: 8),
+                          const Icon(LucideIcons.map, color: AppTheme.primaryTeal, size: 20),
+                          const SizedBox(width: 6),
                           Text(
-                            'Carte Direct',
-                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15),
+                            _isPartnerMode ? 'Mode Régulateur' : 'Carte Direct',
+                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14),
                           ),
                           const Spacer(),
                           _buildMiniFilterChip('Tous', 'all'),
@@ -191,55 +197,42 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     ),
                   ),
 
-                  // Summary Statistics Bar below Header
-                  reportsAsync.maybeWhen(
-                    data: (reports) {
-                      final int totalActive = reports.length;
-                      final int totalCritical = reports.where((r) => r.alertLevel == 'critical').length;
-
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withAlpha(180),
-                                  borderRadius: BorderRadius.circular(20),
+                  // Mode Toggle Bar (Citoyen vs Professionnel / Partenaire)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6.0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withAlpha(200),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _isPartnerMode ? '🛡️ Mode Partenaire Actif' : '👥 Mode Citoyen',
+                            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                          Switch(
+                            value: _isPartnerMode,
+                            activeColor: AppTheme.amberAccent,
+                            onChanged: (val) {
+                              setState(() => _isPartnerMode = val);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    val
+                                        ? 'Mode Régulateur & Partenaire activé'
+                                        : 'Mode Citoyen épuré activé',
+                                  ),
+                                  duration: const Duration(seconds: 1),
                                 ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(LucideIcons.radio, color: Colors.white, size: 14),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      '$totalActive signalements actifs',
-                                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                                    ),
-                                    if (totalCritical > 0) ...[
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: Colors.red,
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                        child: Text(
-                                          '🔴 $totalCritical >24h',
-                                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                    orElse: () => const SizedBox.shrink(),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -249,7 +242,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           // Recenter GPS Button
           Positioned(
             right: 16,
-            bottom: _selectedReport != null ? 280 : 20,
+            bottom: _selectedReport != null ? 300 : 20,
             child: FloatingActionButton.small(
               heroTag: 'recenter_gps',
               onPressed: _recenterToUserLocation,
@@ -278,16 +271,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         setState(() => _selectedCategory = value);
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
         decoration: BoxDecoration(
           color: isSelected ? AppTheme.primaryTeal : Colors.grey.withAlpha(40),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
         ),
         child: Text(
           label,
           style: TextStyle(
             color: isSelected ? Colors.white : Colors.black87,
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -379,7 +372,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 Icon(LucideIcons.thumbsUp, size: 13, color: Colors.grey[600]),
                 const SizedBox(width: 4),
                 Text(
-                  '${report.supportCount} corroborations',
+                  '${report.supportCount} corroboration(s)',
                   style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ],
@@ -404,40 +397,64 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             const SizedBox(height: 14),
 
             // Action Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      ref
-                          .read(reportRepositoryProvider)
-                          .corroborateReport(report.id, isOutage ? 'still_out' : 'still_broken');
-                      ref.invalidate(reportsProvider);
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.outageColor,
-                      side: const BorderSide(color: AppTheme.outageColor),
+            if (!_isPartnerMode)
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        ref
+                            .read(reportRepositoryProvider)
+                            .corroborateReport(report.id, isOutage ? 'still_out' : 'still_broken');
+                        ref.invalidate(reportsProvider);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Merci pour votre confirmation !')),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.outageColor,
+                        side: const BorderSide(color: AppTheme.outageColor),
+                      ),
+                      child: Text(isOutage ? 'Toujours coupé' : 'Problème persiste'),
                     ),
-                    child: Text(isOutage ? 'Toujours coupé' : 'Problème persiste'),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      ref
-                          .read(reportRepositoryProvider)
-                          .corroborateReport(report.id, isOutage ? 'back_on' : 'fixed');
-                      ref.invalidate(reportsProvider);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.secondaryEmerald,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        ref
+                            .read(reportRepositoryProvider)
+                            .corroborateReport(report.id, isOutage ? 'back_on' : 'fixed');
+                        ref.invalidate(reportsProvider);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Signalement mis à jour !')),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.secondaryEmerald,
+                      ),
+                      child: Text(isOutage ? 'Tout va bien' : 'Problème résolu'),
                     ),
-                    child: Text(isOutage ? 'Tout va bien' : 'Problème résolu'),
                   ),
+                ],
+              )
+            else
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryTeal,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 44),
                 ),
-              ],
-            ),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (ctx) => ReportDetailScreen(report: report),
+                    ),
+                  );
+                },
+                icon: const Icon(LucideIcons.shieldAlert, size: 18),
+                label: const Text('Fiche Technique & Intervention Partenaire →'),
+              ),
           ],
         ),
       ),
