@@ -273,34 +273,155 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // 2 GROS BOUTONS D'ACTION PRINCIPAUX (CTA)
+                    // 2 GROS BOUTONS D'ACTION CIVIC TECH DE CLASSE MONDIALE
                     Row(
                       children: [
+                        // 1. Bouton Signaler un problème
                         Expanded(
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFEA580C),
-                              padding: const EdgeInsets.symmetric(vertical: 15),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              elevation: 4,
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateReportScreen())),
+                              borderRadius: BorderRadius.circular(18),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF0284C7), Color(0xFFEA580C)], // Dégradé Eau/Courant Civique
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(18),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFFEA580C).withAlpha(90),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withAlpha(50),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(LucideIcons.megaphone, color: Colors.white, size: 18),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Row(
+                                            children: const [
+                                              Expanded(
+                                                child: Text(
+                                                  'Signaler',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.w900,
+                                                    fontSize: 14,
+                                                    letterSpacing: -0.2,
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                              Icon(LucideIcons.arrowRight, color: Colors.white, size: 14),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Eau · Courant · Voirie',
+                                            style: TextStyle(
+                                              color: Colors.white.withAlpha(210),
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                            icon: const Icon(LucideIcons.zap, color: Colors.white, size: 20),
-                            label: const Text('Signaler', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateReportScreen())),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 10),
+
+                        // 2. Bouton Confirmer une alerte
                         Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 15),
-                              side: const BorderSide(color: Color(0xFF10B981), width: 1.5),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              backgroundColor: const Color(0xFF10B981).withAlpha(20),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VerificationScreen())),
+                              borderRadius: BorderRadius.circular(18),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0F172A).withAlpha(180),
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(color: const Color(0xFF10B981).withAlpha(160), width: 1.5),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF10B981).withAlpha(40),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF10B981).withAlpha(40),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(LucideIcons.users, color: Color(0xFF34D399), size: 18),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: const [
+                                          Text(
+                                            'Confirmer',
+                                            style: TextStyle(
+                                              color: Color(0xFF34D399),
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 14,
+                                              letterSpacing: -0.2,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          SizedBox(height: 2),
+                                          Text(
+                                            'Voisins solidaires',
+                                            style: TextStyle(
+                                              color: Color(0xFFA7F3D0),
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                            icon: const Icon(LucideIcons.checkCircle2, color: Color(0xFF34D399), size: 20),
-                            label: const Text('Corroborer', style: TextStyle(color: Color(0xFF34D399), fontWeight: FontWeight.bold, fontSize: 15)),
-                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VerificationScreen())),
                           ),
                         ),
                       ],
