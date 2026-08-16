@@ -337,6 +337,30 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
                   ],
                 ),
               ),
+              if (_latitude == null) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Icon(LucideIcons.shieldAlert, color: Colors.amber, size: 18),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Signalement manuel sous contrôle citoyen — ce signalement sera soumis à la corroboration de 3 voisins avant transmission officielle.',
+                          style: TextStyle(fontSize: 12, color: Colors.amber, height: 1.3),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 20),
 
               // Photo Picker Section
