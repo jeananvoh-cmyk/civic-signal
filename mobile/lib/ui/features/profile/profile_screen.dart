@@ -9,7 +9,11 @@ import '../../../data/repositories/report_repository.dart';
 import '../../../domain/models/report_model.dart';
 import '../auth/auth_screen.dart';
 import '../home/signa_logo.dart';
+import '../legal/about_screen.dart';
+import '../legal/cgu_screen.dart';
+import '../legal/privacy_screen.dart';
 import '../meter/meter_screen.dart';
+import '../partner/partner_dashboard_screen.dart';
 import '../reports/report_detail_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -634,6 +638,77 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
               ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
               : const Text('Sauvegarder les modifications', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
         ),
+        const SizedBox(height: 24),
+
+        // Espace Partenaires & Opérateurs
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFEF3C7),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFFDE68A)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: const [
+                  Icon(LucideIcons.shieldCheck, color: Color(0xFFD97706), size: 20),
+                  SizedBox(width: 8),
+                  Text('Espace Partenaires & Opérateurs', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF92400E))),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text('Réservé aux techniciens et agents de maintenance CIE, SODECI et Mairies.', style: TextStyle(fontSize: 11, color: Color(0xFFB45309))),
+              const SizedBox(height: 10),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFD97706),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                icon: const Icon(LucideIcons.wrench, size: 14),
+                label: const Text('Accéder au Dashboard Partenaire', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartnerDashboardScreen())),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Pages d'informations & Légales
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(LucideIcons.info, color: AppTheme.primaryTeal),
+                title: const Text('À propos de SIGNA·CI', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen())),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(LucideIcons.fileText, color: AppTheme.primaryTeal),
+                title: const Text('Conditions Générales d\'Utilisation (CGU)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CguScreen())),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(LucideIcons.shieldCheck, color: Color(0xFF16A34A)),
+                title: const Text('Politique de Confidentialité', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen())),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
       ],
     );
   }
