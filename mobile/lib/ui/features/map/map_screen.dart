@@ -161,7 +161,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                                 border: Border.all(color: Colors.white, width: 1.5),
                               ),
                               child: Icon(
-                                isOutage ? LucideIcons.zapOff : LucideIcons.wrench,
+                                report.isOutage ? LucideIcons.zapOff : LucideIcons.wrench,
                                 color: Colors.white,
                                 size: 14,
                               ),
