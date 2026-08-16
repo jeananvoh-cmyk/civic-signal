@@ -22,10 +22,10 @@ class LandingScreen extends ConsumerStatefulWidget {
   const LandingScreen({super.key});
 
   @override
-  State<LandingScreen> createState() => _LandingScreenState();
+  ConsumerState<LandingScreen> createState() => _LandingScreenState();
 }
 
-class _LandingScreenState extends State<LandingScreen> {
+class _LandingScreenState extends ConsumerState<LandingScreen> {
   int _wordIndex = 0;
   Timer? _wordTimer;
 
