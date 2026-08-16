@@ -202,7 +202,8 @@ final List<ReportTypeConfig> REPORT_TYPES = [
 
 class CreateReportScreen extends ConsumerStatefulWidget {
   final ReportTypeConfig? initialType;
-  const CreateReportScreen({super.key, this.initialType});
+  final String? initialCommune;
+  const CreateReportScreen({super.key, this.initialType, this.initialCommune});
 
   @override
   ConsumerState<CreateReportScreen> createState() => _CreateReportScreenState();
@@ -213,12 +214,22 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
   ReportTypeConfig? _selectedType;
 
   // Form Fields
-  String _selectedCommune = 'Cocody';
+  late String _selectedCommune;
   String _selectedQuartier = 'Angré';
   bool _isCustomQuartier = false;
   final TextEditingController _customQuartierController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _meterNumberController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedCommune = widget.initialCommune ?? 'Cocody';
+    if (widget.initialType != null) {
+      _selectedType = widget.initialType;
+      _step = 2;
+    }
+  }
 
   String _contractType = 'postpaid'; // 'prepaid' | 'postpaid'
   TimeOfDay _startTime = TimeOfDay.now();

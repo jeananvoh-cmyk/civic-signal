@@ -86,9 +86,7 @@ class _CommuneDetailScreenState extends State<CommuneDetailScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final communeData = findCommuneByName(widget.communeName);
-    final communeColor = communeData?.couleur != null
-        ? Color(int.parse(communeData!.couleur.replaceAll('#', '0xFF')))
-        : AppTheme.primaryTeal;
+    final communeColor = communeData?.couleur ?? AppTheme.primaryTeal;
     final totalActifs = _totalElecActifs + _totalEauActifs;
 
     return Scaffold(
