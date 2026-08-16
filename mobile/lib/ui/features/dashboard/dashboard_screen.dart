@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/repositories/report_repository.dart';
 import '../../../domain/models/report_model.dart';
+import '../home/signa_logo.dart';
 import '../reports/report_detail_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -16,13 +17,28 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final ReportRepository _repo = ReportRepository();
-  List<ReportModel> _reports = [];
+  List<ReportModel> _allReports = [];
   bool _isLoading = true;
   RealtimeChannel? _realtimeChannel;
 
-  int _elecOutages = 0;
-  int _waterOutages = 0;
-  int _infraCount = 0;
+  // Filters (Exact 1:1 with Web Dashboard)
+  String _selectedCommune = 'all'; // 'all' or 'Cocody', 'Yopougon', etc.
+  String _selectedPeriod = 'all';  // 'all', 'today', '7d', '30d'
+
+  final List<String> _communesList = [
+    'Toutes les communes',
+    'Abobo',
+    'Adjamé',
+    'Attécoubé',
+    'Bingerville',
+    'Cocody',
+    'Koumassi',
+    'Marcory',
+    'Plateau',
+    'Port-Bouët',
+    'Treichville',
+    'Yopougon',
+  ];
 
   @override
   void initState() {
@@ -44,47 +60,83 @@ class _DashboardScreenState extends State<DashboardScreen> {
           event: PostgresChangeEvent.all,
           schema: 'public',
           table: 'reports',
-          callback: (payload) {
-            _loadDashboardData();
-          },
+          callback: (_) => _loadDashboardData(),
         )
         .subscribe();
   }
 
   Future<void> _loadDashboardData() async {
     try {
-      final list = await _repo.fetchReports(limit: 50);
-      int elec = 0;
-      int water = 0;
-      int infra = 0;
-
-      for (var r in list) {
-        if (r.status != 'resolved') {
-          if (r.serviceType == 'electricity' || r.reportCategory == 'outage' && r.serviceType.contains('elec')) {
-            elec++;
-          } else if (r.serviceType == 'water' || r.reportCategory == 'outage' && r.serviceType.contains('eau')) {
-            water++;
-          }
-          if (r.reportCategory == 'infrastructure') {
-            infra++;
-          }
-        }
-      }
-
+      final list = await _repo.fetchReports(limit: 100);
       if (mounted) {
         setState(() {
-          _reports = list;
-          _elecOutages = elec;
-          _waterOutages = water;
-          _infraCount = infra;
+          _allReports = list;
           _isLoading = false;
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  List<ReportModel> get _filteredReports {
+    return _allReports.where((r) {
+      // Commune filter
+      if (_selectedCommune != 'all' && _selectedCommune != 'Toutes les communes') {
+        if (r.commune != _selectedCommune) return false;
+      }
+      // Period filter
+      if (_selectedPeriod != 'all') {
+        final now = DateTime.now();
+        final diff = now.difference(r.createdAt);
+        if (_selectedPeriod == 'today' && diff.inHours > 24) return false;
+        if (_selectedPeriod == '7d' && diff.inDays > 7) return false;
+        if (_selectedPeriod == '30d' && diff.inDays > 30) return false;
+      }
+      return true;
+    }).toList();
+  }
+
+  // ── Stats Calculations ──
+  int get _elecTotal => _filteredReports.where((r) => r.serviceType == 'electricity' || r.serviceType == 'electricite').length;
+  int get _elecActifs => _filteredReports.where((r) => (r.serviceType == 'electricity' || r.serviceType == 'electricite') && r.status != 'resolved').length;
+  int get _elecResolus => _filteredReports.where((r) => (r.serviceType == 'electricity' || r.serviceType == 'electricite') && r.status == 'resolved').length;
+
+  int get _waterTotal => _filteredReports.where((r) => r.serviceType == 'water' || r.serviceType == 'eau').length;
+  int get _waterActifs => _filteredReports.where((r) => (r.serviceType == 'water' || r.serviceType == 'eau') && r.status != 'resolved').length;
+  int get _waterResolus => _filteredReports.where((r) => (r.serviceType == 'water' || r.serviceType == 'eau') && r.status == 'resolved').length;
+
+  int get _mairieTotal => _filteredReports.where((r) => r.reportCategory == 'infrastructure' || r.serviceType == 'voirie' || r.serviceType == 'salubrite').length;
+  int get _mairieActifs => _filteredReports.where((r) => (r.reportCategory == 'infrastructure' || r.serviceType == 'voirie') && r.status != 'resolved').length;
+  int get _mairieResolus => _filteredReports.where((r) => (r.reportCategory == 'infrastructure' || r.serviceType == 'voirie') && r.status == 'resolved').length;
+
+  // ── Priority Reports (Calculated exactly like Web) ──
+  List<ReportModel> get _priorityReports {
+    final active = _filteredReports.where((r) => r.status != 'resolved').toList();
+    active.sort((a, b) {
+      final scoreA = (a.impactedPeople * 10) + (a.verifications * 5) + (a.urgency == 'critical' ? 50 : 20);
+      final scoreB = (b.impactedPeople * 10) + (b.verifications * 5) + (b.urgency == 'critical' ? 50 : 20);
+      return scoreB.compareTo(scoreA);
+    });
+    return active.take(5).toList();
+  }
+
+  // ── Communes Breakdown ──
+  Map<String, Map<String, int>> get _communeStats {
+    final Map<String, Map<String, int>> map = {};
+    for (var r in _filteredReports) {
+      final c = r.commune.isEmpty ? 'Inconnue' : r.commune;
+      if (!map.containsKey(c)) {
+        map[c] = {'total': 0, 'actifs': 0, 'resolus': 0};
+      }
+      map[c]!['total'] = (map[c]!['total'] ?? 0) + 1;
+      if (r.status == 'resolved') {
+        map[c]!['resolus'] = (map[c]!['resolus'] ?? 0) + 1;
+      } else {
+        map[c]!['actifs'] = (map[c]!['actifs'] ?? 0) + 1;
       }
     }
+    return map;
   }
 
   @override
@@ -93,10 +145,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Tableau de Bord Citoyen',
-          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
-        ),
+        title: const SignaLogoWidget(size: 26, showSlogan: false),
         actions: [
           IconButton(
             icon: const Icon(LucideIcons.refreshCw, size: 20),
@@ -115,9 +164,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── TICKER DE DÉFILLEMENT LIVE ──
+              // ── 1. LIVE SCROLLING TICKER ──
               Container(
-                width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF1E293B) : const Color(0xFF0F172A),
@@ -135,113 +183,192 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           Icon(LucideIcons.radio, color: Colors.white, size: 12),
                           SizedBox(width: 4),
-                          Text(
-                            'LIVE',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        '⚡ Électricité: $_elecOutages pannes actives · 💧 Eau: $_waterOutages coupures en cours',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        _elecActifs + _waterActifs > 0
+                            ? '⚡ $_elecActifs coupure(s) CIE · 💧 $_waterActifs coupure(s) SODECI en cours à Abidjan'
+                            : '✅ Aucune coupure majeure en cours à Abidjan.',
+                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-              // ── CARTES KPI RESEAUX ──
+              // ── 2. FILTRES COMMUNE & PÉRIODE (Comme sur Web) ──
               Row(
                 children: [
                   Expanded(
-                    child: _buildKpiCard(
-                      title: '⚡ Électricité CIE',
-                      count: '$_elecOutages actives',
-                      subtitle: 'Temps moyen: 5j',
-                      color: AppTheme.amberAccent,
-                      icon: LucideIcons.zap,
+                    flex: 2,
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedCommune == 'all' ? 'Toutes les communes' : _selectedCommune,
+                      decoration: InputDecoration(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        prefixIcon: const Icon(LucideIcons.mapPin, size: 16),
+                      ),
+                      items: _communesList.map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 13)))).toList(),
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedCommune = (val == 'Toutes les communes') ? 'all' : val!;
+                        });
+                      },
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: _buildKpiCard(
-                      title: '💧 Eau SODECI',
-                      count: '$_waterOutages coupures',
-                      subtitle: 'Temps moyen: 4j',
-                      color: Colors.blue,
-                      icon: LucideIcons.droplet,
+                    flex: 1,
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedPeriod,
+                      decoration: InputDecoration(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'all', child: Text('Tout', style: TextStyle(fontSize: 13))),
+                        DropdownMenuItem(value: 'today', child: Text('24h', style: TextStyle(fontSize: 13))),
+                        DropdownMenuItem(value: '7d', child: Text('7j', style: TextStyle(fontSize: 13))),
+                        DropdownMenuItem(value: '30d', child: Text('30j', style: TextStyle(fontSize: 13))),
+                      ],
+                      onChanged: (val) => setState(() => _selectedPeriod = val!),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 20),
 
-              // ── EN-TÊTE FIL INFRASTRUCTURE ──
+              // ── 3. CARTES KPIS SERVICES (Électricité, Eau, Mairie) ──
+              Text(
+                'Vue d’ensemble des Services Publics',
+                style: GoogleFonts.outfit(fontSize: 17, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+
+              // Carte CIE
+              _buildServiceKpiCard(
+                title: 'Électricité (CIE)',
+                icon: LucideIcons.zap,
+                color: const Color(0xFFF59E0B),
+                bgColor: const Color(0xFFFEF3C7),
+                actifs: _elecActifs,
+                resolus: _elecResolus,
+                total: _elecTotal,
+              ),
+              const SizedBox(height: 10),
+
+              // Carte SODECI
+              _buildServiceKpiCard(
+                title: 'Eau Potable (SODECI)',
+                icon: LucideIcons.droplets,
+                color: const Color(0xFF0284C7),
+                bgColor: const Color(0xFFE0F2FE),
+                actifs: _waterActifs,
+                resolus: _waterResolus,
+                total: _waterTotal,
+              ),
+              const SizedBox(height: 10),
+
+              // Carte Voirie / Mairie
+              _buildServiceKpiCard(
+                title: 'Voirie & Salubrité (Mairies)',
+                icon: LucideIcons.wrench,
+                color: const Color(0xFF10B981),
+                bgColor: const Color(0xFFD1FAE5),
+                actifs: _mairieActifs,
+                resolus: _mairieResolus,
+                total: _mairieTotal,
+              ),
+              const SizedBox(height: 24),
+
+              // ── 4. COUPURES PRIORITAIRES & URGENCES (Algorithme Score P) ──
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Fil des Signalements ($_infraCount infra)',
-                    style: GoogleFonts.outfit(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    '🚨 Signalements Prioritaires',
+                    style: GoogleFonts.outfit(fontSize: 17, fontWeight: FontWeight.bold),
                   ),
-                  TextButton.icon(
-                    onPressed: _loadDashboardData,
-                    icon: const Icon(LucideIcons.rotateCw, size: 14),
-                    label: const Text('Actualiser'),
+                  Text(
+                    'Score P: Algorithmique',
+                    style: TextStyle(color: Colors.grey[500], fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
-              // ── RENDER FEED DE SIGNALEMENTS ──
               if (_isLoading)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32.0),
-                    child: CircularProgressIndicator(),
-                  ),
-                )
-              else if (_reports.isEmpty)
+                const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
+              else if (_priorityReports.isEmpty)
                 Container(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
+                    color: const Color(0xFFF0FDF4),
                     borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFBBF7D0)),
                   ),
                   child: const Center(
-                    child: Text(
-                      'Aucun signalement récent.',
-                      style: TextStyle(color: Colors.grey),
-                    ),
+                    child: Text('✅ Aucun signalement critique en attente dans cette zone !', style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold)),
                   ),
                 )
               else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _reports.length,
-                  separatorBuilder: (ctx, i) => const SizedBox(height: 12),
-                  itemBuilder: (ctx, i) {
-                    final item = _reports[i];
-                    return _buildReportItemTile(context, item);
-                  },
-                ),
+                ..._priorityReports.map((report) => _buildPriorityReportRow(context, report)),
+
+              const SizedBox(height: 24),
+
+              // ── 5. BILAN PAR COMMUNE D'ABIDJAN ──
+              Text(
+                '📍 Répartition par Commune',
+                style: GoogleFonts.outfit(fontSize: 17, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+
+              ..._communeStats.entries.map((entry) {
+                final communeName = entry.key;
+                final data = entry.value;
+                final total = data['total'] ?? 0;
+                final actifs = data['actifs'] ?? 0;
+                final resolus = data['resolus'] ?? 0;
+                final double resolutionRate = total > 0 ? (resolus / total) : 0.0;
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(communeName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                          Text('🔴 $actifs actifs · ✅ $resolus résolus', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: resolutionRate,
+                          backgroundColor: Colors.grey[200],
+                          valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.secondaryEmerald),
+                          minHeight: 6,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
             ],
           ),
         ),
@@ -249,186 +376,136 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildKpiCard({
+  Widget _buildServiceKpiCard({
     required String title,
-    required String count,
-    required String subtitle,
-    required Color color,
     required IconData icon,
+    required Color color,
+    required Color bgColor,
+    required int actifs,
+    required int resolus,
+    required int total,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(8),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: GoogleFonts.outfit(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(10)),
+                child: Icon(icon, color: color, size: 20),
               ),
+              const SizedBox(width: 10),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF0F172A))),
+              const Spacer(),
+              Text('$total total', style: TextStyle(color: Colors.grey[500], fontSize: 12)),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            count,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: const TextStyle(fontSize: 11, color: Colors.grey),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildKpiNumber('🔴 Actifs', '$actifs', const Color(0xFFDC2626)),
+              Container(height: 24, width: 1, color: Colors.grey[200]),
+              _buildKpiNumber('✅ Résolus', '$resolus', const Color(0xFF16A34A)),
+              Container(height: 24, width: 1, color: Colors.grey[200]),
+              _buildKpiNumber('📈 Taux', total > 0 ? '${((resolus / total) * 100).round()}%' : '0%', AppTheme.primaryTeal),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildReportItemTile(BuildContext context, ReportModel item) {
-    Color statusColor = Colors.orange;
-    String statusText = 'En cours';
-    if (item.status == 'resolved') {
-      statusColor = AppTheme.secondaryEmerald;
-      statusText = 'Résolu';
-    } else if (item.verifications >= 3) {
-      statusColor = Colors.blue;
-      statusText = 'Confirmé par voisins';
-    }
+  Widget _buildKpiNumber(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+        const SizedBox(height: 2),
+        Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+      ],
+    );
+  }
 
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      elevation: 1,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (ctx) => ReportDetailScreen(report: item),
-            ),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(14.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryTeal.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      item.reportCategory == 'outage'
-                          ? LucideIcons.zap
-                          : LucideIcons.construction,
-                      color: AppTheme.primaryTeal,
-                      size: 20,
-                    ),
+  Widget _buildPriorityReportRow(BuildContext context, ReportModel report) {
+    final isElec = report.serviceType == 'electricity' || report.serviceType == 'electricite';
+    final priorityScore = (report.impactedPeople * 10) + (report.verifications * 5) + (report.urgency == 'critical' ? 50 : 20);
+
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => ReportDetailScreen(report: report)),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border(left: BorderSide(color: report.alertColor, width: 4)),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 6, offset: const Offset(0, 2)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: report.alertColor.withAlpha(20),
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.serviceType.toUpperCase(),
-                          style: GoogleFonts.outfit(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                        Text(
-                          '${item.commune}, ${item.quartier}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      statusText,
-                      style: TextStyle(
-                        color: statusColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (item.description.isNotEmpty) ...[
-                const SizedBox(height: 10),
+                  child: Text('Priorité P: $priorityScore', style: TextStyle(color: report.alertColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(width: 8),
                 Text(
-                  item.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 13),
+                  '⏱️ ${report.elapsedFormatted}',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
+                ),
+                const Spacer(),
+                Text(
+                  report.commune,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
                 ),
               ],
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(LucideIcons.users, size: 14, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${item.verifications} confirmation(s)',
-                        style: const TextStyle(fontSize: 11, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                  const Row(
-                    children: [
-                      Text(
-                        'Détails',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.primaryTeal,
-                        ),
-                      ),
-                      SizedBox(width: 2),
-                      Icon(
-                        LucideIcons.chevronRight,
-                        size: 14,
-                        color: AppTheme.primaryTeal,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              report.description.isEmpty ? 'Coupure signalée à ${report.location}' : report.description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(isElec ? LucideIcons.zap : LucideIcons.droplets, size: 14, color: isElec ? const Color(0xFFF59E0B) : const Color(0xFF0284C7)),
+                const SizedBox(width: 4),
+                Text(report.quartier.isEmpty ? report.location : report.quartier, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                const Spacer(),
+                Text('👤 ${report.impactedPeople} impacté(s) · ✓ ${report.verifications} vérif.', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF16A34A))),
+              ],
+            ),
+          ],
         ),
       ),
     );
