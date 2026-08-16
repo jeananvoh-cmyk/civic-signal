@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
@@ -382,6 +383,7 @@ const RotatingWord = React.memo(() => {
 });
 
 const Index = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { canInstall, isIOS, install } = usePWAInstall();
   const { liveCount, liveActive, serviceCounts } = useLiveData();
@@ -393,6 +395,13 @@ const Index = () => {
   const [showElecBanner, setShowElecBanner] = useState(
     () => localStorage.getItem("signa_elec_feature_v1") !== "dismissed"
   );
+
+  // Redirection automatique native mobile vers le Tableau de Bord
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      navigate("/tableau-de-bord", { replace: true });
+    }
+  }, [navigate]);
 
   // Batch landing stats + transparency stats — 1 round-trip instead of 2
   useEffect(() => {
