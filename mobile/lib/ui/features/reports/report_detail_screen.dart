@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/communes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/models/report_model.dart';
+import '../../common/civic_photo_view.dart';
 
 class ReportDetailScreen extends StatefulWidget {
   final ReportModel report;
@@ -343,7 +344,8 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
               // ══════════════════════════════════════════════════════════
               // 3. GALERIE PHOTOS
               // ══════════════════════════════════════════════════════════
-              if (_currentReport.photoUrls != null && _currentReport.photoUrls!.isNotEmpty) ...[
+              if ((_currentReport.photoUrls != null && _currentReport.photoUrls!.isNotEmpty) ||
+                  (_currentReport.photoUrl != null && _currentReport.photoUrl!.isNotEmpty)) ...[
                 Container(
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
@@ -356,17 +358,11 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
                     children: [
                       Text('Photos du signalement', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
                       const SizedBox(height: 12),
-                      SizedBox(
-                        height: 140,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _currentReport.photoUrls!.length,
-                          separatorBuilder: (_, __) => const SizedBox(width: 10),
-                          itemBuilder: (ctx, idx) => ClipRRect(
-                            borderRadius: BorderRadius.circular(14),
-                            child: Image.network(_currentReport.photoUrls![idx], width: 180, height: 140, fit: BoxFit.cover),
-                          ),
-                        ),
+                      CivicPhotoView(
+                        photoPath: _currentReport.photoUrl,
+                        photoPaths: _currentReport.photoUrls,
+                        height: 220,
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ],
                   ),

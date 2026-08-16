@@ -4,6 +4,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/models/report_model.dart';
+import '../../common/civic_photo_view.dart';
 import '../reports/report_detail_screen.dart';
 
 class AdminConsoleScreen extends StatefulWidget {
@@ -653,6 +654,15 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
           ),
           const SizedBox(height: 6),
           Text(r.description.isEmpty ? 'Signalement de panne' : r.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
+          if ((r.photoUrl != null && r.photoUrl!.isNotEmpty) || (r.photoUrls != null && r.photoUrls!.isNotEmpty)) ...[
+            const SizedBox(height: 8),
+            CivicPhotoView(
+              photoPath: r.photoUrl,
+              photoPaths: r.photoUrls,
+              height: 140,
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ],
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

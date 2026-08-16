@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/communes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/models/report_model.dart';
+import '../../common/civic_photo_view.dart';
 import '../reports/create_report_screen.dart';
 import '../reports/report_detail_screen.dart';
 
@@ -700,15 +701,15 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
             ),
           ),
 
-          // High-Res Photo if available
-          if (photoUrl != null && photoUrl.isNotEmpty)
-            ClipRRect(
-              child: Image.network(
-                photoUrl,
-                height: 180,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          // High-Res Photo or Carousel if available
+          if ((photoUrl != null && photoUrl.isNotEmpty) || (report['photo_urls'] != null && (report['photo_urls'] as List).isNotEmpty))
+            Padding(
+              padding: const EdgeInsets.only(left: 14, right: 14, top: 4, bottom: 8),
+              child: CivicPhotoView(
+                photoPath: photoUrl,
+                photoPaths: report['photo_urls'] as List<dynamic>?,
+                height: 220,
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
 
