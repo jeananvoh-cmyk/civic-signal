@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Send, MapPin, Navigation, Loader2, Users, Baby, Heart, UserRound,
   ChevronDown, Plus, Minus, ArrowLeft, Camera, MessageSquare, Clock,
-  LogIn, UserPlus, AlertTriangle, CheckCircle2,
+  LogIn, UserPlus, AlertTriangle, CheckCircle2, ShieldAlert,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -1258,7 +1258,7 @@ const ReportPage = () => {
                         </Button>
 
                         {/* Choix manuel direct de secours */}
-                        <div className="pt-3 border-t border-amber-500/20 text-left space-y-2">
+                        <div className="pt-3 border-t border-amber-500/20 text-left space-y-3">
                           <label className="text-xs font-bold text-foreground block">
                             📍 Choisir ma commune manuellement :
                           </label>
@@ -1278,6 +1278,19 @@ const ReportPage = () => {
                                 <span>{c.nom}</span>
                               </button>
                             ))}
+                          </div>
+
+                          {/* Avertissement dissuasif anti-fraude */}
+                          <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-3 text-left">
+                            <ShieldAlert className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                            <div className="text-xs space-y-0.5">
+                              <p className="font-bold text-amber-900 dark:text-amber-200">
+                                Localisation manuelle sous contrôle citoyen
+                              </p>
+                              <p className="text-amber-800/90 dark:text-amber-300/90 leading-snug">
+                                Ce signalement sera soumis à la corroboration de vos voisins du quartier avant toute transmission officielle aux services techniques.
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </motion.div>
@@ -1308,6 +1321,13 @@ const ReportPage = () => {
                               ))}
                             </SelectContent>
                           </Select>
+
+                          {gpsSource === "manual" && (
+                            <div className="flex items-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/8 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+                              <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+                              <span>Signalement manuel — soumis à corroboration citoyenne (3 voisins du quartier).</span>
+                            </div>
+                          )}
                         </div>
 
                         <div className="space-y-2">
