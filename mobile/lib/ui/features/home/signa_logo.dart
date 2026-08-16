@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import '../../core/theme/app_theme.dart';
+import '../../../core/theme/app_theme.dart';
 
 class SignaLogoWidget extends StatelessWidget {
   final double size;
@@ -38,19 +38,12 @@ class SignaLogoWidget extends StatelessWidget {
           ),
           child: Stack(
             alignment: Alignment.center,
-            children: [
-              // Golden citizens crown top indicator
+            children: const [
               Positioned(
                 top: 2,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Icon(LucideIcons.users, size: 10, color: AppTheme.amberAccent),
-                  ],
-                ),
+                child: Icon(LucideIcons.users, size: 10, color: AppTheme.amberAccent),
               ),
-              // Center service icon
-              const Icon(LucideIcons.zap, size: 16, color: Colors.white),
+              Icon(LucideIcons.zap, size: 16, color: Colors.white),
             ],
           ),
         ),
@@ -68,7 +61,7 @@ class SignaLogoWidget extends StatelessWidget {
                     text: 'SIGNA',
                     style: GoogleFonts.outfit(
                       fontSize: size * 0.55,
-                      fontWeight: FontWeight.extrabold,
+                      fontWeight: FontWeight.w800,
                       color: isDark ? Colors.white : AppTheme.textPrimaryLight,
                       letterSpacing: -0.5,
                     ),
@@ -77,7 +70,7 @@ class SignaLogoWidget extends StatelessWidget {
                     text: '.ci',
                     style: GoogleFonts.outfit(
                       fontSize: size * 0.55,
-                      fontWeight: FontWeight.extrabold,
+                      fontWeight: FontWeight.w800,
                       color: AppTheme.secondaryEmerald,
                       letterSpacing: -0.5,
                     ),
