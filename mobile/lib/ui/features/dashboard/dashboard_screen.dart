@@ -5,7 +5,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/communes.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../domain/models/report_model.dart';
+import '../commune/commune_detail_screen.dart';
 import '../reports/create_report_screen.dart';
 import '../reports/report_detail_screen.dart';
 import '../verification/verification_screen.dart';
@@ -944,9 +944,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   final int capacite = c.population ~/ 2;
                   final double tauxCapacite = capacite > 0 ? ((totalSignalements / capacite) * 100).clamp(1.0, 100.0) : 1.0;
 
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 14),
-                    padding: const EdgeInsets.all(16),
+                  return InkWell(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => CommuneDetailScreen(communeName: c.nom)),
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 14),
+                      padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: isDark ? const Color(0xFF1E293B) : Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -1128,7 +1134,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ],
                     ),
-                  );
+                  ),
+                );
                 },
               ),
               const SizedBox(height: 20),

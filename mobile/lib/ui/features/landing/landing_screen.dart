@@ -10,8 +10,10 @@ import '../../../core/theme/app_theme.dart';
 import '../../../domain/models/report_model.dart';
 import '../home/signa_logo.dart';
 import '../map/map_screen.dart';
+import '../meter/meter_screen.dart';
 import '../reports/create_report_screen.dart';
 import '../reports/report_detail_screen.dart';
+import '../trends/trends_screen.dart';
 import '../verification/verification_screen.dart';
 
 class LandingScreen extends ConsumerStatefulWidget {
@@ -361,6 +363,70 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                             bgColor: const Color(0xFFF3E8FF),
                             isDark: isDark,
                             onTap: () => _navigateToCreateReport('drain_blocked'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrendsScreen())),
+                            borderRadius: BorderRadius.circular(14),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF064E3B).withAlpha(30),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: const Color(0xFF10B981).withAlpha(80)),
+                              ),
+                              child: Row(
+                                children: const [
+                                  Icon(LucideIcons.shieldCheck, color: Color(0xFF10B981), size: 18),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Transparence', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                        Text('Délais & Taux', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MeterScreen())),
+                            borderRadius: BorderRadius.circular(14),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF59E0B).withAlpha(30),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: const Color(0xFFF59E0B).withAlpha(80)),
+                              ),
+                              child: Row(
+                                children: const [
+                                  Icon(LucideIcons.gauge, color: Color(0xFFD97706), size: 18),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Compteur CIE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                        Text('Simulateur kWh', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ],
