@@ -221,16 +221,6 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _meterNumberController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    _selectedCommune = widget.initialCommune ?? 'Cocody';
-    if (widget.initialType != null) {
-      _selectedType = widget.initialType;
-      _step = 2;
-    }
-  }
-
   String _contractType = 'postpaid'; // 'prepaid' | 'postpaid'
   TimeOfDay _startTime = TimeOfDay.now();
 
@@ -259,6 +249,7 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedCommune = widget.initialCommune ?? 'Cocody';
     if (widget.initialType != null) {
       _selectedType = widget.initialType;
       _step = 2;
