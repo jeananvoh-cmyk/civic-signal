@@ -1,13 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/communes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/models/report_model.dart';
+import '../auth/auth_screen.dart';
+import '../commune/commune_detail_screen.dart';
 import '../home/signa_logo.dart';
 import '../map/map_screen.dart';
 import '../meter/meter_screen.dart';
@@ -20,10 +22,10 @@ class LandingScreen extends ConsumerStatefulWidget {
   const LandingScreen({super.key});
 
   @override
-  ConsumerState<LandingScreen> createState() => _LandingScreenState();
+  State<LandingScreen> createState() => _LandingScreenState();
 }
 
-class _LandingScreenState extends ConsumerState<LandingScreen> {
+class _LandingScreenState extends State<LandingScreen> {
   int _wordIndex = 0;
   Timer? _wordTimer;
 
@@ -38,13 +40,20 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
   List<ReportModel> _recentReports = [];
   bool _isLoadingReports = true;
 
-  // Rotating words from Web
+  // Average Delays
+  String _avgElecDelay = '5h 30min';
+  String _avgEauDelay = '4h 15min';
+
+  // Feature Discovery
+  bool _showElecBanner = true;
+
+  // Rotating words (1:1 Web)
   final List<Map<String, dynamic>> _rotatingWords = [
-    {'text': "coupures d'eau", 'color': const Color(0xFF38BDF8), 'bg': const Color(0x1A38BDF8)},
-    {'text': "coupures d'électricité", 'color': const Color(0xFFFACC15), 'bg': const Color(0x1AFACC15)},
-    {'text': "lampadaires cassés", 'color': const Color(0xFFFB923C), 'bg': const Color(0x1AFB923C)},
-    {'text': "caniveaux bouchés", 'color': const Color(0xFF2DD4BF), 'bg': const Color(0x1A2DD4BF)},
-    {'text': "nids de poules", 'color': const Color(0xFFCBD5E1), 'bg': const Color(0x1ACBD5E1)},
+    {'text': "coupures d'eau", 'color': const Color(0xFF38BDF8)},
+    {'text': "coupures d'électricité", 'color': const Color(0xFFFACC15)},
+    {'text': "lampadaires cassés", 'color': const Color(0xFFFB923C)},
+    {'text': "caniveaux bouchés", 'color': const Color(0xFF2DD4BF)},
+    {'text': "nids de poules", 'color': const Color(0xFFCBD5E1)},
   ];
 
   @override
@@ -139,6 +148,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentWord = _rotatingWords[_wordIndex];
+    final currentUser = Supabase.instance.client.auth.currentUser;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF030D1A) : const Color(0xFFF8FAFC),
@@ -150,7 +160,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ══════════════════════════════════════════════════════════
-              // 1. HERO SECTION CIVIC TECH MODERNE (Exact Web)
+              // 1. HERO SECTION CIVIC TECH MODERNE (1:1 Web)
               // ══════════════════════════════════════════════════════════
               Container(
                 width: double.infinity,
@@ -170,25 +180,32 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const SignaLogoWidget(size: 32),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF16A34A).withAlpha(40),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFF16A34A).withAlpha(80)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(color: Color(0xFF22C55E), shape: BoxShape.circle),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF16A34A).withAlpha(40),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: const Color(0xFF16A34A).withAlpha(80)),
                               ),
-                              const SizedBox(width: 6),
-                              Text('$_activeOutages coupures en direct', style: const TextStyle(color: Color(0xFF86EFAC), fontSize: 11, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(color: Color(0xFF22C55E), shape: BoxShape.circle),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    _activeOutages > 0 ? '$_activeOutages coupures en direct' : 'Aucune coupure active',
+                                    style: const TextStyle(color: Color(0xFF86EFAC), fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -198,7 +215,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                     Text(
                       'Signalez les',
                       style: GoogleFonts.outfit(
-                        fontSize: 32,
+                        fontSize: 34,
                         fontWeight: FontWeight.w900,
                         color: Colors.white,
                         height: 1.1,
@@ -214,7 +231,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                         currentWord['text'] as String,
                         key: ValueKey<int>(_wordIndex),
                         style: GoogleFonts.outfit(
-                          fontSize: 30,
+                          fontSize: 34,
                           fontWeight: FontWeight.w900,
                           color: currentWord['color'] as Color,
                           height: 1.1,
@@ -224,7 +241,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                     Text(
                       'en Côte d\'Ivoire.',
                       style: GoogleFonts.outfit(
-                        fontSize: 30,
+                        fontSize: 34,
                         fontWeight: FontWeight.w900,
                         color: Colors.white,
                         height: 1.1,
@@ -235,7 +252,26 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                       'Plateforme citoyenne et communautaire pour documenter, corroborer et suivre la résolution des incidents d\'électricité (CIE), d\'eau (SODECI) et de voirie urbaine.',
                       style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13, height: 1.4),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
+
+                    // Badge 07 communes pilotes
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(15),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white.withAlpha(30)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(LucideIcons.shield, color: Colors.white70, size: 14),
+                          SizedBox(width: 6),
+                          Text('07 communes pilotes · Abidjan', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
 
                     // 2 GROS BOUTONS D'ACTION PRINCIPAUX (CTA)
                     Row(
@@ -244,7 +280,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                           child: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFEA580C),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              padding: const EdgeInsets.symmetric(vertical: 15),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                               elevation: 4,
                             ),
@@ -257,7 +293,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                         Expanded(
                           child: OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              padding: const EdgeInsets.symmetric(vertical: 15),
                               side: const BorderSide(color: Color(0xFF10B981), width: 1.5),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                               backgroundColor: const Color(0xFF10B981).withAlpha(20),
@@ -269,12 +305,36 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 20),
+
+                    // PILULES DES 7 COMMUNES PILOTES (1:1 Web)
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: PILOT_COMMUNES.map((c) {
+                        return InkWell(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => CommuneDetailScreen(communeName: c.nom)),
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: c.couleur.withAlpha(220),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(c.nom, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ],
                 ),
               ),
 
               // ══════════════════════════════════════════════════════════
-              // 2. BANDEAU DE STATISTIQUES RÉELLES (1:1 Web)
+              // 2. BANDEAU DE STATISTIQUES RÉELLES (4 Chiffres 1:1 Web)
               // ══════════════════════════════════════════════════════════
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -290,42 +350,154 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildStatItem('$_totalReports', 'Signalements', const Color(0xFF0F172A), isDark),
-                    _buildDivider(isDark),
-                    _buildStatItem('$_resolvedReports', 'Résolus', const Color(0xFF16A34A), isDark),
-                    _buildDivider(isDark),
-                    _buildStatItem('7', 'Communes pilotes', const Color(0xFF0284C7), isDark),
+                    _buildStatItem('7', 'Communes', LucideIcons.mapPin, const Color(0xFF0284C7)),
+                    _buildStatItem('$_totalReports', 'Signalés', LucideIcons.fileText, const Color(0xFFD97706)),
+                    _buildStatItem('$_resolvedReports', 'Résolus', LucideIcons.checkCircle, const Color(0xFF16A34A)),
+                    _buildStatItem('$_activeOutages', 'En cours', LucideIcons.radio, const Color(0xFFDC2626)),
                   ],
                 ),
               ),
 
               // ══════════════════════════════════════════════════════════
-              // 3. ACCÈS RAPIDES PAR TYPE DE PROBLÈME (Exact Web)
+              // 3. DÉLAIS MOYENS DE RÉSOLUTION (1:1 Web)
+              // ══════════════════════════════════════════════════════════
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(LucideIcons.trendingUp, color: Color(0xFF10B981), size: 18),
+                              SizedBox(width: 8),
+                              Text('Délai moyen de résolution', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            ],
+                          ),
+                          InkWell(
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrendsScreen())),
+                            child: const Text('Voir tout →', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryTeal)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(child: _buildDelayBox('⚡', _avgElecDelay, 'CIE (Élec)', const Color(0xFFD97706))),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildDelayBox('💧', _avgEauDelay, 'SODECI (Eau)', const Color(0xFF0284C7))),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildDelayBox('🏛️', '6h 40min', 'Mairie (Voirie)', const Color(0xFF9333EA))),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // ══════════════════════════════════════════════════════════
+              // 4. BANNIÈRE DISCOVERY : COMPTEUR ÉLECTRICITÉ (1:1 Web)
+              // ══════════════════════════════════════════════════════════
+              if (_showElecBanner)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFFFBEB), Color(0xFFFEF3C7)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: const Color(0xFFFDE68A)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD97706),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Text('NOUVEAU', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              icon: const Icon(LucideIcons.x, size: 16, color: Colors.grey),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () => setState(() => _showElecBanner = false),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(color: const Color(0xFFF59E0B).withAlpha(40), shape: BoxShape.circle),
+                              child: const Icon(LucideIcons.zap, color: Color(0xFFD97706), size: 22),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: const [
+                                  Text('Suivez votre électricité prépayée', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF92400E))),
+                                  Text('Décodez vos SMS de recharge CIE et estimez vos jours d\'autonomie.', style: TextStyle(fontSize: 11, color: Color(0xFF78350F))),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFD97706),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            icon: const Icon(LucideIcons.gauge, color: Colors.white, size: 16),
+                            label: const Text('Essayer le simulateur', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MeterScreen())),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 20),
+
+              // ══════════════════════════════════════════════════════════
+              // 5. 5 CATÉGORIES DE PROBLÈMES (1:1 Web)
               // ══════════════════════════════════════════════════════════
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Accès Rapides', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 17)),
+                    Text('Que voulez-vous signaler ?', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 17)),
                     const SizedBox(height: 4),
-                    const Text('Cliquez sur le service concerné pour lancer le signalement :', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                    const Text('Sélectionnez la nature de l\'incident pour lancer la déclaration :', style: TextStyle(fontSize: 12, color: Colors.grey)),
                     const SizedBox(height: 12),
 
                     Row(
                       children: [
-                        Expanded(
-                          child: _buildQuickActionCard(
-                            title: 'Électricité',
-                            subtitle: 'Coupure CIE',
-                            icon: LucideIcons.zap,
-                            color: const Color(0xFFF59E0B),
-                            bgColor: const Color(0xFFFEF3C7),
-                            isDark: isDark,
-                            onTap: () => _navigateToCreateReport('electricity_outage'),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
                         Expanded(
                           child: _buildQuickActionCard(
                             title: 'Eau Potable',
@@ -335,6 +507,18 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                             bgColor: const Color(0xFFE0F2FE),
                             isDark: isDark,
                             onTap: () => _navigateToCreateReport('water_outage'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _buildQuickActionCard(
+                            title: 'Électricité',
+                            subtitle: 'Coupure CIE',
+                            icon: LucideIcons.zap,
+                            color: const Color(0xFFF59E0B),
+                            bgColor: const Color(0xFFFEF3C7),
+                            isDark: isDark,
+                            onTap: () => _navigateToCreateReport('electricity_outage'),
                           ),
                         ),
                       ],
@@ -356,80 +540,26 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: _buildQuickActionCard(
-                            title: 'Voirie / Caniveau',
-                            subtitle: 'Trou & Salubrité',
-                            icon: LucideIcons.landmark,
-                            color: const Color(0xFF9333EA),
-                            bgColor: const Color(0xFFF3E8FF),
+                            title: 'Caniveau',
+                            subtitle: 'Obstruction / Débord.',
+                            icon: LucideIcons.waves,
+                            color: const Color(0xFF0D9488),
+                            bgColor: const Color(0xFFCCFBF1),
                             isDark: isDark,
                             onTap: () => _navigateToCreateReport('drain_blocked'),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrendsScreen())),
-                            borderRadius: BorderRadius.circular(14),
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF064E3B).withAlpha(30),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: const Color(0xFF10B981).withAlpha(80)),
-                              ),
-                              child: Row(
-                                children: const [
-                                  Icon(LucideIcons.shieldCheck, color: Color(0xFF10B981), size: 18),
-                                  SizedBox(width: 8),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text('Transparence', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                                        Text('Délais & Taux', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MeterScreen())),
-                            borderRadius: BorderRadius.circular(14),
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF59E0B).withAlpha(30),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: const Color(0xFFF59E0B).withAlpha(80)),
-                              ),
-                              child: Row(
-                                children: const [
-                                  Icon(LucideIcons.gauge, color: Color(0xFFD97706), size: 18),
-                                  SizedBox(width: 8),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text('Compteur CIE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                                        Text('Simulateur kWh', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 10),
+                    _buildQuickActionCard(
+                      title: 'Nids de poules & Voirie',
+                      subtitle: 'Chaussée dégradée, trou dangereux',
+                      icon: LucideIcons.landmark,
+                      color: const Color(0xFF64748B),
+                      bgColor: const Color(0xFFF1F5F9),
+                      isDark: isDark,
+                      onTap: () => _navigateToCreateReport('pothole'),
                     ),
                   ],
                 ),
@@ -437,7 +567,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
               const SizedBox(height: 24),
 
               // ══════════════════════════════════════════════════════════
-              // 4. SIGNALEMENTS RÉCENTS SUR LE RÉSEAU (1:1 Web)
+              // 6. SIGNALEMENTS RÉCENTS SUR LE RÉSEAU (1:1 Web)
               // ══════════════════════════════════════════════════════════
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -484,60 +614,56 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                     final iconColor = isElec ? const Color(0xFFF59E0B) : isEau ? const Color(0xFF0284C7) : const Color(0xFF9333EA);
                     final isResolved = r.status == 'resolved';
 
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: iconColor.withAlpha(25),
-                              borderRadius: BorderRadius.circular(10),
+                    return InkWell(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ReportDetailScreen(report: r))),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: iconColor.withAlpha(30),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(icon, color: iconColor, size: 20),
                             ),
-                            child: Icon(icon, color: iconColor, size: 20),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(r.commune, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                    if (r.quartier.isNotEmpty) ...[
-                                      const SizedBox(width: 6),
-                                      Text('· ${r.quartier}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                                    ],
-                                  ],
-                                ),
-                                const SizedBox(height: 2),
-                                Text(r.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: isResolved ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              isResolved ? 'Résolu' : 'En cours',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: isResolved ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('${r.commune} · ${r.quartier}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                  const SizedBox(height: 2),
+                                  Text(r.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                ],
                               ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isResolved ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                isResolved ? 'Résolu' : 'En cours',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: isResolved ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },
@@ -545,37 +671,165 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
               const SizedBox(height: 24),
 
               // ══════════════════════════════════════════════════════════
-              // 5. COMMENT ÇA MARCHE (Exact Web)
+              // 7. SECTION COMMENT ÇA MARCHE (4 Étapes 1:1 Web)
               // ══════════════════════════════════════════════════════════
-              Container(
-                margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(20),
-                ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Comment ça marche ?', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18)),
+                    Text('Comment ça marche', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 17)),
                     const SizedBox(height: 4),
-                    const Text('Un processus citoyen en 4 étapes simples :', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-                    const SizedBox(height: 16),
+                    const Text('De la détection du problème à la décision en 4 étapes simples :', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    const SizedBox(height: 12),
 
-                    _buildStepRow('01', '📍', 'Localisez', 'Votre commune et quartier sont géolocalisés avec précision.'),
-                    const SizedBox(height: 12),
-                    _buildStepRow('02', '⚡', 'Signalez', 'Sélectionnez la nature de l\'incident en 3 clics.'),
-                    const SizedBox(height: 12),
-                    _buildStepRow('03', '🤝', 'Vérifiez', 'Les riverains à proximité corroborent l\'incident.'),
-                    const SizedBox(height: 12),
-                    _buildStepRow('04', '📊', 'Suivez', 'CIE, SODECI et Mairies sont informées en temps réel.'),
+                    Row(
+                      children: [
+                        Expanded(child: _buildStepCard('01', '📍', 'Localisez', 'GPS auto en 2 min')),
+                        const SizedBox(width: 10),
+                        Expanded(child: _buildStepCard('02', '⚡', 'Signalez', '3 clics suffisent')),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(child: _buildStepCard('03', '🤝', 'Vérifiez', 'Voisins solidaires')),
+                        const SizedBox(width: 10),
+                        Expanded(child: _buildStepCard('04', '📊', 'Impact', 'Décideurs informés')),
+                      ],
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 24),
+
+              // ══════════════════════════════════════════════════════════
+              // 8. SECTION COMMUNAUTÉ & RÉSEAUX SOCIAUX (1:1 Web)
+              // ══════════════════════════════════════════════════════════
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Rejoignez la communauté', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
+                      const SizedBox(height: 4),
+                      const Text('Restez informé en temps réel et partagez avec vos voisins.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      const SizedBox(height: 14),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                side: const BorderSide(color: Color(0xFF25D366)),
+                              ),
+                              icon: const Icon(LucideIcons.messageCircle, color: Color(0xFF25D366), size: 18),
+                              label: const Text('WhatsApp', style: TextStyle(color: Color(0xFF25D366), fontWeight: FontWeight.bold, fontSize: 13)),
+                              onPressed: () => launchUrl(Uri.parse('https://chat.whatsapp.com/signa-ci'), mode: LaunchMode.externalApplication),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                side: const BorderSide(color: Color(0xFF1877F2)),
+                              ),
+                              icon: const Icon(LucideIcons.facebook, color: Color(0xFF1877F2), size: 18),
+                              label: const Text('Facebook', style: TextStyle(color: Color(0xFF1877F2), fontWeight: FontWeight.bold, fontSize: 13)),
+                              onPressed: () => launchUrl(Uri.parse('https://facebook.com/signa-ci'), mode: LaunchMode.externalApplication),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // ══════════════════════════════════════════════════════════
+              // 9. BANNIÈRE INSCRIPTION / VISITEUR (1:1 Web)
+              // ══════════════════════════════════════════════════════════
+              if (currentUser == null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFF0284C7).withAlpha(15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFF0284C7).withAlpha(40)),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text('Rejoignez la communauté SIGNA-CI', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Gratuit · Sans publicité · Vos données privées restent sécurisées.',
+                          style: TextStyle(fontSize: 11, color: Colors.grey),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primaryTeal,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AuthScreen())),
+                            child: const Text('Créer mon compte gratuitement', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 40),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String value, String label, IconData icon, Color color) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(height: 6),
+        Text(value, style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w900)),
+        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+      ],
+    );
+  }
+
+  Widget _buildDelayBox(String emoji, String delay, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withAlpha(15),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 16)),
+          const SizedBox(height: 2),
+          Text(delay, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: color)),
+          Text(label, style: const TextStyle(fontSize: 9, color: Colors.grey)),
+        ],
       ),
     );
   }
@@ -589,69 +843,68 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
     required bool isDark,
     required VoidCallback onTap,
   }) {
-    return Material(
-      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+    return InkWell(
+      onTap: onTap,
       borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(10)),
-                child: Icon(icon, color: color, size: 20),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text(subtitle, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                ],
               ),
-              const SizedBox(height: 10),
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              Text(subtitle, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildStepRow(String num, String emoji, String title, String desc) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-          child: Text(emoji, style: const TextStyle(fontSize: 16)),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('$num. $title', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-              Text(desc, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-            ],
+  Widget _buildStepCard(String number, String emoji, String title, String desc) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9).withAlpha(120),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 22)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(number, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: AppTheme.primaryTeal)),
+                    const SizedBox(width: 4),
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  ],
+                ),
+                Text(desc, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
-  }
-
-  Widget _buildStatItem(String val, String label, Color color, bool isDark) {
-    return Column(
-      children: [
-        Text(val, style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w900, color: isDark ? Colors.white : color)),
-        Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
-      ],
-    );
-  }
-
-  Widget _buildDivider(bool isDark) {
-    return Container(width: 1, height: 28, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0));
   }
 }
