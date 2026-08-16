@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../data/repositories/report_repository.dart';
 import '../../../domain/models/report_model.dart';
 import '../auth/auth_screen.dart';
+import '../donation/donation_screen.dart';
 import '../home/signa_logo.dart';
 import '../legal/about_screen.dart';
 import '../legal/cgu_screen.dart';
@@ -15,6 +16,7 @@ import '../legal/privacy_screen.dart';
 import '../meter/meter_screen.dart';
 import '../partner/partner_dashboard_screen.dart';
 import '../reports/report_detail_screen.dart';
+import '../tracking/tracking_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -670,6 +672,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                 icon: const Icon(LucideIcons.wrench, size: 14),
                 label: const Text('Accéder au Dashboard Partenaire', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartnerDashboardScreen())),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Outils & Soutien Civique
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(LucideIcons.search, color: AppTheme.primaryTeal),
+                title: const Text('Suivi de Signalement (#SIG-XXXX)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                subtitle: const Text('Rechercher une panne par numéro de ticket', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrackingScreen())),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(LucideIcons.heart, color: Color(0xFFEF4444)),
+                title: const Text('Faire un Don / Soutenir SIGNA·CI', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                subtitle: const Text('Paiements sécurisés Mobile Money (Wave, Orange, MTN, Moov)', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DonationScreen())),
               ),
             ],
           ),

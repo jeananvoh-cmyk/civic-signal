@@ -12,9 +12,11 @@ import '../auth/auth_screen.dart';
 import '../commune/commune_detail_screen.dart';
 import '../home/signa_logo.dart';
 import '../map/map_screen.dart';
+import '../donation/donation_screen.dart';
 import '../meter/meter_screen.dart';
 import '../reports/create_report_screen.dart';
 import '../reports/report_detail_screen.dart';
+import '../tracking/tracking_screen.dart';
 import '../trends/trends_screen.dart';
 import '../verification/verification_screen.dart';
 
@@ -823,6 +825,75 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+
+              // ══════════════════════════════════════════════════════════
+              // 7.5. BANDEAU SUIVI & DONS MOBILE MONEY (1:1 Web Suivi/Donation)
+              // ══════════════════════════════════════════════════════════
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrackingScreen())),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: const [
+                                  Icon(LucideIcons.search, size: 16, color: AppTheme.primaryTeal),
+                                  SizedBox(width: 6),
+                                  Text('Suivi Direct', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              const Text('Suivre un ticket #SIG', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DonationScreen())),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: const [
+                                  Icon(LucideIcons.heart, size: 16, color: Color(0xFFEF4444)),
+                                  SizedBox(width: 6),
+                                  Text('Soutenir', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              const Text('Mobile Money CI', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
 
               // ══════════════════════════════════════════════════════════
               // 8. SECTION COMMUNAUTÉ & RÉSEAUX SOCIAUX (1:1 Web)
