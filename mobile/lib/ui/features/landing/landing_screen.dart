@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import '../home/signa_logo.dart';
 import '../map/map_screen.dart';
 import '../reports/create_report_screen.dart';
 
@@ -17,6 +18,97 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
   int _wordIndex = 0;
   Timer? _timer;
   bool _showAlertBanner = true;
+
+  void _openSearchDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final controller = TextEditingController();
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              const Icon(LucideIcons.search, color: Color(0xFF0D9488)),
+              const SizedBox(width: 8),
+              Text('Rechercher sur SIGNA·CI', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                decoration: InputDecoration(
+                  hintText: 'Saisissez une commune (Cocody), quartier ou code (#SIG-4821)...',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Fermer'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D9488)),
+              onPressed: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Recherche pour "${controller.text}" effectuée.')),
+                );
+              },
+              child: const Text('Rechercher'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _openNotificationsModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(LucideIcons.bell, color: Color(0xFF0D9488)),
+                  const SizedBox(width: 10),
+                  Text('Centre de Notifications', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(LucideIcons.x, size: 20),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(LucideIcons.megaphone, color: Color(0xFFF59E0B)),
+                title: const Text('📢 Information Régionale', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                subtitle: const Text('Maintenance programmée sur le réseau d’eau à Cocody Riviera.', style: TextStyle(fontSize: 12)),
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(LucideIcons.zap, color: Color(0xFF0D9488)),
+                title: const Text('⚡ Alerte Coupure Voisins', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                subtitle: const Text('Un voisin signale une coupure à Yopougon Banco 2.', style: TextStyle(fontSize: 12)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   final List<Map<String, dynamic>> _rotatingWords = [
     {'text': 'nids de poules', 'color': const Color(0xFFE2E8F0)},
@@ -137,78 +229,34 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
         backgroundColor: const Color(0xFFFBF9F5),
         elevation: 1,
         titleSpacing: 12,
-        title: Row(
-          children: [
-            // Emblem Pin Icon
-            Container(
-              width: 32,
-              height: 32,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFF064E3B),
-              ),
-              child: const Center(
-                child: Text('📍', style: TextStyle(fontSize: 16)),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                RichText(
-                  text: TextSpan(
-                    style: GoogleFonts.outfit(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      color: const Color(0xFF0F172A),
-                    ),
-                    children: const [
-                      TextSpan(text: 'SIGNA'),
-                      TextSpan(
-                        text: '·CI',
-                        style: TextStyle(color: Color(0xFF059669)),
-                      ),
-                    ],
-                  ),
-                ),
-                Text(
-                  'CÔTE D\'IVOIRE',
-                  style: GoogleFonts.inter(
-                    fontSize: 8,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
-                    color: const Color(0xFF64748B),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+        title: const SignaLogoWidget(size: 32, showSlogan: true),
         actions: [
           IconButton(
             icon: const Icon(LucideIcons.search, color: Color(0xFF0F172A), size: 20),
-            onPressed: () {},
+            onPressed: () => _openSearchDialog(context),
           ),
           Stack(
             alignment: Alignment.center,
             children: [
               IconButton(
                 icon: const Icon(LucideIcons.bell, color: Color(0xFF0F172A), size: 20),
-                onPressed: () {},
+                onPressed: () => _openNotificationsModal(context),
               ),
               Positioned(
                 top: 8,
                 right: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF3B82F6),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Text(
-                    '9+',
-                    style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                child: GestureDetector(
+                  onTap: () => _openNotificationsModal(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3B82F6),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      '9+',
+                      style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               ),

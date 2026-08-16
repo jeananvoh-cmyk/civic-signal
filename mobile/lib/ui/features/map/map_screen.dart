@@ -74,14 +74,28 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               ),
               reportsAsync.when(
                 data: (reports) {
-                  final markers = reports
-                      .where((r) => r.latitude != null && r.longitude != null)
-                      .map((report) {
-                    final bool isOutage = report.isOutage;
+                  const Map<String, LatLng> communeCoords = {
+                    'Cocody': LatLng(5.3599, -3.9850),
+                    'Yopougon': LatLng(5.3400, -4.0800),
+                    'Abobo': LatLng(5.4167, -4.0167),
+                    'Adjamé': LatLng(5.3569, -4.0239),
+                    'Koumassi': LatLng(5.3000, -3.9500),
+                    'Port-Bouët': LatLng(5.2500, -3.9300),
+                    'Marcory': LatLng(5.3000, -3.9800),
+                    'Treichville': LatLng(5.3000, -4.0000),
+                    'Plateau': LatLng(5.3200, -4.0200),
+                    'Bingerville': LatLng(5.3558, -3.8856),
+                  };
+
+                  final markers = reports.map((report) {
+                    final LatLng point = (report.latitude != null && report.longitude != null)
+                        ? LatLng(report.latitude!, report.longitude!)
+                        : (communeCoords[report.commune] ?? _defaultCenter);
+
                     final Color color = report.alertColor;
 
                     return Marker(
-                      point: LatLng(report.latitude!, report.longitude!),
+                      point: point,
                       width: 80,
                       height: 54,
                       child: GestureDetector(

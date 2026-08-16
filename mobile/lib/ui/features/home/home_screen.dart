@@ -32,7 +32,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ProfileScreen(),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_create_report',
         onPressed: () {
           Navigator.push(
             context,
@@ -40,19 +41,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           );
         },
         backgroundColor: AppTheme.primaryTeal,
-        icon: const Icon(LucideIcons.plus, color: Colors.white),
-        label: const Text(
-          'Signaler',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
+        elevation: 4,
+        child: const Icon(LucideIcons.plus, color: Colors.white, size: 28),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
         selectedItemColor: AppTheme.primaryTeal,
         unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
+        selectedFontSize: 12,
+        unselectedFontSize: 11,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(LucideIcons.home),
