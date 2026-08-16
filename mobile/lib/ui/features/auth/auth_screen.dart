@@ -85,7 +85,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   }
 
   bool _isPhone(String value) {
-    return RegExp(r'^\+?\d[\d\s-]{6,}$').test(value.trim());
+    return RegExp(r'^\+?\d[\d\s-]{6,}$').hasMatch(value.trim());
   }
 
   // ── Password Strength Calculation (Exact 1:1 with Web) ──
