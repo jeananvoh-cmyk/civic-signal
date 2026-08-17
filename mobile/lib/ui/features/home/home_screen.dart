@@ -82,8 +82,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             label: 'Dashboard',
           ),
           BottomNavigationBarItem(
-            icon: Icon(LucideIcons.hardHat),
-            activeIcon: Icon(LucideIcons.hardHat, color: Color(0xFFD97706)),
+            icon: Icon(LucideIcons.construction),
+            activeIcon: Icon(LucideIcons.construction, color: Color(0xFFEA580C)),
             label: 'Voirie & Infra',
           ),
           BottomNavigationBarItem(
