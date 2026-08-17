@@ -43,8 +43,8 @@ export default function PushPromptBanner() {
   };
 
   return (
-    <div className="w-full bg-primary/5 border-b border-primary/20 px-4 py-2.5">
-      <div className="container max-w-4xl flex items-center gap-3">
+    <div className="w-full bg-primary/5 border-b border-primary/20 px-4 py-2">
+      <div className="container flex items-center justify-between gap-3">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
           <Bell className="h-4 w-4 text-primary" />
         </div>

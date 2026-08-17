@@ -172,25 +172,36 @@ const Header = () => {
             </div>
           </nav>
 
-          {/* ── Right actions ── */}
-          <div className="hidden md:flex items-center gap-1.5 shrink-0">
+          {/* ── Right actions / Toolbar ── */}
+          <div className="hidden md:flex items-center gap-2 shrink-0">
+            {/* 🔍 Bouton de Recherche Globale explicite (Pannes, Quartiers, Communes) */}
             <button
               onClick={() => setSearchOpen(true)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              aria-label="Rechercher"
+              className="flex items-center gap-2 rounded-xl border border-border/70 bg-muted/40 hover:bg-muted px-2.5 py-1.5 text-xs text-muted-foreground transition-all hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              title="Rechercher un incident, un quartier ou une commune (Ctrl+K)"
+              aria-label="Rechercher un incident"
             >
-              <Search className="h-4 w-4" />
+              <Search className="h-3.5 w-3.5 text-primary" />
+              <span className="hidden xl:inline text-foreground/75 font-medium">Rechercher...</span>
+              <kbd className="hidden xl:inline-flex items-center rounded border border-border/70 bg-background/80 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
+                ⌘K
+              </kbd>
             </button>
+
+            {/* ☀️/🌙 Sélecteur de Thème */}
             <button
               onClick={toggleTheme}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              aria-label={`Changer le thème (actuel : ${theme === "dark" ? "sombre" : theme === "light" ? "clair" : "système"})`}
+              className="flex h-8 w-8 items-center justify-center rounded-xl border border-transparent hover:border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              title={`Changer le thème (actuel : ${theme === "dark" ? "Sombre" : theme === "light" ? "Clair" : "Système"})`}
+              aria-label="Changer le thème"
             >
               {themeIcon}
             </button>
 
+            <div className="h-4 w-px bg-border/70 mx-0.5" />
+
             {user ? (
-              <div className="flex items-center gap-1.5 ml-1 pl-1.5 border-l border-border">
+              <div className="flex items-center gap-1.5">
                 <NotificationBell />
                 {(isAdmin || isModerator) && (
                   <Link
@@ -207,32 +218,34 @@ const Header = () => {
                 )}
                 <Link
                   to="/profil"
-                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] font-medium text-foreground hover:bg-muted/60 transition-colors"
+                  className="flex items-center gap-2 rounded-xl px-2.5 py-1 text-[13px] font-medium text-foreground hover:bg-muted/60 border border-border/50 transition-colors"
+                  title="Mon Profil"
                 >
-                  <div className="flex h-[26px] w-[26px] items-center justify-center rounded-full bg-primary shadow-[0_0_0_2px_hsl(var(--primary)/0.2)] text-[11px] font-bold text-primary-foreground">
+                  <div className="flex h-[24px] w-[24px] items-center justify-center rounded-full bg-primary text-[11px] font-black text-primary-foreground">
                     {user.email?.[0]?.toUpperCase() || "?"}
                   </div>
-                  <span className="hidden lg:inline max-w-[100px] truncate text-foreground/80">{user.email?.split("@")[0]}</span>
+                  <span className="hidden lg:inline max-w-[110px] truncate text-foreground/90 font-semibold">{user.email?.split("@")[0]}</span>
                 </Link>
                 <button
                   onClick={signOut}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+                  className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+                  title="Se déconnecter"
                   aria-label="Déconnexion"
                 >
                   <LogOut className="h-4 w-4" />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2 ml-1">
+              <div className="flex items-center gap-2">
                 <Link
                   to="/auth?tab=login"
-                  className="rounded-lg px-3.5 py-1.5 text-[13px] font-medium text-foreground/80 hover:text-foreground hover:bg-muted/60 transition-colors border border-transparent hover:border-border"
+                  className="rounded-xl px-3.5 py-1.5 text-[13px] font-medium text-foreground/80 hover:text-foreground hover:bg-muted/60 transition-colors border border-transparent hover:border-border"
                 >
                   Se connecter
                 </Link>
                 <Link
                   to="/auth?tab=signup"
-                  className="rounded-lg bg-primary px-3.5 py-1.5 text-[13px] font-semibold text-primary-foreground hover:bg-primary/90 transition-colors shadow-[0_1px_2px_hsl(var(--primary)/0.3)]"
+                  className="rounded-xl bg-primary px-3.5 py-1.5 text-[13px] font-bold text-primary-foreground hover:bg-primary/90 transition-colors shadow-[0_1px_2px_hsl(var(--primary)/0.3)]"
                 >
                   S'inscrire
                 </Link>

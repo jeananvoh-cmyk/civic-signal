@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// 📍 Peintre Vectoriel Officiel SIGNA.ci (Modèle 1 FixMyStreet Civic Tech) :
-/// Disque plein Vert Émeraude + Anneau blanc + Clef de réparation blanche 45°
+/// 📍 Peintre Vectoriel Officiel SIGNA.ci :
+/// Disque plein Vert Émeraude + Anneau blanc ouvert en C + Clé mécanique de réparation à +45°
 class SignaLogoPainter extends CustomPainter {
   final bool isDark;
 
@@ -14,7 +14,7 @@ class SignaLogoPainter extends CustomPainter {
     canvas.save();
     canvas.scale(scale, scale);
 
-    // 1. Fond Disque Plein Vert Émeraude Civique
+    // 1. Fond Disque Plein Vert Émeraude
     final diskPaint = Paint()
       ..shader = const LinearGradient(
         colors: [Color(0xFF10B981), Color(0xFF059669)],
@@ -23,66 +23,58 @@ class SignaLogoPainter extends CustomPainter {
       ).createShader(const Rect.fromLTWH(2, 2, 96, 96))
       ..style = PaintingStyle.fill;
 
-    canvas.drawCircle(const Offset(50, 50), 48, diskPaint);
+    canvas.drawCircle(const Offset(50, 50), 47.5, diskPaint);
 
-    // 2. Anneau Blanc Intérieur
+    // 2. Arc Blanc Intérieur ouvert à droite (forme en C)
     final ringPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 7.0
+      ..strokeWidth = 7.5
       ..strokeCap = StrokeCap.round;
 
-    // Arc blanc ouvert
     canvas.drawArc(
-      const Rect.fromLTWH(13, 13, 74, 74),
-      -2.7,
-      5.3,
+      const Rect.fromLTWH(17, 17, 66, 66),
+      0.75, // Commence en bas à droite
+      4.78, // Fait le tour vers le haut à droite
       false,
       ringPaint,
     );
 
-    // 3. Clef à molette diagonale blanche à 45°
+    // 3. Clé mécanique de réparation diagonale blanche orientée à +45°
     canvas.save();
     canvas.translate(50, 50);
-    canvas.rotate(-0.785398); // -45 degrés
+    canvas.rotate(0.785398); // +45 degrés (tête en haut à droite, manche en bas à gauche)
     canvas.translate(-50, -50);
 
     final whiteFill = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.fill;
 
-    // Manche de la clef avec trou à la base
-    final handlePath = Path()
-      ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(44, 44, 12, 34), const Radius.circular(6)));
+    final wrenchPath = Path();
     
-    // Petit trou au bout du manche
+    // Contour extérieur de la clé (tête ouverte + manche)
+    wrenchPath.moveTo(44, 42);
+    wrenchPath.cubicTo(34, 37, 30, 29, 32, 15);
+    wrenchPath.cubicTo(32.5, 13, 35.5, 13, 38, 14.5);
+    wrenchPath.lineTo(43, 24);
+    wrenchPath.cubicTo(44.5, 27, 47, 29, 50, 29);
+    wrenchPath.cubicTo(53, 29, 55.5, 27, 57, 24);
+    wrenchPath.lineTo(62, 14.5);
+    wrenchPath.cubicTo(64.5, 13, 67.5, 13, 68, 15);
+    wrenchPath.cubicTo(70, 29, 66, 37, 56, 42);
+    wrenchPath.lineTo(56, 74);
+    wrenchPath.cubicTo(56, 78, 53.3, 81, 50, 81);
+    wrenchPath.cubicTo(46.7, 81, 44, 78, 44, 74);
+    wrenchPath.close();
+
+    // Trou circulaire au bout du manche
     final holePath = Path()
-      ..addOval(const Rect.fromLTWH(47.5, 68, 5, 5));
-    
-    final handleWithHole = Path.combine(PathOperation.difference, handlePath, holePath);
-    canvas.drawPath(handleWithHole, whiteFill);
+      ..addOval(const Rect.fromLTWH(46.5, 71, 7, 7));
 
-    // Tête de clef ouverte
-    final headPath = Path();
-    headPath.moveTo(50, 16);
-    headPath.cubicTo(37, 16, 28, 25, 28, 37);
-    headPath.cubicTo(28, 43, 31.5, 48, 36.5, 51);
-    headPath.lineTo(63.5, 51);
-    headPath.cubicTo(68.5, 48, 72, 43, 72, 37);
-    headPath.cubicTo(72, 25, 63, 16, 50, 16);
-    headPath.close();
+    final fullWrench = Path.combine(PathOperation.difference, wrenchPath, holePath);
+    canvas.drawPath(fullWrench, whiteFill);
 
-    // Mâchoire ouverte en C
-    headPath.moveTo(50, 24);
-    headPath.cubicTo(54, 24, 57.5, 26.5, 59, 30);
-    headPath.lineTo(41, 30);
-    headPath.cubicTo(42.5, 26.5, 46, 24, 50, 24);
-    headPath.close();
-    headPath.fillType = PathFillType.evenOdd;
-
-    canvas.drawPath(headPath, whiteFill);
     canvas.restore();
-
     canvas.restore();
   }
 
@@ -113,12 +105,13 @@ class SignaLogoWidget extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // 🟢 Isotype Modèle 1 Vectoriel (Rendu pur 0ms, 100% visible jour & nuit)
+        // 🟢 Isotype Officiel Vectoriel
         CustomPaint(
           size: Size(size, size),
           painter: SignaLogoPainter(isDark: isDarkMode),
         ),
         const SizedBox(width: 9),
+        // 🔤 Nom de marque SIGNA.ci horizontal (À CÔTÉ)
         RichText(
           text: TextSpan(
             children: [
