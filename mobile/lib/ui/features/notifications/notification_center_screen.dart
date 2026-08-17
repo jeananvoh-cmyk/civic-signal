@@ -249,7 +249,7 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                               ),
                               Switch(
                                 value: _notificationsEnabled,
-                                activeColor: AppTheme.secondaryEmerald,
+                                activeThumbColor: AppTheme.secondaryEmerald,
                                 onChanged: _togglePreference,
                               ),
                             ],

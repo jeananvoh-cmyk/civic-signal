@@ -66,7 +66,7 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
           .eq('report_id', _currentReport.id)
           .order('created_at', ascending: true);
 
-      if (res is List && mounted) {
+      if (mounted) {
         setState(() {
           _comments = List<Map<String, dynamic>>.from(res);
           _isLoadingComments = false;
@@ -443,7 +443,7 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: _comments.length,
-                        separatorBuilder: (_, __) => const Divider(height: 20),
+                        separatorBuilder: (_, _) => const Divider(height: 20),
                         itemBuilder: (ctx, i) {
                           final c = _comments[i];
                           return Row(

@@ -295,7 +295,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              user != null ? (_nameController.text.isNotEmpty ? _nameController.text : user.email ?? 'Citoyen') : 'Mode Visiteur',
+                              (_nameController.text.isNotEmpty ? _nameController.text : user.email ?? 'Citoyen'),
                               style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 2),
@@ -409,7 +409,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
     if (_myReports.isEmpty) {
       return const Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           child: Text('Vous n’avez pas encore créé de signalement.\nCliquez sur « Signaler » pour contribuer !', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
         ),
       );
@@ -440,7 +440,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
     if (_historyReports.isEmpty) {
       return const Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           child: Text('Aucun historique de rétablissement disponible pour le moment.', style: TextStyle(color: Colors.grey)),
         ),
       );
@@ -593,7 +593,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-          value: _selectedCommune,
+          initialValue: _selectedCommune,
           decoration: InputDecoration(
             labelText: 'Commune',
             prefixIcon: const Icon(LucideIcons.mapPin, size: 20),
@@ -675,7 +675,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           title: const Text('Notifications Push', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
           subtitle: const Text('Recevoir les alertes immédiates en cas de coupure de quartier', style: TextStyle(fontSize: 12)),
           value: _notificationsEnabled,
-          activeColor: AppTheme.secondaryEmerald,
+          activeThumbColor: AppTheme.secondaryEmerald,
           onChanged: (val) => setState(() => _notificationsEnabled = val),
         ),
         const SizedBox(height: 16),

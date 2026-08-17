@@ -55,9 +55,7 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> with Si
             .eq('status', 'active')
             .order('created_at', ascending: false);
 
-        if (myRes is List) {
-          _myReports = (myRes as List).map((e) => ReportModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
-        }
+        _myReports = (myRes as List).map((e) => ReportModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
       }
 
       // 2. Neighbor reports needing corroboration
@@ -68,10 +66,8 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> with Si
           .order('created_at', ascending: false)
           .limit(30);
 
-      if (neighborRes is List) {
-        final all = (neighborRes as List).map((e) => ReportModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
-        _neighborReports = user != null ? all.where((r) => r.userId != user.id).toList() : all;
-      }
+      final all = (neighborRes as List).map((e) => ReportModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+      _neighborReports = user != null ? all.where((r) => r.userId != user.id).toList() : all;
 
       if (mounted) setState(() => _isLoading = false);
     } catch (_) {

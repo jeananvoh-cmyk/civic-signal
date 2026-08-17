@@ -155,7 +155,7 @@ class _CivicPhotoViewState extends State<CivicPhotoView> {
                 child: Image.network(
                   url,
                   fit: widget.fit,
-                  errorBuilder: (_, __, ___) => _buildFallback(),
+                  errorBuilder: (_, _, _) => _buildFallback(),
                 ),
               ),
               // Zoom Hint Button (1:1 Web)
@@ -198,7 +198,7 @@ class _CivicPhotoViewState extends State<CivicPhotoView> {
                     url0 ?? '',
                     fit: BoxFit.cover,
                     height: double.infinity,
-                    errorBuilder: (_, __, ___) => _buildFallback(),
+                    errorBuilder: (_, _, _) => _buildFallback(),
                   ),
                 ),
               ),
@@ -210,7 +210,7 @@ class _CivicPhotoViewState extends State<CivicPhotoView> {
                     url1 ?? '',
                     fit: BoxFit.cover,
                     height: double.infinity,
-                    errorBuilder: (_, __, ___) => _buildFallback(),
+                    errorBuilder: (_, _, _) => _buildFallback(),
                   ),
                 ),
               ),
@@ -240,7 +240,7 @@ class _CivicPhotoViewState extends State<CivicPhotoView> {
                     fit: widget.fit,
                     width: double.infinity,
                     height: double.infinity,
-                    errorBuilder: (_, __, ___) => _buildFallback(),
+                    errorBuilder: (_, _, _) => _buildFallback(),
                   ),
                 );
               },

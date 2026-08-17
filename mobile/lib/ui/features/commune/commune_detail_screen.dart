@@ -270,7 +270,7 @@ class _CommuneDetailScreenState extends State<CommuneDetailScreen> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: _quartierStats.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
                         itemBuilder: (ctx, i) {
                           final q = _quartierStats[i];
                           final qName = q['quartier'] as String? ?? 'Quartier';

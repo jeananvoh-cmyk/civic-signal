@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
-import '../dashboard/dashboard_screen.dart';
 import '../infrastructure/infrastructure_screen.dart';
 import '../landing/landing_screen.dart';
 import '../map/map_screen.dart';

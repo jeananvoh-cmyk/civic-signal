@@ -122,7 +122,7 @@ class _PartnerDashboardScreenState extends State<PartnerDashboardScreen> with Si
           .order('created_at', ascending: false)
           .limit(100);
 
-      if (reportsData is List && mounted) {
+      if (mounted) {
         final list = (reportsData as List).map((e) => ReportModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
 
         setState(() {
@@ -317,7 +317,7 @@ class _PartnerDashboardScreenState extends State<PartnerDashboardScreen> with Si
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: reports.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (ctx, i) {
         final r = reports[i];
         final isElec = r.serviceType == 'electricity';

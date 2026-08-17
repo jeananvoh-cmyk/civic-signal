@@ -20,7 +20,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
   bool _isLoading = true;
   String _selectedCommune = 'all';
   String _selectedCategory = 'all';
-  String _selectedStatus = 'all';
+  final String _selectedStatus = 'all';
 
   List<ReportModel> _allReports = [];
   List<ReportModel> _filteredReports = [];
@@ -50,7 +50,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
           .order('created_at', ascending: false)
           .limit(100);
 
-      if (res is List && mounted) {
+      if (mounted) {
         final list = (res as List).map((e) => ReportModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
 
         final tickerList = <String>[];
@@ -249,7 +249,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                         child: ListView.separated(
                           padding: const EdgeInsets.all(16),
                           itemCount: _filteredReports.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          separatorBuilder: (_, _) => const SizedBox(height: 12),
                           itemBuilder: (ctx, i) {
                             final r = _filteredReports[i];
                             return _buildReportTrackingCard(r, isDark);

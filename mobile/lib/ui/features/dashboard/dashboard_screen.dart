@@ -9,7 +9,6 @@ import '../../../domain/models/report_model.dart';
 import '../commune/commune_detail_screen.dart';
 import '../infrastructure/infrastructure_screen.dart';
 import '../reports/create_report_screen.dart';
-import '../reports/report_detail_screen.dart';
 import '../verification/verification_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -45,7 +44,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<ReportModel> _publicReports = [];
 
   bool _quartiersExpanded = true;
-  bool _prioritiesExpanded = true;
+  final bool _prioritiesExpanded = true;
   bool _leaderboardExpanded = false;
 
   RealtimeChannel? _realtimeChannel;
@@ -134,7 +133,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         // Fallback avec les communes pilotes
         parsedStats = PILOT_COMMUNES.map((c) => {
           'commune': c.nom,
-          'couleur': '#${c.couleur.value.toRadixString(16).substring(2)}',
+          'couleur': '#${c.couleur.toARGB32().toRadixString(16).substring(2)}',
           'population': c.population,
           'electricite_actifs': c.nom == 'Cocody' ? 3 : (c.nom == 'Port-Bouët' ? 1 : 0),
           'electricite_resolus': c.nom == 'Cocody' ? 17 : 2,
@@ -761,7 +760,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: _topQuartiers.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        separatorBuilder: (_, _) => const Divider(height: 1),
                         itemBuilder: (ctx, idx) {
                           final q = _topQuartiers[idx];
                           final medal = idx == 0 ? "🥇" : idx == 1 ? "🥈" : idx == 2 ? "🥉" : "#${idx + 1}";
@@ -845,7 +844,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: PILOT_COMMUNES.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        separatorBuilder: (_, _) => const Divider(height: 1),
                         itemBuilder: (ctx, idx) {
                           final c = PILOT_COMMUNES[idx];
                           final cStat = _communeServiceStats.firstWhere(
@@ -877,7 +876,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   child: Image.asset(
                                     c.logoAsset,
                                     fit: BoxFit.contain,
-                                    errorBuilder: (_, __, ___) => Container(
+                                    errorBuilder: (_, _, _) => Container(
                                       color: c.couleur,
                                       alignment: Alignment.center,
                                       child: Text(c.nom[0], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
@@ -1002,7 +1001,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               child: Image.asset(
                                 c.logoAsset,
                                 fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => Container(
+                                errorBuilder: (_, _, _) => Container(
                                   color: c.couleur,
                                   alignment: Alignment.center,
                                   child: Text(c.nom[0], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),

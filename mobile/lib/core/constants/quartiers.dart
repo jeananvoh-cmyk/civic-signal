@@ -1,4 +1,5 @@
 /// Liste des quartiers par commune pilote (Source: web/src/lib/quartiers.ts)
+library;
 
 const Map<String, List<String>> QUARTIERS = {
   'Yopougon': [

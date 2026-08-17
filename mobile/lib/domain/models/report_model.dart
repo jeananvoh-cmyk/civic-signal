@@ -165,8 +165,9 @@ class ReportModel {
     score += pregnant * 8;
 
     // Urgency level
-    if (urgency == 'critical') score += 40;
-    else if (urgency == 'high') score += 25;
+    if (urgency == 'critical') {
+      score += 40;
+    } else if (urgency == 'high') score += 25;
     else if (urgency == 'medium') score += 10;
 
     return score;

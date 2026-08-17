@@ -118,13 +118,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             .order('created_at', ascending: false)
             .limit(200);
 
-        if (directRes is List) {
-          for (final e in directRes) {
-            if (e is Map) {
-              final map = Map<String, dynamic>.from(e);
-              loaded.add(ReportModel.fromJson(map));
-            }
-          }
+        for (final e in directRes) {
+          final map = Map<String, dynamic>.from(e);
+          loaded.add(ReportModel.fromJson(map));
         }
       } catch (e) {
         debugPrint('Direct reports fetch note: $e');
@@ -300,7 +296,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                               width: 22,
                               height: 22,
                               fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) => Icon(LucideIcons.mapPin, color: c.couleur, size: 20),
+                              errorBuilder: (_, _, _) => Icon(LucideIcons.mapPin, color: c.couleur, size: 20),
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -516,10 +512,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 FloatingActionButton.small(
                   heroTag: 'refresh_map_btn',
                   backgroundColor: Colors.white,
+                  onPressed: _fetchMapReports,
                   child: _isLoading
                       ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(LucideIcons.refreshCw, color: Color(0xFF0F172A), size: 18),
-                  onPressed: _fetchMapReports,
                 ),
                 const SizedBox(height: 10),
                 FloatingActionButton.extended(
@@ -695,7 +691,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     height: 160,
                     width: double.infinity,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
                   ),
                 ),
                 const SizedBox(height: 14),

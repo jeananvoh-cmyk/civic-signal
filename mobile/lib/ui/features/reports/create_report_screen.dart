@@ -220,7 +220,7 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _meterNumberController = TextEditingController();
 
-  String _contractType = 'postpaid'; // 'prepaid' | 'postpaid'
+  final String _contractType = 'postpaid'; // 'prepaid' | 'postpaid'
   TimeOfDay _startTime = TimeOfDay.now();
 
   // GPS
@@ -228,7 +228,7 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
   double? _longitude;
   double? _gpsAccuracy;
   bool _isGettingGps = false;
-  bool _gpsConsent = true;
+  final bool _gpsConsent = true;
 
   // Vulnérabilité
   int _impactedPeople = 1;
@@ -663,7 +663,7 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
                 const Text('Commune pilote', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
-                  value: _selectedCommune,
+                  initialValue: _selectedCommune,
                   decoration: InputDecoration(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -695,7 +695,7 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
                 const Text('Quartier', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
-                  value: _isCustomQuartier ? '__other' : (quartiersList.contains(_selectedQuartier) ? _selectedQuartier : (quartiersList.isNotEmpty ? quartiersList.first : '__other')),
+                  initialValue: _isCustomQuartier ? '__other' : (quartiersList.contains(_selectedQuartier) ? _selectedQuartier : (quartiersList.isNotEmpty ? quartiersList.first : '__other')),
                   decoration: InputDecoration(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -844,7 +844,7 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: _selectedPhotos.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      separatorBuilder: (_, _) => const SizedBox(width: 8),
                       itemBuilder: (ctx, idx) => Stack(
                         children: [
                           ClipRRect(

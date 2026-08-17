@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/communes.dart';
-import '../../../core/constants/quartiers.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/report_display_utils.dart';
 import '../../../domain/models/report_model.dart';
@@ -120,7 +119,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
       final reportsRes = await Supabase.instance.client.from('reports').select('id, status, validated');
       final usersRes = await Supabase.instance.client.from('profiles').select('id');
 
-      if (reportsRes is List && mounted) {
+      if (mounted) {
         final list = reportsRes as List;
         final total = list.length;
         final pending = list.where((r) => r['validated'] == false || r['status'] == 'pending').length;
@@ -130,7 +129,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
           _totalReports = total;
           _pendingCount = pending;
           _resolvedCount = resolved;
-          _usersCount = usersRes is List ? (usersRes as List).length : 0;
+          _usersCount = (usersRes as List).length;
         });
       }
     } catch (_) {}
@@ -145,7 +144,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
           .order('created_at', ascending: false)
           .limit(50);
 
-      if (res is List && mounted) {
+      if (mounted) {
         setState(() {
           _adminReports = (res as List).map((e) => ReportModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
           _isLoadingReports = false;
@@ -165,7 +164,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
           .or('has_babies.eq.true,has_pregnant.eq.true,has_elderly.eq.true,medical_equipment.eq.true')
           .order('created_at', ascending: false);
 
-      if (res is List && mounted) {
+      if (mounted) {
         final list = List<Map<String, dynamic>>.from(res as List);
         int babies = 0;
         int pregnant = 0;
@@ -199,7 +198,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
           .order('created_at', ascending: false)
           .limit(50);
 
-      if (res is List && mounted) {
+      if (mounted) {
         setState(() {
           _usersList = List<Map<String, dynamic>>.from(res as List);
           _isLoadingUsers = false;
@@ -219,7 +218,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
           .order('created_at', ascending: false)
           .limit(100);
 
-      if (res is List && mounted) {
+      if (mounted) {
         setState(() {
           _relayLogs = List<Map<String, dynamic>>.from(res as List);
           _isLoadingRelay = false;
@@ -498,7 +497,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
                   : ListView.separated(
                       padding: const EdgeInsets.all(16),
                       itemCount: filtered.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (ctx, i) {
                         final r = filtered[i];
                         return _buildAdminReportCard(r, isDark);
@@ -616,7 +615,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
                   : ListView.separated(
                       padding: const EdgeInsets.all(12),
                       itemCount: filtered.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      separatorBuilder: (_, _) => const SizedBox(height: 8),
                       itemBuilder: (ctx, i) {
                         final u = filtered[i];
                         final name = '${u['first_name'] ?? ''} ${u['last_name'] ?? ''}'.trim();
@@ -967,7 +966,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
                   : ListView.separated(
                       padding: const EdgeInsets.all(16),
                       itemCount: filtered.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
                       itemBuilder: (ctx, i) {
                         final log = filtered[i];
                         final op = (log['operator'] ?? 'CIE').toString().toUpperCase();
@@ -1199,7 +1198,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
           ),
           Switch(
             value: value,
-            activeColor: AppTheme.primaryTeal,
+            activeThumbColor: AppTheme.primaryTeal,
             onChanged: onChanged,
           ),
         ],

@@ -5,7 +5,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/communes.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/report_display_utils.dart';
 import '../../../domain/models/report_model.dart';
 import '../../common/civic_photo_view.dart';
@@ -49,7 +48,7 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
           params: {'p_limit': 50, 'p_offset': 0},
         );
         if (rpcRes is List && rpcRes.isNotEmpty) {
-          rawData = List<Map<String, dynamic>>.from(rpcRes as List);
+          rawData = List<Map<String, dynamic>>.from(rpcRes);
         }
       } catch (_) {}
 
@@ -61,26 +60,24 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
               .select('id, user_id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, support_count, report_category')
               .order('created_at', ascending: false)
               .limit(50);
-          if (res is List) {
-            final allReports = List<Map<String, dynamic>>.from(res as List);
-            rawData = allReports.where((r) {
-              final cat = (r['report_category'] as String?)?.toLowerCase() ?? '';
-              final st = (r['service_type'] as String?)?.toLowerCase() ?? '';
-              final desc = (r['description'] as String?)?.toLowerCase() ?? '';
-              return cat == 'infrastructure' || 
-                     st == 'mairie' || 
-                     st == 'voirie' ||
-                     st == 'lighting' ||
-                     st == 'pothole' ||
-                     desc.contains('nid de poule') ||
-                     desc.contains('caniveau') ||
-                     desc.contains('lampadaire') ||
-                     desc.contains('poteau') ||
-                     desc.contains('fuite') ||
-                     (r['photo_url'] != null && (r['photo_url'] as String).isNotEmpty) ||
-                     (r['photo_urls'] != null && (r['photo_urls'] as List).isNotEmpty);
-            }).toList();
-          }
+          final allReports = List<Map<String, dynamic>>.from(res as List);
+          rawData = allReports.where((r) {
+            final cat = (r['report_category'] as String?)?.toLowerCase() ?? '';
+            final st = (r['service_type'] as String?)?.toLowerCase() ?? '';
+            final desc = (r['description'] as String?)?.toLowerCase() ?? '';
+            return cat == 'infrastructure' || 
+                   st == 'mairie' || 
+                   st == 'voirie' ||
+                   st == 'lighting' ||
+                   st == 'pothole' ||
+                   desc.contains('nid de poule') ||
+                   desc.contains('caniveau') ||
+                   desc.contains('lampadaire') ||
+                   desc.contains('poteau') ||
+                   desc.contains('fuite') ||
+                   (r['photo_url'] != null && (r['photo_url'] as String).isNotEmpty) ||
+                   (r['photo_urls'] != null && (r['photo_urls'] as List).isNotEmpty);
+          }).toList();
         } catch (_) {}
       }
 
