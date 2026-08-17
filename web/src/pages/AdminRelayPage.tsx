@@ -8,6 +8,7 @@ import {
   ShieldCheck, Save, Ban, MessageCircle, Building2, TicketCheck,
   Scale, Copy, Eye, EyeOff, KeyRound, Calendar, Filter, Trash2, Search,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
