@@ -568,7 +568,7 @@ const Index = () => {
                   </AnimatePresence>
                 </div>
               )}
-              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 dark:border-white/15 dark:bg-white/8 px-4 py-2 text-sm font-medium text-slate-700 dark:text-white/75 shadow-sm dark:shadow-none backdrop-blur-md">
+              <div className="inline-flex items-center gap-2 rounded-full border border-slate-300/80 bg-slate-100/90 text-slate-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 px-4 py-2 text-sm font-semibold shadow-sm backdrop-blur-md">
                 <Shield className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                 07 communes · Abidjan
               </div>
@@ -597,31 +597,31 @@ const Index = () => {
 
               <Link
                 to="/carte"
-                className="group flex items-center gap-3.5 rounded-2xl border-2 border-slate-300/80 bg-white/80 hover:bg-white text-slate-800 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/15 dark:text-white font-bold text-base shadow-sm backdrop-blur-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                className="group flex items-center gap-3.5 rounded-2xl border-2 border-slate-300 bg-white hover:bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900/80 dark:hover:bg-slate-800 dark:text-white px-7 py-4 font-bold text-base shadow-sm backdrop-blur-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
                 <Map className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                 <div className="flex flex-col text-left leading-tight">
                   <span className="text-base font-extrabold tracking-wide">Consulter la carte</span>
-                  <span className="text-[11px] font-medium text-slate-500 dark:text-white/60">Incidents en direct</span>
+                  <span className="text-[11px] font-medium text-slate-500 dark:text-slate-300">Incidents en direct</span>
                 </div>
               </Link>
             </motion.div>
 
-            {/* Communes pills */}
+            {/* Communes pills — Maximum contrast in both light and dark modes */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.72 }}
               className="mt-10 flex flex-wrap items-center gap-2"
             >
-              <span className="text-xs font-bold text-slate-500 dark:text-white/50 uppercase tracking-wider mr-1">
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mr-1">
                 📍 Communes couvertes :
               </span>
               {COMMUNES.map((c: { nom: string }) => (
                 <Link
                   key={c.nom}
                   to={`/commune/${encodeURIComponent(c.nom)}`}
-                  className="rounded-full border border-slate-200/80 bg-white/90 dark:border-white/15 dark:bg-white/8 px-3.5 py-1 text-xs font-semibold text-slate-700 dark:text-white/85 shadow-sm dark:shadow-none transition-all hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 dark:hover:bg-white/20 dark:hover:text-white active:scale-95"
+                  className="rounded-full border border-slate-300/90 bg-slate-100 text-slate-900 hover:bg-emerald-100 hover:border-emerald-400 hover:text-emerald-950 dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-100 dark:hover:bg-emerald-950/70 dark:hover:border-emerald-400 dark:hover:text-emerald-300 px-3.5 py-1.5 text-xs font-bold shadow-sm transition-all active:scale-95"
                 >
                   {c.nom}
                 </Link>

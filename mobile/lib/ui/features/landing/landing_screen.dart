@@ -567,12 +567,12 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: isDark ? Colors.white.withAlpha(25) : Colors.white,
+                              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: isDark ? Colors.white.withAlpha(40) : const Color(0xFFCBD5E1)),
-                              boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 3)],
+                              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                              boxShadow: [BoxShadow(color: Colors.black.withAlpha(isDark ? 20 : 6), blurRadius: 3)],
                             ),
-                            child: Text(c.nom, style: TextStyle(color: isDark ? Colors.white : const Color(0xFF334155), fontSize: 11, fontWeight: FontWeight.bold)),
+                            child: Text(c.nom, style: TextStyle(color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF1E293B), fontSize: 11, fontWeight: FontWeight.bold)),
                           ),
                         );
                       }).toList(),
