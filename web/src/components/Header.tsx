@@ -232,15 +232,6 @@ const Header = () => {
               </kbd>
             </button>
 
-            {/* 📢 Bouton d'Action Vert Émeraude : Signaler */}
-            <Link
-              to="/signaler"
-              className="flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 text-[13px] font-extrabold shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <Zap className="h-4 w-4 fill-white" />
-              <span>Signaler</span>
-            </Link>
-
             {/* Sélecteur de Thème */}
             <button
               onClick={toggleTheme}
