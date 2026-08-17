@@ -125,28 +125,50 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Macaron Officiel de Conformité aux Informations Légales */}
-        <div className="pt-6 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-          <div className="flex items-center gap-2">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-400" />
-            <span>Plateforme développée en conformité avec la <strong>Loi n° 2013-450</strong> (Côte d'Ivoire) · <a href="https://certinumapdp.ci/" target="_blank" rel="noopener noreferrer" className="text-emerald-400 font-bold underline hover:text-white">Immatriculation APDP / ARTCI</a></span>
+        {/* Bandeau d'Engagement Citoyen, Données & Conformité */}
+        <div className="pt-6 border-t border-slate-900 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs text-slate-400">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <div className="flex items-center gap-2">
+              <span className="flex h-2 w-2 rounded-full bg-emerald-400" />
+              <span className="text-slate-300 font-semibold">
+                Plateforme citoyenne indépendante & participative
+              </span>
+            </div>
+            <span className="hidden sm:inline text-slate-600">·</span>
+            <span className="text-slate-400">
+              Données traitées conformément à la <strong>Loi n° 2013-450</strong> (Côte d'Ivoire)
+            </span>
           </div>
-          <div className="flex items-center gap-4 text-[11px]">
-            <a href="https://certinumapdp.ci/" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-emerald-400 underline">Guichet CERTINUM</a>
-            <span>•</span>
-            <a href="https://www.autoritedeprotection.ci/" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-emerald-400 underline">Site Officiel APDP</a>
-            <span>•</span>
-            <Link to="/confidentialite" className="text-slate-400 hover:text-emerald-400 underline">Droits & Données</Link>
+
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-slate-400">
+            <Link to="/confidentialite" className="hover:text-emerald-400 transition-colors underline-offset-2 hover:underline">
+              Protection des Données
+            </Link>
+            <span className="text-slate-700">•</span>
+            <Link to="/transparence" className="hover:text-emerald-400 transition-colors underline-offset-2 hover:underline">
+              Transparence Open Data
+            </Link>
+            <span className="text-slate-700">•</span>
+            <Link to="/cgu" className="hover:text-emerald-400 transition-colors underline-offset-2 hover:underline">
+              Conditions d'Utilisation
+            </Link>
+            <span className="text-slate-700">•</span>
+            <a
+              href="https://www.autoritedeprotection.ci/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-500 hover:text-emerald-400 transition-colors"
+            >
+              Cadre APDP / ARTCI
+            </a>
           </div>
         </div>
 
-        <div className="pt-4 border-t border-slate-900/60 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© {new Date().getFullYear()} SIGNA.ci — Équipe & Plateforme Civique Côte d'Ivoire. Tous droits réservés.</p>
-          <div className="flex items-center gap-4 text-[11px]">
-            <Link to="/cgu" className="hover:text-slate-300">CGU</Link>
-            <span>•</span>
-            <Link to="/confidentialite" className="hover:text-slate-300">Confidentialité & APDP</Link>
-          </div>
+        <div className="pt-4 border-t border-slate-900/60 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <p>© {new Date().getFullYear()} SIGNA.ci — CivicTech Côte d'Ivoire. Tous droits réservés.</p>
+          <p className="text-[11px] text-slate-500">
+            Signalements participatifs d'intérêt général pour l'amélioration des infrastructures publiques.
+          </p>
         </div>
       </div>
     </footer>
