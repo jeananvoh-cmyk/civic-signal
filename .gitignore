@@ -27,8 +27,11 @@ supabase/.temp/
 CLAUDE.md
 skills-lock.json
 
-# Build archives
+# Build archives and binary packages
 *.zip
+*.apk
+*.aab
+
 
 # Lovable AI artifacts
 .lovable/
