@@ -122,7 +122,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
     setState(() => _isLoadingSettings = true);
     try {
       final res = await Supabase.instance.client.from('site_settings').select('key, value');
-      if (mounted && res is List) {
+      if (mounted) {
         for (final row in res) {
           final k = row['key']?.toString();
           final v = row['value'];
