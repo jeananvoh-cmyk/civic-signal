@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <!-- Page d'Accueil Principale -->
+  <url>
+    <loc>https://signa.ci/</loc>
+    <lastmod>2026-08-17</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://signa.ci/signa-logo-official.png</image:loc>
+      <image:title>SIGNA.ci — Logo Officiel CivicTech Côte d'Ivoire</image:title>
+    </image:image>
+  </url>
+
+  <!-- Signaler un incident -->
+  <url>
+    <loc>https://signa.ci/signaler</loc>
+    <lastmod>2026-08-17</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Carte interactive des coupures Eau (SODECI) & Électricité (CIE) -->
+  <url>
+    <loc>https://signa.ci/carte</loc>
+    <lastmod>2026-08-17</lastmod>
+    <changefreq>always</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Signalements d'Infrastructures Publiques (Voirie, Nids-de-poule, Éclairage) -->
+  <url>
+    <loc>https://signa.ci/infrastructures</loc>
+    <lastmod>2026-08-17</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <!-- Tableau de bord statistique et analytique -->
+  <url>
+    <loc>https://signa.ci/tableau-de-bord</loc>
+    <lastmod>2026-08-17</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Vérifier et corroborer un signalement -->
+  <url>
+    <loc>https://signa.ci/verifier</loc>
+    <lastmod>2026-08-17</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.75</priority>
+  </url>
+
+  <!-- Communes Pilotes d'Abidjan -->
+  <url>
+    <loc>https://signa.ci/commune/Cocody</loc>
+    <lastmod>2026-08-17</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://signa.ci/commune/Yopougon</loc>
+    <lastmod>2026-08-17</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://signa.ci/commune/Abobo</loc>
+    <lastmod>2026-08-17</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://signa.ci/commune/Koumassi</loc>
+    <lastmod>2026-08-17</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://signa.ci/commune/Adjam%C3%A9</loc>
+    <lastmod>2026-08-17</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://signa.ci/commune/Bingerville</loc>
+    <lastmod>2026-08-17</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://signa.ci/commune/Port-Bou%C3%ABt</loc>
+    <lastmod>2026-08-17</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Pages d'Information & Partenaires -->
+  <url>
+    <loc>https://signa.ci/partenaires</loc>
+    <lastmod>2026-08-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://signa.ci/a-propos</loc>
+    <lastmod>2026-08-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://signa.ci/cgu</loc>
+    <lastmod>2026-08-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://signa.ci/confidentialite</loc>
+    <lastmod>2026-08-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+</urlset>

@@ -1,29 +1,48 @@
-User-agent: Googlebot
-Allow: /
-Disallow: /admin
-Disallow: /admin/
-Disallow: /verification
-Disallow: /profil
-Disallow: /historique
-
-User-agent: Bingbot
-Allow: /
-Disallow: /admin
-Disallow: /admin/
-Disallow: /verification
-Disallow: /profil
-Disallow: /historique
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
+# robots.txt for SIGNA.ci — Plateforme Citoyenne Officielle Côte d'Ivoire
+# https://signa.ci
 
 User-agent: *
 Allow: /
+Allow: /favicon.ico
+Allow: /favicon*.png
+Allow: /favicon.svg
+Allow: /signa-logo-official.png
+Allow: /og-image.png
+Allow: /icons/
 Disallow: /admin
 Disallow: /admin/
 Disallow: /verification
 Disallow: /profil
 Disallow: /historique
+Disallow: /auth
+
+# Search engine image crawlers (Googlebot-Image must index official favicon & logo)
+User-agent: Googlebot-Image
+Allow: /
+
+# AI Crawlers & Assistants (Google Gemini, OpenAI ChatGPT Search, Perplexity, Anthropic Claude, Apple Intelligence)
+User-agent: Google-Extended
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+Sitemap: https://signa.ci/sitemap.xml
