@@ -4,6 +4,7 @@ import { Heart, Smartphone, CheckCircle2, Users, Zap, Droplets, Copy, Check } fr
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import { Link, Navigate } from "react-router-dom";
 import { useSiteSetting } from "@/hooks/useSiteSetting";
 
@@ -237,6 +238,7 @@ const DonationPage = () => {
           </Button>
         </div>
       </section>
+      <Footer />
     </div>
   );
 };

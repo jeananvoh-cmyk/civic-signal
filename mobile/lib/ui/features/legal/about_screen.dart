@@ -4,6 +4,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/constants/communes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../home/signa_logo.dart';
+import '../trends/trends_screen.dart';
+import '../partners/partners_screen.dart';
 import 'cgu_screen.dart';
 import 'privacy_screen.dart';
 
@@ -154,7 +156,75 @@ class AboutScreen extends StatelessWidget {
             const SizedBox(height: 16),
 
             // ══════════════════════════════════════════════════════════
-            // 4. LIENS LÉGAUX (CGU & Confidentialité)
+            // 4. COMMENT ÇA MARCHE EN 3 ÉTAPES
+            // ══════════════════════════════════════════════════════════
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(LucideIcons.zap, color: Color(0xFF0284C7), size: 20),
+                      SizedBox(width: 8),
+                      Text('Comment ça marche ?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  _buildStepRow('01', '1. Signalez en 30s', 'GPS automatique, sélection eau/électricité/voirie et photo facultative.', const Color(0xFF059669), isDark),
+                  const SizedBox(height: 10),
+                  _buildStepRow('02', '2. Corroborez ensemble', 'Les voisins à proximité confirment l\'alerte en 1 clic pour prouver l\'urgence.', const Color(0xFF0284C7), isDark),
+                  const SizedBox(height: 10),
+                  _buildStepRow('03', '3. Suivez la résolution', 'Dossier transmis aux techniciens avec suivi en direct jusqu\'au rétablissement.', const Color(0xFFD97706), isDark),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // ══════════════════════════════════════════════════════════
+            // 5. BANNIÈRE TRANSPARENCE & OPEN DATA
+            // ══════════════════════════════════════════════════════════
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF064E3B), Color(0xFF047857)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('📊 DONNÉES PUBLIQUES', style: TextStyle(color: Color(0xFF6EE7B7), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  const SizedBox(height: 4),
+                  Text('Transparence des Données & Impact', style: GoogleFonts.outfit(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  const Text('Découvrez les délais moyens réels de résolution, les statistiques par commune et les données ouvertes.', style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4)),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF064E3B),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: const Icon(LucideIcons.trendingUp, size: 16),
+                    label: const Text('Voir la Transparence Open Data', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrendsScreen())),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // ══════════════════════════════════════════════════════════
+            // 6. LIENS LÉGAUX (CGU & Confidentialité)
             // ══════════════════════════════════════════════════════════
             Container(
               decoration: BoxDecoration(
@@ -164,6 +234,13 @@ class AboutScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
+                  ListTile(
+                    leading: const Icon(LucideIcons.building2, color: Color(0xFF0284C7)),
+                    title: const Text('Espace Partenaires & Collectivités', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartnersScreen())),
+                  ),
+                  const Divider(height: 1),
                   ListTile(
                     leading: const Icon(LucideIcons.fileText, color: AppTheme.primaryTeal),
                     title: const Text('Conditions Générales d\'Utilisation (CGU)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
@@ -189,6 +266,33 @@ class AboutScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildStepRow(String stepNum, String title, String desc, Color color, bool isDark) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: color.withAlpha(isDark ? 50 : 30),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(stepNum, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 12)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 2),
+              Text(desc, style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), height: 1.3)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -20,6 +20,9 @@ import '../partner/partner_dashboard_screen.dart';
 import '../partners/partners_screen.dart';
 import '../reports/report_detail_screen.dart';
 import '../tracking/tracking_screen.dart';
+import '../trends/trends_screen.dart';
+import '../dashboard/dashboard_screen.dart';
+import '../verification/verification_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -772,7 +775,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           const SizedBox(height: 16),
         ],
 
-        // Outils & Soutien Civique
+        // Outils & Données Publiques
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -781,6 +784,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           ),
           child: Column(
             children: [
+              ListTile(
+                leading: const Icon(LucideIcons.trendingUp, color: Color(0xFF059669)),
+                title: const Text('Transparence & Open Data', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF065F46))),
+                subtitle: const Text('Délais réels de résolution CIE/SODECI & statistiques publiques', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrendsScreen())),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(LucideIcons.barChart3, color: AppTheme.primaryTeal),
+                title: const Text('Tableau de Bord Communal', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                subtitle: const Text('Classement et taux de traitement des 7 communes', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardScreen())),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(LucideIcons.checkCircle2, color: Color(0xFF0284C7)),
+                title: const Text('Vérifier un Signalement Citoyen', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                subtitle: const Text('Confirmez les pannes signalées près de chez vous', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VerificationScreen())),
+              ),
+              const Divider(height: 1),
               ListTile(
                 leading: const Icon(LucideIcons.search, color: AppTheme.primaryTeal),
                 title: const Text('Suivi de Signalement (#SIG-XXXX)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),

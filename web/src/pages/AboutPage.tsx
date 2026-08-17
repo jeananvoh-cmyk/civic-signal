@@ -1,62 +1,122 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Shield, Users, MapPin, Zap, Droplets, Heart, ExternalLink } from "lucide-react";
+import { Shield, Users, MapPin, Zap, Droplets, Heart, ArrowRight, TrendingUp, Building2, ExternalLink } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SignaLogo from "@/components/SignaLogo";
 import { COMMUNES } from "@/lib/communes";
 import { COMMUNE_LOGOS } from "@/lib/commune-logos";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 const AboutPage = () => {
+  usePageMeta({
+    title: "À Propos de SIGNA.ci — Plateforme Citoyenne",
+    description: "Découvrez la mission de SIGNA-CI, première plateforme citoyenne collaborative de signalement des pannes et infrastructures en Côte d'Ivoire.",
+  });
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container max-w-3xl py-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl gradient-hero">
-              <Zap className="h-8 w-8 text-primary-foreground" />
+      <main className="container max-w-4xl py-12">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          
+          {/* En-tête avec Logo Officiel */}
+          <div className="mb-12 text-center">
+            <div className="inline-block mb-3">
+              <SignaLogo size="lg" />
             </div>
-            <h1 className="font-display text-3xl font-bold text-foreground">
-              SIGNA<span className="text-water">-CI</span>
+            <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-xs font-black tracking-widest text-emerald-700 dark:text-emerald-300 uppercase">
+              SIGNALER · SUIVRE · RÉPARER
+            </div>
+            <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold text-foreground mt-4">
+              L'engagement citoyen au service de nos infrastructures
             </h1>
-            <p className="mt-2 text-muted-foreground">
-              Plateforme citoyenne de signalement des services publics et infrastructures urbaines
+            <p className="mt-3 text-muted-foreground text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+              SIGNA.ci est une initiative technologique et citoyenne indépendante (CivicTech) dédiée à l'amélioration de la qualité de vie à Abidjan et dans toute la Côte d'Ivoire.
             </p>
           </div>
 
-          {/* Mission */}
-          <section className="mb-8 rounded-2xl border border-border bg-card p-6 shadow-card">
+          {/* 1. Notre Mission */}
+          <section className="mb-8 rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-sm">
             <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                <Heart className="h-5 w-5 text-primary" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
+                <Heart className="h-6 w-6" />
               </div>
-              <h2 className="font-display text-xl font-bold text-foreground">Notre mission</h2>
+              <div>
+                <h2 className="font-display text-xl font-bold text-foreground">Notre Mission Civique</h2>
+                <p className="text-xs text-muted-foreground">Une passerelle transparente entre les citoyens et les services urbains</p>
+              </div>
             </div>
-            <p className="text-muted-foreground leading-relaxed">
-              SIGNA-CI est la première plateforme citoyenne ivoirienne dédiée à l'amélioration 
-              des services publics. Les habitants signalent en temps réel les coupures d'eau et 
-              d'électricité, les défaillances d'infrastructures (éclairage public, voirie, 
-              assainissement) et, à terme, tout dysfonctionnement affectant leur cadre de vie. 
-              En structurant ces données citoyennes, nous fournissons aux opérateurs (CIE, SODECI), 
-              aux collectivités et aux autorités locales des indicateurs fiables pour prioriser 
-              les interventions et renforcer la qualité des services essentiels sur l'ensemble 
-              du territoire.
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Lorsqu'une coupure d'eau survient, qu'un quartier est plongé dans le noir ou qu'un caniveau déborde, les habitants sont souvent démunis face au manque d'information en temps réel.
+            </p>
+            <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+              <strong>SIGNA.ci</strong> permet à chaque citoyen de signaler un incident en 30 secondes, de géolocaliser la panne et de corroborer les alertes avec ses voisins. En agrégeant ces données en <strong>Open Data</strong>, nous offrons aux opérateurs (CIE, SODECI), aux mairies et aux autorités des indicateurs cartographiques fiables pour prioriser et accélérer les réparations.
             </p>
           </section>
 
-          {/* Communes pilotes */}
-          <section className="mb-8 rounded-2xl border border-border bg-card p-6 shadow-card">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                <MapPin className="h-5 w-5 text-primary" />
+          {/* 2. Comment ça marche en 3 étapes */}
+          <section className="mb-8 rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/10 text-sky-600">
+                <Zap className="h-6 w-6" />
               </div>
-              <h2 className="font-display text-xl font-bold text-foreground">7 communes pilotes</h2>
+              <div>
+                <h2 className="font-display text-xl font-bold text-foreground">Comment fonctionne SIGNA.ci ?</h2>
+                <p className="text-xs text-muted-foreground">3 étapes simples basées sur la collaboration de quartier</p>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              {[
+                {
+                  step: "01",
+                  title: "1. Signalez en 30s",
+                  desc: "Sélectionnez votre type de panne (Eau, Électricité, Voirie) avec détection GPS automatique et photo facultative.",
+                  color: "text-emerald-600 dark:text-emerald-400",
+                },
+                {
+                  step: "02",
+                  title: "2. Corroborez ensemble",
+                  desc: "Les voisins à proximité confirment l'incident en 1 clic pour éliminer les faux positifs et prouver l'urgence.",
+                  color: "text-sky-600 dark:text-sky-400",
+                },
+                {
+                  step: "03",
+                  title: "3. Suivez la résolution",
+                  desc: "Le dossier est transmis aux équipes techniques et vous êtes notifié dès le rétablissement de la situation.",
+                  color: "text-amber-600 dark:text-amber-400",
+                },
+              ].map((s) => (
+                <div key={s.step} className="p-4 rounded-2xl border border-border/80 bg-background/50">
+                  <span className={`font-black text-sm ${s.color}`}>{s.step}</span>
+                  <h3 className="font-bold text-sm text-foreground mt-1">{s.title}</h3>
+                  <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{s.desc}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 3. Les 7 Communes Pilotes */}
+          <section className="mb-8 rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600">
+                <MapPin className="h-6 w-6" />
+              </div>
+              <div>
+                <h2 className="font-display text-xl font-bold text-foreground">7 Communes Pilotes à Abidjan</h2>
+                <p className="text-xs text-muted-foreground">Couverture active en cours de déploiement</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
               {COMMUNES.map((c) => (
-                <div key={c.nom} className="flex items-center gap-3 rounded-xl border border-border p-3">
+                <Link
+                  key={c.nom}
+                  to={`/commune/${encodeURIComponent(c.nom)}`}
+                  className="flex items-center gap-3 rounded-2xl border border-border p-3 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all"
+                >
                   <div
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg overflow-hidden border border-border"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl overflow-hidden border border-border"
                     style={{ backgroundColor: COMMUNE_LOGOS[c.nom] ? '#fff' : c.couleur }}
                   >
                     {COMMUNE_LOGOS[c.nom] ? (
@@ -65,71 +125,48 @@ const AboutPage = () => {
                       <span className="text-white font-bold text-xs">{c.nom[0]}</span>
                     )}
                   </div>
-                  <div>
-                    <p className="font-semibold text-foreground text-sm">{c.nom}</p>
-                    <p className="text-xs text-muted-foreground">{(c.population / 1000).toFixed(0)}k hab.</p>
+                  <div className="min-w-0">
+                    <p className="font-bold text-foreground text-xs sm:text-sm truncate">{c.nom}</p>
+                    <p className="text-[11px] text-muted-foreground">{(c.population / 1000).toFixed(0)}k hab.</p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </section>
 
-          {/* Comment ça marche */}
-          <section className="mb-8 rounded-2xl border border-border bg-card p-6 shadow-card">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                <Users className="h-5 w-5 text-primary" />
+          {/* 4. Liens Rapides Transparence & Données Ouvertes */}
+          <section className="rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/40 via-card to-card p-6 sm:p-8 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                  Open Data & Statistiques
+                </span>
+                <h2 className="font-display text-xl font-bold text-foreground mt-1">
+                  Explorez la Transparence des Données
+                </h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-md">
+                  Consultez les délais réels de résolution par opérateur, les taux de traitement et exportez les données publiques.
+                </p>
               </div>
-              <h2 className="font-display text-xl font-bold text-foreground">Comment ça marche</h2>
-            </div>
-            <ol className="space-y-3 text-sm text-muted-foreground">
-              <li className="flex gap-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
-                <span><strong className="text-foreground">Géolocalisation automatique</strong> — Le GPS détecte votre commune parmi les 7 pilotes.</span>
-              </li>
-              <li className="flex gap-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
-                <span><strong className="text-foreground">Signalement rapide</strong> — Choisissez eau ou électricité, indiquez les personnes impactées et les éventuelles personnes vulnérables (bébés, femmes enceintes, personnes âgées).</span>
-              </li>
-              <li className="flex gap-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">3</span>
-                <span><strong className="text-foreground">Vérification par les voisins</strong> — Les habitants à proximité confirment la coupure.</span>
-              </li>
-              <li className="flex gap-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">4</span>
-                <span><strong className="text-foreground">Dashboard en temps réel</strong> — L'urgence est calculée automatiquement selon la présence de personnes vulnérables. Opérateurs et mairies suivent les statistiques par commune.</span>
-              </li>
-            </ol>
-          </section>
-
-          {/* CGU */}
-          <section className="mb-8 rounded-2xl border border-border bg-card p-6 shadow-card">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                <Shield className="h-5 w-5 text-primary" />
+              <div className="flex flex-wrap gap-2 shrink-0">
+                <Link
+                  to="/transparence"
+                  className="rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 text-xs font-bold shadow transition-all inline-flex items-center gap-1.5"
+                >
+                  <TrendingUp className="h-4 w-4" />
+                  Transparence Open Data
+                </Link>
+                <Link
+                  to="/partenaires"
+                  className="rounded-xl border border-border bg-card hover:bg-muted px-4 py-2.5 text-xs font-bold text-foreground transition-all inline-flex items-center gap-1.5"
+                >
+                  <Building2 className="h-4 w-4" />
+                  Mairies & Partenaires
+                </Link>
               </div>
-              <h2 className="font-display text-xl font-bold text-foreground">Conditions d'utilisation</h2>
-            </div>
-            <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
-              <p><strong className="text-foreground">Données personnelles :</strong> Vos coordonnées GPS exactes ne sont jamais affichées publiquement. Seules les statistiques agrégées par commune sont visibles. Vos coordonnées GPS sont automatiquement supprimées lorsque votre signalement est résolu.</p>
-              <p><strong className="text-foreground">Utilisation responsable :</strong> Les faux signalements sont interdits. Toute exagération sur le nombre de personnes impactées fausse les statistiques et pourrait entraîner une suspension de votre compte. Chaque utilisateur est limité à 5 signalements par jour.</p>
-              <p><strong className="text-foreground">Propriété des données :</strong> Les données collectées sont utilisées exclusivement pour améliorer les services publics d'eau et d'électricité à Abidjan.</p>
-              <p><strong className="text-foreground">Contact Officiel :</strong> Pour toute question, demande de renseignements ou partenariat institutionnel, contactez-nous à <a href="mailto:contact@signa.ci" className="text-primary font-semibold underline">contact@signa.ci</a>.</p>
-              <p className="pt-2 flex flex-wrap gap-4">
-                <Link to="/confidentialite" className="text-primary underline flex items-center gap-1">
-                  <Shield className="h-4 w-4" /> Politique de confidentialité
-                </Link>
-                <Link to="/cgu" className="text-primary underline flex items-center gap-1">
-                  <ExternalLink className="h-4 w-4" /> Conditions Générales d'Utilisation
-                </Link>
-              </p>
             </div>
           </section>
 
-          <div className="text-center text-xs text-muted-foreground space-y-1">
-            <p>© 2026 SIGNA-CI — Plateforme Citoyenne d'Alerte et de Suivi des Infrastructures Publiques</p>
-            <p>📍 Abidjan, Côte d'Ivoire · ✉️ <a href="mailto:contact@signa.ci" className="hover:underline">contact@signa.ci</a> · 🌐 <a href="https://signa.ci" className="hover:underline">https://signa.ci</a></p>
-          </div>
         </motion.div>
       </main>
       <Footer />

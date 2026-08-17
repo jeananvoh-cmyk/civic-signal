@@ -72,8 +72,8 @@ const TransparencyPage = () => {
   const [loading, setLoading] = useState(true);
 
   usePageMeta({
-    title: "Transparence",
-    description: "Statistiques publiques des signalements citoyens à Abidjan : taux de résolution, délais, communes les plus touchées.",
+    title: "Transparence des Données & Open Data — SIGNA.ci",
+    description: "Statistiques publiques et Open Data des signalements citoyens à Abidjan : taux de résolution, délais réels CIE & SODECI, données communales.",
   });
 
   const [chronicCount, setChronicCount] = useState<number>(0);

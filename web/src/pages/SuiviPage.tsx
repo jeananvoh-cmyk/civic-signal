@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import NewsTicker from "@/components/NewsTicker";
 import PriorityBadge from "@/components/PriorityBadge";
 import { calculatePriority, getNormReference } from "@/lib/priority-score";
@@ -540,6 +541,7 @@ const SuiviPage = () => {
           )}
         </motion.div>
       </main>
+      <Footer />
     </div>
   );
 };
