@@ -62,11 +62,11 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
 
   // Rotating words (1:1 Web)
   final List<Map<String, dynamic>> _rotatingWords = [
-    {'text': "coupures d'électricité", 'color': Colors.white},
-    {'text': "coupures d'eau",         'color': Colors.white},
-    {'text': "lampadaires cassés",     'color': Colors.white},
-    {'text': "caniveaux bouchés",      'color': Colors.white},
-    {'text': "nids de poules",         'color': Colors.white},
+    {'text': "coupures d'électricité", 'colorDark': const Color(0xFFFBBF24), 'colorLight': const Color(0xFFD97706)},
+    {'text': "coupures d'eau",         'colorDark': const Color(0xFF38BDF8), 'colorLight': const Color(0xFF0284C7)},
+    {'text': "lampadaires cassés",     'colorDark': const Color(0xFFFACC15), 'colorLight': const Color(0xFFCA8A04)},
+    {'text': "caniveaux bouchés",      'colorDark': const Color(0xFF2DD4BF), 'colorLight': const Color(0xFF0D9488)},
+    {'text': "nids de poules",         'colorDark': const Color(0xFFE2E8F0), 'colorLight': const Color(0xFF334155)},
   ];
 
   @override
@@ -214,9 +214,11 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(20, 52, 20, 30),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF030D1A), Color(0xFF071929), Color(0xFF0A2236)],
+                    colors: isDark
+                        ? const [Color(0xFF030D1A), Color(0xFF071929), Color(0xFF0A2236)]
+                        : const [Color(0xFFF8FAFC), Color(0xFFF1F5F9), Color(0xFFE2E8F0)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -228,15 +230,15 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const SignaLogoWidget(size: 32, isDark: true),
+                        SignaLogoWidget(size: 32, isDark: isDark),
                         Row(
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF16A34A).withAlpha(40),
+                                color: isDark ? const Color(0xFF16A34A).withAlpha(40) : const Color(0xFFDCFCE7),
                                 borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: const Color(0xFF16A34A).withAlpha(80)),
+                                border: Border.all(color: isDark ? const Color(0xFF16A34A).withAlpha(80) : const Color(0xFF86EFAC)),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -249,7 +251,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                                   const SizedBox(width: 6),
                                   Text(
                                     _activeOutages > 0 ? '$_activeOutages direct' : 'Calme',
-                                    style: const TextStyle(color: Color(0xFF86EFAC), fontSize: 11, fontWeight: FontWeight.bold),
+                                    style: TextStyle(color: isDark ? const Color(0xFF86EFAC) : const Color(0xFF15803D), fontSize: 11, fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               ),
@@ -268,14 +270,15 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                               child: Container(
                                 padding: const EdgeInsets.all(7),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withAlpha(20),
+                                  color: isDark ? Colors.white.withAlpha(20) : Colors.white,
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white.withAlpha(40)),
+                                  border: Border.all(color: isDark ? Colors.white.withAlpha(40) : const Color(0xFFCBD5E1)),
+                                  boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 4)],
                                 ),
                                 child: Stack(
                                   clipBehavior: Clip.none,
                                   children: [
-                                    const Icon(LucideIcons.bell, color: Colors.white, size: 18),
+                                    Icon(LucideIcons.bell, color: isDark ? Colors.white : const Color(0xFF0F172A), size: 18),
                                     if (_unreadNotifCount > 0)
                                       Positioned(
                                         right: -4,
@@ -306,13 +309,15 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 14),
+
                     // 🏷️ Slogan Officiel SIGNA : SIGNALER · SUIVRE · RÉPARER
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF059669).withAlpha(35),
+                        color: const Color(0xFF059669).withAlpha(isDark ? 35 : 20),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFF10B981).withAlpha(80)),
+                        border: Border.all(color: const Color(0xFF10B981).withAlpha(isDark ? 80 : 120)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -326,10 +331,10 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                             ),
                           ),
                           const SizedBox(width: 6),
-                          const Text(
+                          Text(
                             'SIGNALER · SUIVRE · RÉPARER',
                             style: TextStyle(
-                              color: Color(0xFF34D399),
+                              color: isDark ? const Color(0xFF34D399) : const Color(0xFF047857),
                               fontSize: 10,
                               fontWeight: FontWeight.w900,
                               letterSpacing: 0.8,
@@ -346,7 +351,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                       style: GoogleFonts.outfit(
                         fontSize: 34,
                         fontWeight: FontWeight.w900,
-                        color: Colors.white,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
                         height: 1.1,
                       ),
                     ),
@@ -362,7 +367,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                         style: GoogleFonts.outfit(
                           fontSize: 34,
                           fontWeight: FontWeight.w900,
-                          color: currentWord['color'] as Color,
+                          color: (isDark ? currentWord['colorDark'] : currentWord['colorLight']) as Color,
                           height: 1.1,
                         ),
                       ),
@@ -372,14 +377,14 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                       style: GoogleFonts.outfit(
                         fontSize: 34,
                         fontWeight: FontWeight.w900,
-                        color: Colors.white,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
                         height: 1.1,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
+                    Text(
                       'Plateforme citoyenne et communautaire pour documenter, corroborer et suivre la résolution des incidents d\'électricité (CIE), d\'eau (SODECI) et de voirie urbaine.',
-                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13, height: 1.4),
+                      style: TextStyle(color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569), fontSize: 13, height: 1.4),
                     ),
                     const SizedBox(height: 20),
 
@@ -387,16 +392,17 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white.withAlpha(15),
+                        color: isDark ? Colors.white.withAlpha(15) : Colors.white,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white.withAlpha(30)),
+                        border: Border.all(color: isDark ? Colors.white.withAlpha(30) : const Color(0xFFCBD5E1)),
+                        boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 4)],
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(LucideIcons.shield, color: Colors.white70, size: 14),
-                          SizedBox(width: 6),
-                          Text('07 communes pilotes · Abidjan', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                        children: [
+                          Icon(LucideIcons.shield, color: isDark ? Colors.white70 : const Color(0xFF059669), size: 14),
+                          const SizedBox(width: 6),
+                          Text('07 communes pilotes · Abidjan', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF334155), fontSize: 12, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
@@ -491,9 +497,10 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withAlpha(20),
+                                  color: isDark ? Colors.white.withAlpha(20) : Colors.white,
                                   borderRadius: BorderRadius.circular(18),
-                                  border: Border.all(color: Colors.white.withAlpha(45), width: 1.5),
+                                  border: Border.all(color: isDark ? Colors.white.withAlpha(45) : const Color(0xFFCBD5E1), width: 1.5),
+                                  boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 8)],
                                 ),
                                 child: Row(
                                   children: [
@@ -503,18 +510,18 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                                         color: const Color(0xFF10B981).withAlpha(40),
                                         shape: BoxShape.circle,
                                       ),
-                                      child: const Icon(LucideIcons.map, color: Color(0xFF34D399), size: 18),
+                                      child: const Icon(LucideIcons.map, color: Color(0xFF10B981), size: 18),
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         mainAxisSize: MainAxisSize.min,
-                                        children: const [
+                                        children: [
                                           Text(
                                             'Voir la Carte',
                                             style: TextStyle(
-                                              color: Colors.white,
+                                              color: isDark ? Colors.white : const Color(0xFF0F172A),
                                               fontWeight: FontWeight.w900,
                                               fontSize: 14,
                                               letterSpacing: -0.2,
@@ -522,11 +529,11 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                           ),
-                                          SizedBox(height: 2),
+                                          const SizedBox(height: 2),
                                           Text(
                                             'En direct',
                                             style: TextStyle(
-                                              color: Colors.white70,
+                                              color: isDark ? Colors.white70 : const Color(0xFF64748B),
                                               fontSize: 10,
                                               fontWeight: FontWeight.w600,
                                             ),
@@ -560,11 +567,12 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.white.withAlpha(25),
+                              color: isDark ? Colors.white.withAlpha(25) : Colors.white,
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.white.withAlpha(40)),
+                              border: Border.all(color: isDark ? Colors.white.withAlpha(40) : const Color(0xFFCBD5E1)),
+                              boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 3)],
                             ),
-                            child: Text(c.nom, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                            child: Text(c.nom, style: TextStyle(color: isDark ? Colors.white : const Color(0xFF334155), fontSize: 11, fontWeight: FontWeight.bold)),
                           ),
                         );
                       }).toList(),

@@ -24,11 +24,11 @@ import { caniveauIcon, voirieIcon, lampadaireIcon } from "@/lib/infra-icons";
 import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
 
 const ROTATING_WORDS = [
-  { text: "coupures d'électricité", color: "text-white", bg: "bg-white/10" },
-  { text: "coupures d'eau",         color: "text-white", bg: "bg-white/10" },
-  { text: "lampadaires cassés",     color: "text-white", bg: "bg-white/10" },
-  { text: "caniveaux bouchés",      color: "text-white", bg: "bg-white/10" },
-  { text: "nids de poules",         color: "text-white", bg: "bg-white/10" },
+  { text: "coupures d'électricité", color: "text-amber-500 dark:text-amber-400" },
+  { text: "coupures d'eau",         color: "text-sky-500 dark:text-sky-400" },
+  { text: "lampadaires cassés",     color: "text-yellow-600 dark:text-yellow-400" },
+  { text: "caniveaux bouchés",      color: "text-teal-600 dark:text-teal-400" },
+  { text: "nids de poules",         color: "text-slate-800 dark:text-slate-200" },
 ];
 
 const PROBLEM_TYPES = [
@@ -37,9 +37,9 @@ const PROBLEM_TYPES = [
     iconImg: waterIcon,
     label: "Coupures d'eau",
     desc: "Plus d'eau au robinet ?",
-    border: "border-sky-400/30",
-    grad: "from-sky-500/15 to-cyan-500/5",
-    text: "text-sky-300",
+    border: "border-sky-500/20 dark:border-sky-400/30",
+    grad: "from-sky-500/10 to-cyan-500/5 dark:from-sky-500/15 dark:to-cyan-500/5",
+    text: "text-sky-600 dark:text-sky-300",
     glow: "hover:shadow-sky-500/20",
     prominent: true,
   },
@@ -48,9 +48,9 @@ const PROBLEM_TYPES = [
     iconImg: electricityIcon,
     label: "Coupures d'électricité",
     desc: "Coupure de courant ?",
-    border: "border-yellow-400/30",
-    grad: "from-yellow-500/15 to-amber-500/5",
-    text: "text-yellow-300",
+    border: "border-yellow-500/20 dark:border-yellow-400/30",
+    grad: "from-yellow-500/10 to-amber-500/5 dark:from-yellow-500/15 dark:to-amber-500/5",
+    text: "text-amber-600 dark:text-yellow-300",
     glow: "hover:shadow-yellow-500/20",
     prominent: true,
   },
@@ -59,9 +59,9 @@ const PROBLEM_TYPES = [
     iconImg: lampadaireIcon,
     label: "Lampadaires cassés",
     desc: "Lampadaire hors service ?",
-    border: "border-orange-400/30",
-    grad: "from-orange-500/15 to-yellow-500/5",
-    text: "text-orange-300",
+    border: "border-orange-500/20 dark:border-orange-400/30",
+    grad: "from-orange-500/10 to-yellow-500/5 dark:from-orange-500/15 dark:to-yellow-500/5",
+    text: "text-orange-600 dark:text-orange-300",
     glow: "hover:shadow-orange-500/20",
     prominent: false,
   },
@@ -70,9 +70,9 @@ const PROBLEM_TYPES = [
     iconImg: caniveauIcon,
     label: "Caniveaux bouchés",
     desc: "Caniveau obstrué ?",
-    border: "border-teal-400/30",
-    grad: "from-teal-500/15 to-green-500/5",
-    text: "text-teal-300",
+    border: "border-teal-500/20 dark:border-teal-400/30",
+    grad: "from-teal-500/10 to-green-500/5 dark:from-teal-500/15 dark:to-green-500/5",
+    text: "text-teal-600 dark:text-teal-300",
     glow: "hover:shadow-teal-500/20",
     prominent: false,
   },
@@ -81,9 +81,9 @@ const PROBLEM_TYPES = [
     iconImg: voirieIcon,
     label: "Nids de poules",
     desc: "Route dégradée ?",
-    border: "border-slate-400/30",
-    grad: "from-slate-500/15 to-gray-500/5",
-    text: "text-slate-300",
+    border: "border-slate-300 dark:border-slate-400/30",
+    grad: "from-slate-500/10 to-gray-500/5 dark:from-slate-500/15 dark:to-gray-500/5",
+    text: "text-slate-700 dark:text-slate-300",
     glow: "hover:shadow-slate-500/20",
     prominent: false,
   },
@@ -457,40 +457,41 @@ const Index = () => {
       ══════════════════════════════════════════════════════════════ */}
       <section className="relative flex min-h-[93vh] items-start sm:items-center overflow-hidden">
         {/* ── Fond civic tech moderne ── */}
+        {/* ── Fond civic tech moderne ── */}
         <div className="absolute inset-0">
-          {/* Base : gradient bleu nuit profond — crédible, institutionnel */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#030d1a] via-[#071929] to-[#0a2236]" />
+          {/* Base : gradient bleu nuit profond en dark / blanc écru nacré et émeraude doux en light */}
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-emerald-50/30 to-sky-50/20 dark:from-[#030d1a] dark:via-[#071929] dark:to-[#0a2236]" />
 
           {/* Grille de points — data / cartographie */}
           <div
-            className="absolute inset-0 opacity-[0.09]"
+            className="absolute inset-0 opacity-[0.05] dark:opacity-[0.09]"
             style={{
-              backgroundImage: "radial-gradient(circle, #7dd3fc 1.2px, transparent 1.2px)",
+              backgroundImage: "radial-gradient(circle, #0284c7 1.2px, transparent 1.2px)",
               backgroundSize: "36px 36px",
             }}
           />
 
           {/* Grille orthogonale fine — map grid feel */}
           <div
-            className="absolute inset-0 opacity-[0.035]"
+            className="absolute inset-0 opacity-[0.025] dark:opacity-[0.035]"
             style={{
               backgroundImage:
-                "linear-gradient(rgba(148,210,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(148,210,255,0.4) 1px, transparent 1px)",
+                "linear-gradient(rgba(14,165,233,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(14,165,233,0.3) 1px, transparent 1px)",
               backgroundSize: "80px 80px",
             }}
           />
 
           {/* Éclat principal — sky centre-gauche */}
-          <div className="pointer-events-none absolute -top-20 left-1/4 h-[520px] w-[520px] rounded-full bg-sky-500/18 blur-[130px]" />
+          <div className="pointer-events-none absolute -top-20 left-1/4 h-[520px] w-[520px] rounded-full bg-sky-500/10 dark:bg-sky-500/18 blur-[130px]" />
           {/* Éclat teal — bas droite */}
-          <div className="pointer-events-none absolute bottom-0 right-0 h-[420px] w-[420px] rounded-full bg-teal-400/14 blur-[110px]" />
+          <div className="pointer-events-none absolute bottom-0 right-0 h-[420px] w-[420px] rounded-full bg-emerald-400/10 dark:bg-teal-400/14 blur-[110px]" />
           {/* Accent chaud (électricité) — haut droite */}
-          <div className="pointer-events-none absolute top-0 right-1/3 h-[280px] w-[280px] rounded-full bg-amber-400/8 blur-[90px]" />
+          <div className="pointer-events-none absolute top-0 right-1/3 h-[280px] w-[280px] rounded-full bg-amber-400/10 dark:bg-amber-400/8 blur-[90px]" />
           {/* Profondeur gauche basse */}
-          <div className="pointer-events-none absolute bottom-1/4 -left-10 h-[300px] w-[300px] rounded-full bg-emerald-500/10 blur-[100px]" />
+          <div className="pointer-events-none absolute bottom-1/4 -left-10 h-[300px] w-[300px] rounded-full bg-emerald-500/8 dark:bg-emerald-500/10 blur-[100px]" />
 
           {/* Vignette bords pour focus sur le contenu */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.55)_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.03)_100%)] dark:bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.55)_100%)]" />
         </div>
 
         <div className="container relative z-10 pt-10 pb-20 sm:py-20">
@@ -503,8 +504,8 @@ const Index = () => {
               transition={{ duration: 0.5 }}
               className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 backdrop-blur-md"
             >
-              <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[11px] font-black tracking-widest text-emerald-300 uppercase">
+              <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[11px] font-black tracking-widest text-emerald-700 dark:text-emerald-300 uppercase">
                 SIGNALER · SUIVRE · RÉPARER
               </span>
             </motion.div>
@@ -515,7 +516,7 @@ const Index = () => {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.65 }}
-                className="font-display font-extrabold leading-[1.05] text-white"
+                className="font-display font-extrabold leading-[1.05] text-slate-950 dark:text-white"
               >
                 <span className="block text-5xl md:text-6xl lg:text-[4.5rem]">
                   Signalez les
@@ -531,13 +532,13 @@ const Index = () => {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="mt-4 sm:mt-6 max-w-xl text-base sm:text-lg leading-relaxed text-white/65"
+              className="mt-4 sm:mt-6 max-w-xl text-base sm:text-lg leading-relaxed text-slate-600 dark:text-white/65"
             >
               La première plateforme citoyenne ivoirienne où les habitants contribuent
               à l'amélioration des services et infrastructures publiques.
             </motion.p>
 
-            {/* Status badges — après le titre pour ne pas casser l'entrée visuelle */}
+            {/* Status badges */}
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -546,10 +547,10 @@ const Index = () => {
             >
               {liveCount !== null && (
                 <div className={cn(
-                  "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold backdrop-blur-md tabular-nums",
+                  "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold backdrop-blur-md tabular-nums shadow-sm dark:shadow-none",
                   liveCount > 0
-                    ? "border-red-400/40 bg-red-500/15 text-red-200"
-                    : "border-green-400/40 bg-green-500/15 text-green-200"
+                    ? "border-red-400/40 bg-red-500/10 text-red-700 dark:bg-red-500/15 dark:text-red-200"
+                    : "border-emerald-400/40 bg-emerald-500/10 text-emerald-700 dark:bg-green-500/15 dark:text-green-200"
                 )}>
                   <Radio className={`h-3.5 w-3.5 ${liveActive ? "animate-pulse" : ""}`} />
                   <AnimatePresence mode="wait">
@@ -567,13 +568,13 @@ const Index = () => {
                   </AnimatePresence>
                 </div>
               )}
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 py-2 text-sm text-white/75 backdrop-blur-md">
-                <Shield className="h-3.5 w-3.5" />
+              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 dark:border-white/15 dark:bg-white/8 px-4 py-2 text-sm font-medium text-slate-700 dark:text-white/75 shadow-sm dark:shadow-none backdrop-blur-md">
+                <Shield className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                 07 communes · Abidjan
               </div>
             </motion.div>
 
-            {/* CTA buttons — Dual CivicTech Standard (FixMyStreet / USHAHIDI) */}
+            {/* CTA buttons */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -582,7 +583,7 @@ const Index = () => {
             >
               <Link
                 to="/signaler"
-                className="group flex items-center gap-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 font-extrabold text-lg shadow-[0_8px_32px_rgba(5,150,105,0.4)] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                className="group flex items-center gap-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 font-extrabold text-lg shadow-[0_8px_32px_rgba(5,150,105,0.35)] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-xl backdrop-blur-sm">
                   📢
@@ -596,31 +597,31 @@ const Index = () => {
 
               <Link
                 to="/carte"
-                className="group flex items-center gap-3.5 rounded-2xl border-2 border-white/20 bg-white/5 hover:bg-white/15 px-7 py-4 text-white font-bold text-base backdrop-blur-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                className="group flex items-center gap-3.5 rounded-2xl border-2 border-slate-300/80 bg-white/80 hover:bg-white text-slate-800 dark:border-white/20 dark:bg-white/5 dark:hover:bg-white/15 dark:text-white font-bold text-base shadow-sm backdrop-blur-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
-                <Map className="h-5 w-5 text-emerald-400" />
+                <Map className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                 <div className="flex flex-col text-left leading-tight">
                   <span className="text-base font-extrabold tracking-wide">Consulter la carte</span>
-                  <span className="text-[11px] font-medium text-white/60">Incidents en direct</span>
+                  <span className="text-[11px] font-medium text-slate-500 dark:text-white/60">Incidents en direct</span>
                 </div>
               </Link>
             </motion.div>
 
-            {/* Communes pills — Uniform, sleek & high-contrast slate badges */}
+            {/* Communes pills */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.72 }}
               className="mt-10 flex flex-wrap items-center gap-2"
             >
-              <span className="text-xs font-semibold text-white/50 uppercase tracking-wider mr-1">
+              <span className="text-xs font-bold text-slate-500 dark:text-white/50 uppercase tracking-wider mr-1">
                 📍 Communes couvertes :
               </span>
               {COMMUNES.map((c: { nom: string }) => (
                 <Link
                   key={c.nom}
                   to={`/commune/${encodeURIComponent(c.nom)}`}
-                  className="rounded-full border border-white/15 bg-white/8 px-3.5 py-1 text-xs font-semibold text-white/85 transition-all hover:bg-white/20 hover:text-white hover:border-white/40 active:scale-95"
+                  className="rounded-full border border-slate-200/80 bg-white/90 dark:border-white/15 dark:bg-white/8 px-3.5 py-1 text-xs font-semibold text-slate-700 dark:text-white/85 shadow-sm dark:shadow-none transition-all hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 dark:hover:bg-white/20 dark:hover:text-white active:scale-95"
                 >
                   {c.nom}
                 </Link>
@@ -634,9 +635,9 @@ const Index = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.2 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/50"
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-slate-400 dark:text-white/50"
         >
-          <span className="text-xs tracking-[0.2em] uppercase">Découvrir</span>
+          <span className="text-xs tracking-[0.2em] uppercase font-bold">Découvrir</span>
           <motion.div animate={{ y: [0, 5, 0] }} transition={{ repeat: Infinity, duration: 1.6 }}>
             <ChevronDown className="h-4 w-4" />
           </motion.div>
@@ -646,7 +647,7 @@ const Index = () => {
       {/* ══════════════════════════════════════════════════════════════
           STATS — 4 chiffres clés sur fond gradient
       ══════════════════════════════════════════════════════════════ */}
-      <section className="gradient-hero py-14">
+      <section className="py-14 border-y border-border bg-slate-100/70 dark:bg-[#071524]">
         <div className="container">
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
             {[
@@ -673,12 +674,12 @@ const Index = () => {
                 className="flex flex-col items-center text-center"
               >
                 <div className={cn(
-                  "mb-3 flex items-center justify-center rounded-xl border border-white/15 bg-white/10 backdrop-blur-sm",
+                  "mb-3 flex items-center justify-center rounded-xl border border-slate-200/80 bg-white dark:border-white/15 dark:bg-white/10 shadow-sm backdrop-blur-sm",
                   stat.scale === "lg" ? "h-13 w-13" : "h-11 w-11"
                 )}>
                   <stat.Icon className={cn(
-                    "text-white/70",
-                    stat.scale === "lg" ? "h-6 w-6" : "h-5 w-5",
+                    "text-slate-700 dark:text-white/70",
+                    stat.scale === "lg" ? "h-6 w-6 text-emerald-600 dark:text-emerald-400" : "h-5 w-5",
                     stat.live && liveActive ? "animate-pulse" : ""
                   )} />
                 </div>
@@ -689,14 +690,14 @@ const Index = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 6 }}
                     className={cn(
-                      "font-display font-extrabold text-white tabular-nums",
-                      stat.scale === "lg" ? "text-4xl md:text-5xl" : stat.scale === "md" ? "text-3xl md:text-4xl" : "text-2xl md:text-3xl"
+                      "font-display font-extrabold text-slate-900 dark:text-white tabular-nums",
+                      stat.scale === "lg" ? "text-4xl md:text-5xl text-emerald-600 dark:text-emerald-400" : stat.scale === "md" ? "text-3xl md:text-4xl" : "text-2xl md:text-3xl"
                     )}
                   >
                     {stat.value}
                   </motion.p>
                 </AnimatePresence>
-                <p className={cn("mt-1 text-white/55", stat.scale === "lg" ? "text-sm font-semibold" : "text-sm")}>{stat.label}</p>
+                <p className={cn("mt-1 text-slate-500 dark:text-white/55", stat.scale === "lg" ? "text-sm font-bold text-slate-700 dark:text-white/80" : "text-sm font-medium")}>{stat.label}</p>
               </motion.div>
             ))}
           </div>
