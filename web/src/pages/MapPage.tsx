@@ -15,10 +15,16 @@ interface ActiveReport {
   latitude: number;
   longitude: number;
   service_type: string;
+  report_category?: string;
+  description?: string;
+  photo_url?: string | null;
+  photo_urls?: string[] | null;
   verifications: number;
   commune: string;
+  quartier?: string;
   created_at: string;
   start_time: string | null;
+  status?: string;
 }
 
 /** Escape HTML special chars to prevent XSS in Leaflet popup strings */
@@ -255,34 +261,153 @@ const MapPage = () => {
     return () => { map.remove(); mapInstance.current = null; };
   }, []);
 
-  // Fetch active reports for heat-map when toggle is on (respects period + commune focus)
+  // Fetch active reports for heat-map & incident dots (respects period + commune focus)
   useEffect(() => {
     if (!showHeatmap) {
       setActiveReports([]);
       return;
     }
-    let query = supabase
-      .from("reports")
-      .select("id, latitude, longitude, service_type, verifications, commune, created_at, start_time, status")
-      .in("status", ["active", "chronic"])
-      .not("latitude", "is", null)
-      .not("longitude", "is", null)
-      .limit(500);
 
-    if (periodFilter !== "all") {
-      const now = new Date();
-      if (periodFilter === "today") now.setHours(0, 0, 0, 0);
-      else if (periodFilter === "7d") now.setDate(now.getDate() - 7);
-      else if (periodFilter === "30d") now.setDate(now.getDate() - 30);
-      query = query.gte("created_at", now.toISOString());
-    }
-    if (focusedCommune) {
-      query = query.eq("commune", focusedCommune);
-    }
+    let isSubscribed = true;
 
-    query.then(({ data }) => {
-      if (data) setActiveReports(data as ActiveReport[]);
-    });
+    const fetchAllActive = async () => {
+      try {
+        const list: ActiveReport[] = [];
+
+        // 1. Fetch public infrastructure reports via RPC (bypasses RLS)
+        try {
+          const { data: infraData } = await (supabase as any).rpc(
+            "get_public_infrastructure_reports",
+            { p_limit: 200 }
+          );
+          if (infraData && Array.isArray(infraData)) {
+            infraData.forEach((item: any) => {
+              if (item.latitude && item.longitude) {
+                list.push({
+                  id: item.id,
+                  latitude: Number(item.latitude),
+                  longitude: Number(item.longitude),
+                  service_type: item.service_type || "mairie",
+                  report_category: item.report_category || "infrastructure",
+                  description: item.description,
+                  photo_url: item.photo_url,
+                  photo_urls: item.photo_urls,
+                  verifications: Number(item.support_count || item.verifications || 0),
+                  commune: item.commune,
+                  quartier: item.quartier,
+                  created_at: item.created_at,
+                  start_time: item.start_time,
+                  status: item.status || "active",
+                });
+              }
+            });
+          }
+        } catch (e) {
+          console.warn("Public infra reports RPC note:", e);
+        }
+
+        // 2. Fetch public outage reports via RPC
+        try {
+          const { data: pubData } = await (supabase as any).rpc("get_public_reports");
+          if (pubData && Array.isArray(pubData)) {
+            pubData.forEach((item: any) => {
+              if (item.latitude && item.longitude) {
+                list.push({
+                  id: item.id,
+                  latitude: Number(item.latitude),
+                  longitude: Number(item.longitude),
+                  service_type: item.service_type || "electricity",
+                  report_category: item.report_category || "outage",
+                  description: item.description,
+                  photo_url: item.photo_url,
+                  photo_urls: item.photo_urls,
+                  verifications: Number(item.verifications || item.repair_verifications || 0),
+                  commune: item.commune,
+                  quartier: item.quartier,
+                  created_at: item.created_at,
+                  start_time: item.start_time,
+                  status: item.status || "active",
+                });
+              }
+            });
+          }
+        } catch (e) {
+          console.warn("Public reports RPC note:", e);
+        }
+
+        // 3. Direct query fallback for authenticated users
+        try {
+          let directQuery = supabase
+            .from("reports")
+            .select("id, latitude, longitude, service_type, report_category, description, photo_url, photo_urls, verifications, commune, quartier, created_at, start_time, status")
+            .in("status", ["active", "chronic", "in_progress", "open", "verified"])
+            .not("latitude", "is", null)
+            .not("longitude", "is", null)
+            .limit(300);
+
+          if (focusedCommune) {
+            directQuery = directQuery.eq("commune", focusedCommune);
+          }
+
+          const { data: directData } = await directQuery;
+          if (directData && Array.isArray(directData)) {
+            directData.forEach((item: any) => {
+              if (item.latitude && item.longitude) {
+                list.push({
+                  id: item.id,
+                  latitude: Number(item.latitude),
+                  longitude: Number(item.longitude),
+                  service_type: item.service_type || "electricity",
+                  report_category: item.report_category,
+                  description: item.description,
+                  photo_url: item.photo_url,
+                  photo_urls: item.photo_urls,
+                  verifications: Number(item.verifications || 0),
+                  commune: item.commune,
+                  quartier: item.quartier,
+                  created_at: item.created_at,
+                  start_time: item.start_time,
+                  status: item.status,
+                });
+              }
+            });
+          }
+        } catch (e) {
+          console.warn("Direct query note:", e);
+        }
+
+        // Dédoublonnage par ID
+        const byId = new Map<string, ActiveReport>();
+        list.forEach((r) => byId.set(r.id, r));
+        let finalReports = Array.from(byId.values());
+
+        // Filtre de période
+        if (periodFilter !== "all") {
+          const now = new Date();
+          if (periodFilter === "today") now.setHours(0, 0, 0, 0);
+          else if (periodFilter === "7d") now.setDate(now.getDate() - 7);
+          else if (periodFilter === "30d") now.setDate(now.getDate() - 30);
+          finalReports = finalReports.filter((r) => new Date(r.created_at) >= now);
+        }
+
+        // Filtre de commune
+        if (focusedCommune) {
+          finalReports = finalReports.filter((r) => r.commune?.toLowerCase() === focusedCommune.toLowerCase());
+        }
+
+        if (isSubscribed) {
+          setActiveReports(finalReports);
+        }
+      } catch (err) {
+        console.error("Failed to load active reports for map:", err);
+      }
+    };
+
+    fetchAllActive();
+
+    return () => {
+      isSubscribed = false;
+    };
   }, [showHeatmap, periodFilter, focusedCommune]);
 
   // Pan + zoom to focused commune
@@ -328,10 +453,31 @@ const MapPage = () => {
     clusterMap.forEach((cluster) => {
       const r0 = cluster[0];
       const isElec = r0.service_type === "electricity";
-      const baseColor = isElec ? "#f59e0b" : "#3b82f6";
+      const isEau = r0.service_type === "water";
+      const isInfra = r0.report_category === "infrastructure" || r0.service_type === "mairie" || r0.service_type === "voirie";
+
+      let iconEmoji = isElec ? "⚡" : isEau ? "💧" : "🏗️";
+      let baseColor = isElec ? "#f59e0b" : isEau ? "#3b82f6" : "#10b981";
+
+      const desc = (r0.description || "").toLowerCase();
+      if (isInfra) {
+        if (desc.includes("lampadaire") || desc.includes("éclairage") || desc.includes("poteau")) {
+          iconEmoji = "💡";
+          baseColor = "#eab308";
+        } else if (desc.includes("caniveau") || desc.includes("inondation") || desc.includes("drain")) {
+          iconEmoji = "🕳️";
+          baseColor = "#0d9488";
+        } else if (desc.includes("nid de poule") || desc.includes("route") || desc.includes("chaussée") || desc.includes("voirie")) {
+          iconEmoji = "🚧";
+          baseColor = "#ea580c";
+        } else if (desc.includes("ordure") || desc.includes("poubelle") || desc.includes("décharge")) {
+          iconEmoji = "🗑️";
+          baseColor = "#10b981";
+        }
+      }
 
       // Oldest start in cluster
-      const oldestMs = Math.min(...cluster.map(r => new Date(r.start_time ?? r.created_at).getTime()));
+      const oldestMs = Math.min(...cluster.map((r) => new Date(r.start_time ?? r.created_at).getTime()));
       const hoursOldest = (Date.now() - oldestMs) / 3600000;
       const level = alertLevel(hoursOldest);
 
@@ -339,18 +485,24 @@ const MapPage = () => {
       const isChronic = cluster.some((r: any) => r.status === "chronic");
 
       // Color override for alert level and chronic
-      const fillColor = isChronic ? "#7c3aed"
-        : level === "critical" ? "#dc2626"
-        : level === "warning" ? "#ea580c"
+      const fillColor = isChronic
+        ? "#7c3aed"
+        : level === "critical"
+        ? "#dc2626"
+        : level === "warning"
+        ? "#ea580c"
         : baseColor;
-      const borderColor = isChronic ? "#ddd6fe"
-        : level === "critical" ? "#fca5a5"
-        : level === "warning" ? "#fed7aa"
+      const borderColor = isChronic
+        ? "#ddd6fe"
+        : level === "critical"
+        ? "#fca5a5"
+        : level === "warning"
+        ? "#fed7aa"
         : "#fff";
       const borderWeight = isChronic ? 3 : level !== "normal" ? 2.5 : 1.5;
 
       const totalVerifs = cluster.reduce((s, r) => s + r.verifications, 0);
-      const radius = Math.min(6 + Math.min(totalVerifs * 2, 18) + (cluster.length > 1 ? 4 : 0), 28);
+      const radius = Math.min(7 + Math.min(totalVerifs * 2, 16) + (cluster.length > 1 ? 4 : 0), 28);
 
       // Centroid of cluster
       const lat = cluster.reduce((s, r) => s + r.latitude, 0) / cluster.length + fuzz();
@@ -358,11 +510,20 @@ const MapPage = () => {
 
       const countBadge = cluster.length > 1
         ? `<span style="display:inline-block;background:#1e293b;color:#fff;border-radius:999px;font-size:9px;font-weight:700;padding:1px 6px;margin-left:3px">${cluster.length}</span>`
-        : '';
+        : "";
 
       const chronicBadge = isChronic
         ? `<span style="display:inline-block;background:#7c3aed;color:#fff;border-radius:999px;font-size:9px;font-weight:700;padding:1px 6px;margin-top:2px">🔴 Chronique +14j</span>`
-        : '';
+        : "";
+
+      const photo = r0.photo_url || (r0.photo_urls && r0.photo_urls[0]);
+      const photoHtml = photo
+        ? `<div style="margin-top:6px;margin-bottom:6px;"><img src="${escHtml(photo)}" style="width:100%;max-height:80px;object-fit:cover;border-radius:6px;" /></div>`
+        : "";
+
+      const descHtml = r0.description
+        ? `<div style="font-size:11px;color:#475569;margin-top:4px;max-height:48px;overflow:hidden;text-overflow:ellipsis;">"${escHtml(r0.description.slice(0, 90))}${r0.description.length > 90 ? '...' : ''}"</div>`
+        : "";
 
       L.circleMarker([lat, lon], {
         radius,
@@ -370,16 +531,21 @@ const MapPage = () => {
         color: borderColor,
         weight: borderWeight,
         opacity: 1,
-        fillOpacity: isChronic ? 0.9 : level !== "normal" ? 0.85 : 0.65,
+        fillOpacity: isChronic ? 0.9 : level !== "normal" ? 0.85 : 0.75,
       })
         .addTo(group)
         .bindPopup(
-          `<div style="text-align:center;min-width:150px">
-            <span style="font-size:18px">${isElec ? "⚡" : "💧"}</span>${countBadge}<br/>
-            <strong style="color:${fillColor}">${escHtml(r0.commune)}</strong><br/>
+          `<div style="text-align:center;min-width:160px;max-width:220px;">
+            <span style="font-size:18px">${iconEmoji}</span>${countBadge}<br/>
+            <strong style="color:${fillColor};font-size:13px;">${escHtml(r0.commune)}${r0.quartier ? ` · ${escHtml(r0.quartier)}` : ''}</strong><br/>
+            ${photoHtml}
+            ${descHtml}
             <span style="font-size:11px;color:#666">${totalVerifs} confirmation${totalVerifs !== 1 ? "s" : ""}${cluster.length > 1 ? ` · ${cluster.length} signalements` : ""}</span>
             ${chronicBadge}
             ${durationPillHtml({ ...r0, start_time: new Date(oldestMs).toISOString() })}
+            <div style="margin-top:8px;">
+              <a href="/signalement/${r0.id}" style="display:inline-block;padding:3px 10px;background:#0d9488;color:#fff;border-radius:6px;text-decoration:none;font-size:10px;font-weight:bold;">Voir le signalement →</a>
+            </div>
           </div>`
         );
     });
