@@ -133,11 +133,16 @@ const App = () => {
                     <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
                       <Route index element={<AdminOverviewPage />} />
                       <Route path="signalements" element={<AdminReportsPage />} />
+                      <Route path="reports" element={<AdminReportsPage />} />
                       <Route path="utilisateurs" element={<AdminUsersPage />} />
+                      <Route path="users" element={<AdminUsersPage />} />
                       <Route path="purge" element={<AdminPurgePage />} />
                       <Route path="statistiques" element={<AdminStatsPage />} />
+                      <Route path="stats" element={<AdminStatsPage />} />
                       <Route path="suppressions" element={<AdminDeletionsPage />} />
+                      <Route path="deletions" element={<AdminDeletionsPage />} />
                       <Route path="audit" element={<AdminAuditPage />} />
+                      <Route path="journal" element={<AdminAuditPage />} />
                       <Route path="vulnerables" element={<AdminVulnerablePage />} />
                       <Route path="messagerie" element={<AdminMessagingPage />} />
                       <Route path="quartiers" element={<AdminQuartiersPage />} />
