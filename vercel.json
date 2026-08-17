@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "buildCommand": "cd web && npm run build",
+  "outputDirectory": "web/dist",
+  "installCommand": "cd web && npm install",
+  "rewrites": [
+    {
+      "source": "/api/resend-proxy",
+      "destination": "https://api.resend.com/emails"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

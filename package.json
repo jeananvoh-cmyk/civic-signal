@@ -1,0 +1,10 @@
+{
+  "name": "civic-signal",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "cd web && npm run build",
+    "install": "cd web && npm install",
+    "dev": "cd web && npm run dev"
+  }
+}
