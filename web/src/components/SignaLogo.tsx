@@ -32,80 +32,58 @@ export const SignaLogo = ({ className, size = "md", showSlogan = false, variant 
   const isWhite = variant === "white";
 
   return (
-    <div className={cn("inline-flex items-center gap-3 select-none", className)}>
-      {/* 📍 Isotype Minimaliste & Épuré : Balise Pin + "S" Dynamique + 2 Ondes Civiques */}
-      <div className={cn("relative flex items-center justify-center shrink-0 drop-shadow-sm", iconSizes[size])}>
+    <div className={cn("inline-flex items-center gap-2.5 select-none", className)}>
+      {/* 🟢 Isotype Modèle 1 Vectoriel : Disque Vert Émeraude + Arc Blanc + Clef Blanche 45° */}
+      <div className={cn("relative flex items-center justify-center shrink-0 rounded-full overflow-hidden drop-shadow-sm", iconSizes[size])}>
         <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-full w-full">
           <defs>
-            <linearGradient id="signaGradPrimary" x1="15" y1="10" x2="85" y2="95" gradientUnits="userSpaceOnUse">
+            <linearGradient id="signaModel1Grad" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
               <stop offset="0%" stopColor="#10B981" />
-              <stop offset="50%" stopColor="#0D9488" />
-              <stop offset="100%" stopColor="#0284C7" />
-            </linearGradient>
-            <linearGradient id="signaGradSignal" x1="60" y1="20" x2="90" y2="50" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#F59E0B" />
-              <stop offset="100%" stopColor="#EA580C" />
+              <stop offset="100%" stopColor="#059669" />
             </linearGradient>
           </defs>
 
-          {/* 📍 Corps du Pin fusionné avec le 'S' aérodynamique */}
+          {/* Disque vert émeraude plein */}
+          <circle cx="50" cy="50" r="48" fill="url(#signaModel1Grad)" />
+
+          {/* Anneau blanc intérieur */}
           <path
-            d="M 50 12 C 32 12 18 26 18 44 C 18 64 42 86 48 91.5 C 49.2 92.5 50.8 92.5 52 91.5 C 58 86 82 64 82 44 C 82 26 68 12 50 12 Z M 50 24 C 59 24 67 31 67 40 C 67 44 64 48 60 50 C 54 53 44 54 44 59 C 44 62 47 64 51 64 C 56 64 61 61 63 58 L 69 63 C 65 69 58 72 50 72 C 40 72 34 66 34 58 C 34 50 42 47 48 44 C 54 42 57 40 57 37 C 57 33 53 31 49 31 C 44 31 40 34 38 38 L 31 34 C 34 28 42 24 50 24 Z"
-            fill="url(#signaGradPrimary)"
+            d="M 24 76 A 37 37 0 1 1 87 50 A 37 37 0 0 1 66 84"
+            stroke="#FFFFFF"
+            strokeWidth="7"
+            strokeLinecap="round"
+            fill="none"
           />
 
-          {/* 📶 2 Ondes de Signal Civique Minimalistes */}
-          <path
-            d="M 72 26 C 78 31 82 38 82 46 C 82 54 78 61 72 66"
-            stroke="url(#signaGradSignal)"
-            strokeWidth="5"
-            strokeLinecap="round"
-          />
-          <path
-            d="M 83 18 C 91 25 96 35 96 46 C 96 57 91 67 83 74"
-            stroke="url(#signaGradSignal)"
-            strokeWidth="5"
-            strokeLinecap="round"
-          />
+          {/* Clef blanche inclinée à 45° */}
+          <g transform="translate(50,50) rotate(-45) translate(-50,-50)">
+            {/* Manche avec trou */}
+            <path
+              d="M 44 44 L 56 44 L 56 72 C 56 75.3 53.3 78 50 78 C 46.7 78 44 75.3 44 72 Z M 50 68 A 2.5 2.5 0 1 0 50 73 A 2.5 2.5 0 1 0 50 68 Z"
+              fill="#FFFFFF"
+              fillRule="evenodd"
+            />
+            {/* Tête de clef ouverte */}
+            <path
+              d="M 50 16 C 37 16 28 25 28 37 C 28 43 31.5 48 36.5 51 L 63.5 51 C 68.5 48 72 43 72 37 C 72 25 63 16 50 16 Z M 50 24 C 54 24 57.5 26.5 59 30 L 41 30 C 42.5 26.5 46 24 50 24 Z"
+              fill="#FFFFFF"
+              fillRule="evenodd"
+            />
+          </g>
         </svg>
       </div>
 
-      {/* 🔤 Nom Officiel SIGNA.ci & Slogan avec Contraste Parfait */}
-      <div className="flex flex-col leading-none">
-        <span
-          className={cn(
-            "font-display font-black tracking-tight",
-            isWhite ? "text-white" : "text-slate-900 dark:text-white",
-            textSizes[size]
-          )}
-        >
-          SIGNA
-          <span className={cn(isWhite ? "text-emerald-400" : "text-emerald-600 dark:text-emerald-400")}>
-            .ci
-          </span>
-        </span>
-        {showSlogan ? (
-          <span
-            className={cn(
-              "font-extrabold tracking-wider uppercase mt-1",
-              isWhite ? "text-slate-300" : "text-slate-500 dark:text-slate-400",
-              sloganSizes[size]
-            )}
-          >
-            SIGNALER. SUIVRE. RÉPARER.
-          </span>
-        ) : (
-          <span
-            className={cn(
-              "font-bold tracking-wider uppercase mt-0.5",
-              isWhite ? "text-emerald-300" : "text-emerald-800 dark:text-emerald-300",
-              sloganSizes[size]
-            )}
-          >
-            SIGNALER. SUIVRE. RÉPARER.
-          </span>
+      {/* 🔤 Nom de marque pur SIGNA.ci sans slogan */}
+      <span
+        className={cn(
+          "font-display font-black tracking-tight flex items-baseline gap-0.5 leading-none",
+          isWhite ? "text-white" : "text-slate-900 dark:text-white",
+          textSizes[size]
         )}
-      </div>
+      >
+        <span>SIGNA</span>
+        <span className="text-emerald-500 font-extrabold">.ci</span>
+      </span>
     </div>
   );
 };

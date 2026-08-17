@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/communes.dart';
@@ -62,11 +62,11 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
 
   // Rotating words (1:1 Web)
   final List<Map<String, dynamic>> _rotatingWords = [
-    {'text': "coupures d'eau", 'color': const Color(0xFF38BDF8)},
-    {'text': "coupures d'électricité", 'color': const Color(0xFFFACC15)},
-    {'text': "lampadaires cassés", 'color': const Color(0xFFFB923C)},
-    {'text': "caniveaux bouchés", 'color': const Color(0xFF2DD4BF)},
-    {'text': "nids de poules", 'color': const Color(0xFFCBD5E1)},
+    {'text': "coupures d'électricité", 'color': Colors.white},
+    {'text': "coupures d'eau",         'color': Colors.white},
+    {'text': "lampadaires cassés",     'color': Colors.white},
+    {'text': "caniveaux bouchés",      'color': Colors.white},
+    {'text': "nids de poules",         'color': Colors.white},
   ];
 
   @override
@@ -306,7 +306,39 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 28),
+                    // 🏷️ Slogan Officiel SIGNA : SIGNALER · SUIVRE · RÉPARER
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF059669).withAlpha(35),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFF10B981).withAlpha(80)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF10B981),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'SIGNALER · SUIVRE · RÉPARER',
+                            style: TextStyle(
+                              color: Color(0xFF34D399),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
 
                     // Titre avec mot rotatif animé
                     Text(
@@ -383,15 +415,11 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                                 decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [Color(0xFF0284C7), Color(0xFFEA580C)], // Dégradé Eau/Courant Civique
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
+                                  color: const Color(0xFF059669), // Civic Emerald Green
                                   borderRadius: BorderRadius.circular(18),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFFEA580C).withAlpha(90),
+                                      color: const Color(0xFF059669).withAlpha(100),
                                       blurRadius: 16,
                                       offset: const Offset(0, 4),
                                     ),
@@ -453,26 +481,19 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                         ),
                         const SizedBox(width: 10),
 
-                        // 2. Bouton Confirmer une alerte
+                        // 2. Bouton Voir la carte (1:1 Web)
                         Expanded(
                           child: Material(
                             color: Colors.transparent,
                             child: InkWell(
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VerificationScreen())),
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MapScreen())),
                               borderRadius: BorderRadius.circular(18),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF0F172A).withAlpha(180),
+                                  color: Colors.white.withAlpha(20),
                                   borderRadius: BorderRadius.circular(18),
-                                  border: Border.all(color: const Color(0xFF10B981).withAlpha(160), width: 1.5),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF10B981).withAlpha(40),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
+                                  border: Border.all(color: Colors.white.withAlpha(45), width: 1.5),
                                 ),
                                 child: Row(
                                   children: [
@@ -482,7 +503,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                                         color: const Color(0xFF10B981).withAlpha(40),
                                         shape: BoxShape.circle,
                                       ),
-                                      child: const Icon(LucideIcons.users, color: Color(0xFF34D399), size: 18),
+                                      child: const Icon(LucideIcons.map, color: Color(0xFF34D399), size: 18),
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(
@@ -491,9 +512,9 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: const [
                                           Text(
-                                            'Confirmer',
+                                            'Voir la Carte',
                                             style: TextStyle(
-                                              color: Color(0xFF34D399),
+                                              color: Colors.white,
                                               fontWeight: FontWeight.w900,
                                               fontSize: 14,
                                               letterSpacing: -0.2,
@@ -503,9 +524,9 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                                           ),
                                           SizedBox(height: 2),
                                           Text(
-                                            'Voisins solidaires',
+                                            'En direct',
                                             style: TextStyle(
-                                              color: Color(0xFFA7F3D0),
+                                              color: Colors.white70,
                                               fontSize: 10,
                                               fontWeight: FontWeight.w600,
                                             ),
@@ -525,7 +546,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // PILULES DES 7 COMMUNES PILOTES (1:1 Web)
+                    // PILULES DES 7 COMMUNES PILOTES (Uniform slate badges 1:1 Web)
                     Wrap(
                       spacing: 6,
                       runSpacing: 6,
@@ -539,8 +560,9 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: c.couleur.withAlpha(220),
+                              color: Colors.white.withAlpha(25),
                               borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.white.withAlpha(40)),
                             ),
                             child: Text(c.nom, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
                           ),
@@ -1216,7 +1238,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                 side: const BorderSide(color: Color(0xFF1877F2)),
                               ),
-                              icon: const Icon(LucideIcons.facebook, color: Color(0xFF1877F2), size: 18),
+                              icon: const Icon(Icons.facebook, color: Color(0xFF1877F2), size: 18),
                               label: const Text('Facebook', style: TextStyle(color: Color(0xFF1877F2), fontWeight: FontWeight.bold, fontSize: 13)),
                               onPressed: () => launchUrl(Uri.parse('https://facebook.com/signa-ci'), mode: LaunchMode.externalApplication),
                             ),

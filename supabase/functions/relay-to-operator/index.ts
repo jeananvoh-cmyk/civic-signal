@@ -45,6 +45,9 @@ interface Report {
   latitude: number | null;
   longitude: number | null;
   created_at: string;
+  meter_number?: string | null;
+  contract_type?: string | null;
+  reporter_phone?: string | null;
 }
 
 // ── Email HTML consolidé par commune ─────────────────────────────────────────
@@ -271,6 +274,21 @@ function buildBatchEmailHtml(
             ${reportRows}
           </table>
 
+          ${!isMairie && reports.some((r) => r.meter_number || r.reporter_phone) ? `
+          <div style="margin-bottom:24px;padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
+            <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:0.5px;">📋 Contacts Citoyens Référents & Numéros de Compteur</p>
+            <ul style="margin:0;padding:0 0 0 18px;font-size:12px;color:#334155;line-height:1.7;">
+              ${reports.filter((r) => r.meter_number || r.reporter_phone).map((r) => `
+                <li>
+                  <strong>${escapeHtml(r.quartier)}</strong> :
+                  ${r.meter_number ? `Compteur <code>${escapeHtml(r.meter_number)}</code> (${r.contract_type === "postpaid" ? "Postpayé" : "Prépayé"})` : ""}
+                  ${r.reporter_phone ? ` · Tél: <strong>${escapeHtml(r.reporter_phone)}</strong>` : ""}
+                </li>
+              `).join("")}
+            </ul>
+          </div>
+          ` : ""}
+
           <p style="margin:0 0 24px;color:#374151;font-size:14px;line-height:1.8;">
             Nous restons à votre disposition pour mesurer et publier l'avancement des actions de résolution en faveur des usagers.
           </p>
@@ -494,7 +512,7 @@ Deno.serve(async (req) => {
     const { data: reports } = await supabase
       .from("reports")
       .select(
-        "id, user_id, service_type, commune, quartier, description, verifications, urgency, latitude, longitude, created_at",
+        "id, user_id, service_type, commune, quartier, description, verifications, urgency, latitude, longitude, created_at, meter_number, contract_type, reporter_phone",
       )
       .in("id", reportIds);
 

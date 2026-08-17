@@ -70,7 +70,7 @@ export function usePushSubscription() {
   }, []);
 
   const subscribe = useCallback(async (): Promise<{ success: boolean; reason?: "denied" | "unsupported" | "vapid_error" }> => {
-    if (!isSupported || !user) return { success: false, reason: "unsupported" };
+    if (!isSupported) return { success: false, reason: "unsupported" };
     setIsLoading(true);
 
     try {
@@ -82,44 +82,44 @@ export function usePushSubscription() {
         return { success: false, reason: "denied" };
       }
 
-      // Try Service Worker registration & Web Push
-      let webPushOk = false;
-      try {
-        const reg = await navigator.serviceWorker.register("/sw.js");
-        await navigator.serviceWorker.ready;
+      // Try Service Worker registration & Web Push for logged in users
+      if (user) {
+        try {
+          const reg = await navigator.serviceWorker.register("/sw.js");
+          await navigator.serviceWorker.ready;
 
-        const vapidKey = await getVapidKey();
-        if (vapidKey) {
-          const sub = await reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
-          });
+          const vapidKey = await getVapidKey();
+          if (vapidKey) {
+            const sub = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
+            });
 
-          const subJson = sub.toJSON();
+            const subJson = sub.toJSON();
 
-          await supabase.from("push_subscriptions").upsert(
-            {
-              user_id: user.id,
-              endpoint: sub.endpoint,
-              p256dh: subJson.keys?.p256dh || "",
-              auth: subJson.keys?.auth || "",
-            },
-            { onConflict: "user_id,endpoint" }
-          );
-          webPushOk = true;
+            await supabase.from("push_subscriptions").upsert(
+              {
+                user_id: user.id,
+                endpoint: sub.endpoint,
+                p256dh: subJson.keys?.p256dh || "",
+                auth: subJson.keys?.auth || "",
+              },
+              { onConflict: "user_id,endpoint" }
+            );
+          }
+        } catch (err) {
+          console.warn("Web Push VAPID registration notice:", err);
         }
-      } catch (err) {
-        console.warn("Web Push VAPID registration notice:", err);
-      }
 
-      // Record citizen notification preference in database profile & local storage
-      try {
-        await supabase
-          .from("profiles")
-          .update({ notifications_enabled: true })
-          .eq("id", user.id);
-      } catch (e) {
-        console.warn("Could not sync notifications_enabled to profile:", e);
+        // Record citizen notification preference in database profile
+        try {
+          await supabase
+            .from("profiles")
+            .update({ notifications_enabled: true })
+            .eq("id", user.id);
+        } catch (e) {
+          console.warn("Could not sync notifications_enabled to profile:", e);
+        }
       }
 
       localStorage.setItem("push_notifications_enabled", "true");
@@ -129,12 +129,14 @@ export function usePushSubscription() {
     } catch (err) {
       console.error("Push subscribe error:", err);
       // Fallback: still enable in-app preference so user gets in-app notifications
-      try {
-        await supabase
-          .from("profiles")
-          .update({ notifications_enabled: true })
-          .eq("id", user.id);
-      } catch (_) {}
+      if (user) {
+        try {
+          await supabase
+            .from("profiles")
+            .update({ notifications_enabled: true })
+            .eq("id", user.id);
+        } catch (_) {}
+      }
       localStorage.setItem("push_notifications_enabled", "true");
       setIsSubscribed(true);
       setIsLoading(false);

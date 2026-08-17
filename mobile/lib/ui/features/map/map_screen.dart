@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/communes.dart';
 import '../../../core/theme/app_theme.dart';
@@ -71,7 +71,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           for (final e in infraRes) {
             if (e is Map) {
               final map = Map<String, dynamic>.from(e);
-              if (map['latitude'] != null && map['longitude'] != null) {
+              final double? lat = (map['latitude'] as num?)?.toDouble() ?? (map['latitude_approx'] as num?)?.toDouble();
+              final double? lon = (map['longitude'] as num?)?.toDouble() ?? (map['longitude_approx'] as num?)?.toDouble();
+              if (lat != null && lon != null) {
+                map['latitude'] = lat;
+                map['longitude'] = lon;
+                map['report_category'] ??= 'infrastructure';
                 loaded.add(ReportModel.fromJson(map));
               }
             }
@@ -88,7 +93,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           for (final e in pubRes) {
             if (e is Map) {
               final map = Map<String, dynamic>.from(e);
-              if (map['latitude'] != null && map['longitude'] != null) {
+              final double? lat = (map['latitude'] as num?)?.toDouble() ?? (map['latitude_approx'] as num?)?.toDouble();
+              final double? lon = (map['longitude'] as num?)?.toDouble() ?? (map['longitude_approx'] as num?)?.toDouble();
+              if (lat != null && lon != null) {
+                map['latitude'] = lat;
+                map['longitude'] = lon;
                 loaded.add(ReportModel.fromJson(map));
               }
             }

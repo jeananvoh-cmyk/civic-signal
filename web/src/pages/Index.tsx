@@ -24,11 +24,11 @@ import { caniveauIcon, voirieIcon, lampadaireIcon } from "@/lib/infra-icons";
 import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
 
 const ROTATING_WORDS = [
-  { text: "coupures d'eau",         color: "text-sky-400",    bg: "bg-sky-400/10"    },
-  { text: "coupures d'électricité", color: "text-yellow-400", bg: "bg-yellow-400/10" },
-  { text: "lampadaires cassés",     color: "text-orange-400", bg: "bg-orange-400/10" },
-  { text: "caniveaux bouchés",      color: "text-teal-400",   bg: "bg-teal-400/10"   },
-  { text: "nids de poules",         color: "text-slate-300",  bg: "bg-slate-400/10"  },
+  { text: "coupures d'électricité", color: "text-white", bg: "bg-white/10" },
+  { text: "coupures d'eau",         color: "text-white", bg: "bg-white/10" },
+  { text: "lampadaires cassés",     color: "text-white", bg: "bg-white/10" },
+  { text: "caniveaux bouchés",      color: "text-white", bg: "bg-white/10" },
+  { text: "nids de poules",         color: "text-white", bg: "bg-white/10" },
 ];
 
 const PROBLEM_TYPES = [
@@ -496,6 +496,19 @@ const Index = () => {
         <div className="container relative z-10 pt-10 pb-20 sm:py-20">
           <div className="max-w-3xl">
 
+            {/* 🏷️ Slogan Officiel SIGNA : SIGNALER · SUIVRE · RÉPARER */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 backdrop-blur-md"
+            >
+              <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[11px] font-black tracking-widest text-emerald-300 uppercase">
+                SIGNALER · SUIVRE · RÉPARER
+              </span>
+            </motion.div>
+
             {/* Heading with rotating word */}
             <div className="overflow-hidden">
               <motion.h1
@@ -569,45 +582,45 @@ const Index = () => {
             >
               <Link
                 to="/signaler"
-                className="group flex items-center gap-3.5 rounded-2xl bg-gradient-to-r from-[#0284C7] to-[#EA580C] px-7 py-3.5 text-white shadow-[0_8px_32px_rgba(2,132,199,0.4)] transition-all duration-200 hover:scale-[1.03] hover:shadow-[0_12px_44px_rgba(234,88,12,0.45)] active:scale-[0.97]"
+                className="group flex items-center gap-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 font-extrabold text-lg shadow-[0_8px_32px_rgba(5,150,105,0.4)] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-xl backdrop-blur-sm">
                   📢
                 </div>
                 <div className="flex flex-col text-left leading-tight">
-                  <span className="text-base font-extrabold tracking-wide">Signaler un problème</span>
+                  <span className="text-base font-extrabold tracking-wide">Signaler un incident</span>
                   <span className="text-[11px] font-medium text-white/80">Eau · Courant · Voirie</span>
                 </div>
                 <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
               </Link>
 
               <Link
-                to="/verification"
-                className="group flex items-center gap-3.5 rounded-2xl border-2 border-emerald-400/40 bg-emerald-950/40 px-7 py-3.5 text-white backdrop-blur-md transition-all duration-200 hover:scale-[1.03] hover:border-emerald-400/80 hover:bg-emerald-900/50 hover:shadow-[0_8px_32px_rgba(16,185,129,0.3)] active:scale-[0.97]"
+                to="/carte"
+                className="group flex items-center gap-3.5 rounded-2xl border-2 border-white/20 bg-white/5 hover:bg-white/15 px-7 py-4 text-white font-bold text-base backdrop-blur-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20 text-xl">
-                  🤝
-                </div>
+                <Map className="h-5 w-5 text-emerald-400" />
                 <div className="flex flex-col text-left leading-tight">
-                  <span className="text-base font-extrabold tracking-wide text-emerald-200">Confirmer une alerte</span>
-                  <span className="text-[11px] font-medium text-emerald-300/80">Voisins solidaires</span>
+                  <span className="text-base font-extrabold tracking-wide">Consulter la carte</span>
+                  <span className="text-[11px] font-medium text-white/60">Incidents en direct</span>
                 </div>
               </Link>
             </motion.div>
 
-            {/* Communes pills */}
+            {/* Communes pills — Uniform, sleek & high-contrast slate badges */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: 0.72 }}
-              className="mt-10 flex flex-wrap gap-2"
+              className="mt-10 flex flex-wrap items-center gap-2"
             >
-              {COMMUNES.map((c: { nom: string; couleur: string }) => (
+              <span className="text-xs font-semibold text-white/50 uppercase tracking-wider mr-1">
+                📍 Communes couvertes :
+              </span>
+              {COMMUNES.map((c: { nom: string }) => (
                 <Link
                   key={c.nom}
                   to={`/commune/${encodeURIComponent(c.nom)}`}
-                  className="rounded-full px-3 py-1 text-xs font-bold text-white transition-all hover:scale-105 hover:brightness-110 active:scale-95"
-                  style={{ backgroundColor: c.couleur }}
+                  className="rounded-full border border-white/15 bg-white/8 px-3.5 py-1 text-xs font-semibold text-white/85 transition-all hover:bg-white/20 hover:text-white hover:border-white/40 active:scale-95"
                 >
                   {c.nom}
                 </Link>

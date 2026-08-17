@@ -17,24 +17,22 @@ export default function PushPromptBanner() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!user || !isSupported || isSubscribed || permission === "denied") return;
+    if (!isSupported || isSubscribed || permission === "denied") return;
     const dismissed = localStorage.getItem(DISMISSED_KEY);
     if (!dismissed) setVisible(true);
-  }, [user, isSupported, isSubscribed, permission]);
+  }, [isSupported, isSubscribed, permission]);
 
   if (!visible) return null;
 
   const handleSubscribe = async () => {
     const res = await subscribe();
     if (res.success) {
-      toast.success("Notifications push activées ! Vous serez alerté des coupures près de chez vous.");
+      toast.success("Notifications activées ! Vous serez alerté dès qu'un incident est détecté.");
       setVisible(false);
     } else if (res.reason === "denied") {
-      toast.error("Notifications bloquées — activez-les dans les paramètres du navigateur.");
-    } else if (res.reason === "unsupported") {
-      toast.error("Votre navigateur ne prend pas en charge les notifications push.");
+      toast.error("Notifications bloquées par votre navigateur. Cliquez sur le cadenas 🔒 de l'URL pour les autoriser.");
     } else {
-      toast.info("Préférence enregistrée — les alertes seront affichées dans votre espace citoyen.");
+      toast.info("Préférence enregistrée pour votre appareil.");
       setVisible(false);
     }
   };

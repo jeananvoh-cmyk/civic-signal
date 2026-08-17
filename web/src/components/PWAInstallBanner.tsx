@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Download, Share, Smartphone, Wifi, Bell, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -62,7 +63,9 @@ const PWAInstallBanner = () => {
     }
   };
 
-  return (
+  if (!visible) return null;
+
+  return createPortal(
     <AnimatePresence>
       {visible && (
         <>
@@ -72,18 +75,18 @@ const PWAInstallBanner = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px]"
+            className="fixed inset-0 z-[9998] bg-black/60 backdrop-blur-[3px]"
             onClick={handleSnooze}
           />
 
-          {/* Modal centré — visible sans scroll */}
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none">
+          {/* Modal centré au milieu de l'écran — 100% visible sans scroll */}
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pointer-events-none">
             <motion.div
               key="modal"
-              initial={{ opacity: 0, scale: 0.92, y: -16 }}
-              animate={{ opacity: 1, scale: 1,    y: 0 }}
-              exit={{    opacity: 0, scale: 0.92, y: -16 }}
-              transition={{ type: "spring", stiffness: 380, damping: 30 }}
+              initial={{ opacity: 0, scale: 0.9, y: 10 }}
+              animate={{ opacity: 1, scale: 1,   y: 0 }}
+              exit={{    opacity: 0, scale: 0.9, y: 10 }}
+              transition={{ type: "spring", stiffness: 400, damping: 28 }}
               className="w-full max-w-sm rounded-3xl bg-card border border-border shadow-2xl overflow-hidden pointer-events-auto"
             >
               {/* Header */}
@@ -173,7 +176,8 @@ const PWAInstallBanner = () => {
           </div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

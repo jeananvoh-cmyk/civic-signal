@@ -282,11 +282,13 @@ const MapPage = () => {
           );
           if (infraData && Array.isArray(infraData)) {
             infraData.forEach((item: any) => {
-              if (item.latitude && item.longitude) {
+              const lat = item.latitude || item.latitude_approx;
+              const lon = item.longitude || item.longitude_approx;
+              if (lat && lon) {
                 list.push({
                   id: item.id,
-                  latitude: Number(item.latitude),
-                  longitude: Number(item.longitude),
+                  latitude: Number(lat),
+                  longitude: Number(lon),
                   service_type: item.service_type || "mairie",
                   report_category: item.report_category || "infrastructure",
                   description: item.description,
@@ -311,11 +313,13 @@ const MapPage = () => {
           const { data: pubData } = await (supabase as any).rpc("get_public_reports");
           if (pubData && Array.isArray(pubData)) {
             pubData.forEach((item: any) => {
-              if (item.latitude && item.longitude) {
+              const lat = item.latitude || item.latitude_approx;
+              const lon = item.longitude || item.longitude_approx;
+              if (lat && lon) {
                 list.push({
                   id: item.id,
-                  latitude: Number(item.latitude),
-                  longitude: Number(item.longitude),
+                  latitude: Number(lat),
+                  longitude: Number(lon),
                   service_type: item.service_type || "electricity",
                   report_category: item.report_category || "outage",
                   description: item.description,
