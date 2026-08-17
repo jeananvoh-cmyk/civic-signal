@@ -1,3 +1,6 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 /// 📍 Peintre Vectoriel Officiel SIGNA.ci (Modèle 1 FixMyStreet Civic Tech) :
 /// Disque plein Vert Émeraude + Anneau blanc + Clef de réparation blanche 45°
 class SignaLogoPainter extends CustomPainter {
