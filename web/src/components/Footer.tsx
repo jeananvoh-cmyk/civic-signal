@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import { MessageCircle, Mail, MapPin, Phone, HelpCircle, HeartHandshake } from "lucide-react";
+import { Mail, MapPin, Phone, HelpCircle, HeartHandshake } from "lucide-react";
 import SignaLogo from "@/components/SignaLogo";
+import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { SOCIAL_LINKS } from "@/lib/social-links";
 
 export default function Footer() {
@@ -29,15 +30,18 @@ export default function Footer() {
               href={SOCIAL_LINKS.whatsapp}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-4 rounded-xl bg-emerald-900/40 border border-emerald-700/60 hover:border-emerald-400 transition-all flex items-center gap-4 group"
+              className="p-4 rounded-xl bg-slate-900 border border-[#25D366]/40 hover:border-[#25D366] transition-all flex items-center gap-4 group shadow-sm hover:shadow-[#25D366]/10"
             >
-              <div className="h-12 w-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shrink-0">
-                <MessageCircle className="h-6 w-6" />
+              <div className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0">
+                <WhatsAppIcon className="h-11 w-11 drop-shadow" />
               </div>
               <div>
-                <div className="text-xs font-bold text-emerald-400 uppercase tracking-wide">WhatsApp SIGNA</div>
-                <div className="text-base font-extrabold text-white group-hover:underline">Assistance Directe</div>
-                <div className="text-xs text-slate-400 mt-0.5">Réponse rapide des modérateurs</div>
+                <div className="text-xs font-bold text-[#25D366] uppercase tracking-wide flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-[#25D366] animate-pulse" />
+                  WhatsApp Direct
+                </div>
+                <div className="text-base font-extrabold text-white group-hover:underline">Assistance Modérateurs</div>
+                <div className="text-xs text-slate-400 mt-0.5">Ouvre l'application ou WhatsApp Web</div>
               </div>
             </a>
 

@@ -11,7 +11,6 @@ import AdminRoute from "@/components/AdminRoute";
 import ProfileCompletionNotifier from "@/components/ProfileCompletionNotifier";
 import PWAInstallBanner from "@/components/PWAInstallBanner";
 import OfflineBar from "@/components/OfflineBar";
-import EmergencyContactsBar from "@/components/EmergencyContactsBar";
 import BottomNav from "@/components/BottomNav";
 import OnboardingSlides from "@/components/OnboardingSlides";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -104,7 +103,6 @@ const App = () => {
           <BrowserRouter>
             <PullToRefresh>
               <OfflineBar />
-              <EmergencyContactsBar />
               <ProfileCompletionNotifier />
               <PWAInstallBanner />
               <OnboardingSlides />

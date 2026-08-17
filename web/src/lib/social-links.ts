@@ -1,31 +1,40 @@
 /**
- * SIGNA-CI — Liens réseaux sociaux
+ * SIGNA-CI — Configuration Centralisée des Liens Réseaux Sociaux & Assistance
  *
- * ⚠️  Mettez à jour ces URLs dès que les pages sont créées.
- *     Un seul fichier à modifier — tous les composants s'actualisent automatiquement.
+ * ℹ️ Modifiez ce fichier lorsque vous aurez vos identifiants définitifs :
+ *    Tous les boutons de l'application (Web & Mobile) s'actualiseront instantanément.
  */
 
+export const CONTACT_CONFIG = {
+  /** Numéro WhatsApp de support (Format international sans espace ni '+' pour wa.me) */
+  whatsappPhone: "2250700000000",
+
+  /** Message d'accueil pré-rempli sur WhatsApp */
+  whatsappDefaultMessage: "Bonjour l'Équipe SIGNA-CI, j'ai besoin d'une assistance concernant un signalement.",
+
+  /** Lien direct de discussion WhatsApp (Ouvre l'app mobile ou WhatsApp Web automatiquement) */
+  get whatsappChatUrl() {
+    return `https://wa.me/${this.whatsappPhone}?text=${encodeURIComponent(this.whatsappDefaultMessage)}`;
+  },
+
+  /** Lien de la Chaîne / Canal Officiel WhatsApp SIGNA (diffusion d'alertes) */
+  whatsappChannelUrl: "https://whatsapp.com/channel/0029Vsignaci_placeholder",
+
+  /** Page Facebook officielle */
+  facebookPageUrl: "https://www.facebook.com/signa.ci",
+
+  /** Groupe Facebook d'entraide communautaire */
+  facebookGroupUrl: "https://www.facebook.com/groups/signa.ci",
+
+  /** Email support officiel */
+  emailSupport: "contact@signa.ci",
+};
+
+/** Alias pour rétrocompatibilité */
 export const SOCIAL_LINKS = {
-  /** Page Facebook officielle SIGNA-CI (à créer) */
-  facebook: {
-    url: "https://www.facebook.com/signaci.ci",   // ← remplacer par l'URL réelle
-    label: "Page Facebook SIGNA-CI",
-    ready: false,   // passer à true quand la page est créée
-  },
-
-  /** Groupe Facebook communautaire (à créer) */
-  facebookGroup: {
-    url: "https://www.facebook.com/groups/signaci",   // ← remplacer
-    label: "Groupe Facebook Communauté",
-    ready: false,
-  },
-
-  /** Canal WhatsApp officiel SIGNA-CI (à créer) */
-  whatsapp: {
-    url: "https://whatsapp.com/channel/0000000000000000000000",   // ← remplacer par le lien du canal
-    label: "Canal WhatsApp SIGNA-CI",
-    ready: false,
-  },
+  whatsapp: CONTACT_CONFIG.whatsappChatUrl,
+  whatsappChannel: CONTACT_CONFIG.whatsappChannelUrl,
+  facebook: CONTACT_CONFIG.facebookPageUrl,
+  facebookGroup: CONTACT_CONFIG.facebookGroupUrl,
+  email: CONTACT_CONFIG.emailSupport,
 } as const;
-
-export type SocialKey = keyof typeof SOCIAL_LINKS;

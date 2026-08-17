@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/communes.dart';
+import '../../../core/constants/app_contacts.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/models/report_model.dart';
 import '../commune/commune_detail_screen.dart';
@@ -1146,7 +1147,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                               ),
                               icon: const Icon(LucideIcons.messageCircle, color: Color(0xFF25D366), size: 16),
                               label: const Text('WhatsApp', style: TextStyle(color: Color(0xFF25D366), fontWeight: FontWeight.bold, fontSize: 13)),
-                              onPressed: () => launchUrl(Uri.parse('https://chat.whatsapp.com/signa-ci'), mode: LaunchMode.externalApplication),
+                              onPressed: () => launchUrl(Uri.parse(AppContacts.whatsappChatUrl), mode: LaunchMode.externalApplication),
                             ),
                           ),
                         ],

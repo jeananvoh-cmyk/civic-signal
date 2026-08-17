@@ -13,6 +13,7 @@ import { SOCIAL_LINKS } from "@/lib/social-links";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import WhatsAppIcon from "@/components/WhatsAppIcon";
 import PushPromptBanner from "@/components/PushPromptBanner";
 import { COMMUNES } from "@/lib/communes";
 import { useAuth } from "@/contexts/AuthContext";
@@ -612,10 +613,10 @@ const Index = () => {
                 href={SOCIAL_LINKS.whatsapp}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-xl border border-border bg-card hover:bg-muted px-6 py-3 text-sm font-bold text-foreground transition-all inline-flex items-center gap-2"
+                className="rounded-xl border border-[#25D366]/40 bg-card hover:bg-[#25D366]/10 px-6 py-3 text-sm font-bold text-foreground transition-all inline-flex items-center gap-2 hover:border-[#25D366]"
               >
-                <MessageCircle className="h-4 w-4 text-emerald-500" />
-                Canal WhatsApp Alertes
+                <WhatsAppIcon className="h-5 w-5 shrink-0" />
+                <span>WhatsApp Assistance</span>
               </a>
             </div>
           </div>
