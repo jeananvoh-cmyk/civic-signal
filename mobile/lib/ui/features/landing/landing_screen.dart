@@ -10,6 +10,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../domain/models/report_model.dart';
 import '../auth/auth_screen.dart';
 import '../commune/commune_detail_screen.dart';
+import '../dashboard/dashboard_screen.dart';
 import '../home/signa_logo.dart';
 import '../map/map_screen.dart';
 import '../donation/donation_screen.dart';
@@ -553,25 +554,48 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
               // ══════════════════════════════════════════════════════════
               // 2. BANDEAU DE STATISTIQUES RÉELLES (4 Chiffres 1:1 Web)
               // ══════════════════════════════════════════════════════════
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 10, offset: const Offset(0, 3)),
-                  ],
+              InkWell(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DashboardScreen()),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildStatItem('7', 'Communes', LucideIcons.mapPin, const Color(0xFF0284C7)),
-                    _buildStatItem('$_totalReports', 'Signalés', LucideIcons.fileText, const Color(0xFFD97706)),
-                    _buildStatItem('$_resolvedReports', 'Résolus', LucideIcons.checkCircle, const Color(0xFF16A34A)),
-                    _buildStatItem('$_activeOutages', 'En cours', LucideIcons.radio, const Color(0xFFDC2626)),
-                  ],
+                borderRadius: BorderRadius.circular(18),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 10, offset: const Offset(0, 3)),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildStatItem('7', 'Communes', LucideIcons.mapPin, const Color(0xFF0284C7)),
+                          _buildStatItem('$_totalReports', 'Signalés', LucideIcons.fileText, const Color(0xFFD97706)),
+                          _buildStatItem('$_resolvedReports', 'Résolus', LucideIcons.checkCircle, const Color(0xFF16A34A)),
+                          _buildStatItem('$_activeOutages', 'En cours', LucideIcons.radio, const Color(0xFFDC2626)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Text(
+                            'Voir le tableau de bord analytique complet',
+                            style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppTheme.primaryTeal),
+                          ),
+                          SizedBox(width: 4),
+                          Icon(LucideIcons.arrowRight, size: 12, color: AppTheme.primaryTeal),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
 
