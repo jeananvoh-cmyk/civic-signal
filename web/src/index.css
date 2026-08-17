@@ -218,61 +218,60 @@
   }
 
   /* ═══════════════════════════════════════════════════════════
-     THÈME IVOIRE — Orange Soleil · Vert Savane (toggle optionnel)
-     Activé par <html class="theme-ivoire">
+     THÈME CIVIC OFFICIEL — Émeraude Citoyenne & Ardoise
      ═══════════════════════════════════════════════════════════ */
   .theme-ivoire {
-    --primary: 20 75% 50%;             /* #E05515 orange soleil */
+    --primary: 160 84% 39%;            /* #059669 Vert Émeraude */
     --primary-foreground: 0 0% 100%;
-    --background: 36 25% 95%;          /* #F5F2EE fond ivoire */
+    --background: 210 20% 98%;
     --card: 0 0% 100%;
-    --accent: 152 40% 92%;
-    --accent-foreground: 152 50% 25%;
-    --ring: 20 75% 50%;
-    --border: 30 14% 85%;
-    --input: 30 14% 85%;
-    --muted: 30 18% 92%;
-    --muted-foreground: 30 10% 44%;
-    --sidebar-primary: 20 75% 50%;
-    --sidebar-ring: 20 75% 50%;
-    --chart-1: 20 75% 50%;
-    --chart-2: 152 50% 40%;
-    --chart-3: 40 90% 52%;
-    --chart-4: 199 70% 42%;
+    --accent: 160 84% 94%;
+    --accent-foreground: 160 84% 25%;
+    --ring: 160 84% 39%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --sidebar-primary: 160 84% 39%;
+    --sidebar-ring: 160 84% 39%;
+    --chart-1: 160 84% 39%;
+    --chart-2: 198 88% 48%;
+    --chart-3: 25 95% 53%;
+    --chart-4: 40 90% 52%;
     --chart-5: 0 72% 51%;
-    --shadow-card: 0 1px 2px hsl(20 25% 72% / 0.4), 0 0 0 1px hsl(20 25% 78% / 0.25);
-    --shadow-elevated: 0 4px 14px hsl(20 35% 62% / 0.28);
-    --gradient-hero: linear-gradient(135deg, hsl(20 65% 25%), hsl(20 75% 38%), hsl(25 60% 30%));
-    --gradient-hero-radial: radial-gradient(ellipse 80% 60% at 20% 40%, hsl(20 75% 50% / 0.5), transparent), radial-gradient(ellipse 60% 50% at 80% 60%, hsl(40 90% 55% / 0.25), transparent);
+    --shadow-card: 0 1px 2px hsl(213 20% 80% / 0.7), 0 0 0 1px hsl(213 20% 85% / 0.4);
+    --shadow-elevated: 0 4px 16px hsl(160 40% 70% / 0.35);
+    --gradient-hero: linear-gradient(135deg, hsl(220 70% 10%), hsl(160 84% 25%), hsl(213 50% 14%));
+    --gradient-hero-radial: radial-gradient(ellipse 80% 60% at 20% 40%, hsl(160 84% 39% / 0.4), transparent), radial-gradient(ellipse 60% 50% at 80% 60%, hsl(25 95% 53% / 0.15), transparent);
   }
 
-  /* Dark + Ivoire — warm dark amber, properly balanced */
+  /* Dark + Civic — crisp slate with emerald accents */
   .dark.theme-ivoire {
-    --primary: 25 85% 60%;             /* orange doré lumineux sur fond sombre */
+    --primary: 160 70% 45%;            /* #10B981 */
     --primary-foreground: 0 0% 100%;
-    --background: 20 15% 8%;           /* brun très sombre */
-    --card: 20 12% 12%;
-    --card-foreground: 36 18% 90%;
-    --foreground: 36 18% 90%;
-    --accent: 152 35% 15%;
-    --accent-foreground: 152 45% 68%;
-    --muted: 20 12% 16%;
-    --muted-foreground: 30 10% 58%;
-    --border: 20 10% 20%;
-    --input: 20 10% 20%;
-    --ring: 25 85% 58%;
-    --secondary: 20 10% 18%;
-    --secondary-foreground: 36 15% 80%;
-    --sidebar-background: 20 15% 6%;
-    --sidebar-primary: 25 85% 60%;
-    --sidebar-ring: 25 85% 58%;
-    --chart-1: 25 85% 62%;
-    --chart-2: 152 50% 48%;
-    --chart-3: 40 90% 55%;
-    --chart-4: 199 70% 52%;
+    --background: 222 47% 7%;
+    --card: 222 40% 10%;
+    --card-foreground: 210 40% 98%;
+    --foreground: 210 40% 98%;
+    --accent: 160 50% 18%;
+    --accent-foreground: 160 70% 80%;
+    --muted: 222 30% 14%;
+    --muted-foreground: 215 20% 65%;
+    --border: 222 25% 18%;
+    --input: 222 25% 18%;
+    --ring: 160 70% 45%;
+    --secondary: 222 30% 15%;
+    --secondary-foreground: 210 40% 98%;
+    --sidebar-background: 222 47% 6%;
+    --sidebar-primary: 160 70% 45%;
+    --sidebar-ring: 160 70% 45%;
+    --chart-1: 160 70% 45%;
+    --chart-2: 198 88% 48%;
+    --chart-3: 25 95% 53%;
+    --chart-4: 40 90% 52%;
     --chart-5: 0 70% 58%;
-    --gradient-hero: linear-gradient(135deg, hsl(20 40% 8%), hsl(20 60% 18%), hsl(25 45% 12%));
-    --gradient-hero-radial: radial-gradient(ellipse 80% 60% at 20% 40%, hsl(25 85% 60% / 0.4), transparent), radial-gradient(ellipse 60% 50% at 80% 60%, hsl(40 90% 55% / 0.2), transparent);
+    --gradient-hero: linear-gradient(135deg, hsl(220 70% 6%), hsl(160 70% 14%), hsl(222 47% 10%));
+    --gradient-hero-radial: radial-gradient(ellipse 80% 60% at 20% 40%, hsl(160 70% 45% / 0.3), transparent), radial-gradient(ellipse 60% 50% at 80% 60%, hsl(25 95% 53% / 0.15), transparent);
   }
 }
 

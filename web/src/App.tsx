@@ -60,13 +60,9 @@ const BrandPage = lazy(() => import("./pages/BrandPage"));
 
 const queryClient = new QueryClient();
 
-// Apply saved brand theme on cold start
-const savedTheme = localStorage.getItem("signa_brand_theme");
-if (savedTheme === "ivoire") {
-  document.documentElement.classList.add("theme-ivoire");
-} else {
-  document.documentElement.classList.remove("theme-ivoire");
-}
+// Ensure official brand theme is active on startup
+localStorage.removeItem("signa_brand_theme");
+document.documentElement.classList.remove("theme-ivoire");
 
 const App = () => {
   useEffect(() => {

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Zap, ArrowLeft, User, Phone, Building2, Home, Eye, EyeOff, Mail, Sparkles } from "lucide-react";
+import { ArrowLeft, User, Phone, Building2, Home, Eye, EyeOff, Mail, Sparkles, ShieldCheck } from "lucide-react";
+import SignaLogo from "@/components/SignaLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -258,19 +259,19 @@ const AuthPage = () => {
       >
         <button
           onClick={goBack}
-          className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Retour
         </button>
 
-        {/* Logo */}
-        <div className="mb-6 flex items-center justify-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl gradient-hero">
-            <Zap className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <span className="font-display text-xl font-bold text-foreground">
-            SIGNA<span className="text-water">-CI</span>
+        {/* Logo & Identité Officielle */}
+        <div className="mb-6 flex flex-col items-center justify-center text-center">
+          <Link to="/" className="inline-block transition-transform hover:scale-105 active:scale-95 mb-2">
+            <SignaLogo size="md" />
+          </Link>
+          <span className="text-[10px] font-extrabold tracking-[0.2em] text-emerald-600 dark:text-emerald-400 uppercase">
+            SIGNALER · SUIVRE · RÉPARER
           </span>
         </div>
 
@@ -278,10 +279,10 @@ const AuthPage = () => {
           <motion.div key={mode} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
         {/* ── CONNEXION ─────────────────────────────────────────────────── */}
         {mode === "login" && (
-          <div className="rounded-xl border border-border bg-card p-6 shadow-card space-y-4">
+          <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-sm space-y-4">
             <div>
-              <h2 className="font-display text-xl font-bold text-foreground">Connexion</h2>
-              <p className="text-sm text-muted-foreground">Bienvenue sur SIGNA-CI</p>
+              <h2 className="font-display text-xl font-extrabold text-foreground">Connexion</h2>
+              <p className="text-xs text-muted-foreground">Accédez à votre espace citoyen SIGNA.ci</p>
             </div>
 
             {/* Google */}
@@ -290,15 +291,15 @@ const AuthPage = () => {
             <Divider />
 
             {/* Toggle Lien / Mot de passe */}
-            <div className="flex rounded-lg border border-border overflow-hidden">
+            <div className="flex rounded-xl border border-border/80 bg-muted/40 p-1">
               <button
                 type="button"
                 onClick={() => { setLoginMethod("magic"); setMagicSent(false); }}
                 className={cn(
-                  "flex-1 py-2 text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors",
+                  "flex-1 py-2 text-xs font-bold flex items-center justify-center gap-1.5 rounded-lg transition-all",
                   loginMethod === "magic"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-background text-muted-foreground hover:bg-muted/50"
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 <Sparkles className="h-3.5 w-3.5" /> Lien magique
@@ -307,10 +308,10 @@ const AuthPage = () => {
                 type="button"
                 onClick={() => setLoginMethod("password")}
                 className={cn(
-                  "flex-1 py-2 text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors",
+                  "flex-1 py-2 text-xs font-bold flex items-center justify-center gap-1.5 rounded-lg transition-all",
                   loginMethod === "password"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-background text-muted-foreground hover:bg-muted/50"
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 <Eye className="h-3.5 w-3.5" /> Mot de passe
@@ -324,22 +325,22 @@ const AuthPage = () => {
                   <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     type="email"
-                    placeholder="Votre email"
+                    placeholder="Votre adresse email"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    className="h-12 pl-10 rounded-lg text-base"
+                    className="h-11 pl-10 rounded-xl text-sm focus-visible:ring-emerald-500"
                     required
                   />
                 </div>
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-12 rounded-lg bg-primary text-primary-foreground text-base font-bold"
+                  className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-xs transition-all hover:scale-[1.01] active:scale-[0.99]"
                 >
-                  {loading ? "Envoi..." : "Recevoir le lien par email →"}
+                  {loading ? "Envoi du lien..." : "Recevoir le lien magique →"}
                 </Button>
-                <p className="text-xs text-center text-muted-foreground">
-                  Vous recevrez un lien sécurisé. Cliquez dessus pour vous connecter instantanément.
+                <p className="text-[11px] text-center text-muted-foreground leading-relaxed">
+                  Connexion instantanée sécurisée par email sans avoir à retenir de mot de passe.
                 </p>
               </form>
             )}
@@ -349,17 +350,17 @@ const AuthPage = () => {
               <motion.div
                 initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="rounded-xl bg-green-500/10 border border-green-500/20 p-4 text-center space-y-2"
+                className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-center space-y-2"
               >
                 <div className="text-3xl">📬</div>
-                <p className="font-semibold text-green-700 dark:text-green-400">Lien envoyé !</p>
-                <p className="text-sm text-muted-foreground">
+                <p className="font-bold text-emerald-700 dark:text-emerald-400 text-sm">Lien envoyé !</p>
+                <p className="text-xs text-muted-foreground">
                   Vérifiez votre boîte mail <strong>{identifier}</strong> et cliquez sur le lien pour vous connecter.
                 </p>
                 <button
                   type="button"
                   onClick={() => setMagicSent(false)}
-                  className="text-xs text-muted-foreground hover:text-foreground underline"
+                  className="text-xs text-emerald-600 hover:underline font-semibold"
                 >
                   Changer d'email
                 </button>
@@ -370,10 +371,10 @@ const AuthPage = () => {
             {loginMethod === "password" && (
               <form onSubmit={handleLogin} className="space-y-3">
                 <Input
-                  placeholder="Email ou téléphone"
+                  placeholder="Email ou numéro de téléphone"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  className="h-12 rounded-lg text-base"
+                  className="h-11 rounded-xl text-sm focus-visible:ring-emerald-500"
                   required
                 />
                 <div className="relative">
@@ -382,22 +383,22 @@ const AuthPage = () => {
                     placeholder="Mot de passe"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-12 rounded-lg text-base pr-12"
+                    className="h-11 rounded-xl text-sm pr-12 focus-visible:ring-emerald-500"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none rounded"
                     aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
                   >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-12 rounded-lg bg-primary text-primary-foreground text-base font-bold hover:bg-primary/90"
+                  className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-xs transition-all hover:scale-[1.01] active:scale-[0.99]"
                 >
                   {loading ? "Connexion..." : "Se connecter"}
                 </Button>
@@ -405,7 +406,7 @@ const AuthPage = () => {
                   <button
                     type="button"
                     onClick={() => setMode("forgot")}
-                    className="text-sm text-water hover:underline"
+                    className="text-xs text-muted-foreground hover:text-foreground underline"
                   >
                     Mot de passe oublié ?
                   </button>
@@ -413,15 +414,20 @@ const AuthPage = () => {
               </form>
             )}
 
-            <div className="pt-1 text-center border-t border-border">
+            <div className="pt-2 text-center border-t border-border/70">
               <button
                 type="button"
                 onClick={() => setMode("signup")}
-                className="text-sm text-muted-foreground hover:text-foreground"
+                className="text-xs text-muted-foreground hover:text-foreground"
               >
                 Pas encore de compte ?{" "}
-                <span className="font-semibold text-water">Créer un compte</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline">Créer un compte</span>
               </button>
+            </div>
+
+            <div className="flex items-center justify-center gap-1.5 pt-1 text-[10px] text-muted-foreground">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Données protégées · Respect de la Loi n° 2013-450</span>
             </div>
           </div>
         )}
@@ -564,11 +570,11 @@ const AuthPage = () => {
                     className="text-xs leading-relaxed cursor-pointer text-muted-foreground"
                   >
                     Je certifie avoir <strong className="text-foreground">18 ans ou plus</strong> et j'accepte la{" "}
-                    <Link to="/confidentialite" target="_blank" className="text-primary underline">
+                    <Link to="/confidentialite" target="_blank" className="text-emerald-600 underline font-semibold">
                       politique de confidentialité
                     </Link>{" "}
                     et les{" "}
-                    <Link to="/a-propos" target="_blank" className="text-primary underline">
+                    <Link to="/cgu" target="_blank" className="text-emerald-600 underline font-semibold">
                       conditions d'utilisation
                     </Link>.
                   </label>
@@ -578,7 +584,7 @@ const AuthPage = () => {
               <Button
                 type="submit"
                 disabled={loading || !signupValid}
-                className="w-full h-12 rounded-lg bg-primary text-primary-foreground text-base font-bold hover:bg-primary/90 disabled:opacity-50"
+                className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-xs transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
               >
                 {loading ? "Création..." : "Créer mon compte"}
               </Button>
@@ -597,14 +603,14 @@ const AuthPage = () => {
               )}
             </form>
 
-            <div className="text-center">
+            <div className="pt-2 text-center border-t border-border/70">
               <button
                 type="button"
                 onClick={() => setMode("login")}
-                className="text-sm text-muted-foreground hover:text-foreground"
+                className="text-xs text-muted-foreground hover:text-foreground"
               >
                 Déjà un compte ?{" "}
-                <span className="font-semibold text-water">Se connecter</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline">Se connecter</span>
               </button>
             </div>
           </div>
@@ -612,10 +618,10 @@ const AuthPage = () => {
 
         {/* ── MOT DE PASSE OUBLIÉ ───────────────────────────────────────── */}
         {mode === "forgot" && (
-          <div className="rounded-xl border border-border bg-card p-6 shadow-card space-y-4">
+          <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-sm space-y-4">
             <div>
-              <h2 className="font-display text-xl font-bold text-foreground">Mot de passe oublié</h2>
-              <p className="text-sm text-muted-foreground">Recevez un lien pour réinitialiser votre mot de passe</p>
+              <h2 className="font-display text-xl font-extrabold text-foreground">Mot de passe oublié</h2>
+              <p className="text-xs text-muted-foreground">Recevez un lien pour réinitialiser votre mot de passe</p>
             </div>
             <form onSubmit={handleForgotPassword} className="space-y-3">
               <div className="relative">
@@ -625,25 +631,25 @@ const AuthPage = () => {
                   placeholder="Votre email"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  className="h-12 pl-10 rounded-lg text-base"
+                  className="h-11 pl-10 rounded-xl text-sm focus-visible:ring-emerald-500"
                   required
                 />
               </div>
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 rounded-lg bg-primary text-primary-foreground text-base font-bold hover:bg-primary/90"
+                className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-xs transition-all hover:scale-[1.01] active:scale-[0.99]"
               >
                 {loading ? "Envoi..." : "Envoyer le lien"}
               </Button>
             </form>
-            <div className="text-center">
+            <div className="pt-2 text-center border-t border-border/70">
               <button
                 type="button"
                 onClick={() => setMode("login")}
-                className="text-sm text-muted-foreground hover:text-foreground"
+                className="text-xs text-muted-foreground hover:text-foreground"
               >
-                Retour à la <span className="font-semibold text-water">connexion</span>
+                Retour à la <span className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline">connexion</span>
               </button>
             </div>
           </div>

@@ -4,8 +4,9 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 const LAST_ADMIN_PAGE_KEY = "admin_last_page";
 import {
   FileText, Users, Trash2, Eraser, BarChart3, Shield, ScrollText, Heart, Megaphone, MapPin,
-  ArrowLeft, Zap, ChevronDown, ChevronRight, Menu, X, Scale, MailCheck, Moon, Sun, Monitor,
+  ArrowLeft, ChevronDown, ChevronRight, Menu, X, Scale, MailCheck, Moon, Sun, Monitor,
 } from "lucide-react";
+import SignaLogo from "@/components/SignaLogo";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -36,7 +37,7 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: "Analyse",
+    label: "Analyse & Relais",
     items: [
       { label: "Statistiques", path: "/admin/stats", icon: BarChart3 },
       { label: "Journal d'audit", path: "/admin/journal", icon: ScrollText },
@@ -87,23 +88,22 @@ const AdminLayout = () => {
           NAVBAR HORIZONTALE (desktop + mobile)
       ══════════════════════════════════════════════════════ */}
       <header className="sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur">
-        <div className="flex items-center h-14 px-4 md:px-6 gap-4">
+        <div className="flex items-center h-14 px-4 md:px-6 gap-3">
 
-          {/* ── Logo ── */}
+          {/* ── Logo & Badge Admin ── */}
           <button
             onClick={() => navigate("/admin")}
-            className="flex items-center gap-2.5 shrink-0 mr-2"
+            className="flex items-center gap-2 shrink-0 mr-2 hover:opacity-90 transition-opacity"
+            title="Tableau de bord administrateur"
           >
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
-              <Shield className="h-3.5 w-3.5 text-primary" />
-            </div>
-            <span className="font-display text-sm font-bold text-foreground hidden sm:block">
+            <SignaLogo size="sm" showText={true} />
+            <span className="hidden xl:inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-[10px] font-extrabold uppercase tracking-wide">
               Admin
             </span>
           </button>
 
           {/* ── Nav desktop ── */}
-          <nav className="hidden md:flex items-center gap-0.5 flex-1">
+          <nav className="hidden md:flex items-center gap-1 flex-1">
 
             {/* Items plats */}
             {NAV_FLAT.map((item) => (
@@ -111,10 +111,10 @@ const AdminLayout = () => {
                 key={item.path}
                 onClick={() => goTo(item.path)}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                  "px-3 py-1.5 rounded-xl text-xs font-bold transition-all",
                   isActive(item.path)
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-extrabold shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                 )}
               >
                 {item.label}
@@ -129,24 +129,24 @@ const AdminLayout = () => {
                   <DropdownMenuTrigger asChild>
                     <button
                       className={cn(
-                        "flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                        "flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all",
                         groupActive
-                          ? "bg-primary/10 text-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-extrabold shadow-2xs"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                       )}
                     >
                       {group.label}
-                      <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                      <ChevronDown className="h-3 w-3 opacity-60" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="min-w-[180px]">
+                  <DropdownMenuContent align="start" className="min-w-[180px] rounded-xl border border-border/80">
                     {group.items.map((item) => (
                       <DropdownMenuItem
                         key={item.path}
                         onClick={() => goTo(item.path)}
                         className={cn(
-                          "flex items-center gap-2 cursor-pointer",
-                          isActive(item.path) && "text-primary font-medium"
+                          "flex items-center gap-2 cursor-pointer text-xs rounded-lg py-2",
+                          isActive(item.path) && "text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10"
                         )}
                       >
                         <item.icon className="h-3.5 w-3.5 shrink-0" />
@@ -164,10 +164,10 @@ const AdminLayout = () => {
                 key={item.path}
                 onClick={() => goTo(item.path)}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                  "px-3 py-1.5 rounded-xl text-xs font-bold transition-all",
                   isActive(item.path)
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-extrabold shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                 )}
               >
                 {item.label}
@@ -177,14 +177,14 @@ const AdminLayout = () => {
 
           {/* ── Spacer mobile ── */}
           <div className="flex-1 md:hidden">
-            <span className="text-xs font-medium text-muted-foreground">{currentLabel}</span>
+            <span className="text-xs font-bold text-muted-foreground">{currentLabel}</span>
           </div>
 
           {/* ── Theme toggle ── */}
           <button
             onClick={toggleTheme}
             title={`Thème : ${theme}`}
-            className="hidden md:flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
+            className="hidden md:flex items-center justify-center h-8 w-8 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
           >
             {themeIcon}
           </button>
@@ -192,16 +192,17 @@ const AdminLayout = () => {
           {/* ── CTA : Retour à l'app ── */}
           <button
             onClick={() => navigate("/")}
-            className="group hidden md:flex items-center gap-2 rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md hover:gap-2.5 shrink-0"
+            className="group hidden md:flex items-center gap-1.5 rounded-xl border border-border/80 bg-muted/40 hover:bg-muted px-3 py-1.5 text-xs font-bold text-foreground/80 hover:text-foreground shadow-2xs transition-all shrink-0"
+            title="Revenir sur l'application publique"
           >
-            <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
-            SIGNA-CI
+            <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5 text-emerald-600 dark:text-emerald-400" />
+            <span>Retour au site</span>
           </button>
 
           {/* ── Theme toggle mobile ── */}
           <button
             onClick={toggleTheme}
-            className="md:hidden flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="md:hidden flex items-center justify-center h-8 w-8 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             {themeIcon}
           </button>
@@ -209,7 +210,7 @@ const AdminLayout = () => {
           {/* ── Hamburger mobile ── */}
           <button
             onClick={() => setMobileOpen(true)}
-            className="md:hidden flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="md:hidden flex items-center justify-center h-8 w-8 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             aria-label="Menu"
           >
             <Menu className="h-5 w-5" />

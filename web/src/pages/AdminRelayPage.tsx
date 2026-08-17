@@ -1907,7 +1907,7 @@ const AdminRelayPage = () => {
             variant="default"
             disabled={syncAllMutation.isPending}
             onClick={() => syncAllMutation.mutate()}
-            className="gap-1.5 bg-primary text-primary-foreground font-semibold shadow-sm"
+            className="gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-xs transition-all hover:scale-[1.01] active:scale-[0.99]"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${syncAllMutation.isPending ? "animate-spin" : ""}`} />
             {syncAllMutation.isPending ? "Synchronisation..." : "Synchroniser les relais validés"}
@@ -1916,7 +1916,7 @@ const AdminRelayPage = () => {
             size="sm"
             variant="outline"
             onClick={() => queryClient.invalidateQueries({ queryKey: ["admin-relay-logs-all"] })}
-            className="gap-1.5"
+            className="gap-1.5 font-semibold text-xs"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Rafraîchir
@@ -2085,29 +2085,32 @@ const AdminRelayPage = () => {
 
                   <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
                     {[
-                      { id: "ALL", label: "Tous les relais", count: pendingGroups.length },
-                      { id: "CIE", label: "⚡ CIE", count: pendingGroups.filter((g) => g.operator === "CIE").length },
-                      { id: "SODECI", label: "💧 SODECI", count: pendingGroups.filter((g) => g.operator === "SODECI").length },
-                      { id: "MAIRIE", label: "🏛️ Mairies", count: pendingGroups.filter((g) => g.operator === "MAIRIE").length },
-                      { id: "ANARE", label: "⚖️ ANARE-CI", count: pendingGroups.filter((g) => g.operator === "ANARE").length },
-                      { id: "ONEP", label: "🛡️ ONEP", count: pendingGroups.filter((g) => g.operator === "ONEP").length },
+                      { id: "ALL", label: "Tous les relais", count: pendingGroups.length, activeCls: "bg-emerald-600 hover:bg-emerald-500 text-white" },
+                      { id: "CIE", label: "⚡ CIE", count: pendingGroups.filter((g) => g.operator === "CIE").length, activeCls: "bg-amber-600 hover:bg-amber-500 text-white" },
+                      { id: "SODECI", label: "💧 SODECI", count: pendingGroups.filter((g) => g.operator === "SODECI").length, activeCls: "bg-sky-600 hover:bg-sky-500 text-white" },
+                      { id: "MAIRIE", label: "🏛️ Mairies", count: pendingGroups.filter((g) => g.operator === "MAIRIE").length, activeCls: "bg-orange-600 hover:bg-orange-500 text-white" },
+                      { id: "ANARE", label: "⚖️ ANARE-CI", count: pendingGroups.filter((g) => g.operator === "ANARE").length, activeCls: "bg-amber-700 hover:bg-amber-600 text-white" },
+                      { id: "ONEP", label: "🛡️ ONEP", count: pendingGroups.filter((g) => g.operator === "ONEP").length, activeCls: "bg-teal-600 hover:bg-teal-500 text-white" },
                     ].map((f) => (
-                      <Button
+                      <button
                         key={f.id}
-                        size="sm"
-                        variant={pendingOpFilter === f.id ? "default" : "outline"}
                         onClick={() => setPendingOpFilter(f.id)}
-                        className="h-8 text-xs font-semibold gap-1.5"
+                        className={cn(
+                          "h-8 px-3 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5",
+                          pendingOpFilter === f.id
+                            ? f.activeCls
+                            : "border border-border/80 bg-background hover:bg-muted text-foreground/80"
+                        )}
                       >
                         <span>{f.label}</span>
                         <span
-                          className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                            pendingOpFilter === f.id ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                          className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                            pendingOpFilter === f.id ? "bg-black/20 text-white" : "bg-muted text-muted-foreground"
                           }`}
                         >
                           {f.count}
                         </span>
-                      </Button>
+                      </button>
                     ))}
                   </div>
                 </div>
