@@ -153,21 +153,23 @@ const Header = () => {
             </div>
 
             {/* 2. 📈 Transparence Open Data (Mis en avant) */}
-            <Link
-              to="/transparence"
-              className={cn(
-                "relative flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-150",
-                isActive("/transparence")
-                  ? "text-primary bg-primary/8 font-semibold"
-                  : "text-foreground/70 hover:text-foreground hover:bg-muted/60"
-              )}
-            >
-              <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
-              <span>Transparence Open Data</span>
-              {isActive("/transparence") && (
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-4 rounded-full bg-primary" />
-              )}
-            </Link>
+            {transparencyEnabled && (
+              <Link
+                to="/transparence"
+                className={cn(
+                  "relative flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-150",
+                  isActive("/transparence")
+                    ? "text-primary bg-primary/8 font-semibold"
+                    : "text-foreground/70 hover:text-foreground hover:bg-muted/60"
+                )}
+              >
+                <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+                <span>Transparence Open Data</span>
+                {isActive("/transparence") && (
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-4 rounded-full bg-primary" />
+                )}
+              </Link>
+            )}
 
             {/* 3. 📊 Tableau de bord communal */}
             <Link
@@ -358,13 +360,15 @@ const Header = () => {
                       <Wrench className="h-4 w-4 text-amber-500" />
                       <span>Fil Voirie & Infrastructures publiques</span>
                     </Link>
-                    <Link
-                      to="/suivi"
-                      className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors", isActive("/suivi") ? "bg-primary/10 text-primary font-bold" : "text-foreground/80 hover:bg-muted")}
-                    >
-                      <Search className="h-4 w-4 text-emerald-500" />
-                      <span>Suivre un ticket #SIG</span>
-                    </Link>
+                    {suiviEnabled && (
+                      <Link
+                        to="/suivi"
+                        className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors", isActive("/suivi") ? "bg-primary/10 text-primary font-bold" : "text-foreground/80 hover:bg-muted")}
+                      >
+                        <Search className="h-4 w-4 text-emerald-500" />
+                        <span>Suivre un ticket #SIG</span>
+                      </Link>
+                    )}
                   </div>
                 </div>
 
@@ -374,13 +378,15 @@ const Header = () => {
                     Données & Statistiques Publiques
                   </p>
                   <div className="space-y-1">
-                    <Link
-                      to="/transparence"
-                      className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors", isActive("/transparence") ? "bg-emerald-500/15 text-emerald-600 font-bold" : "text-foreground/80 hover:bg-muted")}
-                    >
-                      <TrendingUp className="h-4 w-4 text-emerald-500" />
-                      <span className="font-bold text-emerald-700 dark:text-emerald-400">Transparence Open Data</span>
-                    </Link>
+                    {transparencyEnabled && (
+                      <Link
+                        to="/transparence"
+                        className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors", isActive("/transparence") ? "bg-emerald-500/15 text-emerald-600 font-bold" : "text-foreground/80 hover:bg-muted")}
+                      >
+                        <TrendingUp className="h-4 w-4 text-emerald-500" />
+                        <span className="font-bold text-emerald-700 dark:text-emerald-400">Transparence Open Data</span>
+                      </Link>
+                    )}
                     <Link
                       to="/tableau-de-bord"
                       className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors", isActive("/tableau-de-bord") ? "bg-primary/10 text-primary font-bold" : "text-foreground/80 hover:bg-muted")}
@@ -407,9 +413,16 @@ const Header = () => {
                     <Link to="/a-propos" className="px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground">
                       À propos & Mission
                     </Link>
-                    <Link to="/partenaires" className="px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground">
-                      Relais & Mairies
-                    </Link>
+                    {partnersEnabled && (
+                      <Link to="/partenaires" className="px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground">
+                        Relais & Mairies
+                      </Link>
+                    )}
+                    {donationsEnabled && (
+                      <Link to="/dons" className="px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground">
+                        Faire un don
+                      </Link>
+                    )}
                     <Link to="/confidentialite" className="px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground">
                       Protection Données
                     </Link>

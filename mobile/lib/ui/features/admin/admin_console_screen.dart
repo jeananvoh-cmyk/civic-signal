@@ -61,6 +61,9 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
   bool _transparencyEnabled = true;
   bool _donationsEnabled = true;
   bool _partnersEnabled = true;
+  bool _suiviEnabled = true;
+  int _neglectThresholdDays = 7;
+  bool _isLoadingSettings = false;
 
   @override
   void initState() {
@@ -105,12 +108,65 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
         _fetchVulnerableData();
         _fetchUsersData();
         _fetchRelayLogs();
+        _fetchSiteSettings();
       }
     } catch (_) {
       setState(() {
         _isAdmin = false;
         _isCheckingRole = false;
       });
+    }
+  }
+
+  Future<void> _fetchSiteSettings() async {
+    setState(() => _isLoadingSettings = true);
+    try {
+      final res = await Supabase.instance.client.from('site_settings').select('key, value');
+      if (mounted && res is List) {
+        for (final row in res) {
+          final k = row['key']?.toString();
+          final v = row['value'];
+          if (k == 'transparency_enabled') _transparencyEnabled = v == true || v == 'true';
+          if (k == 'donations_enabled') _donationsEnabled = v == true || v == 'true';
+          if (k == 'partners_enabled') _partnersEnabled = v == true || v == 'true';
+          if (k == 'suivi_enabled') _suiviEnabled = v == true || v == 'true';
+          if (k == 'neglect_threshold_days') {
+            if (v is num) _neglectThresholdDays = v.toInt();
+            if (v is String) _neglectThresholdDays = int.tryParse(v) ?? 7;
+          }
+        }
+        setState(() => _isLoadingSettings = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingSettings = false);
+    }
+  }
+
+  Future<void> _updateSiteSetting(String key, dynamic value, String label) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    try {
+      await Supabase.instance.client.from('site_settings').upsert({
+        'key': key,
+        'value': value,
+        'updated_at': DateTime.now().toIso8601String(),
+        'updated_by': user?.id,
+      }, onConflict: 'key');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✓ $label : ${value == true ? "Visible" : value == false ? "Masqué" : value}'),
+            backgroundColor: AppTheme.secondaryEmerald,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur mise à jour : $e'), backgroundColor: AppTheme.dangerRose),
+        );
+      }
     }
   }
 
@@ -1054,14 +1110,115 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
   }
 
   Widget _buildSettingsTab(bool isDark) {
+    if (_isLoadingSettings) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         Text('Visibilité des Modules Publics', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
-        const SizedBox(height: 12),
-        _buildSettingSwitch('Module de Dons Citoyens', 'Activer la collecte de dons Mobile Money sur l\'application.', _donationsEnabled, (v) => setState(() => _donationsEnabled = v), isDark),
-        _buildSettingSwitch('Espace Transparence & Délais', 'Afficher les compteurs nationaux et délais moyens de résolution.', _transparencyEnabled, (v) => setState(() => _transparencyEnabled = v), isDark),
-        _buildSettingSwitch('Vitrine Partenaires CIE / SODECI', 'Afficher la page institutionnelle des partenariats.', _partnersEnabled, (v) => setState(() => _partnersEnabled = v), isDark),
+        const SizedBox(height: 4),
+        const Text('Activez ou masquez les pages pour tous les utilisateurs en temps réel.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+        const SizedBox(height: 14),
+
+        _buildSettingSwitch(
+          'Page Transparence & Open Data',
+          'Affiche les délais réels de résolution CIE/SODECI et graphiques publics.',
+          _transparencyEnabled,
+          (v) {
+            setState(() => _transparencyEnabled = v);
+            _updateSiteSetting('transparency_enabled', v, 'Transparence Open Data');
+          },
+          isDark,
+        ),
+
+        _buildSettingSwitch(
+          'Page Mairies & Partenaires',
+          'Affiche l\'espace institutionnel et la vitrine des partenariats.',
+          _partnersEnabled,
+          (v) {
+            setState(() => _partnersEnabled = v);
+            _updateSiteSetting('partners_enabled', v, 'Page Partenaires');
+          },
+          isDark,
+        ),
+
+        _buildSettingSwitch(
+          'Lien Suivi de Ticket (#SIG)',
+          'Permet aux citoyens de chercher un incident par son numéro de ticket.',
+          _suiviEnabled,
+          (v) {
+            setState(() => _suiviEnabled = v);
+            _updateSiteSetting('suivi_enabled', v, 'Lien Suivi');
+          },
+          isDark,
+        ),
+
+        _buildSettingSwitch(
+          'Module de Dons & Soutien Citoyen',
+          'Active la collecte de dons Mobile Money (Wave, Orange, MTN, Moov).',
+          _donationsEnabled,
+          (v) {
+            setState(() => _donationsEnabled = v);
+            _updateSiteSetting('donations_enabled', v, 'Module de Dons');
+          },
+          isDark,
+        ),
+
+        const SizedBox(height: 16),
+        Text('Paramètres Opérationnels & Alertes', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 4),
+        const Text('Configuration des règles automatiques de la plateforme.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+        const SizedBox(height: 14),
+
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text('Seuil Signalement Négligé', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    SizedBox(height: 2),
+                    Text('Nombre de jours sans corroboration avant alerte prioritaire', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  ],
+                ),
+              ),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(LucideIcons.minus, size: 16),
+                    onPressed: _neglectThresholdDays > 1
+                        ? () {
+                            final newVal = _neglectThresholdDays - 1;
+                            setState(() => _neglectThresholdDays = newVal);
+                            _updateSiteSetting('neglect_threshold_days', newVal, 'Seuil Négligé');
+                          }
+                        : null,
+                  ),
+                  Text('$_neglectThresholdDays j', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  IconButton(
+                    icon: const Icon(LucideIcons.plus, size: 16),
+                    onPressed: _neglectThresholdDays < 30
+                        ? () {
+                            final newVal = _neglectThresholdDays + 1;
+                            setState(() => _neglectThresholdDays = newVal);
+                            _updateSiteSetting('neglect_threshold_days', newVal, 'Seuil Négligé');
+                          }
+                        : null,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }

@@ -402,13 +402,13 @@ const AdminOverviewPage = () => {
 
               <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                    <BarChart3 className="h-4.5 w-4.5 text-primary" />
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
+                    <BarChart3 className="h-4.5 w-4.5" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">Page Résultats</p>
+                    <p className="text-sm font-semibold text-foreground">Page Transparence & Open Data</p>
                     <p className="text-xs text-muted-foreground">
-                      {transparencyEnabled ? "Visible — lien affiché dans la navigation" : "Masquée — accessible uniquement sur /transparence directement"}
+                      {transparencyEnabled ? "Visible — affichée au premier plan dans la navigation" : "Masquée — accessible uniquement sur /transparence directement"}
                     </p>
                   </div>
                 </div>
