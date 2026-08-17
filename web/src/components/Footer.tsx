@@ -9,23 +9,23 @@ export default function Footer() {
     <footer className="bg-slate-950 text-slate-300 border-t border-slate-800 pt-12 pb-24 md:pb-12 mt-16">
       <div className="container max-w-7xl mx-auto px-4 space-y-10">
         
-        {/* Section Principale : Contact Équipe SIGNA */}
+        {/* Section Principale : Contact & Retours Citoyens */}
         <div className="bg-gradient-to-r from-emerald-950/80 via-slate-900 to-slate-900 border border-emerald-800/60 rounded-2xl p-6 sm:p-8 shadow-lg">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
             <div>
               <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider">
-                <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                Assistance & Support Utilisateurs
+                <span className="flex h-2 w-2 rounded-full bg-emerald-400" />
+                Contact & Retours Citoyens
               </div>
-              <h3 className="text-xl font-extrabold text-white mt-1">Besoin d'aide ? Contactez l'Équipe SIGNA-CI 🇨🇮</h3>
+              <h3 className="text-xl font-extrabold text-white mt-1">Une suggestion ou une question ? Contactez-nous 🇨🇮</h3>
             </div>
             <p className="text-xs text-slate-300 max-w-md">
-              Notre équipe d'assistance civique est à votre écoute pour vous guider, résoudre un problème technique ou recueillir vos suggestions.
+              SIGNA.ci est une initiative citoyenne indépendante. Vos retours, signalements de bugs et propositions d'amélioration sont les bienvenus.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-6">
-            {/* 🟢 WhatsApp Direct SIGNA */}
+            {/* 🟢 WhatsApp SIGNA */}
             <a
               href={SOCIAL_LINKS.whatsapp}
               target="_blank"
@@ -36,12 +36,11 @@ export default function Footer() {
                 <WhatsAppIcon className="h-11 w-11 drop-shadow" />
               </div>
               <div>
-                <div className="text-xs font-bold text-[#25D366] uppercase tracking-wide flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-[#25D366] animate-pulse" />
-                  WhatsApp Direct
+                <div className="text-xs font-bold text-[#25D366] uppercase tracking-wide">
+                  WhatsApp
                 </div>
-                <div className="text-base font-extrabold text-white group-hover:underline">Assistance Modérateurs</div>
-                <div className="text-xs text-slate-400 mt-0.5">Ouvre l'application ou WhatsApp Web</div>
+                <div className="text-base font-extrabold text-white group-hover:underline">Support & Échanges</div>
+                <div className="text-xs text-slate-400 mt-0.5">Échanges directs avec l'administrateur</div>
               </div>
             </a>
 
@@ -54,9 +53,9 @@ export default function Footer() {
                 <Mail className="h-6 w-6" />
               </div>
               <div>
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-wide">Email Support</div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wide">Email Officiel</div>
                 <div className="text-base font-bold text-white font-mono group-hover:underline">contact@signa.ci</div>
-                <div className="text-xs text-slate-400 mt-0.5">Support technique 7j/7</div>
+                <div className="text-xs text-slate-400 mt-0.5">Réponse sous 24h à 48h ouvrées</div>
               </div>
             </a>
 
@@ -71,7 +70,7 @@ export default function Footer() {
               <div>
                 <div className="text-xs font-bold text-cyan-400 uppercase tracking-wide">Centre d'aide</div>
                 <div className="text-base font-bold text-white group-hover:underline">Comment ça marche ?</div>
-                <div className="text-xs text-slate-400 mt-0.5">Guide d'utilisation de l'application</div>
+                <div className="text-xs text-slate-400 mt-0.5">Guide d'utilisation en libre-service</div>
               </div>
             </Link>
           </div>
@@ -112,7 +111,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-bold text-white mb-3">Veille & Territoire</h4>
+            <h4 className="text-sm font-bold text-white mb-3">Territoire & Disponibilité</h4>
             <div className="space-y-2 text-xs text-slate-400">
               <p className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-emerald-400 shrink-0" />
@@ -120,10 +119,10 @@ export default function Footer() {
               </p>
               <p className="flex items-center gap-2 text-slate-300">
                 <span className="flex h-2 w-2 rounded-full bg-emerald-400" />
-                <span>Veille citoyenne 24h/24 · 7j/7</span>
+                <span>Plateforme en libre-service 24h/24</span>
               </p>
               <p className="text-[11px] text-slate-400 pt-1 leading-relaxed">
-                Plateforme ouverte à tous les résidents des 7 communes pilotes d'Abidjan.
+                Accessible à tous les résidents des communes pilotes du Grand Abidjan.
               </p>
             </div>
           </div>
