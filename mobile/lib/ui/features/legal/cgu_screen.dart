@@ -49,36 +49,50 @@ class CguScreen extends StatelessWidget {
 
             _buildSection(
               isDark,
+              LucideIcons.alertTriangle,
+              '1. Avertissement Urgences Vitales (Non-Substitution)',
+              '⚠️ AVERTISSEMENT CRITIQUE : SIGNA.ci est une plateforme citoyenne d\'alerte technique et de cartographie des dégradations d\'infrastructures publiques. Elle ne constitue en aucun cas un service d\'urgence vitale ou de secours immédiat.\n\nEn cas de danger imminent pour la vie humaine (incendie, électrocution en cours, inondation mortelle, accident grave), vous devez immédiatement composer les numéros officiels d\'urgence de la République de Côte d\'Ivoire :\n• Sapeurs-Pompiers Militaires (GSPM) : 180\n• Police Nationale : 170 / 110 / 111\n• SAMU : 185\n• CIE Dépannage Urgence : 179\n• SODECI Urgence : 175',
+            ),
+
+            _buildSection(
+              isDark,
               LucideIcons.fileText,
-              '1. Objet du Service & Statut de la Plateforme',
-              'SIGNA.ci est une plateforme citoyenne participative d\'intérêt public dédiée à la détection, au signalement et à la cartographie des dégradations d\'infrastructures urbaines (eau potable, électricité, voirie, canaux, salubrité) en Côte d\'Ivoire.\n\nSIGNA.ci agit en tant qu\'intermédiaire technique et canal civique d\'alerte. Les signalements validés et anonymisés sont transmis aux services des Mairies et des opérateurs concessionnaires (CIE, SODECI). SIGNA.ci ne se substitue pas aux services d\'urgence de l\'État.',
+              '2. Objet du Service & Statut de la Plateforme',
+              'SIGNA.ci est une plateforme civique participative d\'intérêt général dédiée à la détection, au signalement et à la cartographie des dégradations d\'infrastructures urbaines (eau potable, électricité, voirie, canaux, salubrité) en Côte d\'Ivoire.\n\nSIGNA.ci agit en tant qu\'intermédiaire technique et vigie civique. Les signalements validés et anonymisés sont transmis aux services des Mairies et des opérateurs concessionnaires (CIE, SODECI) pour faciliter leur intervention.',
             ),
 
             _buildSection(
               isDark,
               LucideIcons.scale,
-              '2. Cadre Légal & Réglementation Applicable',
+              '3. Cadre Légal & Réglementation Applicable',
               'Les présentes CGU sont régies par le droit de la République de Côte d\'Ivoire et se conforment à :\n• Loi n° 2013-450 du 19 juin 2013 relative à la protection des données à caractère personnel (contrôlée par l\'APDP / ARTCI).\n• Loi n° 2013-451 du 19 juin 2013 relative à la lutte contre la cybercriminalité.\n• Loi n° 2013-546 du 30 juillet 2013 relative aux transactions électroniques.',
             ),
 
             _buildSection(
               isDark,
+              LucideIcons.camera,
+              '4. Licence d\'Usage Civique des Photographies',
+              'En téléversant une photographie d\'infrastructure sur SIGNA.ci, l\'utilisateur garantit qu\'il en est l\'auteur et concède à titre gracieux, non exclusif et universel, le droit d\'utiliser, reproduire et transmettre cette image aux collectivités locales (Mairies, District d\'Abidjan), aux opérateurs de réseau (CIE, SODECI) et aux observatoires d\'Open Data territorial pour les besoins exclusifs de diagnostic, réparation et valorisation de l\'action publique.\n\nIl est strictement interdit de photographier des visages reconnaissables, des cours intérieures d\'habitations privées ou des plaques d\'immatriculation.',
+            ),
+
+            _buildSection(
+              isDark,
               LucideIcons.users,
-              '3. Engagements & Responsabilités des Citoyens',
-              'Tout utilisateur s\'engage à utiliser la plateforme de bonne foi et de manière civique :\n• Fournir des informations exactes, sincères et vérifiables lors de la déclaration d\'un incident.\n• Ne pas publier de fausses alertes, de contenus diffamatoires ou d\'injures.\n• Ne pas inclure de visages ou de plaques d\'immatriculation sans consentement sur les photos jointes.\n\n⚠️ Rappel Légal : La soumission intentionnelle de faux signalements ou l\'usurpation d\'identité constituent des infractions pénales passibles des peines prévues par la législation ivoirienne.',
+              '5. Engagements des Citoyens & Sanctions Pénales',
+              'Tout utilisateur s\'engage à utiliser la plateforme de bonne foi et avec civisme :\n• Fournir des informations exactes, sincères et vérifiables lors de la déclaration d\'un incident.\n• Ne pas publier de fausses alertes, de contenus diffamatoires ou d\'injures.\n\n⚠️ Rappel Légal (Loi n° 2013-451 sur la Cybercriminalité) : La soumission délibérée de faux signalements, l\'usurpation d\'identité ou les tentatives de saturation (spam / bots) constituent des délits pénaux passibles d\'amendes et de peines d\'emprisonnement.',
             ),
 
             _buildSection(
               isDark,
               LucideIcons.shieldCheck,
-              '4. Modération & Suppression des Contenus',
-              'SIGNA.ci applique une modération conforme aux standards civiques et aux directives de l\'ARTCI.\nL\'équipe de modération se réserve le droit de refuser, modifier ou supprimer immédiatement tout signalement manifestement infondé, à caractère haineux ou attentatoire à l\'ordre public.',
+              '6. Modération & Suppression des Contenus',
+              'SIGNA.ci applique une modération conforme aux standards civiques et aux directives de l\'ARTCI. L\'équipe de modération se réserve le droit de refuser, modifier ou supprimer immédiatement tout signalement manifestement infondé, à caractère haineux ou attentatoire à l\'ordre public.',
             ),
 
             _buildSection(
               isDark,
               LucideIcons.gavel,
-              '5. Droit Applicable & Juridiction Compétente',
+              '7. Droit Applicable & Juridiction Compétente',
               'Les présentes Conditions Générales d\'Utilisation sont exclusivement soumises au Droit Ivoirien. En cas de litige, compétence exclusive est attribuée aux Tribunaux compétents d\'Abidjan, République de Côte d\'Ivoire.',
             ),
 

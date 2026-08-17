@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/constants/communes.dart';
+import '../../../core/constants/quartiers.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/report_display_utils.dart';
 import '../../../domain/models/report_model.dart';
 import '../../common/civic_photo_view.dart';
 import '../reports/report_detail_screen.dart';
@@ -42,6 +45,19 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
   bool _isLoadingUsers = false;
   String _userSearchQuery = '';
 
+  // Messaging Broadcast tab (1:1 AdminMessagingPage)
+  String _broadcastCommune = 'Cocody';
+  String _broadcastQuartier = '';
+  final TextEditingController _broadcastTitleCtrl = TextEditingController();
+  final TextEditingController _broadcastMsgCtrl = TextEditingController();
+  bool _isSendingBroadcast = false;
+  Map<String, dynamic>? _lastBroadcastResult;
+
+  // Relay Operators tab (1:1 AdminRelayPage)
+  List<Map<String, dynamic>> _relayLogs = [];
+  bool _isLoadingRelay = false;
+  String _relayOperatorFilter = 'all';
+
   // Site Settings toggles
   bool _transparencyEnabled = true;
   bool _donationsEnabled = true;
@@ -50,13 +66,15 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
     _checkAdminRole();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _broadcastTitleCtrl.dispose();
+    _broadcastMsgCtrl.dispose();
     super.dispose();
   }
 
@@ -87,6 +105,7 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
         _fetchAdminReports();
         _fetchVulnerableData();
         _fetchUsersData();
+        _fetchRelayLogs();
       }
     } catch (_) {
       setState(() {
@@ -191,6 +210,74 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
     }
   }
 
+  Future<void> _fetchRelayLogs() async {
+    setState(() => _isLoadingRelay = true);
+    try {
+      final res = await Supabase.instance.client
+          .from('relay_logs')
+          .select('id, report_id, operator, email_to, status, error_message, created_at, sent_at, cie_ticket_number')
+          .order('created_at', ascending: false)
+          .limit(100);
+
+      if (res is List && mounted) {
+        setState(() {
+          _relayLogs = List<Map<String, dynamic>>.from(res as List);
+          _isLoadingRelay = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingRelay = false);
+    }
+  }
+
+  Future<void> _sendBroadcast() async {
+    final title = _broadcastTitleCtrl.text.trim();
+    final message = _broadcastMsgCtrl.text.trim();
+
+    if (_broadcastCommune.isEmpty || title.isEmpty || message.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez remplir la commune, le titre et le message.'), backgroundColor: AppTheme.dangerRose),
+      );
+      return;
+    }
+
+    setState(() => _isSendingBroadcast = true);
+    try {
+      final res = await Supabase.instance.client.rpc('broadcast_admin_message', params: {
+        'target_commune': _broadcastCommune,
+        'target_quartier': _broadcastQuartier.trim(),
+        'p_title': title,
+        'p_message': message,
+      });
+
+      final count = (res is int) ? res : (res is num ? res.toInt() : 1);
+      setState(() {
+        _lastBroadcastResult = {
+          'count': count,
+          'commune': _broadcastCommune,
+          'quartier': _broadcastQuartier.trim(),
+        };
+        _isSendingBroadcast = false;
+      });
+
+      _broadcastTitleCtrl.clear();
+      _broadcastMsgCtrl.clear();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('📢 Message diffusé à $count citoyen(s) !'), backgroundColor: AppTheme.secondaryEmerald),
+        );
+      }
+    } catch (e) {
+      setState(() => _isSendingBroadcast = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur envoi broadcast : $e'), backgroundColor: AppTheme.dangerRose),
+        );
+      }
+    }
+  }
+
   Future<void> _updateReportStatus(String reportId, String newStatus) async {
     try {
       await Supabase.instance.client
@@ -289,6 +376,8 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
             Tab(icon: Icon(LucideIcons.fileCheck, size: 16), text: 'Modération'),
             Tab(icon: Icon(LucideIcons.heartPulse, size: 16), text: 'Foyers Vulnérables'),
             Tab(icon: Icon(LucideIcons.users, size: 16), text: 'Utilisateurs'),
+            Tab(icon: Icon(LucideIcons.megaphone, size: 16), text: 'Messagerie'),
+            Tab(icon: Icon(LucideIcons.send, size: 16), text: 'Relais Opérateurs'),
             Tab(icon: Icon(LucideIcons.sliders, size: 16), text: 'Paramètres Site'),
           ],
         ),
@@ -308,7 +397,13 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
           // ── TAB 4 : GESTION DES UTILISATEURS ──
           _buildUsersTab(isDark),
 
-          // ── TAB 5 : PARAMÈTRES ET COMMANDE SITE ──
+          // ── TAB 5 : MESSAGERIE BROADCAST (1:1 AdminMessagingPage) ──
+          _buildMessagingTab(isDark),
+
+          // ── TAB 6 : RELAIS OPÉRATEURS (1:1 AdminRelayPage) ──
+          _buildRelayTab(isDark),
+
+          // ── TAB 7 : PARAMÈTRES ET COMMANDE SITE ──
           _buildSettingsTab(isDark),
         ],
       ),
@@ -574,6 +669,391 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
     );
   }
 
+  Widget _buildMessagingTab(bool isDark) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryTeal.withAlpha(30),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(LucideIcons.megaphone, color: AppTheme.primaryTeal, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Messagerie d\'Information & Alertes', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const Text('Diffusez un message broadcast ciblé aux citoyens.', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Form Card
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Commune Selector
+                const Text('Commune cible *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _broadcastCommune,
+                      isExpanded: true,
+                      items: PILOT_COMMUNES.map((c) {
+                        return DropdownMenuItem(
+                          value: c.nom,
+                          child: Row(
+                            children: [
+                              Container(width: 10, height: 10, decoration: BoxDecoration(color: c.couleur, shape: BoxShape.circle)),
+                              const SizedBox(width: 8),
+                              Text(c.nom, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (v) {
+                        if (v != null) {
+                          setState(() {
+                            _broadcastCommune = v;
+                            _broadcastQuartier = '';
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Quartier Input
+                const Text('Quartier (optionnel — tous si vide)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                const SizedBox(height: 6),
+                TextField(
+                  onChanged: (v) => setState(() => _broadcastQuartier = v),
+                  decoration: InputDecoration(
+                    hintText: 'Ex: Angré, Riviera 2, Zone 4...',
+                    hintStyle: const TextStyle(fontSize: 12),
+                    filled: true,
+                    fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Title Input
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Titre du message *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    Text('${_broadcastTitleCtrl.text.length}/100', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _broadcastTitleCtrl,
+                  maxLength: 100,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    counterText: '',
+                    hintText: 'Ex: Maintenance du réseau d\'eau ce soir',
+                    hintStyle: const TextStyle(fontSize: 12),
+                    filled: true,
+                    fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Message Textarea
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Contenu du message *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    Text('${_broadcastMsgCtrl.text.length}/500', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _broadcastMsgCtrl,
+                  maxLines: 4,
+                  maxLength: 500,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    counterText: '',
+                    hintText: 'Rédigez l\'information ou la consigne civique...',
+                    hintStyle: const TextStyle(fontSize: 12),
+                    filled: true,
+                    fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Preview Box (1:1 Web)
+                if (_broadcastTitleCtrl.text.isNotEmpty || _broadcastMsgCtrl.text.isNotEmpty)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('APERÇU DU MESSAGE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5)),
+                        const SizedBox(height: 4),
+                        Text(_broadcastTitleCtrl.text.isEmpty ? '(Sans titre)' : _broadcastTitleCtrl.text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        const SizedBox(height: 2),
+                        Text(_broadcastMsgCtrl.text.isEmpty ? '(Message vide)' : '📢 ${_broadcastMsgCtrl.text}', style: const TextStyle(fontSize: 12)),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            const Icon(LucideIcons.users, size: 12, color: Colors.grey),
+                            const SizedBox(width: 4),
+                            Text('Cible : $_broadcastCommune${_broadcastQuartier.isNotEmpty ? ", $_broadcastQuartier" : " (tous les quartiers)"}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // Send Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 46,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryTeal,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: _isSendingBroadcast
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(LucideIcons.send, size: 16),
+                    label: Text(_isSendingBroadcast ? 'Diffusion en cours...' : 'Diffuser le message', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    onPressed: _isSendingBroadcast ? null : _sendBroadcast,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Last Result Feedback Card
+          if (_lastBroadcastResult != null)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF86EFAC)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(LucideIcons.checkCircle2, color: Color(0xFF16A34A), size: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Message diffusé avec succès !', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: const Color(0xFF166534), fontSize: 14)),
+                        Text('${_lastBroadcastResult!['count']} citoyen(s) notifié(s) à ${_lastBroadcastResult!['commune']}${_lastBroadcastResult!['quartier'].toString().isNotEmpty ? " (${_lastBroadcastResult!['quartier']})" : ""}.', style: const TextStyle(fontSize: 12, color: Color(0xFF15803D))),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRelayTab(bool isDark) {
+    final filtered = _relayLogs.where((log) {
+      if (_relayOperatorFilter == 'all') return true;
+      final op = (log['operator'] ?? '').toString().toUpperCase();
+      return op == _relayOperatorFilter.toUpperCase();
+    }).toList();
+
+    return Column(
+      children: [
+        // Operator Filter Header
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Transmissions Opérateurs (${_relayLogs.length})', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14)),
+                  IconButton(
+                    icon: const Icon(LucideIcons.refreshCw, size: 16),
+                    onPressed: _fetchRelayLogs,
+                    tooltip: 'Actualiser',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildRelayFilterChip('all', 'Tous', isDark),
+                    _buildRelayFilterChip('CIE', '⚡ CIE', isDark),
+                    _buildRelayFilterChip('SODECI', '💧 SODECI', isDark),
+                    _buildRelayFilterChip('MAIRIE', '🏛️ Mairie', isDark),
+                    _buildRelayFilterChip('ONEP', 'ONEP', isDark),
+                    _buildRelayFilterChip('ANARE', 'ANARE', isDark),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // List
+        Expanded(
+          child: _isLoadingRelay
+              ? const Center(child: CircularProgressIndicator())
+              : filtered.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(LucideIcons.send, size: 40, color: Colors.grey.withAlpha(120)),
+                            const SizedBox(height: 12),
+                            const Text('Aucune transmission enregistrée pour ce filtre.', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (ctx, i) {
+                        final log = filtered[i];
+                        final op = (log['operator'] ?? 'CIE').toString().toUpperCase();
+                        final status = (log['status'] ?? 'sent').toString().toLowerCase();
+                        final emailTo = log['email_to'] ?? 'service.technique@cie.ci';
+                        final cieTicket = log['cie_ticket_number'];
+                        final createdAt = log['created_at'];
+
+                        Color opColor = const Color(0xFFF59E0B);
+                        if (op == 'SODECI') opColor = const Color(0xFF3B82F6);
+                        if (op == 'MAIRIE') opColor = const Color(0xFF10B981);
+
+                        Color statusColor = const Color(0xFF16A34A);
+                        String statusLabel = 'ENVOYÉ';
+                        if (status == 'pending') {
+                          statusColor = const Color(0xFFD97706);
+                          statusLabel = 'EN ATTENTE';
+                        } else if (status == 'error') {
+                          statusColor = const Color(0xFFDC2626);
+                          statusLabel = 'ERREUR';
+                        }
+
+                        return Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: opColor.withAlpha(30),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: opColor.withAlpha(80)),
+                                    ),
+                                    child: Text(op, style: TextStyle(color: opColor, fontWeight: FontWeight.bold, fontSize: 11)),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: statusColor.withAlpha(30),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(statusLabel, style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 10)),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text('Destinataire : $emailTo', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                              if (cieTicket != null && cieTicket.toString().isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text('N° Ticket Régie : $cieTicket', style: const TextStyle(fontSize: 11, color: Color(0xFF0D9488), fontWeight: FontWeight.bold)),
+                              ],
+                              const SizedBox(height: 4),
+                              Text('Date : ${ReportDisplayUtils.timeAgo(createdAt)}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRelayFilterChip(String key, String label, bool isDark) {
+    final active = _relayOperatorFilter == key;
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: ChoiceChip(
+        label: Text(label, style: TextStyle(fontSize: 11, fontWeight: active ? FontWeight.bold : FontWeight.normal, color: active ? Colors.white : (isDark ? Colors.white70 : Colors.black87))),
+        selected: active,
+        selectedColor: AppTheme.primaryTeal,
+        backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+        onSelected: (_) => setState(() => _relayOperatorFilter = key),
+      ),
+    );
+  }
+
   Widget _buildSettingsTab(bool isDark) {
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -659,7 +1139,8 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> with SingleTick
             CivicPhotoView(
               photoPath: r.photoUrl,
               photoPaths: r.photoUrls,
-              height: 140,
+              reportDate: r.createdAt,
+              aspectRatio: 16 / 9,
               borderRadius: BorderRadius.circular(10),
             ),
           ],

@@ -20,6 +20,35 @@ class ReportRepository {
     String? commune,
     int limit = 50,
   }) async {
+    if (category == 'infrastructure') {
+      final res = await _supabaseService.client.rpc(
+        'get_public_infrastructure_reports',
+        params: {
+          if (commune != null && commune.isNotEmpty) 'p_commune': commune,
+          'p_limit': limit,
+        },
+      );
+      if (res is List) {
+        return res
+            .map((json) => ReportModel.fromJson(json as Map<String, dynamic>))
+            .toList();
+      }
+    }
+
+    try {
+      final res = await _supabaseService.client.rpc('get_public_reports');
+      if (res is List && res.isNotEmpty) {
+        var list = res.map((json) => ReportModel.fromJson(json as Map<String, dynamic>)).toList();
+        if (category != null && category.isNotEmpty) {
+          list = list.where((r) => r.reportCategory == category).toList();
+        }
+        if (commune != null && commune.isNotEmpty) {
+          list = list.where((r) => r.commune == commune).toList();
+        }
+        return list.take(limit).toList();
+      }
+    } catch (_) {}
+
     dynamic filterQuery = _supabaseService.client.from('reports').select('*');
 
     if (category != null && category.isNotEmpty) {

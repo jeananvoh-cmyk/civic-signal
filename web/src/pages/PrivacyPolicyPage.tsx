@@ -85,7 +85,18 @@ const PrivacyPolicyPage = () => {
           </p>
         </Section>
 
-        <Section icon={Lock} title="3. Durée de Conservation & Sécurité des Données">
+        <Section icon={Globe} title="3. Protection de la Vie Privée & Floutage Systématique GPS">
+          <p>
+            Afin de préserver la vie privée des citoyens et l'anonymat de leur lieu de résidence :
+          </p>
+          <ul className="list-disc list-inside space-y-1.5 pl-2">
+            <li><strong>Floutage GPS Public</strong> : Sur la cartographie publique et les flux ouverts, les coordonnées géographiques sont automatiquement tronquées à 3 décimales (rayon d'incertitude d'environ 110 mètres).</li>
+            <li><strong>Non-Divulgation de l'Identité</strong> : L'identifiant utilisateur (<code>user_id</code>), l'adresse email et le numéro de téléphone ne sont jamais accessibles au public ni aux tiers non habilités.</li>
+            <li><strong>Accès Opérateur Restreint</strong> : Seules les équipes d'intervention agréées (CIE, SODECI, agents communaux mandatés) disposent des coordonnées précises pour localiser le poteau ou la canalisation endommagée.</li>
+          </ul>
+        </Section>
+
+        <Section icon={Lock} title="4. Durée de Conservation & Sécurité des Données">
           <p>
             Conformément à l'Article 41 de la Loi n° 2013-450, des mesures de sécurité techniques et organisationnelles renforcées garantissent la confidentialité de vos données :
           </p>
@@ -96,7 +107,7 @@ const PrivacyPolicyPage = () => {
           </ul>
         </Section>
 
-        <Section icon={Trash2} title="4. Droits des Utilisateurs (Mentions Obligatoires - Articles 28 à 34)">
+        <Section icon={Trash2} title="5. Droits des Utilisateurs (Mentions Obligatoires - Articles 28 à 34)">
           <p>Conformément à la Loi n° 2013-450, vous disposez des droits suivants sur vos données personnelles :</p>
           
           <div className="space-y-2 my-2">

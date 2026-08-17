@@ -46,6 +46,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
   List<ReportModel> _myReports = [];
   List<ReportModel> _historyReports = [];
 
+  String _userRole = 'visiteur';
+  bool _isAdmin = false;
+  bool _isPartner = false;
+
   final List<String> _communesList = PILOT_COMMUNES.map((c) => c.nom).toList();
 
   @override
@@ -70,7 +74,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
 
   Future<void> _loadUserProfile() async {
     final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      if (mounted) {
+        setState(() {
+          _userRole = 'visiteur';
+          _isAdmin = false;
+          _isPartner = false;
+        });
+      }
+      return;
+    }
 
     try {
       final data = await Supabase.instance.client
@@ -79,16 +92,41 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           .eq('id', user.id)
           .maybeSingle();
 
-      if (data != null && mounted) {
+      bool adminStatus = false;
+      bool partnerStatus = false;
+      try {
+        final adminRes = await Supabase.instance.client.rpc('has_role', params: {
+          '_user_id': user.id,
+          '_role': 'admin',
+        });
+        adminStatus = adminRes == true;
+
+        final partnerRes = await Supabase.instance.client.rpc('has_role', params: {
+          '_user_id': user.id,
+          '_role': 'partner',
+        });
+        partnerStatus = partnerRes == true;
+      } catch (_) {}
+
+      final role = (data != null && data['role'] != null)
+          ? data['role'].toString().toLowerCase()
+          : (adminStatus ? 'admin' : (partnerStatus ? 'partenaire' : 'citoyen'));
+
+      if (mounted) {
         setState(() {
-          _nameController.text = data['display_name'] ?? data['first_name'] ?? '';
-          _phoneController.text = data['phone'] ?? '';
-          _selectedCommune = data['commune'] ?? 'Cocody';
-          _cieClientController.text = data['electricity_client_id'] ?? '';
-          _cieMeterController.text = data['electricity_meter_number'] ?? '';
-          _sodeciClientController.text = data['water_client_id'] ?? '';
-          _sodeciMeterController.text = data['water_meter_number'] ?? '';
-          _notificationsEnabled = data['notifications_enabled'] ?? true;
+          _userRole = role;
+          _isAdmin = adminStatus || role == 'admin';
+          _isPartner = partnerStatus || role == 'partenaire' || role == 'moderateur' || role == 'agent' || _isAdmin;
+          if (data != null) {
+            _nameController.text = data['display_name'] ?? data['first_name'] ?? '';
+            _phoneController.text = data['phone'] ?? '';
+            _selectedCommune = data['commune'] ?? 'Cocody';
+            _cieClientController.text = data['electricity_client_id'] ?? '';
+            _cieMeterController.text = data['electricity_meter_number'] ?? '';
+            _sodeciClientController.text = data['water_client_id'] ?? '';
+            _sodeciMeterController.text = data['water_meter_number'] ?? '';
+            _notificationsEnabled = data['notifications_enabled'] ?? true;
+          }
         });
       }
     } catch (_) {}
@@ -170,24 +208,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final user = Supabase.instance.client.auth.currentUser;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const SignaLogoWidget(size: 26, showSlogan: false),
-        actions: [
-          if (user != null)
-            IconButton(
-              icon: const Icon(LucideIcons.logOut, color: AppTheme.dangerRose, size: 20),
-              onPressed: () async {
-                await Supabase.instance.client.auth.signOut();
-                if (context.mounted) {
-                  setState(() {});
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Déconnexion effectuée.')),
-                  );
-                }
-              },
-            )
-          else
+    if (user == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const SignaLogoWidget(size: 26, showSlogan: false),
+          actions: [
             TextButton.icon(
               icon: const Icon(LucideIcons.logIn, size: 16),
               label: const Text('Connexion'),
@@ -200,6 +225,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
                 }
               },
             ),
+          ],
+        ),
+        body: _buildVisitorGateway(context, isDark),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const SignaLogoWidget(size: 26, showSlogan: false),
+        actions: [
+          IconButton(
+            icon: const Icon(LucideIcons.logOut, color: AppTheme.dangerRose, size: 20),
+            onPressed: () async {
+              await Supabase.instance.client.auth.signOut();
+              if (context.mounted) {
+                setState(() {});
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Déconnexion effectuée.')),
+                );
+              }
+            },
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -645,81 +692,85 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
         ),
         const SizedBox(height: 24),
 
-        // Espace Partenaires & Opérateurs
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFEF3C7),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFFDE68A)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: const [
-                  Icon(LucideIcons.shieldCheck, color: Color(0xFFD97706), size: 20),
-                  SizedBox(width: 8),
-                  Text('Espace Partenaires & Opérateurs', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF92400E))),
-                ],
-              ),
-              const SizedBox(height: 6),
-              const Text('Réservé aux techniciens et agents de maintenance CIE, SODECI et Mairies.', style: TextStyle(fontSize: 11, color: Color(0xFFB45309))),
-              const SizedBox(height: 10),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFD97706),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                icon: const Icon(LucideIcons.wrench, size: 14),
-                label: const Text('Accéder au Dashboard Partenaire', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartnerDashboardScreen())),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // Espace Super-Admin (Restreint)
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF0F172A),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF334155)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: Colors.white.withAlpha(20), shape: BoxShape.circle),
-                child: const Icon(LucideIcons.shieldAlert, color: Colors.white, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        // Espace Partenaires & Opérateurs (Affiché UNIQUEMENT si rôle partenaire ou admin)
+        if (_isPartner || _isAdmin) ...[
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF3C7),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFFDE68A)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: const [
-                    Text('Console Super-Admin', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)),
-                    Text('Modération, rôles et paramètres globaux', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
+                    Icon(LucideIcons.shieldCheck, color: Color(0xFFD97706), size: 20),
+                    SizedBox(width: 8),
+                    Text('Espace Partenaires & Opérateurs', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF92400E))),
                   ],
                 ),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryTeal,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                const SizedBox(height: 6),
+                const Text('Réservé aux techniciens et agents de maintenance CIE, SODECI et Mairies.', style: TextStyle(fontSize: 11, color: Color(0xFFB45309))),
+                const SizedBox(height: 10),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD97706),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(LucideIcons.wrench, size: 14),
+                  label: const Text('Accéder au Dashboard Partenaire', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartnerDashboardScreen())),
                 ),
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminConsoleScreen())),
-                child: const Text('Ouvrir', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
+          const SizedBox(height: 12),
+        ],
+
+        // Espace Super-Admin (Affiché UNIQUEMENT si rôle Super-Admin)
+        if (_isAdmin) ...[
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFF334155)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: Colors.white.withAlpha(20), shape: BoxShape.circle),
+                  child: const Icon(LucideIcons.shieldAlert, color: Colors.white, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text('Console Super-Admin', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)),
+                      Text('Modération, rôles et paramètres globaux', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
+                    ],
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryTeal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminConsoleScreen())),
+                  child: const Text('Ouvrir', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
 
         // Outils & Soutien Civique
         Container(
@@ -800,6 +851,207 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
         ),
         const SizedBox(height: 24),
       ],
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // ── GATEWAY VISITEUR : Écran d'invitation à la connexion ──
+  // ══════════════════════════════════════════════════════════
+  Widget _buildVisitorGateway(BuildContext context, bool isDark) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Bannière Hero
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF064E3B), Color(0xFF047857)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF047857).withAlpha(80),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(40),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(LucideIcons.userPlus, color: Colors.white, size: 36),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Espace Personnel Citoyen',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Connectez-vous ou créez votre compte pour suivre vos signalements, gérer vos compteurs CIE & SODECI et cumuler vos points CitizenScore.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(color: Colors.white.withAlpha(220), fontSize: 13, height: 1.4),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF064E3B),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                    ),
+                    icon: const Icon(LucideIcons.logIn, size: 18),
+                    label: Text(
+                      'Se connecter / S\'inscrire',
+                      style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                    onPressed: () async {
+                      final ok = await Navigator.push(context, MaterialPageRoute(builder: (_) => const AuthScreen()));
+                      if (ok == true) {
+                        _loadUserProfile();
+                        _loadUserReports();
+                        setState(() {});
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Avantages du compte citoyen
+          Text(
+            'POURQUOI CRÉER UN COMPTE ?',
+            style: GoogleFonts.outfit(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+              color: isDark ? Colors.white60 : Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          _buildBenefitTile(
+            icon: LucideIcons.gauge,
+            color: const Color(0xFFD97706),
+            title: 'Gestion des compteurs CIE & SODECI',
+            subtitle: 'Enregistrez vos identifiants pour des signalements pré-remplis et un suivi d\'incident accéléré.',
+            isDark: isDark,
+          ),
+          const SizedBox(height: 10),
+
+          _buildBenefitTile(
+            icon: LucideIcons.mapPin,
+            color: const Color(0xFF0284C7),
+            title: 'Historique de vos signalements',
+            subtitle: 'Retrouvez tous vos tickets d\'incidents et recevez les notifications de résolution en temps réel.',
+            isDark: isDark,
+          ),
+          const SizedBox(height: 10),
+
+          _buildBenefitTile(
+            icon: LucideIcons.award,
+            color: const Color(0xFF16A34A),
+            title: 'CitizenScore & Badges d\'Honneur',
+            subtitle: 'Gagnez des points à chaque signalement ou confirmation pour valoriser votre impact civique à Abidjan.',
+            isDark: isDark,
+          ),
+          const SizedBox(height: 24),
+
+          // Liens utiles pour les visiteurs
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(LucideIcons.scale, color: AppTheme.primaryTeal),
+                  title: const Text('Mes Droits & Lois (CIE & SODECI)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen())),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(LucideIcons.fileText, color: AppTheme.primaryTeal),
+                  title: const Text('Conditions Générales d\'Utilisation (CGU)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CguScreen())),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(LucideIcons.shieldCheck, color: Color(0xFF16A34A)),
+                  title: const Text('Politique de Confidentialité', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen())),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBenefitTile({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withAlpha(25),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.white60 : Colors.grey[600], height: 1.3),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/communes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/models/report_model.dart';
+import '../auth/auth_screen.dart';
 
 class VerificationScreen extends ConsumerStatefulWidget {
   const VerificationScreen({super.key});
@@ -79,14 +80,32 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> with Si
   }
 
   Future<void> _corroborate(String reportId) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Veuillez vous connecter pour corroborer ce signalement.'),
+          backgroundColor: const Color(0xFF0F172A),
+          action: SnackBarAction(
+            label: 'Se connecter',
+            textColor: AppTheme.amberAccent,
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AuthScreen())),
+          ),
+        ),
+      );
+      return;
+    }
+
     try {
       await Supabase.instance.client.rpc('corroborate_report', params: {'p_report_id': reportId});
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✓ Merci pour votre confirmation citoyenne !'), backgroundColor: AppTheme.secondaryEmerald),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✓ Merci pour votre confirmation citoyenne !'), backgroundColor: AppTheme.secondaryEmerald),
+        );
+      }
       _fetchVerificationData();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
     }
   }
 
@@ -298,6 +317,39 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> with Si
   // ONGLET 2 : MES SIGNALEMENTS ACTIFS
   // ════════════════════════════════════════════════════════════════════════════
   Widget _buildMyReportsTab(bool isDark) {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(LucideIcons.userCheck, size: 48, color: AppTheme.primaryTeal),
+              const SizedBox(height: 16),
+              Text('Connexion Citoyenne Requise', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 8),
+              const Text(
+                'Connectez-vous pour retrouver vos signalements actifs et confirmer le rétablissement du service.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryTeal, foregroundColor: Colors.white),
+                icon: const Icon(LucideIcons.logIn, size: 16),
+                label: const Text('Se connecter'),
+                onPressed: () async {
+                  await Navigator.push(context, MaterialPageRoute(builder: (_) => const AuthScreen()));
+                  _fetchVerificationData();
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (_myReports.isEmpty) {
       return Center(
         child: Padding(
@@ -305,11 +357,11 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> with Si
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: const [
-              Icon(LucideIcons.shieldCheck, size: 48, color: Color(0xFF16A34A)),
-              SizedBox(height: 14),
+              Icon(LucideIcons.checkCircle2, size: 48, color: Color(0xFF16A34A)),
+              SizedBox(height: 12),
               Text('Aucun signalement actif', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              SizedBox(height: 6),
-              Text('Vous n\'avez aucun signalement en cours de traitement.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.grey)),
+              SizedBox(height: 4),
+              Text('Vous n\'avez actuellement aucun signalement en cours.', style: TextStyle(color: Colors.grey, fontSize: 12)),
             ],
           ),
         ),

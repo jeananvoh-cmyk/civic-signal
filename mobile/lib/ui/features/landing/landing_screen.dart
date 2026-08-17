@@ -20,6 +20,7 @@ import '../reports/report_detail_screen.dart';
 import '../tracking/tracking_screen.dart';
 import '../trends/trends_screen.dart';
 import '../verification/verification_screen.dart';
+import '../notifications/notification_center_screen.dart';
 
 class LandingScreen extends ConsumerStatefulWidget {
   const LandingScreen({super.key});
@@ -46,9 +47,17 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
   // Average Delays
   String _avgElecDelay = '5h 30min';
   String _avgEauDelay = '4h 15min';
+  String _avgMairieDelay = '6h 40min';
+
+  String _formatHours(double h) {
+    if (h < 1) return '${(h * 60).round()} min';
+    if (h < 24) return '${h.round()} h';
+    return '${(h / 24).round()} j';
+  }
 
   // Feature Discovery
   bool _showElecBanner = true;
+  int _unreadNotifCount = 0;
 
   // Rotating words (1:1 Web)
   final List<Map<String, dynamic>> _rotatingWords = [
@@ -126,6 +135,42 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
           _isLoadingReports = false;
         });
       }
+
+      // 3. Fetch unread notification count
+      final user = supabase.auth.currentUser;
+      if (user != null) {
+        final notifs = await supabase
+            .from('notifications')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('read', false);
+        if (mounted && notifs is List) {
+          setState(() {
+            _unreadNotifCount = notifs.length;
+          });
+        }
+      }
+
+      // 4. Fetch Dynamic Resolution Delays (1:1 Web)
+      try {
+        final transRes = await supabase.rpc('get_transparency_stats');
+        if (transRes != null && transRes is Map) {
+          final transData = Map<String, dynamic>.from(transRes);
+          final avgHours = transData['avg_resolution_hours'] is Map
+              ? Map<String, dynamic>.from(transData['avg_resolution_hours'])
+              : null;
+          if (avgHours != null && mounted) {
+            final eH = (avgHours['electricity'] as num?)?.toDouble();
+            final wH = (avgHours['water'] as num?)?.toDouble();
+            final mH = (avgHours['infrastructure'] as num? ?? avgHours['mairie'] as num?)?.toDouble();
+            setState(() {
+              if (eH != null && eH > 0) _avgElecDelay = _formatHours(eH);
+              if (wH != null && wH > 0) _avgEauDelay = _formatHours(wH);
+              if (mH != null && mH > 0) _avgMairieDelay = _formatHours(mH);
+            });
+          }
+        }
+      } catch (_) {}
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -182,7 +227,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const SignaLogoWidget(size: 32),
+                        const SignaLogoWidget(size: 32, isDark: true),
                         Row(
                           children: [
                             Container(
@@ -202,10 +247,58 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    _activeOutages > 0 ? '$_activeOutages coupures en direct' : 'Aucune coupure active',
+                                    _activeOutages > 0 ? '$_activeOutages direct' : 'Calme',
                                     style: const TextStyle(color: Color(0xFF86EFAC), fontSize: 11, fontWeight: FontWeight.bold),
                                   ),
                                 ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // 🔔 Cloche de Notifications
+                            InkWell(
+                              borderRadius: BorderRadius.circular(20),
+                              onTap: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const NotificationCenterScreen()),
+                                );
+                                _fetchStatsAndReports();
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(7),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withAlpha(20),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white.withAlpha(40)),
+                                ),
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    const Icon(LucideIcons.bell, color: Colors.white, size: 18),
+                                    if (_unreadNotifCount > 0)
+                                      Positioned(
+                                        right: -4,
+                                        top: -4,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(3),
+                                          decoration: const BoxDecoration(
+                                            color: AppTheme.dangerRose,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                                          child: Text(
+                                            _unreadNotifCount > 9 ? '9+' : '$_unreadNotifCount',
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
@@ -501,10 +594,19 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Row(
-                            children: const [
-                              Icon(LucideIcons.trendingUp, color: Color(0xFF10B981), size: 18),
-                              SizedBox(width: 8),
-                              Text('Délai moyen de résolution', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            children: [
+                              const Icon(LucideIcons.trendingUp, color: Color(0xFF10B981), size: 18),
+                              const SizedBox(width: 8),
+                              const Text('Délai moyen de résolution', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                              const SizedBox(width: 4),
+                              InkWell(
+                                onTap: () => _showDelayExplanationModal(context, isDark),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: Icon(LucideIcons.info, size: 14, color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                                ),
+                              ),
                             ],
                           ),
                           InkWell(
@@ -520,8 +622,22 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                           const SizedBox(width: 8),
                           Expanded(child: _buildDelayBox('💧', _avgEauDelay, 'SODECI (Eau)', const Color(0xFF0284C7))),
                           const SizedBox(width: 8),
-                          Expanded(child: _buildDelayBox('🏛️', '6h 40min', 'Mairie (Voirie)', const Color(0xFF9333EA))),
+                          Expanded(child: _buildDelayBox('🏛️', _avgMairieDelay, 'Mairie (Voirie)', const Color(0xFF10B981))),
                         ],
+                      ),
+                      const SizedBox(height: 8),
+                      Center(
+                        child: InkWell(
+                          onTap: () => _showDelayExplanationModal(context, isDark),
+                          child: Text(
+                            'Basé sur les signalements résolus · (Méthode de calcul)',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontStyle: FontStyle.italic,
+                              color: isDark ? Colors.grey[400] : Colors.grey[600],
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -1234,6 +1350,130 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  void _showDelayExplanationModal(BuildContext context, bool isDark) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.grey[700] : Colors.grey[300],
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withAlpha(30),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(LucideIcons.trendingUp, color: Color(0xFF10B981), size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Comment est calculé le délai moyen ?', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15)),
+                      const Text('Méthode de calcul transparente & citoyenne', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildExplanationStep(
+              '1. Formule de calcul (Phase actuelle)',
+              'Le délai correspond à la durée réelle écoulée entre l\'heure déclarée de début de panne et sa confirmation de rétablissement (validée par la communauté ou nos modérateurs).',
+              'Délai = Date de rétablissement − Date de signalement',
+              const Color(0xFF0284C7),
+              isDark,
+            ),
+            const SizedBox(height: 10),
+            _buildExplanationStep(
+              '2. Filtrage des anomalies',
+              'Les signalements clôturés immédiatement (< 5 min) ou orphelins sont automatiquement écartés pour ne pas fausser les temps moyens réels.',
+              null,
+              const Color(0xFFD97706),
+              isDark,
+            ),
+            const SizedBox(height: 10),
+            _buildExplanationStep(
+              '3. Évolution avec les Partenaires Officiels',
+              'Dès le raccordement direct des services techniques (CIE, SODECI, Mairies), le calcul intégrera le SLA officiel de prise en charge avec double vérification citoyenne.',
+              null,
+              const Color(0xFF10B981),
+              isDark,
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryTeal,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Compris', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExplanationStep(String title, String desc, String? formula, Color color, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: color)),
+          const SizedBox(height: 4),
+          Text(desc, style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[300] : Colors.grey[700], height: 1.3)),
+          if (formula != null) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: color.withAlpha(50)),
+              ),
+              child: Text(formula, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color, fontFamily: 'monospace')),
+            ),
+          ],
         ],
       ),
     );

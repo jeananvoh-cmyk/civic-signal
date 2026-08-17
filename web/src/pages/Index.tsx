@@ -391,6 +391,7 @@ const Index = () => {
   const [nearbyLoading, setNearbyLoading] = useState(false);
   const [myActiveReports, setMyActiveReports] = useState<MyActiveReport[]>([]);
   const [avgResolutionHours, setAvgResolutionHours] = useState<Record<string, number> | null>(null);
+  const [showDelayExplainer, setShowDelayExplainer] = useState(false);
   const [showElecBanner, setShowElecBanner] = useState(
     () => localStorage.getItem("signa_elec_feature_v1") !== "dismissed"
   );
@@ -690,7 +691,7 @@ const Index = () => {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════
-          TEMPS DE RÉPONSE — preuve que ça marche
+          TEMPS DE RÉPONSE — preuve que ça marche & Transparence
       ══════════════════════════════════════════════════════════════ */}
       {avgResolutionHours && Object.keys(avgResolutionHours).length > 0 && (
         <section className="container py-6">
@@ -704,6 +705,15 @@ const Index = () => {
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-emerald-500" />
                 <h2 className="font-display text-sm font-bold text-foreground">Délai moyen de résolution</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowDelayExplainer(true)}
+                  className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  title="Comment ce délai est calculé ?"
+                  aria-label="Comment ce délai est calculé ?"
+                >
+                  <Info className="h-3.5 w-3.5" />
+                </button>
               </div>
               <Link to="/transparence" className="text-xs text-primary hover:underline">Voir les résultats →</Link>
             </div>
@@ -711,10 +721,10 @@ const Index = () => {
               {[
                 { key: "electricity", label: "CIE", icon: "⚡", color: "text-yellow-500" },
                 { key: "water", label: "SODECI", icon: "💧", color: "text-sky-500" },
-                { key: "mairie", label: "Mairie", icon: "🏛", color: "text-emerald-500" },
-              ].map(({ key, label, icon, color }) => {
-                const h = avgResolutionHours[key];
-                if (!h) return null;
+                { key: "infrastructure", fallbackKey: "mairie", label: "Mairie", icon: "🏛", color: "text-emerald-500" },
+              ].map(({ key, fallbackKey, label, icon, color }) => {
+                const h = avgResolutionHours[key] ?? (fallbackKey ? avgResolutionHours[fallbackKey] : undefined);
+                if (h === undefined || h === null) return null;
                 const display = h < 1 ? `${Math.round(h * 60)} min` : h < 24 ? `${Math.round(h)} h` : `${Math.round(h / 24)} j`;
                 return (
                   <div key={key} className="rounded-xl bg-secondary p-3 text-center">
@@ -725,7 +735,16 @@ const Index = () => {
                 );
               })}
             </div>
-            <p className="mt-3 text-xs text-muted-foreground text-center italic">Basé sur les signalements résolus · mis à jour en temps réel</p>
+            <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+              <span className="italic">Basé sur les signalements résolus · mis à jour en temps réel</span>
+              <button
+                type="button"
+                onClick={() => setShowDelayExplainer(true)}
+                className="text-primary hover:underline inline-flex items-center gap-0.5"
+              >
+                (Méthode de calcul)
+              </button>
+            </div>
           </motion.div>
         </section>
       )}
@@ -1146,6 +1165,76 @@ const Index = () => {
           </motion.div>
         </section>
       )}
+
+      {/* ══════════════════════════════════════════════════════════════
+          MODALE PÉDAGOGIQUE : COMMENT EST CALCULÉ LE DÉLAI ?
+      ══════════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {showDelayExplainer && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
+            >
+              <button
+                type="button"
+                onClick={() => setShowDelayExplainer(false)}
+                className="absolute right-4 top-4 rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
+                  <TrendingUp className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-display text-lg font-bold text-foreground">Comment est calculé le délai moyen ?</h3>
+                  <p className="text-xs text-muted-foreground">Méthode de calcul transparente & indépendante</p>
+                </div>
+              </div>
+
+              <div className="space-y-3 text-sm text-foreground/90">
+                <div className="rounded-xl bg-muted/50 p-3.5 space-y-1.5 border border-border/50">
+                  <p className="font-semibold text-xs uppercase tracking-wider text-primary">1. Formule de calcul (Phase actuelle)</p>
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    Le délai correspond à la durée écoulée entre <strong>l'heure de début d'incident</strong> déclarée par les riverains et la <strong>confirmation de rétablissement</strong> (validée par la communauté ou nos modérateurs).
+                  </p>
+                  <div className="bg-background/80 rounded-lg p-2 font-mono text-xs text-emerald-600 dark:text-emerald-400">
+                    Délai = Date de rétablissement − Date de signalement
+                  </div>
+                </div>
+
+                <div className="rounded-xl bg-muted/50 p-3.5 space-y-1.5 border border-border/50">
+                  <p className="font-semibold text-xs uppercase tracking-wider text-amber-500">2. Filtrage anti-anomalies</p>
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    Pour garantir des statistiques crédibles, les doublons clôturés immédiatement (&lt; 5 min) ou les signalements orphelins sont filtrés afin de ne pas fausser les moyennes réelles vécues.
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-muted/50 p-3.5 space-y-1.5 border border-border/50">
+                  <p className="font-semibold text-xs uppercase tracking-wider text-sky-500">3. Évolution avec les Partenaires Officiels</p>
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    Dès l'intégration des espaces partenaires (CIE, SODECI, Mairies), le calcul intégrera le <strong>délai d'intervention technique officiel (SLA)</strong> et le <strong>taux de concordance citoyenne</strong>.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  type="button"
+                  className="w-full"
+                  onClick={() => setShowDelayExplainer(false)}
+                >
+                  Compris
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <Footer />
     </div>

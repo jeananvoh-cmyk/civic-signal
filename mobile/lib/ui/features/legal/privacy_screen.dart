@@ -50,28 +50,35 @@ class PrivacyScreen extends StatelessWidget {
               isDark,
               LucideIcons.scale,
               '1. Identité du Responsable de Traitement',
-              'Le responsable des traitements de données à caractère personnel effectués sur la plateforme citoyenne SIGNA·CI est basé à Abidjan, République de Côte d\'Ivoire.\nToutes les données personnelles sont traitées dans le respect strict de la législation ivoirienne en vigueur sous le contrôle de l\'ARTCI.',
+              'Le responsable des traitements de données à caractère personnel effectués sur la plateforme citoyenne SIGNA·CI est basé à Abidjan, République de Côte d\'Ivoire.\nToutes les données personnelles sont traitées dans le respect strict de la législation ivoirienne en vigueur sous le contrôle de l\'ARTCI / APDP.',
             ),
 
             _buildSection(
               isDark,
               LucideIcons.database,
-              '2. Données Collectées & Finalités',
-              'SIGNA·CI collecte uniquement les données adéquates et nécessaires :\n• Données de profil : adresse email, nom (optionnel), numéro de téléphone (optionnel).\n• Données de signalement : commune, quartier, coordonnées GPS de l\'incident, photos.\n\nFinalités exclusives :\n• Transmission des alertes techniques aux opérateurs concessionnaires (CIE, SODECI, Mairies).\n• Envoi de notifications push sur l\'évolution de vos signalements.\n• Élaboration de statistiques d\'intérêt public 100% anonymisées.',
+              '2. Données Collectées & Finalités d\'Intérêt Général',
+              'SIGNA·CI applique le principe de minimisation stricte des données :\n• Données de profil : adresse email, nom (optionnel), numéro de téléphone (optionnel), références de compteurs CIE/SODECI (optionnelles pour faciliter le dépannage).\n• Données de signalement : commune, quartier, coordonnées GPS de l\'incident, photos de la voie publique.\n\nFinalités exclusives :\n• Transmission des alertes techniques aux opérateurs concessionnaires (CIE, SODECI, Mairies).\n• Envoi de notifications push sur l\'évolution de vos signalements.\n• Élaboration de statistiques d\'intérêt public 100% anonymisées.\n\n🛡️ Garantie Zéro Publicité : Aucune donnée citoyenne n\'est vendue, louée ou cédée à des régies publicitaires.',
+            ),
+
+            _buildSection(
+              isDark,
+              LucideIcons.mapPin,
+              '3. Protection de la Vie Privée & Floutage GPS',
+              'Afin de protéger le domicile et la vie privée des citoyens :\n• Sur la carte publique et les flux ouverts, les coordonnées GPS sont automatiquement tronquées à 3 décimales (~110 mètres de rayon).\n• L\'identifiant personnel (user_id) et les données de contact ne sont jamais affichés publiquement.\n• Seules les équipes techniques habilitées (modérateurs SIGNA-CI, agents CIE/SODECI) ont accès au point précis pour l\'intervention.',
             ),
 
             _buildSection(
               isDark,
               LucideIcons.lock,
-              '3. Durée de Conservation & Sécurité',
-              '• Chiffrement TLS / HTTPS de l\'ensemble des flux.\n• Authentification sécurisée via Supabase.\n• En cas de suppression de compte, vos données identifiables sont définitivement effacées sous 30 jours. Seuls les signalements restent archivés sous forme rigoureusement anonyme.',
+              '4. Durée de Conservation & Sécurité Renforcée',
+              '• Chiffrement TLS / HTTPS de l\'ensemble des flux.\n• Authentification sécurisée et stockage chiffré des mots de passe.\n• En cas de suppression de compte, vos données identifiables sont définitivement effacées sous 30 jours. Seuls les signalements d\'infrastructures restent archivés sous forme rigoureusement anonyme.',
             ),
 
             _buildSection(
               isDark,
               LucideIcons.trash2,
-              '4. Vos Droits (Accès, Rectification, Suppression)',
-              'Conformément aux articles 28 à 34 de la Loi n° 2013-450, vous disposez d\'un droit d\'accès, de rectification et de suppression de toutes vos données personnelles directement depuis l\'écran Profil ou sur simple demande.',
+              '5. Vos Droits (Accès, Rectification, Suppression ARTCI)',
+              'Conformément aux articles 28 à 34 de la Loi n° 2013-450, vous disposez d\'un droit d\'accès, de rectification et de suppression de toutes vos données personnelles directement depuis l\'écran Profil ou sur simple demande à contact@signa.ci.',
             ),
 
             const SizedBox(height: 20),

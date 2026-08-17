@@ -361,7 +361,8 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
                       CivicPhotoView(
                         photoPath: _currentReport.photoUrl,
                         photoPaths: _currentReport.photoUrls,
-                        height: 220,
+                        reportDate: _currentReport.createdAt,
+                        aspectRatio: 16 / 10,
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ],

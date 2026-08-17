@@ -9,6 +9,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/communes.dart';
 import '../../../core/constants/quartiers.dart';
+import '../../../core/constants/supabase_constants.dart';
 import '../../../core/theme/app_theme.dart';
 
 // ─── Modèle de type de signalement (Miroir exact de Web ReportPage.tsx) ─────────
@@ -355,10 +356,9 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
       for (var photo in _selectedPhotos) {
         final bytes = await photo.readAsBytes();
         final fileName = '${DateTime.now().millisecondsSinceEpoch}_${photo.name}';
-        final path = 'reports/$fileName';
-        await Supabase.instance.client.storage.from('reports-media').uploadBinary(path, bytes);
-        final url = Supabase.instance.client.storage.from('reports-media').getPublicUrl(path);
-        uploadedPhotoUrls.add(url);
+        final path = '${user.id}/$fileName';
+        await Supabase.instance.client.storage.from(SupabaseConstants.photoBucket).uploadBinary(path, bytes);
+        uploadedPhotoUrls.add(path);
       }
 
       final now = DateTime.now();

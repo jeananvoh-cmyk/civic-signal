@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/communes.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/report_display_utils.dart';
 import '../../../domain/models/report_model.dart';
 import '../../common/civic_photo_view.dart';
 import '../reports/create_report_screen.dart';
@@ -247,11 +249,123 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
     }
   }
 
+  void _editReportDialog(String reportId, String currentDesc) {
+    final controller = TextEditingController(text: currentDesc);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text('Modifier la description', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        content: TextField(
+          controller: controller,
+          maxLines: 4,
+          maxLength: 500,
+          decoration: const InputDecoration(
+            hintText: 'Décrivez précisément la dégradation...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D9488)),
+            onPressed: () async {
+              final newText = controller.text.trim();
+              if (newText.isEmpty) return;
+              Navigator.pop(ctx);
+              try {
+                final oldFullDesc = _reports.firstWhere((r) => r['id'] == reportId)['description'] as String? ?? '';
+                final label = ReportDisplayUtils.extractInfraLabel(oldFullDesc);
+                final updatedDesc = label != null ? '[$label] $newText' : newText;
+
+                await Supabase.instance.client
+                    .from('reports')
+                    .update({'description': updatedDesc})
+                    .eq('id', reportId);
+
+                setState(() {
+                  final idx = _reports.indexWhere((r) => r['id'] == reportId);
+                  if (idx != -1) {
+                    _reports[idx]['description'] = updatedDesc;
+                  }
+                });
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('✓ Signalement mis à jour avec succès.'), backgroundColor: Color(0xFF16A34A)),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+                }
+              }
+            },
+            child: const Text('Enregistrer', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _shareReport(Map<String, dynamic> report) {
     final commune = report['commune'] ?? 'Abidjan';
-    final desc = report['description'] ?? 'Dégradation infrastructure';
-    final text = '🚨 Dégradation signalée sur SIGNA·CI ($commune) : "$desc". Soutenez la résolution ici : https://signaci.ci/signalement/${report['id']}';
-    launchUrl(Uri.parse('https://wa.me/?text=${Uri.encodeComponent(text)}'), mode: LaunchMode.externalApplication);
+    final quartier = report['quartier'] ?? '';
+    final rawDesc = report['description'] ?? 'Dégradation infrastructure';
+    final cleanDesc = ReportDisplayUtils.cleanDescription(rawDesc);
+    final link = 'https://signaci.ci/signalement/${report['id']}';
+    final shareText = '🚧 INFRASTRUCTURE — $quartier, $commune\n\n$cleanDesc\n\nSoutenez la résolution citoyenne ici : $link';
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: const Color(0xFFCBD5E1), borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 16),
+              Text('Partager ce signalement', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: const Color(0xFF25D366).withAlpha(25), shape: BoxShape.circle),
+                  child: const Icon(LucideIcons.messageCircle, color: Color(0xFF25D366), size: 20),
+                ),
+                title: const Text('WhatsApp', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Partager avec vos voisins et groupes de quartier', style: TextStyle(fontSize: 12)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  launchUrl(Uri.parse('https://wa.me/?text=${Uri.encodeComponent(shareText)}'), mode: LaunchMode.externalApplication);
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: const Color(0xFF0284C7).withAlpha(25), shape: BoxShape.circle),
+                  child: const Icon(LucideIcons.copy, color: Color(0xFF0284C7), size: 20),
+                ),
+                title: const Text('Copier le lien', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text(link, style: const TextStyle(fontSize: 12, color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Clipboard.setData(ClipboardData(text: link));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('✓ Lien copié dans le presse-papiers !'), backgroundColor: Color(0xFF16A34A)),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -629,17 +743,24 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
   }
 
   Widget _buildInfraReportCard(Map<String, dynamic> report) {
+    final user = Supabase.instance.client.auth.currentUser;
     final id = report['id'] as String;
-    final service = (report['service_type'] as String?)?.toLowerCase() ?? 'voirie';
     final commune = report['commune'] as String? ?? 'Abidjan';
     final quartier = report['quartier'] as String? ?? '';
-    final desc = report['description'] as String? ?? 'Dégradation signalée';
+    final rawDesc = report['description'] as String? ?? 'Dégradation signalée';
+    final infraLabel = ReportDisplayUtils.extractInfraLabel(rawDesc);
+    final infraEmoji = ReportDisplayUtils.getInfraEmoji(infraLabel);
+    final cleanDesc = ReportDisplayUtils.cleanDescription(rawDesc);
+    final createdAt = report['created_at'];
+    final timeAgoStr = ReportDisplayUtils.timeAgo(createdAt);
+
     final photoUrl = report['photo_url'] as String?;
     final supportCount = (report['support_count'] as int?) ?? 0;
     final repairCount = (report['repair_verifications'] as int?) ?? 0;
     final isSupported = _supportedReports.contains(id);
     final isRepaired = _repairedReports.contains(id);
     final status = (report['status'] as String?) ?? 'active';
+    final isOwner = user != null && report['user_id'] == user.id;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -648,189 +769,302 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: const [
-          BoxShadow(color: Color(0x08000000), blurRadius: 10, offset: Offset(0, 4)),
+          BoxShadow(color: Color(0x06000000), blurRadius: 10, offset: Offset(0, 3)),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Card
+          // ─── 1. EN-TÊTE DU POST (AVATAR EMOJI + BADGES + LOCALISATION + STATUT) ───
           Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.only(left: 14, right: 14, top: 14, bottom: 8),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildServiceBadge(service),
-                const SizedBox(width: 8),
+                // Avatar rond pastel avec Emoji de l'infra (1:1 Web)
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D9488).withAlpha(25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      infraEmoji,
+                      style: const TextStyle(fontSize: 20),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+
+                // Colonne métadonnées
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Badges : Label Infra + Modéré
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          if (infraLabel != null && infraLabel.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0D9488).withAlpha(20),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                infraLabel,
+                                style: const TextStyle(
+                                  color: Color(0xFF0F766E),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFFFDE68A)),
+                            ),
+                            child: const Text(
+                              'Modéré',
+                              style: TextStyle(
+                                color: Color(0xFFD97706),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+
+                      // Localisation & Date relative
                       Row(
                         children: [
                           const Icon(LucideIcons.mapPin, size: 12, color: Color(0xFF64748B)),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              '$commune${quartier.isNotEmpty ? ' · $quartier' : ''}',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1E293B)),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                          const SizedBox(width: 3),
+                          Text(
+                            quartier.isNotEmpty ? quartier : commune,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1E293B)),
+                          ),
+                          if (quartier.isNotEmpty && commune.isNotEmpty) ...[
+                            const SizedBox(width: 3),
+                            const Text('·', style: TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.bold)),
+                            const SizedBox(width: 3),
+                            Text(
+                              commune,
+                              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                             ),
+                          ],
+                          const SizedBox(width: 8),
+                          const Icon(LucideIcons.clock, size: 12, color: Color(0xFF64748B)),
+                          const SizedBox(width: 3),
+                          Text(
+                            timeAgoStr,
+                            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                           ),
                         ],
                       ),
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: status == 'resolved' ? const Color(0xFFDCFCE7) : const Color(0xFFFEF2F2),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    status == 'resolved' ? 'Résolu' : 'En cours',
-                    style: TextStyle(
-                      color: status == 'resolved' ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+
+                // Statut En direct (Pastille animée)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: status == 'resolved' ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 4),
+                    Text(
+                      status == 'resolved' ? 'Résolu' : 'En cours',
+                      style: TextStyle(
+                        color: status == 'resolved' ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
 
-          // High-Res Photo or Carousel if available
+          // ─── 2. DESCRIPTION PROPRE (Sans crochets disgracieux) ───
+          Padding(
+            padding: const EdgeInsets.only(left: 14, right: 14, bottom: 10),
+            child: Text(
+              cleanDesc.isEmpty ? 'Dégradation signalée' : cleanDesc,
+              style: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF1E293B),
+                height: 1.45,
+              ),
+            ),
+          ),
+
+          // ─── 3. GALERIE PHOTOS HD AVEC LIGHTBOX & ZOOM ───
           if ((photoUrl != null && photoUrl.isNotEmpty) || (report['photo_urls'] != null && (report['photo_urls'] as List).isNotEmpty))
             Padding(
-              padding: const EdgeInsets.only(left: 14, right: 14, top: 4, bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
               child: CivicPhotoView(
                 photoPath: photoUrl,
                 photoPaths: report['photo_urls'] as List<dynamic>?,
-                height: 220,
+                reportDate: report['created_at'],
+                aspectRatio: 16 / 10,
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
 
-          // Description Text
+          // ─── 4. BARRE DE STATISTIQUES CITOYENNES (1:1 Web) ───
           Padding(
-            padding: const EdgeInsets.all(14),
-            child: Text(
-              desc,
-              style: const TextStyle(fontSize: 13, color: Color(0xFF334155), height: 1.4),
+            padding: const EdgeInsets.only(left: 14, right: 14, top: 8, bottom: 8),
+            child: Row(
+              children: [
+                if (supportCount > 0) ...[
+                  const Text('🙋 ', style: TextStyle(fontSize: 13)),
+                  Text(
+                    '$supportCount citoyen${supportCount > 1 ? 's' : ''} veulent une réparation rapide',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF0D9488)),
+                  ),
+                ] else ...[
+                  const Icon(LucideIcons.thumbsUp, size: 12, color: Color(0xFF94A3B8)),
+                  const SizedBox(width: 5),
+                  const Text(
+                    'Soyez le premier à soutenir',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  ),
+                ],
+                if (repairCount > 0 && status != 'resolved') ...[
+                  const Spacer(),
+                  const Icon(LucideIcons.checkCircle2, size: 12, color: Color(0xFF16A34A)),
+                  const SizedBox(width: 4),
+                  Text(
+                    '$repairCount/3 réparé',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF16A34A)),
+                  ),
+                ],
+              ],
             ),
           ),
 
-          const Divider(height: 1),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
 
-          // Action Buttons: Support (Moi aussi), Repair Confirmation, Share
+          // ─── 5. BARRE D'ACTIONS (Moi aussi, Modifier, Réparé, Partager) ───
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             child: Row(
               children: [
-                // Support Button
-                OutlinedButton.icon(
-                  onPressed: () => _toggleSupport(id, report['user_id'] as String?),
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: isSupported ? const Color(0xFFFEF3C7) : Colors.transparent,
-                    side: BorderSide(color: isSupported ? const Color(0xFFF59E0B) : const Color(0xFFE2E8F0)),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  ),
-                  icon: Icon(
-                    LucideIcons.thumbsUp,
-                    size: 14,
-                    color: isSupported ? const Color(0xFFD97706) : const Color(0xFF64748B),
-                  ),
-                  label: Text(
-                    'Moi aussi ($supportCount)',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: isSupported ? const Color(0xFFD97706) : const Color(0xFF475569),
+                // Bouton Soutien ou Mon signalement
+                if (isOwner) ...[
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(LucideIcons.thumbsUp, size: 14, color: Color(0xFF94A3B8)),
+                        SizedBox(width: 4),
+                        Text(
+                          'Mon signalement',
+                          style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-
-                const SizedBox(width: 8),
-
-                // Repair Confirm Button
-                OutlinedButton.icon(
-                  onPressed: () => _toggleRepairConfirmation(id),
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: isRepaired ? const Color(0xFFDCFCE7) : Colors.transparent,
-                    side: BorderSide(color: isRepaired ? const Color(0xFF16A34A) : const Color(0xFFE2E8F0)),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  ),
-                  icon: Icon(
-                    LucideIcons.checkCircle2,
-                    size: 14,
-                    color: isRepaired ? const Color(0xFF16A34A) : const Color(0xFF64748B),
-                  ),
-                  label: Text(
-                    'Réparé ? ($repairCount)',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: isRepaired ? const Color(0xFF16A34A) : const Color(0xFF475569),
+                  if (status == 'active')
+                    TextButton.icon(
+                      onPressed: () => _editReportDialog(id, cleanDesc),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        foregroundColor: const Color(0xFF475569),
+                      ),
+                      icon: const Icon(LucideIcons.edit3, size: 13),
+                      label: const Text('Modifier', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                    ),
+                ] else
+                  TextButton.icon(
+                    onPressed: () => _toggleSupport(id, report['user_id'] as String?),
+                    style: TextButton.styleFrom(
+                      backgroundColor: isSupported ? const Color(0xFF0D9488).withAlpha(20) : Colors.transparent,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      foregroundColor: isSupported ? const Color(0xFF0D9488) : const Color(0xFF475569),
+                    ),
+                    icon: Icon(
+                      LucideIcons.thumbsUp,
+                      size: 14,
+                      color: isSupported ? const Color(0xFF0D9488) : const Color(0xFF64748B),
+                    ),
+                    label: Text(
+                      isSupported ? 'Soutenu ✓' : 'Moi aussi ($supportCount)',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: isSupported ? FontWeight.bold : FontWeight.w600,
+                      ),
                     ),
                   ),
-                ),
 
                 const Spacer(),
 
-                // Share Button
+                // Bouton "C'est réparé ?"
+                if (status == 'active')
+                  TextButton.icon(
+                    onPressed: () => _toggleRepairConfirmation(id),
+                    style: TextButton.styleFrom(
+                      backgroundColor: isRepaired ? const Color(0xFFDCFCE7) : Colors.transparent,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      foregroundColor: isRepaired ? const Color(0xFF16A34A) : const Color(0xFF059669),
+                    ),
+                    icon: Icon(
+                      isRepaired ? LucideIcons.checkCircle : LucideIcons.checkCircle2,
+                      size: 14,
+                      color: const Color(0xFF16A34A),
+                    ),
+                    label: Text(
+                      isRepaired ? 'Réparé ✓' : 'C\'est réparé ?',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: isRepaired ? FontWeight.bold : FontWeight.w600,
+                      ),
+                    ),
+                  ),
+
+                // Lien Détail externe
                 IconButton(
+                  onPressed: () {
+                    final rep = ReportModel.fromJson(report);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => ReportDetailScreen(report: rep)));
+                  },
+                  icon: const Icon(LucideIcons.externalLink, size: 15, color: Color(0xFF64748B)),
+                  tooltip: 'Voir le détail',
+                ),
+
+                // Bouton Partager
+                TextButton.icon(
                   onPressed: () => _shareReport(report),
-                  icon: const Icon(LucideIcons.share2, size: 16, color: Color(0xFF64748B)),
-                  tooltip: 'Partager sur WhatsApp',
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    foregroundColor: const Color(0xFF475569),
+                  ),
+                  icon: const Icon(LucideIcons.share2, size: 14, color: Color(0xFF64748B)),
+                  label: const Text('Partager', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
                 ),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildServiceBadge(String service) {
-    if (service == 'water' || service == 'eau') {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(color: const Color(0xFFE0F2FE), borderRadius: BorderRadius.circular(6)),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(LucideIcons.droplets, color: Color(0xFF0284C7), size: 12),
-            SizedBox(width: 4),
-            Text('SODECI', style: TextStyle(color: Color(0xFF0284C7), fontSize: 10, fontWeight: FontWeight.bold)),
-          ],
-        ),
-      );
-    }
-    if (service == 'electricity' || service == 'electricite') {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(6)),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(LucideIcons.zap, color: Color(0xFFEA580C), size: 12),
-            SizedBox(width: 4),
-            Text('CIE', style: TextStyle(color: Color(0xFFEA580C), fontSize: 10, fontWeight: FontWeight.bold)),
-          ],
-        ),
-      );
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: const Color(0xFFECFDF5), borderRadius: BorderRadius.circular(6)),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(LucideIcons.building2, color: Color(0xFF059669), size: 12),
-          SizedBox(width: 4),
-          Text('MAIRIE', style: TextStyle(color: Color(0xFF059669), fontSize: 10, fontWeight: FontWeight.bold)),
         ],
       ),
     );

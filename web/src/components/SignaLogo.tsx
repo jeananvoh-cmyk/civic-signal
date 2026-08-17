@@ -4,9 +4,10 @@ interface SignaLogoProps {
   className?: string;
   size?: "sm" | "md" | "lg" | "xl";
   showSlogan?: boolean;
+  variant?: "default" | "white" | "dark";
 }
 
-export const SignaLogo = ({ className, size = "md", showSlogan = false }: SignaLogoProps) => {
+export const SignaLogo = ({ className, size = "md", showSlogan = false, variant = "default" }: SignaLogoProps) => {
   const iconSizes = {
     sm: "h-9 w-9",
     md: "h-11 w-11",
@@ -28,92 +29,79 @@ export const SignaLogo = ({ className, size = "md", showSlogan = false }: SignaL
     xl: "text-[15px]",
   };
 
+  const isWhite = variant === "white";
+
   return (
     <div className={cn("inline-flex items-center gap-3 select-none", className)}>
-      {/* 📍 Emblem : Pin Couronné par les 3 Citoyens Dorés + 4 Services */}
-      <div className={cn("relative flex items-center justify-center shrink-0 drop-shadow-xs", iconSizes[size])}>
-        <svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-full w-full">
+      {/* 📍 Isotype Minimaliste & Épuré : Balise Pin + "S" Dynamique + 2 Ondes Civiques */}
+      <div className={cn("relative flex items-center justify-center shrink-0 drop-shadow-sm", iconSizes[size])}>
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-full w-full">
           <defs>
-            <linearGradient id="goldCitizens" x1="0" y1="0" x2="100" y2="0" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#D97706" />
-              <stop offset="0.5" stopColor="#F59E0B" />
-              <stop offset="1" stopColor="#D97706" />
+            <linearGradient id="signaGradPrimary" x1="15" y1="10" x2="85" y2="95" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#10B981" />
+              <stop offset="50%" stopColor="#0D9488" />
+              <stop offset="100%" stopColor="#0284C7" />
             </linearGradient>
-            <linearGradient id="pinGreenBorder" x1="0" y1="0" x2="0" y2="120" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#064E3B" />
-              <stop offset="1" stopColor="#047857" />
+            <linearGradient id="signaGradSignal" x1="60" y1="20" x2="90" y2="50" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#F59E0B" />
+              <stop offset="100%" stopColor="#EA580C" />
             </linearGradient>
           </defs>
 
-          {/* 👥 3 Citoyens en Silhouette Dorée tenant la main au sommet du Pin (Style Image 2) */}
-          <g fill="url(#goldCitizens)">
-            {/* Tête Citoyen Gauche */}
-            <circle cx="28" cy="18" r="6" />
-            {/* Tête Citoyen Centre */}
-            <circle cx="50" cy="12" r="7" />
-            {/* Tête Citoyen Droit */}
-            <circle cx="72" cy="18" r="6" />
-
-            {/* Bustes & Bras unis formant la couronne supérieure du Pin */}
-            <path
-              d="M18 36C22 26 31 24 38 28C43 24 47 20 50 20C53 20 57 24 62 28C69 24 78 26 82 36C76 30 68 31 50 31C32 31 24 30 18 36Z"
-            />
-            {/* Bras qui se rejoignent en boucle unie */}
-            <path
-              d="M26 36C34 42 42 42 50 38C58 42 66 42 74 36C68 44 58 45 50 42C42 45 32 44 26 36Z"
-              opacity="0.9"
-            />
-          </g>
-
-          {/* 📍 Corps du Pin / Bouclier Vert Forêt (Structure Image 1) */}
+          {/* 📍 Corps du Pin fusionné avec le 'S' aérodynamique */}
           <path
-            d="M50 26C31 26 18 40 18 60C18 84 50 114 50 114C50 114 82 84 82 60C82 40 69 26 50 26Z"
-            fill="url(#pinGreenBorder)"
-            stroke="white"
-            strokeWidth="3.5"
-            strokeLinejoin="round"
+            d="M 50 12 C 32 12 18 26 18 44 C 18 64 42 86 48 91.5 C 49.2 92.5 50.8 92.5 52 91.5 C 58 86 82 64 82 44 C 82 26 68 12 50 12 Z M 50 24 C 59 24 67 31 67 40 C 67 44 64 48 60 50 C 54 53 44 54 44 59 C 44 62 47 64 51 64 C 56 64 61 61 63 58 L 69 63 C 65 69 58 72 50 72 C 40 72 34 66 34 58 C 34 50 42 47 48 44 C 54 42 57 40 57 37 C 57 33 53 31 49 31 C 44 31 40 34 38 38 L 31 34 C 34 28 42 24 50 24 Z"
+            fill="url(#signaGradPrimary)"
           />
 
-          {/* Cœur central blanc pour lisibilité des 4 services */}
-          <circle cx="50" cy="62" r="23" fill="white" />
-
-          {/* 💧 1. Eau (SODECI / ONEP) - Haut Gauche */}
-          <g transform="translate(34, 46) scale(0.65)">
-            <path d="M9 2C9 2 4 8 4 11.5C4 14.5 6.2 17 9 17C11.8 17 14 14.5 14 11.5C14 8 9 2 9 2Z" fill="#0284C7" />
-            <path d="M2 5H9V7H2V5Z" fill="#0284C7" />
-          </g>
-
-          {/* ⚡ 2. Ampoule & Éclair (CIE / ANARE) - Haut Droit */}
-          <g transform="translate(54, 46) scale(0.65)">
-            <path d="M9 2C5.7 2 3 4.7 3 8C3 10.2 4.2 12.1 6 13.1V15C6 15.6 6.4 16 7 16H11C11.6 16 12 15.6 12 15V13.1C13.8 12.1 15 10.2 15 8C15 4.7 12.3 2 9 2ZM8 11L11 6H9L10 4L7 9H9L8 11Z" fill="#F59E0B" />
-          </g>
-
-          {/* 🗑️ 3. Sac Poubelle / Salubrité (Mairie) - Bas Gauche */}
-          <g transform="translate(34, 66) scale(0.65)">
-            <rect x="3" y="6" width="12" height="11" rx="2" fill="#10B981" />
-            <path d="M6 3H12V6H6V3Z" fill="#10B981" />
-          </g>
-
-          {/* 🛣️ 4. Route avec bande centrale (Voirie - Mairie) - Bas Droit */}
-          <g transform="translate(54, 66) scale(0.65)">
-            <path d="M4 17L7 2H11L14 17H4Z" fill="#EA580C" />
-            <line x1="9" y1="4" x2="9" y2="7" stroke="white" strokeWidth="1.5" />
-            <line x1="9" y1="10" x2="9" y2="14" stroke="white" strokeWidth="1.5" />
-          </g>
+          {/* 📶 2 Ondes de Signal Civique Minimalistes */}
+          <path
+            d="M 72 26 C 78 31 82 38 82 46 C 82 54 78 61 72 66"
+            stroke="url(#signaGradSignal)"
+            strokeWidth="5"
+            strokeLinecap="round"
+          />
+          <path
+            d="M 83 18 C 91 25 96 35 96 46 C 96 57 91 67 83 74"
+            stroke="url(#signaGradSignal)"
+            strokeWidth="5"
+            strokeLinecap="round"
+          />
         </svg>
       </div>
 
-      {/* 🔤 Nom Officiel SIGNA.ci & Slogan */}
+      {/* 🔤 Nom Officiel SIGNA.ci & Slogan avec Contraste Parfait */}
       <div className="flex flex-col leading-none">
-        <span className={cn("font-display font-extrabold tracking-tight text-foreground", textSizes[size])}>
-          SIGNA<span className="text-emerald-600 dark:text-emerald-400">.ci</span>
+        <span
+          className={cn(
+            "font-display font-black tracking-tight",
+            isWhite ? "text-white" : "text-slate-900 dark:text-white",
+            textSizes[size]
+          )}
+        >
+          SIGNA
+          <span className={cn(isWhite ? "text-emerald-400" : "text-emerald-600 dark:text-emerald-400")}>
+            .ci
+          </span>
         </span>
         {showSlogan ? (
-          <span className={cn("font-extrabold tracking-wider text-muted-foreground uppercase mt-1", sloganSizes[size])}>
+          <span
+            className={cn(
+              "font-extrabold tracking-wider uppercase mt-1",
+              isWhite ? "text-slate-300" : "text-slate-500 dark:text-slate-400",
+              sloganSizes[size]
+            )}
+          >
             SIGNALER. SUIVRE. RÉPARER.
           </span>
         ) : (
-          <span className={cn("font-bold tracking-wider text-emerald-800 dark:text-emerald-400 uppercase mt-0.5", sloganSizes[size])}>
+          <span
+            className={cn(
+              "font-bold tracking-wider uppercase mt-0.5",
+              isWhite ? "text-emerald-300" : "text-emerald-800 dark:text-emerald-300",
+              sloganSizes[size]
+            )}
+          >
             SIGNALER. SUIVRE. RÉPARER.
           </span>
         )}

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/communes.dart';
+import '../../../core/theme/app_theme.dart';
 import '../commune/commune_detail_screen.dart';
 
 class TrendsScreen extends StatefulWidget {
@@ -21,6 +22,7 @@ class _TrendsScreenState extends State<TrendsScreen> {
   double _resolutionRate = 79.2;
   String _avgElecDelay = '5h 30min';
   String _avgEauDelay = '4h 15min';
+  String _avgMairieDelay = '6h 40min';
 
   @override
   void initState() {
@@ -39,11 +41,14 @@ class _TrendsScreenState extends State<TrendsScreen> {
 
         String elecStr = '5h 30min';
         String eauStr = '4h 15min';
+        String mairieStr = '6h 40min';
         if (avgHours != null) {
-          final eH = (avgHours['electricity'] as num? ?? 5.5).toDouble();
-          final wH = (avgHours['water'] as num? ?? 4.2).toDouble();
-          elecStr = _formatHours(eH);
-          eauStr = _formatHours(wH);
+          final eH = (avgHours['electricity'] as num?)?.toDouble();
+          final wH = (avgHours['water'] as num?)?.toDouble();
+          final mH = (avgHours['infrastructure'] as num? ?? avgHours['mairie'] as num?)?.toDouble();
+          if (eH != null && eH > 0) elecStr = _formatHours(eH);
+          if (wH != null && wH > 0) eauStr = _formatHours(wH);
+          if (mH != null && mH > 0) mairieStr = _formatHours(mH);
         }
 
         if (mounted) {
@@ -55,6 +60,7 @@ class _TrendsScreenState extends State<TrendsScreen> {
             _resolutionRate = (data['resolution_rate'] as num? ?? 79.2).toDouble();
             _avgElecDelay = elecStr;
             _avgEauDelay = eauStr;
+            _avgMairieDelay = mairieStr;
             _isLoading = false;
           });
         }
@@ -68,10 +74,8 @@ class _TrendsScreenState extends State<TrendsScreen> {
 
   String _formatHours(double h) {
     if (h < 1) return '${(h * 60).round()} min';
-    if (h < 24) return '${h.floor()}h ${(h.remainder(1) * 60).round()}min';
-    final days = (h / 24).floor();
-    final remH = (h % 24).floor();
-    return '${days}j ${remH}h';
+    if (h < 24) return '${h.round()} h';
+    return '${(h / 24).round()} j';
   }
 
   @override
@@ -84,6 +88,13 @@ class _TrendsScreenState extends State<TrendsScreen> {
         backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         elevation: 1,
         title: Text('Transparence & Délais', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18)),
+        actions: [
+          IconButton(
+            icon: const Icon(LucideIcons.info, size: 20),
+            tooltip: 'Comment est calculé le délai ?',
+            onPressed: () => _showDelayExplanationModal(context, isDark),
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -176,23 +187,48 @@ class _TrendsScreenState extends State<TrendsScreen> {
                             isDark: isDark,
                             icon: LucideIcons.zap,
                             iconColor: const Color(0xFFD97706),
-                            label: 'Délai Moy. CIE',
+                            label: 'Délai CIE',
                             value: _avgElecDelay,
-                            sub: 'Électricité moyenne',
+                            sub: 'Électricité moy.',
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: _buildKpiCard(
                             isDark: isDark,
                             icon: LucideIcons.droplet,
                             iconColor: const Color(0xFF0284C7),
-                            label: 'Délai Moy. SODECI',
+                            label: 'Délai SODECI',
                             value: _avgEauDelay,
-                            sub: 'Eau potable moyenne',
+                            sub: 'Eau potable moy.',
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildKpiCard(
+                            isDark: isDark,
+                            icon: LucideIcons.landmark,
+                            iconColor: const Color(0xFF10B981),
+                            label: 'Délai Mairie',
+                            value: _avgMairieDelay,
+                            sub: 'Voirie & Salubrité',
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 8),
+                    Center(
+                      child: InkWell(
+                        onTap: () => _showDelayExplanationModal(context, isDark),
+                        child: Text(
+                          'Données citoyennes en temps réel · (Comment est calculé ce délai ?)',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontStyle: FontStyle.italic,
+                            color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          ),
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 24),
 
@@ -327,6 +363,130 @@ class _TrendsScreenState extends State<TrendsScreen> {
           const SizedBox(height: 10),
           Text(value, style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w900)),
           Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+        ],
+      ),
+    );
+  }
+
+  void _showDelayExplanationModal(BuildContext context, bool isDark) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.grey[700] : Colors.grey[300],
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withAlpha(30),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(LucideIcons.trendingUp, color: Color(0xFF10B981), size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Comment est calculé le délai moyen ?', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15)),
+                      const Text('Méthode de calcul transparente & citoyenne', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildExplanationStep(
+              '1. Formule de calcul (Phase actuelle)',
+              'Le délai correspond à la durée réelle écoulée entre l\'heure déclarée de début de panne et sa confirmation de rétablissement (validée par la communauté ou nos modérateurs).',
+              'Délai = Date de rétablissement − Date de signalement',
+              const Color(0xFF0284C7),
+              isDark,
+            ),
+            const SizedBox(height: 10),
+            _buildExplanationStep(
+              '2. Filtrage des anomalies',
+              'Les signalements clôturés immédiatement (< 5 min) ou orphelins sont automatiquement écartés pour ne pas fausser les temps moyens réels.',
+              null,
+              const Color(0xFFD97706),
+              isDark,
+            ),
+            const SizedBox(height: 10),
+            _buildExplanationStep(
+              '3. Évolution avec les Partenaires Officiels',
+              'Dès le raccordement direct des services techniques (CIE, SODECI, Mairies), le calcul intégrera le SLA officiel de prise en charge avec double vérification citoyenne.',
+              null,
+              const Color(0xFF10B981),
+              isDark,
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryTeal,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Compris', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExplanationStep(String title, String desc, String? formula, Color color, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: color)),
+          const SizedBox(height: 4),
+          Text(desc, style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[300] : Colors.grey[700], height: 1.3)),
+          if (formula != null) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: color.withAlpha(50)),
+              ),
+              child: Text(formula, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color, fontFamily: 'monospace')),
+            ),
+          ],
         ],
       ),
     );

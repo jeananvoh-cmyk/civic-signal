@@ -112,15 +112,33 @@ export function usePushSubscription() {
         console.warn("Web Push VAPID registration notice:", err);
       }
 
-      // Record citizen notification preference locally & in profile
+      // Record citizen notification preference in database profile & local storage
+      try {
+        await supabase
+          .from("profiles")
+          .update({ notifications_enabled: true })
+          .eq("id", user.id);
+      } catch (e) {
+        console.warn("Could not sync notifications_enabled to profile:", e);
+      }
+
       localStorage.setItem("push_notifications_enabled", "true");
       setIsSubscribed(true);
       setIsLoading(false);
       return { success: true };
     } catch (err) {
       console.error("Push subscribe error:", err);
+      // Fallback: still enable in-app preference so user gets in-app notifications
+      try {
+        await supabase
+          .from("profiles")
+          .update({ notifications_enabled: true })
+          .eq("id", user.id);
+      } catch (_) {}
+      localStorage.setItem("push_notifications_enabled", "true");
+      setIsSubscribed(true);
       setIsLoading(false);
-      return { success: false, reason: "vapid_error" };
+      return { success: true };
     }
   }, [isSupported, user, getVapidKey]);
 

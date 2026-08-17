@@ -57,6 +57,7 @@ const TransparencyPage = lazy(() => import("./pages/TransparencyPage"));
 const UpdatePasswordPage = lazy(() => import("./pages/UpdatePasswordPage"));
 const SuiviPage = lazy(() => import("./pages/SuiviPage"));
 const CompteurPage = lazy(() => import("./pages/CompteurPage"));
+const BrandPage = lazy(() => import("./pages/BrandPage"));
 
 const queryClient = new QueryClient();
 
@@ -131,6 +132,8 @@ const App = () => {
                     <Route path="/update-password" element={<UpdatePasswordPage />} />
                     <Route path="/suivi" element={<SuiviPage />} />
                     <Route path="/compteur" element={<CompteurPage />} />
+                    <Route path="/brand" element={<BrandPage />} />
+                    <Route path="/logo" element={<BrandPage />} />
 
                     {/* Admin routes */}
                     <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>

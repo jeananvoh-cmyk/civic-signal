@@ -16,6 +16,8 @@ class PartnerDashboardScreen extends StatefulWidget {
 class _PartnerDashboardScreenState extends State<PartnerDashboardScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isLoading = true;
+  bool _isCheckingRole = true;
+  bool _hasAccess = false;
   String _orgName = 'Régie Partenaire CIE / SODECI';
   String _partnerType = 'Opérateur Technique';
   String? _communeFilter;
@@ -45,18 +47,73 @@ class _PartnerDashboardScreenState extends State<PartnerDashboardScreen> with Si
     setState(() => _isLoading = true);
     try {
       final user = Supabase.instance.client.auth.currentUser;
-      if (user != null) {
-        final profileRes = await Supabase.instance.client
-            .from('partner_profiles')
-            .select('organization_name, partner_type, commune')
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-        if (profileRes != null) {
-          _orgName = profileRes['organization_name'] as String? ?? _orgName;
-          _partnerType = profileRes['partner_type'] as String? ?? _partnerType;
-          _communeFilter = profileRes['commune'] as String?;
+      if (user == null) {
+        if (mounted) {
+          setState(() {
+            _hasAccess = false;
+            _isCheckingRole = false;
+            _isLoading = false;
+          });
         }
+        return;
+      }
+
+      bool isPartner = false;
+      bool isAdmin = false;
+      try {
+        final partnerRes = await Supabase.instance.client.rpc('has_role', params: {
+          '_user_id': user.id,
+          '_role': 'partner',
+        });
+        isPartner = partnerRes == true;
+
+        final adminRes = await Supabase.instance.client.rpc('has_role', params: {
+          '_user_id': user.id,
+          '_role': 'admin',
+        });
+        isAdmin = adminRes == true;
+      } catch (_) {}
+
+      final profileRes = await Supabase.instance.client
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
+
+      final role = (profileRes != null && profileRes['role'] != null)
+          ? profileRes['role'].toString().toLowerCase()
+          : '';
+
+      final access = isPartner || isAdmin || role == 'partenaire' || role == 'moderateur' || role == 'agent' || role == 'admin';
+
+      if (!access) {
+        if (mounted) {
+          setState(() {
+            _hasAccess = false;
+            _isCheckingRole = false;
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      if (mounted) {
+        setState(() {
+          _hasAccess = true;
+          _isCheckingRole = false;
+        });
+      }
+
+      final partnerProfileRes = await Supabase.instance.client
+          .from('partner_profiles')
+          .select('organization_name, partner_type, commune')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      if (partnerProfileRes != null && mounted) {
+        _orgName = partnerProfileRes['organization_name'] as String? ?? _orgName;
+        _partnerType = partnerProfileRes['partner_type'] as String? ?? _partnerType;
+        _communeFilter = partnerProfileRes['commune'] as String?;
       }
 
       final reportsData = await Supabase.instance.client
@@ -160,6 +217,45 @@ class _PartnerDashboardScreenState extends State<PartnerDashboardScreen> with Si
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (_isCheckingRole) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Espace Partenaires')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (!_hasAccess) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Accès Restreint')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(LucideIcons.shieldAlert, size: 56, color: Color(0xFFD97706)),
+                const SizedBox(height: 16),
+                Text('Accès Partenaire & Régie Requis', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18), textAlign: TextAlign.center),
+                const SizedBox(height: 8),
+                const Text(
+                  'Cet espace est strictement réservé aux techniciens accrédités CIE, SODECI et Mairies.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryTeal, foregroundColor: Colors.white),
+                  icon: const Icon(LucideIcons.arrowLeft, size: 16),
+                  label: const Text('Retour'),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
