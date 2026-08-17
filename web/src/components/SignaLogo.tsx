@@ -43,8 +43,16 @@ export const SignaLogo = ({ className, size = "md", showSlogan = false, variant 
             </linearGradient>
           </defs>
 
-          {/* Disque vert émeraude plein */}
-          <circle cx="50" cy="50" r="48" fill="url(#signaModel1Grad)" />
+          {/* Disque vert émeraude plein avec liséré de contraste pour fond sombre */}
+          <circle
+            cx="50"
+            cy="50"
+            r="47"
+            fill="url(#signaModel1Grad)"
+            stroke="#34D399"
+            strokeWidth="1.5"
+            strokeOpacity="0.4"
+          />
 
           {/* Anneau blanc intérieur */}
           <path

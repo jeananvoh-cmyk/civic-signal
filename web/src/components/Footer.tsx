@@ -77,7 +77,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-3 md:col-span-1">
             <Link to="/" className="inline-block">
-              <SignaLogo size="md" />
+              <SignaLogo size="md" variant="white" />
             </Link>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-black tracking-widest text-emerald-400 uppercase">
               SIGNALER · SUIVRE · RÉPARER
