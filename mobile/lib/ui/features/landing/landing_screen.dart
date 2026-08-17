@@ -8,19 +8,15 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/communes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/models/report_model.dart';
-import '../auth/auth_screen.dart';
 import '../commune/commune_detail_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../home/signa_logo.dart';
 import '../map/map_screen.dart';
-import '../donation/donation_screen.dart';
 import '../infrastructure/infrastructure_screen.dart';
 import '../meter/meter_screen.dart';
 import '../reports/create_report_screen.dart';
 import '../reports/report_detail_screen.dart';
-import '../tracking/tracking_screen.dart';
 import '../trends/trends_screen.dart';
-import '../verification/verification_screen.dart';
 import '../notifications/notification_center_screen.dart';
 
 class LandingScreen extends ConsumerStatefulWidget {
@@ -38,8 +34,6 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
   int _totalReports = 31;
   int _resolvedReports = 26;
   int _activeOutages = 5;
-  int _totalUsers = 48;
-  bool _isLoadingStats = true;
 
   // Recent Reports
   List<ReportModel> _recentReports = [];
@@ -118,7 +112,6 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
             _activeOutages = act > 0 ? act : 5;
             _resolvedReports = res > 0 ? res : 26;
             _totalReports = tot > 0 ? tot : 31;
-            _isLoadingStats = false;
           });
         }
       }
@@ -130,9 +123,9 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
           .order('created_at', ascending: false)
           .limit(6);
 
-      if (reportsData is List && mounted) {
+      if (mounted) {
         setState(() {
-          _recentReports = (reportsData as List).map((e) => ReportModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+          _recentReports = reportsData.map((e) => ReportModel.fromJson(Map<String, dynamic>.from(e))).toList();
           _isLoadingReports = false;
         });
       }
@@ -145,7 +138,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
             .select('id')
             .eq('user_id', user.id)
             .eq('read', false);
-        if (mounted && notifs is List) {
+        if (mounted) {
           setState(() {
             _unreadNotifCount = notifs.length;
           });
@@ -175,7 +168,6 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
     } catch (_) {
       if (mounted) {
         setState(() {
-          _isLoadingStats = false;
           _isLoadingReports = false;
         });
       }
@@ -197,7 +189,6 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentWord = _rotatingWords[_wordIndex];
-    final currentUser = Supabase.instance.client.auth.currentUser;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF030D1A) : const Color(0xFFF8FAFC),
@@ -1074,7 +1065,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
               const SizedBox(height: 24),
 
               // ══════════════════════════════════════════════════════════
-              // 7. SECTION COMMENT ÇA MARCHE (4 Étapes 1:1 Web)
+              // 7. SECTION COMMENT ÇA MARCHE (3 Étapes Limpides 1:1 Web)
               // ══════════════════════════════════════════════════════════
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -1083,159 +1074,66 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                   children: [
                     Text('Comment ça marche', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 17)),
                     const SizedBox(height: 4),
-                    const Text('De la détection du problème à la décision en 4 étapes simples :', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    const Text('3 étapes simples pour faire entendre la voix de votre quartier :', style: TextStyle(fontSize: 12, color: Colors.grey)),
                     const SizedBox(height: 12),
 
-                    Row(
-                      children: [
-                        Expanded(child: _buildStepCard('01', '📍', 'Localisez', 'GPS auto en 2 min')),
-                        const SizedBox(width: 10),
-                        Expanded(child: _buildStepCard('02', '⚡', 'Signalez', '3 clics suffisent')),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(child: _buildStepCard('03', '🤝', 'Vérifiez', 'Voisins solidaires')),
-                        const SizedBox(width: 10),
-                        Expanded(child: _buildStepCard('04', '📊', 'Impact', 'Décideurs informés')),
-                      ],
-                    ),
+                    _buildStepCard('01', '📢', 'Signalez en 30s', 'Détection GPS automatique et photo facultative', isDark),
+                    const SizedBox(height: 8),
+                    _buildStepCard('02', '🤝', 'Corroborez ensemble', 'Les voisins confirment en 1 clic pour prouver l\'urgence', isDark),
+                    const SizedBox(height: 8),
+                    _buildStepCard('03', '🛠️', 'Suivez la résolution', 'Dossier transmis et alerte directe dès le rétablissement', isDark),
                   ],
                 ),
               ),
               const SizedBox(height: 24),
 
               // ══════════════════════════════════════════════════════════
-              // 7.5. BANDEAU SUIVI & DONS MOBILE MONEY (1:1 Web Suivi/Donation)
-              // ══════════════════════════════════════════════════════════
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrackingScreen())),
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: const [
-                                  Icon(LucideIcons.search, size: 16, color: AppTheme.primaryTeal),
-                                  SizedBox(width: 6),
-                                  Text('Suivi Direct', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              const Text('Suivre un ticket #SIG', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InfrastructureScreen())),
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: const [
-                                  Icon(LucideIcons.construction, size: 16, color: Color(0xFFEA580C)),
-                                  SizedBox(width: 6),
-                                  Text('Fil Voirie', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              const Text('Infrastructures HD', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DonationScreen())),
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: const [
-                                  Icon(LucideIcons.heart, size: 16, color: Color(0xFFEF4444)),
-                                  SizedBox(width: 6),
-                                  Text('Soutenir', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              const Text('Mobile Money CI', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // ══════════════════════════════════════════════════════════
-              // 8. SECTION COMMUNAUTÉ & RÉSEAUX SOCIAUX (1:1 Web)
+              // 8. BANDEAU D'ENTRAIDE CITOYENNE UNIQUE (1:1 Web)
               // ══════════════════════════════════════════════════════════
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Container(
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFFECFDF5),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                    border: Border.all(color: const Color(0xFF10B981).withAlpha(50)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Rejoignez la communauté', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withAlpha(30),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Text('🇨🇮 CIVICTECH CI', style: TextStyle(color: Color(0xFF059669), fontSize: 9, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text('Faites entendre votre commune', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
                       const SizedBox(height: 4),
-                      const Text('Restez informé en temps réel et partagez avec vos voisins.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      const Text(
+                        'SIGNA.ci est une initiative 100% citoyenne et gratuite pour accélérer la résolution des pannes publiques à Abidjan.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey, height: 1.3),
+                      ),
                       const SizedBox(height: 14),
-
                       Row(
                         children: [
                           Expanded(
-                            child: OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF059669),
                                 padding: const EdgeInsets.symmetric(vertical: 12),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                side: const BorderSide(color: Color(0xFF25D366)),
                               ),
-                              icon: const Icon(LucideIcons.messageCircle, color: Color(0xFF25D366), size: 18),
-                              label: const Text('WhatsApp', style: TextStyle(color: Color(0xFF25D366), fontWeight: FontWeight.bold, fontSize: 13)),
-                              onPressed: () => launchUrl(Uri.parse('https://chat.whatsapp.com/signa-ci'), mode: LaunchMode.externalApplication),
+                              icon: const Icon(LucideIcons.megaphone, color: Colors.white, size: 16),
+                              label: const Text('Signaler', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateReportScreen())),
                             ),
                           ),
                           const SizedBox(width: 10),
@@ -1244,11 +1142,11 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                               style: OutlinedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(vertical: 12),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                side: const BorderSide(color: Color(0xFF1877F2)),
+                                side: const BorderSide(color: Color(0xFF25D366)),
                               ),
-                              icon: const Icon(Icons.facebook, color: Color(0xFF1877F2), size: 18),
-                              label: const Text('Facebook', style: TextStyle(color: Color(0xFF1877F2), fontWeight: FontWeight.bold, fontSize: 13)),
-                              onPressed: () => launchUrl(Uri.parse('https://facebook.com/signa-ci'), mode: LaunchMode.externalApplication),
+                              icon: const Icon(LucideIcons.messageCircle, color: Color(0xFF25D366), size: 16),
+                              label: const Text('WhatsApp', style: TextStyle(color: Color(0xFF25D366), fontWeight: FontWeight.bold, fontSize: 13)),
+                              onPressed: () => launchUrl(Uri.parse('https://chat.whatsapp.com/signa-ci'), mode: LaunchMode.externalApplication),
                             ),
                           ),
                         ],
@@ -1257,48 +1155,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-
-              // ══════════════════════════════════════════════════════════
-              // 9. BANNIÈRE INSCRIPTION / VISITEUR (1:1 Web)
-              // ══════════════════════════════════════════════════════════
-              if (currentUser == null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFF0284C7).withAlpha(15),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFF0284C7).withAlpha(40)),
-                    ),
-                    child: Column(
-                      children: [
-                        const Text('Rejoignez la communauté SIGNA-CI', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'Gratuit · Sans publicité · Vos données privées restent sécurisées.',
-                          style: TextStyle(fontSize: 11, color: Colors.grey),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 14),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primaryTeal,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AuthScreen())),
-                            child: const Text('Créer mon compte gratuitement', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 36),
             ],
           ),
         ),
@@ -1377,18 +1234,26 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
     );
   }
 
-  Widget _buildStepCard(String number, String emoji, String title, String desc) {
+  Widget _buildStepCard(String number, String emoji, String title, String desc, bool isDark) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9).withAlpha(120),
+        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
       ),
       child: Row(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 22)),
-          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF0F172A) : Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            ),
+            child: Text(emoji, style: const TextStyle(fontSize: 20)),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1396,11 +1261,12 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                 Row(
                   children: [
                     Text(number, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: AppTheme.primaryTeal)),
-                    const SizedBox(width: 4),
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    const SizedBox(width: 6),
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                   ],
                 ),
-                Text(desc, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                const SizedBox(height: 2),
+                Text(desc, style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[400] : Colors.grey[600])),
               ],
             ),
           ),

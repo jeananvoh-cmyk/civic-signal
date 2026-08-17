@@ -108,28 +108,19 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-bold text-white mb-3">Équipe & Assistance</h4>
-            <div className="space-y-2.5 text-xs text-slate-400">
+            <h4 className="text-sm font-bold text-white mb-3">Veille & Territoire</h4>
+            <div className="space-y-2 text-xs text-slate-400">
               <p className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-emerald-400 shrink-0" />
                 <span>Abidjan, Côte d'Ivoire</span>
               </p>
-              <p className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-emerald-400 shrink-0" />
-                <a href="mailto:contact@signa.ci" className="hover:text-white">contact@signa.ci</a>
+              <p className="flex items-center gap-2 text-slate-300">
+                <span className="flex h-2 w-2 rounded-full bg-emerald-400" />
+                <span>Veille citoyenne 24h/24 · 7j/7</span>
               </p>
-              <div className="pt-2 flex items-center gap-2">
-                <a
-                  href={SOCIAL_LINKS.whatsapp}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors flex items-center gap-2 text-xs font-bold px-3"
-                  aria-label="WhatsApp SIGNA"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  <span>WhatsApp Support</span>
-                </a>
-              </div>
+              <p className="text-[11px] text-slate-400 pt-1 leading-relaxed">
+                Plateforme ouverte à tous les résidents des 7 communes pilotes d'Abidjan.
+              </p>
             </div>
           </div>
         </div>
