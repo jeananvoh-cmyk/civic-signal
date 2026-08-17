@@ -304,14 +304,13 @@ const AdminLayout = () => {
           </nav>
 
           {/* CTA retour dans le sheet */}
-          <div className="p-3 border-t border-border">
+          <div className="p-3 border-t border-border/80">
             <button
               onClick={() => navigate("/")}
-              className="group w-full flex items-center gap-3 rounded-full bg-primary px-4 py-2.5 font-semibold text-sm text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
+              className="group w-full flex items-center gap-2.5 rounded-xl border border-border/80 bg-muted/40 hover:bg-muted px-4 py-2.5 font-bold text-xs text-foreground/80 hover:text-foreground shadow-2xs transition-all"
             >
-              <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-              <span className="flex-1 text-left">Retour à SIGNA-CI</span>
-              <Zap className="h-4 w-4 opacity-70" />
+              <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform text-emerald-600 dark:text-emerald-400" />
+              <span className="flex-1 text-left">Retour au site public</span>
             </button>
           </div>
         </SheetContent>
