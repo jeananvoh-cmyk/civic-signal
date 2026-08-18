@@ -4,10 +4,11 @@ import { motion } from "framer-motion";
 import {
   Zap, Droplets, Building2, Handshake, MapPin, Users,
   Clock, CheckCircle2, Loader2, AlertTriangle, RefreshCw,
-  TrendingUp, MessageSquare, Send, BarChart3,
+  TrendingUp, MessageSquare, Send, BarChart3, Ticket,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -30,6 +31,7 @@ interface PartnerProfile {
 interface Report {
   id: string;
   user_id: string;
+  ticket_code?: string | null;
   service_type: string;
   report_category: string;
   description: string;
@@ -43,6 +45,9 @@ interface Report {
   resolved_at: string | null;
   photo_url: string | null;
   photo_urls: string[] | null;
+  operator_reference?: string | null;
+  estimated_resolution_time?: string | null;
+  operator_last_note?: string | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -86,6 +91,8 @@ const PartnerDashboardPage = () => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [actionDialog, setActionDialog] = useState<{ report: Report; newStatus: string } | null>(null);
   const [actionComment, setActionComment] = useState("");
+  const [actionOperatorRef, setActionOperatorRef] = useState("");
+  const [actionEtaHours, setActionEtaHours] = useState("");
 
   // Vérifier le rôle partenaire
   const { data: isPartner, isLoading: roleLoading } = useQuery({
@@ -119,7 +126,7 @@ const PartnerDashboardPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reports")
-        .select("id, user_id, service_type, report_category, description, commune, quartier, status, urgency, verifications, impacted_people, created_at, resolved_at, photo_url, photo_urls")
+        .select("id, user_id, ticket_code, service_type, report_category, description, commune, quartier, status, urgency, verifications, impacted_people, created_at, resolved_at, photo_url, photo_urls, operator_reference, estimated_resolution_time, operator_last_note")
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
@@ -130,24 +137,38 @@ const PartnerDashboardPage = () => {
 
   // Mutation : mise à jour du statut
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ reportId, status, userId }: { reportId: string; status: string; userId?: string }) => {
+    mutationFn: async ({
+      reportId,
+      ticketCode,
+      status,
+      operatorRef,
+      publicNote,
+      etaHours,
+    }: {
+      reportId: string;
+      ticketCode?: string | null;
+      status: string;
+      operatorRef?: string;
+      publicNote?: string;
+      etaHours?: number;
+    }) => {
       setUpdatingId(reportId);
-      const { error } = await supabase.rpc("partner_update_report_status", {
+      const etaDate = etaHours ? new Date(Date.now() + etaHours * 3600000).toISOString() : null;
+      const { error } = await supabase.rpc("operator_update_ticket", {
         p_report_id: reportId,
+        p_ticket_code: ticketCode || null,
         p_status: status,
+        p_operator_name: partnerProfile?.organization_name || null,
+        p_operator_reference: operatorRef || null,
+        p_public_note: publicNote || null,
+        p_estimated_resolution: etaDate,
       });
-      if (error) throw error;
-      // Notifier le citoyen quand son signalement est résolu
-      if (status === "resolved" && userId) {
-        supabase.functions.invoke("send-push", {
-          body: {
-            action: "send-to-user",
-            user_id: userId,
-            title: "✅ Signalement résolu",
-            message: "Votre signalement a été pris en compte et le problème est résolu.",
-            url: "/historique",
-          },
-        }).catch(() => {}); // silencieux si push non activé
+      if (error) {
+        const { error: fallbackErr } = await supabase.rpc("partner_update_report_status", {
+          p_report_id: reportId,
+          p_status: status,
+        });
+        if (fallbackErr) throw fallbackErr;
       }
     },
     onSuccess: (_, { status }) => {
@@ -195,7 +216,15 @@ const PartnerDashboardPage = () => {
   const handleActionConfirm = async () => {
     if (!actionDialog) return;
     const { report, newStatus } = actionDialog;
-    await updateStatusMutation.mutateAsync({ reportId: report.id, status: newStatus, userId: report.user_id });
+    const etaNum = actionEtaHours ? parseInt(actionEtaHours, 10) : undefined;
+    await updateStatusMutation.mutateAsync({
+      reportId: report.id,
+      ticketCode: report.ticket_code,
+      status: newStatus,
+      operatorRef: actionOperatorRef.trim() || undefined,
+      publicNote: actionComment.trim() || undefined,
+      etaHours: etaNum && !isNaN(etaNum) ? etaNum : undefined,
+    });
     if (actionComment.trim()) {
       await supabase.from("report_comments").insert({
         report_id: report.id,
@@ -205,6 +234,8 @@ const PartnerDashboardPage = () => {
     }
     setActionDialog(null);
     setActionComment("");
+    setActionOperatorRef("");
+    setActionEtaHours("");
   };
 
   // ─── Sous-composant carte rapport ─────────────────────────────────────────
@@ -246,6 +277,21 @@ const PartnerDashboardPage = () => {
               <span className="flex items-center gap-1 text-red-600 font-semibold">
                 <AlertTriangle className="h-3 w-3" /> Critique
               </span>
+            )}
+          {/* Ticket PADA & Référence */}
+          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+            <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-md">
+              <Ticket className="h-3 w-3" /> {report.ticket_code || `SIG-${report.commune.slice(0,3).toUpperCase()}-${report.id.slice(0,4).toUpperCase()}`}
+            </span>
+            {report.operator_reference && (
+              <span className="inline-flex items-center text-[11px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
+                Réf: {report.operator_reference}
+              </span>
+            )}
+            {report.operator_last_note && (
+              <p className="w-full text-xs text-muted-foreground italic border-l-2 border-primary/40 pl-2 mt-1">
+                "{report.operator_last_note}"
+              </p>
             )}
           </div>
 
@@ -392,6 +438,39 @@ const PartnerDashboardPage = () => {
               <div className="rounded-xl bg-muted/50 px-3 py-2 text-sm">
                 <p className="font-medium text-foreground">{actionDialog.report.commune} · {actionDialog.report.quartier}</p>
                 <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{actionDialog.report.description}</p>
+              </div>
+              <div className="space-y-1.5">
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-foreground">
+                      N° Ordre de travail / Réf. <span className="text-muted-foreground font-normal">(optionnel)</span>
+                    </label>
+                    <Input
+                      value={actionOperatorRef}
+                      onChange={(e) => setActionOperatorRef(e.target.value)}
+                      placeholder="Ex: CIE-OT-8942"
+                      className="h-9 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-foreground">
+                      Délai prévisionnel <span className="text-muted-foreground font-normal">(optionnel)</span>
+                    </label>
+                    <Select value={actionEtaHours} onValueChange={setActionEtaHours}>
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue placeholder="Estimation" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="2">~ 2 heures</SelectItem>
+                        <SelectItem value="4">~ 4 heures</SelectItem>
+                        <SelectItem value="12">~ 12 heures</SelectItem>
+                        <SelectItem value="24">~ 24 heures</SelectItem>
+                        <SelectItem value="48">~ 48 heures</SelectItem>
+                        <SelectItem value="72">~ 72 heures</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-medium flex items-center gap-1.5">

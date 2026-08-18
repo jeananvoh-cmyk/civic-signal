@@ -28,6 +28,10 @@ class ReportModel {
   final String urgency;
   final DateTime? startTime;
   final DateTime createdAt;
+  final String? operatorName;
+  final String? operatorReference;
+  final DateTime? estimatedResolutionTime;
+  final String? operatorLastNote;
 
   ReportModel({
     required this.id,
@@ -56,6 +60,10 @@ class ReportModel {
     this.urgency = 'medium',
     this.startTime,
     required this.createdAt,
+    this.operatorName,
+    this.operatorReference,
+    this.estimatedResolutionTime,
+    this.operatorLastNote,
   });
 
   factory ReportModel.fromJson(Map<String, dynamic> json) {
@@ -86,6 +94,10 @@ class ReportModel {
       urgency: json['urgency'] as String? ?? 'medium',
       startTime: json['start_time'] != null ? DateTime.parse(json['start_time'] as String) : null,
       createdAt: DateTime.parse(json['created_at'] as String),
+      operatorName: json['operator_name'] as String?,
+      operatorReference: json['operator_reference'] as String?,
+      estimatedResolutionTime: json['estimated_resolution_time'] != null ? DateTime.parse(json['estimated_resolution_time'] as String) : null,
+      operatorLastNote: json['operator_last_note'] as String?,
     );
   }
 
@@ -117,6 +129,10 @@ class ReportModel {
       'urgency': urgency,
       'start_time': startTime?.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
+      'operator_name': operatorName,
+      'operator_reference': operatorReference,
+      'estimated_resolution_time': estimatedResolutionTime?.toIso8601String(),
+      'operator_last_note': operatorLastNote,
     };
   }
 

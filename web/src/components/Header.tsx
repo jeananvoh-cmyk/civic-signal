@@ -63,52 +63,49 @@ const Header = () => {
           {/* ── Desktop Navigation Principale ── */}
           <nav className="hidden items-center gap-1 md:flex flex-1 justify-center">
 
-            {/* 1. 🗺️ Carte des coupures (Accès direct) */}
+            {/* 1. Carte des coupures (Accès direct) */}
             <Link
               to="/carte"
               className={cn(
-                "relative flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-150",
+                "relative rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-150",
                 isActive("/carte")
                   ? "text-primary bg-primary/8 font-semibold"
                   : "text-foreground/70 hover:text-foreground hover:bg-muted/60"
               )}
             >
-              <Map className="h-3.5 w-3.5 text-sky-500" />
               <span>Carte des coupures</span>
               {isActive("/carte") && (
                 <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-4 rounded-full bg-primary" />
               )}
             </Link>
 
-            {/* 2. 🚧 Voirie & Infrastructures (Accès direct) */}
+            {/* 2. Voirie & Infrastructures (Accès direct) */}
             <Link
               to="/infrastructures"
               className={cn(
-                "relative flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-150",
+                "relative rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-150",
                 isActive("/infrastructures")
                   ? "text-primary bg-primary/8 font-semibold"
                   : "text-foreground/70 hover:text-foreground hover:bg-muted/60"
               )}
             >
-              <Wrench className="h-3.5 w-3.5 text-amber-500" />
               <span>Voirie & Infra</span>
               {isActive("/infrastructures") && (
                 <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-4 rounded-full bg-primary" />
               )}
             </Link>
 
-            {/* 3. 📈 Transparence Open Data */}
+            {/* 3. Transparence Open Data */}
             {transparencyEnabled && (
               <Link
                 to="/transparence"
                 className={cn(
-                  "relative flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-150",
+                  "relative rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-150",
                   isActive("/transparence")
                     ? "text-primary bg-primary/8 font-semibold"
                     : "text-foreground/70 hover:text-foreground hover:bg-muted/60"
                 )}
               >
-                <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
                 <span>Transparence</span>
                 {isActive("/transparence") && (
                   <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-4 rounded-full bg-primary" />

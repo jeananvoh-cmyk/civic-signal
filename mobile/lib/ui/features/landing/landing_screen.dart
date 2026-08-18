@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/communes.dart';
 import '../../../core/constants/app_contacts.dart';
+import '../../common/whatsapp_icon.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/models/report_model.dart';
 import '../commune/commune_detail_screen.dart';
@@ -523,41 +524,16 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                        // 2. Bouton Suivi & Vérification
-                        Expanded(
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VerificationScreen())),
-                              borderRadius: BorderRadius.circular(16),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-                                decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
-                                    width: 1.5,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withAlpha(isDark ? 30 : 8),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(LucideIcons.checkCheck, color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669), size: 18),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Suivi citoyen',
-                                      style: TextStyle(
-                                        color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
+                                            'Incidents en direct',
+                                            style: TextStyle(
+                                              color: isDark ? Colors.white70 : const Color(0xFF64748B),
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
@@ -666,8 +642,6 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                         children: [
                           Row(
                             children: [
-                              const Icon(LucideIcons.trendingUp, color: Color(0xFF10B981), size: 18),
-                              const SizedBox(width: 8),
                               const Text('Délai moyen de résolution', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                               const SizedBox(width: 4),
                               InkWell(
@@ -1170,7 +1144,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                 side: const BorderSide(color: Color(0xFF25D366)),
                               ),
-                              icon: const Icon(LucideIcons.messageCircle, color: Color(0xFF25D366), size: 16),
+                              icon: const WhatsAppIcon(size: 16),
                               label: const Text('WhatsApp', style: TextStyle(color: Color(0xFF25D366), fontWeight: FontWeight.bold, fontSize: 13)),
                               onPressed: () => launchUrl(Uri.parse(AppContacts.whatsappChatUrl), mode: LaunchMode.externalApplication),
                             ),

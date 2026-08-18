@@ -42,17 +42,19 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   void _subscribeToRealtime() {
-    _realtimeChannel = Supabase.instance.client
-        .channel('public:map_reports')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'reports',
-          callback: (_) {
-            _fetchMapReports();
-          },
-        )
-        .subscribe();
+    try {
+      _realtimeChannel = Supabase.instance.client
+          .channel('public:map_reports')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'reports',
+            callback: (_) {
+              _fetchMapReports();
+            },
+          )
+          .subscribe();
+    } catch (_) {}
   }
 
   Future<void> _fetchMapReports() async {

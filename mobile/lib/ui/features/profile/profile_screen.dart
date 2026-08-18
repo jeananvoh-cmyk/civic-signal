@@ -75,8 +75,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
     super.dispose();
   }
 
+  User? _getCurrentUser() {
+    try {
+      return Supabase.instance.client.auth.currentUser;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _loadUserProfile() async {
-    final user = Supabase.instance.client.auth.currentUser;
+    final user = _getCurrentUser();
     if (user == null) {
       if (mounted) {
         setState(() {
@@ -136,7 +144,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
   }
 
   Future<void> _loadUserReports() async {
-    final user = Supabase.instance.client.auth.currentUser;
+    final user = _getCurrentUser();
     if (user == null) return;
 
     try {
@@ -154,7 +162,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
   }
 
   Future<void> _saveProfile() async {
-    final user = Supabase.instance.client.auth.currentUser;
+    final user = _getCurrentUser();
     if (user == null) return;
 
     setState(() => _isLoading = true);
@@ -190,7 +198,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
 
   // ── Calculate CitizenScore (Exact like Web) ──
   int get _citizenScore {
-    final user = Supabase.instance.client.auth.currentUser;
+    final user = _getCurrentUser();
     if (user == null) return 10;
     // 50 pts per created report, 20 pts per verification, 10 pts welcome
     int points = 10;
@@ -209,7 +217,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final user = Supabase.instance.client.auth.currentUser;
+    final user = _getCurrentUser();
 
     if (user == null) {
       return Scaffold(
@@ -559,6 +567,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
 
   // ── 4. PARAMÈTRES & COMPTEURS TAB ──
   Widget _buildSettingsTab(User? user) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     if (user == null) {
       return Center(
         child: ElevatedButton(
@@ -776,104 +786,110 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
         ],
 
         // Outils & Données Publiques
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(LucideIcons.trendingUp, color: Color(0xFF059669)),
-                title: const Text('Transparence & Open Data', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF065F46))),
-                subtitle: const Text('Délais réels de résolution CIE/SODECI & statistiques publiques', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrendsScreen())),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(LucideIcons.barChart3, color: AppTheme.primaryTeal),
-                title: const Text('Tableau de Bord Communal', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                subtitle: const Text('Classement et taux de traitement des 14 communes', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardScreen())),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(LucideIcons.checkCircle2, color: Color(0xFF0284C7)),
-                title: const Text('Vérifier un Signalement Citoyen', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                subtitle: const Text('Confirmez les pannes signalées près de chez vous', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VerificationScreen())),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(LucideIcons.search, color: AppTheme.primaryTeal),
-                title: const Text('Suivi de Signalement (#SIG-XXXX)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                subtitle: const Text('Rechercher une panne par numéro de ticket', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrackingScreen())),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(LucideIcons.construction, color: Color(0xFFEA580C)),
-                title: const Text('Fil Voirie & Infrastructures Publiques', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                subtitle: const Text('Nids de poules, lampadaires, caniveaux avec photos', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InfrastructureScreen())),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(LucideIcons.heart, color: Color(0xFFEF4444)),
-                title: const Text('Faire un Don / Soutenir SIGNA·CI', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                subtitle: const Text('Paiements sécurisés Mobile Money (Wave, Orange, MTN, Moov)', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DonationScreen())),
-              ),
-            ],
+        Material(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(LucideIcons.trendingUp, color: Color(0xFF059669)),
+                  title: const Text('Transparence & Open Data', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF065F46))),
+                  subtitle: const Text('Délais réels de résolution CIE/SODECI & statistiques publiques', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrendsScreen())),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(LucideIcons.barChart3, color: AppTheme.primaryTeal),
+                  title: const Text('Tableau de Bord Communal', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  subtitle: const Text('Classement et taux de traitement des 14 communes', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardScreen())),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(LucideIcons.checkCircle2, color: Color(0xFF0284C7)),
+                  title: const Text('Vérifier un Signalement Citoyen', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  subtitle: const Text('Confirmez les pannes signalées près de chez vous', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VerificationScreen())),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(LucideIcons.search, color: AppTheme.primaryTeal),
+                  title: const Text('Suivi de Signalement (#SIG-XXXX)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  subtitle: const Text('Rechercher une panne par numéro de ticket', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrackingScreen())),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(LucideIcons.construction, color: Color(0xFFEA580C)),
+                  title: const Text('Fil Voirie & Infrastructures Publiques', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  subtitle: const Text('Nids de poules, lampadaires, caniveaux avec photos', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InfrastructureScreen())),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(LucideIcons.heart, color: Color(0xFFEF4444)),
+                  title: const Text('Faire un Don / Soutenir SIGNA·CI', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  subtitle: const Text('Paiements sécurisés Mobile Money (Wave, Orange, MTN, Moov)', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DonationScreen())),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 16),
 
         // Pages d'informations & Légales
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(LucideIcons.info, color: AppTheme.primaryTeal),
-                title: const Text('À propos de SIGNA·CI', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen())),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(LucideIcons.building2, color: Color(0xFF0284C7)),
-                title: const Text('Espace Partenaires & Opérateurs', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                subtitle: const Text('CIE, SODECI, Mairies et Collectivités', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartnersScreen())),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(LucideIcons.fileText, color: AppTheme.primaryTeal),
-                title: const Text('Conditions Générales d\'Utilisation (CGU)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CguScreen())),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(LucideIcons.shieldCheck, color: Color(0xFF16A34A)),
-                title: const Text('Politique de Confidentialité', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen())),
-              ),
-            ],
+        Material(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(LucideIcons.info, color: AppTheme.primaryTeal),
+                  title: const Text('À propos de SIGNA·CI', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen())),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(LucideIcons.building2, color: Color(0xFF0284C7)),
+                  title: const Text('Espace Partenaires & Opérateurs', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  subtitle: const Text('CIE, SODECI, Mairies et Collectivités', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartnersScreen())),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(LucideIcons.fileText, color: AppTheme.primaryTeal),
+                  title: const Text('Conditions Générales d\'Utilisation (CGU)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CguScreen())),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(LucideIcons.shieldCheck, color: Color(0xFF16A34A)),
+                  title: const Text('Politique de Confidentialité', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen())),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 24),
@@ -1001,35 +1017,38 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
           const SizedBox(height: 24),
 
           // Liens utiles pour les visiteurs
-          Container(
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
-            ),
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(LucideIcons.scale, color: AppTheme.primaryTeal),
-                  title: const Text('Mes Droits & Lois (CIE & SODECI)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                  trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen())),
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(LucideIcons.fileText, color: AppTheme.primaryTeal),
-                  title: const Text('Conditions Générales d\'Utilisation (CGU)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                  trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CguScreen())),
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(LucideIcons.shieldCheck, color: Color(0xFF16A34A)),
-                  title: const Text('Politique de Confidentialité', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                  trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen())),
-                ),
-              ],
+          Material(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(LucideIcons.scale, color: AppTheme.primaryTeal),
+                    title: const Text('Mes Droits & Lois (CIE & SODECI)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen())),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(LucideIcons.fileText, color: AppTheme.primaryTeal),
+                    title: const Text('Conditions Générales d\'Utilisation (CGU)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CguScreen())),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(LucideIcons.shieldCheck, color: Color(0xFF16A34A)),
+                    title: const Text('Politique de Confidentialité', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen())),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 24),

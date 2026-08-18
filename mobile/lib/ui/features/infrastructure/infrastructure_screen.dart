@@ -8,6 +8,7 @@ import '../../../core/constants/communes.dart';
 import '../../../core/utils/report_display_utils.dart';
 import '../../../domain/models/report_model.dart';
 import '../../common/civic_photo_view.dart';
+import '../../common/whatsapp_icon.dart';
 import '../reports/create_report_screen.dart';
 import '../reports/report_detail_screen.dart';
 
@@ -331,9 +332,9 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
               const SizedBox(height: 20),
               ListTile(
                 leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: const Color(0xFF25D366).withAlpha(25), shape: BoxShape.circle),
-                  child: const Icon(LucideIcons.messageCircle, color: Color(0xFF25D366), size: 20),
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(shape: BoxShape.circle),
+                  child: const WhatsAppIcon(size: 24),
                 ),
                 title: const Text('WhatsApp', style: TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: const Text('Partager avec vos voisins et groupes de quartier', style: TextStyle(fontSize: 12)),
@@ -624,13 +625,15 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
   }
 
   Widget _buildSubCategoriesAccordion() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Column(
         children: [
           // 1. Électricité CIE
           if (_selectedFilter == 'all' || _selectedFilter == 'electricite')
@@ -681,6 +684,7 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
               ],
             ),
         ],
+      ),
       ),
     );
   }

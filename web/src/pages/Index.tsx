@@ -92,7 +92,7 @@ const STEPS = [
     color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/25",
   },
   {
-    step: "02", emoji: "🤝", title: "Corroborez ensemble",
+    step: "02", emoji: "🤝", title: "Confirmez ensemble",
     headline: "Entraide de quartier",
     desc: "Les riverains confirment l'incident en 1 clic pour éliminer les faux positifs et prouver l'urgence.",
     color: "text-sky-600 dark:text-sky-400", bg: "bg-sky-500/10", border: "border-sky-500/25",
@@ -356,8 +356,8 @@ const Index = () => {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="mt-4 sm:mt-5 max-w-xl text-base sm:text-lg leading-relaxed text-slate-600 dark:text-white/70"
             >
-              La plateforme citoyenne officielle en Côte d'Ivoire où les habitants documentent,
-              corroborent et accélèrent la résolution des pannes publiques.
+              La plateforme citoyenne officielle en Côte d'Ivoire où les habitants signalent,
+              confirment et accélèrent la résolution des pannes publiques.
             </motion.p>
 
             {/* 2 Boutons d'Action Principaux */}

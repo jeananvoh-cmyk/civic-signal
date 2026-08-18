@@ -226,35 +226,38 @@ class AboutScreen extends StatelessWidget {
             // ══════════════════════════════════════════════════════════
             // 6. LIENS LÉGAUX (CGU & Confidentialité)
             // ══════════════════════════════════════════════════════════
-            Container(
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-              ),
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: const Icon(LucideIcons.building2, color: Color(0xFF0284C7)),
-                    title: const Text('Espace Partenaires & Collectivités', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                    trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartnersScreen())),
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(LucideIcons.fileText, color: AppTheme.primaryTeal),
-                    title: const Text('Conditions Générales d\'Utilisation (CGU)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                    trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CguScreen())),
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(LucideIcons.shieldCheck, color: Color(0xFF16A34A)),
-                    title: const Text('Politique de Confidentialité & RGPD/CI', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                    trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen())),
-                  ),
-                ],
+            Material(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(LucideIcons.building2, color: Color(0xFF0284C7)),
+                      title: const Text('Espace Partenaires & Collectivités', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                      trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PartnersScreen())),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(LucideIcons.fileText, color: AppTheme.primaryTeal),
+                      title: const Text('Conditions Générales d\'Utilisation (CGU)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                      trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CguScreen())),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(LucideIcons.shieldCheck, color: Color(0xFF16A34A)),
+                      title: const Text('Politique de Confidentialité & RGPD/CI', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                      trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen())),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 30),

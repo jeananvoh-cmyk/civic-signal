@@ -372,6 +372,89 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
               const SizedBox(height: 16),
 
               // ══════════════════════════════════════════════════════════
+              // ENCADRÉ RETOUR OPÉRATEUR (CIE, SODECI, Mairie)
+              // ══════════════════════════════════════════════════════════
+              if (_currentReport.operatorName != null || _currentReport.operatorReference != null || _currentReport.operatorLastNote != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D9488).withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFF0D9488).withValues(alpha: 0.3), width: 1.5),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(LucideIcons.building2, size: 18, color: Color(0xFF0D9488)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _currentReport.operatorName?.toUpperCase() ?? 'INTERVENTION OPÉRATEUR',
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: const Color(0xFF0D9488),
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ),
+                          if (_currentReport.operatorReference != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFF0D9488).withValues(alpha: 0.4)),
+                              ),
+                              child: Text(
+                                'Réf: ${_currentReport.operatorReference}',
+                                style: GoogleFonts.firaCode(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF0D9488),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      if (_currentReport.operatorLastNote != null) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                          ),
+                          child: Text(
+                            '"${_currentReport.operatorLastNote}"',
+                            style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic, height: 1.3),
+                          ),
+                        ),
+                      ],
+                      if (_currentReport.estimatedResolutionTime != null && !isResolved) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Icon(LucideIcons.clock, size: 14, color: Color(0xFFEA580C)),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Intervention estimée : ${_currentReport.estimatedResolutionTime!.toLocal().toString().substring(0, 16)}',
+                              style: const TextStyle(fontSize: 12, color: Color(0xFFEA580C), fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // ══════════════════════════════════════════════════════════
               // 2. CHRONOLOGIE DU SUIVI (Timeline 1:1 Web)
               // ══════════════════════════════════════════════════════════
               Container(

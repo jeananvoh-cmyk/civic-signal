@@ -3,8 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
-import { Zap, Droplets, Clock, Trophy, ChevronDown, Radio, Flame, AlertTriangle, MapPin, Siren, Construction, CheckCircle2, Info, Wrench, HelpCircle, ShieldCheck, Send, Building2, Users, BarChart2, Filter, Sparkles } from "lucide-react";
+import {
+  Zap, Droplets, Clock, Trophy, ChevronDown, Radio, Flame, AlertTriangle,
+  MapPin, Siren, Construction, CheckCircle2, Info, Wrench, HelpCircle,
+  ShieldCheck, Send, Building2, Users, BarChart2, Filter, Sparkles,
+  Search, LayoutGrid, List, SlidersHorizontal, ArrowUpDown, X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -237,6 +244,12 @@ const DashboardPage = () => {
   const [moderatorName, setModeratorName] = useState<string>("");
   const [selectedCommune, setSelectedCommune] = useState("all");
 
+  // Nouveaux contrôles ergonomiques pour 14+ communes
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterMode, setFilterMode] = useState<"all" | "active_only" | "electricity" | "water" | "mairie">("all");
+  const [sortBy, setSortBy] = useState<"activity" | "alphabetical" | "population">("activity");
+  const [viewMode, setViewMode] = useState<"grid" | "detailed">("grid");
+
   const fetchAll = useCallback(async () => {
     const communeNames = COMMUNES.map((c) => c.nom);
     const [statsRes, durRes, reportsRes, ...quartierResults] = await Promise.all([
@@ -281,19 +294,24 @@ const DashboardPage = () => {
     if (!durRes.error && durRes.data) setDurations(durRes.data as unknown as DurationStat[]);
     if (!reportsRes.error && reportsRes.data) setPriorityReports(reportsRes.data as unknown as PriorityReport[]);
 
-    // Build top quartiers ranking
+    // Build top quartiers ranking avec assainissement des libellés (ex: __other -> Autres secteurs)
     const allQuartiers: QuartierRanking[] = [];
     quartierResults.forEach((res, idx) => {
       if (!res.error && res.data) {
         const commune = communeNames[idx];
         const couleur = COMMUNES.find((c) => c.nom === commune)?.couleur || "#888";
         (res.data as any[]).forEach((q) => {
+          const rawName = (q.quartier || "").trim();
+          const cleanName = (!rawName || rawName === "__other" || rawName === "other" || rawName.toLowerCase() === "autre")
+            ? "Autres secteurs"
+            : rawName;
+
           const totalActifs = (q.electricite_actifs || 0) + (q.eau_actifs || 0) + (q.mairie_actifs || 0);
           if (totalActifs > 0 || (q.electricite_total || 0) + (q.eau_total || 0) + (q.mairie_total || 0) > 0) {
             allQuartiers.push({
               commune,
               couleur,
-              quartier: q.quartier,
+              quartier: cleanName,
               totalActifs,
               elecActifs: q.electricite_actifs || 0,
               eauActifs: q.eau_actifs || 0,
@@ -336,6 +354,15 @@ const DashboardPage = () => {
     };
   }, [fetchAll]);
 
+  // Fetch partner role
+  const [isPartner, setIsPartner] = useState(false);
+  useEffect(() => {
+    if (!user) return;
+    supabase.rpc("has_role", { _user_id: user.id, _role: "partner" } as any).then(({ data }) => {
+      if (data === true) setIsPartner(true);
+    });
+  }, [user]);
+
   // Fetch moderator display name from profiles
   useEffect(() => {
     if (!isModerator || !user) return;
@@ -370,6 +397,47 @@ const DashboardPage = () => {
 
   // Leaderboard: sorted by total active (most affected first)
   const leaderboard = [...stats].sort((a, b) => (b.electricite_actifs + b.eau_actifs + b.mairie_actifs) - (a.electricite_actifs + a.eau_actifs + a.mairie_actifs));
+
+  // Communes avec coupures actives
+  const communesWithActivesCount = stats.filter((c) => (c.electricite_actifs + c.eau_actifs + c.mairie_actifs) > 0).length;
+
+  // Filtrage et Tri des communes pour la section ergonomique
+  const filteredStats = stats
+    .filter((c) => {
+      // Filtre sélection dropdown
+      if (selectedCommune !== "all" && c.commune !== selectedCommune) return false;
+
+      // Filtre recherche textuelle
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        if (!c.commune.toLowerCase().includes(q)) return false;
+      }
+
+      // Filtre statut
+      const totalActifs = c.electricite_actifs + c.eau_actifs + c.mairie_actifs;
+      if (filterMode === "active_only" && totalActifs === 0) return false;
+      if (filterMode === "electricity" && c.electricite_actifs === 0) return false;
+      if (filterMode === "water" && c.eau_actifs === 0) return false;
+      if (filterMode === "mairie" && c.mairie_actifs === 0) return false;
+
+      return true;
+    })
+    .sort((a, b) => {
+      const aActifs = a.electricite_actifs + a.eau_actifs + a.mairie_actifs;
+      const bActifs = b.electricite_actifs + b.eau_actifs + b.mairie_actifs;
+
+      if (sortBy === "activity") {
+        if (bActifs !== aActifs) return bActifs - aActifs;
+        return (b.population || 0) - (a.population || 0);
+      }
+      if (sortBy === "alphabetical") {
+        return a.commune.localeCompare(b.commune, "fr");
+      }
+      if (sortBy === "population") {
+        return (b.population || 0) - (a.population || 0);
+      }
+      return 0;
+    });
 
   const activeReports = priorityReports.filter((r) => r.status === "active");
 
@@ -558,6 +626,43 @@ const DashboardPage = () => {
           </motion.div>
         )}
 
+        {/* 🏢 Espace Opérateur / Partenaire — CIE, SODECI, Mairie */}
+        {isPartner && !canValidate && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-card to-card p-5 shadow-card backdrop-blur-md"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500 text-white shadow-md shrink-0">
+                  <Building2 className="h-6 w-6" />
+                </div>
+                <div>
+                  <h2 className="font-display text-lg font-bold text-foreground flex items-center gap-2">
+                    Espace Opérateur & Régie
+                    <span className="rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs px-2.5 py-0.5 font-extrabold border border-amber-500/30">
+                      Partenaire
+                    </span>
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Prenez en charge les signalements PADA, renseignez les N° d'intervention et informez les usagers
+                  </p>
+                </div>
+              </div>
+
+              <Button
+                size="sm"
+                onClick={() => navigate("/partenaire")}
+                className="gap-1.5 font-bold text-xs bg-amber-600 hover:bg-amber-700 text-white shadow-xs h-9"
+              >
+                <Building2 className="h-4 w-4" />
+                Ouvrir mon Dashboard Partenaire
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
         {/* 🚨 Ticker d'urgence en direct */}
         {!loading && highPriorityReports.length > 0 && (
           <div className="mb-6 overflow-hidden rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2.5 flex items-center gap-3">
@@ -582,7 +687,6 @@ const DashboardPage = () => {
             <Collapsible defaultOpen>
               <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-3 shadow-card hover:bg-destructive/10 transition-colors">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
                   <h2 className="font-display text-xl font-bold text-foreground">Priorités critiques</h2>
                   <span className="rounded-full bg-destructive px-2 py-0.5 text-xs font-bold text-destructive-foreground">{highPriorityReports.length}</span>
                   <Tooltip>
@@ -633,24 +737,24 @@ const DashboardPage = () => {
           </motion.div>
         )}
 
-        {/* CTA citoyen — après les urgences */}
+        {/* CTA citoyen — 100% cohérent avec l'accueil et la version mobile */}
         {!canValidate && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="mb-6 grid grid-cols-2 gap-3">
             <button
               onClick={() => navigate("/signaler")}
-              className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-primary px-4 py-4 text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md active:scale-[0.98]"
+              className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 px-4 py-4 text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
             >
               <Siren className="h-5 w-5" />
-              <span className="text-sm font-bold">Signaler</span>
-              <span className="text-xs opacity-80">Eau · électricité · voirie</span>
+              <span className="text-sm font-extrabold">Signaler</span>
+              <span className="text-xs text-white/80">Eau · Courant · Voirie</span>
             </button>
             <button
-              onClick={() => navigate("/verification")}
-              className="flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-primary/30 bg-primary/5 px-4 py-4 text-primary transition-all hover:bg-primary/10 active:scale-[0.98]"
+              onClick={() => navigate("/carte")}
+              className="flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-border bg-card px-4 py-4 text-foreground transition-all hover:bg-muted/60 active:scale-[0.98]"
             >
-              <CheckCircle2 className="h-5 w-5" />
-              <span className="text-sm font-bold">Corroborer</span>
-              <span className="text-xs text-muted-foreground">Confirmer dans votre quartier</span>
+              <Map className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              <span className="text-sm font-extrabold">Voir la Carte</span>
+              <span className="text-xs text-muted-foreground">Incidents en direct</span>
             </button>
           </motion.div>
         )}
@@ -688,7 +792,7 @@ const DashboardPage = () => {
                     <Zap className="h-5 w-5 text-electricity" />
                   </div>
                   <div>
-                    <h2 className="font-display text-base font-bold text-foreground">⚡ Électricité (CIE / ANARE)</h2>
+                    <h2 className="font-display text-base font-bold text-foreground">Électricité (CIE / ANARE)</h2>
                     <p className="text-xs text-muted-foreground">Réseau basse & haute tension</p>
                   </div>
                 </div>
@@ -715,7 +819,7 @@ const DashboardPage = () => {
                     <Droplets className="h-5 w-5 text-water" />
                   </div>
                   <div>
-                    <h2 className="font-display text-base font-bold text-foreground">💧 Eau Potable (SODECI / ONEP)</h2>
+                    <h2 className="font-display text-base font-bold text-foreground">Eau Potable (SODECI / ONEP)</h2>
                     <p className="text-xs text-muted-foreground">Distribution & fuites</p>
                   </div>
                 </div>
@@ -742,7 +846,7 @@ const DashboardPage = () => {
                     <Construction className="h-5 w-5 text-infra" />
                   </div>
                   <div>
-                    <h2 className="font-display text-base font-bold text-foreground">🏛️ Mairies & Voirie</h2>
+                    <h2 className="font-display text-base font-bold text-foreground">Mairies & Voirie</h2>
                     <p className="text-xs text-muted-foreground">Lampadaires · Caniveaux · Salubrité</p>
                   </div>
                 </div>
@@ -864,11 +968,8 @@ const DashboardPage = () => {
           return (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-8">
               <div className="mb-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <Clock className="h-5 w-5 text-muted-foreground" />
-                  <h2 className="font-display text-xl font-bold text-foreground">Durée moyenne des coupures</h2>
-                </div>
-                <p className="text-xs text-muted-foreground ml-7">
+                <h2 className="font-display text-xl font-bold text-foreground mb-1">Durée moyenne des coupures</h2>
+                <p className="text-xs text-muted-foreground">
                   Temps écoulé entre le <strong>début de coupure</strong> (déclaré) et la <strong>résolution</strong>. Basé uniquement sur les signalements résolus.
                 </p>
               </div>
@@ -966,10 +1067,7 @@ const DashboardPage = () => {
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }} className="mb-8">
             <Collapsible defaultOpen>
               <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-5 py-3 shadow-card hover:bg-secondary/50 transition-colors">
-                <div className="flex items-center gap-2">
-                  <Flame className="h-5 w-5 text-destructive" />
-                  <h2 className="font-display text-xl font-bold text-foreground">Top 10 quartiers les plus touchés</h2>
-                </div>
+                <h2 className="font-display text-xl font-bold text-foreground">Top 10 quartiers les plus touchés</h2>
                 <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
               </CollapsibleTrigger>
               <CollapsibleContent>
@@ -1012,10 +1110,7 @@ const DashboardPage = () => {
         {canValidate && (<motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-8">
           <Collapsible>
             <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-5 py-3 shadow-card hover:bg-secondary/50 transition-colors">
-              <div className="flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-electricity" />
-                <h2 className="font-display text-xl font-bold text-foreground">Classement des coupures en cours par commune</h2>
-              </div>
+              <h2 className="font-display text-xl font-bold text-foreground">Classement des coupures en cours par commune</h2>
               <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
             </CollapsibleTrigger>
             <CollapsibleContent>
@@ -1077,33 +1172,287 @@ const DashboardPage = () => {
           </Collapsible>
         </motion.div>)}
 
-        {/* Per-commune breakdown */}
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-xl font-bold text-foreground">Détail par commune</h2>
-          <Select value={selectedCommune} onValueChange={setSelectedCommune}>
-            <SelectTrigger className="w-[200px] h-9 text-sm">
-              <SelectValue placeholder="Choisir une commune" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Toutes les communes</SelectItem>
-              {stats.map((c) => (
-                <SelectItem key={c.commune} value={c.commune}>
-                  <span className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: c.couleur }} />
-                    {c.commune}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* 🏙️ Détail par commune — Ergonomie 14+ Communes avec Grille Compacte & Filtres Intelligents */}
+        <div className="mb-6 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <h2 className="font-display text-xl font-bold text-foreground">Détail par commune</h2>
+              <Badge variant="outline" className="font-bold text-xs bg-muted/50">
+                {filteredStats.length} sur {stats.length} communes
+              </Badge>
+            </div>
+
+            {/* Sélecteur de vue (Grille compacte vs Liste détaillée) */}
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <div className="flex items-center bg-muted/60 p-1 rounded-xl border border-border">
+                <Button
+                  size="sm"
+                  variant={viewMode === "grid" ? "default" : "ghost"}
+                  onClick={() => setViewMode("grid")}
+                  className={`h-7 px-2.5 text-xs font-semibold rounded-lg ${viewMode === "grid" ? "shadow-xs" : "text-muted-foreground"}`}
+                  title="Vue Grille Compacte"
+                >
+                  <LayoutGrid className="h-3.5 w-3.5 mr-1" />
+                  Grille compacte
+                </Button>
+                <Button
+                  size="sm"
+                  variant={viewMode === "detailed" ? "default" : "ghost"}
+                  onClick={() => setViewMode("detailed")}
+                  className={`h-7 px-2.5 text-xs font-semibold rounded-lg ${viewMode === "detailed" ? "shadow-xs" : "text-muted-foreground"}`}
+                  title="Vue Détaillée"
+                >
+                  <List className="h-3.5 w-3.5 mr-1" />
+                  Détaillée
+                </Button>
+              </div>
+
+              {/* Tri */}
+              <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+                <SelectTrigger className="w-[170px] h-8 text-xs font-medium">
+                  <ArrowUpDown className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                  <SelectValue placeholder="Trier par..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="activity">🔴 Plus d'incidents</SelectItem>
+                  <SelectItem value="alphabetical">🔤 Alphabétique (A-Z)</SelectItem>
+                  <SelectItem value="population">👥 Plus peuplées</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Barre de recherche et Filtres rapides en chips */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+            {/* Champ de recherche instantanée */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Rechercher une commune (ex: Cocody, Yopougon, Abobo...)"
+                className="pl-9 pr-9 h-9 text-sm rounded-xl bg-card border-border"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Chips de filtres rapides */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+              <Button
+                size="sm"
+                variant={filterMode === "all" ? "default" : "outline"}
+                onClick={() => setFilterMode("all")}
+                className="h-8 px-3 text-xs rounded-lg whitespace-nowrap"
+              >
+                Toutes ({stats.length})
+              </Button>
+              <Button
+                size="sm"
+                variant={filterMode === "active_only" ? "default" : "outline"}
+                onClick={() => setFilterMode("active_only")}
+                className={`h-8 px-3 text-xs rounded-lg whitespace-nowrap ${
+                  communesWithActivesCount > 0 && filterMode !== "active_only"
+                    ? "border-destructive/40 text-destructive hover:bg-destructive/10"
+                    : ""
+                }`}
+              >
+                <span className="flex h-2 w-2 rounded-full bg-destructive mr-1.5" />
+                Actives ({communesWithActivesCount})
+              </Button>
+              <Button
+                size="sm"
+                variant={filterMode === "electricity" ? "default" : "outline"}
+                onClick={() => setFilterMode("electricity")}
+                className="h-8 px-2.5 text-xs rounded-lg whitespace-nowrap"
+              >
+                <Zap className="h-3 w-3 mr-1 text-electricity" />
+                CIE ({stats.filter((c) => c.electricite_actifs > 0).length})
+              </Button>
+              <Button
+                size="sm"
+                variant={filterMode === "water" ? "default" : "outline"}
+                onClick={() => setFilterMode("water")}
+                className="h-8 px-2.5 text-xs rounded-lg whitespace-nowrap"
+              >
+                <Droplets className="h-3 w-3 mr-1 text-water" />
+                SODECI ({stats.filter((c) => c.eau_actifs > 0).length})
+              </Button>
+              <Button
+                size="sm"
+                variant={filterMode === "mairie" ? "default" : "outline"}
+                onClick={() => setFilterMode("mairie")}
+                className="h-8 px-2.5 text-xs rounded-lg whitespace-nowrap"
+              >
+                <Construction className="h-3 w-3 mr-1 text-infra" />
+                Mairie ({stats.filter((c) => c.mairie_actifs > 0).length})
+              </Button>
+            </div>
+          </div>
         </div>
-        <div className="space-y-4">
-          {loading ? (
-            <>
-              {[1, 2, 3, 4, 5].map((k) => <SkeletonCommune key={k} />)}
-            </>
-          ) : (
-            stats.filter((c) => selectedCommune === "all" || c.commune === selectedCommune).map((c, i) => {
+
+        {/* Rendu des Communes (Grille compacte ou Liste détaillée) */}
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((k) => <SkeletonCommune key={k} />)}
+          </div>
+        ) : filteredStats.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">
+            <Filter className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-60" />
+            <h3 className="font-display font-bold text-base text-foreground mb-1">Aucune commune trouvée</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Aucune commune ne correspond aux filtres ou à la recherche "{searchQuery}".
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setSearchQuery("");
+                setFilterMode("all");
+                setSelectedCommune("all");
+              }}
+              className="text-xs font-semibold"
+            >
+              Réinitialiser les filtres
+            </Button>
+          </div>
+        ) : viewMode === "grid" ? (
+          /* ───────── VUE GRILLE COMPACTE (2 colonnes élégantes et ultra-lisibles) ───────── */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredStats.map((c, i) => {
+              const totalActifs = c.electricite_actifs + c.eau_actifs + c.mairie_actifs;
+              const totalResolus = c.electricite_resolus + c.eau_resolus + c.mairie_resolus;
+              const totalSignalements = c.electricite_total + c.eau_total + c.mairie_total;
+              const resolutionRate = totalSignalements > 0 ? Math.round((totalResolus / totalSignalements) * 100) : 100;
+              const pctPop = c.population > 0 ? (totalSignalements / c.population) * 100 : 0;
+              const pctPopDisplay = pctPop < 0.01 && totalSignalements > 0 ? "<0.01" : pctPop.toFixed(2);
+
+              return (
+                <motion.div
+                  key={c.commune}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(i * 0.03, 0.3) }}
+                  className="rounded-2xl border border-border bg-card p-4 shadow-card hover:border-primary/40 hover:shadow-md transition-all group flex flex-col justify-between"
+                >
+                  <div>
+                    {/* En-tête de la carte */}
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl overflow-hidden border border-border/80 shadow-xs"
+                          style={{ backgroundColor: COMMUNE_LOGOS[c.commune] ? "#fff" : c.couleur }}
+                        >
+                          {COMMUNE_LOGOS[c.commune] ? (
+                            <img src={COMMUNE_LOGOS[c.commune]} alt={c.commune} className="h-full w-full object-contain p-1" />
+                          ) : (
+                            <span className="text-white font-bold text-xs">#{i + 1}</span>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <button
+                            onClick={() => navigate(`/commune/${encodeURIComponent(c.commune)}`)}
+                            className="font-bold text-foreground text-base hover:underline underline-offset-2 transition-colors block truncate text-left"
+                            style={{ color: c.couleur }}
+                          >
+                            {c.commune}
+                          </button>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span>{(c.population / 1000).toFixed(0)}k hab.</span>
+                            <span>•</span>
+                            <span className="font-medium">{pctPopDisplay}% pop.</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Statut Badge */}
+                      {totalActifs === 0 ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full shrink-0">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Calme
+                        </span>
+                      ) : totalActifs < 5 ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full shrink-0">
+                          <AlertTriangle className="h-3 w-3" />
+                          {totalActifs} active{totalActifs > 1 ? "s" : ""}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-destructive bg-destructive/10 border border-destructive/30 px-2 py-0.5 rounded-full shrink-0 animate-pulse">
+                          <Siren className="h-3 w-3" />
+                          {totalActifs} critiques
+                        </span>
+                      )}
+                    </div>
+
+                    {/* 3 Mini-Pills des Opérateurs */}
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      <div className="rounded-xl bg-electricity/5 border border-electricity/20 p-2 text-center">
+                        <div className="flex items-center justify-center gap-1 mb-0.5">
+                          <Zap className="h-3 w-3 text-electricity" />
+                          <span className="text-[11px] font-semibold text-foreground">CIE</span>
+                        </div>
+                        <p className="font-display text-sm font-bold text-electricity">
+                          {c.electricite_actifs}{" "}
+                          <span className="text-[10px] font-normal text-muted-foreground">/ {c.electricite_total}</span>
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl bg-water/5 border border-water/20 p-2 text-center">
+                        <div className="flex items-center justify-center gap-1 mb-0.5">
+                          <Droplets className="h-3 w-3 text-water" />
+                          <span className="text-[11px] font-semibold text-foreground">SODECI</span>
+                        </div>
+                        <p className="font-display text-sm font-bold text-water">
+                          {c.eau_actifs}{" "}
+                          <span className="text-[10px] font-normal text-muted-foreground">/ {c.eau_total}</span>
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl bg-infra/5 border border-infra/20 p-2 text-center">
+                        <div className="flex items-center justify-center gap-1 mb-0.5">
+                          <Construction className="h-3 w-3 text-infra" />
+                          <span className="text-[11px] font-semibold text-foreground">Mairie</span>
+                        </div>
+                        <p className="font-display text-sm font-bold text-infra">
+                          {c.mairie_actifs}{" "}
+                          <span className="text-[10px] font-normal text-muted-foreground">/ {c.mairie_total}</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Pied de carte avec barre de résolution et CTA */}
+                  <div className="pt-2 border-t border-border flex items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden">
+                        <div className="h-full rounded-full bg-success transition-all" style={{ width: `${resolutionRate}%` }} />
+                      </div>
+                      <span className="text-[11px] text-muted-foreground font-medium shrink-0">
+                        {resolutionRate}% résolus
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={() => navigate(`/commune/${encodeURIComponent(c.commune)}`)}
+                      className="font-semibold text-primary group-hover:underline flex items-center gap-1 shrink-0 text-[11px]"
+                    >
+                      Détails →
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        ) : (
+          /* ───────── VUE DÉTAILLÉE (Cartes complètes avec statistiques approfondies) ───────── */
+          <div className="space-y-4">
+            {filteredStats.map((c, i) => {
               const totalSignalements = c.electricite_total + c.eau_total + c.mairie_total;
               const pctPop = c.population > 0 ? (totalSignalements / c.population) * 100 : 0;
               const pctPopDisplay = pctPop < 0.01 && totalSignalements > 0 ? "<0.01" : pctPop.toFixed(2);
@@ -1111,9 +1460,18 @@ const DashboardPage = () => {
               const tauxCapacite = capacite > 0 ? Math.min((totalSignalements / capacite) * 100, 100) : 0;
 
               return (
-                <motion.div key={c.commune} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }} className="rounded-2xl border border-border bg-card p-5 shadow-card">
+                <motion.div
+                  key={c.commune}
+                  initial={{ opacity: 0, x: -16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: Math.min(i * 0.04, 0.3) }}
+                  className="rounded-2xl border border-border bg-card p-5 shadow-card hover:border-border/80 transition-colors"
+                >
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl overflow-hidden border border-border" style={{ backgroundColor: COMMUNE_LOGOS[c.commune] ? '#fff' : c.couleur }}>
+                    <div
+                      className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl overflow-hidden border border-border shadow-xs"
+                      style={{ backgroundColor: COMMUNE_LOGOS[c.commune] ? "#fff" : c.couleur }}
+                    >
                       {COMMUNE_LOGOS[c.commune] ? (
                         <img src={COMMUNE_LOGOS[c.commune]} alt={c.commune} className="h-full w-full object-contain p-1" />
                       ) : (
@@ -1122,19 +1480,30 @@ const DashboardPage = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <button onClick={() => navigate(`/commune/${encodeURIComponent(c.commune)}`)} className="font-bold text-foreground text-lg hover:underline underline-offset-2 transition-colors" style={{ color: c.couleur }}>
+                        <button
+                          onClick={() => navigate(`/commune/${encodeURIComponent(c.commune)}`)}
+                          className="font-bold text-foreground text-lg hover:underline underline-offset-2 transition-colors"
+                          style={{ color: c.couleur }}
+                        >
                           {c.commune}
                         </button>
-                        <span className="text-xs font-semibold" style={{ color: c.couleur }}>{pctPopDisplay}% de la pop.</span>
+                        <span className="text-xs font-semibold" style={{ color: c.couleur }}>
+                          {pctPopDisplay}% de la pop.
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span>{(c.population / 1000).toFixed(0)}k hab.</span>
+                        <span>•</span>
+                        <span>{totalSignalements} signalements au total</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="h-2 w-full rounded-full bg-muted overflow-hidden mb-4">
-                    <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${Math.max(tauxCapacite, 1)}%`, backgroundColor: c.couleur }} />
+                    <div
+                      className="h-full rounded-full transition-[width] duration-700"
+                      style={{ width: `${Math.max(tauxCapacite, 1)}%`, backgroundColor: c.couleur }}
+                    />
                   </div>
 
                   <div className="grid grid-cols-3 gap-3">
@@ -1154,6 +1523,7 @@ const DashboardPage = () => {
                         </div>
                       </div>
                     </div>
+
                     <div className="rounded-xl bg-water/5 border border-water/20 p-3">
                       <div className="flex items-center gap-2 mb-2">
                         <Droplets className="h-4 w-4 text-water" />
@@ -1170,6 +1540,7 @@ const DashboardPage = () => {
                         </div>
                       </div>
                     </div>
+
                     <div className="rounded-xl bg-infra/5 border border-infra/20 p-3">
                       <div className="flex items-center gap-2 mb-2">
                         <Construction className="h-4 w-4 text-infra" />
@@ -1190,8 +1561,9 @@ const DashboardPage = () => {
 
                   {/* Active reports summary for this commune */}
                   {(() => {
-                    const communeReports = scoredActiveReports
-                      .filter((r) => r.location.toLowerCase() === c.commune.toLowerCase());
+                    const communeReports = scoredActiveReports.filter(
+                      (r) => r.location.toLowerCase() === c.commune.toLowerCase()
+                    );
                     if (communeReports.length === 0) return null;
                     const elecCount = communeReports.filter((r) => r.service_type === "electricity").length;
                     const eauCount = communeReports.filter((r) => r.service_type === "water").length;
@@ -1208,12 +1580,29 @@ const DashboardPage = () => {
                               {communeReports.length} signalement{communeReports.length > 1 ? "s" : ""} actif{communeReports.length > 1 ? "s" : ""}
                             </span>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              {elecCount > 0 && <span className="flex items-center gap-0.5"><Zap className="h-3 w-3 text-electricity" />{elecCount}</span>}
-                              {eauCount > 0 && <span className="flex items-center gap-0.5"><Droplets className="h-3 w-3 text-water" />{eauCount}</span>}
-                              {mairieCount > 0 && <span className="flex items-center gap-0.5"><Construction className="h-3 w-3 text-infra" />{mairieCount}</span>}
+                              {elecCount > 0 && (
+                                <span className="flex items-center gap-0.5">
+                                  <Zap className="h-3 w-3 text-electricity" />
+                                  {elecCount}
+                                </span>
+                              )}
+                              {eauCount > 0 && (
+                                <span className="flex items-center gap-0.5">
+                                  <Droplets className="h-3 w-3 text-water" />
+                                  {eauCount}
+                                </span>
+                              )}
+                              {mairieCount > 0 && (
+                                <span className="flex items-center gap-0.5">
+                                  <Construction className="h-3 w-3 text-infra" />
+                                  {mairieCount}
+                                </span>
+                              )}
                             </div>
                             {verifiedCount > 0 && (
-                              <span className="text-xs font-semibold text-success">✓ {verifiedCount} confirmé{verifiedCount > 1 ? "s" : ""}</span>
+                              <span className="text-xs font-semibold text-success">
+                                ✓ {verifiedCount} confirmé{verifiedCount > 1 ? "s" : ""}
+                              </span>
                             )}
                           </div>
                           <span className="text-xs font-semibold text-primary group-hover:underline">Voir détails →</span>
@@ -1223,9 +1612,9 @@ const DashboardPage = () => {
                   })()}
                 </motion.div>
               );
-            })
-          )}
-        </div>
+            })}
+          </div>
+        )}
 
         {/* Trends chart - admin only */}
         {isAdmin && <TrendsChart className="mt-8" />}

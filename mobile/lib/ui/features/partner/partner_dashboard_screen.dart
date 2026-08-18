@@ -36,10 +36,14 @@ class _PartnerDashboardScreenState extends State<PartnerDashboardScreen> with Si
     _fetchPartnerReports();
   }
 
+  final TextEditingController _refController = TextEditingController();
+  int? _selectedEtaHours;
+
   @override
   void dispose() {
     _tabController.dispose();
     _commentController.dispose();
+    _refController.dispose();
     super.dispose();
   }
 
@@ -139,55 +143,110 @@ class _PartnerDashboardScreenState extends State<PartnerDashboardScreen> with Si
   }
 
   Future<void> _updateReportStatus(ReportModel report, String newStatus) async {
-    final comment = await showDialog<String>(
+    int? localEta = _selectedEtaHours;
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          newStatus == 'processing' ? 'Prendre en charge l\'incident' : 'Clôturer le signalement',
-          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              newStatus == 'processing'
-                  ? 'Une équipe d\'intervention sera assignée à cette panne.'
-                  : 'Confirmez la remise en service effective sur les lieux.',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            newStatus == 'processing' ? 'Prendre en charge l\'incident' : 'Clôturer le signalement',
+            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  newStatus == 'processing'
+                      ? 'Une équipe d\'intervention sera assignée à cette panne.'
+                      : 'Confirmez la remise en service effective sur les lieux.',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _refController,
+                  decoration: InputDecoration(
+                    labelText: 'N° Ordre de travail / Réf. (optionnel)',
+                    hintText: 'Ex: CIE-OT-8942',
+                    labelStyle: const TextStyle(fontSize: 12),
+                    hintStyle: const TextStyle(fontSize: 12),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                if (newStatus == 'processing') ...[
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<int>(
+                    value: localEta,
+                    decoration: InputDecoration(
+                      labelText: 'Délai prévisionnel d\'intervention',
+                      labelStyle: const TextStyle(fontSize: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 2, child: Text('~ 2 heures', style: TextStyle(fontSize: 13))),
+                      DropdownMenuItem(value: 4, child: Text('~ 4 heures', style: TextStyle(fontSize: 13))),
+                      DropdownMenuItem(value: 12, child: Text('~ 12 heures', style: TextStyle(fontSize: 13))),
+                      DropdownMenuItem(value: 24, child: Text('~ 24 heures', style: TextStyle(fontSize: 13))),
+                      DropdownMenuItem(value: 48, child: Text('~ 48 heures', style: TextStyle(fontSize: 13))),
+                    ],
+                    onChanged: (val) => setDialogState(() => localEta = val),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _commentController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: 'Note technique ou commentaire public',
+                    hintText: 'Note pour les usagers et modérateurs...',
+                    labelStyle: const TextStyle(fontSize: 12),
+                    hintStyle: const TextStyle(fontSize: 12),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _commentController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'Note technique ou commentaire pour les usagers...',
-                hintStyle: const TextStyle(fontSize: 12),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: newStatus == 'resolved' ? const Color(0xFF16A34A) : const Color(0xFFD97706),
               ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Confirmer', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, null), child: const Text('Annuler')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: newStatus == 'resolved' ? const Color(0xFF16A34A) : const Color(0xFFD97706),
-            ),
-            onPressed: () => Navigator.pop(ctx, _commentController.text.trim()),
-            child: const Text('Confirmer', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
       ),
     );
 
-    if (comment != null) {
+    if (confirmed == true) {
       try {
-        await Supabase.instance.client.rpc('partner_update_report_status', params: {
-          'p_report_id': report.id,
-          'p_status': newStatus,
-        });
+        final comment = _commentController.text.trim();
+        final ref = _refController.text.trim();
+        final etaDate = localEta != null
+            ? DateTime.now().add(Duration(hours: localEta!)).toIso8601String()
+            : null;
+
+        try {
+          await Supabase.instance.client.rpc('operator_update_ticket', params: {
+            'p_report_id': report.id,
+            'p_ticket_code': report.ticketCode,
+            'p_status': newStatus,
+            'p_operator_name': _orgName,
+            'p_operator_reference': ref.isNotEmpty ? ref : null,
+            'p_public_note': comment.isNotEmpty ? comment : null,
+            'p_estimated_resolution': etaDate,
+          });
+        } catch (_) {
+          await Supabase.instance.client.rpc('partner_update_report_status', params: {
+            'p_report_id': report.id,
+            'p_status': newStatus,
+          });
+        }
 
         final user = Supabase.instance.client.auth.currentUser;
         if (comment.isNotEmpty && user != null) {
@@ -199,6 +258,8 @@ class _PartnerDashboardScreenState extends State<PartnerDashboardScreen> with Si
         }
 
         _commentController.clear();
+        _refController.clear();
+        _selectedEtaHours = null;
         _fetchPartnerReports();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -384,6 +445,47 @@ class _PartnerDashboardScreenState extends State<PartnerDashboardScreen> with Si
                   Icon(LucideIcons.clock, size: 12, color: Colors.grey.shade600),
                   const SizedBox(width: 4),
                   Text('${r.impactedPeople} impacté(s)', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              // PADA Ticket & Réf. Opérateur
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D9488).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFF0D9488).withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      '🎫 ${r.displayTicketCode}',
+                      style: GoogleFonts.firaCode(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF0D9488),
+                      ),
+                    ),
+                  ),
+                  if (r.operatorReference != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'Réf: ${r.operatorReference}',
+                        style: GoogleFonts.firaCode(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white70 : Colors.black87,
+                        ),
+                      ),
+                    ),
                 ],
               ),
               const SizedBox(height: 14),

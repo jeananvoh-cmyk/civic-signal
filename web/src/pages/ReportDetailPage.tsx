@@ -52,6 +52,10 @@ interface ReportDetail {
   babies: number;
   pregnant: number;
   elderly: number;
+  operator_name?: string | null;
+  operator_reference?: string | null;
+  estimated_resolution_time?: string | null;
+  operator_last_note?: string | null;
 }
 
 const SERVICE_LABELS: Record<string, string> = {
@@ -126,17 +130,30 @@ const ReportDetailPage = () => {
     description: metaDesc,
   });
 
+  const [statusHistory, setStatusHistory] = useState<any[]>([]);
+
   useEffect(() => {
     if (!id) return;
     supabase
       .from("reports")
-      .select("id, user_id, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, validated, validated_at, forwarded_to_operator_at, photo_url, photo_urls, verifications, repair_verifications, impacted_people, babies, pregnant, elderly")
+      .select("id, user_id, ticket_code, pada_commune_code, pada_street_name, pada_formatted_address, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, validated, validated_at, forwarded_to_operator_at, photo_url, photo_urls, verifications, repair_verifications, impacted_people, babies, pregnant, elderly, operator_name, operator_reference, estimated_resolution_time, operator_last_note")
       .eq("id", id)
       .eq("validated", true)
       .single()
       .then(({ data, error }) => {
         if (error || !data) setNotFound(true);
-        else setReport(data as ReportDetail);
+        else {
+          setReport(data as ReportDetail);
+          // Charger l'historique des statuts
+          supabase
+            .from("report_status_history")
+            .select("id, old_status, new_status, operator_name, operator_reference, public_note, estimated_resolution_time, created_at")
+            .eq("report_id", id)
+            .order("created_at", { ascending: true })
+            .then(({ data: histData }) => {
+              if (histData) setStatusHistory(histData);
+            });
+        }
         setLoading(false);
       });
   }, [id]);
@@ -492,6 +509,42 @@ const ReportDetailPage = () => {
             )}
           </div>
         </motion.div>
+
+        {/* Encart officiel Opérateur */}
+        {(report.operator_name || report.operator_reference || report.operator_last_note) && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-4 space-y-3 shadow-card"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-primary" />
+                <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                  {report.operator_name || "Opérateur / Mairie"}
+                </span>
+              </div>
+              {report.operator_reference && (
+                <Badge variant="outline" className="font-mono text-xs bg-background border-primary/30 text-primary">
+                  Réf: {report.operator_reference}
+                </Badge>
+              )}
+            </div>
+
+            {report.operator_last_note && (
+              <p className="text-sm text-foreground italic bg-background/80 p-3 rounded-xl border border-border">
+                "{report.operator_last_note}"
+              </p>
+            )}
+
+            {report.estimated_resolution_time && !isResolved && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-0.5">
+                <Clock className="h-3.5 w-3.5 text-amber-600" />
+                <span>Intervention prévue d'ici : <strong>{new Date(report.estimated_resolution_time).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}</strong></span>
+              </div>
+            )}
+          </motion.div>
+        )}
 
         {/* Timeline */}
         <motion.div

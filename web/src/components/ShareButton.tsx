@@ -1,4 +1,5 @@
-import { Share2, MessageCircle } from "lucide-react";
+import { Share2 } from "lucide-react";
+import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
@@ -58,7 +59,7 @@ const ShareButton = ({ title, text, url, className, variant = "outline", size = 
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem onClick={handleWhatsApp} className="cursor-pointer">
-          <MessageCircle className="h-4 w-4 mr-2 text-emerald-500" />
+          <WhatsAppIcon className="h-4 w-4 mr-2" variant="solid" />
           WhatsApp
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleNativeShare} className="cursor-pointer">
