@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Zap, Droplets, MapPin, Clock, ThumbsUp, CheckCircle,
-  Filter, TrendingUp, AlertCircle, ChevronDown, Lightbulb, TriangleAlert, Info, MoreHorizontal, Building2, Map, Trash2, Waves, ExternalLink, X as XIcon, Pencil
+  Filter, TrendingUp, AlertCircle, ChevronDown, Lightbulb, TriangleAlert, Info, MoreHorizontal, Building2, Trash2, Waves, ExternalLink, X as XIcon, Pencil
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
   Zap, Shield, Users, ArrowRight, BarChart3, MapPin,
-  Radio, LogIn, UserPlus, Map, History, Info, Heart,
+  Radio, LogIn, UserPlus, History, Info, Heart,
   ChevronDown, CheckCircle2, TrendingUp, Droplets, Wrench, Navigation,
   ExternalLink, MessageCircle, Mail
 } from "lucide-react";

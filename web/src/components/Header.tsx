@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
-  Zap, Menu, X, LogOut, User, Shield, Moon, Sun, Monitor, Map,
+  Zap, Menu, X, LogOut, User, Shield, Moon, Sun, Monitor,
   Wrench, ChevronDown, Search, BarChart3, TrendingUp, Info, HelpCircle,
   Building2, Heart, CheckCircle2, FileText
 } from "lucide-react";
