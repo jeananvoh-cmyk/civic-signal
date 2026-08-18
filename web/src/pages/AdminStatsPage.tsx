@@ -109,7 +109,7 @@ function buildExport(
   row("Signalements résolus", totalRes);
   row("Taux de résolution (%)", pct(totalRes, totalSig));
   row("Population couverte", totalPop);
-  row("Communes pilotes", stats.length);
+  row("Communes couvertes", stats.length);
   lines.push("");
 
   // ── 2. Statistiques par commune

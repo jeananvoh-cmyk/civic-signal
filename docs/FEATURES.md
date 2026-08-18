@@ -229,19 +229,26 @@ Plusieurs mécanismes protègent la fiabilité des données :
 
 ---
 
-## Communes pilotes
+## Communes couvertes
 
-La phase pilote couvre 7 communes d'Abidjan :
+SIGNA·CI couvre l'ensemble des 14 communes du Grand Abidjan :
 
-| Commune | Population approx. |
-|---|---|
-| Abobo | ~1 500 000 hab. |
-| Adjamé | ~500 000 hab. |
-| Bingerville | ~100 000 hab. |
-| Cocody | ~700 000 hab. |
-| Koumassi | ~500 000 hab. |
-| Port-Bouët | ~400 000 hab. |
-| Yopougon | ~1 800 000 hab. |
+| Commune | Population approx. | Rôle / Spécificité |
+|---|---|---|
+| Abobo | ~1 500 000 hab. | Grande commune populaire nord |
+| Adjamé | ~500 000 hab. | Cœur commercial & gares routières |
+| Anyama | ~250 000 hab. | Banlieue nord, Stade Ebimpé, ferroviaire |
+| Attécoubé | ~350 000 hab. | Baie du Banco, quartiers lagunaires |
+| Bingerville | ~150 000 hab. | Banlieue est résidentielle et historique |
+| Cocody | ~700 000 hab. | Pôle résidentiel, universitaire & médical |
+| Grand-Bassam | ~120 000 hab. | Ville historique UNESCO & balnéaire |
+| Koumassi | ~500 000 hab. | Pôle artisanal & commercial sud |
+| Marcory | ~300 000 hab. | Pôle économique, Zone 4, Biétry |
+| Plateau | ~20 000 hab. (jour: ~1M) | Centre d'affaires & administratif |
+| Port-Bouët | ~400 000 hab. | Zone aéroportuaire, portuaire & littorale |
+| Songon | ~100 000 hab. | Banlieue ouest lagunaire en expansion |
+| Treichville | ~200 000 hab. | Pôle portuaire, culturel & commercial historique |
+| Yopougon | ~1 800 000 hab. | Plus grande commune résidentielle & industrielle |
 
 ---
 

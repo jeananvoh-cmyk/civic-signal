@@ -61,7 +61,7 @@ const slides = [
     gradient: ["#3B82F6", "#6366F1"],          // bleu → violet
     bgFrom: "from-blue-500/[0.15]",
     bgTo: "to-violet-500/[0.08]",
-    chip: { icon: <span className="text-xs">📍</span>, label: "Abidjan & communes pilotes" },
+    chip: { icon: <span className="text-xs">📍</span>, label: "14 communes du Grand Abidjan" },
     title: "La voix de votre quartier",
     subtitle: "Signalez les coupures d'eau, d'électricité et les problèmes urbains en quelques secondes.",
     illustration: (

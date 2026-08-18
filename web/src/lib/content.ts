@@ -50,7 +50,7 @@ export const EMPTY_STATES = {
     "Aucune alerte active. Vous serez notifié dès qu'un voisin signale un problème dans votre quartier.",
   dashboardEmpty: "Aucune coupure active",
   dashboardEmptySubtitle:
-    "Tout est normal pour le moment dans les 7 communes pilotes. Les signalements apparaîtront ici en temps réel.",
+    "Tout est normal pour le moment dans les 14 communes du Grand Abidjan. Les signalements apparaîtront ici en temps réel.",
 } as const;
 
 // ─── Toasts ───────────────────────────────────────────────────────────────────

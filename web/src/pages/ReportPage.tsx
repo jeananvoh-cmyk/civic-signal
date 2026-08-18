@@ -1237,12 +1237,12 @@ const ReportPage = () => {
                         </div>
                         <h3 className="font-bold text-foreground text-sm">
                           {outsidePilotZone
-                            ? "Vous êtes en dehors de nos communes pilotes"
+                            ? "Position hors des 14 communes du Grand Abidjan"
                             : "Position GPS non détectée"}
                         </h3>
                         <p className="text-xs text-muted-foreground leading-relaxed">
                           {outsidePilotZone
-                            ? "SIGNA·CI est disponible dans 7 communes d'Abidjan. Choisissez directement votre commune ci-dessous pour continuer votre signalement."
+                            ? "SIGNA·CI couvre les 14 communes du Grand Abidjan. Choisissez directement votre commune ci-dessous pour continuer votre signalement."
                             : "Votre géolocalisation automatique n'a pas abouti. Vous pouvez réessayer ou sélectionner manuellement votre commune ci-dessous :"}
                         </p>
                         <Button

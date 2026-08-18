@@ -98,7 +98,7 @@ class AboutScreen extends StatelessWidget {
                     children: const [
                       Icon(LucideIcons.mapPin, color: AppTheme.primaryTeal, size: 20),
                       SizedBox(width: 8),
-                      Text('7 Communes Pilotes à Abidjan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text('14 Communes du Grand Abidjan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     ],
                   ),
                   const SizedBox(height: 14),

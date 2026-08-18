@@ -380,7 +380,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Badge 07 communes pilotes
+                    // Badge 14 communes du Grand Abidjan
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
@@ -394,7 +394,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                         children: [
                           Icon(LucideIcons.shield, color: isDark ? Colors.white70 : const Color(0xFF059669), size: 14),
                           const SizedBox(width: 6),
-                          Text('07 communes pilotes · Abidjan', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF334155), fontSize: 12, fontWeight: FontWeight.bold)),
+                          Text('14 communes · Grand Abidjan', style: TextStyle(color: isDark ? Colors.white : const Color(0xFF334155), fontSize: 12, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
@@ -523,16 +523,41 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            'En direct',
-                                            style: TextStyle(
-                                              color: isDark ? Colors.white70 : const Color(0xFF64748B),
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ],
+                        // 2. Bouton Suivi & Vérification
+                        Expanded(
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VerificationScreen())),
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                                    width: 1.5,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withAlpha(isDark ? 30 : 8),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(LucideIcons.checkCheck, color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669), size: 18),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Suivi citoyen',
+                                      style: TextStyle(
+                                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ],
@@ -545,7 +570,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // PILULES DES 7 COMMUNES PILOTES (Uniform slate badges 1:1 Web)
+                    // PILULES DES 14 COMMUNES DU GRAND ABIDJAN (Uniform slate badges 1:1 Web)
                     Wrap(
                       spacing: 6,
                       runSpacing: 6,
@@ -598,7 +623,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildStatItem('7', 'Communes', LucideIcons.mapPin, const Color(0xFF0284C7)),
+                          _buildStatItem('14+', 'Communes', LucideIcons.mapPin, const Color(0xFF0284C7)),
                           _buildStatItem('$_totalReports', 'Signalés', LucideIcons.fileText, const Color(0xFFD97706)),
                           _buildStatItem('$_resolvedReports', 'Résolus', LucideIcons.checkCircle, const Color(0xFF16A34A)),
                           _buildStatItem('$_activeOutages', 'En cours', LucideIcons.radio, const Color(0xFFDC2626)),

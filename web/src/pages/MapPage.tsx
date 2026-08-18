@@ -795,7 +795,7 @@ const MapPage = () => {
                 ? "Coupures d'eau & d'électricité — en temps réel"
                 : "Infrastructures publiques — signalements citoyens"}
             </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">07 communes pilotes disponibles</p>
+            <p className="text-xs text-muted-foreground mt-0.5">14 communes du Grand Abidjan disponibles</p>
             <p className="mt-1 text-muted-foreground">
               {loading ? "Chargement..." : (
                 <>
@@ -837,7 +837,7 @@ const MapPage = () => {
             </button>
             <ShareButton
               title="Carte SIGNA-CI"
-              text={`${currentActifs} signalements actifs sur les 7 communes pilotes d'Abidjan 📊`}
+              text={`${currentActifs} signalements actifs sur les 14 communes du Grand Abidjan 📊`}
             />
           </div>
         </motion.div>

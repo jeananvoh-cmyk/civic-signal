@@ -407,7 +407,7 @@ const DashboardPage = () => {
           <div className="container flex items-center justify-center gap-2 text-sm font-semibold text-destructive">
             <Siren className="h-4 w-4 animate-pulse motion-reduce:animate-none" />
             <span>
-              Situation critique — {totalActifs} coupures actives en ce moment sur les 7 communes pilotes
+              Situation critique — {totalActifs} coupures actives en ce moment sur le Grand Abidjan
             </span>
             <Siren className="h-4 w-4 animate-pulse motion-reduce:animate-none" />
           </div>
@@ -426,7 +426,7 @@ const DashboardPage = () => {
             )}
           </div>
             <div className="mt-1 flex items-center gap-2">
-              <p className="text-muted-foreground">7 communes pilotes — Abidjan</p>
+              <p className="text-muted-foreground">14 communes — Grand Abidjan</p>
               <span className={`flex items-center gap-1 text-xs font-medium transition-colors ${realtimeActive ? "text-success" : "text-muted-foreground"}`}>
                 <Radio className={`h-3 w-3 ${realtimeActive ? "animate-pulse motion-reduce:animate-none" : ""}`} />
                 Live
@@ -436,7 +436,7 @@ const DashboardPage = () => {
           <div className="flex items-center gap-2 flex-wrap">
             <ShareButton
               title="Tableau de bord SIGNA·CI"
-              text={`${totalActifs} coupures actives sur les 7 communes pilotes d'Abidjan`}
+              text={`${totalActifs} coupures actives sur les 14 communes du Grand Abidjan`}
             />
           </div>
         </motion.div>

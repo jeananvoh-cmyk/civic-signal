@@ -97,15 +97,15 @@ const AboutPage = () => {
             </div>
           </section>
 
-          {/* 3. Les 7 Communes Pilotes */}
+          {/* 3. Les 14 Communes du Grand Abidjan */}
           <section className="mb-8 rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-sm">
             <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
                 <MapPin className="h-6 w-6" />
               </div>
               <div>
-                <h2 className="font-display text-xl font-bold text-foreground">7 Communes Pilotes à Abidjan</h2>
-                <p className="text-xs text-muted-foreground">Couverture active en cours de déploiement</p>
+                <h2 className="font-display text-xl font-bold text-foreground">14 Communes du Grand Abidjan</h2>
+                <p className="text-xs text-muted-foreground">Couverture intégrale du District d'Abidjan et villes connectées</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">

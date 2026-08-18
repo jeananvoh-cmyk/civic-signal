@@ -122,7 +122,7 @@ export default function Footer() {
                 <span>Plateforme en libre-service 24h/24</span>
               </p>
               <p className="text-[11px] text-slate-400 pt-1 leading-relaxed">
-                Accessible à tous les résidents des communes pilotes du Grand Abidjan.
+                Accessible à tous les résidents des 14 communes du Grand Abidjan.
               </p>
             </div>
           </div>

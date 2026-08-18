@@ -128,7 +128,7 @@ export async function exportPDF(
   // Coverage info
   doc.setFontSize(9);
   doc.setTextColor(...GREY);
-  doc.text(`${stats.length} communes pilotes · ${(totalPop / 1000).toFixed(0)}k habitants couverts`, margin, y);
+  doc.text(`${stats.length} communes couvertes · ${(totalPop / 1000).toFixed(0)}k habitants`, margin, y);
 
   // Separator
   y += 12;

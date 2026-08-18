@@ -125,7 +125,7 @@ const TransparencyPage = () => {
           </h1>
           <p className="mt-2 text-muted-foreground max-w-xl">
             Chiffres mis à jour en temps réel sur les signalements citoyens, le taux de résolution
-            et la réactivité des opérateurs sur les 7 communes pilotes d'Abidjan.
+            et la réactivité des opérateurs sur les 14 communes du Grand Abidjan et le territoire national.
           </p>
         </motion.div>
 

@@ -310,7 +310,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             Row(
               children: const [
-                Text('7 communes pilotes — Abidjan', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                Text('14 communes — Grand Abidjan', style: TextStyle(fontSize: 10, color: Colors.grey)),
                 SizedBox(width: 6),
                 Icon(LucideIcons.radio, size: 10, color: Color(0xFF16A34A)),
                 SizedBox(width: 2),
@@ -364,7 +364,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Situation critique — $_totalActifs coupures actives en ce moment sur les 7 communes pilotes',
+                          'Situation critique — $_totalActifs coupures actives en ce moment sur le Grand Abidjan',
                           style: const TextStyle(color: Color(0xFFB91C1C), fontWeight: FontWeight.bold, fontSize: 12),
                         ),
                       ),

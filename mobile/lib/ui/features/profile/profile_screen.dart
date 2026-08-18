@@ -795,7 +795,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
               ListTile(
                 leading: const Icon(LucideIcons.barChart3, color: AppTheme.primaryTeal),
                 title: const Text('Tableau de Bord Communal', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                subtitle: const Text('Classement et taux de traitement des 7 communes', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                subtitle: const Text('Classement et taux de traitement des 14 communes', style: TextStyle(fontSize: 11, color: Colors.grey)),
                 trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardScreen())),
               ),
