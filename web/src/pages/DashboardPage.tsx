@@ -206,11 +206,29 @@ const ReportRow = ({ r, variant }: { r: PriorityReport; variant: "critical" | "h
   );
 };
 
+const INITIAL_COMMUNE_STATS: CommuneServiceStat[] = COMMUNES.map((c) => ({
+  commune: c.nom,
+  couleur: c.couleur,
+  population: c.population,
+  electricite_actifs: 0,
+  electricite_resolus: 0,
+  electricite_total: 0,
+  eau_actifs: 0,
+  eau_resolus: 0,
+  eau_total: 0,
+  mairie_actifs: 0,
+  mairie_resolus: 0,
+  mairie_total: 0,
+  electricite_verified: 0,
+  eau_verified: 0,
+  mairie_verified: 0,
+}));
+
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { isAdmin, isModerator, canValidate } = useUserRole();
   const { user } = useAuth();
-  const [stats, setStats] = useState<CommuneServiceStat[]>([]);
+  const [stats, setStats] = useState<CommuneServiceStat[]>(INITIAL_COMMUNE_STATS);
   const [durations, setDurations] = useState<DurationStat[]>([]);
   const [topQuartiers, setTopQuartiers] = useState<QuartierRanking[]>([]);
   const [priorityReports, setPriorityReports] = useState<PriorityReport[]>([]);
@@ -227,8 +245,39 @@ const DashboardPage = () => {
       supabase.rpc("get_public_reports"),
       ...communeNames.map((nom) => supabase.rpc("get_commune_quartier_stats", { p_commune: nom })),
     ]);
-    if (!statsRes.error && statsRes.data) setStats(statsRes.data as unknown as CommuneServiceStat[]);
-    else setStats(COMMUNES.map((c) => ({ commune: c.nom, couleur: c.couleur, population: c.population, electricite_actifs: 0, electricite_resolus: 0, electricite_total: 0, eau_actifs: 0, eau_resolus: 0, eau_total: 0, mairie_actifs: 0, mairie_resolus: 0, mairie_total: 0, electricite_verified: 0, eau_verified: 0, mairie_verified: 0 })));
+    const rawStats = (!statsRes.error && Array.isArray(statsRes.data)) ? (statsRes.data as unknown as CommuneServiceStat[]) : [];
+    const statsMap = new Map(rawStats.map((s) => [s.commune.toLowerCase().trim(), s]));
+
+    const mergedStats: CommuneServiceStat[] = COMMUNES.map((c) => {
+      const existing = statsMap.get(c.nom.toLowerCase().trim());
+      if (existing) {
+        return {
+          ...existing,
+          commune: c.nom,
+          couleur: c.couleur || existing.couleur,
+          population: c.population || existing.population,
+        };
+      }
+      return {
+        commune: c.nom,
+        couleur: c.couleur,
+        population: c.population,
+        electricite_actifs: 0,
+        electricite_resolus: 0,
+        electricite_total: 0,
+        eau_actifs: 0,
+        eau_resolus: 0,
+        eau_total: 0,
+        mairie_actifs: 0,
+        mairie_resolus: 0,
+        mairie_total: 0,
+        electricite_verified: 0,
+        eau_verified: 0,
+        mairie_verified: 0,
+      };
+    });
+
+    setStats(mergedStats);
     if (!durRes.error && durRes.data) setDurations(durRes.data as unknown as DurationStat[]);
     if (!reportsRes.error && reportsRes.data) setPriorityReports(reportsRes.data as unknown as PriorityReport[]);
 

@@ -125,30 +125,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final durData = results[1] as List<dynamic>?;
       final repData = results[2] as List<dynamic>?;
 
-      // 2. Traitement des stats par commune
-      List<Map<String, dynamic>> parsedStats = [];
-      if (statsData != null && statsData.isNotEmpty) {
-        parsedStats = statsData.map((e) => Map<String, dynamic>.from(e as Map)).toList();
-      } else {
-        // Fallback avec les communes pilotes
-        parsedStats = PILOT_COMMUNES.map((c) => {
+      // 2. Traitement des stats par commune (Garantit les 14 communes en ordre alphabétique)
+      final rawStatsList = (statsData != null) ? statsData.map((e) => Map<String, dynamic>.from(e as Map)).toList() : <Map<String, dynamic>>[];
+      final statsMap = { for (var s in rawStatsList) (s['commune'] ?? '').toString().toLowerCase().trim() : s };
+
+      List<Map<String, dynamic>> parsedStats = PILOT_COMMUNES.map((c) {
+        final existing = statsMap[c.nom.toLowerCase().trim()];
+        if (existing != null) {
+          return {
+            ...existing,
+            'commune': c.nom,
+            'couleur': '#${c.couleur.toARGB32().toRadixString(16).substring(2)}',
+            'population': c.population,
+          };
+        }
+        return {
           'commune': c.nom,
           'couleur': '#${c.couleur.toARGB32().toRadixString(16).substring(2)}',
           'population': c.population,
-          'electricite_actifs': c.nom == 'Cocody' ? 3 : (c.nom == 'Port-Bouët' ? 1 : 0),
-          'electricite_resolus': c.nom == 'Cocody' ? 17 : 2,
-          'electricite_total': c.nom == 'Cocody' ? 20 : 2,
+          'electricite_actifs': 0,
+          'electricite_resolus': 0,
+          'electricite_total': 0,
           'eau_actifs': 0,
-          'eau_resolus': c.nom == 'Cocody' ? 9 : 1,
-          'eau_total': c.nom == 'Cocody' ? 9 : 1,
-          'mairie_actifs': c.nom == 'Cocody' ? 2 : (c.nom == 'Adjamé' ? 1 : 0),
+          'eau_resolus': 0,
+          'eau_total': 0,
+          'mairie_actifs': 0,
           'mairie_resolus': 0,
-          'mairie_total': c.nom == 'Cocody' ? 2 : 1,
+          'mairie_total': 0,
           'electricite_verified': 0,
           'eau_verified': 0,
           'mairie_verified': 0,
-        }).toList();
-      }
+        };
+      }).toList();
 
       // 3. Traitement des durées moyennes
       double elecTotalMinutes = 0;
