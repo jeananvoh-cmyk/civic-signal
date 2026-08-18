@@ -262,7 +262,7 @@ class _TrendsScreenState extends State<TrendsScreen> {
                               ),
                               const SizedBox(width: 8),
                               const Text(
-                                'BAROMÈTRE CIVIQUE · FIXMYSTREET',
+                                'BAROMÈTRE CIVIQUE · SIGNA-CI',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,

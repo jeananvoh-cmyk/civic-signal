@@ -797,6 +797,15 @@ const AdminReportsPage = () => {
 
                           {/* Actions */}
                           <div className="flex flex-col gap-1.5 shrink-0">
+                            <Button
+                              size="sm"
+                              className="h-8 gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-2xs"
+                              onClick={() => resolveMutation.mutate(r.id)}
+                              disabled={resolveMutation.isPending}
+                            >
+                              <CheckCircle className="h-3.5 w-3.5" />
+                              Clôturer (Rétabli)
+                            </Button>
                             {hasPhone ? (
                               <a
                                 href={waLink!}
@@ -805,9 +814,10 @@ const AdminReportsPage = () => {
                               >
                                 <Button
                                   size="sm"
-                                  className="h-8 gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                                  variant="outline"
+                                  className="h-7 w-full gap-1.5 text-xs border-emerald-600/40 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40 font-medium"
                                 >
-                                  <MessageCircle className="h-3.5 w-3.5" />
+                                  <MessageCircle className="h-3 w-3" />
                                   WhatsApp
                                 </Button>
                               </a>
@@ -815,17 +825,17 @@ const AdminReportsPage = () => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-8 gap-1.5 text-xs text-muted-foreground"
+                                className="h-7 gap-1.5 text-xs text-muted-foreground opacity-60"
                                 disabled
                               >
-                                <PhoneCall className="h-3.5 w-3.5" />
-                                Pas de n°
+                                <PhoneCall className="h-3 w-3" />
+                                Sans tél
                               </Button>
                             )}
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                              className="h-7 text-xs text-muted-foreground hover:text-foreground"
                               onClick={() => setSelectedReport(r)}
                             >
                               Voir détail

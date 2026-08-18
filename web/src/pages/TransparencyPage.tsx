@@ -186,7 +186,7 @@ const TransparencyPage = () => {
                   <div className="flex items-center gap-2">
                     <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
                     <span className="text-[11px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-                      Baromètre National · FixMyStreet Civic Tech
+                      Baromètre National · SIGNA-CI Civic Tech
                     </span>
                   </div>
                   <h2 className="text-2xl font-black tracking-tight text-foreground mt-1">
