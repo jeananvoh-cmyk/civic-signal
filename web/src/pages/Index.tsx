@@ -385,7 +385,7 @@ const Index = () => {
                 to="/carte"
                 className="group flex items-center gap-3.5 rounded-2xl border-2 border-slate-300 bg-white hover:bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900/80 dark:hover:bg-slate-800 dark:text-white px-6 py-4 font-bold text-base shadow-sm backdrop-blur-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
-                <Map className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                <MapIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                 <div className="flex flex-col text-left leading-tight">
                   <span className="text-base font-extrabold tracking-wide">Consulter la carte</span>
                   <span className="text-[11px] font-medium text-slate-500 dark:text-slate-300">Incidents en direct</span>

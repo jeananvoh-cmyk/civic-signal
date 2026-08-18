@@ -7,7 +7,7 @@ import {
   Zap, Droplets, Clock, Trophy, ChevronDown, Radio, Flame, AlertTriangle,
   MapPin, Siren, Construction, CheckCircle2, Info, Wrench, HelpCircle,
   ShieldCheck, Send, Building2, Users, BarChart2, Filter, Sparkles,
-  Search, LayoutGrid, List, SlidersHorizontal, ArrowUpDown, X,
+  Search, LayoutGrid, List, SlidersHorizontal, ArrowUpDown, X, Map as MapIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -752,7 +752,7 @@ const DashboardPage = () => {
               onClick={() => navigate("/carte")}
               className="flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-border bg-card px-4 py-4 text-foreground transition-all hover:bg-muted/60 active:scale-[0.98]"
             >
-              <Map className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              <MapIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               <span className="text-sm font-extrabold">Voir la Carte</span>
               <span className="text-xs text-muted-foreground">Incidents en direct</span>
             </button>

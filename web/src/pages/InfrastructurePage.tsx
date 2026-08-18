@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Zap, Droplets, MapPin, Clock, ThumbsUp, CheckCircle,
-  Filter, TrendingUp, AlertCircle, ChevronDown, Lightbulb, TriangleAlert, Info, MoreHorizontal, Building2, Trash2, Waves, ExternalLink, X as XIcon, Pencil
+  Filter, TrendingUp, AlertCircle, ChevronDown, Lightbulb, TriangleAlert, Info, MoreHorizontal, Building2, Trash2, Waves, ExternalLink, X as XIcon, Pencil, Map as MapIcon
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
@@ -452,7 +452,7 @@ const InfrastructurePage = () => {
                     className="w-full flex items-center justify-between gap-3 px-3 py-2.5 bg-emerald-500/8 hover:bg-emerald-500/12 transition-colors text-left"
                   >
                     <div className="flex items-center gap-2">
-                      <Map className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <MapIcon className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                       <span className="text-xs font-bold text-foreground uppercase tracking-wide">Voirie · Mairie</span>
                       {activeHere && (
                         <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">{subFilter}</span>

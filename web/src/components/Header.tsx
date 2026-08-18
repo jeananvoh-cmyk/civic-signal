@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import {
   Zap, Menu, X, LogOut, User, Shield, Moon, Sun, Monitor,
   Wrench, ChevronDown, Search, BarChart3, TrendingUp, Info, HelpCircle,
-  Building2, Heart, CheckCircle2, FileText
+  Building2, Heart, CheckCircle2, FileText, Map as MapIcon
 } from "lucide-react";
 import SignaLogo from "@/components/SignaLogo";
 import NotificationBell from "@/components/NotificationBell";
@@ -289,7 +289,7 @@ const Header = () => {
                       to="/carte"
                       className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors", isActive("/carte") ? "bg-primary/10 text-primary font-bold" : "text-foreground/80 hover:bg-muted")}
                     >
-                      <Map className="h-4 w-4 text-sky-500" />
+                      <MapIcon className="h-4 w-4 text-sky-500" />
                       <span>Carte des coupures d'eau & électricité</span>
                     </Link>
                     <Link
