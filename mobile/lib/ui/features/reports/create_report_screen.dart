@@ -71,7 +71,7 @@ final List<ReportTypeConfig> REPORT_TYPES = [
     emoji: '💡',
     label: 'Éclairage public',
     description: 'Lampadaire cassé, éteint ou éclairage public hors service',
-    imageAsset: 'assets/infra/lampadaire.png',
+    imageAsset: 'assets/infra/lampadaire.jpg',
     color: const Color(0xFFEAB308),
     serviceType: 'electricity',
     reportCategory: 'infrastructure',

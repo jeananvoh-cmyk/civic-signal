@@ -1,7 +1,7 @@
 // Infrastructure category icons — realistic illustrations
 import electriciteIcon from "@/assets/electricity-icon.png";
 import eauIcon from "@/assets/water-icon.png";
-import lampadaireIcon from "@/assets/infra/lampadaire.png";
+import lampadaireIcon from "@/assets/infra/lampadaire.jpg";
 import poteauElectriqueIcon from "@/assets/infra/poteau-electrique.png";
 import cieHazardIcon from "@/assets/infra/cie-danger.jpg";
 import cieAutreIcon from "@/assets/infra/cie-autre.jpg";
