@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import { X, Download, Share, Smartphone, Wifi, Bell, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ const PERKS = [
 ];
 
 const PWAInstallBanner = () => {
+  const navigate = useNavigate();
   const { canInstall, isIOS, install } = usePWAInstall();
   const [visible, setVisible] = useState(false);
   const [installing, setInstalling] = useState(false);
@@ -49,7 +51,8 @@ const PWAInstallBanner = () => {
 
   const handleInstall = async () => {
     if (isIOS) {
-      window.location.href = "/install";
+      setVisible(false);
+      navigate("/installer");
       return;
     }
     setInstalling(true);

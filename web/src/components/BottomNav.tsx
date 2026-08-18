@@ -48,7 +48,7 @@ export default function BottomNav() {
     };
   }, [user]);
 
-  const hidden = ["/signaler", "/auth", "/admin", "/install"].some((p) =>
+  const hidden = ["/signaler", "/auth", "/admin", "/installer", "/install"].some((p) =>
     location.pathname.startsWith(p)
   );
   if (hidden) return null;
@@ -68,7 +68,7 @@ export default function BottomNav() {
 
           {canInstall ? (
             <Link
-              to="/install"
+              to="/installer"
               aria-label="Installer l'application"
               className="flex flex-col items-center justify-center gap-1 h-full px-2"
             >

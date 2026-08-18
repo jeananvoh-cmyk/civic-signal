@@ -12,18 +12,17 @@ export interface PadaCommuneInfo {
 }
 
 export const PADA_COMMUNES: Record<string, PadaCommuneInfo> = {
-  Anyama: { codeDept: "002", codeSp: "02", codeComplet: "002-02", commune: "Anyama", trigramme: "ANY" },
-  Bingerville: { codeDept: "002", codeSp: "03", codeComplet: "002-03", commune: "Bingerville", trigramme: "BIN" },
-  Brofodoumé: { codeDept: "002", codeSp: "04", codeComplet: "002-04", commune: "Brofodoumé", trigramme: "BRO" },
-  Songon: { codeDept: "002", codeSp: "05", codeComplet: "002-05", commune: "Songon", trigramme: "SON" },
   Abobo: { codeDept: "002", codeSp: "11", codeComplet: "002-11", commune: "Abobo", trigramme: "ABO" },
   Adjamé: { codeDept: "002", codeSp: "12", codeComplet: "002-12", commune: "Adjamé", trigramme: "ADJ" },
+  Anyama: { codeDept: "002", codeSp: "02", codeComplet: "002-02", commune: "Anyama", trigramme: "ANY" },
   Attécoubé: { codeDept: "002", codeSp: "13", codeComplet: "002-13", commune: "Attécoubé", trigramme: "ATT" },
+  Bingerville: { codeDept: "002", codeSp: "03", codeComplet: "002-03", commune: "Bingerville", trigramme: "BIN" },
   Cocody: { codeDept: "002", codeSp: "14", codeComplet: "002-14", commune: "Cocody", trigramme: "COC" },
   Koumassi: { codeDept: "002", codeSp: "15", codeComplet: "002-15", commune: "Koumassi", trigramme: "KOU" },
   Marcory: { codeDept: "002", codeSp: "16", codeComplet: "002-16", commune: "Marcory", trigramme: "MAR" },
   Plateau: { codeDept: "002", codeSp: "17", codeComplet: "002-17", commune: "Plateau", trigramme: "PLA" },
   "Port-Bouët": { codeDept: "002", codeSp: "18", codeComplet: "002-18", commune: "Port-Bouët", trigramme: "PTB" },
+  Songon: { codeDept: "002", codeSp: "05", codeComplet: "002-05", commune: "Songon", trigramme: "SON" },
   Treichville: { codeDept: "002", codeSp: "19", codeComplet: "002-19", commune: "Treichville", trigramme: "TRE" },
   Yopougon: { codeDept: "002", codeSp: "20", codeComplet: "002-20", commune: "Yopougon", trigramme: "YOP" },
   "Grand-Bassam": { codeDept: "002", codeSp: "21", codeComplet: "002-21", commune: "Grand-Bassam", trigramme: "BAS" },
@@ -35,7 +34,6 @@ export const PADA_COMMUNES: Record<string, PadaCommuneInfo> = {
 export function getCommuneTrigramme(commune: string): string {
   const info = PADA_COMMUNES[commune];
   if (info) return info.trigramme;
-  // Fallback 3 premières lettres majuscules
   return commune.replace(/[^a-zA-Z]/g, "").slice(0, 3).toUpperCase() || "CIV";
 }
 
@@ -48,7 +46,8 @@ export function getCommunePadaCode(commune: string): string {
 }
 
 /**
- * Génère un Ticket Code au format officiel SIG-[COMMUNE]-[AAAAMMJJ]-[SEQ]
+ * Génère un Ticket Code au format : SIG-[COMMUNE_3L]-[AAAAMMJJ]-[NUMERO]
+ * Ex: SIG-COC-20260818-0001
  */
 export function formatTicketCode(commune: string, date: Date = new Date(), sequence: number = 1): string {
   const trigramme = getCommuneTrigramme(commune);
@@ -79,9 +78,14 @@ export function formatPadaAddress(params: {
 }
 
 /**
- * Extrait un identifiant court lisible depuis un UUID si ticket_code n'est pas encore disponible
+ * Extrait un identifiant lisible depuis un UUID si ticket_code n'est pas encore disponible
  */
-export function getDisplayTicketCode(report: { ticket_code?: string | null; commune?: string | null; created_at?: string | null; id?: string }): string {
+export function getDisplayTicketCode(report: {
+  ticket_code?: string | null;
+  commune?: string | null;
+  created_at?: string | null;
+  id?: string;
+}): string {
   if (report.ticket_code) return report.ticket_code;
   const commune = report.commune || "Abidjan";
   const date = report.created_at ? new Date(report.created_at) : new Date();

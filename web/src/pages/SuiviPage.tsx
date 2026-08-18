@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Zap, Droplets, Clock, MapPin, TrendingUp, RefreshCw, Info, Search, Ticket, Building2, Copy } from "lucide-react";
@@ -95,6 +96,7 @@ function getUrgencyBorderClass(urgency: string) {
 }
 
 const SuiviPage = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCommune, setFilterCommune] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
@@ -525,7 +527,7 @@ const SuiviPage = () => {
                 });
                 return (
                   <Card key={r.id} className={`border-l-4 ${getUrgencyBorderClass(r.urgency)} hover:shadow-md transition-shadow cursor-pointer`}
-                    onClick={() => window.location.href = `/signalement/${r.id}`}
+                    onClick={() => navigate(`/signalement/${r.id}`)}
                   >
                     <CardContent className="p-3 flex items-start gap-3">
                       <span className="text-xl shrink-0 mt-0.5">

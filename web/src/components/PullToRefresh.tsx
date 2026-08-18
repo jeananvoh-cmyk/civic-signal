@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { RefreshCw } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 /**
- * Native-like pull-to-refresh for PWA.
- * Wraps children and triggers window.location.reload() on pull ≥ threshold.
+ * Native-like pull-to-refresh for PWA / Web.
+ * Invalidates active query caches smoothly without hard browser crashes.
  */
 const THRESHOLD = 72; // px to pull before triggering
-const MAX_PULL  = 100;
+const MAX_PULL = 100;
 
 export default function PullToRefresh({ children }: { children: React.ReactNode }) {
-  const [pullY, setPullY]       = useState(0);
+  const queryClient = useQueryClient();
+  const [pullY, setPullY] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const startY = useRef<number | null>(null);
   const pulling = useRef(false);
@@ -25,7 +27,10 @@ export default function PullToRefresh({ children }: { children: React.ReactNode 
     const onTouchMove = (e: TouchEvent) => {
       if (!pulling.current || startY.current === null) return;
       const delta = e.touches[0].clientY - startY.current;
-      if (delta <= 0) { setPullY(0); return; }
+      if (delta <= 0) {
+        setPullY(0);
+        return;
+      }
       // Rubber-band resistance
       const pulled = Math.min(delta * 0.5, MAX_PULL);
       setPullY(pulled);
@@ -37,7 +42,13 @@ export default function PullToRefresh({ children }: { children: React.ReactNode 
       pulling.current = false;
       if (pullY >= THRESHOLD) {
         setRefreshing(true);
-        setTimeout(() => window.location.reload(), 600);
+        // Rafraîchissement propre des requêtes en cours sans recharger toute la page
+        queryClient.invalidateQueries().finally(() => {
+          setTimeout(() => {
+            setRefreshing(false);
+            setPullY(0);
+          }, 500);
+        });
       } else {
         setPullY(0);
       }
@@ -45,53 +56,49 @@ export default function PullToRefresh({ children }: { children: React.ReactNode 
     };
 
     document.addEventListener("touchstart", onTouchStart, { passive: true });
-    document.addEventListener("touchmove",  onTouchMove,  { passive: false });
-    document.addEventListener("touchend",   onTouchEnd);
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
+    document.addEventListener("touchend", onTouchEnd);
     return () => {
       document.removeEventListener("touchstart", onTouchStart);
-      document.removeEventListener("touchmove",  onTouchMove);
-      document.removeEventListener("touchend",   onTouchEnd);
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
     };
-  }, [pullY]);
+  }, [pullY, queryClient]);
 
   const progress = Math.min(pullY / THRESHOLD, 1);
-  const ready    = pullY >= THRESHOLD;
+  const ready = pullY >= THRESHOLD;
 
   return (
     <>
-      {/* Pull indicator */}
-      {(pullY > 4 || refreshing) && (
+      {/* Visual pull indicator */}
+      {(pullY > 0 || refreshing) && (
         <div
-          className="fixed top-0 inset-x-0 z-[9999] flex items-center justify-center pointer-events-none"
-          style={{ height: `${Math.max(pullY, refreshing ? THRESHOLD : 0)}px`, transition: refreshing ? "height 0.2s" : "none" }}
+          className="fixed top-0 inset-x-0 z-50 flex items-center justify-center pointer-events-none transition-transform duration-75"
+          style={{
+            transform: `translateY(${refreshing ? 16 : Math.max(0, pullY * 0.55 - 20)}px)`,
+          }}
+          aria-hidden="true"
         >
           <div
-            className="flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold shadow-lg"
-            style={{
-              background: ready || refreshing ? "#1a2744" : "#f1f5f9",
-              color: ready || refreshing ? "#fff" : "#64748b",
-              opacity: Math.min(progress * 1.5, 1),
-              transform: `scale(${0.7 + progress * 0.3})`,
-              transition: "background 0.15s, color 0.15s",
-            }}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full shadow-lg text-xs font-semibold backdrop-blur-md transition-colors ${
+              ready || refreshing
+                ? "bg-primary text-primary-foreground shadow-primary/30"
+                : "bg-card/90 text-muted-foreground border border-border"
+            }`}
           >
             <RefreshCw
-              className="h-3.5 w-3.5"
+              className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`}
               style={{
-                transform: `rotate(${refreshing ? 360 : progress * 180}deg)`,
-                transition: refreshing ? "transform 0.6s linear" : "none",
-                animation: refreshing ? "spin 0.6s linear infinite" : "none",
+                transform: refreshing ? undefined : `rotate(${progress * 270}deg)`,
+                transition: refreshing ? undefined : "transform 0.05s linear",
               }}
             />
-            {refreshing ? "Mise à jour…" : ready ? "Relâchez pour actualiser" : "Tirer pour actualiser"}
+            <span>{refreshing ? "Actualisation..." : ready ? "Relâcher pour actualiser" : "Tirer pour actualiser"}</span>
           </div>
         </div>
       )}
 
-      {/* Push content down while pulling */}
-      <div style={{ transform: `translateY(${pullY}px)`, transition: pullY === 0 ? "transform 0.3s ease" : "none" }}>
-        {children}
-      </div>
+      {children}
     </>
   );
 }

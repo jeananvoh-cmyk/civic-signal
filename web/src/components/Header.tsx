@@ -21,8 +21,6 @@ import { motion, AnimatePresence } from "framer-motion";
 const Header = () => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [mapDropdownOpen, setMapDropdownOpen] = useState(false);
-  const [dataDropdownOpen, setDataDropdownOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -32,8 +30,6 @@ const Header = () => {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const mapDropdownRef = useRef<HTMLDivElement>(null);
-  const dataDropdownRef = useRef<HTMLDivElement>(null);
   const { user, signOut } = useAuth();
   const { canValidate, isAdmin, isModerator } = useUserRole();
   const { theme, toggleTheme } = useTheme();
@@ -47,28 +43,11 @@ const Header = () => {
     theme === "light"  ? <Sun className="h-4 w-4" /> :
                          <Monitor className="h-4 w-4" />;
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (mapDropdownRef.current && !mapDropdownRef.current.contains(e.target as Node)) {
-        setMapDropdownOpen(false);
-      }
-      if (dataDropdownRef.current && !dataDropdownRef.current.contains(e.target as Node)) {
-        setDataDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
   // Close mobile menu on nav
   useEffect(() => {
     setMobileOpen(false);
-    setMapDropdownOpen(false);
-    setDataDropdownOpen(false);
   }, [location.pathname]);
 
-  const isMapActive = location.pathname === "/carte" || location.pathname === "/infrastructures";
-  const isDataActive = location.pathname === "/transparence" || location.pathname === "/tableau-de-bord";
   const isActive = (to: string) => location.pathname === to;
 
   return (
@@ -84,75 +63,41 @@ const Header = () => {
           {/* ── Desktop Navigation Principale ── */}
           <nav className="hidden items-center gap-1 md:flex flex-1 justify-center">
 
-            {/* 1. Carte & Réseaux (Dropdown) */}
-            <div className="relative" ref={mapDropdownRef}>
-              <button
-                onClick={() => setMapDropdownOpen(!mapDropdownOpen)}
-                aria-expanded={mapDropdownOpen}
-                aria-haspopup="menu"
-                className={cn(
-                  "flex items-center gap-1 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                  isMapActive
-                    ? "text-primary bg-primary/8 font-semibold"
-                    : "text-foreground/70 hover:text-foreground hover:bg-muted/60"
-                )}
-              >
-                <Map className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-                <span>Carte & Réseaux</span>
-                <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${mapDropdownOpen ? "rotate-180" : ""}`} aria-hidden="true" />
-              </button>
+            {/* 1. 🗺️ Carte des coupures (Accès direct) */}
+            <Link
+              to="/carte"
+              className={cn(
+                "relative flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-150",
+                isActive("/carte")
+                  ? "text-primary bg-primary/8 font-semibold"
+                  : "text-foreground/70 hover:text-foreground hover:bg-muted/60"
+              )}
+            >
+              <Map className="h-3.5 w-3.5 text-sky-500" />
+              <span>Carte des coupures</span>
+              {isActive("/carte") && (
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-4 rounded-full bg-primary" />
+              )}
+            </Link>
 
-              <AnimatePresence>
-                {mapDropdownOpen && (
-                  <motion.div
-                    role="menu"
-                    initial={{ opacity: 0, y: -6, scale: 0.97 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -4, scale: 0.97 }}
-                    transition={{ duration: 0.15, ease: "easeOut" }}
-                    className="absolute top-full left-0 mt-2 w-80 rounded-xl border border-border bg-card shadow-xl py-1.5 z-50"
-                  >
-                    <Link
-                      to="/carte"
-                      onClick={() => setMapDropdownOpen(false)}
-                      className={cn(
-                        "flex items-start gap-3 px-4 py-3 text-sm transition-colors rounded-lg mx-1.5",
-                        location.pathname === "/carte" ? "bg-primary/8 text-primary" : "text-foreground/80 hover:bg-muted/60"
-                      )}
-                    >
-                      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-500/10 border border-sky-500/20">
-                        <Map className="h-4 w-4 text-sky-500" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-[13px] text-foreground">Carte des coupures en direct</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">Eau SODECI & Électricité CIE géolocalisées.</p>
-                      </div>
-                    </Link>
+            {/* 2. 🚧 Voirie & Infrastructures (Accès direct) */}
+            <Link
+              to="/infrastructures"
+              className={cn(
+                "relative flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-150",
+                isActive("/infrastructures")
+                  ? "text-primary bg-primary/8 font-semibold"
+                  : "text-foreground/70 hover:text-foreground hover:bg-muted/60"
+              )}
+            >
+              <Wrench className="h-3.5 w-3.5 text-amber-500" />
+              <span>Voirie & Infra</span>
+              {isActive("/infrastructures") && (
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-4 rounded-full bg-primary" />
+              )}
+            </Link>
 
-                    <div className="mx-4 my-1.5 border-t border-border/60" />
-
-                    <Link
-                      to="/infrastructures"
-                      onClick={() => setMapDropdownOpen(false)}
-                      className={cn(
-                        "flex items-start gap-3 px-4 py-3 text-sm transition-colors rounded-lg mx-1.5",
-                        location.pathname === "/infrastructures" ? "bg-primary/8 text-primary" : "text-foreground/80 hover:bg-muted/60"
-                      )}
-                    >
-                      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 border border-amber-500/20">
-                        <Wrench className="h-4 w-4 text-amber-500" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-[13px] text-foreground">Fil Voirie & Infrastructures</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">Nids de poules, lampadaires, caniveaux avec photos.</p>
-                      </div>
-                    </Link>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* 2. 📈 Transparence Open Data (Mis en avant) */}
+            {/* 3. 📈 Transparence Open Data */}
             {transparencyEnabled && (
               <Link
                 to="/transparence"
@@ -164,14 +109,14 @@ const Header = () => {
                 )}
               >
                 <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
-                <span>Transparence Open Data</span>
+                <span>Transparence</span>
                 {isActive("/transparence") && (
                   <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-4 rounded-full bg-primary" />
                 )}
               </Link>
             )}
 
-            {/* 3. 📊 Tableau de bord communal */}
+            {/* 4. 📊 Tableau de bord communal */}
             <Link
               to="/tableau-de-bord"
               className={cn(
@@ -187,7 +132,7 @@ const Header = () => {
               )}
             </Link>
 
-            {/* 4. 🔍 Suivi direct de ticket */}
+            {/* 5. 🔍 Suivi direct de ticket */}
             {suiviEnabled && (
               <Link
                 to="/suivi"
@@ -199,10 +144,13 @@ const Header = () => {
                 )}
               >
                 <span>Suivre un ticket</span>
+                {isActive("/suivi") && (
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-4 rounded-full bg-primary" />
+                )}
               </Link>
             )}
 
-            {/* 5. ℹ️ À Propos */}
+            {/* 6. ℹ️ À Propos */}
             <Link
               to="/a-propos"
               className={cn(
@@ -213,6 +161,9 @@ const Header = () => {
               )}
             >
               <span>À propos</span>
+              {isActive("/a-propos") && (
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-4 rounded-full bg-primary" />
+              )}
             </Link>
           </nav>
 

@@ -127,6 +127,8 @@ class ReportModel {
   String get displayTicketCode => PadaConstants.formatTicketCode(
     ticketCode: ticketCode,
     commune: commune,
+    serviceType: serviceType,
+    reportCategory: reportCategory,
     createdAt: createdAt,
     id: id,
   );

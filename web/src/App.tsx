@@ -58,7 +58,16 @@ const SuiviPage = lazy(() => import("./pages/SuiviPage"));
 const CompteurPage = lazy(() => import("./pages/CompteurPage"));
 const BrandPage = lazy(() => import("./pages/BrandPage"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 2, // 2 minutes de mise en cache fluide
+      gcTime: 1000 * 60 * 10,   // 10 minutes de mémoire tampon
+      retry: 1,
+      refetchOnWindowFocus: false, // Évite les saccades et surcharges lors du basculement d'onglets
+    },
+  },
+});
 
 // Ensure official brand theme is active on startup
 localStorage.removeItem("signa_brand_theme");
@@ -120,6 +129,7 @@ const App = () => {
                     <Route path="/faire-un-don" element={<DonationPage />} />
                     <Route path="/infrastructures" element={<InfrastructurePage />} />
                     <Route path="/installer" element={<InstallPage />} />
+                    <Route path="/install" element={<InstallPage />} />
                     <Route path="/confirmation" element={<ConfirmationPage />} />
                     <Route path="/signalement/:id" element={<ReportDetailPage />} />
                     <Route path="/transparence" element={<TransparencyPage />} />

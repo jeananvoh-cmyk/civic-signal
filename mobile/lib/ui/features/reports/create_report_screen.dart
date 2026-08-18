@@ -402,7 +402,12 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
 
       HapticFeedback.mediumImpact();
       if (mounted) {
-        final ticketCode = res['ticket_code'] as String? ?? PadaConstants.formatTicketCode(commune: _selectedCommune, id: res['id'] as String);
+        final ticketCode = res['ticket_code'] as String? ?? PadaConstants.formatTicketCode(
+          commune: _selectedCommune,
+          serviceType: _selectedType!.serviceType,
+          reportCategory: _selectedType!.reportCategory,
+          id: res['id'] as String,
+        );
         _showSuccessDialog(res['id'] as String, effectiveQuartier, ticketCode);
       }
     } catch (e) {

@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   BarChart3, CheckCircle2, Clock, Users, TrendingUp,
@@ -68,6 +69,7 @@ const KpiCard = ({
 );
 
 const TransparencyPage = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<TransparencyStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -328,7 +330,7 @@ const TransparencyPage = () => {
                         onChange={(e) => {
                           const target = e.target.value;
                           if (target !== "all") {
-                            window.location.href = `/commune/${encodeURIComponent(target)}`;
+                            navigate(`/commune/${encodeURIComponent(target)}`);
                           }
                         }}
                       >
