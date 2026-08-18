@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import Header from "@/components/Header";
 import { Navigate } from "react-router-dom";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────
 
 interface PartnerProfile {
   organization_name: string;
@@ -50,7 +50,7 @@ interface Report {
   operator_last_note?: string | null;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────
 
 const PARTNER_TYPE_LABELS: Record<string, string> = {
   cie: "CIE — Énergie",
@@ -83,7 +83,7 @@ function formatDate(iso: string) {
   return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 }
 
-// ─── Composant ────────────────────────────────────────────────────────────────
+// ─── Composant ─────────────────────────────────────────────────────────
 
 const PartnerDashboardPage = () => {
   const { user, loading: authLoading } = useAuth();
@@ -180,7 +180,7 @@ const PartnerDashboardPage = () => {
     onSettled: () => setUpdatingId(null),
   });
 
-  // ─── Guards ───────────────────────────────────────────────────────────────
+  // ─── Guards ─────────────────────────────────────────────────────────
 
   if (authLoading || roleLoading) {
     return (
@@ -193,7 +193,7 @@ const PartnerDashboardPage = () => {
   if (!user) return <Navigate to="/auth" replace />;
   if (isPartner === false) return <Navigate to="/" replace />;
 
-  // ─── Données ──────────────────────────────────────────────────────────────
+  // ─── Données ─────────────────────────────────────────────────────────
 
   const active     = reports.filter((r) => r.status === "active");
   const processing = reports.filter((r) => r.status === "processing");
@@ -282,7 +282,7 @@ const PartnerDashboardPage = () => {
 
           {/* Ticket PADA & Référence */}
           <div className="flex flex-wrap items-center gap-2 pt-0.5">
-            <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-md">
+            <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 rounded-md px-2 py-0.5">
               <Ticket className="h-3 w-3" /> {report.ticket_code || `SIG-${report.commune.slice(0,3).toUpperCase()}-${report.id.slice(0,4).toUpperCase()}`}
             </span>
             {report.operator_reference && (
@@ -327,7 +327,7 @@ const PartnerDashboardPage = () => {
     );
   };
 
-  // ─── Rendu ────────────────────────────────────────────────────────────────
+  // ─── Rendu ──────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-background">
