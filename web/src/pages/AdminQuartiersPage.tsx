@@ -19,17 +19,17 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   CheckCircle2, XCircle, MapPin, Clock, User, Plus, Pencil, Trash2,
   Eye, EyeOff, Search, Building2, AlertTriangle, GitMerge, X, Tag,
-  Copy, CheckSquare, ArrowRight,
+  Copy, CheckSquare, ArrowRight, RefreshCw,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/audit";
 import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { COMMUNES, COMMUNE_COLORS } from "@/lib/communes";
+import { QUARTIERS } from "@/lib/quartiers";
 
 type Quartier = {
   id: string;
@@ -281,6 +281,29 @@ const AdminQuartiersPage = () => {
       if (!q.hidden) perCommune[q.commune] = (perCommune[q.commune] ?? 0) + 1;
     }
     return { total, pending, hidden, official, perCommune };
+  }, [quartiers]);
+
+  // Missing canonical official quartiers to seed into the database
+  const missingQuartiers = useMemo(() => {
+    const existingSet = new Set(
+      quartiers.map((q) => `${q.commune.toLowerCase().trim()}|${q.nom.toLowerCase().trim()}`)
+    );
+    const toInsert: Array<{ commune: string; nom: string; source: string; validated: boolean }> = [];
+
+    for (const [communeName, qList] of Object.entries(QUARTIERS)) {
+      for (const qNom of qList) {
+        const key = `${communeName.toLowerCase().trim()}|${qNom.toLowerCase().trim()}`;
+        if (!existingSet.has(key)) {
+          toInsert.push({
+            commune: communeName,
+            nom: qNom,
+            source: "static",
+            validated: true,
+          });
+        }
+      }
+    }
+    return toInsert;
   }, [quartiers]);
 
   const sortedCommunes = useMemo(
@@ -586,6 +609,41 @@ const AdminQuartiersPage = () => {
     onError: () => toast({ title: "Erreur", variant: "destructive" }),
   });
 
+  const syncOfficialMutation = useMutation({
+    mutationFn: async () => {
+      if (missingQuartiers.length === 0) return 0;
+      const CHUNK_SIZE = 50;
+      for (let i = 0; i < missingQuartiers.length; i += CHUNK_SIZE) {
+        const chunk = missingQuartiers.slice(i, i + CHUNK_SIZE);
+        const { error } = await supabase
+          .from("quartiers")
+          .upsert(chunk, { onConflict: "commune,nom" } as any);
+        if (error) throw error;
+      }
+      await logAudit({
+        action: "quartier_seeded" as any,
+        target_type: "quartier" as any,
+        target_id: "all_14_communes",
+        details: { count: missingQuartiers.length },
+      });
+      return missingQuartiers.length;
+    },
+    onSuccess: (count) => {
+      invalidate();
+      toast({
+        title: `${count} quartiers officiels synchronisés ✓`,
+        description: "Toutes les 14 communes disposent désormais de leurs quartiers officiels.",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Erreur lors de la synchronisation",
+        description: err?.message || "Une erreur est survenue.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // ── Action buttons ────────────────────────────────────────────────────────
   const ActionButtons = ({ q }: { q: Quartier }) => (
     <TooltipProvider delayDuration={200}>
@@ -672,10 +730,26 @@ const AdminQuartiersPage = () => {
             Ajoutez, modifiez, masquez ou supprimez des quartiers. Validez les soumissions utilisateurs.
           </p>
         </div>
-        <Button onClick={() => { setNewNom(""); setNewCommune(COMMUNES[0].nom); setAddOpen(true); }} className="shrink-0">
-          <Plus className="h-4 w-4 mr-2" />
-          Ajouter un quartier
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {missingQuartiers.length > 0 && (
+            <Button
+              onClick={() => syncOfficialMutation.mutate()}
+              disabled={syncOfficialMutation.isPending}
+              variant="outline"
+              className="border-emerald-500/50 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700 font-bold gap-2 shadow-2xs"
+            >
+              <RefreshCw className={`h-4 w-4 ${syncOfficialMutation.isPending ? "animate-spin" : "text-emerald-600"}`} />
+              ⚡ Synchroniser les 14 communes ({missingQuartiers.length} officiels)
+            </Button>
+          )}
+          <Button
+            onClick={() => { setNewNom(""); setNewCommune(COMMUNES[0].nom); setAddOpen(true); }}
+            className="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Ajouter un quartier
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
