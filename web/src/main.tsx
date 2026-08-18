@@ -9,4 +9,10 @@ const isDark =
   (savedTheme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
 if (isDark) document.documentElement.classList.add("dark");
 
+// Auto-recover from stale chunks after new deployments
+window.addEventListener("vite:preloadError", (event) => {
+  console.warn("Nouveau déploiement détecté, rechargement automatique de l'application...", event);
+  window.location.reload();
+});
+
 createRoot(document.getElementById("root")!).render(<App />);
