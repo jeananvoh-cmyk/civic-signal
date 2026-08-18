@@ -12,6 +12,7 @@ import '../../../core/constants/quartiers.dart';
 import '../../../core/constants/supabase_constants.dart';
 import '../../../core/constants/pada.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../common/pada_address_input.dart';
 
 // ─── Modèle de type de signalement (Miroir exact de Web ReportPage.tsx) ─────────
 class ReportTypeConfig {
@@ -262,6 +263,9 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
   List<Map<String, dynamic>> _similarReports = [];
   bool _checkingSimilar = false;
 
+  // Adressage PADA
+  PadaAddressData? _padaAddress;
+
   @override
   void initState() {
     super.initState();
@@ -389,14 +393,15 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
       final defaultDesc = _selectedType!.defaultDesc(_selectedCommune);
       final desc = _descriptionController.text.trim().isNotEmpty ? _descriptionController.text.trim() : defaultDesc;
 
-      final fullDesc = '[${_selectedType!.label}] $desc [$_impactedPeople personne(s)${_babies > 0 ? ", $_babies bébé(s)" : ""}${_pregnant > 0 ? ", $_pregnant femme(s) enceinte(s)" : ""}${_elderly > 0 ? ", $_elderly aîné(s)" : ""}]';
+      final padaInfo = _padaAddress?.formattedAddress != null ? ' [PADA : ${_padaAddress!.formattedAddress}]' : '';
+      final fullDesc = '[${_selectedType!.label}] $desc [$_impactedPeople personne(s)${_babies > 0 ? ", $_babies bébé(s)" : ""}${_pregnant > 0 ? ", $_pregnant femme(s) enceinte(s)" : ""}${_elderly > 0 ? ", $_elderly aîné(s)" : ""}]$padaInfo';
 
       final payload = {
         'user_id': user.id,
         'service_type': _selectedType!.serviceType,
         'report_category': _selectedType!.reportCategory,
         'description': fullDesc,
-        'location': _selectedCommune,
+        'location': _padaAddress?.formattedAddress != null ? '$_selectedCommune - ${_padaAddress!.formattedAddress}' : _selectedCommune,
         'commune': _selectedCommune,
         'quartier': effectiveQuartier,
         'custom_quartier': _isCustomQuartier ? _customQuartierController.text.trim() : null,
@@ -843,6 +848,15 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
                     ),
                   ),
                 ],
+
+                const SizedBox(height: 14),
+                // Adressage PADA
+                PadaAddressInput(
+                  commune: _selectedCommune,
+                  quartier: _isCustomQuartier ? _customQuartierController.text : _selectedQuartier,
+                  initialValue: _padaAddress,
+                  onChanged: (val) => setState(() => _padaAddress = val),
+                ),
               ],
             ),
           ),

@@ -49,6 +49,7 @@ import { MAX_DESCRIPTION_LENGTH } from "@/lib/constants";
 import { useOfflineQueue } from "@/hooks/useOfflineQueue";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { cn } from "@/lib/utils";
+import { PadaAddressInput, type PadaAddressData } from "@/components/PadaAddressInput";
 
 // ─── Types de signalement ────────────────────────────────────────────────────
 
@@ -289,6 +290,7 @@ const ReportPage = () => {
   const [quartier, setQuartier] = useState("");
   const [customQuartier, setCustomQuartier] = useState("");
   const [dbQuartiers, setDbQuartiers] = useState<Record<string, string[]>>({});
+  const [padaAddress, setPadaAddress] = useState<PadaAddressData | null>(null);
 
   // Étape 3 (détails optionnels)
   const [description, setDescription] = useState("");
@@ -751,12 +753,15 @@ const ReportPage = () => {
           ? customQuartier.trim()
           : canonicalQuartier;
 
+      const padaInfo = padaAddress?.formattedAddress ? ` [PADA : ${padaAddress.formattedAddress}]` : "";
+      const fullFinalDesc = `${fullDesc}${padaInfo}`.slice(0, 700);
+
       const reportPayload = {
         user_id: user.id,
         service_type: selectedType.serviceType,
         report_category: selectedType.reportCategory,
-        description: fullDesc,
-        location: commune,
+        description: fullFinalDesc,
+        location: padaAddress?.formattedAddress ? `${commune} - ${padaAddress.formattedAddress}` : commune,
         commune,
         quartier: effectiveQuartierName,
         custom_quartier: quartier === "__other" ? customQuartier?.trim() || null : null,
@@ -1363,7 +1368,10 @@ const ReportPage = () => {
                           <QuartierSearch
                             quartiers={getQuartiersForCommune(commune)}
                             value={quartier}
-                            onChange={setQuartier}
+                            onChange={(q) => {
+                              setQuartier(q);
+                              setPadaAddress(null);
+                            }}
                           />
                           {quartier === "__other" && (
                             <>
@@ -1379,6 +1387,17 @@ const ReportPage = () => {
                             </>
                           )}
                         </div>
+
+                        {/* Voie / Rue Officielle PADA */}
+                        {resolvedQuartier && (
+                          <PadaAddressInput
+                            commune={commune}
+                            quartier={resolvedQuartier}
+                            value={padaAddress || undefined}
+                            onChange={setPadaAddress}
+                            accentColor={selectedType.color}
+                          />
+                        )}
 
                         <Button
                           type="button"
@@ -1451,6 +1470,12 @@ const ReportPage = () => {
                       <MapPin className="h-3 w-3 shrink-0" />
                       {commune}, {resolvedQuartier}
                     </p>
+                    {padaAddress?.formattedAddress && (
+                      <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 mt-1 flex items-center gap-1">
+                        <span>🇨🇮</span>
+                        <span>{padaAddress.formattedAddress}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

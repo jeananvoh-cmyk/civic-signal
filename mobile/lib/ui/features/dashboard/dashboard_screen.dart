@@ -7,6 +7,7 @@ import '../../../core/constants/communes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/models/report_model.dart';
 import '../commune/commune_detail_screen.dart';
+import '../infrastructure/infrastructure_screen.dart';
 import '../map/map_screen.dart';
 import '../partner/partner_dashboard_screen.dart';
 import '../reports/create_report_screen.dart';
