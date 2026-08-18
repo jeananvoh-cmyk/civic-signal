@@ -327,8 +327,8 @@ class _TrackingScreenState extends State<TrackingScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '#SIG-${r.id.substring(0, 6).toUpperCase()}',
-                        style: GoogleFonts.outfit(fontWeight: FontWeight.w900, fontSize: 13, color: AppTheme.primaryTeal),
+                        r.displayTicketCode,
+                        style: GoogleFonts.outfit(fontWeight: FontWeight.w900, fontSize: 13, color: AppTheme.secondaryEmerald),
                       ),
                       Text('${r.commune} · ${r.quartier}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                     ],

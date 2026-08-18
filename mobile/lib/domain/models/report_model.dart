@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import '../../core/constants/pada.dart';
 
 class ReportModel {
   final String id;
   final String userId;
+  final String? ticketCode;
+  final String? padaCommuneCode;
+  final String? padaStreetName;
+  final String? padaFormattedAddress;
   final String reportCategory; // 'outage' or 'infrastructure'
   final String serviceType;    // 'eau', 'electricite', 'voirie', etc.
   final String description;
@@ -27,6 +32,10 @@ class ReportModel {
   ReportModel({
     required this.id,
     required this.userId,
+    this.ticketCode,
+    this.padaCommuneCode,
+    this.padaStreetName,
+    this.padaFormattedAddress,
     required this.reportCategory,
     required this.serviceType,
     required this.description,
@@ -53,6 +62,10 @@ class ReportModel {
     return ReportModel(
       id: json['id'] as String,
       userId: json['user_id'] as String? ?? '',
+      ticketCode: json['ticket_code'] as String?,
+      padaCommuneCode: json['pada_commune_code'] as String?,
+      padaStreetName: json['pada_street_name'] as String?,
+      padaFormattedAddress: json['pada_formatted_address'] as String?,
       reportCategory: json['report_category'] as String? ?? 'outage',
       serviceType: json['service_type'] as String? ?? 'general',
       description: json['description'] as String? ?? '',
@@ -80,6 +93,10 @@ class ReportModel {
     return {
       'id': id,
       'user_id': userId,
+      'ticket_code': ticketCode,
+      'pada_commune_code': padaCommuneCode,
+      'pada_street_name': padaStreetName,
+      'pada_formatted_address': padaFormattedAddress,
       'report_category': reportCategory,
       'service_type': serviceType,
       'description': description,
@@ -106,6 +123,20 @@ class ReportModel {
   bool get isOutage => reportCategory == 'outage';
   bool get isInfrastructure => reportCategory == 'infrastructure';
   int get verifications => supportCount + repairVerifications;
+
+  String get displayTicketCode => PadaConstants.formatTicketCode(
+    ticketCode: ticketCode,
+    commune: commune,
+    createdAt: createdAt,
+    id: id,
+  );
+
+  String get displayPadaAddress => PadaConstants.formatAddress(
+    commune: commune,
+    quartier: quartier,
+    streetName: padaStreetName,
+    formattedAddress: padaFormattedAddress,
+  );
 
   // ⏱️ Elapsed duration string (e.g. "< 2 min", "45 min", "3h 10min", "2j 5h")
   String get elapsedFormatted {

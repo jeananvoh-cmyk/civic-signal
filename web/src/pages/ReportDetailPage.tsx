@@ -6,6 +6,7 @@ import {
   ArrowLeft, Zap, Droplets, MapPin, Calendar, CheckCircle2,
   Clock, Users, AlertTriangle, ExternalLink, Loader2, Shield, ThumbsUp,
   LogIn, UserPlus, Wrench, PartyPopper, Radio, AlertOctagon,
+  Ticket, Building2, Copy, Check
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -21,10 +22,15 @@ import { COMMUNE_COLORS } from "@/lib/communes";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useRelayConfig } from "@/hooks/useRelayConfig";
 import { extractInfraLabel, cleanDescription } from "@/lib/report-display";
+import { getDisplayTicketCode, formatPadaAddress } from "@/lib/pada";
 
 interface ReportDetail {
   id: string;
   user_id: string;
+  ticket_code?: string | null;
+  pada_commune_code?: string | null;
+  pada_street_name?: string | null;
+  pada_formatted_address?: string | null;
   service_type: string;
   report_category: string;
   description: string;
@@ -361,12 +367,65 @@ const ReportDetailPage = () => {
             </Badge>
           </div>
 
-          <div className="p-4 space-y-3">
+          <div className="p-4 space-y-3.5">
             {/* Commune + quartier */}
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
               <span className="font-semibold text-foreground">{report.commune}</span>
               {report.quartier && <span className="text-sm text-muted-foreground">· {report.quartier}</span>}
+            </div>
+
+            {/* 🎫 Référence Officielle de Ticket & PADA */}
+            <div className="rounded-xl border border-border/80 bg-muted/30 p-3 space-y-2 text-xs">
+              <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2">
+                <div className="flex items-center gap-2">
+                  <Ticket className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground">Ticket Officiel : </span>
+                    <span className="font-mono font-black text-foreground tracking-tight">
+                      {getDisplayTicketCode({
+                        ticket_code: report.ticket_code,
+                        commune: report.commune,
+                        created_at: report.created_at,
+                        id: report.id,
+                      })}
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 gap-1 hover:bg-emerald-500/10"
+                  onClick={() => {
+                    const code = getDisplayTicketCode({
+                      ticket_code: report.ticket_code,
+                      commune: report.commune,
+                      created_at: report.created_at,
+                      id: report.id,
+                    });
+                    navigator.clipboard.writeText(code);
+                    toast.success(`Ticket ${code} copié !`);
+                  }}
+                >
+                  <Copy className="h-3 w-3" />
+                  <span>Copier</span>
+                </Button>
+              </div>
+
+              {/* Adresse PADA */}
+              <div className="flex items-start gap-2 pt-0.5">
+                <Building2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground">Adressage PADA (MCLU) : </span>
+                  <span className="text-foreground font-semibold">
+                    {report.pada_formatted_address || formatPadaAddress({
+                      commune: report.commune,
+                      quartier: report.quartier,
+                      streetName: report.pada_street_name || report.quartier,
+                    })}
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* Description */}

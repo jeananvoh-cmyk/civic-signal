@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Zap, Droplets, Clock, MapPin, TrendingUp, RefreshCw, Info } from "lucide-react";
+import { Zap, Droplets, Clock, MapPin, TrendingUp, RefreshCw, Info, Search, Ticket, Building2, Copy } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
@@ -13,12 +14,17 @@ import { calculatePriority, getNormReference } from "@/lib/priority-score";
 import { useUserRole } from "@/hooks/useUserRole";
 import DurationBadge from "@/components/DurationBadge";
 import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
+import { getDisplayTicketCode, formatPadaAddress } from "@/lib/pada";
 
 // After this many days without any verification, a report is considered "non pris en charge"
 const NEGLECTED_DAYS = 7;
 
 interface Report {
   id: string;
+  ticket_code?: string | null;
+  pada_commune_code?: string | null;
+  pada_street_name?: string | null;
+  pada_formatted_address?: string | null;
   status: string;
   urgency: string;
   service_type: string;
@@ -89,6 +95,7 @@ function getUrgencyBorderClass(urgency: string) {
 }
 
 const SuiviPage = () => {
+  const [searchTerm, setSearchTerm] = useState("");
   const [filterCommune, setFilterCommune] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -100,7 +107,7 @@ const SuiviPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reports")
-        .select("id, status, urgency, service_type, report_category, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, babies, pregnant, elderly, repair_verifications")
+        .select("id, ticket_code, pada_commune_code, pada_street_name, pada_formatted_address, status, urgency, service_type, report_category, description, commune, quartier, location, created_at, start_time, resolved_at, verifications, validated, impacted_people, babies, pregnant, elderly, repair_verifications")
         .order("created_at", { ascending: false })
         .limit(300);
       if (error) throw error;
@@ -195,6 +202,22 @@ const SuiviPage = () => {
       if (filterCommune !== "all" && r.communeLabel !== filterCommune) return false;
       if (filterCategory !== "all" && r.service_type !== filterCategory) return false;
       if (filterStatus !== "all" && r.computedStatus !== filterStatus) return false;
+      if (searchTerm.trim()) {
+        const query = searchTerm.trim().toLowerCase();
+        const ticketCode = getDisplayTicketCode({
+          ticket_code: r.ticket_code,
+          commune: r.commune,
+          created_at: r.created_at,
+          id: r.id,
+        }).toLowerCase();
+        const desc = (r.description || "").toLowerCase();
+        const com = (r.commune || "").toLowerCase();
+        const qua = (r.quartier || "").toLowerCase();
+        const pada = (r.pada_street_name || r.pada_formatted_address || "").toLowerCase();
+        if (!ticketCode.includes(query) && !desc.includes(query) && !com.includes(query) && !qua.includes(query) && !pada.includes(query)) {
+          return false;
+        }
+      }
       return true;
     })
     .sort((a, b) => {
@@ -404,9 +427,20 @@ const SuiviPage = () => {
 
         {/* Filters + report list */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            {/* Recherche par N° Ticket ou Quartier */}
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="N° Ticket (ex: SIG-COC...), quartier..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 h-9 text-xs"
+              />
+            </div>
+
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-40 sm:w-44 h-9 text-xs">
                 <SelectValue placeholder="Tous les statuts" />
               </SelectTrigger>
               <SelectContent>
@@ -419,7 +453,7 @@ const SuiviPage = () => {
             </Select>
 
             <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-36 sm:w-40 h-9 text-xs">
                 <SelectValue placeholder="Catégorie" />
               </SelectTrigger>
               <SelectContent>
@@ -430,7 +464,7 @@ const SuiviPage = () => {
             </Select>
 
             <Select value={filterCommune} onValueChange={setFilterCommune}>
-              <SelectTrigger className="w-44">
+              <SelectTrigger className="w-36 sm:w-44 h-9 text-xs">
                 <SelectValue placeholder="Commune" />
               </SelectTrigger>
               <SelectContent>
@@ -442,7 +476,7 @@ const SuiviPage = () => {
             </Select>
 
             {/* Sort toggle */}
-            <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1 shadow-sm ml-auto">
+            <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1 shadow-xs ml-auto">
               <button
                 onClick={() => setSortBy("priority")}
                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
@@ -473,8 +507,8 @@ const SuiviPage = () => {
               <p className="font-medium">Aucun signalement pour ces critères</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground mb-3">
+            <div className="space-y-2.5">
+              <p className="text-xs text-muted-foreground mb-2">
                 {filteredReports.length} signalement{filteredReports.length > 1 ? "s" : ""} — trié{sortBy === "priority" ? " par priorité (normes OMS/IEEE)" : " par date"}
               </p>
               {filteredReports.map((r) => {
@@ -483,6 +517,12 @@ const SuiviPage = () => {
                 const isInfra = r.report_category === "infrastructure";
                 const infraLabel = isInfra ? extractInfraLabel(r.description) : null;
                 const age = formatAge(r.created_at);
+                const ticketCode = getDisplayTicketCode({
+                  ticket_code: r.ticket_code,
+                  commune: r.commune || "",
+                  created_at: r.created_at,
+                  id: r.id,
+                });
                 return (
                   <Card key={r.id} className={`border-l-4 ${getUrgencyBorderClass(r.urgency)} hover:shadow-md transition-shadow cursor-pointer`}
                     onClick={() => window.location.href = `/signalement/${r.id}`}
@@ -492,14 +532,23 @@ const SuiviPage = () => {
                         {isInfra ? infraEmoji(infraLabel) : isElec ? "⚡" : "💧"}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
+                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                          {/* Ticket badge */}
+                          <span className="font-mono text-[11px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                            {ticketCode}
+                          </span>
                           <PriorityBadge priority={r.priority} showScore={canValidate} showFactors={canValidate} />
-                          <span className={`inline-flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5 ${meta.pill}`}>
+                          <span className={`inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 ${meta.pill}`}>
                             {meta.emoji} {meta.label}
                           </span>
                           {isInfra && infraLabel && (
                             <span className="inline-flex items-center rounded-full bg-teal-500/10 px-2 py-0.5 text-xs font-semibold text-teal-700 dark:text-teal-400">
                               {infraLabel}
+                            </span>
+                          )}
+                          {r.pada_commune_code && (
+                            <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border">
+                              PADA {r.pada_commune_code}
                             </span>
                           )}
                         </div>

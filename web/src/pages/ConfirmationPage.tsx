@@ -1,8 +1,8 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Radio, Users, BarChart3, Zap, ArrowRight, MapPin, Award, MessageCircle } from "lucide-react";
+import { CheckCircle2, Radio, Users, BarChart3, Zap, ArrowRight, MapPin, Award, MessageCircle, Copy, Check, Ticket, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
@@ -10,6 +10,7 @@ import PushPromptBanner from "@/components/PushPromptBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNES } from "@/lib/communes";
 import { useAuth } from "@/contexts/AuthContext";
+import { getDisplayTicketCode, getCommunePadaCode, formatPadaAddress } from "@/lib/pada";
 
 const FIRST_BADGE_KEY = "signa_first_report_badge";
 
@@ -35,19 +36,28 @@ const ConfirmationPage = () => {
   const communeData = COMMUNES.find((c) => c.nom === commune);
   const accentColor = communeData?.couleur || "#0ea5e9";
 
+  const [reportDetails, setReportDetails] = useState<{
+    ticket_code?: string | null;
+    pada_commune_code?: string | null;
+    pada_street_name?: string | null;
+    pada_formatted_address?: string | null;
+  } | null>(null);
+  const [copiedTicket, setCopiedTicket] = useState(false);
+
   useEffect(() => {
     if (!reportId) return;
 
-    const fetchVerifications = async () => {
+    const fetchReport = async () => {
       try {
         const { data, error } = await supabase
           .from("reports")
-          .select("verifications")
+          .select("verifications, ticket_code, pada_commune_code, pada_street_name, pada_formatted_address")
           .eq("id", reportId)
           .single();
         if (error) throw error;
         setPollError(false);
-        if (data !== null && data !== undefined) {
+        if (data) {
+          setReportDetails(data as any);
           const newCount = (data as any).verifications ?? 0;
           setVerifications((prev) => {
             if (newCount > prev) {
@@ -63,8 +73,8 @@ const ConfirmationPage = () => {
       }
     };
 
-    fetchVerifications();
-    const interval = setInterval(fetchVerifications, POLL_INTERVAL);
+    fetchReport();
+    const interval = setInterval(fetchReport, POLL_INTERVAL);
     return () => clearInterval(interval);
   }, [reportId]);
 
@@ -106,9 +116,17 @@ const ConfirmationPage = () => {
   const isOutage = searchParams.get("category") === "outage";
   const operatorName = serviceType === "electricity" ? "CIE" : serviceType === "water" ? "SODECI" : null;
   const locationLabel = [quartier, commune].filter(Boolean).join(", ");
+  const displayTicket = getDisplayTicketCode({
+    ticket_code: reportDetails?.ticket_code,
+    commune,
+    id: reportId || undefined,
+  });
+  const padaCode = getCommunePadaCode(commune);
+
   const shareLines = isOutage
     ? [
         `${typeEmoji} ALERTE COUPURE — ${locationLabel}`,
+        `🎫 Ticket : ${displayTicket}`,
         ``,
         `${typeLabel} en cours. Toujours sans intervention.`,
         ``,
@@ -122,6 +140,7 @@ const ConfirmationPage = () => {
       ].filter(Boolean).join("\n")
     : [
         `🚧 INFRASTRUCTURE — ${locationLabel}`,
+        `🎫 Ticket : ${displayTicket}`,
         ``,
         `${typeLabel} signalé dans votre quartier.`,
         ``,
@@ -149,34 +168,35 @@ const ConfirmationPage = () => {
               initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.7, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 260, damping: 20 }}
+              className="w-full max-w-sm overflow-hidden rounded-3xl border border-primary/30 bg-card p-6 text-center shadow-2xl"
               onClick={(e) => e.stopPropagation()}
-              className="bg-card rounded-2xl border border-amber-200 p-8 text-center max-w-xs w-full shadow-2xl"
             >
-              <div className="flex justify-center mb-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
-                  <Award className="h-8 w-8 text-amber-500" />
-                </div>
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Award className="h-8 w-8" />
               </div>
-              <p className="text-xs font-semibold text-amber-600 uppercase tracking-widest mb-1">Badge débloqué</p>
-              <h2 className="font-display text-xl font-extrabold text-foreground mb-2">Premier Signalement !</h2>
-              <p className="text-sm text-muted-foreground mb-6">
-                Félicitations ! Vous venez de faire votre premier signalement citoyen. Continuez comme ça !
+              <h3 className="font-display text-xl font-bold text-foreground">
+                Premier signalement !
+              </h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Merci pour votre engagement citoyen. Chaque signalement aide votre communauté à être entendue.
               </p>
-              <Button onClick={() => setShowBadge(false)} className="w-full">
-                Super !
+              <Button
+                className="mt-6 w-full font-bold"
+                onClick={() => setShowBadge(false)}
+              >
+                Continuer
               </Button>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <main className="container max-w-md py-10 px-4">
+      <main className="container max-w-md py-8 px-4">
 
-        {/* Icône succès */}
+        {/* Icône de succès */}
         <motion.div
-          initial={{ scale: 0.6, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 200, damping: 18 }}
           className="mb-6 flex justify-center"
         >
@@ -193,17 +213,72 @@ const ConfirmationPage = () => {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="mb-8 text-center"
+          className="mb-5 text-center"
         >
           <h1 className="font-display text-2xl font-extrabold text-foreground">
             Signalement envoyé !
           </h1>
-          <p className="mt-2 text-muted-foreground">
+          <p className="mt-1 text-muted-foreground">
             {typeEmoji} <span className="font-semibold">{typeLabel}</span>
             {commune && (
               <> — <span className="font-semibold" style={{ color: accentColor }}>{commune}</span></>
             )}
           </p>
+        </motion.div>
+
+        {/* 🎫 Ticket de Suivi & Référence Unique */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.18 }}
+          className="mb-5 rounded-2xl border border-border bg-gradient-to-br from-card via-card to-muted/40 p-4 shadow-sm"
+        >
+          <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-3 mb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <Ticket className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Ticket de Suivi Officiel</p>
+                <p className="font-mono text-base font-black text-foreground tracking-tight">
+                  {displayTicket}
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 text-xs font-bold shrink-0 border-emerald-500/30 hover:bg-emerald-500/10"
+              onClick={() => {
+                navigator.clipboard.writeText(displayTicket);
+                setCopiedTicket(true);
+                setTimeout(() => setCopiedTicket(false), 2000);
+              }}
+            >
+              {copiedTicket ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+              <span>{copiedTicket ? "Copié !" : "Copier"}</span>
+            </Button>
+          </div>
+
+          {/* Adresse Officielle PADA (MCLU) */}
+          <div className="flex items-start gap-2.5 text-xs">
+            <Building2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+            <div className="space-y-0.5 min-w-0">
+              <p className="font-bold text-foreground flex items-center gap-1.5 flex-wrap">
+                <span>Nomenclature Nationale (PADA / MCLU)</span>
+                <span className="rounded-full bg-emerald-500/10 px-2 py-0.2 text-[10px] font-black text-emerald-700 dark:text-emerald-400">
+                  {padaCode}
+                </span>
+              </p>
+              <p className="text-muted-foreground leading-relaxed truncate">
+                {reportDetails?.pada_formatted_address || formatPadaAddress({
+                  commune,
+                  quartier,
+                  streetName: reportDetails?.pada_street_name || quartier,
+                })}
+              </p>
+            </div>
+          </div>
         </motion.div>
 
         {/* Voisins qui ont aussi signalé */}

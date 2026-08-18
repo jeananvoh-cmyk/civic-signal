@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/communes.dart';
 import '../../../core/constants/quartiers.dart';
 import '../../../core/constants/supabase_constants.dart';
+import '../../../core/constants/pada.dart';
 import '../../../core/theme/app_theme.dart';
 
 // ─── Modèle de type de signalement (Miroir exact de Web ReportPage.tsx) ─────────
@@ -397,11 +398,12 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
         if (_selectedType!.id.contains('outage')) 'contract_type': _contractType,
       };
 
-      final res = await Supabase.instance.client.from('reports').insert(payload).select('id').single();
+      final res = await Supabase.instance.client.from('reports').insert(payload).select('id, ticket_code').single();
 
       HapticFeedback.mediumImpact();
       if (mounted) {
-        _showSuccessDialog(res['id'] as String, effectiveQuartier);
+        final ticketCode = res['ticket_code'] as String? ?? PadaConstants.formatTicketCode(commune: _selectedCommune, id: res['id'] as String);
+        _showSuccessDialog(res['id'] as String, effectiveQuartier, ticketCode);
       }
     } catch (e) {
       if (mounted) {
@@ -412,7 +414,9 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
     }
   }
 
-  void _showSuccessDialog(String reportId, String quartier) {
+  void _showSuccessDialog(String reportId, String quartier, String ticketCode) {
+    final padaAddress = PadaConstants.formatAddress(commune: _selectedCommune, quartier: quartier);
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -422,42 +426,120 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
           children: const [
             Icon(LucideIcons.checkCircle2, color: Color(0xFF16A34A), size: 28),
             SizedBox(width: 10),
-            Text('Signalement Transmis', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+            Text('Signalement Enregistré', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Votre signalement à $_selectedCommune ($quartier) a été enregistré et transmis aux équipes de veille.', style: const TextStyle(fontSize: 13, height: 1.4)),
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEF3C7),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFDE68A)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Votre signalement a été enregistré avec succès.', style: const TextStyle(fontSize: 13, height: 1.4)),
+              const SizedBox(height: 12),
+
+              // 🎫 Ticket Officiel Card (1:1 Web)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF059669).withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF059669).withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(LucideIcons.ticket, size: 16, color: Color(0xFF059669)),
+                            const SizedBox(width: 6),
+                            const Text('N° DE TICKET', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF059669))),
+                          ],
+                        ),
+                        InkWell(
+                          onTap: () {
+                            Clipboard.setData(ClipboardData(text: ticketCode));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Ticket $ticketCode copié !'), backgroundColor: AppTheme.secondaryEmerald),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF059669).withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(LucideIcons.copy, size: 12, color: Color(0xFF059669)),
+                                SizedBox(width: 4),
+                                Text('Copier', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF059669))),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      ticketCode,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, fontFamily: 'monospace', color: Color(0xFF059669)),
+                    ),
+                    const Divider(height: 14, thickness: 0.5),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(LucideIcons.building2, size: 13, color: Color(0xFF059669)),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: RichText(
+                            text: TextSpan(
+                              style: const TextStyle(fontSize: 11, color: Colors.black87),
+                              children: [
+                                const TextSpan(text: 'PADA (MCLU) : ', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                                TextSpan(text: padaAddress, style: const TextStyle(fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-              child: Row(
-                children: const [
-                  Icon(LucideIcons.shieldAlert, size: 20, color: Color(0xFFD97706)),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text('En cas d\'urgence vitale, contactez directement les secours (180 / 185).', style: TextStyle(fontSize: 11, color: Color(0xFF92400E), fontWeight: FontWeight.bold)),
-                  ),
-                ],
+              const SizedBox(height: 12),
+
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
+                ),
+                child: Row(
+                  children: const [
+                    Icon(LucideIcons.shieldAlert, size: 20, color: Color(0xFFD97706)),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text('En cas d\'urgence vitale, contactez directement les secours (180 / 185).', style: TextStyle(fontSize: 11, color: Color(0xFF92400E), fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryTeal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.secondaryEmerald, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             onPressed: () {
               Navigator.pop(ctx);
               Navigator.pop(context);
             },
-            child: const Text('Retour à l\'accueil', style: TextStyle(color: Colors.white)),
+            child: const Text('Terminer', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

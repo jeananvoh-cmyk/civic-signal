@@ -179,7 +179,7 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
     final isEau = _currentReport.serviceType == 'water';
     final serviceColor = isElec ? const Color(0xFFF59E0B) : isEau ? const Color(0xFF0284C7) : const Color(0xFF9333EA);
     final serviceLabel = isElec ? 'Électricité (CIE)' : isEau ? 'Eau Potable (SODECI)' : 'Voirie & Salubrité (Mairie)';
-    final shortId = _currentReport.id.length >= 8 ? _currentReport.id.substring(0, 8).toUpperCase() : _currentReport.id;
+    final ticketCode = _currentReport.displayTicketCode;
 
     final communeData = findCommuneByName(_currentReport.commune);
 
@@ -188,12 +188,12 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
       appBar: AppBar(
         backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         elevation: 1,
-        title: Text('#SIG-$shortId', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
+        title: Text(ticketCode, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
         actions: [
           IconButton(
             icon: const Icon(LucideIcons.share2, size: 20),
             onPressed: () {
-              Clipboard.setData(ClipboardData(text: 'Signalement #SIG-$shortId à ${_currentReport.commune} (${_currentReport.quartier}) sur SIGNA·CI: https://signa.ci/signalement/${_currentReport.id}'));
+              Clipboard.setData(ClipboardData(text: 'Signalement $ticketCode à ${_currentReport.commune} (${_currentReport.quartier}) sur SIGNA·CI: https://signa.ci/signalement/${_currentReport.id}'));
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Lien du signalement copié !'), backgroundColor: AppTheme.secondaryEmerald),
               );
@@ -269,7 +269,84 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 12),
+
+                    // 🎫 Encadré Ticket & Adressage PADA (1:1 Web)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(LucideIcons.ticket, size: 14, color: Color(0xFF059669)),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'TICKET : ',
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey.shade600),
+                                  ),
+                                  Text(
+                                    ticketCode,
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, fontFamily: 'monospace', color: Color(0xFF059669)),
+                                  ),
+                                ],
+                              ),
+                              InkWell(
+                                onTap: () {
+                                  Clipboard.setData(ClipboardData(text: ticketCode));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Ticket $ticketCode copié !'), backgroundColor: AppTheme.secondaryEmerald),
+                                  );
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF059669).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(LucideIcons.copy, size: 12, color: Color(0xFF059669)),
+                                      SizedBox(width: 4),
+                                      Text('Copier', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF059669))),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Divider(height: 14, thickness: 0.5),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(LucideIcons.building2, size: 13, color: Color(0xFF059669)),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: RichText(
+                                  text: TextSpan(
+                                    style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : Colors.black87),
+                                    children: [
+                                      TextSpan(text: 'PADA (MCLU) : ', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600)),
+                                      TextSpan(text: _currentReport.displayPadaAddress, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
 
                     Text(_currentReport.description, style: const TextStyle(fontSize: 14, height: 1.4)),
                     const SizedBox(height: 14),

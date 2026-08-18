@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
-import { CheckCircle, XCircle, MapPin, Zap, Droplets, Clock, Eye, Construction, Download, Square, CheckSquare, Trash2, MessageCircle, PhoneCall, AlertOctagon, Bell, ExternalLink, CheckCheck, Wrench, ShieldAlert, Send } from "lucide-react";
+import { CheckCircle, XCircle, MapPin, Zap, Droplets, Clock, Eye, Construction, Download, Square, CheckSquare, Trash2, MessageCircle, PhoneCall, AlertOctagon, Bell, ExternalLink, CheckCheck, Wrench, ShieldAlert, Send, Ticket, Building2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,7 @@ import { format } from "date-fns";
 import PhotoGallery from "@/components/PhotoGallery";
 import CorroborationStatus from "@/components/CorroborationStatus";
 import { extractInfraLabel, cleanDescription, infraEmoji, infraOperator, INFRA_CIE, INFRA_SODECI } from "@/lib/report-display";
+import { getDisplayTicketCode, formatPadaAddress, getCommunePadaCode } from "@/lib/pada";
 
 const URGENCY_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   low: { label: "🟢 Faible", variant: "secondary" },
@@ -556,10 +557,25 @@ const AdminReportsPage = () => {
               <Droplets className="h-5 w-5 text-water shrink-0" />
             )}
             <div className="min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
-                {report.commune}, {report.quartier}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-mono text-[11px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                  {getDisplayTicketCode({
+                    ticket_code: report.ticket_code,
+                    commune: report.commune,
+                    created_at: report.created_at,
+                    id: report.id,
+                  })}
+                </span>
+                <p className="text-sm font-medium text-foreground truncate">
+                  {report.commune}, {report.quartier}
+                </p>
+                {report.pada_commune_code && (
+                  <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border">
+                    PADA {report.pada_commune_code}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground truncate mt-0.5">
                 {report.report_category === "infrastructure" ? cleanDescription(report.description) : report.description}
               </p>
             </div>
@@ -1117,6 +1133,59 @@ const AdminReportsPage = () => {
             </DialogHeader>
             {selectedReport && (
               <div className="space-y-4">
+                {/* 🎫 Référence Ticket & Adressage PADA */}
+                <div className="rounded-xl border border-border/80 bg-muted/40 p-3 space-y-2 text-xs">
+                  <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2">
+                    <div className="flex items-center gap-2">
+                      <Ticket className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground">Ticket Officiel : </span>
+                        <span className="font-mono font-black text-foreground text-sm">
+                          {getDisplayTicketCode({
+                            ticket_code: selectedReport.ticket_code,
+                            commune: selectedReport.commune,
+                            created_at: selectedReport.created_at,
+                            id: selectedReport.id,
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 gap-1 hover:bg-emerald-500/10"
+                      onClick={() => {
+                        const code = getDisplayTicketCode({
+                          ticket_code: selectedReport.ticket_code,
+                          commune: selectedReport.commune,
+                          created_at: selectedReport.created_at,
+                          id: selectedReport.id,
+                        });
+                        navigator.clipboard.writeText(code);
+                        toast.success(`Ticket ${code} copié !`);
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                      <span>Copier</span>
+                    </Button>
+                  </div>
+
+                  {/* PADA */}
+                  <div className="flex items-start gap-2 pt-0.5">
+                    <Building2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground">Nomenclature PADA (MCLU) : </span>
+                      <span className="text-foreground font-semibold">
+                        {selectedReport.pada_formatted_address || formatPadaAddress({
+                          commune: selectedReport.commune,
+                          quartier: selectedReport.quartier,
+                          streetName: selectedReport.pada_street_name || selectedReport.quartier,
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <p className="text-muted-foreground">Commune</p>

@@ -29,7 +29,8 @@ import { logAudit } from "@/lib/audit";
 import { format, differenceInDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { COMMUNES, COMMUNE_COLORS } from "@/lib/communes";
-import { QUARTIERS } from "@/lib/quartiers";
+import { QUARTIERS, normalizeQuartier } from "@/lib/quartiers";
+import { getCommunePadaCode } from "@/lib/pada";
 
 type Quartier = {
   id: string;
@@ -823,6 +824,9 @@ const AdminQuartiersPage = () => {
                       <div className="flex items-center gap-3 flex-1">
                         <span className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: c.couleur }} />
                         <span className="font-semibold">{c.nom}</span>
+                        <span className="text-[10px] font-mono font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border">
+                          PADA {getCommunePadaCode(c.nom)}
+                        </span>
                         <Badge variant="secondary" className="text-xs ml-auto mr-2">
                           {cqs.filter((q) => !q.hidden).length} quartiers
                         </Badge>

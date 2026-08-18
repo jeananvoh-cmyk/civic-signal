@@ -36,6 +36,10 @@ interface RelayLog {
 interface Report {
   id: string;
   user_id: string;
+  ticket_code?: string | null;
+  pada_commune_code?: string | null;
+  pada_street_name?: string | null;
+  pada_formatted_address?: string | null;
   service_type: string;
   commune: string;
   quartier: string;
@@ -159,6 +163,15 @@ function buildBatchEmailHtml(
         .map((d) => `<div style="font-size:11px;color:#6b7280;margin-top:3px;font-style:italic;">"${escapeHtml(d!.slice(0, 90))}${d!.length > 90 ? "…" : ""}"</div>`)
         .join("");
 
+      const ticketBadges = entry.reports
+        .map((r) => {
+          const tCode = r.ticket_code || `SIG-${commune.slice(0,3).toUpperCase()}-${r.id.slice(0,4).toUpperCase()}`;
+          const padaText = r.pada_formatted_address || (r.pada_street_name ? `${r.pada_street_name} (${r.pada_commune_code || ''})` : "");
+          return `<div style="font-size:11px;font-family:monospace;font-weight:700;color:#059669;margin-top:3px;">🎫 ${escapeHtml(tCode)}${padaText ? ` <span style="font-family:sans-serif;font-weight:600;color:#374151;">· 🏛️ ${escapeHtml(padaText)}</span>` : ""}</div>`;
+        })
+        .slice(0, 3)
+        .join("");
+
       const countBadge = entry.reports.length > 1
         ? ` <span style="font-size:11px;color:#6b7280;font-weight:400;">(${entry.reports.length} signalements)</span>`
         : "";
@@ -169,7 +182,7 @@ function buildBatchEmailHtml(
 
       return `
       <tr style="border-top:1px solid #e5e7eb;">
-        <td style="padding:10px 16px;font-size:13px;color:#111827;font-weight:600;vertical-align:top;">${escapeHtml(quartier)}${countBadge}${urgencyBadge}${descLines}</td>
+        <td style="padding:10px 16px;font-size:13px;color:#111827;font-weight:600;vertical-align:top;">${escapeHtml(quartier)}${countBadge}${urgencyBadge}${ticketBadges}${descLines}</td>
         <td style="padding:10px 16px;font-size:14px;color:${accentColor};font-weight:800;vertical-align:top;text-align:center;">${entry.totalVerif}</td>
         <td style="padding:10px 16px;font-size:13px;color:#6b7280;vertical-align:top;">${since}</td>
         <td style="padding:10px 16px;font-size:13px;vertical-align:top;">${mapsCell}</td>
@@ -512,7 +525,7 @@ Deno.serve(async (req) => {
     const { data: reports } = await supabase
       .from("reports")
       .select(
-        "id, user_id, service_type, commune, quartier, description, verifications, urgency, latitude, longitude, created_at, meter_number, contract_type, reporter_phone",
+        "id, user_id, ticket_code, pada_commune_code, pada_street_name, pada_formatted_address, service_type, commune, quartier, description, verifications, urgency, latitude, longitude, created_at, meter_number, contract_type, reporter_phone",
       )
       .in("id", reportIds);
 
