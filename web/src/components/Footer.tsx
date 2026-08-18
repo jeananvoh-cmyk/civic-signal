@@ -95,7 +95,8 @@ export default function Footer() {
             <ul className="space-y-2 text-xs text-slate-400">
               <li><Link to="/signaler" className="hover:text-emerald-400 transition-colors">Signaler un incident</Link></li>
               <li><Link to="/carte" className="hover:text-emerald-400 transition-colors">Carte interactive</Link></li>
-              <li><Link to="/infrastructures" className="hover:text-emerald-400 transition-colors">États des Réseaux</Link></li>
+              <li><Link to="/tableau-de-bord" className="hover:text-emerald-400 transition-colors">Tableau de bord des Réseaux</Link></li>
+              <li><Link to="/infrastructures" className="hover:text-emerald-400 transition-colors">Voirie & Infrastructures</Link></li>
               <li><Link to="/suivi" className="hover:text-emerald-400 transition-colors">Suivre un ticket</Link></li>
             </ul>
           </div>
@@ -103,7 +104,7 @@ export default function Footer() {
           <div>
             <h4 className="text-sm font-bold text-white mb-3">Institutionnel & Transparence</h4>
             <ul className="space-y-2 text-xs text-slate-400">
-              <li><Link to="/transparence" className="hover:text-emerald-400 transition-colors">Transparence des Données</Link></li>
+              <li><Link to="/transparence" className="hover:text-emerald-400 transition-colors">Transparence Open Data</Link></li>
               <li><Link to="/partenaires" className="hover:text-emerald-400 transition-colors">Relais & Mairies Partenaires</Link></li>
               <li><Link to="/cgu" className="hover:text-emerald-400 transition-colors">Conditions d'Utilisation</Link></li>
               <li><Link to="/confidentialite" className="hover:text-emerald-400 transition-colors">Politique de Confidentialité</Link></li>
@@ -146,10 +147,6 @@ export default function Footer() {
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-slate-400">
             <Link to="/confidentialite" className="hover:text-emerald-400 transition-colors underline-offset-2 hover:underline">
               Protection des Données
-            </Link>
-            <span className="text-slate-700">•</span>
-            <Link to="/transparence" className="hover:text-emerald-400 transition-colors underline-offset-2 hover:underline">
-              Transparence Open Data
             </Link>
             <span className="text-slate-700">•</span>
             <Link to="/cgu" className="hover:text-emerald-400 transition-colors underline-offset-2 hover:underline">
