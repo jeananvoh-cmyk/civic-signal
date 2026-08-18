@@ -425,8 +425,8 @@ const Index = () => {
           <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
             {[
               {
-                value: "7",
-                label: "Communes du Grand Abidjan",
+                value: "14+",
+                label: "Communes & Villes couvertes",
                 Icon: MapPin,
                 live: false,
                 color: "text-slate-900 dark:text-white"

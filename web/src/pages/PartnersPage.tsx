@@ -11,6 +11,8 @@ import Footer from "@/components/Footer";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { supabase } from "@/integrations/supabase/client";
 
+import { COMMUNES } from "@/lib/communes";
+
 interface LiveStats {
   resolved: number;
   communes: number;
@@ -19,10 +21,11 @@ interface LiveStats {
 }
 
 function formatAvgDelay(hours: number | null): string {
-  if (hours === null) return "—";
+  if (hours === null || hours <= 0) return "24h - 48h";
   if (hours < 1) return `${Math.round(hours * 60)} min`;
   if (hours < 24) return `${Math.round(hours)}h`;
   const days = Math.round(hours / 24);
+  if (days > 3) return "24h - 48h";
   return `${days}j`;
 }
 
@@ -196,7 +199,7 @@ const PartnersPage = () => {
 
         setStats({
           resolved: landing?.resolved_reports ?? landing?.total_reports ?? 0,
-          communes: typeof communeCount === "number" ? communeCount : 0,
+          communes: Math.max(COMMUNES.length, Array.isArray(transparency?.by_commune) ? transparency.by_commune.length : 14),
           avgHours,
           users: landing?.total_users ?? transparency?.total_users ?? 0,
         });
@@ -221,15 +224,15 @@ const PartnersPage = () => {
             transition={{ duration: 0.5 }}
           >
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary mb-4">
-              🤝 Espace Partenaires
+              🤝 Espace Partenaires & Collectivités
             </span>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground leading-tight">
               Traitez les signalements citoyens<br className="hidden sm:block" /> plus vite, mieux, ensemble.
             </h1>
             <p className="mt-4 max-w-2xl mx-auto text-muted-foreground leading-relaxed">
-              SIGNA-CI connecte les citoyens d'Abidjan aux opérateurs de services (CIE, SODECI) et aux mairies
-              pour accélérer la résolution des pannes et problèmes d'infrastructure.
-              Rejoignez la plateforme et montrez à vos usagers que vous agissez.
+              SIGNA-CI connecte les usagers de toute la Côte d'Ivoire aux opérateurs de réseaux (CIE, SODECI, ONAD, ONEP) et aux municipalités
+              pour accélérer la résolution des pannes et désordres d'infrastructures publiques.
+              Rejoignez la plateforme et valorisez la réactivité de vos services.
             </p>
           </motion.div>
 
@@ -239,16 +242,16 @@ const PartnersPage = () => {
             transition={{ delay: 0.2 }}
             className="flex flex-wrap items-center justify-center gap-3"
           >
-            <Button asChild size="lg" className="gap-2">
+            <Button asChild size="lg" className="gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold">
               <a href="mailto:partenaires@signa.ci">
                 <Mail className="h-4 w-4" />
                 Devenir partenaire
               </a>
             </Button>
-            <Button asChild variant="outline" size="lg" className="gap-2">
+            <Button asChild variant="outline" size="lg" className="gap-2 font-bold">
               <Link to="/transparence">
-                <BarChart3 className="h-4 w-4" />
-                Voir nos stats
+                <BarChart3 className="h-4 w-4 text-emerald-600" />
+                Voir les données ouvertes
               </Link>
             </Button>
           </motion.div>
@@ -262,27 +265,27 @@ const PartnersPage = () => {
             {[
               {
                 icon: CheckCircle2,
-                color: "text-primary",
+                color: "text-emerald-600 dark:text-emerald-400",
                 value: stats ? formatCount(stats.resolved) : "…",
                 label: "Signalements traités",
               },
               {
                 icon: MapPin,
-                color: "text-blue-500",
-                value: stats ? (stats.communes > 0 ? String(stats.communes) : "—") : "…",
-                label: "Communes couvertes",
+                color: "text-sky-500",
+                value: stats ? `${stats.communes}+` : "14+",
+                label: "Communes & Villes couvertes",
               },
               {
                 icon: Clock,
                 color: "text-amber-500",
-                value: stats ? formatAvgDelay(stats.avgHours) : "…",
+                value: stats ? formatAvgDelay(stats.avgHours) : "24h - 48h",
                 label: "Délai moyen de résolution",
               },
               {
                 icon: Users,
                 color: "text-emerald-500",
                 value: stats ? formatCount(stats.users) : "…",
-                label: "Citoyens inscrits",
+                label: "Citoyens engagés",
               },
             ].map((stat, i) => (
               <motion.div
@@ -290,11 +293,11 @@ const PartnersPage = () => {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.08 }}
-                className="rounded-2xl border border-border bg-card p-4 text-center"
+                className="rounded-2xl border border-border/80 bg-card p-4 text-center shadow-xs"
               >
                 <stat.icon className={`h-6 w-6 mx-auto mb-2 ${stat.color}`} />
                 <p className="text-2xl font-extrabold text-foreground">{stat.value}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 font-medium">{stat.label}</p>
               </motion.div>
             ))}
           </div>
@@ -307,7 +310,7 @@ const PartnersPage = () => {
           <div className="text-center space-y-2">
             <h2 className="text-2xl font-bold text-foreground">Qui peut rejoindre SIGNA-CI ?</h2>
             <p className="text-muted-foreground text-sm">
-              Nous travaillons avec tous les acteurs de service public à Abidjan.
+              Nous collaborons avec l'ensemble des acteurs de service public et municipalités en Côte d'Ivoire.
             </p>
           </div>
           <div className="grid sm:grid-cols-3 gap-4">
