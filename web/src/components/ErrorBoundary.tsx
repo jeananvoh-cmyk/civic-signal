@@ -24,6 +24,18 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
+    const isChunkError =
+      error?.message?.includes("Failed to fetch dynamically imported module") ||
+      error?.message?.includes("Importing a module script failed") ||
+      error?.message?.includes("Loading chunk");
+
+    if (isChunkError) {
+      const hasAutoReloaded = sessionStorage.getItem("signa_eb_chunk_reload");
+      if (!hasAutoReloaded) {
+        sessionStorage.setItem("signa_eb_chunk_reload", "1");
+        window.location.reload();
+      }
+    }
   }
 
   public render() {

@@ -24,25 +24,26 @@ function lazyWithRetry<T extends React.ComponentType<any>>(
   factory: () => Promise<{ default: T }>
 ): React.LazyExoticComponent<T> {
   return lazy(async () => {
-    const pageHasBeenForceRefreshed = JSON.parse(
-      window.sessionStorage.getItem("signa_chunk_retry_refreshed") || "false"
-    );
-
     try {
       const component = await factory();
-      window.sessionStorage.setItem("signa_chunk_retry_refreshed", "false");
+      // Reset retry flag on success
+      window.sessionStorage.removeItem("signa_chunk_retry_refreshed");
       return component;
     } catch (error: any) {
       const isDynamicImportError =
         error?.message?.includes("Failed to fetch dynamically imported module") ||
         error?.message?.includes("Importing a module script failed") ||
+        error?.message?.includes("error loading dynamically imported module") ||
         error?.message?.includes("Loading chunk") ||
         error?.name === "ChunkLoadError";
 
-      if (isDynamicImportError && !pageHasBeenForceRefreshed) {
-        window.sessionStorage.setItem("signa_chunk_retry_refreshed", "true");
-        window.location.reload();
-        return new Promise<{ default: T }>(() => {});
+      if (isDynamicImportError) {
+        const alreadyRetried = window.sessionStorage.getItem("signa_chunk_retry_refreshed") === "1";
+        if (!alreadyRetried) {
+          window.sessionStorage.setItem("signa_chunk_retry_refreshed", "1");
+          window.location.reload();
+          return new Promise<{ default: T }>(() => {});
+        }
       }
 
       throw error;
