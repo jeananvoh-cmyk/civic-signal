@@ -19,6 +19,21 @@ import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
 import { cn } from "@/lib/utils";
+import {
+  electriciteIcon,
+  eauIcon,
+  lampadaireIcon,
+  poteauElectriqueIcon,
+  cieHazardIcon,
+  cieAutreIcon,
+  canalisationIcon,
+  fuiteEauIcon,
+  sodeciAutreIcon,
+  voirieIcon,
+  caniveauIcon,
+  depotOrduresIcon,
+  mairieAutreIcon,
+} from "@/lib/infra-icons";
 
 type InfraReport = {
   id: string;
@@ -305,8 +320,7 @@ const InfrastructurePage = () => {
               Voirie, éclairage public, fuites d'eau — signalez, soutenez, suivez l'avancement.
             </p>
           </div>
-
-          {/* Alert Categories — Accordéon compact */}
+          {/* Alert Categories — Accordéon compact avec icônes 3D réalistes */}
           <div className="space-y-2 mb-2">
             {/* ── Électricité (CIE) ── */}
             {(filter === "all" || filter === "electricite") && (() => {
@@ -339,24 +353,24 @@ const InfrastructurePage = () => {
                       >
                         <div className="grid grid-cols-4 gap-2 p-2">
                           {[
-                            { label: "Éclairage public", icon: <Lightbulb className="h-5 w-5 text-[hsl(var(--electricity))]" />, sub: "Éclairage public" },
-                            { label: "Poteaux & Pylônes", icon: <Zap className="h-5 w-5 text-[hsl(var(--electricity))]" />, sub: "Poteaux & Pylônes" },
-                            { label: "Branchements dangereux", icon: <TriangleAlert className="h-5 w-5 text-destructive" />, sub: "Branchements dangereux", danger: true },
-                            { label: "Autres", icon: <MoreHorizontal className="h-5 w-5 text-muted-foreground" />, sub: "Autres" },
+                            { label: "Éclairage public", image: lampadaireIcon, sub: "Éclairage public" },
+                            { label: "Poteaux & Pylônes", image: poteauElectriqueIcon, sub: "Poteaux & Pylônes" },
+                            { label: "Branchements dangereux", image: cieHazardIcon, sub: "Branchements dangereux", danger: true },
+                            { label: "Autres", image: cieAutreIcon, sub: "Autres" },
                           ].map((item) => (
                             <button
                               key={item.sub}
                               type="button"
                               onClick={() => { handleCategoryClick(item.sub, "electricite"); setOpenSection(null); }}
                               className={cn(
-                                "flex flex-col items-center justify-center gap-1.5 rounded-lg p-2 text-center transition-colors border",
+                                "flex flex-col items-center justify-center gap-1.5 rounded-xl p-2 text-center transition-all border shadow-xs",
                                 subFilter === item.sub && filter === "electricite"
-                                  ? item.danger ? "border-destructive bg-destructive/15 ring-1 ring-destructive/40" : "border-[hsl(var(--electricity))] bg-[hsl(var(--electricity))]/15 ring-1 ring-[hsl(var(--electricity))]/40"
+                                  ? item.danger ? "border-destructive bg-destructive/15 ring-2 ring-destructive/40" : "border-[hsl(var(--electricity))] bg-[hsl(var(--electricity))]/15 ring-2 ring-[hsl(var(--electricity))]/40"
                                   : item.danger ? "border-destructive/20 bg-destructive/5 hover:bg-destructive/15" : "border-[hsl(var(--electricity))]/20 bg-[hsl(var(--electricity))]/5 hover:bg-[hsl(var(--electricity))]/15"
                               )}
                             >
-                              {item.icon}
-                              <span className="text-xs font-semibold text-foreground leading-tight">{item.label}</span>
+                              <img src={item.image} alt={item.label} className="h-7 w-7 object-contain rounded-md shrink-0" />
+                              <span className="text-[11px] font-bold text-foreground leading-tight">{item.label}</span>
                             </button>
                           ))}
                         </div>
@@ -398,24 +412,24 @@ const InfrastructurePage = () => {
                       >
                         <div className="grid grid-cols-4 gap-2 p-2">
                           {[
-                            { label: "Fuite d'eau", icon: <Droplets className="h-5 w-5 text-[hsl(var(--water))]" />, sub: "Fuite d'eau" },
-                            { label: "Canalisation publique", icon: <AlertCircle className="h-5 w-5 text-[hsl(var(--water))]" />, sub: "Canalisation publique" },
-                            { label: "Qualité de l'eau", icon: <TriangleAlert className="h-5 w-5 text-destructive" />, sub: "Qualité de l'eau", danger: true },
-                            { label: "Autres", icon: <MoreHorizontal className="h-5 w-5 text-muted-foreground" />, sub: "Autres" },
+                            { label: "Fuite d'eau", image: fuiteEauIcon, sub: "Fuite d'eau" },
+                            { label: "Canalisation publique", image: canalisationIcon, sub: "Canalisation publique" },
+                            { label: "Qualité de l'eau", image: sodeciAutreIcon, sub: "Qualité de l'eau", danger: true },
+                            { label: "Autres", image: eauIcon, sub: "Autres" },
                           ].map((item) => (
                             <button
                               key={item.sub}
                               type="button"
                               onClick={() => { handleCategoryClick(item.sub, "eau"); setOpenSection(null); }}
                               className={cn(
-                                "flex flex-col items-center justify-center gap-1.5 rounded-lg p-2 text-center transition-colors border",
+                                "flex flex-col items-center justify-center gap-1.5 rounded-xl p-2 text-center transition-all border shadow-xs",
                                 subFilter === item.sub && filter === "eau"
-                                  ? item.danger ? "border-destructive bg-destructive/15 ring-1 ring-destructive/40" : "border-[hsl(var(--water))] bg-[hsl(var(--water))]/15 ring-1 ring-[hsl(var(--water))]/40"
+                                  ? item.danger ? "border-destructive bg-destructive/15 ring-2 ring-destructive/40" : "border-[hsl(var(--water))] bg-[hsl(var(--water))]/15 ring-2 ring-[hsl(var(--water))]/40"
                                   : item.danger ? "border-destructive/20 bg-destructive/5 hover:bg-destructive/15" : "border-[hsl(var(--water))]/20 bg-[hsl(var(--water))]/5 hover:bg-[hsl(var(--water))]/15"
                               )}
                             >
-                              {item.icon}
-                              <span className="text-xs font-semibold text-foreground leading-tight">{item.label}</span>
+                              <img src={item.image} alt={item.label} className="h-7 w-7 object-contain rounded-md shrink-0" />
+                              <span className="text-[11px] font-bold text-foreground leading-tight">{item.label}</span>
                             </button>
                           ))}
                         </div>
@@ -457,24 +471,24 @@ const InfrastructurePage = () => {
                       >
                         <div className="grid grid-cols-4 gap-2 p-2">
                           {[
-                            { label: "Nid de poule / Route", icon: <Map className="h-5 w-5 text-emerald-500" />, sub: "Nid de poule" },
-                            { label: "Caniveau bouché", icon: <Waves className="h-5 w-5 text-emerald-500" />, sub: "Caniveau bouché" },
-                            { label: "Amas d'ordures", icon: <Trash2 className="h-5 w-5 text-emerald-500" />, sub: "Amas d'ordures" },
-                            { label: "Autres", icon: <MoreHorizontal className="h-5 w-5 text-muted-foreground" />, sub: "Autres" },
+                            { label: "Nid de poule / Route", image: voirieIcon, sub: "Nid de poule" },
+                            { label: "Caniveau bouché", image: caniveauIcon, sub: "Caniveau bouché" },
+                            { label: "Amas d'ordures", image: depotOrduresIcon, sub: "Amas d'ordures" },
+                            { label: "Autres", image: mairieAutreIcon, sub: "Autres" },
                           ].map((item) => (
                             <button
                               key={item.sub}
                               type="button"
                               onClick={() => { handleCategoryClick(item.sub, "mairie"); setOpenSection(null); }}
                               className={cn(
-                                "flex flex-col items-center justify-center gap-1.5 rounded-lg p-2 text-center transition-colors border",
+                                "flex flex-col items-center justify-center gap-1.5 rounded-xl p-2 text-center transition-all border shadow-xs",
                                 subFilter === item.sub && filter === "mairie"
-                                  ? "border-emerald-500 bg-emerald-500/15 ring-1 ring-emerald-500/40"
+                                  ? "border-emerald-500 bg-emerald-500/15 ring-2 ring-emerald-500/40"
                                   : "border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/15"
                               )}
                             >
-                              {item.icon}
-                              <span className="text-xs font-semibold text-foreground leading-tight">{item.label}</span>
+                              <img src={item.image} alt={item.label} className="h-7 w-7 object-contain rounded-md shrink-0" />
+                              <span className="text-[11px] font-bold text-foreground leading-tight">{item.label}</span>
                             </button>
                           ))}
                         </div>

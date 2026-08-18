@@ -632,52 +632,52 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
       ),
       child: Column(
         children: [
-          // 1. Voirie Mairie
-          if (_selectedFilter == 'all' || _selectedFilter == 'mairie')
-            _buildAccordionTile(
-              'mairie',
-              'Voirie & Collectivités',
-              LucideIcons.building2,
-              const Color(0xFF059669),
-              [
-                {'label': '🚧 Nids de poule', 'sub': 'nid de poule'},
-                {'label': '🌊 Caniveau bouché', 'sub': 'caniveau'},
-                {'label': '🚦 Feu tricolore', 'sub': 'feu'},
-                {'label': '🗑️ Dépôt d\'ordures', 'sub': 'ordures'},
-              ],
-            ),
-
-          if (_selectedFilter == 'all') const Divider(height: 1),
-
-          // 2. Électricité CIE
+          // 1. Électricité CIE
           if (_selectedFilter == 'all' || _selectedFilter == 'electricite')
             _buildAccordionTile(
               'electricite',
-              'Électricité & Éclairage Public (CIE)',
+              'ÉLECTRICITÉ · CIE',
               LucideIcons.zap,
               const Color(0xFFEA580C),
               [
-                {'label': '💡 Éclairage éteint', 'sub': 'éclairage'},
-                {'label': '⚡ Poteau penché', 'sub': 'poteau'},
-                {'label': '⚠️ Câble au sol', 'sub': 'câble'},
-                {'label': '🔌 Branchement dangereux', 'sub': 'branchement'},
+                {'label': 'Éclairage public', 'sub': 'Éclairage public', 'asset': 'assets/infra/lampadaire.jpg'},
+                {'label': 'Poteaux & Pylônes', 'sub': 'Poteaux & Pylônes', 'asset': 'assets/infra/poteau-electrique.png'},
+                {'label': 'Branchements dangereux', 'sub': 'Branchements dangereux', 'asset': 'assets/infra/cie-danger.jpg', 'danger': 'true'},
+                {'label': 'Autres', 'sub': 'Autres', 'asset': 'assets/infra/cie-autre.jpg'},
               ],
             ),
 
           if (_selectedFilter == 'all') const Divider(height: 1),
 
-          // 3. Eau SODECI
+          // 2. Eau SODECI
           if (_selectedFilter == 'all' || _selectedFilter == 'eau')
             _buildAccordionTile(
               'eau',
-              'Eau & Canalisations (SODECI)',
+              'EAU · SODECI',
               LucideIcons.droplets,
               const Color(0xFF0284C7),
               [
-                {'label': '💧 Tuyau percé / Fuite', 'sub': 'fuite'},
-                {'label': '🚒 Bouche d\'incendie', 'sub': 'bouche'},
-                {'label': '🚰 Pression nulle', 'sub': 'pression'},
-                {'label': '🌊 Inondation de voie', 'sub': 'inondation'},
+                {'label': 'Fuite d\'eau', 'sub': 'Fuite d\'eau', 'asset': 'assets/infra/fuite-eau.png'},
+                {'label': 'Canalisation publique', 'sub': 'Canalisation publique', 'asset': 'assets/infra/canalisation-publique.jpg'},
+                {'label': 'Qualité de l\'eau', 'sub': 'Qualité de l\'eau', 'asset': 'assets/infra/eau-autre.jpg', 'danger': 'true'},
+                {'label': 'Autres', 'sub': 'Autres', 'asset': 'assets/water-icon.png'},
+              ],
+            ),
+
+          if (_selectedFilter == 'all') const Divider(height: 1),
+
+          // 3. Voirie Mairie
+          if (_selectedFilter == 'all' || _selectedFilter == 'mairie')
+            _buildAccordionTile(
+              'mairie',
+              'VOIRIE · MAIRIE',
+              LucideIcons.map,
+              const Color(0xFF059669),
+              [
+                {'label': 'Nid de poule / Route', 'sub': 'Nid de poule', 'asset': 'assets/infra/voirie.png'},
+                {'label': 'Caniveau bouché', 'sub': 'Caniveau bouché', 'asset': 'assets/infra/caniveau.png'},
+                {'label': 'Amas d\'ordures', 'sub': 'Amas d\'ordures', 'asset': 'assets/infra/depot-ordures.jpg'},
+                {'label': 'Autres', 'sub': 'Autres', 'asset': 'assets/infra/mairie-autre.jpg'},
               ],
             ),
         ],
@@ -700,12 +700,20 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
         ),
         if (isOpen)
           Padding(
-            padding: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            padding: const EdgeInsets.only(left: 10, right: 10, bottom: 12),
+            child: GridView.count(
+              crossAxisCount: 4,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              childAspectRatio: 0.82,
               children: items.map((it) {
                 final isSelected = _subFilter == it['sub'];
+                final isDanger = it['danger'] == 'true';
+                final activeBorderColor = isDanger ? const Color(0xFFEF4444) : color;
+                final activeBgColor = isDanger ? const Color(0xFFFEF2F2) : color.withAlpha(20);
+
                 return InkWell(
                   onTap: () {
                     setState(() {
@@ -714,21 +722,49 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
                     });
                     _fetchReports();
                   },
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: isSelected ? color.withAlpha(30) : const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: isSelected ? color : const Color(0xFFCBD5E1)),
-                    ),
-                    child: Text(
-                      it['label']!,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                        color: isSelected ? color : const Color(0xFF334155),
+                      color: isSelected ? activeBgColor : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected ? activeBorderColor : const Color(0xFFE2E8F0),
+                        width: isSelected ? 1.8 : 1.0,
                       ),
+                      boxShadow: isSelected
+                          ? [BoxShadow(color: activeBorderColor.withAlpha(40), blurRadius: 4, offset: const Offset(0, 1))]
+                          : null,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (it['asset'] != null)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Image.asset(
+                              it['asset']!,
+                              width: 28,
+                              height: 28,
+                              fit: BoxFit.contain,
+                            ),
+                          )
+                        else
+                          Icon(icon, size: 24, color: color),
+                        const SizedBox(height: 5),
+                        Text(
+                          it['label']!,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                            color: isSelected ? activeBorderColor : const Color(0xFF334155),
+                            height: 1.15,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 );
