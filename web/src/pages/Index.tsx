@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
-import PushPromptBanner from "@/components/PushPromptBanner";
 import { COMMUNES } from "@/lib/communes";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -297,7 +296,6 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <PushPromptBanner />
 
       {/* ══════════════════════════════════════════════════════════════
           1. HERO — L'essentiel en 3 secondes

@@ -43,28 +43,33 @@ export default function PushPromptBanner() {
   };
 
   return (
-    <div className="w-full bg-primary/5 border-b border-primary/20 px-4 py-2">
-      <div className="container flex items-center justify-between gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
-          <Bell className="h-4 w-4 text-primary" />
+    <div className="w-full rounded-2xl bg-emerald-500/8 border border-emerald-500/20 p-4 shadow-xs">
+      <div className="flex items-start sm:items-center justify-between gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 mt-0.5 sm:mt-0">
+          <Bell className="h-4 w-4" />
         </div>
-        <p className="text-sm text-foreground flex-1">
-          <span className="font-semibold">Restez informé en temps réel.</span>{" "}
-          Recevez une alerte dès qu'une coupure est signalée près de chez vous.
-        </p>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs sm:text-sm font-semibold text-foreground leading-snug">
+            Restez informé de l'avancement
+          </p>
+          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">
+            Recevez une alerte dès que ce signalement est pris en charge ou résolu.
+          </p>
+        </div>
         <div className="flex items-center gap-2 shrink-0">
           <Button
             size="sm"
             onClick={handleSubscribe}
             disabled={isLoading}
-            className="h-7 text-xs px-3"
+            className="h-8 text-xs px-3 font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-xs"
           >
-            Activer
+            {isLoading ? "Activation..." : "Activer les alertes"}
           </Button>
           <button
             onClick={handleDismiss}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Fermer"
+            className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+            aria-label="Ignorer"
+            title="Ignorer"
           >
             <X className="h-4 w-4" />
           </button>
