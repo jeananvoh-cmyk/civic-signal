@@ -18,6 +18,7 @@ export const PADA_COMMUNES: Record<string, PadaCommuneInfo> = {
   Attécoubé: { codeDept: "002", codeSp: "13", codeComplet: "002-13", commune: "Attécoubé", trigramme: "ATT" },
   Bingerville: { codeDept: "002", codeSp: "03", codeComplet: "002-03", commune: "Bingerville", trigramme: "BIN" },
   Cocody: { codeDept: "002", codeSp: "14", codeComplet: "002-14", commune: "Cocody", trigramme: "COC" },
+  "Grand-Bassam": { codeDept: "002", codeSp: "21", codeComplet: "002-21", commune: "Grand-Bassam", trigramme: "BAS" },
   Koumassi: { codeDept: "002", codeSp: "15", codeComplet: "002-15", commune: "Koumassi", trigramme: "KOU" },
   Marcory: { codeDept: "002", codeSp: "16", codeComplet: "002-16", commune: "Marcory", trigramme: "MAR" },
   Plateau: { codeDept: "002", codeSp: "17", codeComplet: "002-17", commune: "Plateau", trigramme: "PLA" },
@@ -25,7 +26,6 @@ export const PADA_COMMUNES: Record<string, PadaCommuneInfo> = {
   Songon: { codeDept: "002", codeSp: "05", codeComplet: "002-05", commune: "Songon", trigramme: "SON" },
   Treichville: { codeDept: "002", codeSp: "19", codeComplet: "002-19", commune: "Treichville", trigramme: "TRE" },
   Yopougon: { codeDept: "002", codeSp: "20", codeComplet: "002-20", commune: "Yopougon", trigramme: "YOP" },
-  "Grand-Bassam": { codeDept: "002", codeSp: "21", codeComplet: "002-21", commune: "Grand-Bassam", trigramme: "BAS" },
 };
 
 /**

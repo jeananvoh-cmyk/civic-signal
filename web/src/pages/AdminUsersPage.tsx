@@ -16,6 +16,8 @@ import { toast } from "sonner";
 import { getUserFriendlyError } from "@/lib/error-utils";
 import { logAudit } from "@/lib/audit";
 
+import { COMMUNES } from "@/lib/communes";
+
 const ROLE_LABELS: Record<string, { label: string; icon: typeof Shield }> = {
   admin: { label: "Administrateur", icon: ShieldCheck },
   moderator: { label: "Validateur", icon: Shield },
@@ -31,10 +33,7 @@ const PARTNER_TYPE_LABELS: Record<string, string> = {
   other: "Autre partenaire",
 };
 
-const COMMUNES_PILOTES = [
-  "Abobo", "Adjamé", "Bingerville", "Cocody", "Koumassi",
-  "Marcory", "Plateau", "Port-Bouët", "Treichville", "Yopougon",
-];
+const COMMUNES_PILOTES = COMMUNES.map((c) => c.nom);
 
 const AdminUsersPage = () => {
   const { isAdmin } = useUserRole();

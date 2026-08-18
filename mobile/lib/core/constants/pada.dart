@@ -24,6 +24,7 @@ const Map<String, PadaCommuneInfo> PADA_COMMUNES = {
   'Attécoubé': PadaCommuneInfo(codeDept: '002', codeSp: '13', codeComplet: '002-13', commune: 'Attécoubé', trigramme: 'ATT'),
   'Bingerville': PadaCommuneInfo(codeDept: '002', codeSp: '03', codeComplet: '002-03', commune: 'Bingerville', trigramme: 'BIN'),
   'Cocody': PadaCommuneInfo(codeDept: '002', codeSp: '14', codeComplet: '002-14', commune: 'Cocody', trigramme: 'COC'),
+  'Grand-Bassam': PadaCommuneInfo(codeDept: '002', codeSp: '21', codeComplet: '002-21', commune: 'Grand-Bassam', trigramme: 'BAS'),
   'Koumassi': PadaCommuneInfo(codeDept: '002', codeSp: '15', codeComplet: '002-15', commune: 'Koumassi', trigramme: 'KOU'),
   'Marcory': PadaCommuneInfo(codeDept: '002', codeSp: '16', codeComplet: '002-16', commune: 'Marcory', trigramme: 'MAR'),
   'Plateau': PadaCommuneInfo(codeDept: '002', codeSp: '17', codeComplet: '002-17', commune: 'Plateau', trigramme: 'PLA'),
@@ -31,7 +32,6 @@ const Map<String, PadaCommuneInfo> PADA_COMMUNES = {
   'Songon': PadaCommuneInfo(codeDept: '002', codeSp: '05', codeComplet: '002-05', commune: 'Songon', trigramme: 'SON'),
   'Treichville': PadaCommuneInfo(codeDept: '002', codeSp: '19', codeComplet: '002-19', commune: 'Treichville', trigramme: 'TRE'),
   'Yopougon': PadaCommuneInfo(codeDept: '002', codeSp: '20', codeComplet: '002-20', commune: 'Yopougon', trigramme: 'YOP'),
-  'Grand-Bassam': PadaCommuneInfo(codeDept: '002', codeSp: '21', codeComplet: '002-21', commune: 'Grand-Bassam', trigramme: 'BAS'),
 };
 
 class PadaConstants {

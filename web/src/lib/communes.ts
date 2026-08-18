@@ -7,21 +7,24 @@ export interface Commune {
   couleur: string;
 }
 
+/**
+ * 14 Communes du Grand Abidjan en ordre alphabétique strict (A -> Z)
+ */
 export const COMMUNES: Commune[] = [
   { nom: "Abobo", centerLat: 5.4161, centerLon: -4.0159, rayonM: 6000, population: 1340083, couleur: "#3B82F6" },
   { nom: "Adjamé", centerLat: 5.3360, centerLon: -4.0170, rayonM: 3500, population: 340892, couleur: "#F59E0B" },
+  { nom: "Anyama", centerLat: 5.4950, centerLon: -4.0500, rayonM: 7000, population: 366094, couleur: "#14B8A6" },
   { nom: "Attécoubé", centerLat: 5.3350, centerLon: -4.0400, rayonM: 4000, population: 313135, couleur: "#E11D48" },
   { nom: "Bingerville", centerLat: 5.3500, centerLon: -3.8830, rayonM: 6300, population: 204656, couleur: "#8B5CF6" },
   { nom: "Cocody", centerLat: 5.3600, centerLon: -3.9670, rayonM: 7000, population: 692583, couleur: "#10B981" },
+  { nom: "Grand-Bassam", centerLat: 5.2000, centerLon: -3.7330, rayonM: 6500, population: 114674, couleur: "#0EA5E9" },
   { nom: "Koumassi", centerLat: 5.3000, centerLon: -3.9500, rayonM: 4500, population: 412282, couleur: "#EC4899" },
   { nom: "Marcory", centerLat: 5.3050, centerLon: -3.9850, rayonM: 4000, population: 285496, couleur: "#06B6D4" },
   { nom: "Plateau", centerLat: 5.3250, centerLon: -4.0200, rayonM: 2500, population: 7488, couleur: "#6366F1" },
   { nom: "Port-Bouët", centerLat: 5.2350, centerLon: -3.9667, rayonM: 6500, population: 618795, couleur: "#F97316" },
+  { nom: "Songon", centerLat: 5.3180, centerLon: -4.2600, rayonM: 9000, population: 104523, couleur: "#A855F7" },
   { nom: "Treichville", centerLat: 5.3000, centerLon: -4.0100, rayonM: 3000, population: 118432, couleur: "#84CC16" },
   { nom: "Yopougon", centerLat: 5.3177, centerLon: -4.0900, rayonM: 12000, population: 1571065, couleur: "#DC2626" },
-  { nom: "Anyama", centerLat: 5.4950, centerLon: -4.0500, rayonM: 7000, population: 366094, couleur: "#14B8A6" },
-  { nom: "Songon", centerLat: 5.3180, centerLon: -4.2600, rayonM: 9000, population: 104523, couleur: "#A855F7" },
-  { nom: "Grand-Bassam", centerLat: 5.2000, centerLon: -3.7330, rayonM: 6500, population: 114674, couleur: "#0EA5E9" },
 ];
 
 export const COMMUNE_COLORS: Record<string, string> = Object.fromEntries(
@@ -63,17 +66,29 @@ export const findNearestCommune = (lat: number, lon: number): CommuneResult => {
       nearest = c;
     }
 
-    // If within this commune's radius, prefer the closest center
-    if (d <= c.rayonM && d < bestInsideDist) {
-      bestInsideDist = d;
-      bestInside = c;
+    // Check if inside coverage radius
+    if (d <= c.rayonM) {
+      // Relative depth: distance / radius (lower = closer to center)
+      const relativeDepth = d / c.rayonM;
+      if (relativeDepth < bestInsideDist) {
+        bestInsideDist = relativeDepth;
+        bestInside = c;
+      }
     }
   }
 
   if (bestInside) {
-    return { commune: bestInside, distance: bestInsideDist, isInPilotZone: true };
+    return {
+      commune: bestInside,
+      distance: Math.round(haversineDistance(lat, lon, bestInside.centerLat, bestInside.centerLon)),
+      isInPilotZone: true,
+    };
   }
 
-  // Not inside any commune's radius
-  return { commune: nearest, distance: nearestDist, isInPilotZone: false };
+  // Outside all pilot zones - return nearest with isInPilotZone: false
+  return {
+    commune: nearest,
+    distance: nearest ? Math.round(nearestDist) : Infinity,
+    isInPilotZone: false,
+  };
 };
