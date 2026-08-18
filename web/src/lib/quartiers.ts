@@ -160,31 +160,6 @@ export const QUARTIERS: Record<string, string[]> = {
     "Yao Séhi", "Yesso", "Yopougon-Santé", "Zone Industrielle",
   ],
 };
-    "Gare de Bassam", "Habitat", "Hôpital Général", "Marcory 2",
-    "Palais des Sports", "Port Autonome", "Zone 3",
-  ],
-
-  Attécoubé: [
-    "Abobo-Doumé", "Agban Attié", "Agban Village", "Bidjante", "Boribana",
-    "Cité Fairmont", "Déconsignation", "Fromager", "Jérusalem", "Locodjro",
-    "Santai", "Seba", "Zone Industrielle",
-  ],
-
-  Anyama: [
-    "Anyama-Ahouabo", "Anyama-Adjamé", "Belle-Ville", "Cité Concorde",
-    "Gare", "Hôpital d'Anyama", "Quartier Résidentiel", "Stade Ebimpé", "Zossonkoi",
-  ],
-
-  Songon: [
-    "Abiaté", "Bimbresso", "Gare Songon", "Kassemblé", "Songon Agban",
-    "Songon Dagbé", "Songon Kassemblé", "Songon M'brathé", "Songon Park",
-  ],
-
-  "Grand-Bassam": [
-    "Ancien Bassam", "Azuretti", "Caféier", "Cité Impériale", "France",
-    "Moossou", "Mockeyville", "Phare", "Quartier Artisanal", "Rosiers", "Zone Hôtelière",
-  ],
-};
 
 /**
  * Alias connus côté frontend — miroir de la table SQL `quartier_aliases`.
