@@ -6,7 +6,7 @@ import {
   Zap, Shield, Users, ArrowRight, BarChart3, MapPin,
   Radio, LogIn, UserPlus, History, Info, Heart,
   ChevronDown, CheckCircle2, TrendingUp, Droplets, Wrench, Navigation,
-  ExternalLink, MessageCircle, Mail
+  ExternalLink, MessageCircle, Mail, Map as MapIcon
 } from "lucide-react";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { SOCIAL_LINKS } from "@/lib/social-links";
