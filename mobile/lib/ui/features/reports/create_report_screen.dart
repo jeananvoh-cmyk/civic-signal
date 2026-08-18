@@ -19,6 +19,7 @@ class ReportTypeConfig {
   final String emoji;
   final String label;
   final String description;
+  final String? imageAsset;
   final Color color;
   final String serviceType; // 'electricity', 'water', 'mairie'
   final String reportCategory; // 'outage', 'infrastructure'
@@ -30,6 +31,7 @@ class ReportTypeConfig {
     required this.emoji,
     required this.label,
     required this.description,
+    this.imageAsset,
     required this.color,
     required this.serviceType,
     required this.reportCategory,
@@ -45,6 +47,7 @@ final List<ReportTypeConfig> REPORT_TYPES = [
     emoji: '⚡',
     label: "Coupure d'électricité",
     description: "Interruption du courant chez vous ou dans la zone",
+    imageAsset: 'assets/electricity-icon.png',
     color: const Color(0xFFF59E0B),
     serviceType: 'electricity',
     reportCategory: 'outage',
@@ -55,6 +58,7 @@ final List<ReportTypeConfig> REPORT_TYPES = [
     emoji: '💧',
     label: "Coupure d'eau",
     description: "Interruption de distribution d'eau potable",
+    imageAsset: 'assets/water-icon.png',
     color: const Color(0xFF3B82F6),
     serviceType: 'water',
     reportCategory: 'outage',
@@ -67,6 +71,7 @@ final List<ReportTypeConfig> REPORT_TYPES = [
     emoji: '💡',
     label: 'Éclairage public',
     description: 'Lampadaire cassé, éteint ou éclairage public hors service',
+    imageAsset: 'assets/infra/lampadaire.png',
     color: const Color(0xFFEAB308),
     serviceType: 'electricity',
     reportCategory: 'infrastructure',
@@ -78,6 +83,7 @@ final List<ReportTypeConfig> REPORT_TYPES = [
     emoji: '🗼',
     label: 'Poteaux / Pylônes',
     description: 'Poteau penché, câble électrique à terre, pylône à risque',
+    imageAsset: 'assets/infra/poteau-electrique.png',
     color: const Color(0xFFF59E0B),
     serviceType: 'electricity',
     reportCategory: 'infrastructure',
@@ -89,6 +95,7 @@ final List<ReportTypeConfig> REPORT_TYPES = [
     emoji: '⚠️',
     label: 'Branchements dangereux',
     description: 'Fils nus, étincelles, installation à risque élevé',
+    imageAsset: 'assets/infra/cie-danger.jpg',
     color: const Color(0xFFEF4444),
     serviceType: 'electricity',
     reportCategory: 'infrastructure',
@@ -100,6 +107,7 @@ final List<ReportTypeConfig> REPORT_TYPES = [
     emoji: '🚧',
     label: 'Autres incidents CIE',
     description: 'Autre anomalie sur le réseau d\'électricité',
+    imageAsset: 'assets/infra/cie-autre.jpg',
     color: const Color(0xFFF97316),
     serviceType: 'electricity',
     reportCategory: 'infrastructure',
@@ -113,6 +121,7 @@ final List<ReportTypeConfig> REPORT_TYPES = [
     emoji: '🚰',
     label: 'Canalisation publique',
     description: 'Égout bouché, débordement de vos regards',
+    imageAsset: 'assets/infra/canalisation-publique.jpg',
     color: const Color(0xFF0284C7),
     serviceType: 'water',
     reportCategory: 'infrastructure',
@@ -124,6 +133,7 @@ final List<ReportTypeConfig> REPORT_TYPES = [
     emoji: '🚿',
     label: "Fuite d'eau",
     description: "Fuite d'eau à l'extérieur de votre maison",
+    imageAsset: 'assets/infra/fuite-eau.png',
     color: const Color(0xFF06B6D4),
     serviceType: 'water',
     reportCategory: 'infrastructure',
@@ -135,6 +145,7 @@ final List<ReportTypeConfig> REPORT_TYPES = [
     emoji: '💧',
     label: 'Autre incident SODECI',
     description: "Incident sur le réseau d'eau potable",
+    imageAsset: 'assets/infra/eau-autre.jpg',
     color: const Color(0xFF3B82F6),
     serviceType: 'water',
     reportCategory: 'infrastructure',
@@ -148,6 +159,7 @@ final List<ReportTypeConfig> REPORT_TYPES = [
     emoji: '🛣️',
     label: 'Nid de poule',
     description: 'Trou sur la chaussée, bitume dégradé',
+    imageAsset: 'assets/infra/voirie.png',
     color: const Color(0xFF10B981),
     serviceType: 'mairie',
     reportCategory: 'infrastructure',
@@ -159,6 +171,7 @@ final List<ReportTypeConfig> REPORT_TYPES = [
     emoji: '🚧',
     label: 'Caniveau bouché',
     description: 'Caniveau obstrué, eau stagnante sur la voie publique',
+    imageAsset: 'assets/infra/caniveau.png',
     color: const Color(0xFF10B981),
     serviceType: 'mairie',
     reportCategory: 'infrastructure',
@@ -170,6 +183,7 @@ final List<ReportTypeConfig> REPORT_TYPES = [
     emoji: '🛤️',
     label: 'Voirie & Trottoirs',
     description: 'Trottoir cassé, pavés abîmés, glissière endommagée',
+    imageAsset: 'assets/infra/trottoir-endommage.jpg',
     color: const Color(0xFF8B5CF6),
     serviceType: 'mairie',
     reportCategory: 'infrastructure',
@@ -181,6 +195,7 @@ final List<ReportTypeConfig> REPORT_TYPES = [
     emoji: '🗑️',
     label: 'Dépôt sauvage & Ordures',
     description: 'Ordures ou déchets non ramassés sur le domaine public',
+    imageAsset: 'assets/infra/depot-ordures.jpg',
     color: const Color(0xFF10B981),
     serviceType: 'mairie',
     reportCategory: 'infrastructure',
@@ -192,6 +207,7 @@ final List<ReportTypeConfig> REPORT_TYPES = [
     emoji: '🏗️',
     label: 'Autre (Mairie)',
     description: 'Autre anomalie relevant des services municipaux',
+    imageAsset: 'assets/infra/mairie-autre.jpg',
     color: const Color(0xFF6B7280),
     serviceType: 'mairie',
     reportCategory: 'infrastructure',
@@ -667,7 +683,18 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   alignment: Alignment.center,
-                  child: Text(type.emoji, style: const TextStyle(fontSize: 22)),
+                  child: type.imageAsset != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.asset(
+                            type.imageAsset!,
+                            width: 32,
+                            height: 32,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => Text(type.emoji, style: const TextStyle(fontSize: 22)),
+                          ),
+                        )
+                      : Text(type.emoji, style: const TextStyle(fontSize: 22)),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
