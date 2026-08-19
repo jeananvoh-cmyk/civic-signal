@@ -314,35 +314,35 @@ const Index = () => {
           <div className="pointer-events-none absolute bottom-0 right-0 h-[420px] w-[420px] rounded-full bg-emerald-400/10 dark:bg-teal-400/14 blur-[110px]" />
         </div>
 
-        <div className="container relative z-10 pt-8 pb-16 sm:py-20">
-          <div className="max-w-3xl">
+        <div className="container relative z-10 pt-12 pb-20 sm:py-28">
+          <div className="max-w-5xl mx-auto text-center flex flex-col items-center">
 
-            {/* Titre H1 avec mots rotatifs */}
-            <div className="overflow-hidden">
+            {/* Titre H1 Majestueux et Centré avec mots rotatifs */}
+            <div className="overflow-hidden w-full">
               <motion.h1
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.65 }}
-                className="font-display font-extrabold leading-[1.05] text-slate-950 dark:text-white"
+                className="font-display font-extrabold tracking-tight leading-[1.08] text-slate-950 dark:text-white text-4xl sm:text-6xl md:text-7xl lg:text-[5.2rem]"
               >
-                <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-[3.8rem]">
+                <span className="block">
                   Signalez les
                 </span>
-                <span className="block min-h-[1.15em] text-3xl sm:text-4xl md:text-5xl lg:text-[3.8rem]">
+                <span className="block min-h-[1.2em] mt-1 sm:mt-2">
                   <RotatingWord />
                 </span>
               </motion.h1>
             </div>
 
-            {/* Description claire de l'objectif de l'application SIGNA.ci */}
+            {/* Description claire et centrée */}
             <motion.p
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="mt-4 sm:mt-5 max-w-xl text-base sm:text-lg leading-relaxed text-slate-600 dark:text-white/70"
+              className="mt-6 sm:mt-8 max-w-2xl text-base sm:text-xl leading-relaxed text-slate-600 dark:text-white/75"
             >
-              <strong>SIGNA.ci</strong> est la plateforme citoyenne officielle en Côte d'Ivoire où les habitants signalent,
-              géolocalisent et accélèrent la résolution des coupures d'eau (SODECI), coupures d'électricité (CIE) et pannes de voirie.
+              <strong>SIGNA.ci</strong> est la plateforme citoyenne officielle en Côte d'Ivoire pour signaler,
+              géolocaliser et accélérer la résolution des coupures d'eau (SODECI), coupures d'électricité (CIE) et pannes de voirie.
             </motion.p>
 
             {/* Mention d'accès public & libre en toute transparence */}
@@ -350,22 +350,22 @@ const Index = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
-              className="mt-3 flex items-center gap-2 text-xs text-muted-foreground"
+              className="mt-4 flex items-center justify-center gap-2 text-xs sm:text-sm font-medium text-muted-foreground"
             >
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
               <span>Plateforme libre d'accès 100% sans inscription obligatoire</span>
             </motion.div>
 
-            {/* 2 Boutons d'Action Principaux Uniformisés */}
+            {/* 2 Boutons d'Action Principaux Uniformisés et Centrés */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
-              className="mt-6 sm:mt-8 flex flex-wrap gap-4"
+              className="mt-8 sm:mt-10 flex flex-wrap items-center justify-center gap-4 w-full"
             >
               <Link
                 to="/signaler"
-                className="group flex items-center gap-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white px-7 py-4 font-extrabold text-base sm:text-lg shadow-[0_8px_32px_rgba(5,150,105,0.35)] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                className="group flex items-center gap-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 font-extrabold text-base sm:text-lg shadow-[0_8px_32px_rgba(5,150,105,0.35)] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-xl backdrop-blur-sm">
                   📢
@@ -379,7 +379,7 @@ const Index = () => {
 
               <Link
                 to="/verification"
-                className="group flex items-center gap-3.5 rounded-2xl border-2 border-sky-300 bg-sky-50/90 hover:bg-sky-100 text-sky-950 dark:border-sky-800 dark:bg-sky-950/40 dark:hover:bg-sky-900/60 dark:text-sky-200 px-7 py-4 font-bold text-base sm:text-lg shadow-sm backdrop-blur-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                className="group flex items-center gap-3.5 rounded-2xl border-2 border-sky-300 bg-sky-50/90 hover:bg-sky-100 text-sky-950 dark:border-sky-800 dark:bg-sky-950/40 dark:hover:bg-sky-900/60 dark:text-sky-200 px-8 py-4 font-bold text-base sm:text-lg shadow-sm backdrop-blur-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/20 text-sky-600 dark:text-sky-400 font-extrabold text-xl">
                   ✓
@@ -390,27 +390,6 @@ const Index = () => {
                 </div>
                 <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
               </Link>
-            </motion.div>
-
-            {/* Communes couvertes — Pilules nettes */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
-              className="mt-8 sm:mt-10 flex flex-wrap items-center gap-2"
-            >
-              <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mr-1">
-                📍 Communes couvertes :
-              </span>
-              {COMMUNES.map((c: { nom: string }) => (
-                <Link
-                  key={c.nom}
-                  to={`/commune/${encodeURIComponent(c.nom)}`}
-                  className="rounded-full border border-slate-300/90 bg-slate-100 text-slate-900 hover:bg-emerald-100 hover:border-emerald-400 hover:text-emerald-950 dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-100 dark:hover:bg-emerald-950/70 dark:hover:border-emerald-400 dark:hover:text-emerald-300 px-3.5 py-1.5 text-xs font-bold shadow-sm transition-all active:scale-95"
-                >
-                  {c.nom}
-                </Link>
-              ))}
             </motion.div>
           </div>
         </div>
