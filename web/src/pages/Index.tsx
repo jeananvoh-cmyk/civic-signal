@@ -339,10 +339,9 @@ const Index = () => {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="mt-6 sm:mt-8 max-w-2xl text-base sm:text-xl leading-relaxed text-slate-600 dark:text-white/75"
+              className="mt-6 sm:mt-8 max-w-3xl text-base sm:text-xl leading-relaxed text-slate-600 dark:text-white/75 font-normal"
             >
-              <strong>SIGNA.ci</strong> est la plateforme citoyenne officielle en Côte d'Ivoire pour signaler,
-              géolocaliser et accélérer la résolution des coupures d'eau (SODECI), coupures d'électricité (CIE) et pannes de voirie.
+              Grâce à <strong>SIGNA.ci</strong>, unissons nos voix auprès des opérateurs (CIE, SODECI, Mairies) : alertez vos voisins en un clic, suivez l'avancement en temps réel et faisons accélérer les réparations ensemble.
             </motion.p>
 
             {/* Mention d'accès public & libre en toute transparence */}
@@ -456,7 +455,12 @@ const Index = () => {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════
-          3. CATÉGORIES EN 1 CLIC — 5 cartes directes
+          3. COMMENT FONCTIONNE SIGNA.CI — 3 étapes limpides
+      ══════════════════════════════════════════════════════════════ */}
+      <HowItWorksSection />
+
+      {/* ══════════════════════════════════════════════════════════════
+          4. QUE SOUHAITEZ-VOUS SIGNALER ? — 5 catégories en 1 clic
       ══════════════════════════════════════════════════════════════ */}
       <section className="container py-20">
         <motion.div
@@ -506,11 +510,6 @@ const Index = () => {
           ))}
         </div>
       </section>
-
-      {/* ══════════════════════════════════════════════════════════════
-          4. COMMENT ÇA MARCHE — 3 étapes limpides
-      ══════════════════════════════════════════════════════════════ */}
-      <HowItWorksSection />
 
       {/* ══════════════════════════════════════════════════════════════
           5. ACTIVITÉ LOCALE RÉCENTE (Si signalements proches)
