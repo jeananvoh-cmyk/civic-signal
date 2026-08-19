@@ -2121,12 +2121,12 @@ List<ScoredPadaWay> searchPadaWaysScored(String query, {String? commune, String?
     String? nearestDoorInfo;
     String? cadastralAddress;
 
-    // 1. Filtrage par commune
+    // 1. Filtrage strict par commune
     if (commune != null && commune.isNotEmpty) {
       final normWayCommune = _normalize(way.commune);
       final normTargetCommune = _normalize(commune);
-      if (!normWayCommune.contains(normTargetCommune) && way.type != PadaWayType.boulevard) {
-        continue;
+      if (!normWayCommune.contains(normTargetCommune) && !normTargetCommune.contains(normWayCommune)) {
+        continue; // Non éligible : rejet strict des autres communes
       }
     }
 
@@ -2137,26 +2137,30 @@ List<ScoredPadaWay> searchPadaWaysScored(String query, {String? commune, String?
       final normTargetQuartier = _normalize(quartier);
       if (normWayQuartier.contains(normTargetQuartier) || normTargetQuartier.contains(normWayQuartier)) {
         isQuartierMatch = true;
-        score += 40;
+        score += 80; // Priorité majeure au quartier sélectionné
       }
-    } else if (way.type == PadaWayType.boulevard) {
-      score += 20;
     }
 
     // 3. Probabilité par Métrage (longueurM)
     bool isLengthCompatible = true;
-    if (extractedNumber != null && way.longueurM != null) {
-      final maxAllowedNumber = (way.longueurM! * 1.2).round();
-      if (extractedNumber > maxAllowedNumber) {
-        isLengthCompatible = false;
-        score -= 50;
-      } else {
-        isLengthCompatible = true;
-        score += 30;
+    if (extractedNumber != null) {
+      if (isQuartierMatch) {
+        score += 50; // Priorité absolue au quartier courant pour ce numéro
       }
-    } else if (extractedNumber != null && way.type == PadaWayType.boulevard) {
-      isLengthCompatible = true;
-      score += 20;
+
+      if (way.longueurM != null) {
+        final maxAllowedNumber = (way.longueurM! * 1.2).round();
+        if (extractedNumber > maxAllowedNumber) {
+          isLengthCompatible = false;
+          score -= 50;
+        } else {
+          isLengthCompatible = true;
+          score += 30;
+        }
+      } else if (way.type == PadaWayType.boulevard) {
+        isLengthCompatible = true;
+        score += 20;
+      }
     }
 
     // 4. Recherche textuelle

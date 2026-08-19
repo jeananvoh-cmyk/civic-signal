@@ -18,6 +18,7 @@ import {
   getDoorsByWayFast,
   type PadaDoorNumber
 } from '../data/pada';
+import { normalizeQuartier } from './quartiers';
 
 export { PADA_DOOR_NUMBERS, getDoorNumbersByCommune, getDoorNumbersByWay, getDoorsByWayFast, type PadaDoorNumber };
 
@@ -2278,31 +2279,40 @@ export function searchPadaWaysScored(
       }
     }
 
-    // 1. Filtrage par commune (les boulevards intercommunaux restent éligibles)
+    // 1. Filtrage strict par commune (aucune voie d'une autre commune n'est autorisée)
     if (commune && way.commune) {
       const normWayCommune = normalizeText(way.commune);
       const normTargetCommune = normalizeText(commune);
-      if (!normWayCommune.includes(normTargetCommune) && way.type !== "BOULEVARD") {
-        continue; // Non éligible
+      if (!normWayCommune.includes(normTargetCommune) && !normTargetCommune.includes(normWayCommune)) {
+        continue; // Non éligible : rejet strict des autres communes
       }
     }
 
-    // 2. Score de Quartier (0 à 40 pts)
+    // 2. Score de Quartier (0 à 100 pts)
     let isQuartierMatch = false;
     if (quartier && way.quartier) {
-      const normWayQuartier = normalizeText(way.quartier);
-      const normTargetQuartier = normalizeText(quartier);
-      if (normWayQuartier.includes(normTargetQuartier) || normTargetQuartier.includes(normWayQuartier)) {
+      const normWayQuartier = normalizeQuartier(way.quartier, commune || "");
+      const normTargetQuartier = normalizeQuartier(quartier, commune || "");
+      const wayQ = normalizeText(way.quartier);
+      const targetQ = normalizeText(quartier);
+
+      if (
+        normWayQuartier.toLowerCase() === normTargetQuartier.toLowerCase() ||
+        wayQ.includes(targetQ) ||
+        targetQ.includes(wayQ)
+      ) {
         isQuartierMatch = true;
-        score += 40;
+        score += 80; // Priorité majeure au quartier sélectionné
       }
-    } else if (way.type === "BOULEVARD") {
-      score += 20; // Boulevards majeurs
     }
 
     // 3. Croisement Numéro de Porte Cadastral PADA & Longueur Linéaire
     let isLengthCompatible = true;
     if (extractedNumber !== null) {
+      // Bonus immédiat si c'est dans le quartier sélectionné
+      if (isQuartierMatch) {
+        score += 50; // Priorité absolue au quartier courant pour ce numéro
+      }
       // A. Recherche dans le cadastre des numéros de porte réels PADA
       const doorResult = findClosestDoorOnWay(way.id, way.nom, extractedNumber);
       if (doorResult) {

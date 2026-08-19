@@ -74,4 +74,21 @@ describe('PADA Cadastral Door Numbers & Nearest Neighbour Interpolation', () => 
     expect(closestDoors[0].door.numero).toBe(62);
     expect(closestDoors[0].score).toBe(100);
   });
+
+  it('strictly excludes other communes (Bingerville, Anyama...) when commune is Cocody and prioritizes selected quartier', () => {
+    const results = searchPadaWaysScored('82', 'Cocody', 'Bonoumin');
+    expect(results.length).toBeGreaterThan(0);
+
+    // Toutes les voies retournées doivent obligatoirement appartenir à Cocody
+    for (const r of results) {
+      expect(r.way.commune.toLowerCase()).toContain('cocody');
+      expect(r.way.commune.toLowerCase()).not.toBe('anyama');
+      expect(r.way.commune.toLowerCase()).not.toBe('bingerville');
+    }
+
+    // La première suggestion doit appartenir au quartier sélectionné (Riviera Bonoumin)
+    const top = results[0];
+    expect(top.way.quartier?.toLowerCase()).toContain('bonoumin');
+    expect(top.formattedSuggestion).toContain('82');
+  });
 });
