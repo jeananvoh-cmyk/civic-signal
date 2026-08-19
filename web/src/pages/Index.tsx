@@ -85,21 +85,21 @@ const PROBLEM_TYPES = [
 
 const STEPS = [
   {
-    step: "01", emoji: "📢", title: "Signalez en 30s",
-    headline: "Ultra-rapide & simple",
-    desc: "Sélectionnez votre panne (Eau, Électricité, Voirie) avec détection GPS automatique et photo facultative.",
+    step: "01", emoji: "📢", title: "Documentez la coupure",
+    headline: "Précis & en 30 secondes",
+    desc: "Signalez votre coupure d'eau (SODECI), d'électricité (CIE) ou dégradation de voirie (Mairie) avec géolocalisation automatique et photo.",
     color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/25",
   },
   {
     step: "02", emoji: "🤝", title: "Confirmez ensemble",
-    headline: "Entraide de quartier",
-    desc: "Les riverains confirment l'incident en 1 clic pour éliminer les faux positifs et prouver l'urgence.",
+    headline: "Solidarité de quartier",
+    desc: "Les voisins confirment la coupure en 1 clic pour prouver l'ampleur de la panne et éliminer les faux signalements.",
     color: "text-sky-600 dark:text-sky-400", bg: "bg-sky-500/10", border: "border-sky-500/25",
   },
   {
-    step: "03", emoji: "🛠️", title: "Suivez la résolution",
-    headline: "Transparence totale",
-    desc: "Le dossier est transmis aux équipes techniques et vous êtes notifié dès le rétablissement de la situation.",
+    step: "03", emoji: "🛠️", title: "Suivez le rétablissement",
+    headline: "Transparence & Réparation",
+    desc: "Le dossier est transmis directement aux opérateurs (CIE, SODECI) ou à votre Mairie pour suivre la réparation jusqu'à la fin.",
     color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/25",
   },
 ];
@@ -334,14 +334,19 @@ const Index = () => {
               </motion.h1>
             </div>
 
-            {/* Description claire et centrée */}
+            {/* Description claire et centrée (Adaptée Web & Mobile) */}
             <motion.p
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
               className="mt-6 sm:mt-8 max-w-3xl text-base sm:text-xl leading-relaxed text-slate-600 dark:text-white/75 font-normal"
             >
-              Grâce à <strong>SIGNA.ci</strong>, unissons nos voix auprès des opérateurs (CIE, SODECI, Mairies) : alertez vos voisins en un clic, suivez l'avancement en temps réel et faisons accélérer les réparations ensemble.
+              <span className="hidden sm:inline">
+                Grâce à <strong>SIGNA.ci</strong>, unissons nos voix auprès de la CIE, SODECI et nos Mairies. Et alertez vos voisins en un clic, suivez l'avancement en temps réel et faisons accélérer les réparations ensemble.
+              </span>
+              <span className="inline sm:hidden">
+                Grâce à <strong>SIGNA.ci</strong>, documentez, confirmez et suivez vos coupures (CIE, SODECI) ainsi que les pannes de voirie gérées par vos Mairies : unissons nos voix pour accélérer les réparations ensemble.
+              </span>
             </motion.p>
 
             {/* Mention d'accès public & libre en toute transparence */}
@@ -370,8 +375,8 @@ const Index = () => {
                   📢
                 </div>
                 <div className="flex flex-col text-left leading-tight">
-                  <span className="text-base font-extrabold tracking-wide">Signaler un incident</span>
-                  <span className="text-[11px] font-medium text-white/80">Eau · Courant · Voirie</span>
+                  <span className="text-base font-extrabold tracking-wide">Documenter une coupure</span>
+                  <span className="text-[11px] font-medium text-white/80">CIE · SODECI · Mairies</span>
                 </div>
                 <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
               </Link>
@@ -385,7 +390,7 @@ const Index = () => {
                 </div>
                 <div className="flex flex-col text-left leading-tight">
                   <span className="text-base font-extrabold tracking-wide">Confirmer une coupure</span>
-                  <span className="text-[11px] font-medium text-sky-700 dark:text-sky-300">Vérifier les signalements</span>
+                  <span className="text-[11px] font-medium text-sky-700 dark:text-sky-300">Vérifier & suivre en direct</span>
                 </div>
                 <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
               </Link>
@@ -469,14 +474,14 @@ const Index = () => {
           viewport={{ once: true }}
           className="mb-12 text-center"
         >
-          <span className="inline-block rounded-full border border-border bg-secondary px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            5 Catégories de dysfonctionnements
+          <span className="inline-block rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-extrabold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">
+            CIE · SODECI · MAIRIES & SERVICES MUNICIPAUX
           </span>
           <h2 className="mt-4 font-display text-3xl font-extrabold text-foreground md:text-4xl">
-            Que souhaitez-vous signaler ?
+            Que souhaitez-vous documenter ?
           </h2>
-          <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
-            Cliquez directement sur votre catégorie pour ouvrir le formulaire pré-rempli.
+          <p className="mx-auto mt-3 max-w-xl text-sm sm:text-base text-muted-foreground">
+            Des coupures de réseaux (CIE, SODECI) aux pannes de voirie gérées par votre Mairie (éclairage public, caniveaux, chaussée) : sélectionnez votre situation pour lancer l'alerte.
           </p>
         </motion.div>
 

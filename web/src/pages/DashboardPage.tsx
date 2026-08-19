@@ -591,8 +591,8 @@ const DashboardPage = () => {
               📢
             </div>
             <div className="flex flex-col text-left leading-tight">
-              <span className="text-base font-extrabold tracking-wide">Signaler un incident</span>
-              <span className="text-[11px] font-medium text-white/80">Eau · Courant · Voirie</span>
+              <span className="text-base font-extrabold tracking-wide">Documenter une coupure</span>
+              <span className="text-[11px] font-medium text-white/80">CIE · SODECI · Mairies</span>
             </div>
             <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
           </Link>
@@ -606,7 +606,7 @@ const DashboardPage = () => {
             </div>
             <div className="flex flex-col text-left leading-tight">
               <span className="text-base font-extrabold tracking-wide">Confirmer une coupure</span>
-              <span className="text-[11px] font-medium text-sky-700 dark:text-sky-300">Vérifier les signalements</span>
+              <span className="text-[11px] font-medium text-sky-700 dark:text-sky-300">Vérifier & suivre en direct</span>
             </div>
             <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
           </Link>
@@ -802,8 +802,8 @@ const DashboardPage = () => {
                 📢
               </div>
               <div className="flex flex-col text-left leading-tight">
-                <span className="text-sm font-extrabold tracking-wide">Signaler un incident</span>
-                <span className="text-xs text-white/80">Eau · Courant · Voirie</span>
+                <span className="text-sm font-extrabold tracking-wide">Documenter une coupure</span>
+                <span className="text-xs text-white/80">CIE · SODECI · Mairies</span>
               </div>
             </button>
             <button
@@ -815,7 +815,7 @@ const DashboardPage = () => {
               </div>
               <div className="flex flex-col text-left leading-tight">
                 <span className="text-sm font-extrabold tracking-wide">Confirmer une coupure</span>
-                <span className="text-xs text-sky-700 dark:text-sky-300">Vérifier les signalements</span>
+                <span className="text-xs text-sky-700 dark:text-sky-300">Vérifier & suivre en direct</span>
               </div>
             </button>
           </motion.div>
