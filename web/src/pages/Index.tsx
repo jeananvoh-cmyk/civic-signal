@@ -317,20 +317,7 @@ const Index = () => {
         <div className="container relative z-10 pt-8 pb-16 sm:py-20">
           <div className="max-w-3xl">
 
-            {/* Slogan & Nom Officiel SIGNA.ci pour conformité Branding & Moteurs */}
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 backdrop-blur-md"
-            >
-              <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs font-black tracking-wider text-emerald-800 dark:text-emerald-300 uppercase">
-                SIGNA.ci · SIGNALER · SUIVRE · RÉPARER
-              </span>
-            </motion.div>
-
-            {/* Titre H1 avec nom d'application exact SIGNA.ci et mots rotatifs */}
+            {/* Titre H1 avec mots rotatifs */}
             <div className="overflow-hidden">
               <motion.h1
                 initial={{ opacity: 0, y: 30 }}
@@ -338,9 +325,6 @@ const Index = () => {
                 transition={{ duration: 0.65 }}
                 className="font-display font-extrabold leading-[1.05] text-slate-950 dark:text-white"
               >
-                <span className="block text-2xl sm:text-3xl md:text-4xl text-emerald-600 dark:text-emerald-400 font-black mb-1">
-                  SIGNA.ci
-                </span>
                 <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-[3.8rem]">
                   Signalez les
                 </span>
