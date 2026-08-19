@@ -793,22 +793,30 @@ const DashboardPage = () => {
 
         {/* CTA citoyen — 100% cohérent avec l'accueil et la version mobile */}
         {!canValidate && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="mb-6 grid grid-cols-2 gap-3">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               onClick={() => navigate("/signaler")}
-              className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 px-4 py-4 text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
+              className="flex items-center justify-center gap-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 px-6 py-4 text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
             >
-              <Siren className="h-5 w-5" />
-              <span className="text-sm font-extrabold">Signaler</span>
-              <span className="text-xs text-white/80">Eau · Courant · Voirie</span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-lg backdrop-blur-sm">
+                📢
+              </div>
+              <div className="flex flex-col text-left leading-tight">
+                <span className="text-sm font-extrabold tracking-wide">Signaler un incident</span>
+                <span className="text-xs text-white/80">Eau · Courant · Voirie</span>
+              </div>
             </button>
             <button
-              onClick={() => navigate("/carte")}
-              className="flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-border bg-card px-4 py-4 text-foreground transition-all hover:bg-muted/60 active:scale-[0.98]"
+              onClick={() => navigate("/verification")}
+              className="flex items-center justify-center gap-3 rounded-2xl border-2 border-sky-300 bg-sky-50/90 hover:bg-sky-100 text-sky-950 dark:border-sky-800 dark:bg-sky-950/40 dark:hover:bg-sky-900/60 dark:text-sky-200 px-6 py-4 shadow-sm transition-all active:scale-[0.98]"
             >
-              <MapIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-              <span className="text-sm font-extrabold">Voir la Carte</span>
-              <span className="text-xs text-muted-foreground">Incidents en direct</span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/20 text-sky-600 dark:text-sky-400 font-extrabold text-base">
+                ✓
+              </div>
+              <div className="flex flex-col text-left leading-tight">
+                <span className="text-sm font-extrabold tracking-wide">Confirmer une coupure</span>
+                <span className="text-xs text-sky-700 dark:text-sky-300">Vérifier les signalements</span>
+              </div>
             </button>
           </motion.div>
         )}
