@@ -217,6 +217,25 @@ const ReportDetailPage = () => {
     ? `🚧 INFRASTRUCTURE — ${report.quartier ? `${report.quartier}, ` : ""}${report.commune}\n\n${report.description}\n\n✊ Soutenez cette demande sur SIGNA-CI :`
     : `${isElec ? "⚡" : "💧"} ALERTE COUPURE — ${report.quartier ? `${report.quartier}, ` : ""}${report.commune}\n\nCoupure ${isElec ? "d'électricité" : "d'eau"} en cours. Toujours sans intervention.\n📢 Rejoignez-nous sur SIGNA-CI pour faire pression sur ${isElec ? "CIE" : "SODECI"}.\nPlus on est nombreux, plus vite ils interviennent !`;
 
+  const [resolving, setResolving] = useState(false);
+  const handleResolve = async () => {
+    if (!user) { toast.error("Connectez-vous pour marquer ce signalement comme résolu"); return; }
+    setResolving(true);
+    try {
+      const { error } = await supabase
+        .from("reports")
+        .update({ status: "resolved", resolved_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq("id", report.id);
+      if (error) throw error;
+      setReport((prev) => prev ? { ...prev, status: "resolved", resolved_at: new Date().toISOString() } : prev);
+      toast.success("✅ Coupure marquée comme résolue ! Merci pour votre civisme.");
+    } catch (err: any) {
+      toast.error("Impossible de clôturer pour le moment : " + (err?.message || ""));
+    } finally {
+      setResolving(false);
+    }
+  };
+
   const handleCorroborate = async () => {
     if (!user) { toast.error("Connectez-vous pour confirmer ce signalement"); return; }
     setCorroborating(true);
@@ -298,18 +317,49 @@ const ReportDetailPage = () => {
 
         {/* ── Bannière ACTIF — rappel live ── */}
         {!isResolved && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-2.5 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2.5"
-          >
-            <Radio className="h-4 w-4 text-destructive animate-pulse shrink-0" />
-            <p className="text-xs font-semibold text-destructive">
-              {isInfra
-                ? "Problème toujours présent · En attente d'intervention"
-                : `Coupure de ${isElec ? "courant" : "d'eau"} en cours · Toujours sans intervention`}
-            </p>
-          </motion.div>
+          <div className="space-y-2.5">
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-2.5 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2.5"
+            >
+              <Radio className="h-4 w-4 text-destructive animate-pulse shrink-0" />
+              <p className="text-xs font-semibold text-destructive">
+                {isInfra
+                  ? "Problème toujours présent · En attente d'intervention"
+                  : `Coupure de ${isElec ? "courant" : "d'eau"} en cours · Toujours sans intervention`}
+              </p>
+            </motion.div>
+
+            {/* ── Relance / Confirmation directe de retour de service ── */}
+            {!isInfra && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm"
+              >
+                <div>
+                  <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    Le service est-il rétabli dans votre quartier ?
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Aidez la communauté en confirmant si l'électricité ou l'eau est revenue.
+                  </p>
+                </div>
+
+                <Button
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold gap-1.5 h-8 w-full sm:w-auto shrink-0 shadow-sm"
+                  onClick={handleResolve}
+                  disabled={resolving}
+                >
+                  {resolving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                  Oui, rétabli !
+                </Button>
+              </motion.div>
+            )}
+          </div>
         )}
 
         {/* ── Bannière CHRONIQUE ── */}

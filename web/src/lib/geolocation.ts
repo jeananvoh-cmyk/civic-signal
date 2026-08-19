@@ -115,7 +115,22 @@ async function _byGeoJSON(lat: number, lon: number): Promise<Commune | null> {
 
 // ── Tier 2: Nominatim (OpenStreetMap) ────────────────────────────────────────
 
+let _lastNominatimCallTime = 0;
+let _nominatimCooldownUntil = 0;
+
 async function _byNominatim(lat: number, lon: number): Promise<Commune | null> {
+  // Fail fast if Nominatim recently returned HTTP 429 or experienced timeouts
+  if (Date.now() < _nominatimCooldownUntil) {
+    return null;
+  }
+
+  // Enforce 1,000ms delay between consecutive Nominatim requests (OSM policy compliance)
+  const elapsed = Date.now() - _lastNominatimCallTime;
+  if (elapsed < 1_000) {
+    await new Promise((res) => setTimeout(res, 1_000 - elapsed));
+  }
+  _lastNominatimCallTime = Date.now();
+
   try {
     // zoom=14 → city-district / suburb level; email identifies the app to OSM
     const url =
@@ -124,11 +139,15 @@ async function _byNominatim(lat: number, lon: number): Promise<Commune | null> {
       `&email=contact@signa-ci.com`;
 
     const res = await fetch(url, {
-      // User-Agent cannot be overridden in browsers; Referer is sent automatically.
-      // Accept-Language ensures French commune names where available.
       headers: { "Accept-Language": "fr,en;q=0.5" },
-      signal: AbortSignal.timeout(8_000),
+      signal: AbortSignal.timeout(3_500), // Reduced timeout for fast failover on 3G
     });
+
+    if (res.status === 429) {
+      // Rate limited by OSM policy — set 60s cooldown to delegate immediately to Tier 3/4
+      _nominatimCooldownUntil = Date.now() + 60_000;
+      return null;
+    }
 
     if (!res.ok) return null;
 
@@ -155,6 +174,8 @@ async function _byNominatim(lat: number, lon: number): Promise<Commune | null> {
 
     return null;
   } catch {
+    // Cooldown 15s on network exception / timeout to preserve UI responsiveness
+    _nominatimCooldownUntil = Date.now() + 15_000;
     return null;
   }
 }
@@ -172,7 +193,7 @@ async function _byGoogle(
       `?latlng=${lat},${lon}&key=${apiKey}&language=fr` +
       `&result_type=sublocality%7Cpolitical`;
 
-    const res = await fetch(url, { signal: AbortSignal.timeout(8_000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(4_000) });
     if (!res.ok) return null;
 
     const data = await res.json();
@@ -224,20 +245,16 @@ export async function resolveCommune(
   const cached = _getCached(lat, lon);
   if (cached) return cached;
 
-  // ── Tier 1: GeoJSON polygon ────────────────────────────────────────────────
-  // Skip when GPS accuracy is too low (> 200 m) — the point may be off by
-  // more than a commune boundary thickness.
-  if (!accuracy || accuracy <= 200) {
-    const commune = await _byGeoJSON(lat, lon);
-    if (commune) {
-      const result: CommuneDetectionResult = {
-        commune,
-        source: "geojson",
-        outsidePilotZone: false,
-      };
-      _setCached(lat, lon, result);
-      return result;
-    }
+  // ── Tier 1: GeoJSON polygon (Instant, offline, 0 cost) ──────────────────────
+  const communeGeoJson = await _byGeoJSON(lat, lon);
+  if (communeGeoJson) {
+    const result: CommuneDetectionResult = {
+      commune: communeGeoJson,
+      source: "geojson",
+      outsidePilotZone: false,
+    };
+    _setCached(lat, lon, result);
+    return result;
   }
 
   // ── Tier 2: Nominatim ──────────────────────────────────────────────────────

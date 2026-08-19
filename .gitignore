@@ -20,6 +20,9 @@ dist-ssr
 # Supabase temp
 supabase/.temp/
 
+# Scratch & local exploration scripts
+scratch/
+
 # Claude Code
 **/.claude/
 .claudeignore

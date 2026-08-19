@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Zap, Droplets, MapPin, UserPlus } from "lucide-react";
 import { useQuartiers } from "@/hooks/useQuartiers";
+import { getQuartiers, normalizeQuartier } from "@/lib/quartiers";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface QuartierStat {
@@ -25,36 +26,84 @@ const QuartierOutageGrid = ({ communeName, stats, loading, couleur }: QuartierOu
   const { data: dbQuartiers = [], isLoading: quartiersLoading } = useQuartiers(communeName);
 
   const allQuartiers = useMemo(() => {
-    const statsMap = new Map(stats.map((s) => [s.quartier, s]));
-    const dbNames = new Set(dbQuartiers.map((q) => q.nom));
-    const sourceMap = new Map(dbQuartiers.map((q) => [q.nom, q.source]));
+    // 1. Liste officielle PADA
+    const officialList = getQuartiers(communeName);
+    
+    // 2. Map d'agrégation consolidée (nom canonique -> données)
+    const consolidatedMap = new Map<string, {
+      quartier: string;
+      elecActifs: number;
+      eauActifs: number;
+      elecTotal: number;
+      eauTotal: number;
+      source: string;
+    }>();
 
-    // Include quartiers from stats not in DB (shouldn't happen often)
-    const extraFromStats = stats
-      .filter((s) => !dbNames.has(s.quartier))
-      .map((s) => s.quartier);
-
-    const allNames = [...dbQuartiers.map((q) => q.nom), ...extraFromStats];
-
-    return allNames
-      .map((name) => {
-        const s = statsMap.get(name);
-        return {
-          quartier: name,
-          elecActifs: s?.electricite_actifs || 0,
-          eauActifs: s?.eau_actifs || 0,
-          elecTotal: s?.electricite_total || 0,
-          eauTotal: s?.eau_total || 0,
-          source: sourceMap.get(name) || "user",
-        };
-      })
-      .sort((a, b) => {
-        const aActive = a.elecActifs + a.eauActifs;
-        const bActive = b.elecActifs + b.eauActifs;
-        if (bActive !== aActive) return bActive - aActive;
-        return a.quartier.localeCompare(b.quartier, "fr");
+    // Initialiser avec les quartiers officiels PADA
+    for (const name of officialList) {
+      consolidatedMap.set(name, {
+        quartier: name,
+        elecActifs: 0,
+        eauActifs: 0,
+        elecTotal: 0,
+        eauTotal: 0,
+        source: "pada",
       });
-  }, [dbQuartiers, stats]);
+    }
+
+    // Ajouter les quartiers validés en base (en normalisant leurs noms pour éviter tout doublon)
+    for (const q of dbQuartiers) {
+      const canonical = normalizeQuartier(q.nom, communeName);
+      if (!canonical || canonical === "Secteur non précisé") continue;
+      
+      if (!consolidatedMap.has(canonical)) {
+        consolidatedMap.set(canonical, {
+          quartier: canonical,
+          elecActifs: 0,
+          eauActifs: 0,
+          elecTotal: 0,
+          eauTotal: 0,
+          source: q.source || "user",
+        });
+      }
+    }
+
+    // Agréger les statistiques réelles des signalements (en mappant chaque alias vers son nom canonique)
+    for (const s of stats) {
+      const raw = (s.quartier || "").trim();
+      if (!raw || raw === "__other" || raw === "other" || raw.toLowerCase() === "autre") continue;
+      const canonical = normalizeQuartier(raw, communeName);
+      if (!canonical || canonical === "Secteur non précisé") continue;
+
+      let entry = consolidatedMap.get(canonical);
+      if (!entry) {
+        entry = {
+          quartier: canonical,
+          elecActifs: 0,
+          eauActifs: 0,
+          elecTotal: 0,
+          eauTotal: 0,
+          source: "user",
+        };
+        consolidatedMap.set(canonical, entry);
+      }
+
+      entry.elecActifs += s.electricite_actifs || 0;
+      entry.eauActifs += s.eau_actifs || 0;
+      entry.elecTotal += s.electricite_total || 0;
+      entry.eauTotal += s.eau_total || 0;
+    }
+
+    const list = Array.from(consolidatedMap.values());
+    list.sort((a, b) => {
+      const aActive = a.elecActifs + a.eauActifs;
+      const bActive = b.elecActifs + b.eauActifs;
+      if (bActive !== aActive) return bActive - aActive;
+      return a.quartier.localeCompare(b.quartier, "fr");
+    });
+
+    return list;
+  }, [dbQuartiers, stats, communeName]);
 
   const totalWithOutages = allQuartiers.filter((q) => q.elecActifs + q.eauActifs > 0).length;
   const userAddedCount = allQuartiers.filter((q) => q.source === "user").length;

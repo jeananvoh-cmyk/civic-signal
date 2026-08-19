@@ -1,14 +1,16 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
-import { CheckCircle, XCircle, MapPin, Zap, Droplets, Clock, Eye, Construction, Download, Square, CheckSquare, Trash2, MessageCircle, PhoneCall, AlertOctagon, Bell, ExternalLink, CheckCheck, Wrench, ShieldAlert, Send, Ticket, Building2, Copy } from "lucide-react";
+import { CheckCircle, XCircle, MapPin, Zap, Droplets, Clock, Eye, Construction, Download, Square, CheckSquare, Trash2, MessageCircle, PhoneCall, AlertOctagon, Bell, ExternalLink, CheckCheck, Wrench, ShieldAlert, Send, Ticket, Building2, Copy, Search, Filter, SlidersHorizontal, RefreshCw, Activity, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -22,6 +24,7 @@ import PhotoGallery from "@/components/PhotoGallery";
 import CorroborationStatus from "@/components/CorroborationStatus";
 import { extractInfraLabel, cleanDescription, infraEmoji, infraOperator, INFRA_CIE, INFRA_SODECI } from "@/lib/report-display";
 import { getDisplayTicketCode, formatPadaAddress, getCommunePadaCode } from "@/lib/pada";
+import { COMMUNES } from "@/lib/communes";
 
 const URGENCY_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   low: { label: "🟢 Faible", variant: "secondary" },
@@ -35,8 +38,28 @@ const AdminReportsPage = () => {
   const queryClient = useQueryClient();
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [searchParams] = useSearchParams();
-  const defaultTab = searchParams.get("tab") || "pending";
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [activeTab, setActiveTab] = useState<string>(searchParams.get("tab") || "pending");
+  const [serviceFilter, setServiceFilter] = useState<string>(searchParams.get("service") || "all");
+  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get("status") || "all");
+  const [communeFilter, setCommuneFilter] = useState<string>(searchParams.get("commune") || "all");
+  const [searchQuery, setSearchQuery] = useState<string>(searchParams.get("search") || "");
+
+  // Synchroniser avec les query params entrants si l'admin navigue depuis l'aperçu
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    const serviceParam = searchParams.get("service");
+    const statusParam = searchParams.get("status");
+    const communeParam = searchParams.get("commune");
+    const searchParam = searchParams.get("search");
+
+    if (tabParam && tabParam !== activeTab) setActiveTab(tabParam);
+    if (serviceParam && serviceParam !== serviceFilter) setServiceFilter(serviceParam);
+    if (statusParam && statusParam !== statusFilter) setStatusFilter(statusParam);
+    if (communeParam && communeParam !== communeFilter) setCommuneFilter(communeParam);
+    if (searchParam && searchParam !== searchQuery) setSearchQuery(searchParam);
+  }, [searchParams]);
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -53,11 +76,14 @@ const AdminReportsPage = () => {
   };
 
   const exportCSV = (reports: any[]) => {
-    const cols = ["id", "commune", "quartier", "service_type", "report_category", "urgency", "status", "verifications", "created_at", "description"];
+    const cols = ["id", "ticket_code", "commune", "quartier", "service_type", "report_category", "urgency", "status", "verifications", "created_at", "description"];
     const header = cols.join(";");
     const rows = reports.map((r) =>
       cols.map((c) => {
-        const v = r[c] ?? "";
+        let v = r[c] ?? "";
+        if (c === "ticket_code") {
+          v = getDisplayTicketCode({ ticket_code: r.ticket_code, commune: r.commune, created_at: r.created_at, id: r.id });
+        }
         return `"${String(v).replace(/"/g, '""')}"`;
       }).join(";")
     );
@@ -80,22 +106,69 @@ const AdminReportsPage = () => {
         .eq("validated", false)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return data || [];
     },
   });
 
-  const { data: validatedReports = [], isLoading: loadingValidated } = useQuery({
+  const { data: validatedReports = [], isLoading: loadingValidated, refetch: refetchValidated } = useQuery({
     queryKey: ["admin-reports-validated"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("reports")
         .select("*")
         .eq("validated", true)
-        .order("validated_at", { ascending: false })
-        .limit(50);
+        .order("created_at", { ascending: false })
+        .limit(300);
       if (error) throw error;
-      return data;
+      return data || [];
     },
+  });
+
+  // Mutation auto-clôture
+  const autoResolveStaleMutation = useMutation({
+    mutationFn: async (hours: number = 48) => {
+      try {
+        const { data: rpcCount, error: rpcError } = await (supabase as any).rpc(
+          "auto_resolve_stale_outages",
+          { p_hours: hours }
+        );
+        if (!rpcError && typeof rpcCount === "number") {
+          return rpcCount;
+        }
+      } catch (e) {
+        console.warn("RPC auto_resolve_stale_outages note:", e);
+      }
+
+      const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+      const { data: updated, error } = await supabase
+        .from("reports")
+        .update({
+          status: "resolved",
+          resolved_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("status", "active")
+        .eq("validated", true)
+        .in("service_type", ["electricity", "water"])
+        .neq("report_category", "infrastructure")
+        .lt("created_at", cutoff)
+        .select("id");
+
+      if (error) throw error;
+      return updated?.length || 0;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-reports-validated"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-overview-totals"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-reports-neglected"] });
+      refetchValidated();
+      toast.success(
+        count > 0
+          ? `${count} coupure(s) d'électricité/eau (>48h) ont été automatiquement clôturées.`
+          : "Aucune coupure de plus de 48h en attente de clôture."
+      );
+    },
+    onError: (err: any) => toast.error(getUserFriendlyError(err)),
   });
 
   // Signalements actifs >7j sans aucune corroboration — avec profil du rapporteur
@@ -539,25 +612,61 @@ const AdminReportsPage = () => {
   const ReportRow = ({ report, showActions }: { report: any; showActions: boolean }) => {
     const urgency = URGENCY_LABELS[report.urgency] || URGENCY_LABELS.low;
     const isChecked = selectedIds.has(report.id);
+    const isElec = report.service_type === "electricity";
+    const isWater = report.service_type === "water";
+    const isInfra = report.report_category === "infrastructure" || report.service_type === "mairie";
+    const isResolved = report.status === "resolved";
+    const isChronic = report.status === "chronic";
+    const isActive = report.status === "active";
+
+    // Calcul de la durée écoulée
+    const refDate = report.start_time || report.created_at;
+    const elapsedHours = refDate ? (Date.now() - new Date(refDate).getTime()) / 3600000 : 0;
+    const elapsedDays = Math.floor(elapsedHours / 24);
+    const elapsedHoursRemainder = Math.floor(elapsedHours % 24);
+    const elapsedMins = Math.floor((elapsedHours * 60) % 60);
+    const durationLabel = elapsedDays > 0
+      ? `${elapsedDays}j${elapsedHoursRemainder > 0 ? ` ${elapsedHoursRemainder}h` : ""}`
+      : elapsedHours >= 1
+      ? `${Math.floor(elapsedHours)}h${elapsedMins > 0 ? ` ${elapsedMins}min` : ""}`
+      : `${Math.max(1, elapsedMins)} min`;
+
     return (
-      <Card className={`hover:border-primary/50 transition-colors ${isChecked ? "border-primary bg-primary/3" : "cursor-pointer"}`}
-        onClick={(e) => { if ((e.target as HTMLElement).closest("[data-checkbox]")) return; setSelectedReport(report); }}>
-        <CardContent className="flex items-center justify-between p-4">
+      <Card
+        className={`hover:border-primary/50 transition-all ${
+          isChecked ? "border-primary bg-primary/3" : "cursor-pointer"
+        } ${isResolved ? "opacity-75 bg-muted/20" : ""}`}
+        onClick={(e) => {
+          if ((e.target as HTMLElement).closest("[data-clickable]")) return;
+          setSelectedReport(report);
+        }}
+      >
+        <CardContent className="flex items-center justify-between p-3.5 sm:p-4 gap-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             {showActions && (
-              <div data-checkbox onClick={(e) => { e.stopPropagation(); toggleSelect(report.id); }} className="shrink-0">
+              <div data-clickable onClick={(e) => { e.stopPropagation(); toggleSelect(report.id); }} className="shrink-0">
                 <Checkbox checked={isChecked} onCheckedChange={() => toggleSelect(report.id)} />
               </div>
             )}
-            {report.report_category === "infrastructure" ? (
-              <Wrench className="h-5 w-5 text-teal-500 shrink-0" />
-            ) : report.service_type === "electricity" ? (
-              <Zap className="h-5 w-5 text-electricity shrink-0" />
-            ) : (
-              <Droplets className="h-5 w-5 text-water shrink-0" />
-            )}
-            <div className="min-w-0">
+            <div className="shrink-0">
+              {isInfra ? (
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-500/10 text-teal-600">
+                  <Wrench className="h-5 w-5" />
+                </div>
+              ) : isElec ? (
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500">
+                  <Zap className="h-5 w-5" />
+                </div>
+              ) : (
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+                  <Droplets className="h-5 w-5" />
+                </div>
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 flex-wrap">
+                {/* Code Ticket Officiel */}
                 <span className="font-mono text-[11px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
                   {getDisplayTicketCode({
                     ticket_code: report.ticket_code,
@@ -566,153 +675,428 @@ const AdminReportsPage = () => {
                     id: report.id,
                   })}
                 </span>
-                <p className="text-sm font-medium text-foreground truncate">
+
+                <p className="text-sm font-semibold text-foreground truncate">
                   {report.commune}, {report.quartier}
                 </p>
+
                 {report.pada_commune_code && (
                   <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border">
                     PADA {report.pada_commune_code}
                   </span>
                 )}
+
+                {/* Badge Statut */}
+                {isResolved ? (
+                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px] px-1.5 py-0">
+                    ✅ Résolu
+                  </Badge>
+                ) : isChronic ? (
+                  <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 text-[10px] px-1.5 py-0">
+                    🔴 Chronique ({durationLabel})
+                  </Badge>
+                ) : (
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] px-1.5 py-0 ${
+                      elapsedHours >= 24
+                        ? "bg-destructive/10 text-destructive border-destructive/30 font-bold"
+                        : elapsedHours >= 10
+                        ? "bg-amber-500/10 text-amber-600 border-amber-500/30 font-semibold"
+                        : "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+                    }`}
+                  >
+                    🟠 Actif (⏱ {durationLabel})
+                  </Badge>
+                )}
               </div>
-              <p className="text-xs text-muted-foreground truncate mt-0.5">
-                {report.report_category === "infrastructure" ? cleanDescription(report.description) : report.description}
+
+              <p className="text-xs text-muted-foreground truncate mt-1">
+                {isInfra ? cleanDescription(report.description) : report.description}
               </p>
             </div>
           </div>
+
           <div className="flex items-center gap-2 shrink-0">
-            {report.report_category === "infrastructure" && (
-              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+            {isInfra && (
+              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-xs hidden sm:inline-flex">
                 {infraEmoji(extractInfraLabel(report.description))} {extractInfraLabel(report.description) ?? "Infrastructure"}
               </Badge>
             )}
-            <Badge variant={urgency.variant}>{urgency.label}</Badge>
-            {showActions && (
-              <div className="flex gap-1 ml-2">
+
+            <Badge variant={urgency.variant} className="text-xs hidden sm:inline-flex">{urgency.label}</Badge>
+
+            {/* Actions rapides en direct */}
+            <div data-clickable className="flex items-center gap-1.5">
+              {/* Lien direct fiche de signalement */}
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 px-2.5 text-xs gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(`/signalement/${report.id}`, "_blank");
+                }}
+                title="Consulter la fiche publique du signalement"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                <span className="hidden md:inline">Fiche</span>
+              </Button>
+
+              {/* Action marquer résolu si actif */}
+              {report.validated && report.status === "active" && (
                 <Button
                   size="sm"
                   variant="outline"
-                  className="text-green-600 hover:bg-green-50"
-                  onClick={(e) => { e.stopPropagation(); validateMutation.mutate({ reportId: report.id, validated: true }); }}
+                  className="h-8 px-2.5 text-xs gap-1 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resolveMutation.mutate(report.id);
+                  }}
+                  disabled={resolveMutation.isPending}
+                  title="Marquer comme résolu"
                 >
-                  <CheckCircle className="h-4 w-4" />
+                  <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                  <span className="hidden md:inline">Résolu</span>
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-destructive hover:bg-destructive/10"
-                  onClick={(e) => { e.stopPropagation(); validateMutation.mutate({ reportId: report.id, validated: false }); }}
-                >
-                  <XCircle className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
+              )}
+
+              {showActions && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 w-8 p-0 text-green-600 hover:bg-green-50"
+                    onClick={(e) => { e.stopPropagation(); validateMutation.mutate({ reportId: report.id, validated: true }); }}
+                    title="Valider"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
+                    onClick={(e) => { e.stopPropagation(); validateMutation.mutate({ reportId: report.id, validated: false }); }}
+                    title="Rejeter"
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
     );
   };
 
+  // Filtrage des signalements validés
+  const filteredValidatedReports = validatedReports.filter((r: any) => {
+    // Statut
+    if (statusFilter === "active" && r.status !== "active") return false;
+    if (statusFilter === "resolved" && r.status !== "resolved") return false;
+    if (statusFilter === "chronic" && r.status !== "chronic") return false;
+    if (statusFilter === "critical" && (r.urgency !== "critical" || r.status !== "active")) return false;
+
+    // Service
+    if (serviceFilter === "electricity" && (r.service_type !== "electricity" || r.report_category === "infrastructure")) return false;
+    if (serviceFilter === "water" && (r.service_type !== "water" || r.report_category === "infrastructure")) return false;
+    if (serviceFilter === "mairie" && r.service_type !== "mairie" && r.report_category !== "infrastructure") return false;
+
+    // Commune
+    if (communeFilter !== "all" && r.commune?.toLowerCase().trim() !== communeFilter.toLowerCase().trim()) return false;
+
+    // Recherche par Ticket, Quartier, Description ou PADA
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const matchTicket = r.ticket_code?.toLowerCase().includes(q);
+      const matchCommune = r.commune?.toLowerCase().includes(q);
+      const matchQuartier = r.quartier?.toLowerCase().includes(q);
+      const matchDesc = r.description?.toLowerCase().includes(q);
+      const matchPada = r.pada_formatted_address?.toLowerCase().includes(q) || r.pada_street_name?.toLowerCase().includes(q);
+      if (!matchTicket && !matchCommune && !matchQuartier && !matchDesc && !matchPada) return false;
+    }
+
+    return true;
+  });
+
+  // Décomptes de synthèse pour les badges
+  const countValidatedActiveElec = validatedReports.filter(
+    (r: any) => r.service_type === "electricity" && r.status === "active" && r.report_category !== "infrastructure"
+  ).length;
+  const countValidatedActiveWater = validatedReports.filter(
+    (r: any) => r.service_type === "water" && r.status === "active" && r.report_category !== "infrastructure"
+  ).length;
+  const countValidatedActiveInfra = validatedReports.filter(
+    (r: any) => (r.service_type === "mairie" || r.report_category === "infrastructure") && r.status === "active"
+  ).length;
+  const countValidatedActiveTotal = validatedReports.filter((r: any) => r.status === "active").length;
+  const countValidatedResolved = validatedReports.filter((r: any) => r.status === "resolved").length;
+
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-6 max-w-5xl mx-auto">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-          <h1 className="font-display text-3xl font-bold text-foreground">Validation des signalements</h1>
-          <p className="mt-1 text-muted-foreground">
-            Vérifiez la cohérence entre commune/quartier et coordonnées GPS avant publication.
-          </p>
-        </motion.div>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="font-display text-3xl font-bold text-foreground">Gestion des signalements</h1>
+            <p className="mt-1 text-muted-foreground">
+              Vérification, suivi des fiches PADA, relance opérateurs et auto-clôture des coupures.
+            </p>
+          </div>
 
-        <Tabs defaultValue={defaultTab}>
-          <TabsList className="flex-wrap h-auto gap-1">
-            <TabsTrigger value="pending">
-              En attente ({pendingReports.length})
-            </TabsTrigger>
-            <TabsTrigger value="validated">
-              Validés ({validatedReports.length})
-            </TabsTrigger>
-            <TabsTrigger value="neglected" className="relative">
-              Négligés
-              {neglectedReports.length > 0 && (
-                <Badge variant="destructive" className="ml-1.5 h-4 min-w-4 px-1 text-xs leading-none">
-                  {neglectedReports.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="escalades" className="relative">
-              <ShieldAlert className="h-3.5 w-3.5 mr-1" />
-              Escalades
-              {unreadEscalades > 0 && (
-                <Badge variant="destructive" className="ml-1.5 h-4 min-w-4 px-1 text-xs leading-none">
-                  {unreadEscalades}
-                </Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 shadow-sm"
+            onClick={() => {
+              if (confirm("Voulez-vous auto-clôturer les coupures d'électricité et d'eau de plus de 48h sans confirmation ?")) {
+                autoResolveStaleMutation.mutate(48);
+              }
+            }}
+            disabled={autoResolveStaleMutation.isPending}
+          >
+            <Zap className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <span>{autoResolveStaleMutation.isPending ? "Clôture en cours..." : "Auto-clôturer coupures expirées (+48h)"}</span>
+          </Button>
+        </div>
+      </motion.div>
 
-          <TabsContent value="pending" className="space-y-3 mt-4">
-            {loadingPending ? (
-              <p className="text-muted-foreground text-sm">Chargement...</p>
-            ) : pendingReports.length === 0 ? (
-              <p className="text-muted-foreground text-sm">Aucun signalement en attente.</p>
-            ) : (
-              <>
-                {/* Barre d'actions en masse */}
-                <div className="flex items-center gap-2 flex-wrap rounded-xl border border-border bg-card px-3 py-2">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="flex-wrap h-auto gap-1">
+          <TabsTrigger value="pending">
+            En attente ({pendingReports.length})
+          </TabsTrigger>
+          <TabsTrigger value="validated">
+            Validés & Traitement ({validatedReports.length})
+          </TabsTrigger>
+          <TabsTrigger value="neglected" className="relative">
+            Négligés
+            {neglectedReports.length > 0 && (
+              <Badge variant="destructive" className="ml-1.5 h-4 min-w-4 px-1 text-xs leading-none">
+                {neglectedReports.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="escalades" className="relative">
+            <ShieldAlert className="h-3.5 w-3.5 mr-1" />
+            Escalades
+            {unreadEscalades > 0 && (
+              <Badge variant="destructive" className="ml-1.5 h-4 min-w-4 px-1 text-xs leading-none">
+                {unreadEscalades}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pending" className="space-y-3 mt-4">
+          {loadingPending ? (
+            <p className="text-muted-foreground text-sm">Chargement...</p>
+          ) : pendingReports.length === 0 ? (
+            <p className="text-muted-foreground text-sm">Aucun signalement en attente de validation.</p>
+          ) : (
+            <>
+              {/* Barre d'actions en masse */}
+              <div className="flex items-center gap-2 flex-wrap rounded-xl border border-border bg-card px-3 py-2">
+                <button
+                  onClick={() => toggleSelectAll(pendingReports)}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {selectedIds.size === pendingReports.length
+                    ? <CheckSquare className="h-4 w-4 text-primary" />
+                    : <Square className="h-4 w-4" />}
+                  {selectedIds.size === pendingReports.length ? "Tout désélectionner" : "Tout sélectionner"}
+                </button>
+                {selectedIds.size > 0 && (
+                  <>
+                    <span className="text-xs text-muted-foreground">{selectedIds.size} sélectionné{selectedIds.size > 1 ? "s" : ""}</span>
+                    <Button
+                      size="sm" className="h-7 text-xs gap-1 bg-green-600 hover:bg-green-700 text-white ml-auto"
+                      disabled={bulkValidateMutation.isPending}
+                      onClick={() => bulkValidateMutation.mutate({ ids: Array.from(selectedIds), validated: true })}
+                    >
+                      <CheckCircle className="h-3.5 w-3.5" /> Valider ({selectedIds.size})
+                    </Button>
+                    <Button
+                      size="sm" variant="destructive" className="h-7 text-xs gap-1"
+                      disabled={bulkValidateMutation.isPending}
+                      onClick={() => bulkValidateMutation.mutate({ ids: Array.from(selectedIds), validated: false })}
+                    >
+                      <XCircle className="h-3.5 w-3.5" /> Rejeter ({selectedIds.size})
+                    </Button>
+                  </>
+                )}
+              </div>
+              {pendingReports.map((r: any) => <ReportRow key={r.id} report={r} showActions />)}
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="validated" className="space-y-4 mt-4">
+          {/* ── Barre d'outils, filtres & recherche ── */}
+          <div className="rounded-2xl border border-border bg-card p-4 space-y-3.5 shadow-sm">
+            {/* Ligne 1 : Recherche textuelle + Filtres déroulants */}
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+              {/* Barre de recherche */}
+              <div className="sm:col-span-6 relative">
+                <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Recherche : Ticket (SIG-COC-...), quartier, PADA, mot-clé..."
+                  className="pl-9 pr-8 text-xs h-9"
+                />
+                {searchQuery && (
                   <button
-                    onClick={() => toggleSelectAll(pendingReports)}
-                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
-                    {selectedIds.size === pendingReports.length
-                      ? <CheckSquare className="h-4 w-4 text-primary" />
-                      : <Square className="h-4 w-4" />}
-                    {selectedIds.size === pendingReports.length ? "Tout désélectionner" : "Tout sélectionner"}
+                    <X className="h-3.5 w-3.5" />
                   </button>
-                  {selectedIds.size > 0 && (
-                    <>
-                      <span className="text-xs text-muted-foreground">{selectedIds.size} sélectionné{selectedIds.size > 1 ? "s" : ""}</span>
-                      <Button
-                        size="sm" className="h-7 text-xs gap-1 bg-green-600 hover:bg-green-700 text-white ml-auto"
-                        disabled={bulkValidateMutation.isPending}
-                        onClick={() => bulkValidateMutation.mutate({ ids: Array.from(selectedIds), validated: true })}
-                      >
-                        <CheckCircle className="h-3.5 w-3.5" /> Valider ({selectedIds.size})
-                      </Button>
-                      <Button
-                        size="sm" variant="destructive" className="h-7 text-xs gap-1"
-                        disabled={bulkValidateMutation.isPending}
-                        onClick={() => bulkValidateMutation.mutate({ ids: Array.from(selectedIds), validated: false })}
-                      >
-                        <XCircle className="h-3.5 w-3.5" /> Rejeter ({selectedIds.size})
-                      </Button>
-                    </>
-                  )}
-                </div>
-                {pendingReports.map((r: any) => <ReportRow key={r.id} report={r} showActions />)}
-              </>
-            )}
-          </TabsContent>
+                )}
+              </div>
 
-          <TabsContent value="validated" className="space-y-3 mt-4">
-            {loadingValidated ? (
-              <p className="text-muted-foreground text-sm">Chargement...</p>
-            ) : validatedReports.length === 0 ? (
-              <p className="text-muted-foreground text-sm">Aucun signalement validé.</p>
-            ) : (
-              <>
-                <div className="flex justify-end">
-                  <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs"
-                    onClick={() => exportCSV(validatedReports)}>
-                    <Download className="h-3.5 w-3.5" /> Exporter CSV ({validatedReports.length})
+              {/* Sélecteur de Commune */}
+              <div className="sm:col-span-3">
+                <Select value={communeFilter} onValueChange={setCommuneFilter}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Toutes les communes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toutes les communes ({validatedReports.length})</SelectItem>
+                    {COMMUNES.map((c) => {
+                      const count = validatedReports.filter((r: any) => r.commune?.toLowerCase().trim() === c.nom.toLowerCase().trim()).length;
+                      return (
+                        <SelectItem key={c.nom} value={c.nom}>
+                          {c.nom} {count > 0 ? `(${count})` : ""}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Sélecteur de Service */}
+              <div className="sm:col-span-3">
+                <Select value={serviceFilter} onValueChange={setServiceFilter}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Tous les services" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les services</SelectItem>
+                    <SelectItem value="electricity">⚡ Électricité (CIE)</SelectItem>
+                    <SelectItem value="water">💧 Eau (SODECI)</SelectItem>
+                    <SelectItem value="mairie">🏗️ Voirie & Mairie</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Ligne 2 : Puces de filtrage rapide par statut & boutons d'export */}
+            <div className="flex items-center justify-between gap-2 flex-wrap pt-1 border-t border-border/60">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <Button
+                  size="sm"
+                  variant={statusFilter === "all" ? "default" : "outline"}
+                  className="h-7 text-xs px-2.5"
+                  onClick={() => setStatusFilter("all")}
+                >
+                  Tous ({validatedReports.length})
+                </Button>
+                <Button
+                  size="sm"
+                  variant={statusFilter === "active" ? "default" : "outline"}
+                  className={`h-7 text-xs px-2.5 ${statusFilter === "active" ? "bg-amber-600 hover:bg-amber-700" : "text-amber-700 dark:text-amber-300 border-amber-500/30"}`}
+                  onClick={() => setStatusFilter("active")}
+                >
+                  🟠 Actifs ({countValidatedActiveTotal})
+                </Button>
+                <Button
+                  size="sm"
+                  variant={statusFilter === "resolved" ? "default" : "outline"}
+                  className={`h-7 text-xs px-2.5 ${statusFilter === "resolved" ? "bg-emerald-600 hover:bg-emerald-700" : "text-emerald-700 dark:text-emerald-300 border-emerald-500/30"}`}
+                  onClick={() => setStatusFilter("resolved")}
+                >
+                  ✅ Résolus ({countValidatedResolved})
+                </Button>
+                <Button
+                  size="sm"
+                  variant={statusFilter === "critical" ? "default" : "outline"}
+                  className={`h-7 text-xs px-2.5 ${statusFilter === "critical" ? "bg-destructive hover:bg-destructive/90" : "text-destructive border-destructive/30"}`}
+                  onClick={() => setStatusFilter("critical")}
+                >
+                  🔴 Critiques
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-2 ml-auto">
+                {(statusFilter !== "all" || serviceFilter !== "all" || communeFilter !== "all" || searchQuery) && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      setStatusFilter("all");
+                      setServiceFilter("all");
+                      setCommuneFilter("all");
+                      setSearchQuery("");
+                    }}
+                  >
+                    Réinitialiser
                   </Button>
-                </div>
-                {validatedReports.map((r: any) => <ReportRow key={r.id} report={r} showActions={false} />)}
-              </>
-            )}
-          </TabsContent>
+                )}
 
-          {/* ── Onglet Négligés ── */}
-          <TabsContent value="neglected" className="mt-4">
-            {loadingNeglected ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1.5"
+                  onClick={() => exportCSV(filteredValidatedReports)}
+                >
+                  <Download className="h-3.5 w-3.5" /> Exporter CSV ({filteredValidatedReports.length})
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Liste des résultats ── */}
+          {loadingValidated ? (
+            <p className="text-muted-foreground text-sm">Chargement des signalements...</p>
+          ) : filteredValidatedReports.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center rounded-2xl border border-border bg-card p-6">
+              <CheckCircle className="h-10 w-10 text-muted-foreground mb-3 opacity-60" />
+              <p className="text-sm font-medium text-foreground">Aucun signalement ne correspond aux filtres actuels</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Modifiez vos critères de recherche ou réinitialisez les filtres.
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="mt-4 text-xs"
+                onClick={() => {
+                  setStatusFilter("all");
+                  setServiceFilter("all");
+                  setCommuneFilter("all");
+                  setSearchQuery("");
+                }}
+              >
+                Afficher tous les signalements
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                <span>{filteredValidatedReports.length} signalement{filteredValidatedReports.length > 1 ? "s" : ""} affiché{filteredValidatedReports.length > 1 ? "s" : ""}</span>
+                <span>Cliquez sur une fiche pour ouvrir ses détails</span>
+              </div>
+              {filteredValidatedReports.map((r: any) => (
+                <ReportRow key={r.id} report={r} showActions={false} />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ── Onglet Négligés ── */}
+        <TabsContent value="neglected" className="mt-4">
+          {loadingNeglected ? (
               <p className="text-muted-foreground text-sm">Chargement...</p>
             ) : neglectedReports.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -1243,6 +1627,17 @@ const AdminReportsPage = () => {
                     />
                   </div>
                 )}
+                <div className="pt-2">
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2 border-primary/40 text-primary hover:bg-primary/10 font-semibold text-xs h-9"
+                    onClick={() => window.open(`/signalement/${selectedReport.id}`, "_blank")}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Consulter la fiche publique du signalement (Page usager)
+                  </Button>
+                </div>
+
                 {!selectedReport.validated && (
                   <div className="flex gap-2 pt-2">
                     <Button

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Search, MapPin, Check, Info, AlertCircle, X } from "lucide-react";
+import { Search, MapPin, Check, Info, AlertCircle, X, ShieldCheck } from "lucide-react";
 import { getPadaCode } from "@/lib/pada-codes";
-import { searchPadaWays, PadaWay, PADA_BOULEVARDS } from "@/lib/pada-database";
+import { searchPadaWays, searchPadaWaysScored, PadaWay, ScoredPadaWay, PADA_BOULEVARDS } from "@/lib/pada-database";
 import { Input } from "@/components/ui/input";
 
 export interface PadaAddressData {
@@ -13,6 +13,9 @@ export interface PadaAddressData {
   landmark?: string;
   isCustomWay?: boolean;
   formattedAddress: string;
+  padaDoorId?: string;
+  isExactDoor?: boolean;
+  nearestDoorReference?: string;
 }
 
 interface PadaAddressInputProps {
@@ -37,13 +40,16 @@ export function PadaAddressInput({
   const [isCustomMode, setIsCustomMode] = useState(false);
   const [customWayName, setCustomWayName] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [selectedDoorId, setSelectedDoorId] = useState<string | undefined>(value?.padaDoorId);
+  const [isExactDoorSelected, setIsExactDoorSelected] = useState<boolean>(value?.isExactDoor || false);
 
   const padaCode = useMemo(() => getPadaCode(commune), [commune]);
 
-  // Suggestions filtrées en direct
-  const suggestions = useMemo(() => {
-    return searchPadaWays(searchTerm, commune, quartier).slice(0, 10);
+  // Suggestions probabilistes filtrées et triées par score
+  const suggestionsScored = useMemo(() => {
+    return searchPadaWaysScored(searchTerm, commune, quartier).slice(0, 10);
   }, [searchTerm, commune, quartier]);
+  const suggestions = useMemo(() => suggestionsScored.map((s) => s.way), [suggestionsScored]);
 
   // Met à jour l'adresse formatée parente
   const updateFormattedAddress = (
@@ -51,7 +57,9 @@ export function PadaAddressInput({
     door: string,
     mark: string,
     isCustom: boolean,
-    customName: string
+    customName: string,
+    doorId?: string,
+    isExact?: boolean
   ) => {
     const wayName = isCustom ? customName.trim() : way?.nom || "";
     let formatted = "";
@@ -79,25 +87,39 @@ export function PadaAddressInput({
       landmark: mark.trim() || undefined,
       isCustomWay: isCustom,
       formattedAddress: formatted.trim(),
+      padaDoorId: doorId,
+      isExactDoor: isExact,
     });
   };
 
-  const handleSelectWay = (way: PadaWay) => {
+  const handleSelectWay = (way: PadaWay, item?: ScoredPadaWay) => {
+    let effectiveDoor = doorNumber;
+    // Si l'utilisateur avait tapé un numéro (ex: "123" ou "82"), on l'affecte au numéro de porte/bâtiment
+    if (/^\d+$/.test(searchTerm.trim()) && !doorNumber) {
+      effectiveDoor = searchTerm.trim();
+      setDoorNumber(effectiveDoor);
+    }
+
+    const exactId = item?.exactDoorId;
+    const isExact = item?.isExactDoor || false;
+    setSelectedDoorId(exactId);
+    setIsExactDoorSelected(isExact);
+
     setSelectedWay(way);
     setSearchTerm(way.nom);
     setIsDropdownOpen(false);
     setIsCustomMode(false);
-    updateFormattedAddress(way, doorNumber, landmark, false, "");
+    updateFormattedAddress(way, effectiveDoor, landmark, false, "", exactId, isExact);
   };
 
   const handleDoorChange = (num: string) => {
     setDoorNumber(num);
-    updateFormattedAddress(selectedWay, num, landmark, isCustomMode, customWayName);
+    updateFormattedAddress(selectedWay, num, landmark, isCustomMode, customWayName, selectedDoorId, isExactDoorSelected);
   };
 
   const handleLandmarkChange = (mark: string) => {
     setLandmark(mark);
-    updateFormattedAddress(selectedWay, doorNumber, mark, isCustomMode, customWayName);
+    updateFormattedAddress(selectedWay, doorNumber, mark, isCustomMode, customWayName, selectedDoorId, isExactDoorSelected);
   };
 
   const handleCustomWayChange = (name: string) => {
@@ -107,6 +129,8 @@ export function PadaAddressInput({
 
   const handleResetSelection = () => {
     setSelectedWay(null);
+    setSelectedDoorId(undefined);
+    setIsExactDoorSelected(false);
     setSearchTerm("");
     setIsCustomMode(false);
     setCustomWayName("");
@@ -129,7 +153,7 @@ export function PadaAddressInput({
               </span>
             </h4>
             <p className="text-[11px] text-muted-foreground">
-              Sélectionnez votre voie officielle ou tapez un ancien repère
+              Saisissez votre numéro de porte ou le nom de votre voie
             </p>
           </div>
         </div>
@@ -137,7 +161,7 @@ export function PadaAddressInput({
 
       {/* Saisie ou Recherche */}
       {!selectedWay && !isCustomMode && (
-        <div className="relative">
+        <div className="space-y-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -147,61 +171,126 @@ export function PadaAddressInput({
                 setIsDropdownOpen(true);
               }}
               onFocus={() => setIsDropdownOpen(true)}
-              placeholder="Rechercher une Rue, Avenue ou Boulevard (ex: Mitterrand, Arafat, Diby...)"
-              className="pl-9 pr-8 text-xs font-medium h-11 bg-background"
+              placeholder="Tapez un N° de porte (ex: 246, 62) ou une voie (ex: Aboudramane, Mitterrand...)"
+              className="pl-9 pr-8 text-xs font-medium h-11 bg-background rounded-xl border-border/80 focus:border-primary focus:ring-1 focus:ring-primary shadow-2xs"
             />
             {searchTerm && (
               <button
                 type="button"
-                onClick={() => setSearchTerm("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  setSearchTerm("");
+                  setIsDropdownOpen(false);
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
 
+          {/* Puces de suggestion rapide (si quartier sélectionné et champ vide) */}
+          {!searchTerm && suggestionsScored.length > 0 && (
+            <div className="pt-1">
+              <div className="flex items-center gap-1.5 mb-1.5 text-[11px] font-semibold text-muted-foreground">
+                <span>📍 Voies principales suggérées {quartier ? `(${quartier})` : `(${commune})`} :</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
+                {suggestionsScored.slice(0, 4).map((item) => (
+                  <button
+                    key={item.way.id}
+                    type="button"
+                    onClick={() => handleSelectWay(item.way, item)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-muted/60 hover:bg-primary/10 hover:text-primary border border-border/60 hover:border-primary/30 transition-all text-left"
+                  >
+                    <span className="font-bold">{item.way.nom}</span>
+                    {item.way.ancienNom && (
+                      <span className="text-[10px] text-muted-foreground font-normal">({item.way.ancienNom})</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Menu déroulant de suggestions */}
-          {isDropdownOpen && (
-            <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-xl border border-border bg-popover p-1 shadow-lg text-xs">
-              {suggestions.length > 0 ? (
-                suggestions.map((way) => {
-                  const isBoulevard = way.type === "BOULEVARD";
-                  return (
-                    <button
-                      key={way.id}
-                      type="button"
-                      onClick={() => handleSelectWay(way)}
-                      className="w-full text-left flex items-start justify-between gap-2 p-2.5 rounded-lg hover:bg-muted/80 transition-colors"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider text-white ${
-                              isBoulevard ? "bg-amber-600" : "bg-emerald-600"
-                            }`}
-                          >
-                            {way.type}
-                          </span>
-                          <span className="font-bold text-foreground truncate">{way.nom}</span>
+          {isDropdownOpen && searchTerm.trim().length > 0 && (
+            <div className="absolute z-50 mt-1 w-full max-h-64 overflow-y-auto rounded-xl border border-border bg-popover p-1.5 shadow-xl text-xs backdrop-blur-md">
+              {suggestionsScored.length > 0 ? (
+                <div className="space-y-1">
+                  {suggestionsScored.map((item) => {
+                    const way = item.way;
+                    const isBoulevard = way.type === "BOULEVARD";
+                    const isNumericSearch = /^\d+$/.test(searchTerm.trim());
+                    const doorPrefix = isNumericSearch ? `${searchTerm.trim()}, ` : "";
+
+                    return (
+                      <button
+                        key={way.id}
+                        type="button"
+                        onClick={() => handleSelectWay(way, item)}
+                        className="w-full text-left flex items-start justify-between gap-2 p-2.5 rounded-lg hover:bg-primary/5 border border-transparent hover:border-primary/20 transition-all group"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider text-white ${
+                                isBoulevard ? "bg-amber-600" : "bg-emerald-600"
+                              }`}
+                            >
+                              {way.type}
+                            </span>
+                            <span className="font-bold text-foreground truncate group-hover:text-primary">
+                              {doorPrefix}{way.nom}
+                            </span>
+
+                            {/* Badge Cadastral & Probabilité */}
+                            {item.isExactDoor && (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-emerald-600 text-white flex items-center gap-1 shadow-2xs">
+                                <ShieldCheck className="h-3 w-3" /> Plaque PADA Certifiée
+                              </span>
+                            )}
+                            {!item.isExactDoor && item.probabilityLabel === "Haute" && (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                                🟢 Très probable
+                              </span>
+                            )}
+                            {item.probabilityLabel === "Incompatible" && (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
+                                ⚠️ N° trop élevé ({way.longueurM}m max)
+                              </span>
+                            )}
+                          </div>
+
+                          {item.matchReason && (
+                            <p className="text-[10px] text-primary font-semibold mt-0.5">
+                              💡 {item.matchReason}
+                            </p>
+                          )}
+
+                          {item.exactDoorId && (
+                            <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-mono mt-0.5 font-bold">
+                              ID Cadastre PADA : {item.exactDoorId}
+                            </p>
+                          )}
+
+                          {way.ancienNom && !item.matchReason?.includes("Alias") && (
+                            <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
+                              📍 Dénomination usuelle : <span className="font-semibold">{way.ancienNom}</span>
+                            </p>
+                          )}
+                          {way.quartier && (
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              Quartier : <span className="font-medium text-foreground">{way.quartier}</span>
+                            </p>
+                          )}
                         </div>
-                        {way.ancienNom && (
-                          <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
-                            📍 Ex : {way.ancienNom}
-                          </p>
-                        )}
-                        {way.quartier && (
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
-                            Quartier : {way.quartier}
-                          </p>
-                        )}
-                      </div>
-                      <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">
-                        {way.commune}
-                      </span>
-                    </button>
-                  );
-                })
+                        <span className="text-[10px] font-bold text-muted-foreground shrink-0 mt-0.5 bg-muted px-2 py-0.5 rounded">
+                          {way.commune}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               ) : (
                 <div className="p-3 text-center text-muted-foreground text-xs">
                   Aucune voie PADA trouvée pour "{searchTerm}"
@@ -219,7 +308,7 @@ export function PadaAddressInput({
                   className="w-full text-left p-2 rounded-lg text-primary hover:bg-primary/5 font-semibold text-xs flex items-center gap-1.5"
                 >
                   <MapPin className="h-3.5 w-3.5 shrink-0" />
-                  Je ne trouve pas ma voie (Saisir librement)
+                  Je ne trouve pas ma voie (Saisir manuellement)
                 </button>
               </div>
             </div>
@@ -229,20 +318,22 @@ export function PadaAddressInput({
 
       {/* ── APERÇU DE LA PLAQUE OFFICIELLE PADA (Si voie sélectionnée) ── */}
       {selectedWay && (
-        <div className="relative overflow-hidden rounded-xl border-2 border-emerald-600/40 bg-gradient-to-br from-emerald-500/10 via-background to-emerald-500/5 p-3.5 text-foreground shadow-xs">
+        <div className="relative overflow-hidden rounded-xl border-2 border-emerald-600/40 bg-gradient-to-br from-emerald-500/10 via-background to-emerald-500/5 p-4 text-foreground shadow-sm animate-in fade-in zoom-in-95 duration-200">
           {/* Header Plaque */}
-          <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2 mb-2">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+          <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2.5 mb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded text-[9px] font-black tracking-wider uppercase bg-emerald-700 text-white shadow-2xs">
                 RÉPUBLIQUE DE CÔTE D'IVOIRE
               </span>
               <span className="text-[10px] text-muted-foreground">•</span>
-              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">PADA</span>
+              <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 tracking-wide">
+                PADA · MINISTÈRE DE LA CONSTRUCTION
+              </span>
             </div>
             <button
               type="button"
               onClick={handleResetSelection}
-              className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1"
+              className="text-xs font-bold text-muted-foreground hover:text-destructive flex items-center gap-1 bg-background/80 px-2 py-0.5 rounded-md border border-border/60 transition-colors"
               title="Changer de voie"
             >
               <X className="h-3.5 w-3.5" />
@@ -251,16 +342,22 @@ export function PadaAddressInput({
           </div>
 
           {/* Corps de la plaque */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 flex-wrap">
               <span
-                className={`px-2 py-0.5 rounded text-[10px] font-black uppercase text-white shadow-xs ${
+                className={`px-2 py-0.5 rounded text-[10px] font-black uppercase text-white shadow-2xs ${
                   selectedWay.type === "BOULEVARD" ? "bg-amber-600" : "bg-emerald-600"
                 }`}
               >
                 {selectedWay.type}
               </span>
-              <span className="text-sm font-black text-foreground">{selectedWay.nom}</span>
+              <span className="text-base font-black text-foreground tracking-tight">{selectedWay.nom}</span>
+              
+              {isExactDoorSelected && (
+                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-600 text-white flex items-center gap-1 shadow-2xs">
+                  <ShieldCheck className="h-3.5 w-3.5" /> Plaque N°{doorNumber} Certifiée
+                </span>
+              )}
             </div>
 
             {selectedWay.ancienNom && (
@@ -269,8 +366,14 @@ export function PadaAddressInput({
               </p>
             )}
 
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1 text-xs text-muted-foreground font-semibold">
-              <span>📍 Code : <strong className="text-foreground">{padaCode}</strong></span>
+            {selectedDoorId && (
+              <p className="text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-300">
+                🎫 Réf. Cadastre PADA : <code>{selectedDoorId}</code>
+              </p>
+            )}
+
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1.5 text-xs text-muted-foreground font-semibold border-t border-emerald-500/10">
+              <span>📍 Code Postal : <strong className="text-foreground">{padaCode}</strong></span>
               <span>•</span>
               <span>Commune : <strong className="text-foreground">{commune}</strong></span>
               {selectedWay.quartier && (
@@ -295,9 +398,9 @@ export function PadaAddressInput({
             <button
               type="button"
               onClick={() => setIsCustomMode(false)}
-              className="text-xs text-primary underline"
+              className="text-xs font-semibold text-primary underline"
             >
-              Retour à la liste PADA
+              Retour au référentiel officiel PADA
             </button>
           </div>
           <Input
@@ -311,27 +414,27 @@ export function PadaAddressInput({
       )}
 
       {/* Champs complémentaires : N° métrique / Porte & Repère visuel */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
         <div>
-          <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
-            N° de porte / Plaque métrique <span className="font-normal">(optionnel)</span>
+          <label className="text-[11px] font-bold text-foreground block mb-1">
+            N° de porte / Plaque métrique <span className="font-normal text-muted-foreground">(ex: 246, 62)</span>
           </label>
           <Input
             value={doorNumber}
             onChange={(e) => handleDoorChange(e.target.value)}
-            placeholder="Ex: 495, 12, Lot 8"
-            className="text-xs h-9 bg-background"
+            placeholder="Ex: 246, 62, Porte 4..."
+            className="text-xs h-10 bg-background rounded-lg"
           />
         </div>
         <div>
-          <label className="text-[11px] font-semibold text-muted-foreground block mb-1">
-            Point de repère visible <span className="font-normal">(ex: Pharmacie, École...)</span>
+          <label className="text-[11px] font-bold text-foreground block mb-1">
+            Point de repère visible <span className="font-normal text-muted-foreground">(facilite l'arrivée)</span>
           </label>
           <Input
             value={landmark}
             onChange={(e) => handleLandmarkChange(e.target.value)}
             placeholder="Ex: Face Pharmacie Saint-Jean"
-            className="text-xs h-9 bg-background"
+            className="text-xs h-10 bg-background rounded-lg"
           />
         </div>
       </div>

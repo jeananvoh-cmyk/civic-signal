@@ -51,9 +51,11 @@ class _PadaAddressInputState extends State<PadaAddressInput> {
   final TextEditingController _customWayController = TextEditingController();
 
   PadaWay? _selectedWay;
+  String? _selectedDoorId;
+  bool _isExactDoorSelected = false;
   bool _isCustomMode = false;
   bool _isDropdownOpen = false;
-  List<PadaWay> _suggestions = [];
+  List<ScoredPadaWay> _suggestionsScored = [];
 
   @override
   void initState() {
@@ -65,29 +67,29 @@ class _PadaAddressInputState extends State<PadaAddressInput> {
   }
 
   void _onSearchChanged(String query) {
-    if (query.trim().isEmpty) {
-      setState(() {
-        _suggestions = [];
-        _isDropdownOpen = false;
-      });
-      return;
-    }
-
-    final results = searchPadaWays(
+    final results = searchPadaWaysScored(
       query,
       commune: widget.commune,
       quartier: widget.quartier,
     );
 
     setState(() {
-      _suggestions = results.take(8).toList();
+      _suggestionsScored = results.take(10).toList();
       _isDropdownOpen = true;
     });
   }
 
-  void _selectWay(PadaWay way) {
+  void _selectWay(PadaWay way, [ScoredPadaWay? item]) {
+    final queryText = _searchController.text.trim();
+    // Si l'utilisateur a tapé un numéro (ex: "82" ou "123"), on remplit le numéro de porte
+    if (RegExp(r'^\d+$').hasMatch(queryText) && _doorController.text.trim().isEmpty) {
+      _doorController.text = queryText;
+    }
+
     setState(() {
       _selectedWay = way;
+      _selectedDoorId = item?.exactDoorId;
+      _isExactDoorSelected = item?.isExactDoor ?? false;
       _searchController.text = way.nom;
       _isDropdownOpen = false;
       _isCustomMode = false;
@@ -129,6 +131,8 @@ class _PadaAddressInputState extends State<PadaAddressInput> {
   void _resetSelection() {
     setState(() {
       _selectedWay = null;
+      _selectedDoorId = null;
+      _isExactDoorSelected = false;
       _searchController.clear();
       _isCustomMode = false;
       _customWayController.clear();
@@ -141,12 +145,17 @@ class _PadaAddressInputState extends State<PadaAddressInput> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final padaCode = getPadaCode(widget.commune);
 
+    // Voies suggérées pour le quartier lorsque la recherche est vide
+    final quickSuggestions = (_searchController.text.isEmpty)
+        ? searchPadaWaysScored('', commune: widget.commune, quartier: widget.quartier).take(4).toList()
+        : <ScoredPadaWay>[];
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF059669).withOpacity(0.3)),
+        border: Border.all(color: const Color(0xFF059669).withOpacity(0.35), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -165,7 +174,7 @@ class _PadaAddressInputState extends State<PadaAddressInput> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Adressage Officiel ($padaCode)',
+                  'Adressage Officiel PADA ($padaCode)',
                   style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -173,7 +182,7 @@ class _PadaAddressInputState extends State<PadaAddressInput> {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Trouvez votre rue, avenue ou boulevard officiel PADA :',
+            'Trouvez votre numéro de porte, rue ou avenue officielle PADA :',
             style: TextStyle(fontSize: 11, color: Colors.grey),
           ),
           const SizedBox(height: 10),
@@ -184,7 +193,7 @@ class _PadaAddressInputState extends State<PadaAddressInput> {
               controller: _searchController,
               onChanged: _onSearchChanged,
               decoration: InputDecoration(
-                hintText: 'Ex: Mitterrand, Arafat, Diby, Rue...',
+                hintText: 'Tapez un N° de porte (ex: 246, 62) ou une voie...',
                 hintStyle: const TextStyle(fontSize: 12),
                 prefixIcon: const Icon(LucideIcons.search, size: 16),
                 suffixIcon: _searchController.text.isNotEmpty
@@ -201,10 +210,41 @@ class _PadaAddressInputState extends State<PadaAddressInput> {
               ),
             ),
 
-            if (_isDropdownOpen) ...[
+            // Puces de suggestion rapide (si champ vide)
+            if (_searchController.text.isEmpty && quickSuggestions.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: quickSuggestions.map((item) {
+                  return InkWell(
+                    onTap: () => _selectWay(item.way, item),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(LucideIcons.mapPin, size: 11, color: Color(0xFF059669)),
+                          const SizedBox(width: 4),
+                          Text(item.way.nom, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+
+            if (_isDropdownOpen && _searchController.text.trim().isNotEmpty) ...[
               const SizedBox(height: 6),
               Container(
-                constraints: const BoxConstraints(maxHeight: 200),
+                constraints: const BoxConstraints(maxHeight: 220),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(10),
@@ -213,8 +253,13 @@ class _PadaAddressInputState extends State<PadaAddressInput> {
                 child: ListView(
                   shrinkWrap: true,
                   children: [
-                    ..._suggestions.map((way) {
+                    ..._suggestionsScored.map((item) {
+                      final way = item.way;
                       final isBoulevard = way.type == PadaWayType.boulevard;
+                      final queryText = _searchController.text.trim();
+                      final isNumeric = RegExp(r'^\d+$').hasMatch(queryText);
+                      final doorPrefix = isNumeric ? '$queryText, ' : '';
+
                       return ListTile(
                         dense: true,
                         title: Row(
@@ -233,17 +278,37 @@ class _PadaAddressInputState extends State<PadaAddressInput> {
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
-                                way.nom,
+                                '$doorPrefix${way.nom}',
                                 style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            if (item.isExactDoor)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF059669),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text(
+                                  '🛡️ Certifiée',
+                                  style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                                ),
+                              ),
                           ],
                         ),
-                        subtitle: way.ancienNom != null
-                            ? Text('🏛️ Ex : ${way.ancienNom}', style: const TextStyle(fontSize: 10, color: Color(0xFFD97706)))
-                            : (way.quartier != null ? Text('Quartier : ${way.quartier}', style: const TextStyle(fontSize: 10)) : null),
-                        onTap: () => _selectWay(way),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (item.matchReason != null)
+                              Text('💡 ${item.matchReason}', style: const TextStyle(fontSize: 10, color: Color(0xFF0284C7), fontWeight: FontWeight.w600)),
+                            if (way.ancienNom != null && !(item.matchReason?.contains('Alias') ?? false))
+                              Text('🏛️ Ex : ${way.ancienNom}', style: const TextStyle(fontSize: 10, color: Color(0xFFD97706))),
+                            if (way.quartier != null)
+                              Text('Quartier : ${way.quartier}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                          ],
+                        ),
+                        onTap: () => _selectWay(way, item),
                       );
                     }),
                     ListTile(
@@ -274,7 +339,7 @@ class _PadaAddressInputState extends State<PadaAddressInput> {
                       : [const Color(0xFFECFDF5), const Color(0xFFD1FAE5)],
                 ),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF059669)),
+                border: Border.all(color: const Color(0xFF059669), width: 1.5),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -318,6 +383,10 @@ class _PadaAddressInputState extends State<PadaAddressInput> {
                   if (_selectedWay!.ancienNom != null) ...[
                     const SizedBox(height: 4),
                     Text('🏛️ Ex : ${_selectedWay!.ancienNom}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFFD97706))),
+                  ],
+                  if (_selectedDoorId != null) ...[
+                    const SizedBox(height: 3),
+                    Text('🎫 Réf. Cadastre : $_selectedDoorId', style: const TextStyle(fontSize: 10, fontFamily: 'monospace', fontWeight: FontWeight.bold, color: Color(0xFF059669))),
                   ],
                   const SizedBox(height: 4),
                   Text('📍 $padaCode • ${widget.commune}${_selectedWay!.quartier != null ? ' (${_selectedWay!.quartier})' : ''}', style: const TextStyle(fontSize: 10, color: Colors.grey)),

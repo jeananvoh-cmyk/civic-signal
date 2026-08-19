@@ -155,11 +155,11 @@ Suivi de l'état jusqu'à résolution
 - Possibilité d'envoi manuel si le délai automatique est trop long
 - Traçabilité : chaque email est loggé avec horodatage et statut (envoyé / erreur)
 
-### Mairies pilotes
-7 mairies ont été intégrées à la phase pilote pour les signalements de voirie :
-Abobo, Adjamé, Bingerville, Cocody, Koumassi, Port-Bouët, Yopougon.
+### Mairies & Relais municipaux
+Les 14 mairies du Grand Abidjan sont à présent 100% connectées et intégrées au système de relais automatique pour les signalements de voirie et d'infrastructure :
+Abobo, Adjamé, Anyama, Attécoubé, Bingerville, Cocody, Grand-Bassam, Koumassi, Marcory, Plateau, Port-Bouët, Songon, Treichville, Yopougon.
 
-Chaque mairie dispose d'une adresse email dédiée dans le système.
+Chaque mairie dispose d'une adresse email dédiée (`technique@<commune>.ci`) et d'une bascule de relais paramétrable dans le tableau de bord administration.
 
 ### Statistiques et export
 - Tableau de bord admin avec statistiques par commune, par type de service, par période

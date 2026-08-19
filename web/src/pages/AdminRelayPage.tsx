@@ -18,6 +18,7 @@ import { format, isToday, isThisWeek, isThisMonth, isThisYear, parseISO } from "
 import { fr } from "date-fns/locale";
 import { findNearestCommune } from "@/lib/communes";
 import { extractInfraLabel, infraEmoji, cleanDescription, INFRA_CIE, INFRA_SODECI, isInfraLabel } from "@/lib/report-display";
+import { exportMunicipalPDF, exportConcessionnairePDF, exportRegulatorPDF } from "@/lib/export-pdf";
 
 /**
  * Rigorously distinguishes Infrastructure reports (lampadaire, fuite, caniveau, poteau) from Service Outages (coupures d'eau/électricité).
@@ -603,40 +604,51 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
 
   const serviceEmoji = isCIE && isInfraGroup ? "💡" : isCIE ? "⚡" : isSODECI && isInfraGroup ? "🚿" : isSODECI ? "💧" : isANARE ? "⚖️" : isONEP ? "💧" : "🏗️";
   const serviceTitle = isANARE
-    ? "Alerte Réglementaire — Infrastructure Électrique (CIE)"
+    ? "Transmission Partenariale — Infrastructure Électrique & Éclairage Public (ANARE-CI / CIE)"
     : isONEP
-    ? "Alerte Réglementaire — Infrastructure Hydraulique (SODECI)"
+    ? "Transmission Partenariale — Réseau Hydraulique & Continuité de Service (ONEP / SODECI)"
     : isCIE && isInfraGroup
-    ? "Signalement Infrastructure Publique (CIE)"
+    ? "Signalement Collaboratif — Infrastructure & Réseau Électrique (CIE)"
     : isCIE
-    ? "Alerte Interruption de Service — Coupure d'électricité (CIE)"
+    ? "Alerte Citoyenne Qualifiée — Continuité de Service Électrique (CIE)"
     : isSODECI && isInfraGroup
-    ? "Signalement Infrastructure Publique (SODECI)"
+    ? "Signalement Collaboratif — Réseau & Distribution d'Eau Potable (SODECI)"
     : isSODECI
-    ? "Alerte Interruption de Service — Coupure d'eau (SODECI)"
-    : "Signalement Voirie & Infrastructure Municipale";
+    ? "Alerte Citoyenne Qualifiée — Continuité d'Alimentation en Eau Potable (SODECI)"
+    : "Coopération Municipale — Voirie, Éclairage & Salubrité Urbaine";
 
   const gradientHeader = isANARE || isONEP
-    ? "linear-gradient(135deg, #1e3a8a 0%, #0284c7 100%)"
+    ? "linear-gradient(135deg, #0f172a 0%, #0369a1 100%)"
     : isCIE
-    ? "linear-gradient(135deg, #0284c7 0%, #d97706 100%)"
+    ? "linear-gradient(135deg, #1e293b 0%, #0284c7 50%, #d97706 100%)"
     : isSODECI
-    ? "linear-gradient(135deg, #0284c7 0%, #0891b2 100%)"
-    : "linear-gradient(135deg, #ea580c 0%, #d97706 100%)";
+    ? "linear-gradient(135deg, #1e293b 0%, #0284c7 50%, #0891b2 100%)"
+    : "linear-gradient(135deg, #1e293b 0%, #ea580c 50%, #d97706 100%)";
 
   const citoyenText = group.totalConfirmations > 1
-    ? `${group.totalConfirmations} citoyen.ne.s`
-    : `1 citoyen.ne`;
+    ? `${group.totalConfirmations} concitoyens`
+    : `1 concitoyen`;
+
+  // Salutations protocolaires respectueuses et valorisantes
+  const salutationTitle = isMairie
+    ? `Monsieur le Maire,<br/>Monsieur le Directeur des Services Techniques et du Cadre de Vie de la Mairie de <strong>${group.commune}</strong>,`
+    : isANARE
+    ? `Madame, Monsieur la Direction Générale et le Département Régulation & Qualité de Service (<strong>ANARE-CI</strong>),`
+    : isONEP
+    ? `Madame, Monsieur la Direction Générale et la Maîtrise d'Ouvrage (<strong>ONEP</strong>),`
+    : isCIE
+    ? `Madame, Monsieur les Responsables de l'Exploitation et de la Relation Usagers — <strong>Compagnie Ivoirienne d'Électricité (CIE)</strong>,`
+    : `Madame, Monsieur les Responsables de la Distribution et de la Relation Usagers — <strong>Société de Distribution d'Eau de la Côte d'Ivoire (SODECI)</strong>,`;
 
   const introText = isANARE || group.operator === "ANARE"
-    ? `En tant qu'Autorité de Régulation du secteur de l'électricité (<strong>ANARE-CI</strong>), nous vous transmettons ce signalement d'infrastructure publique électrique gérée par la <strong>CIE</strong>. Ce signalement via <strong>SIGNA-CI</strong> a été vérifié et est soutenu par <strong style="color: #16a34a;">${citoyenText}</strong>. Votre suivi réglementaire auprès du concessionnaire CIE contribuera au maintien de la qualité du service public.`
+    ? `Dans un esprit de coopération républicaine et de régulation constructive, la plateforme citoyenne <strong>SIGNA-CI</strong> a l'honneur de vous transmettre une remontée d'anomalies sur les infrastructures électriques concédées, relevée et corroborée par <strong style="color: #16a34a;">${citoyenText}</strong> dans la commune de <strong>${group.commune}</strong>. Nous saluons votre action régulatrice essentielle et mettons à votre disposition ces données géo-qualifiées pour optimiser le suivi avec le concessionnaire CIE.`
     : isONEP || group.operator === "ONEP"
-    ? `En tant qu'Office National de l'Eau Potable (<strong>ONEP</strong>), Maître d'Ouvrage et Régulateur du secteur de l'eau potable en Côte d'Ivoire, nous vous transmettons ce signalement relatif au réseau d'eau exploité par la <strong>SODECI</strong>. Ce signalement via <strong>SIGNA-CI</strong> a été vérifié et est soutenu par <strong style="color: #16a34a;">${citoyenText}</strong>. Votre suivi stratégique et patrimonial contribuera à la continuité de la fourniture d'eau aux populations.`
+    ? `Dans un esprit de collaboration partenariale et d'appui à la maîtrise patrimoniale, la plateforme <strong>SIGNA-CI</strong> vous adresse ce point d'information vérifié concernant le réseau d'eau potable, consolidé auprès de <strong style="color: #16a34a;">${citoyenText}</strong> à <strong>${group.commune}</strong>. Nous savons votre engagement pour l'accès universel à l'eau potable et partageons ces coordonnées pour appuyer vos orientations auprès de la SODECI.`
     : isMairie || group.operator === "MAIRIE"
-    ? `Ce signalement de voirie et salubrité urbaine via <strong>SIGNA-CI</strong> a été vérifié et est soutenu par <strong style="color: #16a34a;">${citoyenText}</strong> sollicitant une intervention des services techniques de la Mairie de <strong>${group.commune}</strong>.`
+    ? `Dans le cadre d'une démarche d'entraide civique et de valorisation de l'action municipale, la plateforme citoyenne <strong>SIGNA-CI</strong> porte à votre attention un besoin d'intervention sur la voirie et le cadre de vie, formulé par <strong style="color: #16a34a;">${citoyenText}</strong> de votre commune. Nous saluons le travail quotidien de vos équipes techniques sur le terrain et vous transmettons ces repères précis pour faciliter leur prise en charge.`
     : isInfraGroup
-    ? `Ce signalement d'infrastructure publique via <strong>SIGNA-CI</strong> a été vérifié et est soutenu par <strong style="color: #16a34a;">${citoyenText}</strong>. L'intervention technique de vos services sera particulièrement appréciée pour la sécurité des riverains.`
-    : `Ce signalement d'interruption de service public a été <strong style="color: #16a34a;">confirmé par ${group.totalConfirmations > 1 ? `${group.totalConfirmations} foyers` : "1 foyer"}</strong> dans le quartier via la plateforme <span style="background: #fef08a; color: #854d0e; padding: 2px 6px; border-radius: 4px; font-weight: 700;">SIGNA-CI</span>. Il appelle un rétablissement rapide du service.`;
+    ? `Dans un esprit de synergie opérationnelle et de partenariat pour la sécurité de nos rues, <strong>SIGNA-CI</strong> vous transmet ce signalement d'infrastructure publique qualifié par <strong style="color: #16a34a;">${citoyenText}</strong> à <strong>${group.commune}</strong>. Nos concitoyens sont reconnaissants des efforts constants déployés par vos équipes d'intervention sur le terrain.`
+    : `Dans une volonté de faciliter le travail de vos équipes techniques et d'informer les riverains en toute transparence, <strong>SIGNA-CI</strong> vous relaie ce constat de coupure corroboré par <strong style="color: #16a34a;">${group.totalConfirmations > 1 ? `${group.totalConfirmations} foyers abonnés` : "1 foyer abonné"}</strong> dans la commune de <strong>${group.commune}</strong>.`;
 
   const cardsHtml = group.quartiers.map((q, idx) => {
     const isCrit = q.urgency === "critical";
@@ -649,7 +661,7 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
     const typeLabel = (extractedTag && isQuartierInfra) ? extractedTag : (q.category ? q.category.replace(/_/g, " ") : null);
     const categoryLabel = typeLabel
       ? `${infraEmoji(typeLabel)} ${typeLabel.toUpperCase()}`
-      : isMairie ? "🏗️ INFRASTRUCTURE / VOIRIE" : isCIE ? "⚡ ÉLECTRICITÉ" : "💧 EAU POTABLE";
+      : isMairie ? "🏗️ VOIRIE & CADRE DE VIE" : isCIE ? "⚡ ÉLECTRICITÉ" : "💧 EAU POTABLE";
 
     const locParts: string[] = [];
     if (q.description && q.description.trim()) {
@@ -657,53 +669,64 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
       if (cleaned) locParts.push(cleaned);
     }
     if (q.landmark && q.landmark.trim()) locParts.push(`Repère : ${q.landmark.trim()}`);
-    if (q.addressText && q.addressText.trim()) locParts.push(`Adresse : ${q.addressText.trim()}`);
+    if (q.addressText && q.addressText.trim()) locParts.push(`Adresse PADA : ${q.addressText.trim()}`);
     const fullDesc = locParts.length > 0 ? locParts.join(" · ") : `${serviceTitle} à ${group.commune}`;
 
-    const confirmationLabel = isQuartierInfra ? "Soutien & votes citoyens" : "Corroboration & confirmations quartier";
+    const confirmationLabel = isQuartierInfra ? "Mobilisation & Corroboration" : "Foyers ayant confirmé la situation";
     const confirmationValue = isQuartierInfra
-      ? `<span style="color: #16a34a; font-weight: 800;">${q.verifications > 1 ? `${q.verifications} citoyen.ne.s soutiennent pour une réparation urgente` : "1 citoyen.ne soutient pour une réparation urgente"}</span>`
-      : `<span style="color: #16a34a; font-weight: 800;">${q.verifications > 1 ? `${q.verifications} foyers confirment la coupure dans le quartier` : "1 foyer confirme la coupure dans le quartier"}</span>`;
+      ? `<span style="color: #16a34a; font-weight: 800;">${q.verifications > 1 ? `${q.verifications} concitoyens ont appuyé cette demande d'intervention` : "1 concitoyen a formulé ce signalement qualifié"}</span>`
+      : `<span style="color: #16a34a; font-weight: 800;">${q.verifications > 1 ? `${q.verifications} foyers abonnés dans la zone` : "1 foyer abonné"}</span>`;
 
     return `
-      <div style="border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; background: #ffffff; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
-        <div style="background: #f8fafc; padding: 12px 20px; border-bottom: 1px solid #e5e7eb; font-size: 11px; font-weight: 800; color: #64748b; letter-spacing: 1px; text-transform: uppercase;">
-          DÉTAILS DU SIGNALEMENT ${group.quartiers.length > 1 ? `#${idx + 1}` : ""}
+      <div style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #ffffff; margin-bottom: 20px; box-shadow: 0 4px 12px -2px rgba(0,0,0,0.05);">
+        <div style="background: #f8fafc; padding: 12px 20px; border-bottom: 1px solid #e2e8f0; display: table; width: 100%; box-sizing: border-box;">
+          <div style="display: table-cell; vertical-align: middle; font-size: 11px; font-weight: 800; color: #475569; letter-spacing: 0.8px; text-transform: uppercase;">
+            FICHE D'ANOMALIE QUALIFIÉE ${group.quartiers.length > 1 ? `#${idx + 1}` : ""} · COMMUNE DE ${group.commune.toUpperCase()}
+          </div>
+          <div style="display: table-cell; vertical-align: middle; text-align: right; font-size: 11px; font-weight: 700; color: #0284c7;">
+            RÉFÉRENTIEL PADA (MCLU)
+          </div>
         </div>
         <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
           <tbody>
             <tr style="border-bottom: 1px solid #f1f5f9;">
-              <td style="padding: 14px 20px; color: #64748b; font-weight: 500; width: 38%;">Type / Catégorie</td>
-              <td style="padding: 14px 20px; color: #0284c7; font-weight: 800;">${categoryLabel}</td>
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 600; width: 35%;">Objet de l'intervention</td>
+              <td style="padding: 14px 20px; color: #0284c7; font-weight: 800; font-size: 15px;">${categoryLabel}</td>
             </tr>
             <tr style="border-bottom: 1px solid #f1f5f9;">
-              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Commune</td>
-              <td style="padding: 14px 20px; color: #0f172a; font-weight: 800;">${group.commune}</td>
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 600;">Commune & Quartier</td>
+              <td style="padding: 14px 20px; color: #0f172a; font-weight: 800;">
+                📍 ${group.commune} — <span style="color: #0369a1;">${q.name}</span>
+              </td>
             </tr>
-            <tr style="border-bottom: 1px solid #f1f5f9;">
-              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Quartier / Secteur</td>
-              <td style="padding: 14px 20px; color: #0f172a; font-weight: 800;">${q.name}</td>
+            ${q.addressText ? `
+            <tr style="border-bottom: 1px solid #f1f5f9; background: #f0fdf4;">
+              <td style="padding: 14px 20px; color: #166534; font-weight: 700;">🏛️ Adressage Officiel PADA</td>
+              <td style="padding: 14px 20px; color: #14532d; font-weight: 800;">
+                ${q.addressText}
+              </td>
             </tr>
+            ` : ""}
             ${(q.lat && q.lng) ? `
             <tr style="border-bottom: 1px solid #f1f5f9;">
-              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Géolocalisation GPS</td>
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 600;">Coordonnées GPS Terrain</td>
               <td style="padding: 14px 20px; color: #0f172a; font-weight: 700;">
-                📍 Lat: <code>${q.lat.toFixed(5)}</code>, Lng: <code>${q.lng.toFixed(5)}</code>
+                📍 <code>${q.lat.toFixed(5)}, ${q.lng.toFixed(5)}</code>
                 <div style="margin-top: 6px;">
-                  <a href="https://www.google.com/maps/search/?api=1&query=${q.lat},${q.lng}" target="_blank" style="display: inline-block; padding: 6px 12px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 11px; font-weight: 700; text-decoration: none;">
-                    📍 Localiser l'incident sur Google Maps
+                  <a href="https://www.google.com/maps/search/?api=1&query=${q.lat},${q.lng}" target="_blank" style="display: inline-block; padding: 6px 14px; background: #0284c7; color: #ffffff; border-radius: 6px; font-size: 12px; font-weight: 800; text-decoration: none;">
+                    🗺️ Ouvrir l'itinéraire d'intervention Google Maps
                   </a>
                 </div>
               </td>
             </tr>
             ` : ""}
             <tr style="border-bottom: 1px solid #f1f5f9;">
-              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">${confirmationLabel}</td>
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 600;">${confirmationLabel}</td>
               <td style="padding: 14px 20px;">${confirmationValue}</td>
             </tr>
             ${q.createdAt ? `
             <tr style="border-bottom: 1px solid #f1f5f9;">
-              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Date du signalement</td>
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 600;">Horodatage initial</td>
               <td style="padding: 14px 20px; color: #334155; font-weight: 700;">
                 📅 ${safeFormatDate(q.createdAt, "d MMMM yyyy à HH:mm")}
                 ${safeFormatDuration(q.createdAt) ? `<span style="color: #dc2626; font-size: 12px; font-weight: 800; margin-left: 8px;">(${safeFormatDuration(q.createdAt)})</span>` : ""}
@@ -711,7 +734,7 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
             </tr>
             ` : ""}
             <tr style="border-bottom: 1px solid #f1f5f9;">
-              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Niveau d'urgence</td>
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 600;">Degré d'urgence</td>
               <td style="padding: 14px 20px; color: #0f172a; font-weight: 800;">
                 <span style="display: inline-flex; align-items: center; gap: 6px;">
                   ${urgencyDot} <strong>${urgencyText}</strong>
@@ -719,17 +742,17 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
               </td>
             </tr>
             <tr style="border-bottom: 1px solid #f1f5f9;">
-              <td style="padding: 14px 20px; color: #64748b; font-weight: 500; vertical-align: top;">Description / Précisions</td>
-              <td style="padding: 14px 20px; color: #334155; font-weight: 500; line-height: 1.5;">
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 600; vertical-align: top;">Précisions / Repères</td>
+              <td style="padding: 14px 20px; color: #334155; font-weight: 500; line-height: 1.6;">
                 ${fullDesc}
               </td>
             </tr>
             ${q.reportId ? `
             <tr>
-              <td style="padding: 14px 20px; color: #64748b; font-weight: 500;">Fiche de l'incident</td>
+              <td style="padding: 14px 20px; color: #64748b; font-weight: 600;">Fiche de Suivi Citoyen</td>
               <td style="padding: 14px 20px;">
-                <a href="https://signa.ci/signalement/${q.reportId}" target="_blank" style="display: inline-block; padding: 6px 14px; background: #0284c7; color: #ffffff; border-radius: 6px; font-size: 12px; font-weight: 800; text-decoration: none;">
-                  🔗 Consulter le déroulé de l'incident sur SIGNA-CI
+                <a href="https://signa.ci/signalement/${q.reportId}" target="_blank" style="display: inline-block; padding: 6px 14px; background: #f1f5f9; color: #0369a1; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; font-weight: 800; text-decoration: none;">
+                  🔗 Consulter l'historique complet sur SIGNA.ci
                 </a>
               </td>
             </tr>
@@ -741,21 +764,21 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
   }).join("");
 
   const modeBadgeHtml = isTest
-    ? `<span style="background: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 4px; font-weight: 800; margin-left: 6px;">⚠️ MODE TEST</span>`
-    : `<span style="background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 4px; font-weight: 800; margin-left: 6px;">✅ OFFICIEL</span>`;
+    ? `<span style="background: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 4px; font-weight: 800; margin-left: 6px;">⚠️ ENVIRONNEMENT DE TEST</span>`
+    : `<span style="background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 4px; font-weight: 800; margin-left: 6px;">🤝 TRANSMISSION COLLABORATIVE</span>`;
 
   return `
     <!DOCTYPE html>
     <html>
     <head><meta charset="utf-8"/></head>
-    <body style="font-family: system-ui, -apple-system, sans-serif; background-color: #f3f4f6; margin: 0; padding: 24px;">
-      <div style="max-width: 620px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e5e7eb; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08);">
+    <body style="font-family: system-ui, -apple-system, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px;">
+      <div style="max-width: 640px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 30px -5px rgba(0,0,0,0.08);">
         
-        <!-- Prototype Gradient Header -->
+        <!-- Header Institutionnel et Prestigieux -->
         <div style="background: ${gradientHeader}; padding: 28px 24px; color: #ffffff;">
           <div style="display: table; width: 100%; margin-bottom: 12px;">
             <div style="display: table-cell; vertical-align: middle; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.95);">
-              TRANSMISSION D'INCIDENT — <span style="background: rgba(255,255,255,0.25); padding: 2px 6px; border-radius: 4px; color: #ffffff;">SIGNA-CI</span> ${modeBadgeHtml}
+              🤝 COOPÉRATION TERRITORIALE · <span style="background: rgba(255,255,255,0.25); padding: 2px 6px; border-radius: 4px; color: #ffffff;">SIGNA-CI</span> ${modeBadgeHtml}
             </div>
             <div style="display: table-cell; vertical-align: middle; text-align: right;">
               <span style="background: rgba(255,255,255,0.25); color: #ffffff; padding: 4px 14px; border-radius: 20px; font-weight: 800; font-size: 12px; display: inline-block;">
@@ -763,47 +786,53 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
               </span>
             </div>
           </div>
-          <h1 style="margin: 0; font-size: 26px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px;">
+          <h1 style="margin: 0; font-size: 24px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px; line-height: 1.3;">
             ${serviceEmoji} ${serviceTitle}
           </h1>
+          <div style="margin-top: 8px; font-size: 13px; color: rgba(255,255,255,0.9); font-weight: 500;">
+            Commune de <strong>${group.commune}</strong> · Synergie Citoyenne & Appui aux Services Techniques
+          </div>
         </div>
 
-        <!-- Body Content -->
-        <div style="padding: 24px;">
+        <!-- Corps de l'email -->
+        <div style="padding: 26px 24px;">
           
-          <p style="margin: 0 0 20px; font-size: 15px; color: #374151; line-height: 1.6;">
+          <div style="margin: 0 0 16px; font-size: 15px; color: #1e293b; line-height: 1.7;">
+            ${salutationTitle}
+          </div>
+
+          <p style="margin: 0 0 22px; font-size: 14px; color: #334155; line-height: 1.7;">
             ${introText}
           </p>
 
-          <!-- Cards per quartier/report -->
+          <!-- Fiches synthétiques par quartier -->
           ${cardsHtml}
 
           ${!isInfraGroup && group.reporters && group.reporters.length > 0 ? `
             <div style="margin-top: 20px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
-              <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 8px;">📋 Contacts Citoyens Référents (Coupure / Panne) :</div>
-              <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: #334155; line-height: 1.6;">
+              <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 8px;">📋 Contacts Abonnés Référents (Sous réserve de vérification) :</div>
+              <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: #334155; line-height: 1.7;">
                 ${group.reporters.map(r => `
                   <li>
                     ${r.quartier ? `<strong>${r.quartier}</strong> : ` : ""}
                     ${r.meterNumber ? `Compteur <code>${r.meterNumber}</code> (${r.contractType === "postpaid" ? "Postpayé" : "Prépayé"})` : ""}
-                    ${r.phone ? ` · Tel: <strong>${r.phone}</strong>` : ""}
+                    ${r.phone ? ` · Contact: <strong>${r.phone}</strong>` : ""}
                   </li>
                 `).join("")}
               </ul>
             </div>
           ` : ""}
 
-          ${isANARE ? `
-            <div style="margin-top: 20px; padding: 16px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; font-size: 13px; color: #1e40af; line-height: 1.6;">
-              <strong>⚖️ Partenariat Réglementaire & Suivi Citoyen (ANARE-CI / SIGNA-CI) :</strong><br/>
-              Cette transmission directe s'inscrit dans le cadre du renforcement du suivi citoyen et de la régulation proactive des infrastructures électriques sur le territoire ivoirien. SIGNA-CI se tient à la disposition de l'ANARE-CI pour établir une passerelle d'échange permanente et optimiser la résolution des anomalies d'infrastructures auprès du concessionnaire CIE.
-            </div>
-          ` : ""}
+          <!-- Bloc Partenarial & Entraide -->
+          <div style="margin-top: 24px; padding: 18px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; font-size: 13px; color: #166534; line-height: 1.7;">
+            <strong>🌿 Esprit de Concertation & Collaboration Active :</strong><br/>
+            Notre vocation commune est d'accélérer l'amélioration du cadre de vie et la résolution des pannes dans nos quartiers. L'équipe SIGNA-CI se tient à votre entière disposition pour tout complément d'information et pour relayer avec fierté auprès des usagers la bonne exécution de vos interventions.
+          </div>
 
           <!-- Footer Institutionnel -->
-          <div style="margin-top: 28px; padding-top: 18px; border-top: 2px solid #e2e8f0; text-align: center; font-size: 11px; color: #475569; line-height: 1.6; font-family: sans-serif;">
-            <div style="font-weight: 800; color: #0f172a; font-size: 12px; margin-bottom: 3px;">🤝 SIGNA-CI · Plateforme Citoyenne Ivoirienne d'Alerte & de Suivi des Infrastructures Publiques</div>
-            <div>📍 Abidjan, Côte d'Ivoire · 🌐 <a href="https://signa.ci" style="color: #0284c7; text-decoration: none; font-weight: 700;">https://signa.ci</a> · ✉️ <a href="mailto:contact@signa.ci" style="color: #0284c7; text-decoration: none; font-weight: 600;">contact@signa.ci</a></div>
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e2e8f0; text-align: center; font-size: 11px; color: #64748b; line-height: 1.6; font-family: sans-serif;">
+            <div style="font-weight: 800; color: #0f172a; font-size: 12px; margin-bottom: 4px;">🤝 SIGNA-CI · Plateforme d'Alliance Citoyenne pour des Quartiers Sains & Sécurisés</div>
+            <div>📍 District Autonome d'Abidjan, République de Côte d'Ivoire · 🌐 <a href="https://signa.ci" style="color: #0284c7; text-decoration: none; font-weight: 700;">https://signa.ci</a> · ✉️ <a href="mailto:partenaires@signa.ci" style="color: #0284c7; text-decoration: none; font-weight: 600;">partenaires@signa.ci</a></div>
           </div>
 
         </div>
@@ -818,14 +847,14 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
 function buildWhatsAppMessage(group: RelayGroup, focalName?: string | null): string {
   const isMairie = group.operator === "MAIRIE";
   const isElec = group.operator === "CIE" || group.operator === "ANARE";
-  const serviceLabel = isMairie ? "voirie, salubrité & infrastructure municipale" : (isElec ? "électricité" : "eau potable");
+  const serviceLabel = isMairie ? "voirie et cadre de vie" : (isElec ? "continuité électrique" : "distribution d'eau potable");
   const serviceEmoji = isMairie ? "🏛️" : (isElec ? "⚡" : "💧");
   const baseOpName = OPERATOR_CONFIG[group.operator]?.label ?? group.operator;
   const operatorName = isMairie ? `Services Techniques Mairie de ${group.commune}` : baseOpName;
 
   const greetingName = isMairie
-    ? (focalName ? `${focalName} (Services Techniques Mairie de ${group.commune})` : `Services Techniques Mairie de ${group.commune}`)
-    : operatorName;
+    ? (focalName ? `${focalName} (Services Techniques Mairie de ${group.commune})` : `Services Techniques de la Mairie de ${group.commune}`)
+    : (focalName ? `${focalName} (${operatorName})` : operatorName);
 
   const quartierLines = group.quartiers.map((q) => {
     const urgLabel = URGENCY_CONFIG[q.urgency]?.label ?? q.urgency;
@@ -834,14 +863,14 @@ function buildWhatsAppMessage(group: RelayGroup, focalName?: string | null): str
     const durationStr = q.createdAt ? safeFormatDuration(q.createdAt) : null;
 
     const details: string[] = [];
-    details.push(`• *Incident à ${group.commune} · ${q.name}*${sigCount}`);
-    details.push(`  - Type : ${q.description ? `"${q.description}"` : q.category ? q.category.replace(/_/g, " ") : (q.serviceType === "electricity" ? "Électricité" : q.serviceType === "water" ? "Eau potable" : "Voirie & Infrastructure")}`);
-    if (q.landmark) details.push(`  - Repère : ${q.landmark}`);
-    if (q.addressText) details.push(`  - Adresse : ${q.addressText}`);
-    if (dateStr) details.push(`  - Date : Signalé le ${dateStr}${durationStr ? ` (${durationStr})` : ""}`);
-    details.push(`  - Soutiens / Votants : ${q.verifications > 1 ? `${q.verifications} citoyen.ne.s` : "1 citoyen.ne"} — Urgence ${urgLabel}`);
-    if (q.lat && q.lng) details.push(`  - Localisation GPS : https://www.google.com/maps/search/?api=1&query=${q.lat},${q.lng}`);
-    if (q.reportId) details.push(`  - Fiche Incident : https://signa.ci/signalement/${q.reportId}`);
+    details.push(`• *📍 ${group.commune} · ${q.name}*${sigCount}`);
+    details.push(`  - Type : ${q.description ? `"${q.description}"` : q.category ? q.category.replace(/_/g, " ") : (q.serviceType === "electricity" ? "Électricité" : q.serviceType === "water" ? "Eau potable" : "Voirie & Salubrité")}`);
+    if (q.addressText) details.push(`  - 🏛️ Adressage PADA : ${q.addressText}`);
+    if (q.landmark) details.push(`  - 🔍 Repère visuel : ${q.landmark}`);
+    if (dateStr) details.push(`  - 📅 Date constat : ${dateStr}${durationStr ? ` (${durationStr})` : ""}`);
+    details.push(`  - 👥 Soutiens citoyens : ${q.verifications > 1 ? `${q.verifications} concitoyens` : "1 concitoyen"} — Urgence : ${urgLabel}`);
+    if (q.lat && q.lng) details.push(`  - 🗺️ Itinéraire GPS : https://www.google.com/maps/search/?api=1&query=${q.lat},${q.lng}`);
+    if (q.reportId) details.push(`  - 🔗 Fiche Incident : https://signa.ci/signalement/${q.reportId}`);
 
     return details.join("\n");
   });
@@ -863,23 +892,24 @@ function buildWhatsAppMessage(group: RelayGroup, focalName?: string | null): str
   }
 
   const lines = [
-    `${serviceEmoji} *SIGNA-CI — Transmission officielle ${operatorName}*`,
+    `🤝 *SIGNA-CI · Transmission Collaborative & Appui Terrain*`,
     ``,
     `Bonjour ${greetingName},`,
     ``,
-    `Nous vous contactons au nom de *${group.totalConfirmations} citoyen${group.totalConfirmations > 1 ? "s" : ""}* ayant signalé un incident de *${serviceLabel}* sur notre plateforme.`,
+    `Dans un esprit de synergie pour le bien-être de nos quartiers, nous vous transmettons ce point de situation vérifié concernant la *${serviceLabel}* à *${group.commune}*, soutenu par *${group.totalConfirmations} concitoyen${group.totalConfirmations > 1 ? "s" : ""}*.`,
     ``,
     `📍 *Commune :* ${group.commune}`,
     ``,
-    `*Zones concernées :*`,
+    `*Points d'intervention qualifiés PADA :*`,
     ...quartierLines,
     ...(reporterLines.length > 0 ? [
       ``,
-      `*Abonnés enregistrés :*`,
+      `*Abonnés référents sur place :*`,
       ...reporterLines,
     ] : []),
     ``,
-    `Merci de prendre les dispositions nécessaires pour le bien-être des usagers.`,
+    `Nous restons à votre écoute pour relayer vos interventions et la clôture auprès des usagers.`,
+    `Bonne réception et plein succès à vos équipes sur le terrain !`,
     ``,
     `— L'équipe SIGNA-CI (https://signa.ci)`,
   ];
@@ -976,9 +1006,19 @@ const DEFAULT_CONFIG: RelayConfig = {
   email_onep: "contact@onep.ci",
   anare_auto_dispatch: "true",
   onep_auto_dispatch: "true",
-  email_mairie_cocody: "technique@cocody.ci",
+  email_mairie_abobo: "technique@abobo.ci",
   email_mairie_adjame: "technique@adjame.ci",
+  email_mairie_anyama: "technique@anyama.ci",
+  email_mairie_attecoube: "technique@attecoube.ci",
+  email_mairie_bingerville: "technique@bingerville.ci",
+  email_mairie_cocody: "technique@cocody.ci",
+  email_mairie_grandbassam: "technique@grandbassam.ci",
+  email_mairie_koumassi: "technique@koumassi.ci",
+  email_mairie_marcory: "technique@marcory.ci",
+  email_mairie_plateau: "technique@plateau.ci",
   email_mairie_portbouet: "technique@portbouet.ci",
+  email_mairie_songon: "technique@songon.ci",
+  email_mairie_treichville: "technique@treichville.ci",
   email_mairie_yopougon: "technique@yopougon.ci",
 };
 

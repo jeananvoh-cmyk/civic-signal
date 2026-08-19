@@ -59,7 +59,7 @@ export async function exportPDF(
     const pageCount = doc.getNumberOfPages();
     doc.setFontSize(8);
     doc.setTextColor(...GREY);
-    doc.text(`YALO YA COURANT — Rapport confidentiel — ${dateStr}`, margin, pageH - 8);
+    doc.text(`SIGNA-CI — Rapport Partenarial & Données Territoriales — ${dateStr}`, margin, pageH - 8);
     doc.text(`Page ${pageCount}`, pageW - margin, pageH - 8, { align: "right" });
   };
 
@@ -74,11 +74,11 @@ export async function exportPDF(
   doc.setFont("helvetica", "bold");
   doc.setFontSize(28);
   doc.setTextColor(...WHITE);
-  doc.text("YALO YA COURANT", margin, 25);
+  doc.text("SIGNA-CI", margin, 25);
 
   doc.setFontSize(13);
   doc.setFont("helvetica", "normal");
-  doc.text("Rapport Statistiques — Partenaires Institutionnels", margin, 35);
+  doc.text("Rapport Statistiques & Suivi Territoriale PADA — Partenaires Institutionnels", margin, 35);
 
   doc.setFontSize(10);
   doc.text(`Généré le ${dateStr}`, margin, 46);
@@ -360,3 +360,339 @@ export async function exportPDF(
   const fileName = `rapport_yalo_${format(new Date(), "yyyy-MM-dd")}.pdf`;
   doc.save(fileName);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   EXPORTERS SPÉCIALISÉS POUR RAPPORTS INSTITUTIONNELS (MAIRIES, CIE/SODECI, REGULATEURS)
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+export interface ReportItem {
+  id: string;
+  commune: string;
+  quartier: string;
+  category: string;
+  service_type: string;
+  description: string;
+  verifications: number;
+  urgency: string;
+  created_at: string;
+  pada_formatted_address?: string | null;
+  meter_number?: string | null;
+  contract_type?: string | null;
+  status?: string;
+}
+
+/**
+ * 🏢 Rapport PDF Hebdomadaire Spécifique Mairie (14 Communes du Grand Abidjan)
+ */
+export async function exportMunicipalPDF(
+  communeName: string,
+  reports: ReportItem[],
+  population: number = 0,
+) {
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 15;
+  const contentW = pageW - margin * 2;
+  let y = 0;
+
+  const dateStr = format(new Date(), "d MMMM yyyy 'à' HH:mm", { locale: fr });
+  const weekLabel = format(new Date(), "'Semaine du' d MMMM yyyy", { locale: fr });
+
+  const totalSig = reports.length;
+  const totalActifs = reports.filter((r) => r.status !== "resolved").length;
+  const totalResolus = reports.filter((r) => r.status === "resolved").length;
+  const totalVerif = reports.reduce((sum, r) => sum + r.verifications, 0);
+
+  // Cover / Header
+  doc.setFillColor(22, 163, 74); // Green Municipal accent
+  doc.rect(0, 0, pageW, 50, "F");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(22);
+  doc.setTextColor(...WHITE);
+  doc.text(`MAIRIE DE ${communeName.toUpperCase()}`, margin, 22);
+
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  doc.text(`SYNTHÈSE HEBDOMADAIRE VOIRIE & INFRASTRUCTURES — ${weekLabel}`, margin, 32);
+
+  doc.setFontSize(9);
+  doc.text(`Civic Signal (SIGNA·CI) · Généré le ${dateStr}`, margin, 42);
+
+  y = 65;
+
+  // KPI boxes
+  const boxW = (contentW - 12) / 4;
+  const boxes = [
+    { label: "Voirie Signalée", value: String(totalSig), color: DARK },
+    { label: "En cours / Actifs", value: String(totalActifs), color: PRIMARY },
+    { label: `Résolus (${pct(totalResolus, totalSig)}%)`, value: String(totalResolus), color: GREEN },
+    { label: "Citoyens Demandeurs", value: String(totalVerif), color: DARK },
+  ];
+
+  boxes.forEach((b, i) => {
+    const x = margin + i * (boxW + 4);
+    doc.setFillColor(248, 248, 248);
+    doc.roundedRect(x, y, boxW, 26, 3, 3, "F");
+    doc.setDrawColor(220, 220, 220);
+    doc.roundedRect(x, y, boxW, 26, 3, 3, "S");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(...b.color);
+    doc.text(b.value, x + boxW / 2, y + 12, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(...GREY);
+    doc.text(b.label, x + boxW / 2, y + 20, { align: "center" });
+  });
+
+  y += 36;
+
+  // Table per Quartier
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(...DARK);
+  doc.text("Points Noirs et Incidents par Quartier", margin, y);
+  y += 6;
+
+  const rows = reports.map((r) => [
+    r.quartier,
+    r.description.substring(0, 50) + (r.description.length > 50 ? "..." : ""),
+    r.pada_formatted_address || "—",
+    r.urgency === "critical" ? "🔴 Urgent" : r.urgency === "high" ? "🟠 Élevé" : "🟡 Moyen",
+    `${r.verifications} citoyen(s)`,
+    format(new Date(r.created_at), "dd/MM/yyyy"),
+  ]);
+
+  autoTable(doc, {
+    startY: y,
+    margin: { left: margin, right: margin },
+    head: [["Quartier", "Incident / Description", "Adresse / PADA", "Priorité", "Soutiens", "Date"]],
+    body: rows.length > 0 ? rows : [["—", "Aucun incident actif à signaler dans cette commune", "—", "—", "—", "—"]],
+    headStyles: { fillColor: [22, 163, 74], textColor: WHITE, fontStyle: "bold", fontSize: 8 },
+    bodyStyles: { fontSize: 8, textColor: DARK },
+    alternateRowStyles: { fillColor: LIGHT_BG },
+    theme: "grid",
+  });
+
+  // Footer & Save
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(...GREY);
+    doc.text(`SIGNA·CI — Direction des Services Techniques Mairie de ${communeName}`, margin, pageH - 8);
+    doc.text(`Page ${i}/${totalPages}`, pageW - margin, pageH - 8, { align: "right" });
+  }
+
+  doc.save(`rapport_hebdo_mairie_${communeName.toLowerCase()}_${format(new Date(), "yyyy-MM-dd")}.pdf`);
+}
+
+/**
+ * ⚡💧 Rapport PDF Hebdomadaire Concessionnaires (CIE / SODECI)
+ */
+export async function exportConcessionnairePDF(
+  operator: "CIE" | "SODECI",
+  reports: ReportItem[],
+) {
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 15;
+  const contentW = pageW - margin * 2;
+  let y = 0;
+
+  const isCIE = operator === "CIE";
+  const brandColor: [number, number, number] = isCIE ? [245, 158, 11] : [14, 165, 233];
+  const serviceLabel = isCIE ? "RÉSEAU ÉLECTRIQUE (CIE)" : "RÉSEAU D'EAU POTABLE (SODECI)";
+  const dateStr = format(new Date(), "d MMMM yyyy 'à' HH:mm", { locale: fr });
+
+  const totalSig = reports.length;
+  const totalFoyers = reports.reduce((s, r) => s + r.verifications, 0);
+  const criticalSig = reports.filter((r) => r.urgency === "critical" || r.urgency === "high").length;
+
+  doc.setFillColor(...brandColor);
+  doc.rect(0, 0, pageW, 50, "F");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.setTextColor(...WHITE);
+  doc.text(`RAPPORT HEBDOMADAIRE D'INCIDENTS — ${operator}`, margin, 22);
+
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  doc.text(`CONSOLIDÉ ANOMALIES & COUPURES DE RÉSEAU — ${serviceLabel}`, margin, 32);
+
+  doc.setFontSize(9);
+  doc.text(`Civic Signal (SIGNA·CI) · Généré le ${dateStr}`, margin, 42);
+
+  y = 65;
+
+  // KPI boxes
+  const boxW = (contentW - 9) / 3;
+  const boxes = [
+    { label: "Coupures / Alertes", value: String(totalSig), color: DARK },
+    { label: "Foyers Confirmant", value: String(totalFoyers), color: brandColor },
+    { label: "Pannes Priorité P1/P2", value: String(criticalSig), color: RED },
+  ];
+
+  boxes.forEach((b, i) => {
+    const x = margin + i * (boxW + 4);
+    doc.setFillColor(248, 248, 248);
+    doc.roundedRect(x, y, boxW, 26, 3, 3, "F");
+    doc.setDrawColor(220, 220, 220);
+    doc.roundedRect(x, y, boxW, 26, 3, 3, "S");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(...b.color);
+    doc.text(b.value, x + boxW / 2, y + 12, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...GREY);
+    doc.text(b.label, x + boxW / 2, y + 20, { align: "center" });
+  });
+
+  y += 36;
+
+  // Table per Commune & Quartier
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(...DARK);
+  doc.text("Journal des Interventions Recommandées", margin, y);
+  y += 6;
+
+  const rows = reports.map((r) => [
+    r.commune,
+    r.quartier,
+    r.description.substring(0, 45) + (r.description.length > 45 ? "..." : ""),
+    r.meter_number ? `Compteur ${r.meter_number}` : "—",
+    r.urgency === "critical" ? "🔴 P1 Critique" : "🟠 P2 Élevé",
+    `${r.verifications} foyer(s)`,
+  ]);
+
+  autoTable(doc, {
+    startY: y,
+    margin: { left: margin, right: margin },
+    head: [["Commune", "Quartier", "Anomalie", "Réf. Compteur", "Urgence", "Foyers"]],
+    body: rows.length > 0 ? rows : [["—", "—", "Aucune coupure réseau majeure en cours", "—", "—", "—"]],
+    headStyles: { fillColor: brandColor, textColor: WHITE, fontStyle: "bold", fontSize: 8 },
+    bodyStyles: { fontSize: 8, textColor: DARK },
+    alternateRowStyles: { fillColor: LIGHT_BG },
+    theme: "grid",
+  });
+
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(...GREY);
+    doc.text(`SIGNA·CI — Direction de la Exploitation ${operator}`, margin, pageH - 8);
+    doc.text(`Page ${i}/${totalPages}`, pageW - margin, pageH - 8, { align: "right" });
+  }
+
+  doc.save(`rapport_hebdo_${operator.toLowerCase()}_${format(new Date(), "yyyy-MM-dd")}.pdf`);
+}
+
+/**
+ * ⚖️ Rapport PDF Hebdomadaire Régulateurs (ANARE-CI / ONEP)
+ */
+export async function exportRegulatorPDF(
+  regulator: "ANARE" | "ONEP",
+  reports: ReportItem[],
+) {
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 15;
+  const contentW = pageW - margin * 2;
+  let y = 0;
+
+  const isANARE = regulator === "ANARE";
+  const brandColor: [number, number, number] = isANARE ? [217, 119, 6] : [2, 132, 199];
+  const sectorLabel = isANARE ? "SECTEUR ÉLECTRICITÉ (ANARE-CI)" : "SECTEUR EAU POTABLE (ONEP)";
+  const dateStr = format(new Date(), "d MMMM yyyy 'à' HH:mm", { locale: fr });
+
+  doc.setFillColor(...brandColor);
+  doc.rect(0, 0, pageW, 50, "F");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.setTextColor(...WHITE);
+  doc.text(`RAPPORT DE RÉGULATION — ${regulator}`, margin, 22);
+
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  doc.text(`AUDIT DE CONTINUITÉ DE SERVICE & CONFORMITÉ — ${sectorLabel}`, margin, 32);
+
+  doc.setFontSize(9);
+  doc.text(`Civic Signal (SIGNA·CI) · Généré le ${dateStr}`, margin, 42);
+
+  y = 65;
+
+  // Audit Table
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(...DARK);
+  doc.text("Synthèse de Qualité de Service par Commune", margin, y);
+  y += 6;
+
+  // Group by commune
+  const communeMap = new Map<string, { total: number; critical: number; verif: number }>();
+  for (const r of reports) {
+    if (!communeMap.has(r.commune)) {
+      communeMap.set(r.commune, { total: 0, critical: 0, verif: 0 });
+    }
+    const c = communeMap.get(r.commune)!;
+    c.total += 1;
+    if (r.urgency === "critical" || r.urgency === "high") c.critical += 1;
+    c.verif += r.verifications;
+  }
+
+  const rows = [...communeMap.entries()].map(([commune, stats]) => [
+    commune,
+    stats.total,
+    stats.critical,
+    stats.verif,
+    stats.critical > 3 ? "🔴 Vigilance Élevée" : "🟢 Conforme",
+  ]);
+
+  autoTable(doc, {
+    startY: y,
+    margin: { left: margin, right: margin },
+    head: [["Commune", "Alertes Enregistrées", "Incidents Critiques", "Citoyens Impactés", "Évaluation Régulation"]],
+    body: rows.length > 0 ? rows : [["Grand Abidjan", "0", "0", "0", "🟢 Continuité de service conforme"]],
+    headStyles: { fillColor: brandColor, textColor: WHITE, fontStyle: "bold", fontSize: 8 },
+    bodyStyles: { fontSize: 8, textColor: DARK },
+    alternateRowStyles: { fillColor: LIGHT_BG },
+    theme: "grid",
+  });
+
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(...GREY);
+    doc.text(`SIGNA·CI — Observatoire de Régulation ${regulator}`, margin, pageH - 8);
+    doc.text(`Page ${i}/${totalPages}`, pageW - margin, pageH - 8, { align: "right" });
+  }
+
+  doc.save(`rapport_regulation_${regulator.toLowerCase()}_${format(new Date(), "yyyy-MM-dd")}.pdf`);
+}
+

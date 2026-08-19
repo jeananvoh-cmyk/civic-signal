@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { COMMUNES, COMMUNE_COLORS } from "@/lib/communes";
 import { COMMUNE_LOGOS } from "@/lib/commune-logos";
 import { extractInfraLabel, infraEmoji, infraOperator, cleanDescription } from "@/lib/report-display";
+import { normalizeQuartier } from "@/lib/quartiers";
 import electricityIcon from "@/assets/electricity-icon.png";
 import waterIcon from "@/assets/water-icon.png";
 
@@ -294,34 +295,51 @@ const DashboardPage = () => {
     if (!durRes.error && durRes.data) setDurations(durRes.data as unknown as DurationStat[]);
     if (!reportsRes.error && reportsRes.data) setPriorityReports(reportsRes.data as unknown as PriorityReport[]);
 
-    // Build top quartiers ranking avec assainissement des libellés (ex: __other -> Autres secteurs)
-    const allQuartiers: QuartierRanking[] = [];
+    // Build top quartiers ranking avec consolidation canonique des doublons (ex: Williamsville 2 & Williamsville II)
+    const quartierAggMap = new Map<string, QuartierRanking>();
+
     quartierResults.forEach((res, idx) => {
       if (!res.error && res.data) {
         const commune = communeNames[idx];
         const couleur = COMMUNES.find((c) => c.nom === commune)?.couleur || "#888";
         (res.data as any[]).forEach((q) => {
           const rawName = (q.quartier || "").trim();
-          const cleanName = (!rawName || rawName === "__other" || rawName === "other" || rawName.toLowerCase() === "autre")
-            ? "Autres secteurs"
-            : rawName;
+          if (!rawName || rawName === "__other" || rawName === "other" || rawName.toLowerCase() === "autre") return;
+          const canonical = normalizeQuartier(rawName, commune);
+          if (!canonical || canonical === "Secteur non précisé") return;
 
-          const totalActifs = (q.electricite_actifs || 0) + (q.eau_actifs || 0) + (q.mairie_actifs || 0);
-          if (totalActifs > 0 || (q.electricite_total || 0) + (q.eau_total || 0) + (q.mairie_total || 0) > 0) {
-            allQuartiers.push({
+          const key = `${commune}|${canonical}`;
+          const existing = quartierAggMap.get(key);
+
+          const elecActifs = q.electricite_actifs || 0;
+          const eauActifs = q.eau_actifs || 0;
+          const mairieActifs = q.mairie_actifs || 0;
+          const totalActifs = elecActifs + eauActifs + mairieActifs;
+          const totalAll = (q.electricite_total || 0) + (q.eau_total || 0) + (q.mairie_total || 0);
+
+          if (existing) {
+            existing.elecActifs += elecActifs;
+            existing.eauActifs += eauActifs;
+            existing.mairieActifs += mairieActifs;
+            existing.totalActifs += totalActifs;
+            existing.totalAll += totalAll;
+          } else if (totalActifs > 0 || totalAll > 0) {
+            quartierAggMap.set(key, {
               commune,
               couleur,
-              quartier: cleanName,
+              quartier: canonical,
               totalActifs,
-              elecActifs: q.electricite_actifs || 0,
-              eauActifs: q.eau_actifs || 0,
-              mairieActifs: q.mairie_actifs || 0,
-              totalAll: (q.electricite_total || 0) + (q.eau_total || 0) + (q.mairie_total || 0),
+              elecActifs,
+              eauActifs,
+              mairieActifs,
+              totalAll,
             });
           }
         });
       }
     });
+
+    const allQuartiers = Array.from(quartierAggMap.values());
     allQuartiers.sort((a, b) => b.totalActifs - a.totalActifs || b.totalAll - a.totalAll);
     setTopQuartiers(allQuartiers.slice(0, 10));
 

@@ -193,52 +193,55 @@ function buildBatchEmailHtml(
   // ── Salutation et corps personnalisés ────────────────────────────────────────
 
   const salutation = isMairie
-    ? `Monsieur le Directeur des Services Techniques,<br>Monsieur le Maire de la Commune de <strong>${escapeHtml(commune)}</strong>,`
+    ? `Monsieur le Maire,<br>Monsieur le Directeur des Services Techniques et du Cadre de Vie de la Commune de <strong>${escapeHtml(commune)}</strong>,`
     : isANARE
-      ? `Madame, Monsieur,<br>À l'attention de la <strong>Direction de la Régulation ANARE-CI</strong> (Électricité & Éclairage Public)`
+      ? `Madame, Monsieur la Direction Générale et le Département Régulation & Qualité de Service — <strong>ANARE-CI</strong>,`
       : isONEP
-        ? `Madame, Monsieur,<br>À l'attention de la <strong>Direction Générale de l'ONEP</strong> (Office National de l'Eau Potable)`
+        ? `Madame, Monsieur la Direction Générale et la Maîtrise d'Ouvrage — <strong>ONEP</strong>,`
         : isCIE
-          ? `Madame, Monsieur,<br>À l'attention du <strong>Service Clientèle CIE</strong> — Direction Régionale d'Abidjan`
-          : `Madame, Monsieur,<br>À l'attention du <strong>Service Clientèle SODECI</strong> — Direction Régionale d'Abidjan`;
+          ? `Madame, Monsieur les Responsables de l'Exploitation & de la Relation Usagers — <strong>Compagnie Ivoirienne d'Électricité (CIE)</strong>,`
+          : `Madame, Monsieur les Responsables de la Distribution & de la Relation Usagers — <strong>Société de Distribution d'Eau de la Côte d'Ivoire (SODECI)</strong>,`;
 
   const introBody = isMairie
     ? `
       <p style="margin:0 0 14px;color:#374151;font-size:14px;line-height:1.8;">
-        Nous avons l'honneur de vous adresser le présent courrier électronique afin de porter à votre connaissance
-        des problèmes de <strong style="color:#111827;">voirie et d'infrastructures urbaines</strong> signalés par les habitants
-        de la commune de <strong style="color:#111827;">${escapeHtml(commune)}</strong> via la plateforme citoyenne <strong>SIGNA-CI</strong>.
+        Dans un esprit de coopération républicaine et d'entraide civique, la plateforme citoyenne <strong>SIGNA-CI</strong> a l'honneur de vous transmettre une synthèse géolocalisée de signalements concernant la <strong style="color:#111827;">voirie et le cadre de vie</strong> dans la commune de <strong style="color:#111827;">${escapeHtml(commune)}</strong>.
+      </p>
+      <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.8;">
+        Nous saluons le dévouement quotidien de vos équipes techniques municipales et mettons à votre disposition ces données enrichies du référentiel d'adressage officiel PADA afin de faciliter et optimiser leurs interventions de terrain.
       </p>`
     : isANARE
       ? `
       <p style="margin:0 0 14px;color:#374151;font-size:14px;line-height:1.8;">
-        En votre qualité d'autorité de régulation du secteur de l'électricité, nous vous adressons ce rapport consolidé concernant
-        des réclamations sur la <strong style="color:#111827;">qualité du service électrique et les lampadaires/éclairages publics hors service</strong>
-        dans la commune de <strong style="color:#111827;">${escapeHtml(commune)}</strong>.
+        En votre qualité d'autorité de régulation du secteur de l'électricité (<strong>ANARE-CI</strong>), nous vous adressons ce rapport consolidé concernant la <strong style="color:#111827;">continuité du service électrique et l'état des infrastructures d'éclairage public</strong> dans la commune de <strong style="color:#111827;">${escapeHtml(commune)}</strong>.
       </p>
-      <p style="margin:0 0 20px;color:#374151;font-size:14px;line-height:1.8;">
-        Ces signalements citoyens permettent à l'ANARE-CI de suivre l'efficacité des interventions de rétablissement et d'exercer sa mission de contrôle de la qualité de service au bénéfice des abonnés.
+      <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.8;">
+        Ces données vérifiées et qualifiées avec le référentiel PADA ont vocation à soutenir vos missions de contrôle et à appuyer la coordination avec le concessionnaire CIE pour un rétablissement rapide et pérenne.
       </p>`
       : isONEP
         ? `
       <p style="margin:0 0 14px;color:#374151;font-size:14px;line-height:1.8;">
-        En votre qualité d'office national régissant l'approvisionnement en eau potable, nous vous transmettons ces réclamations citoyennes sur
-        la <strong style="color:#111827;">continuité du service et la qualité de l'eau potable</strong> dans la commune de <strong style="color:#111827;">${escapeHtml(commune)}</strong>.
+        En votre qualité de Maître d'Ouvrage et d'Office National régissant l'approvisionnement en eau potable (<strong>ONEP</strong>), nous vous transmettons ce point de situation sur la <strong style="color:#111827;">continuité et la qualité de la distribution d'eau</strong> dans la commune de <strong style="color:#111827;">${escapeHtml(commune)}</strong>.
+      </p>
+      <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.8;">
+        Ce rapport collaboratif vise à soutenir vos orientations stratégiques et à faciliter le suivi patrimonial en lien avec la SODECI.
       </p>`
         : `
       <p style="margin:0 0 14px;color:#374151;font-size:14px;line-height:1.8;">
-        Des habitants de la commune de <strong style="color:#111827;">${escapeHtml(commune)}</strong>
-        ont signalé des ${serviceLabel.toLowerCase()} via l'application citoyenne <strong>SIGNA-CI</strong>.
+        Dans une démarche constructive visant à faciliter l'action de vos équipes de dépannage et d'intervention, la plateforme citoyenne <strong>SIGNA-CI</strong> vous relaie ce constat de panne corroboré par des riverains dans la commune de <strong style="color:#111827;">${escapeHtml(commune)}</strong>.
+      </p>
+      <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.8;">
+        Nos concitoyens sont reconnaissants des efforts déployés par vos agents sur le terrain pour rétablir le service dans les meilleurs délais.
       </p>`;
 
   const verifiedBlock = `
-    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;margin-bottom:20px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;margin-bottom:20px;">
       <tr><td style="padding:14px 16px;">
-        <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.5px;">Garanties de fiabilité SIGNA-CI</p>
-        <ul style="margin:0;padding:0 0 0 18px;font-size:13px;color:#374151;line-height:1.8;">
-          <li><strong>Confirmations authentifiées :</strong> signalements vérifiés et corroborés par les habitants.</li>
-          <li><strong>Dédoublonnage géographique :</strong> fusion des pannes d'une même zone.</li>
-          <li><strong>Validation manuelle admin :</strong> contrôle préalable par l'équipe SIGNA-CI.</li>
+        <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:0.5px;">🌿 Garanties de Qualité & Conformité PADA (MCLU)</p>
+        <ul style="margin:0;padding:0 0 0 18px;font-size:13px;color:#14532d;line-height:1.8;">
+          <li><strong>Adressage Officiel PADA :</strong> nomenclature et repères cadastraux du Ministère de la Construction.</li>
+          <li><strong>Corroboration citoyenne :</strong> signalements vérifiés et appuyés par les riverains et abonnés.</li>
+          <li><strong>Dédoublonnage & Localisation GPS :</strong> coordonnées précises pour navigation directe des équipes.</li>
         </ul>
       </td></tr>
     </table>`;
@@ -246,75 +249,76 @@ function buildBatchEmailHtml(
   return `<!DOCTYPE html>
 <html lang="fr">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:Inter,Helvetica,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:32px 16px;">
+<body style="margin:0;padding:0;background:#f8fafc;font-family:Inter,Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 16px;">
     <tr><td align="center">
-      <table width="620" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.12);">
+      <table width="640" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px -2px rgba(0,0,0,0.08);border:1px solid #e2e8f0;">
 
         <!-- Header bande couleur -->
         <tr>
           <td style="background:${headerGradient};padding:28px 32px;">
-            <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:1.2px;font-weight:600;">
-              Transmission d'Incident · SIGNA-CI — Côte d'Ivoire
+            <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.9);text-transform:uppercase;letter-spacing:1.2px;font-weight:700;">
+              🤝 Coopération Territoriale & Appui Technique · SIGNA-CI — Côte d'Ivoire
             </p>
-            <h1 style="margin:8px 0 0;font-size:23px;font-weight:800;color:#ffffff;line-height:1.2;">
+            <h1 style="margin:8px 0 0;font-size:22px;font-weight:800;color:#ffffff;line-height:1.3;">
               ${serviceIcon} ${serviceLabel}
             </h1>
-            <p style="margin:10px 0 0;font-size:14px;color:rgba(255,255,255,0.92);line-height:1.6;">
+            <p style="margin:10px 0 0;font-size:14px;color:rgba(255,255,255,0.95);line-height:1.6;">
               Commune de <strong>${escapeHtml(commune)}</strong>
               &nbsp;·&nbsp;${byQuartier.size} quartier${byQuartier.size > 1 ? "s" : ""}
-              &nbsp;·&nbsp;<strong>${totalCitizens}</strong> citoyen${totalCitizens > 1 ? "s" : ""} concerné${totalCitizens > 1 ? "s" : ""}
+              &nbsp;·&nbsp;<strong>${totalCitizens}</strong> concitoyen${totalCitizens > 1 ? "s" : ""} concerné${totalCitizens > 1 ? "s" : ""}
             </p>
           </td>
         </tr>
 
         <!-- Corps -->
         <tr><td style="padding:28px 32px;">
-          <p style="margin:0 0 18px;color:#374151;font-size:14px;line-height:1.8;">
+          <p style="margin:0 0 18px;color:#1e293b;font-size:15px;line-height:1.8;">
             ${salutation}
           </p>
           ${introBody}
           ${verifiedBlock}
 
           <!-- Tableau des quartiers -->
-          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:24px;">
-            <tr style="background:#f9fafb;">
-              <th style="padding:10px 16px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;text-align:left;letter-spacing:0.5px;">Quartier / Zone</th>
-              <th style="padding:10px 16px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;text-align:center;letter-spacing:0.5px;">${citizenColLabel}</th>
-              <th style="padding:10px 16px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;text-align:left;letter-spacing:0.5px;">Signalé depuis</th>
-              <th style="padding:10px 16px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;text-align:left;letter-spacing:0.5px;">Localisation GPS</th>
+          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:24px;">
+            <tr style="background:#f8fafc;">
+              <th style="padding:10px 16px;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;text-align:left;letter-spacing:0.5px;">Quartier / Voie PADA</th>
+              <th style="padding:10px 16px;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;text-align:center;letter-spacing:0.5px;">${citizenColLabel}</th>
+              <th style="padding:10px 16px;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;text-align:left;letter-spacing:0.5px;">Horodatage</th>
+              <th style="padding:10px 16px;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;text-align:left;letter-spacing:0.5px;">Itinéraire GPS</th>
             </tr>
             ${reportRows}
           </table>
 
           ${!isMairie && reports.some((r) => r.meter_number || r.reporter_phone) ? `
           <div style="margin-bottom:24px;padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
-            <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:0.5px;">📋 Contacts Citoyens Référents & Numéros de Compteur</p>
+            <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:0.5px;">📋 Contacts Abonnés Référents & Numéros de Compteur</p>
             <ul style="margin:0;padding:0 0 0 18px;font-size:12px;color:#334155;line-height:1.7;">
               ${reports.filter((r) => r.meter_number || r.reporter_phone).map((r) => `
                 <li>
                   <strong>${escapeHtml(r.quartier)}</strong> :
                   ${r.meter_number ? `Compteur <code>${escapeHtml(r.meter_number)}</code> (${r.contract_type === "postpaid" ? "Postpayé" : "Prépayé"})` : ""}
-                  ${r.reporter_phone ? ` · Tél: <strong>${escapeHtml(r.reporter_phone)}</strong>` : ""}
+                  ${r.reporter_phone ? ` · Contact: <strong>${escapeHtml(r.reporter_phone)}</strong>` : ""}
                 </li>
               `).join("")}
             </ul>
           </div>
           ` : ""}
 
-          <p style="margin:0 0 24px;color:#374151;font-size:14px;line-height:1.8;">
-            Nous restons à votre disposition pour mesurer et publier l'avancement des actions de résolution en faveur des usagers.
-          </p>
+          <div style="margin-top:20px;padding:16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:13px;color:#166534;line-height:1.7;">
+            <strong>🌿 Esprit de Concertation & Collaboration Active :</strong><br>
+            L'équipe SIGNA-CI se tient à votre entière disposition pour tout renseignement complémentaire et pour relayer avec fierté la clôture et le rétablissement de vos interventions auprès des concitoyens.
+          </div>
 
-          <table width="100%"><tr><td align="center" style="padding-bottom:24px;">
-            <a href="https://civic-signal-ten.vercel.app/tableau-de-bord"
-               style="background:${headerGradient};color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:13px 30px;border-radius:8px;display:inline-block;letter-spacing:0.2px;">
-              Voir le suivi en ligne →
+          <table width="100%" style="margin-top:24px;"><tr><td align="center">
+            <a href="https://signa.ci/tableau-de-bord"
+               style="background:${headerGradient};color:#ffffff;text-decoration:none;font-weight:800;font-size:14px;padding:12px 28px;border-radius:8px;display:inline-block;letter-spacing:0.2px;">
+              Consulter la Carte des Interventions →
             </a>
           </td></tr></table>
 
-          <p style="margin:0;color:#9ca3af;font-size:12px;line-height:1.7;border-top:1px solid #e5e7eb;padding-top:20px;">
-            Ce message est transmis par <strong>SIGNA-CI</strong>, plateforme citoyenne de suivi des services publics en Côte d'Ivoire.
+          <p style="margin:24px 0 0;color:#64748b;font-size:11px;line-height:1.7;border-top:1px solid #e2e8f0;padding-top:20px;text-align:center;">
+            🤝 <strong>SIGNA-CI</strong> · Plateforme d'Alliance Citoyenne pour des Quartiers Sains & Sécurisés · Abidjan, Côte d'Ivoire
           </p>
         </td></tr>
       </table>

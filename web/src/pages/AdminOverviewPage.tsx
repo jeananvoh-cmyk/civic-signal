@@ -104,18 +104,119 @@ const AdminOverviewPage = () => {
   const { data: totalStats } = useQuery({
     queryKey: ["admin-overview-totals"],
     queryFn: async () => {
-      const [totalRes, activeRes, criticalRes, resolvedRes] = await Promise.all([
+      const [
+        totalRes,
+        activeElecRes,
+        activeWaterRes,
+        activeInfraRes,
+        activeAllRes,
+        criticalRes,
+        resolvedRes,
+      ] = await Promise.all([
         supabase.from("reports").select("*", { count: "exact", head: true }),
-        supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "active").eq("validated", true),
-        supabase.from("reports").select("*", { count: "exact", head: true }).eq("urgency", "critical").eq("status", "active"),
+        supabase
+          .from("reports")
+          .select("*", { count: "exact", head: true })
+          .eq("service_type", "electricity")
+          .eq("status", "active")
+          .eq("validated", true)
+          .neq("report_category", "infrastructure"),
+        supabase
+          .from("reports")
+          .select("*", { count: "exact", head: true })
+          .eq("service_type", "water")
+          .eq("status", "active")
+          .eq("validated", true)
+          .neq("report_category", "infrastructure"),
+        supabase
+          .from("reports")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "active")
+          .eq("validated", true)
+          .or("report_category.eq.infrastructure,service_type.eq.mairie"),
+        supabase
+          .from("reports")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "active")
+          .eq("validated", true),
+        supabase
+          .from("reports")
+          .select("*", { count: "exact", head: true })
+          .eq("urgency", "critical")
+          .eq("status", "active"),
         supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "resolved"),
       ]);
+
+      const activeElec = activeElecRes.count || 0;
+      const activeWater = activeWaterRes.count || 0;
+      const activeInfra = activeInfraRes.count || 0;
+      const activeTotal = activeAllRes.count || (activeElec + activeWater + activeInfra);
+
       return {
         total: totalRes.count || 0,
-        active: activeRes.count || 0,
+        active: activeTotal,
+        activeElec,
+        activeWater,
+        activeInfra,
         critical: criticalRes.count || 0,
         resolved: resolvedRes.count || 0,
       };
+    },
+  });
+
+  // Mutation pour auto-clôturer les coupures d'électricité et d'eau obsolètes (>48h)
+  const autoResolveStaleMutation = useMutation({
+    mutationFn: async (hours: number = 48) => {
+      // 1. Essayer la RPC SQL en premier
+      try {
+        const { data: rpcCount, error: rpcError } = await (supabase as any).rpc(
+          "auto_resolve_stale_outages",
+          { p_hours: hours }
+        );
+        if (!rpcError && typeof rpcCount === "number") {
+          return rpcCount;
+        }
+      } catch (e) {
+        console.warn("RPC auto_resolve_stale_outages note:", e);
+      }
+
+      // 2. Fallback direct sur Supabase client
+      const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+      const { data: updated, error } = await supabase
+        .from("reports")
+        .update({
+          status: "resolved",
+          resolved_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("status", "active")
+        .eq("validated", true)
+        .in("service_type", ["electricity", "water"])
+        .neq("report_category", "infrastructure")
+        .lt("created_at", cutoff)
+        .select("id");
+
+      if (error) throw error;
+      return updated?.length || 0;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-overview-totals"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-reports-validated"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-overview-critical"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-reports-neglected"] });
+      toast({
+        title: "Auto-clôture réussie",
+        description: count > 0
+          ? `${count} coupure(s) d'électricité/eau expirée(s) (+48h) ont été automatiquement clôturées.`
+          : "Aucune coupure de plus de 48h en attente de clôture.",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Erreur d'auto-clôture",
+        description: err?.message || "Impossible d'exécuter l'auto-clôture.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -204,25 +305,51 @@ const AdminOverviewPage = () => {
     },
   });
 
-  const stats = totalStats || { total: 0, active: 0, critical: 0, resolved: 0 };
+  const stats = totalStats || {
+    total: 0,
+    active: 0,
+    activeElec: 0,
+    activeWater: 0,
+    activeInfra: 0,
+    critical: 0,
+    resolved: 0,
+  };
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
 
       {/* ── En-tête ── */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl gradient-hero">
-            <Shield className="h-6 w-6 text-primary-foreground" />
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl gradient-hero">
+              <Shield className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="font-display text-2xl font-bold text-foreground">Vue d'ensemble</h1>
+              <p className="text-sm text-muted-foreground">Supervision et maintenance de la plateforme SIGNA-CI</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-display text-2xl font-bold text-foreground">Vue d'ensemble</h1>
-            <p className="text-sm text-muted-foreground">Vue d'ensemble de l'application SIGNA-CI</p>
-          </div>
+
+          {/* Bouton d'auto-clôture des coupures obsolètes */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 shadow-sm"
+            onClick={() => {
+              if (confirm("Voulez-vous auto-clôturer les coupures d'électricité et d'eau actives datant de plus de 48h pour assainir les compteurs ?")) {
+                autoResolveStaleMutation.mutate(48);
+              }
+            }}
+            disabled={autoResolveStaleMutation.isPending}
+          >
+            <Zap className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <span>{autoResolveStaleMutation.isPending ? "Auto-clôture en cours..." : "Auto-clôturer les coupures expirées (+48h)"}</span>
+          </Button>
         </div>
       </motion.div>
 
-      {/* ── KPIs actionnables ── */}
+      {/* ── KPIs d'alertes & actions ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-4">
         {!totalStats ? (
           Array.from({ length: 4 }).map((_, i) => (
@@ -234,7 +361,7 @@ const AdminOverviewPage = () => {
           ))
         ) : (
           <>
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} onClick={() => navigate("/admin/signalements")} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && navigate("/admin/signalements")} className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} onClick={() => navigate("/admin/signalements?tab=pending")} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && navigate("/admin/signalements?tab=pending")} className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl">
               <Card className="border-warning/20 hover:shadow-md transition-shadow">
                 <CardContent className="p-4 text-center">
                   <Clock className="h-5 w-5 mx-auto mb-2 text-warning" />
@@ -244,7 +371,7 @@ const AdminOverviewPage = () => {
               </Card>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} onClick={() => navigate("/admin/signalements")} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && navigate("/admin/signalements")} className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} onClick={() => navigate("/admin/signalements?tab=validated&status=critical")} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && navigate("/admin/signalements?tab=validated&status=critical")} className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl">
               <Card className="border-destructive/20 hover:shadow-md transition-shadow">
                 <CardContent className="p-4 text-center">
                   <AlertTriangle className="h-5 w-5 mx-auto mb-2 text-destructive" />
@@ -254,7 +381,7 @@ const AdminOverviewPage = () => {
               </Card>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} onClick={() => navigate("/admin/signalements")} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && navigate("/admin/signalements")} className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} onClick={() => navigate("/admin/signalements?tab=neglected")} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && navigate("/admin/signalements?tab=neglected")} className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl">
               <Card className={`hover:shadow-md transition-shadow ${neglectedCount > 0 ? "border-warning/20" : ""}`}>
                 <CardContent className="p-4 text-center">
                   <AlertOctagon className={`h-5 w-5 mx-auto mb-2 ${neglectedCount > 0 ? "text-warning" : "text-muted-foreground"}`} />
@@ -277,21 +404,124 @@ const AdminOverviewPage = () => {
         )}
       </div>
 
-      {/* ── Aperçu général — compact ── */}
+      {/* ── Répartition granulaire des Signalements Actifs (Électricité, Eau, Voirie) ── */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            État des signalements actifs ({stats.active})
+          </p>
+          <span className="text-[11px] text-muted-foreground">Cliquez sur une carte pour voir les fiches</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          {/* Électricité */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.22 }}
+            onClick={() => navigate("/admin/signalements?tab=validated&service=electricity&status=active")}
+            className="cursor-pointer group"
+          >
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 group-hover:bg-amber-500/10 p-3.5 flex items-center justify-between transition-all">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                  <Zap className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-display text-2xl font-black text-amber-700 dark:text-amber-300">{stats.activeElec}</p>
+                    <Badge variant="outline" className="border-amber-500/40 text-amber-700 dark:text-amber-400 text-[10px] px-1.5 py-0 bg-amber-500/10">
+                      CIE
+                    </Badge>
+                  </div>
+                  <p className="text-xs font-medium text-amber-900/80 dark:text-amber-200">Coupures Électricité</p>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-amber-600/60 group-hover:text-amber-600 group-hover:translate-x-1 transition-all" />
+            </div>
+          </motion.div>
+
+          {/* Eau */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.24 }}
+            onClick={() => navigate("/admin/signalements?tab=validated&service=water&status=active")}
+            className="cursor-pointer group"
+          >
+            <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 group-hover:bg-blue-500/10 p-3.5 flex items-center justify-between transition-all">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                  <Droplets className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-display text-2xl font-black text-blue-700 dark:text-blue-300">{stats.activeWater}</p>
+                    <Badge variant="outline" className="border-blue-500/40 text-blue-700 dark:text-blue-400 text-[10px] px-1.5 py-0 bg-blue-500/10">
+                      SODECI
+                    </Badge>
+                  </div>
+                  <p className="text-xs font-medium text-blue-900/80 dark:text-blue-200">Coupures Eau</p>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-blue-600/60 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+            </div>
+          </motion.div>
+
+          {/* Voirie & Infrastructure */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.26 }}
+            onClick={() => navigate("/admin/signalements?tab=validated&service=mairie&status=active")}
+            className="cursor-pointer group"
+          >
+            <div className="rounded-xl border border-teal-500/30 bg-teal-500/5 group-hover:bg-teal-500/10 p-3.5 flex items-center justify-between transition-all">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-500/20 text-teal-600 dark:text-teal-400">
+                  <Building2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-display text-2xl font-black text-teal-700 dark:text-teal-300">{stats.activeInfra}</p>
+                    <Badge variant="outline" className="border-teal-500/40 text-teal-700 dark:text-teal-400 text-[10px] px-1.5 py-0 bg-teal-500/10">
+                      Mairies
+                    </Badge>
+                  </div>
+                  <p className="text-xs font-medium text-teal-900/80 dark:text-teal-200">Voirie & Infrastructures</p>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-teal-600/60 group-hover:text-teal-600 group-hover:translate-x-1 transition-all" />
+            </div>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* ── Aperçu général — interactif avec redirections ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-8">
         {[
-          { label: "Total signalements", value: stats.total, icon: FileText },
-          { label: "Coupures actives", value: stats.active, icon: Zap },
-          { label: "Résolus", value: stats.resolved, icon: CheckCircle2 },
-          { label: "Utilisateurs", value: usersCount, icon: Users },
+          { label: "Total signalements", value: stats.total, icon: FileText, path: "/admin/signalements?tab=validated" },
+          { label: "Signalements actifs", value: stats.active, icon: Activity, path: "/admin/signalements?tab=validated&status=active" },
+          { label: "Résolus / Rétablis", value: stats.resolved, icon: CheckCircle2, path: "/admin/signalements?tab=validated&status=resolved" },
+          { label: "Utilisateurs inscrits", value: usersCount, icon: Users, path: "/admin/utilisateurs" },
         ].map((item, i) => (
-          <motion.div key={item.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 + i * 0.04 }}>
-            <div className="rounded-xl border border-border bg-card p-3 flex items-center gap-3">
-              <item.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <div>
-                <p className="font-display text-xl font-bold text-foreground">{item.value}</p>
-                <p className="text-xs text-muted-foreground">{item.label}</p>
+          <motion.div
+            key={item.label}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.28 + i * 0.04 }}
+            onClick={() => navigate(item.path)}
+            className="cursor-pointer group"
+          >
+            <div className="rounded-xl border border-border bg-card hover:border-primary/50 group-hover:shadow-sm p-3 flex items-center justify-between transition-all">
+              <div className="flex items-center gap-3">
+                <item.icon className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
+                <div>
+                  <p className="font-display text-xl font-bold text-foreground">{item.value}</p>
+                  <p className="text-xs text-muted-foreground">{item.label}</p>
+                </div>
               </div>
+              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
             </div>
           </motion.div>
         ))}

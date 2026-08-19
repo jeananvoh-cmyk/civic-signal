@@ -162,10 +162,78 @@ Deno.serve(async (req) => {
       }
 
       // ============================================================
-      // FLUX RÉCURRENT (inchangé)
+      // RELANCE H+24 (24h avant auto-clôture) pour les coupures temporaires
+      // ============================================================
+      if (!isInfra && ageHours >= 24 && ageHours < 48 && !(report as any).h24_author_notified) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("phone, first_name")
+          .eq("user_id", report.user_id)
+          .maybeSingle();
+
+        const phone = profile?.phone?.replace(/\D/g, "") || null;
+        const hasPhone = !!(phone && phone.length >= 8);
+
+        await supabase.from("notifications").insert({
+          user_id: report.user_id,
+          report_id: report.id,
+          title: `⚡ Relance H+24 : Le service est-il rétabli à ${report.quartier} ?`,
+          message:
+            `${serviceLabel} — ${report.commune}, ${report.quartier} · ` +
+            `Votre coupure a été signalée il y a 24h. Le service est-il rétabli ? ` +
+            `Sans confirmation de votre part sous 24h, ce signalement sera automatiquement clôturé. ` +
+            `Cliquez pour confirmer ou clôturer → ${detailUrl}?action=resolve`,
+        });
+        notificationsInserted++;
+
+        await supabase
+          .from("reports")
+          .update({
+            h24_author_notified: true,
+            whatsapp_reminder_needed_at: hasPhone ? new Date().toISOString() : null,
+            last_reminder_at: new Date().toISOString(),
+            reminder_count: (report.reminder_count || 0) + 1,
+          })
+          .eq("id", report.id);
+
+        continue;
+      }
+
+      // ============================================================
+      // AUTO-CLÔTURE DES COUPURES TEMPORAIRES OBSOLÈTES (> 48h)
+      // Les coupures d'électricité et d'eau non corroborées après 48h sont rétablies
+      // et doivent être auto-clôturées pour ne pas fausser les métriques publiques.
+      // (Les infrastructures physiques restent ouvertes sous suivi persistant).
+      // ============================================================
+      if (!isInfra && ageHours >= 48) {
+        await supabase
+          .from("reports")
+          .update({
+            status: "resolved",
+            resolved_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", report.id);
+        archived++;
+
+        await supabase.from("notifications").insert({
+          user_id: report.user_id,
+          report_id: report.id,
+          title: "✅ Coupure clôturée automatiquement",
+          message:
+            `${serviceLabel} — ${report.commune}, ${report.quartier} · ` +
+            `Ce signalement de coupure a été automatiquement clôturé après 48h. ` +
+            `Si l'interruption persiste encore, vous pouvez déposer un nouveau signalement. → ${detailUrl}`,
+        });
+        notificationsInserted++;
+        continue;
+      }
+
+      // ============================================================
+      // FLUX RÉCURRENT (Infrastructures physiques & problèmes persistants)
       // ============================================================
 
-      // ── 14 jours → CHRONIC ──
+      // ── 14 jours → CHRONIC (pour les infrastructures persistantes) ──
       if (ageDays >= 14 && report.status !== "chronic") {
         await supabase
           .from("reports")

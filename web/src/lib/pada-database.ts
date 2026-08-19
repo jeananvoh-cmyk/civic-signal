@@ -8,6 +8,19 @@
  * - Les Rues majeures par quartier
  */
 
+import { 
+  PADA_COMMUNES_REGISTRY, 
+  getWaysByCommune, 
+  normalizeCommuneName,
+  PADA_DOOR_NUMBERS,
+  getDoorNumbersByCommune,
+  getDoorNumbersByWay,
+  getDoorsByWayFast,
+  type PadaDoorNumber
+} from '../data/pada';
+
+export { PADA_DOOR_NUMBERS, getDoorNumbersByCommune, getDoorNumbersByWay, getDoorsByWayFast, type PadaDoorNumber };
+
 export interface PadaWay {
   id: string;             // ex: "166710" ou "PADA-B-001"
   type: "BOULEVARD" | "AVENUE" | "RUE" | "IMPASSE" | "RUELLE" | "PLACE" | "ROND-POINT";
@@ -17,6 +30,23 @@ export interface PadaWay {
   quartier?: string;      // ex: "Riviera Bonoumin"
   longueurM?: number;     // métrage linéaire officiel
   codePada?: string;      // Identifiant officiel PADA
+  lat?: number;           // Coordonnée GPS indicative du centroïde de la voie
+  lng?: number;
+}
+
+/**
+ * Calcul de la distance géodésique Haversine en mètres entre deux coordonnées GPS
+ */
+export function haversineDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -45,7 +75,7 @@ export const PADA_BOULEVARDS: PadaWay[] = [
   { id: "PADA-B-020", type: "BOULEVARD", nom: "Boulevard Koui Mamadou", ancienNom: "Route de Dabou", commune: "Yopougon / Songon" },
   { id: "PADA-B-021", type: "BOULEVARD", nom: "Boulevard Auguste Denise", ancienNom: "Descente du pont De Gaulle au Boulevard de Marseille", commune: "Treichville" },
   { id: "PADA-B-022", type: "BOULEVARD", nom: "Boulevard Alassane Ouattara", ancienNom: "Percée Reboul (depuis Nangui Abrogoua)", commune: "Adjamé / Plateau" },
-  { id: "PADA-B-023", type: "BOULEVARD", nom: "Boulevard du 5è Pont", ancienNom: "Pont Alassane Ouattara / 5ème Pont Cocody-Plateau", commune: "Cocody / Plateau" },
+  { id: "PADA-B-023", type: "BOULEVARD", nom: "Boulevard du Pont Alassane Ouattara", ancienNom: "5ème Pont Cocody-Plateau / Pont Alassane Ouattara", commune: "Cocody / Plateau", codePada: "00214", longueurM: 2500 },
   { id: "PADA-B-024", type: "BOULEVARD", nom: "Boulevard de la République", ancienNom: "Boulevard de la République", commune: "Plateau" },
   { id: "PADA-B-025", type: "BOULEVARD", nom: "Boulevard Lagunaire", ancienNom: "Boulevard Lagunaire", commune: "Plateau / Treichville" },
   { id: "PADA-B-026", type: "BOULEVARD", nom: "Boulevard de l'Aéroport Félix Houphouët-Boigny", ancienNom: "Route de l'aéroport (depuis Akwaba)", commune: "Port-Bouët" },
@@ -162,6 +192,7 @@ export const PADA_AVENUES: PadaWay[] = [
   { id: "166008", codePada: "166008", type: "AVENUE", nom: "Avenue Edmond Zégbéhi Bouazo", commune: "Cocody", quartier: "Riviera Bonoumin", longueurM: 710 },
   { id: "175358", codePada: "175358", type: "AVENUE", nom: "Avenue Joachim Boni", commune: "Cocody", quartier: "Riviera Bonoumin", longueurM: 837 },
   { id: "165907", codePada: "165907", type: "AVENUE", nom: "Avenue Pierre Kipré", commune: "Cocody", quartier: "Riviera Bonoumin", longueurM: 2637 },
+  { id: "166720", codePada: "00214",  type: "RUE",    nom: "Rue Kouabié Peggy Florence Attegbé", commune: "Cocody", quartier: "Riviera Bonoumin", longueurM: 1450 },
   { id: "172979", codePada: "172979", type: "AVENUE", nom: "Avenue du Golf", commune: "Cocody", quartier: "Riviera Golf", longueurM: 3187 },
   { id: "172984", codePada: "172984", type: "AVENUE", nom: "Avenue John Kennedy", commune: "Cocody", quartier: "Riviera Golf", longueurM: 1041 },
   { id: "165836", codePada: "165836", type: "AVENUE", nom: "Avenue Bernard Zadi Zaourou", commune: "Cocody", quartier: "Riviera Sideci", longueurM: 2136 },
@@ -300,6 +331,1694 @@ export const PADA_AVENUES: PadaWay[] = [
 ];
 
 // ══════════════════════════════════════════════════════════════════════════════
+// 3. LES RUES OFFICIELLES HOMOLOGUÉES PADA (PAR QUARTIER & COMMUNE)
+// ══════════════════════════════════════════════════════════════════════════════
+export const PADA_RUES: PadaWay[] = [
+  { id: "165742", codePada: "165742", type: "RUE", nom: "Rue de la Candeur", commune: "Adjamé", quartier: "Williamsville 3", longueurM: 48 },
+  { id: "165743", codePada: "165743", type: "RUE", nom: "Rue Émile Konan Fréjus", commune: "Adjamé", quartier: "Williamsville 3", longueurM: 139 },
+  { id: "165568", codePada: "165568", type: "RUE", nom: "Rue Mathieu Kérékou", commune: "Adjamé", quartier: "Williamsville 3", longueurM: 1020 },
+  { id: "171944", codePada: "171944", type: "RUE", nom: "Rue Kadiogo", commune: "Adjamé", quartier: "Williamsville 3", longueurM: 55 },
+  { id: "165555", codePada: "165555", type: "RUE", nom: "Rue N'Gatta Bandama", commune: "Adjamé", quartier: "Williamsville 3", longueurM: 182 },
+  { id: "165737", codePada: "165737", type: "RUE", nom: "Rue de la Prévenance", commune: "Adjamé", quartier: "Williamsville 3", longueurM: 160 },
+  { id: "148985", codePada: "148985", type: "RUE", nom: "Rue Jean Brou Kouakou", commune: "Adjamé", quartier: "Williamsville 3", longueurM: 258 },
+  { id: "172879", codePada: "172879", type: "RUE", nom: "Rue Henriette Lagou", commune: "Adjamé", quartier: "Williamsville 3", longueurM: 186 },
+  { id: "172877", codePada: "172877", type: "RUE", nom: "Rue Jomo Kenyatta", commune: "Adjamé", quartier: "Williamsville 3", longueurM: 201 },
+  { id: "136846", codePada: "136846", type: "RUE", nom: "Rue de l'Attachement", commune: "Adjamé", quartier: "Williamsville 3", longueurM: 90 },
+  { id: "165594", codePada: "165594", type: "RUE", nom: "Rue Israël Guébo", commune: "Adjamé", quartier: "Williamsville 3", longueurM: 198 },
+  { id: "171913", codePada: "171913", type: "RUE", nom: "Rue Mariam Koné Yoda", commune: "Adjamé", quartier: "Williamsville 3", longueurM: 90 },
+  { id: "165593", codePada: "165593", type: "RUE", nom: "Rue du Calme", commune: "Adjamé", quartier: "Williamsville 3", longueurM: 607 },
+  { id: "165748", codePada: "165748", type: "RUE", nom: "Rue de l'Apprentissage", commune: "Adjamé", quartier: "Williamsville 3", longueurM: 319 },
+  { id: "0100202ANY0002", codePada: "0100202ANY0002", type: "RUE", nom: "Rue Mathieu Zongo", commune: "Anyama" },
+  { id: "0100202ANY0003", codePada: "0100202ANY0003", type: "RUE", nom: "Rue Cécile Blays", commune: "Anyama" },
+  { id: "0100202ANY0004", codePada: "0100202ANY0004", type: "RUE", nom: "Rue Père Philibert Ako Kimou", commune: "Anyama" },
+  { id: "0100202ANY0005", codePada: "0100202ANY0005", type: "RUE", nom: "Rue Koty Julien Aka", commune: "Anyama" },
+  { id: "0100202ANY0006", codePada: "0100202ANY0006", type: "RUE", nom: "Rue Yapi Max Odoukou", commune: "Anyama" },
+  { id: "0100202ANY0007", codePada: "0100202ANY0007", type: "RUE", nom: "Rue Bodjo Jérôme Sika", commune: "Anyama" },
+  { id: "0100202ANY0008", codePada: "0100202ANY0008", type: "RUE", nom: "Rue L'altruisme", commune: "Anyama" },
+  { id: "0100202ANY0009", codePada: "0100202ANY0009", type: "RUE", nom: "Rue Jean Koutchan", commune: "Anyama" },
+  { id: "0100202ANY0010", codePada: "0100202ANY0010", type: "RUE", nom: "Rue Bouadi François Abouchou", commune: "Anyama" },
+  { id: "0100202ANY0001", codePada: "0100202ANY0001", type: "RUE", nom: "Rue Al-hassana Sanogo", commune: "Anyama" },
+  { id: "0100202ANY0504", codePada: "0100202ANY0504", type: "RUE", nom: "Rue Isaac Brou", commune: "Anyama" },
+  { id: "0100203BIN0678", codePada: "0100203BIN0678", type: "RUE", nom: "Rue Isaac Gnamba-yao", commune: "Bingerville" },
+  { id: "0100203BIN1231", codePada: "0100203BIN1231", type: "RUE", nom: "Rue Maaté Keïta", commune: "Bingerville" },
+  { id: "0100205SON0083", codePada: "0100205SON0083", type: "RUE", nom: "Rue Très Rév Past Isaac Bodjé", commune: "Songon" },
+  { id: "0100211ABO0690", codePada: "0100211ABO0690", type: "RUE", nom: "Rue Abraham Isaac N'diaye", commune: "Abobo" },
+  { id: "0100211ABO2039", codePada: "0100211ABO2039", type: "RUE", nom: "Rue Isaach de Bankolé", commune: "Anyama" },
+  { id: "0100212ADJ0243", codePada: "0100212ADJ0243", type: "RUE", nom: "Rue Ismael Isaac", commune: "Adjamé" },
+  { id: "0100213ATT0028", codePada: "0100213ATT0028", type: "RUE", nom: "Rue Baarada", commune: "Attécoubé" },
+  { id: "0100202ANY0275", codePada: "0100202ANY0275", type: "RUE", nom: "Rue Doudou Saar", commune: "Anyama" },
+  { id: "0100202ANY0015", codePada: "0100202ANY0015", type: "RUE", nom: "Rue El Hadj Mory Berté", commune: "Anyama" },
+  { id: "0100202ANY0019", codePada: "0100202ANY0019", type: "RUE", nom: "Rue Kader Diaby", commune: "Anyama" },
+  { id: "0100202ANY0025", codePada: "0100202ANY0025", type: "RUE", nom: "Rue Sœur Amelie Marie Chiadon Mbahi", commune: "Anyama" },
+  { id: "0100202ANY0046", codePada: "0100202ANY0046", type: "RUE", nom: "Rue Adon Sika", commune: "Anyama" },
+  { id: "0100202ANY0055", codePada: "0100202ANY0055", type: "RUE", nom: "Rue Adon Kouao", commune: "Anyama" },
+  { id: "0100202ANY0056", codePada: "0100202ANY0056", type: "RUE", nom: "Rue Yapo Adompo", commune: "Anyama" },
+  { id: "0100202ANY0059", codePada: "0100202ANY0059", type: "RUE", nom: "Rue Guéhi Rosalie Dadjé", commune: "Anyama" },
+  { id: "0100202ANY0066", codePada: "0100202ANY0066", type: "RUE", nom: "Rue Hadja Ramata Coulibaly", commune: "Anyama" },
+  { id: "0100202ANY0067", codePada: "0100202ANY0067", type: "RUE", nom: "Rue Alliali Kouadio", commune: "Anyama" },
+  { id: "0100202ANY0082", codePada: "0100202ANY0082", type: "RUE", nom: "Rue Ada Agad", commune: "Anyama" },
+  { id: "0100202ANY0092", codePada: "0100202ANY0092", type: "RUE", nom: "Rue Nafiasso Adjagbri", commune: "Anyama" },
+  { id: "0100202ANY0124", codePada: "0100202ANY0124", type: "RUE", nom: "Rue Prof Dagui Monnet", commune: "Anyama" },
+  { id: "0100202ANY0140", codePada: "0100202ANY0140", type: "RUE", nom: "Rue Daga Konté", commune: "Anyama" },
+  { id: "0100202ANY0206", codePada: "0100202ANY0206", type: "RUE", nom: "Rue Adaga Cyrille Aka", commune: "Anyama" },
+  { id: "0100202ANY0224", codePada: "0100202ANY0224", type: "RUE", nom: "Rue Bertin Dagnan", commune: "Anyama" },
+  { id: "0100202ANY0253", codePada: "0100202ANY0253", type: "RUE", nom: "Rue Dagui Adolphe Tenon", commune: "Anyama" },
+  { id: "0100202ANY0272", codePada: "0100202ANY0272", type: "RUE", nom: "Rue Kousso Helène Agnan", commune: "Anyama" },
+  { id: "0100202ANY0288", codePada: "0100202ANY0288", type: "RUE", nom: "Rue Agoua Anne Marie Adon", commune: "Anyama" },
+  { id: "0100202ANY0040", codePada: "0100202ANY0040", type: "RUE", nom: "Rue Charles Agbe", commune: "Anyama" },
+  { id: "0100203BIN0691", codePada: "0100203BIN0691", type: "RUE", nom: "Rue les Majorelles", commune: "Bingerville" },
+  { id: "0100203BIN1104", codePada: "0100203BIN1104", type: "RUE", nom: "Rue les Cajanus", commune: "Bingerville" },
+  { id: "0100203BIN1225", codePada: "0100203BIN1225", type: "RUE", nom: "Rue Col Maj Barthélémy Affran", commune: "Bingerville" },
+  { id: "0100211ABO0084", codePada: "0100211ABO0084", type: "RUE", nom: "Rue Hakeem Olajuwon", commune: "Abobo" },
+  { id: "0100211ABO0572", codePada: "0100211ABO0572", type: "RUE", nom: "Rue le Rajah", commune: "Abobo" },
+  { id: "0100211ABO0624", codePada: "0100211ABO0624", type: "RUE", nom: "Rue la Majorité", commune: "Abobo" },
+  { id: "0100211ABO0909", codePada: "0100211ABO0909", type: "RUE", nom: "Rue la Majesté", commune: "Abobo" },
+  { id: "0100211ABO2186", codePada: "0100211ABO2186", type: "RUE", nom: "Rue Armand Ayi Ajavon", commune: "Abobo" },
+  { id: "0100211ABO2261", codePada: "0100211ABO2261", type: "RUE", nom: "Rue L'aguaje", commune: "Abobo" },
+  { id: "0100202ANY0403", codePada: "0100202ANY0403", type: "RUE", nom: "Rue Col-maj Kouamé Brou", commune: "Anyama" },
+  { id: "0100202ANY0017", codePada: "0100202ANY0017", type: "RUE", nom: "Rue Aboua Samuel Yapi", commune: "Anyama" },
+  { id: "0100202ANY0053", codePada: "0100202ANY0053", type: "RUE", nom: "Rue Yapi Peron Alle", commune: "Anyama" },
+  { id: "0100202ANY0084", codePada: "0100202ANY0084", type: "RUE", nom: "Rue Ambé Yapi", commune: "Anyama" },
+  { id: "0100202ANY0089", codePada: "0100202ANY0089", type: "RUE", nom: "Rue Jean-baptiste Goueugbeu", commune: "Anyama" },
+  { id: "0100202ANY0093", codePada: "0100202ANY0093", type: "RUE", nom: "Rue Yapi Samuel Achi", commune: "Anyama" },
+  { id: "0100202ANY0096", codePada: "0100202ANY0096", type: "RUE", nom: "Rue Cdt Zacharie Yapo", commune: "Anyama" },
+  { id: "0100202ANY0114", codePada: "0100202ANY0114", type: "RUE", nom: "Rue Atsin Prosper Yapi", commune: "Anyama" },
+  { id: "0100202ANY0119", codePada: "0100202ANY0119", type: "RUE", nom: "Rue Jean-baptiste Djaya", commune: "Anyama" },
+  { id: "0100202ANY0024", codePada: "0100202ANY0024", type: "RUE", nom: "Rue Kodjo Thomas Azouan", commune: "Anyama" },
+  { id: "0100202ANY0031", codePada: "0100202ANY0031", type: "RUE", nom: "Rue Kouassi Amani", commune: "Anyama" },
+  { id: "0100202ANY0035", codePada: "0100202ANY0035", type: "RUE", nom: "Rue Kouamé Alfred Kouassi", commune: "Anyama" },
+  { id: "0100202ANY0054", codePada: "0100202ANY0054", type: "RUE", nom: "Rue Boua Kassi", commune: "Anyama" },
+  { id: "0100202ANY0071", codePada: "0100202ANY0071", type: "RUE", nom: "Rue Kouassi Augustin Doffou", commune: "Anyama" },
+  { id: "0100202ANY0080", codePada: "0100202ANY0080", type: "RUE", nom: "Rue Ahoua Gaston Akafou", commune: "Anyama" },
+  { id: "0100202ANY0117", codePada: "0100202ANY0117", type: "RUE", nom: "Rue Gaston Ble", commune: "Anyama" },
+  { id: "0100202ANY0123", codePada: "0100202ANY0123", type: "RUE", nom: "Rue Bernard Biassi", commune: "Anyama" },
+  { id: "0100202ANY0152", codePada: "0100202ANY0152", type: "AVENUE", nom: "Avenue Michel Benoit Coffi", commune: "Anyama" },
+  { id: "0100202ANY0153", codePada: "0100202ANY0153", type: "AVENUE", nom: "Avenue Lassana Timité", commune: "Anyama" },
+  { id: "0100202ANY0154", codePada: "0100202ANY0154", type: "AVENUE", nom: "Avenue Ble Kouadio M'bahia", commune: "Anyama" },
+  { id: "0100202ANY0170", codePada: "0100202ANY0170", type: "RUE", nom: "Rue Jean-françois Koblavi-dibi", commune: "Abobo" },
+  { id: "0100202ANY0276", codePada: "0100202ANY0276", type: "RUE", nom: "Rue Ache Pierre Claver Djebe", commune: "Anyama" },
+  { id: "0100202ANY0282", codePada: "0100202ANY0282", type: "RUE", nom: "Rue Oke David Aka", commune: "Anyama" },
+  { id: "0100202ANY0308", codePada: "0100202ANY0308", type: "RUE", nom: "Rue Yapo David Yapi", commune: "Anyama" },
+  { id: "0100203BIN0050", codePada: "0100203BIN0050", type: "RUE", nom: "Rue la Moldavie", commune: "Bingerville" },
+  { id: "0100202ANY0144", codePada: "0100202ANY0144", type: "RUE", nom: "Rue Mambo Claver Achi", commune: "Anyama" },
+  { id: "0100202ANY0013", codePada: "0100202ANY0013", type: "RUE", nom: "Rue Ayouba Coulibaly", commune: "Anyama" },
+  { id: "0100202ANY0032", codePada: "0100202ANY0032", type: "RUE", nom: "Rue Naylor Ahuili", commune: "Anyama" },
+  { id: "0100202ANY0211", codePada: "0100202ANY0211", type: "RUE", nom: "Rue Namory Bakayoko", commune: "Anyama" },
+  { id: "0100202ANY0226", codePada: "0100202ANY0226", type: "RUE", nom: "Rue Ayela", commune: "Anyama" },
+  { id: "0100202ANY0259", codePada: "0100202ANY0259", type: "RUE", nom: "Rue Yaya Zerbo", commune: "Anyama" },
+  { id: "0100202ANY0265", codePada: "0100202ANY0265", type: "RUE", nom: "Rue Raymond Chardin", commune: "Anyama" },
+  { id: "0100202ANY0298", codePada: "0100202ANY0298", type: "RUE", nom: "Rue Sékou N'diaye", commune: "Anyama" },
+  { id: "0100202ANY0407", codePada: "0100202ANY0407", type: "RUE", nom: "Rue Patrice Kayo", commune: "Anyama" },
+  { id: "0100202ANY0011", codePada: "0100202ANY0011", type: "RUE", nom: "Rue Jules Néné Bi", commune: "Anyama" },
+  { id: "0100202ANY0014", codePada: "0100202ANY0014", type: "RUE", nom: "Rue Abraham N'guessan", commune: "Anyama" },
+  { id: "0100202ANY0016", codePada: "0100202ANY0016", type: "RUE", nom: "Rue Prof Mema Bamba", commune: "Anyama" },
+  { id: "0100202ANY0021", codePada: "0100202ANY0021", type: "RUE", nom: "Rue Sogona Bamba Arnault", commune: "Anyama" },
+  { id: "0100202ANY0028", codePada: "0100202ANY0028", type: "RUE", nom: "Rue Tiéoulé Coulibaly", commune: "Anyama" },
+  { id: "0100202ANY0030", codePada: "0100202ANY0030", type: "RUE", nom: "Rue Paul Mbahi", commune: "Anyama" },
+  { id: "0100202ANY0033", codePada: "0100202ANY0033", type: "RUE", nom: "Rue Ma Demba Fall", commune: "Anyama" },
+  { id: "0100202ANY0041", codePada: "0100202ANY0041", type: "RUE", nom: "Rue Gbangbo Joseph Ako", commune: "Anyama" },
+  { id: "0100202ANY0050", codePada: "0100202ANY0050", type: "RUE", nom: "Rue Prof Yepeleya Albert Coulibaly", commune: "Anyama" },
+  { id: "0100202ANY0063", codePada: "0100202ANY0063", type: "RUE", nom: "Rue Prof Zié Ballo", commune: "Anyama" },
+  { id: "0100202ANY0480", codePada: "0100202ANY0480", type: "RUE", nom: "Rue Abdoulaye Diako", commune: "Anyama" },
+  { id: "0100202ANY0631", codePada: "0100202ANY0631", type: "RUE", nom: "Rue Abdoulaye Diaby", commune: "Anyama" },
+  { id: "0100203BIN0644", codePada: "0100203BIN0644", type: "RUE", nom: "Rue Abdoulaye Karamoko", commune: "Bingerville" },
+  { id: "0100205SON0025", codePada: "0100205SON0025", type: "RUE", nom: "Rue Abdouramane Diarra", commune: "Songon" },
+  { id: "0100211ABO0037", codePada: "0100211ABO0037", type: "RUE", nom: "Rue Abdoulaye Dozo Koné", commune: "Abobo" },
+  { id: "0100211ABO0257", codePada: "0100211ABO0257", type: "RUE", nom: "Rue Dr N'golo Abdoulaye Koné", commune: "Abobo" },
+  { id: "0100211ABO0333", codePada: "0100211ABO0333", type: "RUE", nom: "Rue Abdoulaye Sadji", commune: "Abobo" },
+  { id: "0100211ABO0452", codePada: "0100211ABO0452", type: "RUE", nom: "Rue Abdoulaye Kalogo", commune: "Abobo" },
+  { id: "0100211ABO0759", codePada: "0100211ABO0759", type: "RUE", nom: "Rue Abdoul-karim Ouattara", commune: "Abobo" },
+  { id: "0100202ANY0444", codePada: "0100202ANY0444", type: "RUE", nom: "Rue Prof Abdoulaye Bana", commune: "Anyama" },
+  { id: "0100214COC1323", codePada: "0100214COC1323", type: "RUE", nom: "Rue Toubga Boukaré", commune: "Cocody" },
+  { id: "0100214COC132300200", codePada: "0100214COC132300200", type: "RUE", nom: "200 Rue Toubga Boukaré", commune: "Cocody" },
+  { id: "0100214COC132300039", codePada: "0100214COC132300039", type: "RUE", nom: "39 Rue Toubga Boukaré", commune: "Cocody" },
+  { id: "0100214COC132300055", codePada: "0100214COC132300055", type: "RUE", nom: "55 Rue Toubga Boukaré", commune: "Cocody" },
+  { id: "0100214COC132300049", codePada: "0100214COC132300049", type: "RUE", nom: "49 Rue Toubga Boukaré", commune: "Cocody" },
+  { id: "0100214COC132300024", codePada: "0100214COC132300024", type: "RUE", nom: "24 Rue Toubga Boukaré", commune: "Cocody" },
+  { id: "0100214COC132300064", codePada: "0100214COC132300064", type: "RUE", nom: "64 Rue Toubga Boukaré", commune: "Cocody" },
+  { id: "0100214COC132300048", codePada: "0100214COC132300048", type: "RUE", nom: "48 Rue Toubga Boukaré", commune: "Cocody" },
+  { id: "0100214COC132300162", codePada: "0100214COC132300162", type: "RUE", nom: "162 Rue Toubga Boukaré", commune: "Cocody" },
+  { id: "0100214COC132300180", codePada: "0100214COC132300180", type: "RUE", nom: "180 Rue Toubga Boukaré", commune: "Cocody" },
+  { id: "0100214COC3847", codePada: "0100214COC3847", type: "RUE", nom: "Rue Jean-jacques Hebman", commune: "Cocody" },
+  { id: "0100214COC384700364", codePada: "0100214COC384700364", type: "RUE", nom: "364 Rue Jean-jacques Hebman", commune: "Cocody" },
+  { id: "0100214COC384700391", codePada: "0100214COC384700391", type: "RUE", nom: "391 Rue Jean-jacques Hebman", commune: "Cocody" },
+  { id: "0100214COC384700293", codePada: "0100214COC384700293", type: "RUE", nom: "293 Rue Jean-jacques Hebman", commune: "Cocody" },
+  { id: "0100214COC384700275", codePada: "0100214COC384700275", type: "RUE", nom: "275 Rue Jean-jacques Hebman", commune: "Cocody" },
+  { id: "0100214COC384700272", codePada: "0100214COC384700272", type: "RUE", nom: "272 Rue Jean-jacques Hebman", commune: "Cocody" },
+  { id: "0100214COC384700279", codePada: "0100214COC384700279", type: "RUE", nom: "279 Rue Jean-jacques Hebman", commune: "Cocody" },
+  { id: "0100214COC384700300", codePada: "0100214COC384700300", type: "RUE", nom: "300 Rue Jean-jacques Hebman", commune: "Cocody" },
+  { id: "0100214COC384700297", codePada: "0100214COC384700297", type: "RUE", nom: "297 Rue Jean-jacques Hebman", commune: "Cocody" },
+  { id: "0100214COC384700284", codePada: "0100214COC384700284", type: "RUE", nom: "284 Rue Jean-jacques Hebman", commune: "Cocody" },
+  { id: "0100214COC0053", codePada: "0100214COC0053", type: "RUE", nom: "Rue les Absinthes", commune: "Cocody" },
+  { id: "0100211ABO0344", codePada: "0100211ABO0344", type: "RUE", nom: "Rue L'abstinence", commune: "Abobo" },
+  { id: "0100214COC0599", codePada: "0100214COC0599", type: "RUE", nom: "Rue L'absolu", commune: "Cocody" },
+  { id: "0100211ABO1538", codePada: "0100211ABO1538", type: "RUE", nom: "Rue les Subsahariens", commune: "Abobo" },
+  { id: "0100212ADJ0126", codePada: "0100212ADJ0126", type: "AVENUE", nom: "Avenue Jacobs Williams", commune: "Adjamé" },
+  { id: "0100214COC059900049", codePada: "0100214COC059900049", type: "RUE", nom: "49 Rue L'absolu", commune: "Cocody" },
+  { id: "0100214COC059900029", codePada: "0100214COC059900029", type: "RUE", nom: "29 Rue L'absolu", commune: "Cocody" },
+  { id: "0100214COC059900068", codePada: "0100214COC059900068", type: "RUE", nom: "68 Rue L'absolu", commune: "Cocody" },
+  { id: "0100214COC059900052", codePada: "0100214COC059900052", type: "RUE", nom: "52 Rue L'absolu", commune: "Cocody" },
+  { id: "0100214COC059900067", codePada: "0100214COC059900067", type: "RUE", nom: "67 Rue L'absolu", commune: "Cocody" },
+  { id: "0100202ANY0049", codePada: "0100202ANY0049", type: "RUE", nom: "Rue Coffi Alexis Aby", commune: "Anyama" },
+  { id: "0100202ANY0052", codePada: "0100202ANY0052", type: "RUE", nom: "Rue Alexandre Akichiby", commune: "Anyama" },
+  { id: "0100202ANY0120", codePada: "0100202ANY0120", type: "RUE", nom: "Rue N'guessan Aby", commune: "Anyama" },
+  { id: "0100202ANY0344", codePada: "0100202ANY0344", type: "RUE", nom: "Rue Valentin Aby", commune: "Anyama" },
+  { id: "0100202ANY0347", codePada: "0100202ANY0347", type: "RUE", nom: "Rue Imam Seydou Diaby", commune: "Anyama" },
+  { id: "0100202ANY0360", codePada: "0100202ANY0360", type: "RUE", nom: "Rue Imam Diaby Clair", commune: "Anyama" },
+  { id: "0100202ANY0362", codePada: "0100202ANY0362", type: "RUE", nom: "Rue Imam Moriba Diaby", commune: "Anyama" },
+  { id: "0100202ANY0375", codePada: "0100202ANY0375", type: "RUE", nom: "Rue Aboubacar Diaby", commune: "Anyama" },
+  { id: "0100202ANY0396", codePada: "0100202ANY0396", type: "RUE", nom: "Rue Benoit Aby", commune: "Anyama" },
+  { id: "0100202ANY0034", codePada: "0100202ANY0034", type: "RUE", nom: "Rue Boto Bechi", commune: "Anyama" },
+  { id: "0100202ANY0042", codePada: "0100202ANY0042", type: "RUE", nom: "Rue Obindou Bechehin", commune: "Anyama" },
+  { id: "0100202ANY0048", codePada: "0100202ANY0048", type: "RUE", nom: "Rue Niamakoro Chiaka Doumbia", commune: "Anyama" },
+  { id: "0100202ANY0131", codePada: "0100202ANY0131", type: "RUE", nom: "Rue Camille Otokpa", commune: "Anyama" },
+  { id: "0100202ANY0187", codePada: "0100202ANY0187", type: "RUE", nom: "Rue Père Camille Chirol", commune: "Anyama" },
+  { id: "0100202ANY0323", codePada: "0100202ANY0323", type: "RUE", nom: "Rue Sobe Casimir Bouadi", commune: "Anyama" },
+  { id: "0100202ANY0371", codePada: "0100202ANY0371", type: "RUE", nom: "Rue Rebecca Offoyi", commune: "Anyama" },
+  { id: "0100202ANY0485", codePada: "0100202ANY0485", type: "RUE", nom: "Rue Asseu Casimir N'cho", commune: "Anyama" },
+  { id: "0100202ANY0530", codePada: "0100202ANY0530", type: "RUE", nom: "Rue Pascal Boua", commune: "Anyama" },
+  { id: "0100202ANY0559", codePada: "0100202ANY0559", type: "RUE", nom: "Rue Lanciné Camara", commune: "Anyama" },
+  { id: "0100202ANY0575", codePada: "0100202ANY0575", type: "RUE", nom: "Rue Lucas Alain Danho", commune: "Anyama" },
+  { id: "0100202ANY0129", codePada: "0100202ANY0129", type: "RUE", nom: "Rue Carim Traoré", commune: "Anyama" },
+  { id: "0100211ABO1507", codePada: "0100211ABO1507", type: "RUE", nom: "Rue Cdt Laurent Ohoueu Atsé", commune: "Abobo" },
+  { id: "0100211ABO1512", codePada: "0100211ABO1512", type: "RUE", nom: "Rue Cdt Velo", commune: "Abobo" },
+  { id: "0100211ABO0119", codePada: "0100211ABO0119", type: "RUE", nom: "Rue Cdt Tirefort Marcel Gabou", commune: "Abobo" },
+  { id: "0100214COC2666", codePada: "0100214COC2666", type: "RUE", nom: "Rue Cdt Aké Attigby", commune: "Cocody" },
+  { id: "0100216MAR0312", codePada: "0100216MAR0312", type: "RUE", nom: "Rue Cdt Nicolas Adom", commune: "Marcory" },
+  { id: "0100216MAR0384", codePada: "0100216MAR0384", type: "RUE", nom: "Rue Cdt Jean Remark", commune: "Marcory" },
+  { id: "0100220YOP0497", codePada: "0100220YOP0497", type: "RUE", nom: "Rue Cdt Amian Bindé", commune: "Yopougon" },
+  { id: "0100214COC0321", codePada: "0100214COC0321", type: "RUE", nom: "Rue Cdt Claude Obré", commune: "Cocody" },
+  { id: "0100214COC032100080", codePada: "0100214COC032100080", type: "RUE", nom: "80 Rue Cdt Claude Obré", commune: "Cocody" },
+  { id: "0100203BIN0459", codePada: "0100203BIN0459", type: "RUE", nom: "Rue Francis Desclercs", commune: "Bingerville" },
+  { id: "0100211ABO1013", codePada: "0100211ABO1013", type: "RUE", nom: "Rue les Ours Blancs", commune: "Abobo" },
+  { id: "0100211ABO2201", codePada: "0100211ABO2201", type: "RUE", nom: "Rue du Csu Henriette Bédié", commune: "Abobo" },
+  { id: "0100211ABO0675", codePada: "0100211ABO0675", type: "RUE", nom: "Rue les Caoutchoucs", commune: "Abobo" },
+  { id: "0100215KOU0451", codePada: "0100215KOU0451", type: "RUE", nom: "Rue les Acajou Blancs", commune: "Koumassi" },
+  { id: "0100216MAR0028", codePada: "0100216MAR0028", type: "RUE", nom: "Rue les Pics", commune: "Marcory" },
+  { id: "0100216MAR0084", codePada: "0100216MAR0084", type: "RUE", nom: "Rue Raymond Desclercs", commune: "Marcory" },
+  { id: "0100220YOP2425", codePada: "0100220YOP2425", type: "RUE", nom: "Rue les Mûriers Blancs", commune: "Yopougon" },
+  { id: "0100214COC0006", codePada: "0100214COC0006", type: "RUE", nom: "Rue les Fennecs", commune: "Cocody" },
+  { id: "0100214COC000600029", codePada: "0100214COC000600029", type: "RUE", nom: "29 Rue les Fennecs", commune: "Cocody" },
+  { id: "0100202ANY0279", codePada: "0100202ANY0279", type: "RUE", nom: "Rue Abenan Cyprien Ahou", commune: "Anyama" },
+  { id: "0100202ANY0619", codePada: "0100202ANY0619", type: "RUE", nom: "Rue Asseu Cyprien Sika", commune: "Anyama" },
+  { id: "0100203BIN0465", codePada: "0100203BIN0465", type: "RUE", nom: "Rue Gilbert Drucy", commune: "Bingerville" },
+  { id: "0100203BIN1102", codePada: "0100203BIN1102", type: "RUE", nom: "Rue Dr Aristide Cyrille Dadié", commune: "Bingerville" },
+  { id: "0100211ABO0244", codePada: "0100211ABO0244", type: "RUE", nom: "Rue L'encyclopédie", commune: "Abobo" },
+  { id: "0100211ABO1031", codePada: "0100211ABO1031", type: "RUE", nom: "Rue Beke Cyrille Sangahi", commune: "Abobo" },
+  { id: "0100211ABO1807", codePada: "0100211ABO1807", type: "RUE", nom: "Rue Alassane Norbert Dioumency", commune: "Abobo" },
+  { id: "0100212ADJ0128", codePada: "0100212ADJ0128", type: "RUE", nom: "Rue Cynthia Fofana", commune: "Adjamé" },
+  { id: "0100213ATT0157", codePada: "0100213ATT0157", type: "RUE", nom: "Rue Prof Emmanuel Couacy-hyman", commune: "Attécoubé" },
+  { id: "0100202ANY0012", codePada: "0100202ANY0012", type: "RUE", nom: "Rue Théo Dossou", commune: "Anyama" },
+  { id: "0100202ANY0018", codePada: "0100202ANY0018", type: "RUE", nom: "Rue Daniel Etoukan", commune: "Anyama" },
+  { id: "0100202ANY0022", codePada: "0100202ANY0022", type: "RUE", nom: "Rue André Manké", commune: "Anyama" },
+  { id: "0100202ANY0069", codePada: "0100202ANY0069", type: "RUE", nom: "Rue Adama Sylla", commune: "Anyama" },
+  { id: "0100202ANY0116", codePada: "0100202ANY0116", type: "RUE", nom: "Rue Daniel Biechou Biechou", commune: "Anyama" },
+  { id: "0100202ANY0118", codePada: "0100202ANY0118", type: "RUE", nom: "Rue Fe Haïdara", commune: "Anyama" },
+  { id: "0100202ANY0168", codePada: "0100202ANY0168", type: "RUE", nom: "Rue Yapo Danbo", commune: "Anyama" },
+  { id: "0100202ANY0177", codePada: "0100202ANY0177", type: "RUE", nom: "Rue Prof Adama Fanny", commune: "Anyama" },
+  { id: "0100203BIN1269", codePada: "0100203BIN1269", type: "RUE", nom: "Rue Jeanty Eddy", commune: "Bingerville" },
+  { id: "0100211ABO0425", codePada: "0100211ABO0425", type: "RUE", nom: "Rue Addah", commune: "Abobo" },
+  { id: "0100211ABO2112", codePada: "0100211ABO2112", type: "RUE", nom: "Rue Noël Akoddi", commune: "Abobo" },
+  { id: "0100214COC0643", codePada: "0100214COC0643", type: "RUE", nom: "Rue Addis-abeba", commune: "Cocody" },
+  { id: "0100214COC1603", codePada: "0100214COC1603", type: "RUE", nom: "Rue El Shaddaï", commune: "Cocody" },
+  { id: "0100214COC1723", codePada: "0100214COC1723", type: "RUE", nom: "Rue Frederick Soddy", commune: "Cocody" },
+  { id: "0100214COC2007", codePada: "0100214COC2007", type: "RUE", nom: "Rue Sr Marguerite Lucie Zaddy", commune: "Cocody" },
+  { id: "0100214COC2352", codePada: "0100214COC2352", type: "RUE", nom: "Rue Kacou Mathieu Addi", commune: "Cocody" },
+  { id: "0100214COC2562", codePada: "0100214COC2562", type: "RUE", nom: "Rue Zaddy Nicodème Kouamé", commune: "Cocody" },
+  { id: "0100203BIN0914", codePada: "0100203BIN0914", type: "RUE", nom: "Rue Georgette Haddad", commune: "Bingerville" },
+  { id: "0100214COC1103", codePada: "0100214COC1103", type: "RUE", nom: "Rue Roger Edgard M'bengue", commune: "Cocody" },
+  { id: "0100211ABO0457", codePada: "0100211ABO0457", type: "RUE", nom: "Rue Gnoléba Édgar Lago", commune: "Abobo" },
+  { id: "0100214COC1922", codePada: "0100214COC1922", type: "RUE", nom: "Rue le Cambodge", commune: "Cocody" },
+  { id: "0100211ABO0707", codePada: "0100211ABO0707", type: "RUE", nom: "Rue Kadgo Amon", commune: "Abobo" },
+  { id: "0100220YOP1097", codePada: "0100220YOP1097", type: "RUE", nom: "Rue Edgar Willi Sassande", commune: "Yopougon" },
+  { id: "0100211ABO1155", codePada: "0100211ABO1155", type: "RUE", nom: "Rue Dr Ted Edgard Wango", commune: "Abobo" },
+  { id: "0100214COC110300454", codePada: "0100214COC110300454", type: "RUE", nom: "454 Rue Roger Edgard M'bengue", commune: "Cocody" },
+  { id: "0100214COC110300449", codePada: "0100214COC110300449", type: "RUE", nom: "449 Rue Roger Edgard M'bengue", commune: "Cocody" },
+  { id: "0100214COC110300476", codePada: "0100214COC110300476", type: "RUE", nom: "476 Rue Roger Edgard M'bengue", commune: "Cocody" },
+  { id: "0100214COC110300405", codePada: "0100214COC110300405", type: "RUE", nom: "405 Rue Roger Edgard M'bengue", commune: "Cocody" },
+  { id: "0100202ANY0045", codePada: "0100202ANY0045", type: "RUE", nom: "Rue Djoman Hilarion Djeke", commune: "Anyama" },
+  { id: "0100202ANY0097", codePada: "0100202ANY0097", type: "RUE", nom: "Rue N'din Djate", commune: "Anyama" },
+  { id: "0100202ANY0101", codePada: "0100202ANY0101", type: "RUE", nom: "Rue Samogo Seydou Djibo", commune: "Anyama" },
+  { id: "0100211ABO0937", codePada: "0100211ABO0937", type: "RUE", nom: "Rue Edmon Kouamé Yobouet", commune: "Abobo" },
+  { id: "0100211ABO2206", codePada: "0100211ABO2206", type: "RUE", nom: "Rue Prof Admama Bakayoko", commune: "Abobo" },
+  { id: "0100214COC0704", codePada: "0100214COC0704", type: "RUE", nom: "Rue Kouakou Edmond Dakoua", commune: "Cocody" },
+  { id: "0100214COC0828", codePada: "0100214COC0828", type: "RUE", nom: "Rue Kouadjo Edmond Kondo", commune: "Cocody" },
+  { id: "0100214COC1122", codePada: "0100214COC1122", type: "AVENUE", nom: "Avenue Edmond Zégbéhi Bouazo", commune: "Cocody" },
+  { id: "0100214COC2141", codePada: "0100214COC2141", type: "RUE", nom: "Rue Goodman Abekan", commune: "Cocody" },
+  { id: "0100214COC2227", codePada: "0100214COC2227", type: "RUE", nom: "Rue Prof Konan Edmond Kouamé", commune: "Cocody" },
+  { id: "0100214COC2285", codePada: "0100214COC2285", type: "RUE", nom: "Rue Agaud René Edmond", commune: "Cocody" },
+  { id: "0100214COC3018", codePada: "0100214COC3018", type: "RUE", nom: "Rue Koutouan Edmond Roger Sapoukoua", commune: "Cocody" },
+  { id: "0100203BIN0290", codePada: "0100203BIN0290", type: "RUE", nom: "Rue Edmond Aholi", commune: "Bingerville" },
+  { id: "0100214COC3359", codePada: "0100214COC3359", type: "RUE", nom: "Rue Wendpouiré Aimé Daniel Serge Nanga", commune: "Cocody" },
+  { id: "0100214COC335900251", codePada: "0100214COC335900251", type: "RUE", nom: "251 Rue Wendpouiré Aimé Daniel Serge Nanga", commune: "Cocody" },
+  { id: "0100214COC335900220", codePada: "0100214COC335900220", type: "RUE", nom: "220 Rue Wendpouiré Aimé Daniel Serge Nanga", commune: "Cocody" },
+  { id: "0100214COC335900236", codePada: "0100214COC335900236", type: "RUE", nom: "236 Rue Wendpouiré Aimé Daniel Serge Nanga", commune: "Cocody" },
+  { id: "0100214COC335900260", codePada: "0100214COC335900260", type: "RUE", nom: "260 Rue Wendpouiré Aimé Daniel Serge Nanga", commune: "Cocody" },
+  { id: "0100214COC335900194", codePada: "0100214COC335900194", type: "RUE", nom: "194 Rue Wendpouiré Aimé Daniel Serge Nanga", commune: "Cocody" },
+  { id: "0100214COC335900259", codePada: "0100214COC335900259", type: "RUE", nom: "259 Rue Wendpouiré Aimé Daniel Serge Nanga", commune: "Cocody" },
+  { id: "0100214COC335900179", codePada: "0100214COC335900179", type: "RUE", nom: "179 Rue Wendpouiré Aimé Daniel Serge Nanga", commune: "Cocody" },
+  { id: "0100214COC335900103", codePada: "0100214COC335900103", type: "RUE", nom: "103 Rue Wendpouiré Aimé Daniel Serge Nanga", commune: "Cocody" },
+  { id: "0100214COC335900250", codePada: "0100214COC335900250", type: "RUE", nom: "250 Rue Wendpouiré Aimé Daniel Serge Nanga", commune: "Cocody" },
+  { id: "0100211ABO0136", codePada: "0100211ABO0136", type: "RUE", nom: "Rue les Grands-parents", commune: "Abobo" },
+  { id: "0100211ABO2226", codePada: "0100211ABO2226", type: "RUE", nom: "Rue Tiger Woods", commune: "Abobo" },
+  { id: "0100214COC0584", codePada: "0100214COC0584", type: "RUELLE", nom: "Ruelle le Tillandsia", commune: "Cocody" },
+  { id: "0100214COC1038", codePada: "0100214COC1038", type: "RUE", nom: "Rue les Astrilds", commune: "Cocody" },
+  { id: "0100214COC1646", codePada: "0100214COC1646", type: "RUE", nom: "Rue des Marchands", commune: "Cocody" },
+  { id: "0100214COC1877", codePada: "0100214COC1877", type: "RUE", nom: "Rue les Veinards", commune: "Cocody" },
+  { id: "0100214COC3092", codePada: "0100214COC3092", type: "RUE", nom: "Rue les Awards", commune: "Cocody" },
+  { id: "0100214COC3355", codePada: "0100214COC3355", type: "RUE", nom: "Rue Hudson Diesy N'dia", commune: "Cocody" },
+  { id: "0100214COC3640", codePada: "0100214COC3640", type: "RUE", nom: "Rue les Canards Mandarin", commune: "Cocody" },
+  { id: "0100203BIN0070", codePada: "0100203BIN0070", type: "RUE", nom: "Rue les Épinards", commune: "Bingerville" },
+  { id: "0100220YOP0579", codePada: "0100220YOP0579", type: "RUE", nom: "Rue Edvard Moser", commune: "Yopougon" },
+  { id: "0100220YOP057900168", codePada: "0100220YOP057900168", type: "RUE", nom: "168 Rue Edvard Moser", commune: "Yopougon" },
+  { id: "0100220YOP057900159", codePada: "0100220YOP057900159", type: "RUE", nom: "159 Rue Edvard Moser", commune: "Yopougon" },
+  { id: "0100220YOP057900143", codePada: "0100220YOP057900143", type: "RUE", nom: "143 Rue Edvard Moser", commune: "Yopougon" },
+  { id: "0100220YOP057900148", codePada: "0100220YOP057900148", type: "RUE", nom: "148 Rue Edvard Moser", commune: "Yopougon" },
+  { id: "0100220YOP057900160", codePada: "0100220YOP057900160", type: "RUE", nom: "160 Rue Edvard Moser", commune: "Yopougon" },
+  { id: "0100220YOP057900180", codePada: "0100220YOP057900180", type: "RUE", nom: "180 Rue Edvard Moser", commune: "Yopougon" },
+  { id: "0100220YOP057900133", codePada: "0100220YOP057900133", type: "RUE", nom: "133 Rue Edvard Moser", commune: "Yopougon" },
+  { id: "0100220YOP057900149", codePada: "0100220YOP057900149", type: "RUE", nom: "149 Rue Edvard Moser", commune: "Yopougon" },
+  { id: "0100220YOP057900032", codePada: "0100220YOP057900032", type: "RUE", nom: "32 Rue Edvard Moser", commune: "Yopougon" },
+  { id: "0100203BIN0424", codePada: "0100203BIN0424", type: "AVENUE", nom: "Avenue Didier Drogba", commune: "Cocody" },
+  { id: "0100203BIN0426", codePada: "0100203BIN0426", type: "BOULEVARD", nom: "Boulevard Dominique Ouattara", commune: "Cocody" },
+  { id: "0100203BIN0427", codePada: "0100203BIN0427", type: "AVENUE", nom: "Avenue Patrick Achi", commune: "Bingerville" },
+  { id: "0100203BIN0431", codePada: "0100203BIN0431", type: "RUE", nom: "Rue Issiaka Daouda", commune: "Cocody" },
+  { id: "0100203BIN0433", codePada: "0100203BIN0433", type: "RUE", nom: "Rue Michel Meledje", commune: "Cocody" },
+  { id: "0100203BIN0457", codePada: "0100203BIN0457", type: "RUE", nom: "Rue Jean Philippe Kraidy", commune: "Bingerville" },
+  { id: "0100203BIN1011", codePada: "0100203BIN1011", type: "RUE", nom: "Rue le Dynamisme", commune: "Bingerville" },
+  { id: "0100203BIN1130", codePada: "0100203BIN1130", type: "RUE", nom: "Rue Sidy Cissé", commune: "Bingerville" },
+  { id: "0100202ANY0304", codePada: "0100202ANY0304", type: "RUE", nom: "Rue Kady Soukoulé", commune: "Anyama" },
+  { id: "0100202ANY0047", codePada: "0100202ANY0047", type: "RUE", nom: "Rue Jean Offohi", commune: "Anyama" },
+  { id: "0100202ANY0105", codePada: "0100202ANY0105", type: "RUE", nom: "Rue Jean Dibessio", commune: "Anyama" },
+  { id: "0100202ANY0159", codePada: "0100202ANY0159", type: "RUE", nom: "Rue Akehi Jean-paul Anoma", commune: "Anyama" },
+  { id: "0100202ANY0161", codePada: "0100202ANY0161", type: "RUE", nom: "Rue le Créateur", commune: "Anyama" },
+  { id: "0100202ANY0194", codePada: "0100202ANY0194", type: "RUE", nom: "Rue Ahou Jean Otokpa", commune: "Anyama" },
+  { id: "0100202ANY0143", codePada: "0100202ANY0143", type: "RUE", nom: "Rue Prof André-théodore Djédjé", commune: "Anyama" },
+  { id: "0100202ANY0158", codePada: "0100202ANY0158", type: "BOULEVARD", nom: "Boulevard Mohamed Vi", commune: "Anyama" },
+  { id: "0100202ANY0251", codePada: "0100202ANY0251", type: "RUE", nom: "Rue Frédéric N'cho", commune: "Anyama" },
+  { id: "0100202ANY0277", codePada: "0100202ANY0277", type: "RUE", nom: "Rue Alfred Affa Kouachy", commune: "Anyama" },
+  { id: "0100202ANY0348", codePada: "0100202ANY0348", type: "RUE", nom: "Rue Yapi Édouard Anassin", commune: "Anyama" },
+  { id: "0100202ANY0401", codePada: "0100202ANY0401", type: "RUE", nom: "Rue Achi Bernard Beda", commune: "Anyama" },
+  { id: "0100202ANY0413", codePada: "0100202ANY0413", type: "RUE", nom: "Rue Édouard Tiedé", commune: "Anyama" },
+  { id: "0100202ANY0447", codePada: "0100202ANY0447", type: "RUE", nom: "Rue Mbo Anatole Beda", commune: "Anyama" },
+  { id: "0100202ANY0235", codePada: "0100202ANY0235", type: "RUE", nom: "Rue Prof Hiey Jacques Pegatienan", commune: "Anyama" },
+  { id: "0100202ANY0381", codePada: "0100202ANY0381", type: "RUE", nom: "Rue Louis Pierre Degbeu", commune: "Anyama" },
+  { id: "0100202ANY0462", codePada: "0100202ANY0462", type: "RUE", nom: "Rue Mori Ouattara Diégnéné", commune: "Anyama" },
+  { id: "0100202ANY0527", codePada: "0100202ANY0527", type: "RUE", nom: "Rue Déhégnan Robert Badji", commune: "Anyama" },
+  { id: "0100202ANY0603", codePada: "0100202ANY0603", type: "RUE", nom: "Rue Kevin Keegan", commune: "Anyama" },
+  { id: "0100203BIN0009", codePada: "0100203BIN0009", type: "RUE", nom: "Rue les Frégates", commune: "Bingerville" },
+  { id: "0100203BIN0344", codePada: "0100203BIN0344", type: "RUE", nom: "Rue le Bégonia", commune: "Bingerville" },
+  { id: "0100203BIN0351", codePada: "0100203BIN0351", type: "RUE", nom: "Rue Néguépié", commune: "Bingerville" },
+  { id: "0100203BIN0392", codePada: "0100203BIN0392", type: "RUE", nom: "Rue Youkpo Barthélemy Orega", commune: "Bingerville" },
+  { id: "0100202ANY0233", codePada: "0100202ANY0233", type: "RUE", nom: "Rue Pepegaligui Yéo", commune: "Anyama" },
+  { id: "0100214COC3952", codePada: "0100214COC3952", type: "RUE", nom: "Rue Victor Séjour", commune: "Cocody" },
+  { id: "0100220YOP0516", codePada: "0100220YOP0516", type: "RUE", nom: "Rue de la Réjouissance", commune: "Yopougon" },
+  { id: "0100214COC395200051", codePada: "0100214COC395200051", type: "RUE", nom: "51 Rue Victor Séjour", commune: "Cocody" },
+  { id: "0100214COC395200052", codePada: "0100214COC395200052", type: "RUE", nom: "52 Rue Victor Séjour", commune: "Cocody" },
+  { id: "0100220YOP051600034", codePada: "0100220YOP051600034", type: "RUE", nom: "34 Rue de la Réjouissance", commune: "Yopougon" },
+  { id: "0100214COC395200068", codePada: "0100214COC395200068", type: "RUE", nom: "68 Rue Victor Séjour", commune: "Cocody" },
+  { id: "0100214COC395200082", codePada: "0100214COC395200082", type: "RUE", nom: "82 Rue Victor Séjour", commune: "Cocody" },
+  { id: "0100214COC395200021", codePada: "0100214COC395200021", type: "RUE", nom: "21 Rue Victor Séjour", commune: "Cocody" },
+  { id: "0100220YOP051600088", codePada: "0100220YOP051600088", type: "RUE", nom: "88 Rue de la Réjouissance", commune: "Yopougon" },
+  { id: "0100214COC395200102", codePada: "0100214COC395200102", type: "RUE", nom: "102 Rue Victor Séjour", commune: "Cocody" },
+  { id: "0100202ANY0146", codePada: "0100202ANY0146", type: "RUE", nom: "Rue Adohi Clément Kokoi", commune: "Anyama" },
+  { id: "0100202ANY0227", codePada: "0100202ANY0227", type: "RUE", nom: "Rue Adangbe Émile Akoun", commune: "Anyama" },
+  { id: "0100202ANY0247", codePada: "0100202ANY0247", type: "RUE", nom: "Rue Boua Emmanuel Kimou", commune: "Anyama" },
+  { id: "0100202ANY0248", codePada: "0100202ANY0248", type: "RUE", nom: "Rue Clément Mounin", commune: "Anyama" },
+  { id: "0100202ANY0264", codePada: "0100202ANY0264", type: "RUE", nom: "Rue Aké Émile Adohi", commune: "Anyama" },
+  { id: "0100202ANY0278", codePada: "0100202ANY0278", type: "RUE", nom: "Rue Okeni Jean Semon", commune: "Anyama" },
+  { id: "0100202ANY0351", codePada: "0100202ANY0351", type: "RUE", nom: "Rue la Rémission", commune: "Anyama" },
+  { id: "0100202ANY0414", codePada: "0100202ANY0414", type: "RUE", nom: "Rue Clément Moudé", commune: "Anyama" },
+  { id: "0100202ANY0164", codePada: "0100202ANY0164", type: "RUE", nom: "Rue Adohi Joseph Akoun", commune: "Anyama" },
+  { id: "0100202ANY0166", codePada: "0100202ANY0166", type: "RUE", nom: "Rue Depon de Gaule", commune: "Anyama" },
+  { id: "0100202ANY0284", codePada: "0100202ANY0284", type: "RUE", nom: "Rue Josephine Abossan", commune: "Anyama" },
+  { id: "0100202ANY0296", codePada: "0100202ANY0296", type: "RUE", nom: "Rue Jean Joseph Pango", commune: "Anyama" },
+  { id: "0100202ANY0318", codePada: "0100202ANY0318", type: "RUE", nom: "Rue Prof Joseph Andoh", commune: "Anyama" },
+  { id: "0100202ANY0361", codePada: "0100202ANY0361", type: "RUE", nom: "Rue Père Joseph Garnien", commune: "Anyama" },
+  { id: "0100202ANY0476", codePada: "0100202ANY0476", type: "RUE", nom: "Rue N'cho Monnet Joseph", commune: "Anyama" },
+  { id: "0100202ANY0074", codePada: "0100202ANY0074", type: "RUE", nom: "Rue Achi Modeste Kouamissan", commune: "Anyama" },
+  { id: "0100202ANY0098", codePada: "0100202ANY0098", type: "RUE", nom: "Rue Jenes Abekoi", commune: "Anyama" },
+  { id: "0100202ANY0103", codePada: "0100202ANY0103", type: "RUE", nom: "Rue Jules Kouakou", commune: "Anyama" },
+  { id: "0100202ANY0172", codePada: "0100202ANY0172", type: "RUE", nom: "Rue Dr Césaire Abigoua", commune: "Anyama" },
+  { id: "0100202ANY0173", codePada: "0100202ANY0173", type: "RUE", nom: "Rue Jules Abenou", commune: "Anyama" },
+  { id: "0100202ANY0157", codePada: "0100202ANY0157", type: "BOULEVARD", nom: "Boulevard du Stade Olympique", commune: "Abobo" },
+  { id: "0100202ANY0204", codePada: "0100202ANY0204", type: "RUE", nom: "Rue Evariste Yapi", commune: "Anyama" },
+  { id: "0100202ANY0520", codePada: "0100202ANY0520", type: "RUE", nom: "Rue Prof Evelyne Ette-akre", commune: "Anyama" },
+  { id: "0100202ANY0533", codePada: "0100202ANY0533", type: "RUE", nom: "Rue Séverin Achy", commune: "Anyama" },
+  { id: "0100202ANY0719", codePada: "0100202ANY0719", type: "RUE", nom: "Rue Geneviève Dahon", commune: "Anyama" },
+  { id: "0100202ANY0147", codePada: "0100202ANY0147", type: "RUE", nom: "Rue Père Séverin Lath", commune: "Anyama" },
+  { id: "0100202ANY0169", codePada: "0100202ANY0169", type: "RUE", nom: "Rue Imam Vassouleymane Cissé", commune: "Anyama" },
+  { id: "0100202ANY0281", codePada: "0100202ANY0281", type: "RUE", nom: "Rue Acheyi Patrice Sika", commune: "Anyama" },
+  { id: "0100202ANY0299", codePada: "0100202ANY0299", type: "RUE", nom: "Rue Kakeye Paul Akoto", commune: "Anyama" },
+  { id: "0100202ANY0470", codePada: "0100202ANY0470", type: "RUE", nom: "Rue Souleymane Bamba", commune: "Anyama" },
+  { id: "0100202ANY0538", codePada: "0100202ANY0538", type: "RUE", nom: "Rue Souleymane Cissé", commune: "Anyama" },
+  { id: "0100202ANY0549", codePada: "0100202ANY0549", type: "RUE", nom: "Rue Seydou Hamed Touré", commune: "Anyama" },
+  { id: "0100202ANY0027", codePada: "0100202ANY0027", type: "RUE", nom: "Rue Keïta Forgeron", commune: "Anyama" },
+  { id: "0100202ANY0061", codePada: "0100202ANY0061", type: "RUE", nom: "Rue Tieffi Gonty", commune: "Anyama" },
+  { id: "0100202ANY0075", codePada: "0100202ANY0075", type: "RUE", nom: "Rue Acho Parfait Atse", commune: "Anyama" },
+  { id: "0100202ANY0181", codePada: "0100202ANY0181", type: "RUE", nom: "Rue Bohi Faustin N'guessan", commune: "Anyama" },
+  { id: "0100202ANY0207", codePada: "0100202ANY0207", type: "RUE", nom: "Rue Djaman Boniface Ako", commune: "Anyama" },
+  { id: "0100202ANY0271", codePada: "0100202ANY0271", type: "RUE", nom: "Rue Fa Cissé", commune: "Anyama" },
+  { id: "0100202ANY0349", codePada: "0100202ANY0349", type: "RUE", nom: "Rue Fabio Antoelli", commune: "Anyama" },
+  { id: "0100202ANY0366", codePada: "0100202ANY0366", type: "RUE", nom: "Rue Adompo Faustin Akichi", commune: "Anyama" },
+  { id: "0100202ANY0464", codePada: "0100202ANY0464", type: "RUE", nom: "Rue Mariame Fofana", commune: "Anyama" },
+  { id: "0100203BIN1653", codePada: "0100203BIN1653", type: "RUE", nom: "Rue les Pique-bœufs", commune: "Bingerville" },
+  { id: "0100211ABO0904", codePada: "0100211ABO0904", type: "RUE", nom: "Rue les Cerfs", commune: "Abobo" },
+  { id: "0100202ANY0358", codePada: "0100202ANY0358", type: "RUE", nom: "Rue des Chefs", commune: "Anyama" },
+  { id: "0100214COC2327", codePada: "0100214COC2327", type: "RUE", nom: "Rue les Pendentifs", commune: "Cocody" },
+  { id: "0100214COC3297", codePada: "0100214COC3297", type: "RUE", nom: "Rue les Sportifs", commune: "Cocody" },
+  { id: "0100220YOP2242", codePada: "0100220YOP2242", type: "RUE", nom: "Rue les Bobodioufs", commune: "Yopougon" },
+  { id: "0100211ABO1860", codePada: "0100211ABO1860", type: "RUE", nom: "Rue les Natifs", commune: "Abobo" },
+  { id: "0100214COC232700074", codePada: "0100214COC232700074", type: "RUE", nom: "74 Rue les Pendentifs", commune: "Cocody" },
+  { id: "0100214COC232700159", codePada: "0100214COC232700159", type: "RUE", nom: "159 Rue les Pendentifs", commune: "Cocody" },
+  { id: "0100214COC232700142", codePada: "0100214COC232700142", type: "RUE", nom: "142 Rue les Pendentifs", commune: "Cocody" },
+  { id: "0100203BIN0051", codePada: "0100203BIN0051", type: "RUE", nom: "Rue Kraffy", commune: "Bingerville" },
+  { id: "0100214COC1074", codePada: "0100214COC1074", type: "AVENUE", nom: "Avenue Prof Adonis-koffy", commune: "Cocody" },
+  { id: "0100214COC107401317", codePada: "0100214COC107401317", type: "RUE", nom: "1317 Avenue Prof Adonis-koffy", commune: "Cocody" },
+  { id: "0100214COC107401307", codePada: "0100214COC107401307", type: "RUE", nom: "1307 Avenue Prof Adonis-koffy", commune: "Cocody" },
+  { id: "0100214COC107401310", codePada: "0100214COC107401310", type: "RUE", nom: "1310 Avenue Prof Adonis-koffy", commune: "Cocody" },
+  { id: "0100214COC107401298", codePada: "0100214COC107401298", type: "RUE", nom: "1298 Avenue Prof Adonis-koffy", commune: "Cocody" },
+  { id: "0100214COC107401383", codePada: "0100214COC107401383", type: "RUE", nom: "1383 Avenue Prof Adonis-koffy", commune: "Cocody" },
+  { id: "0100214COC107401370", codePada: "0100214COC107401370", type: "RUE", nom: "1370 Avenue Prof Adonis-koffy", commune: "Cocody" },
+  { id: "0100214COC107401357", codePada: "0100214COC107401357", type: "RUE", nom: "1357 Avenue Prof Adonis-koffy", commune: "Cocody" },
+  { id: "0100214COC107401301", codePada: "0100214COC107401301", type: "RUE", nom: "1301 Avenue Prof Adonis-koffy", commune: "Cocody" },
+  { id: "0100202ANY0036", codePada: "0100202ANY0036", type: "RUE", nom: "Rue Gozi Pierre Sika", commune: "Anyama" },
+  { id: "0100202ANY0037", codePada: "0100202ANY0037", type: "RUE", nom: "Rue Akei Gogoua", commune: "Anyama" },
+  { id: "0100202ANY0043", codePada: "0100202ANY0043", type: "RUE", nom: "Rue Boto Simon Dogbo", commune: "Anyama" },
+  { id: "0100202ANY0229", codePada: "0100202ANY0229", type: "RUE", nom: "Rue Ladji Silmiga", commune: "Anyama" },
+  { id: "0100202ANY0305", codePada: "0100202ANY0305", type: "RUE", nom: "Rue Tchake Gabriel Asseu", commune: "Anyama" },
+  { id: "0100211ABO0035", codePada: "0100211ABO0035", type: "RUE", nom: "Rue Bakayoko Jagger", commune: "Abobo" },
+  { id: "0100214COC1562", codePada: "0100214COC1562", type: "RUE", nom: "Rue Kouabié Peggy Florence Attegbé", commune: "Cocody" },
+  { id: "0100217PLA0069", codePada: "0100217PLA0069", type: "AVENUE", nom: "Avenue Anne-marie Raggi", commune: "Plateau" },
+  { id: "0100218POR0069", codePada: "0100218POR0069", type: "RUE", nom: "Rue André Raggi", commune: "Port-Bouët" },
+  { id: "0100220YOP0142", codePada: "0100220YOP0142", type: "RUE", nom: "Rue Albert Aggrey", commune: "Yopougon" },
+  { id: "0100220YOP0299", codePada: "0100220YOP0299", type: "RUE", nom: "Rue Gg Léopoldine", commune: "Yopougon" },
+  { id: "0100220YOP1086", codePada: "0100220YOP1086", type: "RUE", nom: "Rue Anthony James Leggett", commune: "Yopougon" },
+  { id: "0100220YOP1696", codePada: "0100220YOP1696", type: "RUE", nom: "Rue Saint Andreas Kaggwa", commune: "Yopougon" },
+  { id: "0100220YOP1997", codePada: "0100220YOP1997", type: "RUE", nom: "Rue le Reggae", commune: "Yopougon" },
+  { id: "0100203BIN0533", codePada: "0100203BIN0533", type: "RUE", nom: "Rue Évariste Daggha", commune: "Bingerville" },
+  { id: "0100216MAR0056", codePada: "0100216MAR0056", type: "RUE", nom: "Rue des Brugmansias", commune: "Marcory" },
+  { id: "0100214COC0854", codePada: "0100214COC0854", type: "RUE", nom: "Rue Sigma", commune: "Cocody" },
+  { id: "0100211ABO1483", codePada: "0100211ABO1483", type: "RUE", nom: "Rue N'congo Pierre Claver Fangman", commune: "Abobo" },
+  { id: "0100214COC085400058", codePada: "0100214COC085400058", type: "RUE", nom: "58 Rue Sigma", commune: "Cocody" },
+  { id: "0100214COC085400075", codePada: "0100214COC085400075", type: "RUE", nom: "75 Rue Sigma", commune: "Cocody" },
+  { id: "0100214COC085400064", codePada: "0100214COC085400064", type: "RUE", nom: "64 Rue Sigma", commune: "Cocody" },
+  { id: "0100214COC085400055", codePada: "0100214COC085400055", type: "RUE", nom: "55 Rue Sigma", commune: "Cocody" },
+  { id: "0100214COC085400082", codePada: "0100214COC085400082", type: "RUE", nom: "82 Rue Sigma", commune: "Cocody" },
+  { id: "0100214COC085400034", codePada: "0100214COC085400034", type: "RUE", nom: "34 Rue Sigma", commune: "Cocody" },
+  { id: "0100216MAR005600064", codePada: "0100216MAR005600064", type: "RUE", nom: "64 Rue des Brugmansias", commune: "Marcory" },
+  { id: "0100203BIN0658", codePada: "0100203BIN0658", type: "RUE", nom: "Rue Adougpo", commune: "Bingerville" },
+  { id: "0100203BIN065800228", codePada: "0100203BIN065800228", type: "RUE", nom: "228 Rue Adougpo", commune: "Bingerville" },
+  { id: "0100203BIN065800212", codePada: "0100203BIN065800212", type: "RUE", nom: "212 Rue Adougpo", commune: "Bingerville" },
+  { id: "0100203BIN065800184", codePada: "0100203BIN065800184", type: "RUE", nom: "184 Rue Adougpo", commune: "Bingerville" },
+  { id: "0100203BIN065800063", codePada: "0100203BIN065800063", type: "RUE", nom: "63 Rue Adougpo", commune: "Bingerville" },
+  { id: "0100203BIN065800105", codePada: "0100203BIN065800105", type: "RUE", nom: "105 Rue Adougpo", commune: "Bingerville" },
+  { id: "0100203BIN065800124", codePada: "0100203BIN065800124", type: "RUE", nom: "124 Rue Adougpo", commune: "Bingerville" },
+  { id: "0100203BIN065800117", codePada: "0100203BIN065800117", type: "RUE", nom: "117 Rue Adougpo", commune: "Bingerville" },
+  { id: "0100203BIN065800155", codePada: "0100203BIN065800155", type: "RUE", nom: "155 Rue Adougpo", commune: "Bingerville" },
+  { id: "0100203BIN065800043", codePada: "0100203BIN065800043", type: "RUE", nom: "43 Rue Adougpo", commune: "Bingerville" },
+  { id: "0100216MAR0294", codePada: "0100216MAR0294", type: "RUE", nom: "Rue Jerry Rawlings", commune: "Marcory" },
+  { id: "0100220YOP0626", codePada: "0100220YOP0626", type: "RUE", nom: "Rue les Coings", commune: "Yopougon" },
+  { id: "0100216MAR029400292", codePada: "0100216MAR029400292", type: "RUE", nom: "292 Rue Jerry Rawlings", commune: "Marcory" },
+  { id: "0100220YOP062600064", codePada: "0100220YOP062600064", type: "RUE", nom: "64 Rue les Coings", commune: "Yopougon" },
+  { id: "0100220YOP062600063", codePada: "0100220YOP062600063", type: "RUE", nom: "63 Rue les Coings", commune: "Yopougon" },
+  { id: "0100220YOP062600080", codePada: "0100220YOP062600080", type: "RUE", nom: "80 Rue les Coings", commune: "Yopougon" },
+  { id: "0100220YOP062600077", codePada: "0100220YOP062600077", type: "RUE", nom: "77 Rue les Coings", commune: "Yopougon" },
+  { id: "0100220YOP062600061", codePada: "0100220YOP062600061", type: "RUE", nom: "61 Rue les Coings", commune: "Yopougon" },
+  { id: "0100220YOP062600086", codePada: "0100220YOP062600086", type: "RUE", nom: "86 Rue les Coings", commune: "Yopougon" },
+  { id: "0100220YOP062600031", codePada: "0100220YOP062600031", type: "RUE", nom: "31 Rue les Coings", commune: "Yopougon" },
+  { id: "0100211ABO1957", codePada: "0100211ABO1957", type: "RUE", nom: "Rue le Gypse", commune: "Abobo" },
+  { id: "0100214COC3749", codePada: "0100214COC3749", type: "RUE", nom: "Rue L’égypte", commune: "Cocody" },
+  { id: "0100214COC156200091", codePada: "0100214COC156200091", type: "RUE", nom: "91 Rue Kouabié Peggy Florence Attegbé", commune: "Cocody" },
+  { id: "0100211ABO195700039", codePada: "0100211ABO195700039", type: "RUE", nom: "39 Rue le Gypse", commune: "Abobo" },
+  { id: "0100211ABO195700068", codePada: "0100211ABO195700068", type: "RUE", nom: "68 Rue le Gypse", commune: "Abobo" },
+  { id: "0100211ABO195700036", codePada: "0100211ABO195700036", type: "RUE", nom: "36 Rue le Gypse", commune: "Abobo" },
+  { id: "0100211ABO195700015", codePada: "0100211ABO195700015", type: "RUE", nom: "15 Rue le Gypse", commune: "Abobo" },
+  { id: "0100214COC156200052", codePada: "0100214COC156200052", type: "RUE", nom: "52 Rue Kouabié Peggy Florence Attegbé", commune: "Cocody" },
+  { id: "0100214COC156200123", codePada: "0100214COC156200123", type: "RUE", nom: "123 Rue Kouabié Peggy Florence Attegbé", commune: "Cocody" },
+  { id: "0100202ANY0110", codePada: "0100202ANY0110", type: "RUE", nom: "Rue Chalouho Coulibaly", commune: "Anyama" },
+  { id: "0100202ANY0111", codePada: "0100202ANY0111", type: "RUE", nom: "Rue Richard Pouho Dike", commune: "Anyama" },
+  { id: "0100202ANY0113", codePada: "0100202ANY0113", type: "RUE", nom: "Rue Monnet Denis Eha", commune: "Anyama" },
+  { id: "0100211ABO0416", codePada: "0100211ABO0416", type: "RUE", nom: "Rue Richmond Ildevert Kédi", commune: "Abobo" },
+  { id: "0100211ABO0817", codePada: "0100211ABO0817", type: "RUE", nom: "Rue Coulibaly Babrahma", commune: "Abobo" },
+  { id: "0100211ABO0872", codePada: "0100211ABO0872", type: "RUE", nom: "Rue Dohm Desiré Djidji", commune: "Abobo" },
+  { id: "0100211ABO1022", codePada: "0100211ABO1022", type: "RUE", nom: "Rue Ahmadou Niaré", commune: "Abobo" },
+  { id: "0100211ABO1521", codePada: "0100211ABO1521", type: "RUE", nom: "Rue Alice Coachman", commune: "Abobo" },
+  { id: "0100211ABO1659", codePada: "0100211ABO1659", type: "RUE", nom: "Rue Ahmed Sangaré", commune: "Abobo" },
+  { id: "0100211ABO2100", codePada: "0100211ABO2100", type: "RUE", nom: "Rue Ahmed Sylla", commune: "Abobo" },
+  { id: "0100211ABO2142", codePada: "0100211ABO2142", type: "RUE", nom: "Rue Ahmed Yaya Sidibé", commune: "Abobo" },
+  { id: "0100214COC0403", codePada: "0100214COC0403", type: "RUE", nom: "Rue Abdalah El-rahman Coulibaly", commune: "Cocody" },
+  { id: "0100202ANY0434", codePada: "0100202ANY0434", type: "RUE", nom: "Rue Kominlin Eba Marie-irène Richmond Ahoua", commune: "Anyama" },
+  { id: "0100214COC1032", codePada: "0100214COC1032", type: "RUE", nom: "Rue Brian David Josephson", commune: "Cocody" },
+  { id: "0100214COC0090", codePada: "0100214COC0090", type: "RUE", nom: "Rue le Kazakhstan", commune: "Cocody" },
+  { id: "0100203BIN0495", codePada: "0100203BIN0495", type: "RUE", nom: "Rue les Fuchsias", commune: "Bingerville" },
+  { id: "0100214COC009000105", codePada: "0100214COC009000105", type: "RUE", nom: "105 Rue le Kazakhstan", commune: "Cocody" },
+  { id: "0100214COC009000140", codePada: "0100214COC009000140", type: "RUE", nom: "140 Rue le Kazakhstan", commune: "Cocody" },
+  { id: "0100214COC009000097", codePada: "0100214COC009000097", type: "RUE", nom: "97 Rue le Kazakhstan", commune: "Cocody" },
+  { id: "0100214COC103200042", codePada: "0100214COC103200042", type: "RUE", nom: "42 Rue Brian David Josephson", commune: "Cocody" },
+  { id: "0100214COC009000061", codePada: "0100214COC009000061", type: "RUE", nom: "61 Rue le Kazakhstan", commune: "Cocody" },
+  { id: "0100214COC009000052", codePada: "0100214COC009000052", type: "RUE", nom: "52 Rue le Kazakhstan", commune: "Cocody" },
+  { id: "0100214COC009000071", codePada: "0100214COC009000071", type: "RUE", nom: "71 Rue le Kazakhstan", commune: "Cocody" },
+  { id: "0100214COC1591", codePada: "0100214COC1591", type: "RUE", nom: "Rue Yahvé-rapha", commune: "Cocody" },
+  { id: "0100214COC1602", codePada: "0100214COC1602", type: "RUE", nom: "Rue Yahvé-shamma", commune: "Cocody" },
+  { id: "0100216MAR0542", codePada: "0100216MAR0542", type: "BOULEVARD", nom: "Boulevard Félix Houphouët-boigny", commune: "Port-Bouët" },
+  { id: "0100218POR0111", codePada: "0100218POR0111", type: "BOULEVARD", nom: "Boulevard du Port", commune: "Treichville" },
+  { id: "0100219TRE0001", codePada: "0100219TRE0001", type: "RUE", nom: "Rue René Amani", commune: "Treichville" },
+  { id: "0100219TRE0002", codePada: "0100219TRE0002", type: "RUE", nom: "Rue les Gardénias", commune: "Treichville" },
+  { id: "0100219TRE0007", codePada: "0100219TRE0007", type: "RUE", nom: "Rue des Bois", commune: "Treichville" },
+  { id: "0100219TRE0008", codePada: "0100219TRE0008", type: "RUE", nom: "Rue des Anciens Combattants", commune: "Treichville" },
+  { id: "0100219TRE0009", codePada: "0100219TRE0009", type: "RUE", nom: "Rue du Débonnaire", commune: "Treichville" },
+  { id: "0100214COC0383", codePada: "0100214COC0383", type: "RUE", nom: "Rue Yahvé-nissi", commune: "Cocody" },
+  { id: "0100202ANY0192", codePada: "0100202ANY0192", type: "RUE", nom: "Rue Bongba Hyacinthe Yapo", commune: "Anyama" },
+  { id: "0100202ANY0321", codePada: "0100202ANY0321", type: "RUE", nom: "Rue Adon Achy", commune: "Anyama" },
+  { id: "0100202ANY0500", codePada: "0100202ANY0500", type: "RUE", nom: "Rue Anon Hyppolite Yapo", commune: "Anyama" },
+  { id: "0100203BIN0218", codePada: "0100203BIN0218", type: "RUE", nom: "Rue les Hydrangeas", commune: "Bingerville" },
+  { id: "0100203BIN0303", codePada: "0100203BIN0303", type: "RUE", nom: "Rue Vincent Hyacinthe Zéhi", commune: "Bingerville" },
+  { id: "0100203BIN0885", codePada: "0100203BIN0885", type: "RUE", nom: "Rue Ouffouet Hyacinthe", commune: "Bingerville" },
+  { id: "0100203BIN1123", codePada: "0100203BIN1123", type: "RUE", nom: "Rue L'anis Hysope", commune: "Bingerville" },
+  { id: "0100202ANY0125", codePada: "0100202ANY0125", type: "RUE", nom: "Rue Akichy Alexandre Akichy", commune: "Anyama" },
+  { id: "0100202ANY0023", codePada: "0100202ANY0023", type: "RUE", nom: "Rue Viviane Akeï", commune: "Anyama" },
+  { id: "0100202ANY0134", codePada: "0100202ANY0134", type: "RUE", nom: "Rue Siaka Niabale", commune: "Anyama" },
+  { id: "0100202ANY0176", codePada: "0100202ANY0176", type: "RUE", nom: "Rue Amian Abissa", commune: "Anyama" },
+  { id: "0100202ANY0108", codePada: "0100202ANY0108", type: "RUE", nom: "Rue Manza Sidibé", commune: "Anyama" },
+  { id: "0100202ANY0182", codePada: "0100202ANY0182", type: "RUE", nom: "Rue André Gide", commune: "Anyama" },
+  { id: "0100202ANY0190", codePada: "0100202ANY0190", type: "RUE", nom: "Rue Koffi Didier Kouadio", commune: "Anyama" },
+  { id: "0100202ANY0228", codePada: "0100202ANY0228", type: "RUE", nom: "Rue Kramo Djakaridja Dogoni", commune: "Anyama" },
+  { id: "0100202ANY0502", codePada: "0100202ANY0502", type: "RUE", nom: "Rue Amidou Sylla", commune: "Abobo" },
+  { id: "0100202ANY0104", codePada: "0100202ANY0104", type: "RUE", nom: "Rue Sidick Tall", commune: "Anyama" },
+  { id: "0100202ANY0179", codePada: "0100202ANY0179", type: "RUE", nom: "Rue Abigoua Tanoh", commune: "Anyama" },
+  { id: "0100202ANY0280", codePada: "0100202ANY0280", type: "RUE", nom: "Rue Mariam Fétigué Koulibaly", commune: "Anyama" },
+  { id: "0100202ANY0435", codePada: "0100202ANY0435", type: "RUE", nom: "Rue Ahou Luc Abigoua", commune: "Anyama" },
+  { id: "0100202ANY0691", codePada: "0100202ANY0691", type: "RUE", nom: "Rue Minignan", commune: "Anyama" },
+  { id: "0100203BIN0036", codePada: "0100203BIN0036", type: "RUE", nom: "Rue Gbliglo", commune: "Bingerville" },
+  { id: "0100203BIN0098", codePada: "0100203BIN0098", type: "RUE", nom: "Rue Dr Kaladji Fadiga", commune: "Bingerville" },
+  { id: "0100203BIN0462", codePada: "0100203BIN0462", type: "RUE", nom: "Rue Trouga Sylvain Ourigou", commune: "Bingerville" },
+  { id: "0100220YOP2611", codePada: "0100220YOP2611", type: "RUE", nom: "Rue les Bijoutiers", commune: "Yopougon" },
+  { id: "0100220YOP261100065", codePada: "0100220YOP261100065", type: "RUE", nom: "65 Rue les Bijoutiers", commune: "Yopougon" },
+  { id: "0100220YOP261100075", codePada: "0100220YOP261100075", type: "RUE", nom: "75 Rue les Bijoutiers", commune: "Yopougon" },
+  { id: "0100220YOP261100077", codePada: "0100220YOP261100077", type: "RUE", nom: "77 Rue les Bijoutiers", commune: "Yopougon" },
+  { id: "0100220YOP261100081", codePada: "0100220YOP261100081", type: "RUE", nom: "81 Rue les Bijoutiers", commune: "Yopougon" },
+  { id: "0100220YOP261100069", codePada: "0100220YOP261100069", type: "RUE", nom: "69 Rue les Bijoutiers", commune: "Yopougon" },
+  { id: "0100220YOP261100080", codePada: "0100220YOP261100080", type: "RUE", nom: "80 Rue les Bijoutiers", commune: "Yopougon" },
+  { id: "0100220YOP261100074", codePada: "0100220YOP261100074", type: "RUE", nom: "74 Rue les Bijoutiers", commune: "Yopougon" },
+  { id: "0100220YOP261100037", codePada: "0100220YOP261100037", type: "RUE", nom: "37 Rue les Bijoutiers", commune: "Yopougon" },
+  { id: "0100220YOP261100053", codePada: "0100220YOP261100053", type: "RUE", nom: "53 Rue les Bijoutiers", commune: "Yopougon" },
+  { id: "0100202ANY0099", codePada: "0100202ANY0099", type: "RUE", nom: "Rue Imam Aboubakar Bouaré", commune: "Anyama" },
+  { id: "0100202ANY0138", codePada: "0100202ANY0138", type: "RUE", nom: "Rue Maxime Djoman", commune: "Anyama" },
+  { id: "0100202ANY0302", codePada: "0100202ANY0302", type: "RUE", nom: "Rue Otokpa Simon Pierre Djoman", commune: "Anyama" },
+  { id: "0100202ANY0322", codePada: "0100202ANY0322", type: "RUE", nom: "Rue Abe Siméon Pohou", commune: "Anyama" },
+  { id: "0100202ANY0639", codePada: "0100202ANY0639", type: "RUE", nom: "Rue Sindo Philippe Atsin", commune: "Anyama" },
+  { id: "0100202ANY0725", codePada: "0100202ANY0725", type: "RUE", nom: "Rue Claude Kipré", commune: "Anyama" },
+  { id: "0100203BIN0031", codePada: "0100203BIN0031", type: "RUE", nom: "Rue Philippe Ouattara", commune: "Bingerville" },
+  { id: "0100203BIN0153", codePada: "0100203BIN0153", type: "RUE", nom: "Rue de L'émancipation", commune: "Bingerville" },
+  { id: "0100203BIN0162", codePada: "0100203BIN0162", type: "IMPASSE", nom: "Impasse la Multiplication", commune: "Bingerville" },
+  { id: "0100203BIN0167", codePada: "0100203BIN0167", type: "RUE", nom: "Rue Philippe Attey", commune: "Bingerville" },
+  { id: "0100203BIN0188", codePada: "0100203BIN0188", type: "RUE", nom: "Rue Ipouagui", commune: "Bingerville" },
+  { id: "0100203BIN0207", codePada: "0100203BIN0207", type: "RUE", nom: "Rue le Frangipanier", commune: "Bingerville" },
+  { id: "0100202ANY0340", codePada: "0100202ANY0340", type: "RUE", nom: "Rue Dr Philippe Ibitowa", commune: "Anyama" },
+  { id: "0100202ANY0077", codePada: "0100202ANY0077", type: "RUE", nom: "Rue Atsin Augustin Kouamissan", commune: "Anyama" },
+  { id: "0100202ANY0094", codePada: "0100202ANY0094", type: "RUE", nom: "Rue Issouf Traoré", commune: "Anyama" },
+  { id: "0100202ANY0109", codePada: "0100202ANY0109", type: "RUE", nom: "Rue Drissa Bamba", commune: "Anyama" },
+  { id: "0100202ANY0364", codePada: "0100202ANY0364", type: "RUE", nom: "Rue Mgr Jean-baptiste Boivin", commune: "Anyama" },
+  { id: "0100203BIN0028", codePada: "0100203BIN0028", type: "RUE", nom: "Rue Privat Oulla", commune: "Bingerville" },
+  { id: "0100203BIN0114", codePada: "0100203BIN0114", type: "RUE", nom: "Rue L'alternative", commune: "Bingerville" },
+  { id: "0100203BIN0216", codePada: "0100203BIN0216", type: "RUE", nom: "Rue Olivier N'guettia", commune: "Bingerville" },
+  { id: "0100203BIN0498", codePada: "0100203BIN0498", type: "RUE", nom: "Rue les Clivas", commune: "Bingerville" },
+  { id: "0100203BIN0539", codePada: "0100203BIN0539", type: "RUE", nom: "Rue la Compétitivité", commune: "Bingerville" },
+  { id: "0100203BIN0706", codePada: "0100203BIN0706", type: "RUE", nom: "Rue Académie Ivoire", commune: "Bingerville" },
+  { id: "0100203BIN0858", codePada: "0100203BIN0858", type: "RUE", nom: "Rue la Divine", commune: "Bingerville" },
+  { id: "0100203BIN0936", codePada: "0100203BIN0936", type: "RUE", nom: "Rue les Oliviers", commune: "Bingerville" },
+  { id: "0100211ABO0513", codePada: "0100211ABO0513", type: "RUE", nom: "Rue Eliyahu", commune: "Abobo" },
+  { id: "0100211ABO1819", codePada: "0100211ABO1819", type: "RUE", nom: "Rue Assemin Dihiye", commune: "Abobo" },
+  { id: "0100211ABO1854", codePada: "0100211ABO1854", type: "RUE", nom: "Rue Jean Pliya", commune: "Abobo" },
+  { id: "0100211ABO2250", codePada: "0100211ABO2250", type: "RUE", nom: "Rue Kiyali Daouda Hervé Silué", commune: "Abobo" },
+  { id: "0100214COC0791", codePada: "0100214COC0791", type: "RUE", nom: "Rue Quiyama", commune: "Cocody" },
+  { id: "0100214COC1394", codePada: "0100214COC1394", type: "RUE", nom: "Rue Siya Kolisi", commune: "Cocody" },
+  { id: "0100214COC2189", codePada: "0100214COC2189", type: "RUE", nom: "Rue Douniya", commune: "Cocody" },
+  { id: "0100214COC4177", codePada: "0100214COC4177", type: "RUE", nom: "Rue Biyerewuo", commune: "Cocody" },
+  { id: "0100220YOP0659", codePada: "0100220YOP0659", type: "RUE", nom: "Rue Djiakaridiya Coulibaly", commune: "Yopougon" },
+  { id: "0100203BIN0508", codePada: "0100203BIN0508", type: "RUE", nom: "Rue Liliy", commune: "Bingerville" },
+  { id: "0100202ANY0044", codePada: "0100202ANY0044", type: "RUE", nom: "Rue Tano Justin Koko Kouakou", commune: "Anyama" },
+  { id: "0100202ANY0183", codePada: "0100202ANY0183", type: "RUE", nom: "Rue Coffi Kouadja", commune: "Anyama" },
+  { id: "0100202ANY0209", codePada: "0100202ANY0209", type: "RUE", nom: "Rue Rosalie Djaman Koutchan", commune: "Anyama" },
+  { id: "0100202ANY0218", codePada: "0100202ANY0218", type: "RUE", nom: "Rue Achi Benjamin Yapi", commune: "Anyama" },
+  { id: "0100202ANY0223", codePada: "0100202ANY0223", type: "RUE", nom: "Rue El Hadj Almamy Djan Samassi", commune: "Anyama" },
+  { id: "0100220YOP2744", codePada: "0100220YOP2744", type: "RUE", nom: "Rue Dr Bernard Nazaire Djyh", commune: "Yopougon" },
+  { id: "0100220YOP274400042", codePada: "0100220YOP274400042", type: "RUE", nom: "42 Rue Dr Bernard Nazaire Djyh", commune: "Yopougon" },
+  { id: "0100220YOP274400024", codePada: "0100220YOP274400024", type: "RUE", nom: "24 Rue Dr Bernard Nazaire Djyh", commune: "Yopougon" },
+  { id: "0100220YOP274400064", codePada: "0100220YOP274400064", type: "RUE", nom: "64 Rue Dr Bernard Nazaire Djyh", commune: "Yopougon" },
+  { id: "0100220YOP274400086", codePada: "0100220YOP274400086", type: "RUE", nom: "86 Rue Dr Bernard Nazaire Djyh", commune: "Yopougon" },
+  { id: "0100220YOP274400108", codePada: "0100220YOP274400108", type: "RUE", nom: "108 Rue Dr Bernard Nazaire Djyh", commune: "Yopougon" },
+  { id: "0100220YOP274400096", codePada: "0100220YOP274400096", type: "RUE", nom: "96 Rue Dr Bernard Nazaire Djyh", commune: "Yopougon" },
+  { id: "0100202ANY0020", codePada: "0100202ANY0020", type: "RUE", nom: "Rue Kaé Oulaï", commune: "Anyama" },
+  { id: "0100202ANY0057", codePada: "0100202ANY0057", type: "RUE", nom: "Rue Mensa Kakou", commune: "Anyama" },
+  { id: "0100214COC2943", codePada: "0100214COC2943", type: "RUE", nom: "Rue Dr Djédjro Clément Akmel", commune: "Cocody" },
+  { id: "0100211ABO1506", codePada: "0100211ABO1506", type: "RUE", nom: "Rue Tony Reekmans", commune: "Abobo" },
+  { id: "0100214COC3674", codePada: "0100214COC3674", type: "RUE", nom: "Rue Akmel Sylvie Ses Esmel", commune: "Cocody" },
+  { id: "0100214COC1912", codePada: "0100214COC1912", type: "RUE", nom: "Rue Gori Marcellin Akpa Akmel", commune: "Cocody" },
+  { id: "0100214COC2935", codePada: "0100214COC2935", type: "RUE", nom: "Rue Mobio Laurent Yakmé", commune: "Cocody" },
+  { id: "0100211ABO150600216", codePada: "0100211ABO150600216", type: "RUE", nom: "216 Rue Tony Reekmans", commune: "Abobo" },
+  { id: "0100214COC294300222", codePada: "0100214COC294300222", type: "RUE", nom: "222 Rue Dr Djédjro Clément Akmel", commune: "Cocody" },
+  { id: "0100214COC367400029", codePada: "0100214COC367400029", type: "RUE", nom: "29 Rue Akmel Sylvie Ses Esmel", commune: "Cocody" },
+  { id: "0100214COC367400028", codePada: "0100214COC367400028", type: "RUE", nom: "28 Rue Akmel Sylvie Ses Esmel", commune: "Cocody" },
+  { id: "0100211ABO150600203", codePada: "0100211ABO150600203", type: "RUE", nom: "203 Rue Tony Reekmans", commune: "Abobo" },
+  { id: "0100202ANY0189", codePada: "0100202ANY0189", type: "RUE", nom: "Rue Akpo Luc Mollou", commune: "Anyama" },
+  { id: "0100202ANY0193", codePada: "0100202ANY0193", type: "RUE", nom: "Rue Assi Afokpa", commune: "Anyama" },
+  { id: "0100202ANY0406", codePada: "0100202ANY0406", type: "RUE", nom: "Rue Jean Paul Kpangny", commune: "Anyama" },
+  { id: "0100202ANY0409", codePada: "0100202ANY0409", type: "RUE", nom: "Rue Odette Akpi", commune: "Anyama" },
+  { id: "0100202ANY0478", codePada: "0100202ANY0478", type: "RUE", nom: "Rue Dr Akpé Jonas Adou", commune: "Anyama" },
+  { id: "0100202ANY0486", codePada: "0100202ANY0486", type: "RUE", nom: "Rue Assomou André Ekponon", commune: "Anyama" },
+  { id: "0100202ANY0095", codePada: "0100202ANY0095", type: "RUE", nom: "Rue Adohi Noé Otokpa", commune: "Anyama" },
+  { id: "0100211ABO0252", codePada: "0100211ABO0252", type: "RUE", nom: "Rue Aksoum", commune: "Abobo" },
+  { id: "0100211ABO1472", codePada: "0100211ABO1472", type: "RUE", nom: "Rue Tanoh Marie Nicole Boni Turkson", commune: "Abobo" },
+  { id: "0100205SON0111", codePada: "0100205SON0111", type: "RUE", nom: "Rue Thanksgiving", commune: "Songon" },
+  { id: "0100214COC3456", codePada: "0100214COC3456", type: "RUE", nom: "Rue Rosa Parks", commune: "Cocody" },
+  { id: "0100220YOP1683", codePada: "0100220YOP1683", type: "RUE", nom: "Rue du Complexe Jesse Jackson", commune: "Yopougon" },
+  { id: "0100220YOP2140", codePada: "0100220YOP2140", type: "RUE", nom: "Rue Luckson Padaud", commune: "Yopougon" },
+  { id: "0100214COC2313", codePada: "0100214COC2313", type: "RUE", nom: "Rue les Acacias Vereks", commune: "Cocody" },
+  { id: "0100214COC345600615", codePada: "0100214COC345600615", type: "RUE", nom: "615 Rue Rosa Parks", commune: "Cocody" },
+  { id: "0100214COC345600593", codePada: "0100214COC345600593", type: "RUE", nom: "593 Rue Rosa Parks", commune: "Cocody" },
+  { id: "0100214COC345600046", codePada: "0100214COC345600046", type: "RUE", nom: "46 Rue Rosa Parks", commune: "Cocody" },
+  { id: "0100211ABO0545", codePada: "0100211ABO0545", type: "RUE", nom: "Rue Victor Kyereme", commune: "Abobo" },
+  { id: "0100211ABO1122", codePada: "0100211ABO1122", type: "RUE", nom: "Rue Macky Dembélé", commune: "Abobo" },
+  { id: "0100211ABO2215", codePada: "0100211ABO2215", type: "RUE", nom: "Rue Dr Ayeby de Paulousky", commune: "Abobo" },
+  { id: "0100214COC0646", codePada: "0100214COC0646", type: "RUE", nom: "Rue Beli Desiré Bakyonon", commune: "Cocody" },
+  { id: "0100214COC3685", codePada: "0100214COC3685", type: "RUE", nom: "Rue Abdoulaye Blacky Koné", commune: "Cocody" },
+  { id: "0100214COC3701", codePada: "0100214COC3701", type: "RUE", nom: "Rue Dr Sidiky Diarassouba", commune: "Cocody" },
+  { id: "0100214COC3743", codePada: "0100214COC3743", type: "RUE", nom: "Rue Innocent Anaky Kobena", commune: "Cocody" },
+  { id: "0100215KOU0068", codePada: "0100215KOU0068", type: "RUE", nom: "Rue Koffi Fofié Anaky", commune: "Koumassi" },
+  { id: "0100215KOU0334", codePada: "0100215KOU0334", type: "RUE", nom: "Rue Alphonse Bouaky", commune: "Koumassi" },
+  { id: "0100202ANY0316", codePada: "0100202ANY0316", type: "RUE", nom: "Rue Dr Juliette Ky", commune: "Anyama" },
+  { id: "0100202ANY0060", codePada: "0100202ANY0060", type: "RUE", nom: "Rue la Modernité", commune: "Anyama" },
+  { id: "0100202ANY0068", codePada: "0100202ANY0068", type: "RUE", nom: "Rue Lancina Karamoko", commune: "Anyama" },
+  { id: "0100202ANY0081", codePada: "0100202ANY0081", type: "RUE", nom: "Rue Claude Michel Goua", commune: "Anyama" },
+  { id: "0100202ANY0122", codePada: "0100202ANY0122", type: "RUE", nom: "Rue Blaise Abenan", commune: "Anyama" },
+  { id: "0100202ANY0132", codePada: "0100202ANY0132", type: "RUE", nom: "Rue Lassana Dosso", commune: "Anyama" },
+  { id: "0100202ANY0136", codePada: "0100202ANY0136", type: "RUE", nom: "Rue Amon Laurent Bongba", commune: "Anyama" },
+  { id: "0100203BIN0376", codePada: "0100203BIN0376", type: "RUE", nom: "Rue Léopold Drié", commune: "Bingerville" },
+  { id: "0100203BIN0736", codePada: "0100203BIN0736", type: "RUE", nom: "Rue Gildas Badizon Simy", commune: "Bingerville" },
+  { id: "0100203BIN0987", codePada: "0100203BIN0987", type: "RUE", nom: "Rue Oswald Mbazumutima", commune: "Bingerville" },
+  { id: "0100211ABO0153", codePada: "0100211ABO0153", type: "RUE", nom: "Rue Colonel Léopold Kohou", commune: "Abobo" },
+  { id: "0100211ABO1174", codePada: "0100211ABO1174", type: "RUE", nom: "Rue Hervé Blumenfeld", commune: "Abobo" },
+  { id: "0100211ABO1363", codePada: "0100211ABO1363", type: "RUE", nom: "Rue Amon Léopoldine Gnima", commune: "Abobo" },
+  { id: "0100211ABO1616", codePada: "0100211ABO1616", type: "RUE", nom: "Rue Gbocho Léopold Bouagba", commune: "Abobo" },
+  { id: "0100203BIN0047", codePada: "0100203BIN0047", type: "RUE", nom: "Rue Léopold Touré", commune: "Bingerville" },
+  { id: "0100211ABO0576", codePada: "0100211ABO0576", type: "RUE", nom: "Rue Olga Coulibaly", commune: "Abobo" },
+  { id: "0100211ABO1562", codePada: "0100211ABO1562", type: "RUE", nom: "Rue Algol", commune: "Abobo" },
+  { id: "0100214COC1107", codePada: "0100214COC1107", type: "RUE", nom: "Rue Dr Toti Fulgence Lohoré", commune: "Cocody" },
+  { id: "0100214COC1194", codePada: "0100214COC1194", type: "RUE", nom: "Rue Roger Fulgence Kassy", commune: "Cocody" },
+  { id: "0100214COC2450", codePada: "0100214COC2450", type: "RUE", nom: "Rue Alger", commune: "Cocody" },
+  { id: "0100214COC3217", codePada: "0100214COC3217", type: "RUE", nom: "Rue Suhai Olga Brigitte Douabla Yao", commune: "Cocody" },
+  { id: "0100214COC3651", codePada: "0100214COC3651", type: "RUE", nom: "Rue la Bulgarie", commune: "Cocody" },
+  { id: "0100215KOU0119", codePada: "0100215KOU0119", type: "RUE", nom: "Rue de L'indulgence", commune: "Koumassi" },
+  { id: "0100219TRE0144", codePada: "0100219TRE0144", type: "RUE", nom: "Rue Fulgence Koffi", commune: "Treichville" },
+  { id: "0100203BIN1526", codePada: "0100203BIN1526", type: "RUE", nom: "Rue Dr Jean Fulgence Écra", commune: "Bingerville" },
+  { id: "0100203BIN0396", codePada: "0100203BIN0396", type: "RUE", nom: "Rue Stockholm", commune: "Bingerville" },
+  { id: "0100203BIN0525", codePada: "0100203BIN0525", type: "RUE", nom: "Rue les Palmiers à Huile", commune: "Bingerville" },
+  { id: "0100203BIN0672", codePada: "0100203BIN0672", type: "RUE", nom: "Rue le Martinet des Palmes", commune: "Bingerville" },
+  { id: "0100203BIN0908", codePada: "0100203BIN0908", type: "RUE", nom: "Rue les Palmacées", commune: "Bingerville" },
+  { id: "0100203BIN1358", codePada: "0100203BIN1358", type: "RUE", nom: "Rue les Palmiers Royaux", commune: "Bingerville" },
+  { id: "0100211ABO0276", codePada: "0100211ABO0276", type: "RUE", nom: "Rue les Almoravides", commune: "Abobo" },
+  { id: "0100211ABO0345", codePada: "0100211ABO0345", type: "RUE", nom: "Rue les Dalmatiens", commune: "Abobo" },
+  { id: "0100211ABO0356", codePada: "0100211ABO0356", type: "RUE", nom: "Rue L'holmium", commune: "Abobo" },
+  { id: "0100202ANY0237", codePada: "0100202ANY0237", type: "RUE", nom: "Rue Alphonse Coffi", commune: "Anyama" },
+  { id: "0100202ANY0456", codePada: "0100202ANY0456", type: "RUE", nom: "Rue Affoué Delphine Noël", commune: "Anyama" },
+  { id: "0100202ANY0635", codePada: "0100202ANY0635", type: "RUE", nom: "Rue Alphonse Bilé", commune: "Anyama" },
+  { id: "0100203BIN0030", codePada: "0100203BIN0030", type: "RUE", nom: "Rue Me Charles Alphonse Combes", commune: "Bingerville" },
+  { id: "0100203BIN0133", codePada: "0100203BIN0133", type: "RUE", nom: "Rue Alphonse Gosso", commune: "Bingerville" },
+  { id: "0100203BIN0698", codePada: "0100203BIN0698", type: "RUE", nom: "Rue Prof Alphonse Voho Sahi", commune: "Bingerville" },
+  { id: "0100203BIN1371", codePada: "0100203BIN1371", type: "RUE", nom: "Rue Delphine Yacé", commune: "Bingerville" },
+  { id: "0100203BIN1471", codePada: "0100203BIN1471", type: "RUE", nom: "Rue Ahouo Alphonse Aké", commune: "Bingerville" },
+  { id: "0100202ANY0137", codePada: "0100202ANY0137", type: "RUE", nom: "Rue Bala Delphin Yapi", commune: "Anyama" },
+  { id: "0100211ABO0029", codePada: "0100211ABO0029", type: "RUE", nom: "Rue les Corossols", commune: "Abobo" },
+  { id: "0100211ABO0040", codePada: "0100211ABO0040", type: "RUE", nom: "Rue les Intellectuels", commune: "Abobo" },
+  { id: "0100211ABO0045", codePada: "0100211ABO0045", type: "RUE", nom: "Rue les Cocktails", commune: "Abobo" },
+  { id: "0100211ABO0258", codePada: "0100211ABO0258", type: "RUE", nom: "Rue les Professionnels", commune: "Abobo" },
+  { id: "0100212ADJ0387", codePada: "0100212ADJ0387", type: "RUE", nom: "Rue les Fenouils", commune: "Adjamé" },
+  { id: "0100214COC1276", codePada: "0100214COC1276", type: "RUE", nom: "Rue Ayoko Edwige Wilson", commune: "Cocody" },
+  { id: "0100214COC1790", codePada: "0100214COC1790", type: "RUE", nom: "Rue Niamien Wilson Kouadio", commune: "Cocody" },
+  { id: "0100214COC2228", codePada: "0100214COC2228", type: "RUE", nom: "Rue les Falafels", commune: "Cocody" },
+  { id: "0100214COC2341", codePada: "0100214COC2341", type: "RUE", nom: "Rue les Pent-a-cols", commune: "Cocody" },
+  { id: "0100203BIN0264", codePada: "0100203BIN0264", type: "RUE", nom: "Rue les Sabals", commune: "Bingerville" },
+  { id: "0100202ANY0333", codePada: "0100202ANY0333", type: "RUE", nom: "Rue Assagou Sylvestre Adangbe", commune: "Anyama" },
+  { id: "0100202ANY0402", codePada: "0100202ANY0402", type: "RUE", nom: "Rue Dr Khauco Marcelle Sylviane Agba", commune: "Anyama" },
+  { id: "0100202ANY0492", codePada: "0100202ANY0492", type: "RUE", nom: "Rue Prof Silva Anoma", commune: "Anyama" },
+  { id: "0100203BIN0463", codePada: "0100203BIN0463", type: "RUE", nom: "Rue N'takpé Sylvain Boka", commune: "Bingerville" },
+  { id: "0100203BIN0757", codePada: "0100203BIN0757", type: "RUE", nom: "Rue Dorothée Da Sylva", commune: "Bingerville" },
+  { id: "0100203BIN0856", codePada: "0100203BIN0856", type: "RUE", nom: "Rue Sylvestre Tommy", commune: "Bingerville" },
+  { id: "0100203BIN1010", codePada: "0100203BIN1010", type: "RUE", nom: "Rue N'da Sylvestre Yapi", commune: "Bingerville" },
+  { id: "0100203BIN1668", codePada: "0100203BIN1668", type: "RUE", nom: "Rue Elvire-joëlle Zouzou-mailly", commune: "Bingerville" },
+  { id: "0100202ANY0252", codePada: "0100202ANY0252", type: "RUE", nom: "Rue Sylvain Coffi Dick", commune: "Anyama" },
+  { id: "0100202ANY0150", codePada: "0100202ANY0150", type: "RUE", nom: "Rue Charly Zouzouko", commune: "Anyama" },
+  { id: "0100202ANY0175", codePada: "0100202ANY0175", type: "RUE", nom: "Rue Lacina Coulibaly", commune: "Anyama" },
+  { id: "0100202ANY0191", codePada: "0100202ANY0191", type: "RUE", nom: "Rue Patrice Willy", commune: "Anyama" },
+  { id: "0100212ADJ0326", codePada: "0100212ADJ0326", type: "RUE", nom: "Rue Nnamdi Azikiwe", commune: "Adjamé" },
+  { id: "0100212ADJ032600140", codePada: "0100212ADJ032600140", type: "RUE", nom: "140 Rue Nnamdi Azikiwe", commune: "Adjamé" },
+  { id: "0100212ADJ032600170", codePada: "0100212ADJ032600170", type: "RUE", nom: "170 Rue Nnamdi Azikiwe", commune: "Adjamé" },
+  { id: "0100212ADJ032600488", codePada: "0100212ADJ032600488", type: "RUE", nom: "488 Rue Nnamdi Azikiwe", commune: "Adjamé" },
+  { id: "0100212ADJ032600444", codePada: "0100212ADJ032600444", type: "RUE", nom: "444 Rue Nnamdi Azikiwe", commune: "Adjamé" },
+  { id: "0100212ADJ032600221", codePada: "0100212ADJ032600221", type: "RUE", nom: "221 Rue Nnamdi Azikiwe", commune: "Adjamé" },
+  { id: "0100212ADJ032600138", codePada: "0100212ADJ032600138", type: "RUE", nom: "138 Rue Nnamdi Azikiwe", commune: "Adjamé" },
+  { id: "0100212ADJ032600094", codePada: "0100212ADJ032600094", type: "RUE", nom: "94 Rue Nnamdi Azikiwe", commune: "Adjamé" },
+  { id: "0100212ADJ032600067", codePada: "0100212ADJ032600067", type: "RUE", nom: "67 Rue Nnamdi Azikiwe", commune: "Adjamé" },
+  { id: "0100212ADJ032600016", codePada: "0100212ADJ032600016", type: "RUE", nom: "16 Rue Nnamdi Azikiwe", commune: "Adjamé" },
+  { id: "0100202ANY0380", codePada: "0100202ANY0380", type: "RUE", nom: "Rue Mgr Richard Anon", commune: "Anyama" },
+  { id: "0100203BIN0487", codePada: "0100203BIN0487", type: "RUE", nom: "Rue Mgr Jean Baptiste Akwadan", commune: "Bingerville" },
+  { id: "0100203BIN1000", codePada: "0100203BIN1000", type: "RUE", nom: "Rue Mgr Jean-jacques Koffi", commune: "Bingerville" },
+  { id: "0100203BIN1244", codePada: "0100203BIN1244", type: "RUE", nom: "Rue Mgr Jacques Assanvo Ahiwa", commune: "Bingerville" },
+  { id: "0100211ABO0453", codePada: "0100211ABO0453", type: "RUE", nom: "Rue Karmga Doumbia", commune: "Abobo" },
+  { id: "0100211ABO1368", codePada: "0100211ABO1368", type: "RUE", nom: "Rue Mgr André Boivin", commune: "Abobo" },
+  { id: "0100212ADJ0164", codePada: "0100212ADJ0164", type: "RUE", nom: "Rue Mgr Marie Dadié", commune: "Adjamé" },
+  { id: "0100214COC1174", codePada: "0100214COC1174", type: "RUE", nom: "Rue Mgr Maurice Konan Kouassi", commune: "Cocody" },
+  { id: "0100214COC1728", codePada: "0100214COC1728", type: "RUE", nom: "Rue Mgr Alexis Touably Youlo", commune: "Cocody" },
+  { id: "0100202ANY0424", codePada: "0100202ANY0424", type: "RUE", nom: "Rue Goré Emmanuel Yao Bi", commune: "Anyama" },
+  { id: "0100203BIN0102", codePada: "0100203BIN0102", type: "RUE", nom: "Rue Emmanuel Benié", commune: "Bingerville" },
+  { id: "0100203BIN0340", codePada: "0100203BIN0340", type: "RUE", nom: "Rue L'immaculée", commune: "Bingerville" },
+  { id: "0100203BIN0653", codePada: "0100203BIN0653", type: "RUE", nom: "Rue Emmanuel Godji Gbédjé", commune: "Bingerville" },
+  { id: "0100203BIN1027", codePada: "0100203BIN1027", type: "RUE", nom: "Rue Emmanuel Eboué", commune: "Bingerville" },
+  { id: "0100203BIN1385", codePada: "0100203BIN1385", type: "RUE", nom: "Rue Prof Emmanuel Konan", commune: "Bingerville" },
+  { id: "0100203BIN1404", codePada: "0100203BIN1404", type: "RUE", nom: "Rue L'immunité", commune: "Bingerville" },
+  { id: "0100203BIN1422", codePada: "0100203BIN1422", type: "RUE", nom: "Rue Kouadio Emmanuel N'dri", commune: "Bingerville" },
+  { id: "0100202ANY0503", codePada: "0100202ANY0503", type: "RUE", nom: "Rue Adompo Marc Brou", commune: "Anyama" },
+  { id: "0100202ANY0672", codePada: "0100202ANY0672", type: "RUE", nom: "Rue Akossy Firmin Douampo", commune: "Anyama" },
+  { id: "0100202ANY0686", codePada: "0100202ANY0686", type: "RUE", nom: "Rue Mamadou Dompou", commune: "Anyama" },
+  { id: "0100203BIN0065", codePada: "0100203BIN0065", type: "RUE", nom: "Rue les Compliments", commune: "Bingerville" },
+  { id: "0100203BIN0111", codePada: "0100203BIN0111", type: "RUE", nom: "Rue des Impôts", commune: "Bingerville" },
+  { id: "0100203BIN0135", codePada: "0100203BIN0135", type: "RUE", nom: "Rue la Symphorine", commune: "Bingerville" },
+  { id: "0100202ANY0646", codePada: "0100202ANY0646", type: "RUE", nom: "Rue Yapi Samson Ahou", commune: "Anyama" },
+  { id: "0100203BIN1215", codePada: "0100203BIN1215", type: "RUE", nom: "Rue Henriette Wadjams", commune: "Bingerville" },
+  { id: "0100211ABO0797", codePada: "0100211ABO0797", type: "RUE", nom: "Rue Venus Williams", commune: "Abobo" },
+  { id: "0100211ABO1259", codePada: "0100211ABO1259", type: "RUE", nom: "Rue des Imams", commune: "Abobo" },
+  { id: "0100211ABO1726", codePada: "0100211ABO1726", type: "RUE", nom: "Rue Prof Moussa Kimsé", commune: "Abobo" },
+  { id: "0100211ABO1745", codePada: "0100211ABO1745", type: "RUE", nom: "Rue les Daims", commune: "Abobo" },
+  { id: "0100211ABO2235", codePada: "0100211ABO2235", type: "RUE", nom: "Rue Dabie Amstrong", commune: "Abobo" },
+  { id: "0100212ADJ0210", codePada: "0100212ADJ0210", type: "RUE", nom: "Rue Pierrette Adams", commune: "Adjamé" },
+  { id: "0100202ANY0526", codePada: "0100202ANY0526", type: "RUE", nom: "Rue Abe Samson Akissi", commune: "Anyama" },
+  { id: "0100202ANY0644", codePada: "0100202ANY0644", type: "RUE", nom: "Rue Alamamy Diakité", commune: "Anyama" },
+  { id: "0100202ANY0680", codePada: "0100202ANY0680", type: "RUE", nom: "Rue Doumbia Alamamy", commune: "Anyama" },
+  { id: "0100203BIN0083", codePada: "0100203BIN0083", type: "RUE", nom: "Rue Myosotis", commune: "Bingerville" },
+  { id: "0100203BIN0784", codePada: "0100203BIN0784", type: "RUE", nom: "Rue Barthélémy Agbo", commune: "Bingerville" },
+  { id: "0100203BIN1270", codePada: "0100203BIN1270", type: "RUE", nom: "Rue Koffi Barthélémy Diby", commune: "Bingerville" },
+  { id: "0100202ANY0039", codePada: "0100202ANY0039", type: "RUE", nom: "Rue Bindou Konaté", commune: "Anyama" },
+  { id: "0100202ANY0142", codePada: "0100202ANY0142", type: "RUE", nom: "Rue Ferdinand Aké Ohouo", commune: "Anyama" },
+  { id: "0100202ANY0151", codePada: "0100202ANY0151", type: "RUE", nom: "Rue Ousmane Ouandé", commune: "Anyama" },
+  { id: "0100202ANY0163", codePada: "0100202ANY0163", type: "RUE", nom: "Rue L'endurance", commune: "Anyama" },
+  { id: "0100202ANY0167", codePada: "0100202ANY0167", type: "RUE", nom: "Rue Yapi André N'kou", commune: "Anyama" },
+  { id: "0100202ANY0064", codePada: "0100202ANY0064", type: "RUE", nom: "Rue Michel Angui", commune: "Anyama" },
+  { id: "0100202ANY0221", codePada: "0100202ANY0221", type: "RUE", nom: "Rue Amongui Noël Odikeu", commune: "Anyama" },
+  { id: "0100202ANY0230", codePada: "0100202ANY0230", type: "RUE", nom: "Rue Adon Ernest Gnangui", commune: "Anyama" },
+  { id: "0100202ANY0243", codePada: "0100202ANY0243", type: "RUE", nom: "Rue Bongba Noël Yapi", commune: "Anyama" },
+  { id: "0100202ANY0256", codePada: "0100202ANY0256", type: "RUE", nom: "Rue Kokoi Marc Adangbe", commune: "Anyama" },
+  { id: "0100202ANY0331", codePada: "0100202ANY0331", type: "RUE", nom: "Rue Koutouan Benjamin Adangbe", commune: "Anyama" },
+  { id: "0100202ANY0450", codePada: "0100202ANY0450", type: "RUE", nom: "Rue Atsé Benjamin Yapo", commune: "Anyama" },
+  { id: "0100211ABO0199", codePada: "0100211ABO0199", type: "RUE", nom: "Rue les Enjeux", commune: "Abobo" },
+  { id: "0100211ABO1486", codePada: "0100211ABO1486", type: "RUE", nom: "Rue Charles Émile Ramamonjisoa", commune: "Abobo" },
+  { id: "0100211ABO1654", codePada: "0100211ABO1654", type: "RUE", nom: "Rue Benjamin Alloum Dogba", commune: "Abobo" },
+  { id: "0100211ABO1738", codePada: "0100211ABO1738", type: "RUE", nom: "Rue Prof Benjamin Sombel Sarr", commune: "Abobo" },
+  { id: "0100211ABO1858", codePada: "0100211ABO1858", type: "RUE", nom: "Rue Yesso Benjamin Lezou", commune: "Abobo" },
+  { id: "0100211ABO2159", codePada: "0100211ABO2159", type: "RUE", nom: "Rue L'enjaillement", commune: "Abobo" },
+  { id: "0100211ABO2270", codePada: "0100211ABO2270", type: "RUE", nom: "Rue Banjul", commune: "Abobo" },
+  { id: "0100214COC3002", codePada: "0100214COC3002", type: "RUE", nom: "Rue Akéyé N’fonmon", commune: "Cocody" },
+  { id: "0100203BIN0490", codePada: "0100203BIN0490", type: "RUE", nom: "Rue Atchinman Marie-thérèse Boua", commune: "Bingerville" },
+  { id: "0100220YOP0127", codePada: "0100220YOP0127", type: "RUE", nom: "Rue Gnanmien Agaman", commune: "Yopougon" },
+  { id: "0100203BIN1729", codePada: "0100203BIN1729", type: "RUE", nom: "Rue Gnanmangui", commune: "Bingerville" },
+  { id: "0100211ABO1142", codePada: "0100211ABO1142", type: "RUE", nom: "Rue Nouanman Yeo", commune: "Abobo" },
+  { id: "0100214COC300200021", codePada: "0100214COC300200021", type: "RUE", nom: "21 Rue Akéyé N’fonmon", commune: "Cocody" },
+  { id: "0100214COC300200145", codePada: "0100214COC300200145", type: "RUE", nom: "145 Rue Akéyé N’fonmon", commune: "Cocody" },
+  { id: "0100214COC300200112", codePada: "0100214COC300200112", type: "RUE", nom: "112 Rue Akéyé N’fonmon", commune: "Cocody" },
+  { id: "0100214COC300200022", codePada: "0100214COC300200022", type: "RUE", nom: "22 Rue Akéyé N’fonmon", commune: "Cocody" },
+  { id: "0100214COC300200213", codePada: "0100214COC300200213", type: "RUE", nom: "213 Rue Akéyé N’fonmon", commune: "Cocody" },
+  { id: "0100219TRE0147", codePada: "0100219TRE0147", type: "RUE", nom: "Bretelle de la Cnps", commune: "Treichville" },
+  { id: "0100214COC1707", codePada: "0100214COC1707", type: "RUE", nom: "Rue le Sainpaulia", commune: "Cocody" },
+  { id: "0100214COC0715", codePada: "0100214COC0715", type: "RUE", nom: "Rue Baba Ahmadou Danpullo", commune: "Cocody" },
+  { id: "0100203BIN0622", codePada: "0100203BIN0622", type: "RUE", nom: "Rue le Tonpki", commune: "Bingerville" },
+  { id: "0100214COC170700032", codePada: "0100214COC170700032", type: "RUE", nom: "32 Rue le Sainpaulia", commune: "Cocody" },
+  { id: "0100214COC170700034", codePada: "0100214COC170700034", type: "RUE", nom: "34 Rue le Sainpaulia", commune: "Cocody" },
+  { id: "0100214COC071500066", codePada: "0100214COC071500066", type: "RUE", nom: "66 Rue Baba Ahmadou Danpullo", commune: "Cocody" },
+  { id: "0100214COC071500038", codePada: "0100214COC071500038", type: "RUE", nom: "38 Rue Baba Ahmadou Danpullo", commune: "Cocody" },
+  { id: "0100214COC170700028", codePada: "0100214COC170700028", type: "RUE", nom: "28 Rue le Sainpaulia", commune: "Cocody" },
+  { id: "0100214COC170700018", codePada: "0100214COC170700018", type: "RUE", nom: "18 Rue le Sainpaulia", commune: "Cocody" },
+  { id: "0100202ANY0222", codePada: "0100202ANY0222", type: "RUE", nom: "Rue Djoman Constant Yapi", commune: "Anyama" },
+  { id: "0100202ANY0547", codePada: "0100202ANY0547", type: "RUE", nom: "Rue le Poinsettia", commune: "Anyama" },
+  { id: "0100202ANY0615", codePada: "0100202ANY0615", type: "RUE", nom: "Rue Gaudens Aby", commune: "Anyama" },
+  { id: "0100202ANY0665", codePada: "0100202ANY0665", type: "RUE", nom: "Rue Prof Christiane Welffens-ekra", commune: "Anyama" },
+  { id: "0100202ANY0684", codePada: "0100202ANY0684", type: "RUE", nom: "Rue Transua", commune: "Anyama" },
+  { id: "0100203BIN0543", codePada: "0100203BIN0543", type: "RUE", nom: "Rue Amanvi", commune: "Bingerville" },
+  { id: "0100203BIN0723", codePada: "0100203BIN0723", type: "RUE", nom: "Rue L'envoyé", commune: "Bingerville" },
+  { id: "0100211ABO0018", codePada: "0100211ABO0018", type: "RUE", nom: "Rue Assanvo Dongo", commune: "Abobo" },
+  { id: "0100211ABO0107", codePada: "0100211ABO0107", type: "RUE", nom: "Rue Prof Elise Yapo Anvile", commune: "Abobo" },
+  { id: "0100211ABO0455", codePada: "0100211ABO0455", type: "RUE", nom: "Rue des Bienveillants", commune: "Abobo" },
+  { id: "0100211ABO0801", codePada: "0100211ABO0801", type: "RUE", nom: "Rue Prof Kanvaly Fadiga", commune: "Abobo" },
+  { id: "0100211ABO1783", codePada: "0100211ABO1783", type: "RUE", nom: "Rue Elize Bienvenu Agnara", commune: "Abobo" },
+  { id: "0100211ABO1806", codePada: "0100211ABO1806", type: "RUE", nom: "Rue Bienvenue Fidèle Como", commune: "Abobo" },
+  { id: "0100203BIN0254", codePada: "0100203BIN0254", type: "IMPASSE", nom: "Impasse Atonvlè", commune: "Bingerville" },
+  { id: "0100202ANY0604", codePada: "0100202ANY0604", type: "RUE", nom: "Rue Sœur Thérèse Poarrier", commune: "Anyama" },
+  { id: "0100203BIN0007", codePada: "0100203BIN0007", type: "RUE", nom: "Rue Gagnoa", commune: "Bingerville" },
+  { id: "0100203BIN0008", codePada: "0100203BIN0008", type: "RUE", nom: "Rue Prof Espérance Broalet", commune: "Bingerville" },
+  { id: "0100203BIN0025", codePada: "0100203BIN0025", type: "RUE", nom: "Rue Gbazoa", commune: "Bingerville" },
+  { id: "0100203BIN0075", codePada: "0100203BIN0075", type: "RUE", nom: "Rue Jean Boa", commune: "Bingerville" },
+  { id: "0100203BIN0232", codePada: "0100203BIN0232", type: "RUE", nom: "Rue Boahia", commune: "Bingerville" },
+  { id: "0100203BIN0470", codePada: "0100203BIN0470", type: "RUE", nom: "Rue Prof Boadi Désiré Ano", commune: "Bingerville" },
+  { id: "0100203BIN0480", codePada: "0100203BIN0480", type: "RUE", nom: "Rue Moayé", commune: "Bingerville" },
+  { id: "0100203BIN0552", codePada: "0100203BIN0552", type: "RUE", nom: "Rue Logroan", commune: "Bingerville" },
+  { id: "0100202ANY0523", codePada: "0100202ANY0523", type: "RUE", nom: "Rue Germain Boa", commune: "Anyama" },
+  { id: "0100202ANY0320", codePada: "0100202ANY0320", type: "RUE", nom: "Rue Bialé Théodore Grah", commune: "Anyama" },
+  { id: "0100202ANY0357", codePada: "0100202ANY0357", type: "RUE", nom: "Rue Abodou Josué Tenou", commune: "Anyama" },
+  { id: "0100202ANY0391", codePada: "0100202ANY0391", type: "RUE", nom: "Rue Gnangui Odette Amian", commune: "Anyama" },
+  { id: "0100202ANY0062", codePada: "0100202ANY0062", type: "RUE", nom: "Rue Antonin Dogbo", commune: "Anyama" },
+  { id: "0100202ANY0073", codePada: "0100202ANY0073", type: "RUE", nom: "Rue Dogo Mossi", commune: "Anyama" },
+  { id: "0100202ANY0107", codePada: "0100202ANY0107", type: "RUE", nom: "Rue Berthe Sawadogo", commune: "Anyama" },
+  { id: "0100202ANY0289", codePada: "0100202ANY0289", type: "RUE", nom: "Rue Prof Roger Yao Attia", commune: "Anyama" },
+  { id: "0100220YOP0734", codePada: "0100220YOP0734", type: "RUE", nom: "Rue les Projections", commune: "Yopougon" },
+  { id: "0100211ABO0835", codePada: "0100211ABO0835", type: "RUE", nom: "Rue le Goji", commune: "Abobo" },
+  { id: "0100203BIN1612", codePada: "0100203BIN1612", type: "RUE", nom: "Rue le Soja", commune: "Bingerville" },
+  { id: "0100203BIN161200092", codePada: "0100203BIN161200092", type: "RUE", nom: "92 Rue le Soja", commune: "Bingerville" },
+  { id: "0100211ABO083500027", codePada: "0100211ABO083500027", type: "RUE", nom: "27 Rue le Goji", commune: "Abobo" },
+  { id: "0100203BIN161200020", codePada: "0100203BIN161200020", type: "RUE", nom: "20 Rue le Soja", commune: "Bingerville" },
+  { id: "0100203BIN161200056", codePada: "0100203BIN161200056", type: "RUE", nom: "56 Rue le Soja", commune: "Bingerville" },
+  { id: "0100203BIN161200108", codePada: "0100203BIN161200108", type: "RUE", nom: "108 Rue le Soja", commune: "Bingerville" },
+  { id: "0100203BIN161200093", codePada: "0100203BIN161200093", type: "RUE", nom: "93 Rue le Soja", commune: "Bingerville" },
+  { id: "0100203BIN161200096", codePada: "0100203BIN161200096", type: "RUE", nom: "96 Rue le Soja", commune: "Bingerville" },
+  { id: "0100202ANY0085", codePada: "0100202ANY0085", type: "RUE", nom: "Rue Comoé Kouadio", commune: "Anyama" },
+  { id: "0100202ANY0088", codePada: "0100202ANY0088", type: "RUE", nom: "Rue Anoma Félix Akéi", commune: "Anyama" },
+  { id: "0100202ANY0145", codePada: "0100202ANY0145", type: "RUE", nom: "Rue Komien Monnet", commune: "Anyama" },
+  { id: "0100202ANY0171", codePada: "0100202ANY0171", type: "RUE", nom: "Rue Achi Jérôme N'cho", commune: "Anyama" },
+  { id: "0100202ANY0231", codePada: "0100202ANY0231", type: "RUE", nom: "Rue El Hadj Mamadou Diop", commune: "Anyama" },
+  { id: "0100202ANY0297", codePada: "0100202ANY0297", type: "RUE", nom: "Rue Adohi Christophe Yapo", commune: "Anyama" },
+  { id: "0100202ANY0459", codePada: "0100202ANY0459", type: "RUE", nom: "Rue Théophile Acho", commune: "Anyama" },
+  { id: "0100202ANY0466", codePada: "0100202ANY0466", type: "RUE", nom: "Rue Christophe Bazo", commune: "Anyama" },
+  { id: "0100203BIN0018", codePada: "0100203BIN0018", type: "RUE", nom: "Rue Seydou Diop", commune: "Bingerville" },
+  { id: "0100203BIN0049", codePada: "0100203BIN0049", type: "RUE", nom: "Rue Gloplou", commune: "Bingerville" },
+  { id: "0100203BIN0146", codePada: "0100203BIN0146", type: "RUE", nom: "Rue le Chamérops", commune: "Bingerville" },
+  { id: "0100203BIN0266", codePada: "0100203BIN0266", type: "RUE", nom: "Rue la Topaze", commune: "Bingerville" },
+  { id: "0100202ANY0128", codePada: "0100202ANY0128", type: "RUE", nom: "Rue Sopi Charlotte Loba", commune: "Anyama" },
+  { id: "0100202ANY0232", codePada: "0100202ANY0232", type: "RUE", nom: "Rue Issa Mossi", commune: "Anyama" },
+  { id: "0100202ANY0242", codePada: "0100202ANY0242", type: "RUE", nom: "Rue Mossi Mahadou Koné", commune: "Anyama" },
+  { id: "0100211ABO0397", codePada: "0100211ABO0397", type: "RUE", nom: "Rue la Province", commune: "Abobo" },
+  { id: "0100211ABO0398", codePada: "0100211ABO0398", type: "RUE", nom: "Rue le Providentiel", commune: "Abobo" },
+  { id: "0100211ABO0435", codePada: "0100211ABO0435", type: "RUE", nom: "Rue la Provision", commune: "Abobo" },
+  { id: "0100211ABO0530", codePada: "0100211ABO0530", type: "RUE", nom: "Rue le Zelkova", commune: "Abobo" },
+  { id: "0100211ABO0732", codePada: "0100211ABO0732", type: "RUE", nom: "Rue Ludovic Ipou", commune: "Abobo" },
+  { id: "0100211ABO0785", codePada: "0100211ABO0785", type: "RUE", nom: "Rue Laurent Govignon", commune: "Abobo" },
+  { id: "0100211ABO1455", codePada: "0100211ABO1455", type: "RUE", nom: "Rue les Joviales", commune: "Abobo" },
+  { id: "0100211ABO1523", codePada: "0100211ABO1523", type: "RUE", nom: "Rue Prof Janat Mamyrbekova Bekro", commune: "Abobo" },
+  { id: "0100211ABO1853", codePada: "0100211ABO1853", type: "RUE", nom: "Rue Vakaba de Movaly Touré", commune: "Abobo" },
+  { id: "0100203BIN0834", codePada: "0100203BIN0834", type: "RUE", nom: "Rue Loboville", commune: "Bingerville" },
+  { id: "0100203BIN0053", codePada: "0100203BIN0053", type: "RUE", nom: "Rue Gnagboya", commune: "Bingerville" },
+  { id: "0100203BIN0172", codePada: "0100203BIN0172", type: "RUE", nom: "Rue Doyen Ollo", commune: "Bingerville" },
+  { id: "0100203BIN0375", codePada: "0100203BIN0375", type: "RUE", nom: "Rue Koyékro", commune: "Bingerville" },
+  { id: "0100203BIN0432", codePada: "0100203BIN0432", type: "RUE", nom: "Rue Bernard Koyara", commune: "Bingerville" },
+  { id: "0100203BIN0674", codePada: "0100203BIN0674", type: "RUE", nom: "Rue Doyen Touvoly", commune: "Bingerville" },
+  { id: "0100203BIN0751", codePada: "0100203BIN0751", type: "RUE", nom: "Rue Joachim Yoyo", commune: "Bingerville" },
+  { id: "0100203BIN1016", codePada: "0100203BIN1016", type: "RUE", nom: "Rue Oupoyo", commune: "Bingerville" },
+  { id: "0100203BIN1300", codePada: "0100203BIN1300", type: "RUE", nom: "Rue la Royale", commune: "Bingerville" },
+  { id: "0100202ANY0244", codePada: "0100202ANY0244", type: "RUE", nom: "Rue Paul Guehassa", commune: "Anyama" },
+  { id: "0100203BIN1224", codePada: "0100203BIN1224", type: "RUE", nom: "Rue de la Pmi", commune: "Bingerville" },
+  { id: "0100215KOU0404", codePada: "0100215KOU0404", type: "RUE", nom: "Rue Jeanne Chapman", commune: "Koumassi" },
+  { id: "0100203BIN122400150", codePada: "0100203BIN122400150", type: "RUE", nom: "150 Rue de la Pmi", commune: "Bingerville" },
+  { id: "0100203BIN122400165", codePada: "0100203BIN122400165", type: "RUE", nom: "165 Rue de la Pmi", commune: "Bingerville" },
+  { id: "0100203BIN122400109", codePada: "0100203BIN122400109", type: "RUE", nom: "109 Rue de la Pmi", commune: "Bingerville" },
+  { id: "0100203BIN122400158", codePada: "0100203BIN122400158", type: "RUE", nom: "158 Rue de la Pmi", commune: "Bingerville" },
+  { id: "0100203BIN122400055", codePada: "0100203BIN122400055", type: "RUE", nom: "55 Rue de la Pmi", commune: "Bingerville" },
+  { id: "0100203BIN122400078", codePada: "0100203BIN122400078", type: "RUE", nom: "78 Rue de la Pmi", commune: "Bingerville" },
+  { id: "0100203BIN122400095", codePada: "0100203BIN122400095", type: "RUE", nom: "95 Rue de la Pmi", commune: "Bingerville" },
+  { id: "0100203BIN122400102", codePada: "0100203BIN122400102", type: "RUE", nom: "102 Rue de la Pmi", commune: "Bingerville" },
+  { id: "0100202ANY0558", codePada: "0100202ANY0558", type: "RUE", nom: "Rue Appolinaire N'zi", commune: "Anyama" },
+  { id: "0100203BIN0358", codePada: "0100203BIN0358", type: "RUE", nom: "Rue Serge-patrick Appia", commune: "Bingerville" },
+  { id: "0100203BIN0566", codePada: "0100203BIN0566", type: "RUE", nom: "Rue Philippe Ebin", commune: "Bingerville" },
+  { id: "0100203BIN0816", codePada: "0100203BIN0816", type: "RUE", nom: "Rue Giuseppe Meazza", commune: "Bingerville" },
+  { id: "0100211ABO0446", codePada: "0100211ABO0446", type: "RUE", nom: "Rue Papson Sylla", commune: "Abobo" },
+  { id: "0100211ABO1994", codePada: "0100211ABO1994", type: "RUE", nom: "Rue Camara Mariamou Epse Haidara", commune: "Abobo" },
+  { id: "0100214COC0511", codePada: "0100214COC0511", type: "RUE", nom: "Rue le Campsis", commune: "Cocody" },
+  { id: "0100214COC2893", codePada: "0100214COC2893", type: "RUE", nom: "Rue Upsilon", commune: "Cocody" },
+  { id: "0100214COC3829", codePada: "0100214COC3829", type: "RUE", nom: "Rue le Coréopsis", commune: "Cocody" },
+  { id: "0100220YOP0093", codePada: "0100220YOP0093", type: "RUE", nom: "Rue L'éclipse", commune: "Yopougon" },
+  { id: "0100220YOP0940", codePada: "0100220YOP0940", type: "RUE", nom: "Rue les Psaumes", commune: "Yopougon" },
+  { id: "0100220YOP2657", codePada: "0100220YOP2657", type: "RUE", nom: "Rue Capv Vallès Mondésir Dadié", commune: "Yopougon" },
+  { id: "0100220YOP1313", codePada: "0100220YOP1313", type: "RUE", nom: "Rue Capv-maj Ahico Gilles Essigan", commune: "Yopougon" },
+  { id: "0100220YOP0146", codePada: "0100220YOP0146", type: "RUE", nom: "Rue Capv Djami Palé", commune: "Yopougon" },
+  { id: "0100220YOP265700085", codePada: "0100220YOP265700085", type: "RUE", nom: "85 Rue Capv Vallès Mondésir Dadié", commune: "Yopougon" },
+  { id: "0100220YOP265700073", codePada: "0100220YOP265700073", type: "RUE", nom: "73 Rue Capv Vallès Mondésir Dadié", commune: "Yopougon" },
+  { id: "0100220YOP265700076", codePada: "0100220YOP265700076", type: "RUE", nom: "76 Rue Capv Vallès Mondésir Dadié", commune: "Yopougon" },
+  { id: "0100220YOP265700051", codePada: "0100220YOP265700051", type: "RUE", nom: "51 Rue Capv Vallès Mondésir Dadié", commune: "Yopougon" },
+  { id: "0100220YOP265700082", codePada: "0100220YOP265700082", type: "RUE", nom: "82 Rue Capv Vallès Mondésir Dadié", commune: "Yopougon" },
+  { id: "0100220YOP265700037", codePada: "0100220YOP265700037", type: "RUE", nom: "37 Rue Capv Vallès Mondésir Dadié", commune: "Yopougon" },
+  { id: "0100220YOP265700092", codePada: "0100220YOP265700092", type: "RUE", nom: "92 Rue Capv Vallès Mondésir Dadié", commune: "Yopougon" },
+  { id: "0100211ABO2003", codePada: "0100211ABO2003", type: "RUE", nom: "Rue le Papyrus", commune: "Abobo" },
+  { id: "0100214COC0774", codePada: "0100214COC0774", type: "RUE", nom: "Rue Danielle Sepy Douh", commune: "Cocody" },
+  { id: "0100211ABO1545", codePada: "0100211ABO1545", type: "RUE", nom: "Rue Happy Rosalie Lolo Monney", commune: "Abobo" },
+  { id: "0100220YOP0707", codePada: "0100220YOP0707", type: "RUE", nom: "Rue les Guppys", commune: "Yopougon" },
+  { id: "0100220YOP2303", codePada: "0100220YOP2303", type: "RUE", nom: "Rue Narcisse Thomas Sepy-yessoh", commune: "Yopougon" },
+  { id: "0100220YOP2311", codePada: "0100220YOP2311", type: "RUE", nom: "Rue la Pyrite", commune: "Yopougon" },
+  { id: "0100217PLA0064", codePada: "0100217PLA0064", type: "AVENUE", nom: "Avenue John Creppy", commune: "Plateau" },
+  { id: "0100214COC077400024", codePada: "0100214COC077400024", type: "RUE", nom: "24 Rue Danielle Sepy Douh", commune: "Cocody" },
+  { id: "0100214COC077400030", codePada: "0100214COC077400030", type: "RUE", nom: "30 Rue Danielle Sepy Douh", commune: "Cocody" },
+  { id: "0100211ABO200300037", codePada: "0100211ABO200300037", type: "RUE", nom: "37 Rue le Papyrus", commune: "Abobo" },
+  { id: "0100202ANY0249", codePada: "0100202ANY0249", type: "RUE", nom: "Rue Henri Turquin Traoré", commune: "Anyama" },
+  { id: "0100202ANY0274", codePada: "0100202ANY0274", type: "RUE", nom: "Rue Yapo Jean-jacques Angoh", commune: "Anyama" },
+  { id: "0100202ANY0287", codePada: "0100202ANY0287", type: "RUE", nom: "Rue Ache Jacques Koffi", commune: "Anyama" },
+  { id: "0100202ANY0303", codePada: "0100202ANY0303", type: "RUE", nom: "Rue Assoukoi Jacques Adohi", commune: "Anyama" },
+  { id: "0100202ANY0311", codePada: "0100202ANY0311", type: "RUE", nom: "Rue Kobina Jacques Amissah", commune: "Anyama" },
+  { id: "0100202ANY0315", codePada: "0100202ANY0315", type: "RUE", nom: "Rue Dominique Koffi", commune: "Anyama" },
+  { id: "0100202ANY0083", codePada: "0100202ANY0083", type: "RUE", nom: "Rue Véronique Aka", commune: "Anyama" },
+  { id: "0100216MAR0165", codePada: "0100216MAR0165", type: "RUE", nom: "Rue le Qatar", commune: "Marcory" },
+  { id: "0100216MAR016500041", codePada: "0100216MAR016500041", type: "RUE", nom: "41 Rue le Qatar", commune: "Marcory" },
+  { id: "0100216MAR016500038", codePada: "0100216MAR016500038", type: "RUE", nom: "38 Rue le Qatar", commune: "Marcory" },
+  { id: "0100216MAR016500051", codePada: "0100216MAR016500051", type: "RUE", nom: "51 Rue le Qatar", commune: "Marcory" },
+  { id: "0100216MAR016500030", codePada: "0100216MAR016500030", type: "RUE", nom: "30 Rue le Qatar", commune: "Marcory" },
+  { id: "0100216MAR016500046", codePada: "0100216MAR016500046", type: "RUE", nom: "46 Rue le Qatar", commune: "Marcory" },
+  { id: "0100216MAR016500013", codePada: "0100216MAR016500013", type: "RUE", nom: "13 Rue le Qatar", commune: "Marcory" },
+  { id: "0100216MAR016500021", codePada: "0100216MAR016500021", type: "RUE", nom: "21 Rue le Qatar", commune: "Marcory" },
+  { id: "0100216MAR016500029", codePada: "0100216MAR016500029", type: "RUE", nom: "29 Rue le Qatar", commune: "Marcory" },
+  { id: "0100202ANY0102", codePada: "0100202ANY0102", type: "RUE", nom: "Rue Oumar Traoré", commune: "Anyama" },
+  { id: "0100202ANY0121", codePada: "0100202ANY0121", type: "RUE", nom: "Rue Tata Traoré", commune: "Anyama" },
+  { id: "0100202ANY0141", codePada: "0100202ANY0141", type: "RUE", nom: "Rue Oumar Amara Sissoko", commune: "Anyama" },
+  { id: "0100202ANY0196", codePada: "0100202ANY0196", type: "RUE", nom: "Rue Yapo Richard Sika", commune: "Anyama" },
+  { id: "0100202ANY0240", codePada: "0100202ANY0240", type: "RUE", nom: "Rue Léonard Assa", commune: "Anyama" },
+  { id: "0100202ANY0267", codePada: "0100202ANY0267", type: "RUE", nom: "Rue Apia Georges Akouandi", commune: "Anyama" },
+  { id: "0100202ANY0685", codePada: "0100202ANY0685", type: "RUE", nom: "Rue Blé Georges Loué", commune: "Anyama" },
+  { id: "0100202ANY0692", codePada: "0100202ANY0692", type: "RUE", nom: "Rue Logbochi Margueritte Ahou", commune: "Anyama" },
+  { id: "0100202ANY0716", codePada: "0100202ANY0716", type: "RUE", nom: "Rue Nanourgo Koné", commune: "Anyama" },
+  { id: "0100203BIN0023", codePada: "0100203BIN0023", type: "RUE", nom: "Rue le Sorgho", commune: "Bingerville" },
+  { id: "0100203BIN0180", codePada: "0100203BIN0180", type: "RUE", nom: "Rue Ouga Georgette Akabla", commune: "Bingerville" },
+  { id: "0100203BIN0211", codePada: "0100203BIN0211", type: "RUE", nom: "Rue Dr Georges Koko", commune: "Bingerville" },
+  { id: "0100203BIN0758", codePada: "0100203BIN0758", type: "RUE", nom: "Rue Koffi Georges Bolamo", commune: "Bingerville" },
+  { id: "0100205SON0078", codePada: "0100205SON0078", type: "RUE", nom: "Rue la Marjolaine", commune: "Songon" },
+  { id: "0100205SON007800094", codePada: "0100205SON007800094", type: "RUE", nom: "94 Rue la Marjolaine", commune: "Songon" },
+  { id: "0100205SON007800091", codePada: "0100205SON007800091", type: "RUE", nom: "91 Rue la Marjolaine", commune: "Songon" },
+  { id: "0100205SON007800019", codePada: "0100205SON007800019", type: "RUE", nom: "19 Rue la Marjolaine", commune: "Songon" },
+  { id: "0100205SON007800029", codePada: "0100205SON007800029", type: "RUE", nom: "29 Rue la Marjolaine", commune: "Songon" },
+  { id: "0100205SON007800018", codePada: "0100205SON007800018", type: "RUE", nom: "18 Rue la Marjolaine", commune: "Songon" },
+  { id: "0100202ANY0608", codePada: "0100202ANY0608", type: "RUE", nom: "Rue Germain Ohouo", commune: "Anyama" },
+  { id: "0100203BIN0094", codePada: "0100203BIN0094", type: "RUE", nom: "Rue Aristide Armand Yao", commune: "Bingerville" },
+  { id: "0100203BIN0276", codePada: "0100203BIN0276", type: "RUE", nom: "Rue la Bermudienne", commune: "Bingerville" },
+  { id: "0100203BIN0542", codePada: "0100203BIN0542", type: "RUE", nom: "Rue la Performance", commune: "Bingerville" },
+  { id: "0100203BIN0585", codePada: "0100203BIN0585", type: "RUE", nom: "Rue Yobouet Firmin Osnou", commune: "Bingerville" },
+  { id: "0100203BIN0833", codePada: "0100203BIN0833", type: "RUE", nom: "Rue Hermankono", commune: "Bingerville" },
+  { id: "0100203BIN1081", codePada: "0100203BIN1081", type: "RUE", nom: "Rue Koffi Firmin Kouamé", commune: "Bingerville" },
+  { id: "0100203BIN1254", codePada: "0100203BIN1254", type: "RUE", nom: "Rue Germain Kouadio", commune: "Bingerville" },
+  { id: "0100214COC0106", codePada: "0100214COC0106", type: "RUE", nom: "Rue le Serpolet", commune: "Cocody" },
+  { id: "0100211ABO2106", codePada: "0100211ABO2106", type: "RUE", nom: "Rue les Charpentes", commune: "Abobo" },
+  { id: "0100211ABO0151", codePada: "0100211ABO0151", type: "RUE", nom: "Rue le Pourpier", commune: "Abobo" },
+  { id: "0100203BIN0436", codePada: "0100203BIN0436", type: "RUE", nom: "Rue de L'orphelinat de Bingerville", commune: "Bingerville" },
+  { id: "0100214COC3687", codePada: "0100214COC3687", type: "RUE", nom: "Rue L’orpin Rose", commune: "Cocody" },
+  { id: "0100216MAR0060", codePada: "0100216MAR0060", type: "RUE", nom: "Rue L’orphelinat", commune: "Marcory" },
+  { id: "0100219TRE0157", codePada: "0100219TRE0157", type: "RUE", nom: "Rue des Charpentiers", commune: "Treichville" },
+  { id: "0100213ATT0070", codePada: "0100213ATT0070", type: "RUE", nom: "Rue Agban Déguerpis", commune: "Attécoubé" },
+  { id: "0100214COC010600058", codePada: "0100214COC010600058", type: "RUE", nom: "58 Rue le Serpolet", commune: "Cocody" },
+  { id: "0100213ATT007000071", codePada: "0100213ATT007000071", type: "RUE", nom: "71 Rue Agban Déguerpis", commune: "Attécoubé" },
+  { id: "0100202ANY0454", codePada: "0100202ANY0454", type: "RUE", nom: "Rue les Amandiers", commune: "Anyama" },
+  { id: "0100203BIN0002", codePada: "0100203BIN0002", type: "RUE", nom: "Rue les Guêpiers", commune: "Bingerville" },
+  { id: "0100203BIN0048", codePada: "0100203BIN0048", type: "RUE", nom: "Rue les Caroubiers", commune: "Bingerville" },
+  { id: "0100203BIN0265", codePada: "0100203BIN0265", type: "RUE", nom: "Rue les Arequiers", commune: "Bingerville" },
+  { id: "0100203BIN0268", codePada: "0100203BIN0268", type: "RUE", nom: "Rue les Agriculteurs", commune: "Bingerville" },
+  { id: "0100203BIN0282", codePada: "0100203BIN0282", type: "RUE", nom: "Rue les Transporteurs", commune: "Bingerville" },
+  { id: "0100203BIN0454", codePada: "0100203BIN0454", type: "RUE", nom: "Rue les Tamariniers", commune: "Bingerville" },
+  { id: "0100203BIN0479", codePada: "0100203BIN0479", type: "RUE", nom: "Rue les Oursins", commune: "Bingerville" },
+  { id: "0100202ANY0392", codePada: "0100202ANY0392", type: "RUE", nom: "Rue les Noisetiers", commune: "Anyama" },
+  { id: "0100203BIN0001", codePada: "0100203BIN0001", type: "RUE", nom: "Rue Bamadou Coulibaly", commune: "Bingerville" },
+  { id: "0100203BIN0004", codePada: "0100203BIN0004", type: "RUE", nom: "Rue Ibrahim Sangaré", commune: "Bingerville" },
+  { id: "0100203BIN0005", codePada: "0100203BIN0005", type: "RUE", nom: "Rue Daniel Atchedan", commune: "Bingerville" },
+  { id: "0100203BIN0006", codePada: "0100203BIN0006", type: "RUE", nom: "Rue Léonard Agbo", commune: "Bingerville" },
+  { id: "0100203BIN0010", codePada: "0100203BIN0010", type: "RUE", nom: "Rue les Lys", commune: "Bingerville" },
+  { id: "0100202ANY0581", codePada: "0100202ANY0581", type: "RUE", nom: "Rue Gervais Mony", commune: "Anyama" },
+  { id: "0100202ANY0437", codePada: "0100202ANY0437", type: "RUE", nom: "Rue Bakary Amoussan", commune: "Anyama" },
+  { id: "0100202ANY0481", codePada: "0100202ANY0481", type: "RUE", nom: "Rue Sory Sangaré", commune: "Anyama" },
+  { id: "0100202ANY0560", codePada: "0100202ANY0560", type: "RUE", nom: "Rue François Peryvel", commune: "Anyama" },
+  { id: "0100202ANY0633", codePada: "0100202ANY0633", type: "RUE", nom: "Rue Bakary Kamara", commune: "Anyama" },
+  { id: "0100202ANY0637", codePada: "0100202ANY0637", type: "RUE", nom: "Rue Bakary Cissé", commune: "Anyama" },
+  { id: "0100202ANY0718", codePada: "0100202ANY0718", type: "RUE", nom: "Rue Vieux Sory", commune: "Anyama" },
+  { id: "0100203BIN0081", codePada: "0100203BIN0081", type: "RUE", nom: "Rue le Corydalis", commune: "Bingerville" },
+  { id: "0100203BIN0150", codePada: "0100203BIN0150", type: "RUE", nom: "Rue Jean Thierry Azier", commune: "Bingerville" },
+  { id: "0100214COC1815", codePada: "0100214COC1815", type: "IMPASSE", nom: "Impasse les Marsdenias", commune: "Cocody" },
+  { id: "0100220YOP0323", codePada: "0100220YOP0323", type: "RUE", nom: "Rue Lydie Josiane Tapé Besdali", commune: "Yopougon" },
+  { id: "0100220YOP032300180", codePada: "0100220YOP032300180", type: "RUE", nom: "180 Rue Lydie Josiane Tapé Besdali", commune: "Yopougon" },
+  { id: "0100214COC181500039", codePada: "0100214COC181500039", type: "RUE", nom: "39 Impasse les Marsdenias", commune: "Cocody" },
+  { id: "0100214COC181500042", codePada: "0100214COC181500042", type: "RUE", nom: "42 Impasse les Marsdenias", commune: "Cocody" },
+  { id: "0100220YOP032300169", codePada: "0100220YOP032300169", type: "RUE", nom: "169 Rue Lydie Josiane Tapé Besdali", commune: "Yopougon" },
+  { id: "0100220YOP032300143", codePada: "0100220YOP032300143", type: "RUE", nom: "143 Rue Lydie Josiane Tapé Besdali", commune: "Yopougon" },
+  { id: "0100220YOP032300175", codePada: "0100220YOP032300175", type: "RUE", nom: "175 Rue Lydie Josiane Tapé Besdali", commune: "Yopougon" },
+  { id: "0100214COC181500032", codePada: "0100214COC181500032", type: "RUE", nom: "32 Impasse les Marsdenias", commune: "Cocody" },
+  { id: "0100220YOP032300119", codePada: "0100220YOP032300119", type: "RUE", nom: "119 Rue Lydie Josiane Tapé Besdali", commune: "Yopougon" },
+  { id: "0100214COC3611", codePada: "0100214COC3611", type: "RUE", nom: "Rue Sgt Djéneba Koné", commune: "Cocody" },
+  { id: "0100214COC361100203", codePada: "0100214COC361100203", type: "RUE", nom: "203 Rue Sgt Djéneba Koné", commune: "Cocody" },
+  { id: "0100214COC361100164", codePada: "0100214COC361100164", type: "RUE", nom: "164 Rue Sgt Djéneba Koné", commune: "Cocody" },
+  { id: "0100214COC361100223", codePada: "0100214COC361100223", type: "RUE", nom: "223 Rue Sgt Djéneba Koné", commune: "Cocody" },
+  { id: "0100214COC361100269", codePada: "0100214COC361100269", type: "RUE", nom: "269 Rue Sgt Djéneba Koné", commune: "Cocody" },
+  { id: "0100214COC361100254", codePada: "0100214COC361100254", type: "RUE", nom: "254 Rue Sgt Djéneba Koné", commune: "Cocody" },
+  { id: "0100214COC361100340", codePada: "0100214COC361100340", type: "RUE", nom: "340 Rue Sgt Djéneba Koné", commune: "Cocody" },
+  { id: "0100214COC361100175", codePada: "0100214COC361100175", type: "RUE", nom: "175 Rue Sgt Djéneba Koné", commune: "Cocody" },
+  { id: "0100214COC361100153", codePada: "0100214COC361100153", type: "RUE", nom: "153 Rue Sgt Djéneba Koné", commune: "Cocody" },
+  { id: "0100203BIN0080", codePada: "0100203BIN0080", type: "RUE", nom: "Rue Ousmane Diallo", commune: "Bingerville" },
+  { id: "0100203BIN0105", codePada: "0100203BIN0105", type: "RUE", nom: "Rue Jean Lasme", commune: "Bingerville" },
+  { id: "0100203BIN0183", codePada: "0100203BIN0183", type: "RUE", nom: "Rue Ibne Henri Esmel", commune: "Bingerville" },
+  { id: "0100203BIN0253", codePada: "0100203BIN0253", type: "RUE", nom: "Rue Esmel Meliou Julie Sob", commune: "Bingerville" },
+  { id: "0100203BIN0398", codePada: "0100203BIN0398", type: "RUE", nom: "Rue le Patriotisme", commune: "Bingerville" },
+  { id: "0100203BIN0497", codePada: "0100203BIN0497", type: "RUE", nom: "Rue les Jasmins", commune: "Bingerville" },
+  { id: "0100203BIN0811", codePada: "0100203BIN0811", type: "RUE", nom: "Rue Ousmane Diakité", commune: "Bingerville" },
+  { id: "0100203BIN0892", codePada: "0100203BIN0892", type: "RUE", nom: "Rue Georges Esmo", commune: "Bingerville" },
+  { id: "0100202ANY0273", codePada: "0100202ANY0273", type: "RUE", nom: "Rue Akoun Prosper Djeba", commune: "Anyama" },
+  { id: "0100202ANY0584", codePada: "0100202ANY0584", type: "RUE", nom: "Rue Bodje Gaspard Aman", commune: "Anyama" },
+  { id: "0100203BIN0373", codePada: "0100203BIN0373", type: "RUE", nom: "Rue Espoir 2000", commune: "Bingerville" },
+  { id: "0100203BIN0580", codePada: "0100203BIN0580", type: "RUE", nom: "Rue la Responsabilité", commune: "Bingerville" },
+  { id: "0100203BIN0743", codePada: "0100203BIN0743", type: "RUE", nom: "Rue Prosper Constant Ayo", commune: "Bingerville" },
+  { id: "0100203BIN0813", codePada: "0100203BIN0813", type: "RUE", nom: "Rue le Respect", commune: "Bingerville" },
+  { id: "0100203BIN1226", codePada: "0100203BIN1226", type: "RUE", nom: "Rue le Phosphate", commune: "Bingerville" },
+  { id: "0100202ANY0051", codePada: "0100202ANY0051", type: "RUE", nom: "Rue Maurice Mousso", commune: "Anyama" },
+  { id: "0100220YOP0530", codePada: "0100220YOP0530", type: "RUE", nom: "Rue Sam Natou Desval Niangoran Biagou", commune: "Yopougon" },
+  { id: "0100220YOP053000087", codePada: "0100220YOP053000087", type: "RUE", nom: "87 Rue Sam Natou Desval Niangoran Biagou", commune: "Yopougon" },
+  { id: "0100220YOP053000074", codePada: "0100220YOP053000074", type: "RUE", nom: "74 Rue Sam Natou Desval Niangoran Biagou", commune: "Yopougon" },
+  { id: "0100220YOP053000100", codePada: "0100220YOP053000100", type: "RUE", nom: "100 Rue Sam Natou Desval Niangoran Biagou", commune: "Yopougon" },
+  { id: "0100220YOP053000097", codePada: "0100220YOP053000097", type: "RUE", nom: "97 Rue Sam Natou Desval Niangoran Biagou", commune: "Yopougon" },
+  { id: "0100220YOP053000037", codePada: "0100220YOP053000037", type: "RUE", nom: "37 Rue Sam Natou Desval Niangoran Biagou", commune: "Yopougon" },
+  { id: "0100202ANY0313", codePada: "0100202ANY0313", type: "RUE", nom: "Rue El Hadj Moriféré Sylla", commune: "Anyama" },
+  { id: "0100203BIN0269", codePada: "0100203BIN0269", type: "RUE", nom: "Rue Marie Bernard Koissy", commune: "Bingerville" },
+  { id: "0100202ANY0148", codePada: "0100202ANY0148", type: "RUE", nom: "Rue Dié Tano", commune: "Anyama" },
+  { id: "0100202ANY0184", codePada: "0100202ANY0184", type: "RUE", nom: "Rue Gninan Michel Ouattara", commune: "Anyama" },
+  { id: "0100214COC0949", codePada: "0100214COC0949", type: "IMPASSE", nom: "Impasse du Bnetd", commune: "Cocody" },
+  { id: "0100214COC094900244", codePada: "0100214COC094900244", type: "RUE", nom: "244 Impasse du Bnetd", commune: "Cocody" },
+  { id: "0100214COC094900280", codePada: "0100214COC094900280", type: "RUE", nom: "280 Impasse du Bnetd", commune: "Cocody" },
+  { id: "0100214COC094900090", codePada: "0100214COC094900090", type: "RUE", nom: "90 Impasse du Bnetd", commune: "Cocody" },
+  { id: "0100214COC094900164", codePada: "0100214COC094900164", type: "RUE", nom: "164 Impasse du Bnetd", commune: "Cocody" },
+  { id: "0100214COC1712", codePada: "0100214COC1712", type: "RUE", nom: "Rue Dr Pénétjiligué Soro", commune: "Cocody" },
+  { id: "0100214COC171200284", codePada: "0100214COC171200284", type: "RUE", nom: "284 Rue Dr Pénétjiligué Soro", commune: "Cocody" },
+  { id: "0100214COC171200086", codePada: "0100214COC171200086", type: "RUE", nom: "86 Rue Dr Pénétjiligué Soro", commune: "Cocody" },
+  { id: "0100214COC171200315", codePada: "0100214COC171200315", type: "RUE", nom: "315 Rue Dr Pénétjiligué Soro", commune: "Cocody" },
+  { id: "0100214COC171200318", codePada: "0100214COC171200318", type: "RUE", nom: "318 Rue Dr Pénétjiligué Soro", commune: "Cocody" },
+  { id: "0100214COC171200323", codePada: "0100214COC171200323", type: "RUE", nom: "323 Rue Dr Pénétjiligué Soro", commune: "Cocody" },
+  { id: "0100214COC171200262", codePada: "0100214COC171200262", type: "RUE", nom: "262 Rue Dr Pénétjiligué Soro", commune: "Cocody" },
+  { id: "0100214COC171200019", codePada: "0100214COC171200019", type: "RUE", nom: "19 Rue Dr Pénétjiligué Soro", commune: "Cocody" },
+  { id: "0100214COC171200031", codePada: "0100214COC171200031", type: "RUE", nom: "31 Rue Dr Pénétjiligué Soro", commune: "Cocody" },
+  { id: "0100214COC171200304", codePada: "0100214COC171200304", type: "RUE", nom: "304 Rue Dr Pénétjiligué Soro", commune: "Cocody" },
+  { id: "0100214COC0017", codePada: "0100214COC0017", type: "RUE", nom: "Rue L'île Christmas", commune: "Cocody" },
+  { id: "0100214COC001700072", codePada: "0100214COC001700072", type: "RUE", nom: "72 Rue L'île Christmas", commune: "Cocody" },
+  { id: "0100214COC001700061", codePada: "0100214COC001700061", type: "RUE", nom: "61 Rue L'île Christmas", commune: "Cocody" },
+  { id: "0100214COC001700094", codePada: "0100214COC001700094", type: "RUE", nom: "94 Rue L'île Christmas", commune: "Cocody" },
+  { id: "0100214COC001700038", codePada: "0100214COC001700038", type: "RUE", nom: "38 Rue L'île Christmas", commune: "Cocody" },
+  { id: "0100214COC001700031", codePada: "0100214COC001700031", type: "RUE", nom: "31 Rue L'île Christmas", commune: "Cocody" },
+  { id: "0100214COC001700027", codePada: "0100214COC001700027", type: "RUE", nom: "27 Rue L'île Christmas", commune: "Cocody" },
+  { id: "0100214COC3200", codePada: "0100214COC3200", type: "RUE", nom: "Rue le Saintpaulia", commune: "Cocody" },
+  { id: "0100220YOP1155", codePada: "0100220YOP1155", type: "RUE", nom: "Rue les Btp", commune: "Yopougon" },
+  { id: "0100214COC320000037", codePada: "0100214COC320000037", type: "RUE", nom: "37 Rue le Saintpaulia", commune: "Cocody" },
+  { id: "0100214COC320000021", codePada: "0100214COC320000021", type: "RUE", nom: "21 Rue le Saintpaulia", commune: "Cocody" },
+  { id: "0100214COC320000075", codePada: "0100214COC320000075", type: "RUE", nom: "75 Rue le Saintpaulia", commune: "Cocody" },
+  { id: "0100214COC320000053", codePada: "0100214COC320000053", type: "RUE", nom: "53 Rue le Saintpaulia", commune: "Cocody" },
+  { id: "0100220YOP115500430", codePada: "0100220YOP115500430", type: "RUE", nom: "430 Rue les Btp", commune: "Yopougon" },
+  { id: "0100220YOP115500628", codePada: "0100220YOP115500628", type: "RUE", nom: "628 Rue les Btp", commune: "Yopougon" },
+  { id: "0100220YOP115500698", codePada: "0100220YOP115500698", type: "RUE", nom: "698 Rue les Btp", commune: "Yopougon" },
+  { id: "0100214COC320000009", codePada: "0100214COC320000009", type: "RUE", nom: "9 Rue le Saintpaulia", commune: "Cocody" },
+  { id: "0100202ANY0087", codePada: "0100202ANY0087", type: "RUE", nom: "Rue Adon Antoine Atsin", commune: "Anyama" },
+  { id: "0100202ANY0091", codePada: "0100202ANY0091", type: "RUE", nom: "Rue Mitsin", commune: "Anyama" },
+  { id: "0100202ANY0217", codePada: "0100202ANY0217", type: "RUE", nom: "Rue Atsin Bernabé Monnet", commune: "Anyama" },
+  { id: "0100202ANY0241", codePada: "0100202ANY0241", type: "RUE", nom: "Rue Atsin Jean Yapi", commune: "Anyama" },
+  { id: "0100202ANY0258", codePada: "0100202ANY0258", type: "RUE", nom: "Rue Abetso Alexandre Amon", commune: "Anyama" },
+  { id: "0100202ANY0309", codePada: "0100202ANY0309", type: "RUE", nom: "Rue Mobio Pierre Marie Abetso", commune: "Anyama" },
+  { id: "0100202ANY0395", codePada: "0100202ANY0395", type: "RUE", nom: "Rue Michel Atsin", commune: "Anyama" },
+  { id: "0100220YOP0498", codePada: "0100220YOP0498", type: "RUE", nom: "Rue Ltv Assi Franck Adia", commune: "Yopougon" },
+  { id: "0100220YOP1112", codePada: "0100220YOP1112", type: "RUE", nom: "Rue Ltv Djaiblond Dominique Kouakou", commune: "Yopougon" },
+  { id: "0100220YOP049800039", codePada: "0100220YOP049800039", type: "RUE", nom: "39 Rue Ltv Assi Franck Adia", commune: "Yopougon" },
+  { id: "0100220YOP049800059", codePada: "0100220YOP049800059", type: "RUE", nom: "59 Rue Ltv Assi Franck Adia", commune: "Yopougon" },
+  { id: "0100220YOP049800060", codePada: "0100220YOP049800060", type: "RUE", nom: "60 Rue Ltv Assi Franck Adia", commune: "Yopougon" },
+  { id: "0100220YOP049800027", codePada: "0100220YOP049800027", type: "RUE", nom: "27 Rue Ltv Assi Franck Adia", commune: "Yopougon" },
+  { id: "0100220YOP049800036", codePada: "0100220YOP049800036", type: "RUE", nom: "36 Rue Ltv Assi Franck Adia", commune: "Yopougon" },
+  { id: "0100220YOP111200128", codePada: "0100220YOP111200128", type: "RUE", nom: "128 Rue Ltv Djaiblond Dominique Kouakou", commune: "Yopougon" },
+  { id: "0100220YOP111200431", codePada: "0100220YOP111200431", type: "RUE", nom: "431 Rue Ltv Djaiblond Dominique Kouakou", commune: "Yopougon" },
+  { id: "0100220YOP111200060", codePada: "0100220YOP111200060", type: "RUE", nom: "60 Rue Ltv Djaiblond Dominique Kouakou", commune: "Yopougon" },
+  { id: "0100202ANY0214", codePada: "0100202ANY0214", type: "RUE", nom: "Rue Ohouo Norbert Koty", commune: "Anyama" },
+  { id: "0100202ANY0579", codePada: "0100202ANY0579", type: "RUE", nom: "Rue Koty François Amon", commune: "Anyama" },
+  { id: "0100202ANY0614", codePada: "0100202ANY0614", type: "RUE", nom: "Rue Koty Boua", commune: "Anyama" },
+  { id: "0100203BIN0342", codePada: "0100203BIN0342", type: "RUE", nom: "Rue Sidonie Tetty", commune: "Bingerville" },
+  { id: "0100205SON0057", codePada: "0100205SON0057", type: "RUE", nom: "Rue Ngatty", commune: "Songon" },
+  { id: "0100211ABO0127", codePada: "0100211ABO0127", type: "RUE", nom: "Rue Lifestyle", commune: "Abobo" },
+  { id: "0100211ABO0606", codePada: "0100211ABO0606", type: "RUE", nom: "Rue Panama City", commune: "Abobo" },
+  { id: "0100202ANY0155", codePada: "0100202ANY0155", type: "RUE", nom: "Route D'akoupé-zeudji", commune: "Abobo" },
+  { id: "0100202ANY0310", codePada: "0100202ANY0310", type: "RUE", nom: "Rue Jean Claude Zagoté", commune: "Anyama" },
+  { id: "0100202ANY0327", codePada: "0100202ANY0327", type: "RUE", nom: "Rue Claude Marcel Bosso", commune: "Anyama" },
+  { id: "0100202ANY0572", codePada: "0100202ANY0572", type: "RUE", nom: "Rue Prof André Rambaud", commune: "Anyama" },
+  { id: "0100202ANY0613", codePada: "0100202ANY0613", type: "RUE", nom: "Rue Piot Eugène Doudou", commune: "Anyama" },
+  { id: "0100202ANY0326", codePada: "0100202ANY0326", type: "RUE", nom: "Rue Prof Eugène Atindehou", commune: "Anyama" },
+  { id: "0100202ANY0368", codePada: "0100202ANY0368", type: "RUE", nom: "Rue Prof Auguste Antoine Louis", commune: "Anyama" },
+  { id: "0100202ANY0384", codePada: "0100202ANY0384", type: "RUE", nom: "Rue Ano M'ba Eugenie N'da", commune: "Anyama" },
+  { id: "0100202ANY0404", codePada: "0100202ANY0404", type: "RUE", nom: "Rue Eugène Biassi", commune: "Anyama" },
+  { id: "0100202ANY0556", codePada: "0100202ANY0556", type: "RUE", nom: "Rue Augustin Kambo", commune: "Anyama" },
+  { id: "0100202ANY0607", codePada: "0100202ANY0607", type: "RUE", nom: "Rue les Djougbo", commune: "Anyama" },
+  { id: "0100216MAR0211", codePada: "0100216MAR0211", type: "RUE", nom: "Rue Abuja", commune: "Marcory" },
+  { id: "0100216MAR0162", codePada: "0100216MAR0162", type: "RUE", nom: "Rue Bujumbura", commune: "Marcory" },
+  { id: "0100213ATT0219", codePada: "0100213ATT0219", type: "IMPASSE", nom: "Impasse le Jujubier", commune: "Attécoubé" },
+  { id: "0100216MAR016200014", codePada: "0100216MAR016200014", type: "RUE", nom: "14 Rue Bujumbura", commune: "Marcory" },
+  { id: "0100216MAR021100094", codePada: "0100216MAR021100094", type: "RUE", nom: "94 Rue Abuja", commune: "Marcory" },
+  { id: "0100216MAR021100064", codePada: "0100216MAR021100064", type: "RUE", nom: "64 Rue Abuja", commune: "Marcory" },
+  { id: "0100216MAR021100135", codePada: "0100216MAR021100135", type: "RUE", nom: "135 Rue Abuja", commune: "Marcory" },
+  { id: "0100216MAR021100083", codePada: "0100216MAR021100083", type: "RUE", nom: "83 Rue Abuja", commune: "Marcory" },
+  { id: "0100216MAR021100170", codePada: "0100216MAR021100170", type: "RUE", nom: "170 Rue Abuja", commune: "Marcory" },
+  { id: "0100213ATT021900005", codePada: "0100213ATT021900005", type: "RUE", nom: "5 Impasse le Jujubier", commune: "Attécoubé" },
+  { id: "0100202ANY0106", codePada: "0100202ANY0106", type: "RUE", nom: "Rue Ekouman Pierre Abé", commune: "Anyama" },
+  { id: "0100202ANY0212", codePada: "0100202ANY0212", type: "RUE", nom: "Rue Doumbia Karamoko", commune: "Anyama" },
+  { id: "0100202ANY0245", codePada: "0100202ANY0245", type: "RUE", nom: "Rue Saint Félix Soum", commune: "Anyama" },
+  { id: "0100202ANY0266", codePada: "0100202ANY0266", type: "RUE", nom: "Rue Moumouni Touré", commune: "Anyama" },
+  { id: "0100202ANY0336", codePada: "0100202ANY0336", type: "RUE", nom: "Rue Djouman", commune: "Anyama" },
+  { id: "0100202ANY0438", codePada: "0100202ANY0438", type: "RUE", nom: "Rue Affoué Véronique Akoumia", commune: "Anyama" },
+  { id: "0100202ANY0442", codePada: "0100202ANY0442", type: "RUE", nom: "Rue Oumar Diarra", commune: "Anyama" },
+  { id: "0100202ANY0255", codePada: "0100202ANY0255", type: "RUE", nom: "Rue Bruno Gnaoulé-oupoh", commune: "Anyama" },
+  { id: "0100202ANY0382", codePada: "0100202ANY0382", type: "RUE", nom: "Rue Euphrasie Kouassi Yao", commune: "Anyama" },
+  { id: "0100203BIN1120", codePada: "0100203BIN1120", type: "RUE", nom: "Rue Dauphinelles", commune: "Bingerville" },
+  { id: "0100203BIN1459", codePada: "0100203BIN1459", type: "IMPASSE", nom: "Impasse Suprême Amour", commune: "Bingerville" },
+  { id: "0100203BIN1607", codePada: "0100203BIN1607", type: "RUE", nom: "Rue Toupah", commune: "Bingerville" },
+  { id: "0100203BIN1616", codePada: "0100203BIN1616", type: "RUE", nom: "Rue Akoupé", commune: "Bingerville" },
+  { id: "0100205SON0122", codePada: "0100205SON0122", type: "RUE", nom: "Rue le Kaloupilé", commune: "Songon" },
+  { id: "0100202ANY0205", codePada: "0100202ANY0205", type: "RUE", nom: "Rue Oussou N'dri", commune: "Anyama" },
+  { id: "0100203BIN1020", codePada: "0100203BIN1020", type: "RUE", nom: "Rue Touvauly Serges Pacôme Zokou", commune: "Bingerville" },
+  { id: "0100205SON0063", codePada: "0100205SON0063", type: "IMPASSE", nom: "Impasse Bonnes Nouvelles", commune: "Songon" },
+  { id: "0100211ABO0588", codePada: "0100211ABO0588", type: "RUE", nom: "Rue le Bon Souvenir", commune: "Abobo" },
+  { id: "0100211ABO1167", codePada: "0100211ABO1167", type: "RUE", nom: "Rue Georges Van Heuven", commune: "Abobo" },
+  { id: "0100211ABO2152", codePada: "0100211ABO2152", type: "RUE", nom: "Rue le Sauveur", commune: "Abobo" },
+  { id: "0100211ABO2308", codePada: "0100211ABO2308", type: "RUE", nom: "Rue Bauhi-bi Patrick Juvet Mangoné", commune: "Abobo" },
+  { id: "0100212ADJ0225", codePada: "0100212ADJ0225", type: "RUE", nom: "Rue de la Nouvelle Gare", commune: "Adjamé" },
+  { id: "0100212ADJ0333", codePada: "0100212ADJ0333", type: "RUE", nom: "Rue de la Foi Nouvelle", commune: "Adjamé" },
+  { id: "0100212ADJ0354", codePada: "0100212ADJ0354", type: "RUE", nom: "Rue du Souvenir", commune: "Adjamé" },
+  { id: "0100202ANY0425", codePada: "0100202ANY0425", type: "RUE", nom: "Rue Tra Antoine Suy Bi", commune: "Anyama" },
+  { id: "0100202ANY0670", codePada: "0100202ANY0670", type: "RUE", nom: "Rue Ladiakoro Brahima Kouyaté", commune: "Anyama" },
+  { id: "0100203BIN0455", codePada: "0100203BIN0455", type: "RUE", nom: "Rue Koutouan Magloire Bodjuy", commune: "Bingerville" },
+  { id: "0100203BIN0647", codePada: "0100203BIN0647", type: "RUE", nom: "Rue Prof Varlet Gervais Guy Aka", commune: "Bingerville" },
+  { id: "0100203BIN0854", codePada: "0100203BIN0854", type: "RUE", nom: "Rue N’guyakro", commune: "Bingerville" },
+  { id: "0100203BIN0998", codePada: "0100203BIN0998", type: "RUE", nom: "Rue Prof Guy Gaston Varango", commune: "Bingerville" },
+  { id: "0100203BIN1227", codePada: "0100203BIN1227", type: "RUE", nom: "Rue Mariame Kouyaté", commune: "Bingerville" },
+  { id: "0100203BIN1421", codePada: "0100203BIN1421", type: "RUE", nom: "Rue Guy Maurel Konan", commune: "Bingerville" },
+  { id: "0100203BIN1625", codePada: "0100203BIN1625", type: "RUE", nom: "Rue Buyo", commune: "Bingerville" },
+  { id: "0100202ANY0314", codePada: "0100202ANY0314", type: "RUE", nom: "Rue Issa Kouyaté", commune: "Anyama" },
+  { id: "0100202ANY0431", codePada: "0100202ANY0431", type: "RUE", nom: "Rue Kouassi Valentin Koffi", commune: "Anyama" },
+  { id: "0100214COC0841", codePada: "0100214COC0841", type: "RUE", nom: "Rue Aké Levy Bénié", commune: "Cocody" },
+  { id: "0100216MAR0413", codePada: "0100216MAR0413", type: "RUE", nom: "Rue Levy Niamkey", commune: "Marcory" },
+  { id: "0100216MAR041300203", codePada: "0100216MAR041300203", type: "RUE", nom: "203 Rue Levy Niamkey", commune: "Marcory" },
+  { id: "0100214COC084100069", codePada: "0100214COC084100069", type: "RUE", nom: "69 Rue Aké Levy Bénié", commune: "Cocody" },
+  { id: "0100214COC084100029", codePada: "0100214COC084100029", type: "RUE", nom: "29 Rue Aké Levy Bénié", commune: "Cocody" },
+  { id: "0100214COC084100053", codePada: "0100214COC084100053", type: "RUE", nom: "53 Rue Aké Levy Bénié", commune: "Cocody" },
+  { id: "0100214COC084100003", codePada: "0100214COC084100003", type: "RUE", nom: "3 Rue Aké Levy Bénié", commune: "Cocody" },
+  { id: "0100216MAR041300109", codePada: "0100216MAR041300109", type: "RUE", nom: "109 Rue Levy Niamkey", commune: "Marcory" },
+  { id: "0100216MAR041300104", codePada: "0100216MAR041300104", type: "RUE", nom: "104 Rue Levy Niamkey", commune: "Marcory" },
+  { id: "0100214COC084100087", codePada: "0100214COC084100087", type: "RUE", nom: "87 Rue Aké Levy Bénié", commune: "Cocody" },
+  { id: "0100202ANY0115", codePada: "0100202ANY0115", type: "RUE", nom: "Rue Alebi Kwaho", commune: "Anyama" },
+  { id: "0100202ANY0160", codePada: "0100202ANY0160", type: "RUE", nom: "Rue Pol Améwé", commune: "Anyama" },
+  { id: "0100202ANY0186", codePada: "0100202ANY0186", type: "RUE", nom: "Rue Prof William Djibo", commune: "Anyama" },
+  { id: "0100202ANY0422", codePada: "0100202ANY0422", type: "RUE", nom: "Rue Brahima Wattara", commune: "Anyama" },
+  { id: "0100202ANY0449", codePada: "0100202ANY0449", type: "RUE", nom: "Rue Jean William Asseu", commune: "Anyama" },
+  { id: "0100202ANY0465", codePada: "0100202ANY0465", type: "RUE", nom: "Rue Waba Israël Koffi", commune: "Anyama" },
+  { id: "0100202ANY0634", codePada: "0100202ANY0634", type: "RUE", nom: "Rue Wadja Assouan", commune: "Anyama" },
+  { id: "0100202ANY0661", codePada: "0100202ANY0661", type: "RUE", nom: "Rue Tchrewa Pascal Bony", commune: "Anyama" },
+  { id: "0100203BIN0020", codePada: "0100203BIN0020", type: "RUE", nom: "Rue Adjani Julien Wanoumi", commune: "Bingerville" },
+  { id: "0100203BIN0124", codePada: "0100203BIN0124", type: "RUE", nom: "Rue Awa Ouattra", commune: "Bingerville" },
+  { id: "0100203BIN0307", codePada: "0100203BIN0307", type: "RUE", nom: "Rue Aziema Wanoumi", commune: "Bingerville" },
+  { id: "0100214COC2175", codePada: "0100214COC2175", type: "RUE", nom: "Rue Prof Philippe Cowppli-bony", commune: "Cocody" },
+  { id: "0100214COC1082", codePada: "0100214COC1082", type: "RUE", nom: "Rue Dr Laurent Cowppli-bony", commune: "Cocody" },
+  { id: "0100203BIN1256", codePada: "0100203BIN1256", type: "RUE", nom: "Rue Béatrice Cowpply-boni", commune: "Bingerville" },
+  { id: "0100214COC217500294", codePada: "0100214COC217500294", type: "RUE", nom: "294 Rue Prof Philippe Cowppli-bony", commune: "Cocody" },
+  { id: "0100214COC217500354", codePada: "0100214COC217500354", type: "RUE", nom: "354 Rue Prof Philippe Cowppli-bony", commune: "Cocody" },
+  { id: "0100214COC217500285", codePada: "0100214COC217500285", type: "RUE", nom: "285 Rue Prof Philippe Cowppli-bony", commune: "Cocody" },
+  { id: "0100214COC217500503", codePada: "0100214COC217500503", type: "RUE", nom: "503 Rue Prof Philippe Cowppli-bony", commune: "Cocody" },
+  { id: "0100214COC217500263", codePada: "0100214COC217500263", type: "RUE", nom: "263 Rue Prof Philippe Cowppli-bony", commune: "Cocody" },
+  { id: "0100214COC217500291", codePada: "0100214COC217500291", type: "RUE", nom: "291 Rue Prof Philippe Cowppli-bony", commune: "Cocody" },
+  { id: "0100214COC217500543", codePada: "0100214COC217500543", type: "RUE", nom: "543 Rue Prof Philippe Cowppli-bony", commune: "Cocody" },
+  { id: "0100214COC0749", codePada: "0100214COC0749", type: "RUE", nom: "Rue le Firdaws", commune: "Cocody" },
+  { id: "0100214COC3191", codePada: "0100214COC3191", type: "RUE", nom: "Rue Dr Kassy Mian Newson", commune: "Cocody" },
+  { id: "0100214COC319100097", codePada: "0100214COC319100097", type: "RUE", nom: "97 Rue Dr Kassy Mian Newson", commune: "Cocody" },
+  { id: "0100214COC319100401", codePada: "0100214COC319100401", type: "RUE", nom: "401 Rue Dr Kassy Mian Newson", commune: "Cocody" },
+  { id: "0100214COC319100556", codePada: "0100214COC319100556", type: "RUE", nom: "556 Rue Dr Kassy Mian Newson", commune: "Cocody" },
+  { id: "0100214COC319100459", codePada: "0100214COC319100459", type: "RUE", nom: "459 Rue Dr Kassy Mian Newson", commune: "Cocody" },
+  { id: "0100214COC319100383", codePada: "0100214COC319100383", type: "RUE", nom: "383 Rue Dr Kassy Mian Newson", commune: "Cocody" },
+  { id: "0100214COC319100543", codePada: "0100214COC319100543", type: "RUE", nom: "543 Rue Dr Kassy Mian Newson", commune: "Cocody" },
+  { id: "0100214COC319100630", codePada: "0100214COC319100630", type: "RUE", nom: "630 Rue Dr Kassy Mian Newson", commune: "Cocody" },
+  { id: "0100214COC319100495", codePada: "0100214COC319100495", type: "RUE", nom: "495 Rue Dr Kassy Mian Newson", commune: "Cocody" },
+  { id: "0100202ANY0257", codePada: "0100202ANY0257", type: "RUE", nom: "Rue Prof Henri Alexandre N'guessan", commune: "Anyama" },
+  { id: "0100202ANY0263", codePada: "0100202ANY0263", type: "RUE", nom: "Rue Yapi Félix Amon", commune: "Anyama" },
+  { id: "0100202ANY0393", codePada: "0100202ANY0393", type: "RUE", nom: "Rue Alexandre Dje Bi Dje", commune: "Anyama" },
+  { id: "0100203BIN0029", codePada: "0100203BIN0029", type: "RUE", nom: "Rue Yapo Alexandre Aho", commune: "Bingerville" },
+  { id: "0100203BIN0447", codePada: "0100203BIN0447", type: "RUE", nom: "Rue Koutouan Alexandre Aguedé", commune: "Bingerville" },
+  { id: "0100203BIN0449", codePada: "0100203BIN0449", type: "RUE", nom: "Rue Prof Alexandre Kokoua", commune: "Bingerville" },
+  { id: "0100203BIN1101", codePada: "0100203BIN1101", type: "RUE", nom: "Rue Alexandre Dadié", commune: "Bingerville" },
+  { id: "0100203BIN1511", codePada: "0100203BIN1511", type: "RUE", nom: "Rue Alexandre Aboua", commune: "Bingerville" },
+  { id: "0100211ABO1570", codePada: "0100211ABO1570", type: "RUE", nom: "Rue Prof Koffi Mexmin Konan", commune: "Abobo" },
+  { id: "0100211ABO157000264", codePada: "0100211ABO157000264", type: "RUE", nom: "264 Rue Prof Koffi Mexmin Konan", commune: "Abobo" },
+  { id: "0100211ABO157000126", codePada: "0100211ABO157000126", type: "RUE", nom: "126 Rue Prof Koffi Mexmin Konan", commune: "Abobo" },
+  { id: "0100211ABO157000283", codePada: "0100211ABO157000283", type: "RUE", nom: "283 Rue Prof Koffi Mexmin Konan", commune: "Abobo" },
+  { id: "0100211ABO157000316", codePada: "0100211ABO157000316", type: "RUE", nom: "316 Rue Prof Koffi Mexmin Konan", commune: "Abobo" },
+  { id: "0100211ABO157000319", codePada: "0100211ABO157000319", type: "RUE", nom: "319 Rue Prof Koffi Mexmin Konan", commune: "Abobo" },
+  { id: "0100211ABO157000263", codePada: "0100211ABO157000263", type: "RUE", nom: "263 Rue Prof Koffi Mexmin Konan", commune: "Abobo" },
+  { id: "0100211ABO157000300", codePada: "0100211ABO157000300", type: "RUE", nom: "300 Rue Prof Koffi Mexmin Konan", commune: "Abobo" },
+  { id: "0100211ABO157000299", codePada: "0100211ABO157000299", type: "RUE", nom: "299 Rue Prof Koffi Mexmin Konan", commune: "Abobo" },
+  { id: "0100211ABO157000276", codePada: "0100211ABO157000276", type: "RUE", nom: "276 Rue Prof Koffi Mexmin Konan", commune: "Abobo" },
+  { id: "0100211ABO1525", codePada: "0100211ABO1525", type: "RUE", nom: "Rue les Experts", commune: "Abobo" },
+  { id: "0100214COC0170", codePada: "0100214COC0170", type: "RUE", nom: "Rue L'expérience", commune: "Cocody" },
+  { id: "0100203BIN1055", codePada: "0100203BIN1055", type: "RUE", nom: "Rue de L'exploit", commune: "Bingerville" },
+  { id: "0100214COC1760", codePada: "0100214COC1760", type: "RUE", nom: "Rue L'expansion", commune: "Cocody" },
+  { id: "0100214COC2344", codePada: "0100214COC2344", type: "RUE", nom: "Rue L'expédition", commune: "Cocody" },
+  { id: "0100220YOP1804", codePada: "0100220YOP1804", type: "RUE", nom: "Rue les Expéditions", commune: "Yopougon" },
+  { id: "0100214COC0810", codePada: "0100214COC0810", type: "RUE", nom: "Rue L'expertise", commune: "Cocody" },
+  { id: "0100214COC234400022", codePada: "0100214COC234400022", type: "RUE", nom: "22 Rue L'expédition", commune: "Cocody" },
+  { id: "0100214COC234400335", codePada: "0100214COC234400335", type: "RUE", nom: "335 Rue L'expédition", commune: "Cocody" },
+  { id: "0100214COC234400324", codePada: "0100214COC234400324", type: "RUE", nom: "324 Rue L'expédition", commune: "Cocody" },
+  { id: "0100218POR0143", codePada: "0100218POR0143", type: "RUE", nom: "Rue de L'oxygène", commune: "Port-Bouët" },
+  { id: "0100220YOP0471", codePada: "0100220YOP0471", type: "RUE", nom: "Rue les Xylosmas", commune: "Yopougon" },
+  { id: "0100218POR014300488", codePada: "0100218POR014300488", type: "RUE", nom: "488 Rue de L'oxygène", commune: "Port-Bouët" },
+  { id: "0100218POR014300443", codePada: "0100218POR014300443", type: "RUE", nom: "443 Rue de L'oxygène", commune: "Port-Bouët" },
+  { id: "0100218POR014300417", codePada: "0100218POR014300417", type: "RUE", nom: "417 Rue de L'oxygène", commune: "Port-Bouët" },
+  { id: "0100218POR014300448", codePada: "0100218POR014300448", type: "RUE", nom: "448 Rue de L'oxygène", commune: "Port-Bouët" },
+  { id: "0100218POR014300501", codePada: "0100218POR014300501", type: "RUE", nom: "501 Rue de L'oxygène", commune: "Port-Bouët" },
+  { id: "0100218POR014300440", codePada: "0100218POR014300440", type: "RUE", nom: "440 Rue de L'oxygène", commune: "Port-Bouët" },
+  { id: "0100218POR014300411", codePada: "0100218POR014300411", type: "RUE", nom: "411 Rue de L'oxygène", commune: "Port-Bouët" },
+  { id: "0100218POR014300342", codePada: "0100218POR014300342", type: "RUE", nom: "342 Rue de L'oxygène", commune: "Port-Bouët" },
+  { id: "0100202ANY0574", codePada: "0100202ANY0574", type: "RUE", nom: "Rue Seydou Doumbia", commune: "Anyama" },
+  { id: "0100202ANY0601", codePada: "0100202ANY0601", type: "RUE", nom: "Rue Seydou Touré", commune: "Anyama" },
+  { id: "0100203BIN0544", codePada: "0100203BIN0544", type: "RUE", nom: "Rue Dr Seydou Coulibaly", commune: "Bingerville" },
+  { id: "0100205SON0142", codePada: "0100205SON0142", type: "RUE", nom: "Rue Seydou Diallo", commune: "Songon" },
+  { id: "0100211ABO0347", codePada: "0100211ABO0347", type: "RUE", nom: "Rue L'hygiène", commune: "Abobo" },
+  { id: "0100218POR014300341", codePada: "0100218POR014300341", type: "RUE", nom: "341 Rue de L'oxygène", commune: "Port-Bouët" },
+  { id: "0100218POR014300363", codePada: "0100218POR014300363", type: "RUE", nom: "363 Rue de L'oxygène", commune: "Port-Bouët" },
+  { id: "0100218POR014300344", codePada: "0100218POR014300344", type: "RUE", nom: "344 Rue de L'oxygène", commune: "Port-Bouët" },
+  { id: "0100218POR014300352", codePada: "0100218POR014300352", type: "RUE", nom: "352 Rue de L'oxygène", commune: "Port-Bouët" },
+  { id: "0100203BIN0381", codePada: "0100203BIN0381", type: "RUE", nom: "Rue Vassouleymane Timité", commune: "Bingerville" },
+  { id: "0100203BIN0448", codePada: "0100203BIN0448", type: "RUE", nom: "Rue Souleymane Sidibé", commune: "Bingerville" },
+  { id: "0100203BIN0517", codePada: "0100203BIN0517", type: "RUE", nom: "Rue Raymond Kopa", commune: "Bingerville" },
+  { id: "0100214COC0123", codePada: "0100214COC0123", type: "RUE", nom: "Rue le Cyprès", commune: "Cocody" },
+  { id: "0100214COC0148", codePada: "0100214COC0148", type: "RUE", nom: "Rue L’eucalyptus", commune: "Cocody" },
+  { id: "0100214COC0320", codePada: "0100214COC0320", type: "RUE", nom: "Rue Prof Dibi Hyppolite N'da", commune: "Cocody" },
+  { id: "0100214COC0351", codePada: "0100214COC0351", type: "RUE", nom: "Rue le Chypre", commune: "Cocody" },
+  { id: "0100214COC0488", codePada: "0100214COC0488", type: "RUE", nom: "Rue le Typha", commune: "Cocody" },
+  { id: "0100214COC0506", codePada: "0100214COC0506", type: "RUE", nom: "Rue la Cypella", commune: "Cocody" },
+  { id: "0100202ANY0225", codePada: "0100202ANY0225", type: "RUE", nom: "Rue Amasse Élyse N'guessan", commune: "Anyama" },
+  { id: "0100203BIN0097", codePada: "0100203BIN0097", type: "RUE", nom: "Rue les Elysées", commune: "Bingerville" },
+  { id: "0100203BIN0499", codePada: "0100203BIN0499", type: "RUE", nom: "Rue les Amarillys", commune: "Bingerville" },
+  { id: "0100203BIN1198", codePada: "0100203BIN1198", type: "RUE", nom: "Rue L'améthyste", commune: "Bingerville" },
+  { id: "0100203BIN1440", codePada: "0100203BIN1440", type: "RUE", nom: "Rue la Chrysalide", commune: "Bingerville" },
+  { id: "0100211ABO0404", codePada: "0100211ABO0404", type: "RUE", nom: "Rue le Dysprosium", commune: "Abobo" },
+  { id: "0100211ABO0882", codePada: "0100211ABO0882", type: "RUE", nom: "Rue les Abysses", commune: "Abobo" },
+  { id: "0100203BIN0257", codePada: "0100203BIN0257", type: "RUE", nom: "Rue Mahonin Yves Boua", commune: "Bingerville" },
+  { id: "0100203BIN0932", codePada: "0100203BIN0932", type: "RUE", nom: "Rue Yvonne Oulaï", commune: "Bingerville" },
+  { id: "0100203BIN1006", codePada: "0100203BIN1006", type: "RUE", nom: "Rue Yvonne Bouabré", commune: "Bingerville" },
+  { id: "0100203BIN1058", codePada: "0100203BIN1058", type: "RUE", nom: "Rue Oly Yves Roland", commune: "Bingerville" },
+  { id: "0100203BIN1176", codePada: "0100203BIN1176", type: "RUE", nom: "Rue Yves Kouamé", commune: "Bingerville" },
+  { id: "0100211ABO0677", codePada: "0100211ABO0677", type: "RUE", nom: "Rue Prof Yves-alain Békro", commune: "Abobo" },
+  { id: "0100211ABO1060", codePada: "0100211ABO1060", type: "RUE", nom: "Rue Yves Pascal Dailly", commune: "Abobo" },
+  { id: "0100211ABO1073", codePada: "0100211ABO1073", type: "RUE", nom: "Rue Jean-yves Koupoh", commune: "Abobo" },
+  { id: "0100202ANY0388", codePada: "0100202ANY0388", type: "RUE", nom: "Rue Brou Yves Yeboue", commune: "Anyama" },
+  { id: "0100202ANY0334", codePada: "0100202ANY0334", type: "RUE", nom: "Rue Vieux Zagré", commune: "Anyama" },
+  { id: "0100202ANY0378", codePada: "0100202ANY0378", type: "RUE", nom: "Rue Samir Zarour", commune: "Anyama" },
+  { id: "0100202ANY0385", codePada: "0100202ANY0385", type: "RUE", nom: "Rue Paul Ezam", commune: "Anyama" },
+  { id: "0100202ANY0495", codePada: "0100202ANY0495", type: "RUE", nom: "Rue Inza Koné", commune: "Anyama" },
+  { id: "0100202ANY0505", codePada: "0100202ANY0505", type: "RUE", nom: "Rue Zagbré Tapé", commune: "Anyama" },
+  { id: "0100202ANY0528", codePada: "0100202ANY0528", type: "RUE", nom: "Rue Habib Zarour", commune: "Anyama" },
+  { id: "0100202ANY0553", codePada: "0100202ANY0553", type: "RUE", nom: "Rue Prof Zan Semi-bi", commune: "Anyama" },
+  { id: "0100214COC2707", codePada: "0100214COC2707", type: "RUE", nom: "Rue Miazdin", commune: "Cocody" },
+  { id: "0100214COC270700136", codePada: "0100214COC270700136", type: "RUE", nom: "136 Rue Miazdin", commune: "Cocody" },
+  { id: "0100214COC270700137", codePada: "0100214COC270700137", type: "RUE", nom: "137 Rue Miazdin", commune: "Cocody" },
+  { id: "0100214COC270700008", codePada: "0100214COC270700008", type: "RUE", nom: "8 Rue Miazdin", commune: "Cocody" },
+  { id: "0100214COC270700073", codePada: "0100214COC270700073", type: "RUE", nom: "73 Rue Miazdin", commune: "Cocody" },
+  { id: "0100214COC270700111", codePada: "0100214COC270700111", type: "RUE", nom: "111 Rue Miazdin", commune: "Cocody" },
+  { id: "0100214COC270700029", codePada: "0100214COC270700029", type: "RUE", nom: "29 Rue Miazdin", commune: "Cocody" },
+  { id: "0100214COC270700049", codePada: "0100214COC270700049", type: "RUE", nom: "49 Rue Miazdin", commune: "Cocody" },
+  { id: "0100214COC270700094", codePada: "0100214COC270700094", type: "RUE", nom: "94 Rue Miazdin", commune: "Cocody" },
+  { id: "0100214COC270700030", codePada: "0100214COC270700030", type: "RUE", nom: "30 Rue Miazdin", commune: "Cocody" },
+  { id: "0100203BIN0208", codePada: "0100203BIN0208", type: "RUE", nom: "Rue le Guzmania", commune: "Bingerville" },
+  { id: "0100203BIN020800041", codePada: "0100203BIN020800041", type: "RUE", nom: "41 Rue le Guzmania", commune: "Bingerville" },
+  { id: "0100203BIN020800044", codePada: "0100203BIN020800044", type: "RUE", nom: "44 Rue le Guzmania", commune: "Bingerville" },
+  { id: "0100203BIN020800018", codePada: "0100203BIN020800018", type: "RUE", nom: "18 Rue le Guzmania", commune: "Bingerville" },
+  { id: "0100203BIN020800096", codePada: "0100203BIN020800096", type: "RUE", nom: "96 Rue le Guzmania", commune: "Bingerville" },
+  { id: "0100203BIN020800086", codePada: "0100203BIN020800086", type: "RUE", nom: "86 Rue le Guzmania", commune: "Bingerville" },
+  { id: "0100203BIN020800100", codePada: "0100203BIN020800100", type: "RUE", nom: "100 Rue le Guzmania", commune: "Bingerville" },
+  { id: "0100220YOP1857", codePada: "0100220YOP1857", type: "RUE", nom: "Rue Dezy Champion", commune: "Yopougon" },
+  { id: "0100220YOP2107", codePada: "0100220YOP2107", type: "RUE", nom: "Rue Dazy et N'guata", commune: "Yopougon" },
+  { id: "0100220YOP210700068", codePada: "0100220YOP210700068", type: "RUE", nom: "68 Rue Dazy et N'guata", commune: "Yopougon" },
+  { id: "0100220YOP210700082", codePada: "0100220YOP210700082", type: "RUE", nom: "82 Rue Dazy et N'guata", commune: "Yopougon" },
+  { id: "0100220YOP210700083", codePada: "0100220YOP210700083", type: "RUE", nom: "83 Rue Dazy et N'guata", commune: "Yopougon" },
+  { id: "0100220YOP210700087", codePada: "0100220YOP210700087", type: "RUE", nom: "87 Rue Dazy et N'guata", commune: "Yopougon" },
+  { id: "0100220YOP210700085", codePada: "0100220YOP210700085", type: "RUE", nom: "85 Rue Dazy et N'guata", commune: "Yopougon" },
+  { id: "0100220YOP210700069", codePada: "0100220YOP210700069", type: "RUE", nom: "69 Rue Dazy et N'guata", commune: "Yopougon" },
+  { id: "0100220YOP185700339", codePada: "0100220YOP185700339", type: "RUE", nom: "339 Rue Dezy Champion", commune: "Yopougon" },
+  { id: "0100220YOP185700748", codePada: "0100220YOP185700748", type: "RUE", nom: "748 Rue Dezy Champion", commune: "Yopougon" },
+  { id: "0100214COC082000307", codePada: "0100214COC082000307", type: "RUE", nom: "307 Rue Imam Karamoko Gaoussou", commune: "Cocody" },
+  { id: "0100214COC204401430", codePada: "0100214COC204401430", type: "RUE", nom: "1430 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC120400103", codePada: "0100214COC120400103", type: "RUE", nom: "103 Rue Werewere Liking", commune: "Cocody" },
+  { id: "0100214COC350000010", codePada: "0100214COC350000010", type: "RUE", nom: "10 Rue Tiraogo Dondasse", commune: "Cocody" },
+  { id: "0100214COC350100220", codePada: "0100214COC350100220", type: "RUE", nom: "220 Rue Dr N'guessan Kotchi", commune: "Cocody" },
+  { id: "0100214COC120200050", codePada: "0100214COC120200050", type: "RUE", nom: "50 Rue Jean-paul Aidoo", commune: "Cocody" },
+  { id: "0100214COC204401440", codePada: "0100214COC204401440", type: "RUE", nom: "1440 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC204401520", codePada: "0100214COC204401520", type: "RUE", nom: "1520 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC119400300", codePada: "0100214COC119400300", type: "RUE", nom: "300 Rue Roger Fulgence Kassy", commune: "Cocody" },
+  { id: "0100214COC115700801", codePada: "0100214COC115700801", type: "RUE", nom: "801 Rue la Canebière", commune: "Cocody" },
+  { id: "0100214COC351201016", codePada: "0100214COC351201016", type: "RUE", nom: "1016 Rue Dicoh Garba", commune: "Cocody" },
+  { id: "0100214COC140200101", codePada: "0100214COC140200101", type: "RUE", nom: "101 Rue Djrogo Ako", commune: "Cocody" },
+  { id: "0100214COC154700201", codePada: "0100214COC154700201", type: "RUE", nom: "201 Rue Sembène Ousmane", commune: "Cocody" },
+  { id: "0100214COC247000201", codePada: "0100214COC247000201", type: "RUE", nom: "201 Rue Prof Inahi Zouzoua", commune: "Cocody" },
+  { id: "0100214COC122800101", codePada: "0100214COC122800101", type: "RUE", nom: "101 Rue Prof Marilyse Kouadio", commune: "Cocody" },
+  { id: "0100214COC112400201", codePada: "0100214COC112400201", type: "RUE", nom: "201 Rue Kouame Louis-philippe Goli", commune: "Cocody" },
+  { id: "0100214COC177200201", codePada: "0100214COC177200201", type: "RUE", nom: "201 Rue Michel Adahi", commune: "Cocody" },
+  { id: "0100214COC158600201", codePada: "0100214COC158600201", type: "RUE", nom: "201 Rue Médard Dehoudo Doho", commune: "Cocody" },
+  { id: "0100214COC131500401", codePada: "0100214COC131500401", type: "RUE", nom: "401 Rue Djama Sery", commune: "Cocody" },
+  { id: "0100214COC204404504", codePada: "0100214COC204404504", type: "RUE", nom: "4504 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC121500104", codePada: "0100214COC121500104", type: "RUE", nom: "104 Rue Gui Norbert Boable", commune: "Cocody" },
+  { id: "0100214COC140100104", codePada: "0100214COC140100104", type: "RUE", nom: "104 Rue Prof Jeannette Bassibié", commune: "Cocody" },
+  { id: "0100214COC180100304", codePada: "0100214COC180100304", type: "RUE", nom: "304 Rue Chéri Samba", commune: "Cocody" },
+  { id: "0100214COC180100204", codePada: "0100214COC180100204", type: "RUE", nom: "204 Rue Chéri Samba", commune: "Cocody" },
+  { id: "0100214COC155300104", codePada: "0100214COC155300104", type: "RUE", nom: "104 Rue Alliés Guebo", commune: "Cocody" },
+  { id: "0100214COC119400204", codePada: "0100214COC119400204", type: "RUE", nom: "204 Rue Roger Fulgence Kassy", commune: "Cocody" },
+  { id: "0100214COC247000304", codePada: "0100214COC247000304", type: "RUE", nom: "304 Rue Prof Inahi Zouzoua", commune: "Cocody" },
+  { id: "0100214COC357200104", codePada: "0100214COC357200104", type: "RUE", nom: "104 Rue Abbé Jean-claude Danho", commune: "Cocody" },
+  { id: "0100214COC131500304", codePada: "0100214COC131500304", type: "RUE", nom: "304 Rue Djama Sery", commune: "Cocody" },
+  { id: "0100214COC082000207", codePada: "0100214COC082000207", type: "RUE", nom: "207 Rue Imam Karamoko Gaoussou", commune: "Cocody" },
+  { id: "0100214COC351200807", codePada: "0100214COC351200807", type: "RUE", nom: "807 Rue Dicoh Garba", commune: "Cocody" },
+  { id: "0100214COC111700107", codePada: "0100214COC111700107", type: "RUE", nom: "107 Rue Lambert Meazieu", commune: "Cocody" },
+  { id: "0100214COC351201078", codePada: "0100214COC351201078", type: "RUE", nom: "1078 Rue Dicoh Garba", commune: "Cocody" },
+  { id: "0100214COC152500107", codePada: "0100214COC152500107", type: "RUE", nom: "107 Rue Gbogou Didier Lohoury", commune: "Cocody" },
+  { id: "0100214COC122700407", codePada: "0100214COC122700407", type: "RUE", nom: "407 Rue Dr Assamoi Béatrice Ama-cauphys", commune: "Cocody" },
+  { id: "0100214COC368900307", codePada: "0100214COC368900307", type: "RUE", nom: "307 Rue Bian Isaac N'tamé", commune: "Cocody" },
+  { id: "0100214COC341900207", codePada: "0100214COC341900207", type: "RUE", nom: "207 Avenue Téné Birahima Ouattara", commune: "Cocody" },
+  { id: "0100214COC204404207", codePada: "0100214COC204404207", type: "RUE", nom: "4207 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC3665", codePada: "0100214COC3665", type: "RUE", nom: "Rue du 12e Arrondissement", commune: "Cocody" },
+  { id: "0100212ADJ0260", codePada: "0100212ADJ0260", type: "RUE", nom: "Rue du 11e Arrondissement", commune: "Adjamé" },
+  { id: "0100215KOU0087", codePada: "0100215KOU0087", type: "RUE", nom: "Rue Eugène 1er", commune: "Koumassi" },
+  { id: "0100213ATT0143", codePada: "0100213ATT0143", type: "RUE", nom: "Rue de Jerusalem 1", commune: "Attécoubé" },
+  { id: "0100219TRE0162", codePada: "0100219TRE0162", type: "RUE", nom: "Rue du 11 Avril 1946", commune: "Treichville" },
+  { id: "0100214COC2194", codePada: "0100214COC2194", type: "RUE", nom: "Rue du 22 Décembre 1949", commune: "Cocody" },
+  { id: "0100214COC122800221", codePada: "0100214COC122800221", type: "RUE", nom: "221 Rue Prof Marilyse Kouadio", commune: "Cocody" },
+  { id: "0100214COC082000159", codePada: "0100214COC082000159", type: "RUE", nom: "159 Rue Imam Karamoko Gaoussou", commune: "Cocody" },
+  { id: "0100214COC082000175", codePada: "0100214COC082000175", type: "RUE", nom: "175 Rue Imam Karamoko Gaoussou", commune: "Cocody" },
+  { id: "0100214COC120200218", codePada: "0100214COC120200218", type: "RUE", nom: "218 Rue Jean-paul Aidoo", commune: "Cocody" },
+  { id: "0100214COC351201187", codePada: "0100214COC351201187", type: "RUE", nom: "1187 Rue Dicoh Garba", commune: "Cocody" },
+  { id: "0100214COC212900611", codePada: "0100214COC212900611", type: "RUE", nom: "611 Rue Père Éric Norbert Abekan", commune: "Cocody" },
+  { id: "0100214COC349900116", codePada: "0100214COC349900116", type: "RUE", nom: "116 Rue Dr Evelyne Gévère Marise Assi", commune: "Cocody" },
+  { id: "0100214COC131400116", codePada: "0100214COC131400116", type: "RUE", nom: "116 Rue Ani Patrick Exzo", commune: "Cocody" },
+  { id: "0100214COC351201152", codePada: "0100214COC351201152", type: "RUE", nom: "1152 Rue Dicoh Garba", commune: "Cocody" },
+  { id: "0100214COC121500117", codePada: "0100214COC121500117", type: "RUE", nom: "117 Rue Gui Norbert Boable", commune: "Cocody" },
+  { id: "0100214COC351201126", codePada: "0100214COC351201126", type: "RUE", nom: "1126 Rue Dicoh Garba", commune: "Cocody" },
+  { id: "0100214COC350100211", codePada: "0100214COC350100211", type: "RUE", nom: "211 Rue Dr N'guessan Kotchi", commune: "Cocody" },
+  { id: "0100214COC204401459", codePada: "0100214COC204401459", type: "RUE", nom: "1459 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC204401446", codePada: "0100214COC204401446", type: "RUE", nom: "1446 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC204401462", codePada: "0100214COC204401462", type: "RUE", nom: "1462 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC204401452", codePada: "0100214COC204401452", type: "RUE", nom: "1452 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC204401468", codePada: "0100214COC204401468", type: "RUE", nom: "1468 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC204401425", codePada: "0100214COC204401425", type: "RUE", nom: "1425 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC204401418", codePada: "0100214COC204401418", type: "RUE", nom: "1418 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC118700214", codePada: "0100214COC118700214", type: "RUE", nom: "214 Rue Louis Georges Akoun", commune: "Cocody" },
+  { id: "0100214COC120600317", codePada: "0100214COC120600317", type: "RUE", nom: "317 Rue Boko Ouattara", commune: "Cocody" },
+  { id: "0100214COC139500017", codePada: "0100214COC139500017", type: "RUE", nom: "17 Rue la Sollicitude", commune: "Cocody" },
+  { id: "0100214COC349900173", codePada: "0100214COC349900173", type: "RUE", nom: "173 Rue Dr Evelyne Gévère Marise Assi", commune: "Cocody" },
+  { id: "0100214COC111700175", codePada: "0100214COC111700175", type: "RUE", nom: "175 Rue Lambert Meazieu", commune: "Cocody" },
+  { id: "0100214COC111700170", codePada: "0100214COC111700170", type: "RUE", nom: "170 Rue Lambert Meazieu", commune: "Cocody" },
+  { id: "0100214COC110002177", codePada: "0100214COC110002177", type: "RUE", nom: "2177 Avenue du Lycée Technique", commune: "Cocody" },
+  { id: "0100214COC115800175", codePada: "0100214COC115800175", type: "RUE", nom: "175 Rue Aka Tanoe", commune: "Cocody" },
+  { id: "0100214COC131500170", codePada: "0100214COC131500170", type: "RUE", nom: "170 Rue Djama Sery", commune: "Cocody" },
+  { id: "0100203BIN0981", codePada: "0100203BIN0981", type: "RUE", nom: "Rue de Marchoux 2", commune: "Bingerville" },
+  { id: "0100214COC3905", codePada: "0100214COC3905", type: "ROND-POINT", nom: "Rond-point de la Riviéra 2", commune: "Cocody" },
+  { id: "0100218POR0275", codePada: "0100218POR0275", type: "RUE", nom: "Rue I2t", commune: "Port-Bouët" },
+  { id: "0100220YOP1235", codePada: "0100220YOP1235", type: "RUE", nom: "Rue Nanan Kouamé-tiémélé 2", commune: "Yopougon" },
+  { id: "0100214COC120400234", codePada: "0100214COC120400234", type: "RUE", nom: "234 Rue Werewere Liking", commune: "Cocody" },
+  { id: "0100214COC120400233", codePada: "0100214COC120400233", type: "RUE", nom: "233 Rue Werewere Liking", commune: "Cocody" },
+  { id: "0100214COC120200259", codePada: "0100214COC120200259", type: "RUE", nom: "259 Rue Jean-paul Aidoo", commune: "Cocody" },
+  { id: "0100214COC082000121", codePada: "0100214COC082000121", type: "RUE", nom: "121 Rue Imam Karamoko Gaoussou", commune: "Cocody" },
+  { id: "0100214COC121500121", codePada: "0100214COC121500121", type: "RUE", nom: "121 Rue Gui Norbert Boable", commune: "Cocody" },
+  { id: "0100214COC115900221", codePada: "0100214COC115900221", type: "RUE", nom: "221 Rue Dr Katiénéffooua Ouattara", commune: "Cocody" },
+  { id: "0100214COC351201021", codePada: "0100214COC351201021", type: "RUE", nom: "1021 Rue Dicoh Garba", commune: "Cocody" },
+  { id: "0100214COC110002114", codePada: "0100214COC110002114", type: "RUE", nom: "2114 Avenue du Lycée Technique", commune: "Cocody" },
+  { id: "0100214COC131500324", codePada: "0100214COC131500324", type: "RUE", nom: "324 Rue Djama Sery", commune: "Cocody" },
+  { id: "0100214COC111800124", codePada: "0100214COC111800124", type: "RUE", nom: "124 Rue Massogbé Touré", commune: "Cocody" },
+  { id: "0100214COC115800243", codePada: "0100214COC115800243", type: "RUE", nom: "243 Rue Aka Tanoe", commune: "Cocody" },
+  { id: "0100214COC106300247", codePada: "0100214COC106300247", type: "RUE", nom: "247 Avenue Gal Mathias Doué", commune: "Cocody" },
+  { id: "0100214COC131500224", codePada: "0100214COC131500224", type: "RUE", nom: "224 Rue Djama Sery", commune: "Cocody" },
+  { id: "0100214COC120300245", codePada: "0100214COC120300245", type: "RUE", nom: "245 Rue Djomo Aby", commune: "Cocody" },
+  { id: "0100214COC122700424", codePada: "0100214COC122700424", type: "RUE", nom: "424 Rue Dr Assamoi Béatrice Ama-cauphys", commune: "Cocody" },
+  { id: "0100214COC341900243", codePada: "0100214COC341900243", type: "RUE", nom: "243 Avenue Téné Birahima Ouattara", commune: "Cocody" },
+  { id: "0100214COC341900246", codePada: "0100214COC341900246", type: "RUE", nom: "246 Avenue Téné Birahima Ouattara", commune: "Cocody" },
+  { id: "0100214COC350100244", codePada: "0100214COC350100244", type: "RUE", nom: "244 Rue Dr N'guessan Kotchi", commune: "Cocody" },
+  { id: "0100214COC413100027", codePada: "0100214COC413100027", type: "RUE", nom: "27 Rue la Volupté", commune: "Cocody" },
+  { id: "0100214COC234600027", codePada: "0100214COC234600027", type: "RUE", nom: "27 Rue Clémence Yandé", commune: "Cocody" },
+  { id: "0100214COC139500027", codePada: "0100214COC139500027", type: "RUE", nom: "27 Rue la Sollicitude", commune: "Cocody" },
+  { id: "0100214COC082000273", codePada: "0100214COC082000273", type: "RUE", nom: "273 Rue Imam Karamoko Gaoussou", commune: "Cocody" },
+  { id: "0100214COC349900127", codePada: "0100214COC349900127", type: "RUE", nom: "127 Rue Dr Evelyne Gévère Marise Assi", commune: "Cocody" },
+  { id: "0100214COC111700276", codePada: "0100214COC111700276", type: "RUE", nom: "276 Rue Lambert Meazieu", commune: "Cocody" },
+  { id: "0100214COC111500271", codePada: "0100214COC111500271", type: "RUE", nom: "271 Rue Ticouaï Vincent Diallo", commune: "Cocody" },
+  { id: "0100214COC115800274", codePada: "0100214COC115800274", type: "RUE", nom: "274 Rue Aka Tanoe", commune: "Cocody" },
+  { id: "0100214COC115800272", codePada: "0100214COC115800272", type: "RUE", nom: "272 Rue Aka Tanoe", commune: "Cocody" },
+  { id: "0100214COC366500427", codePada: "0100214COC366500427", type: "RUE", nom: "427 Rue du 12e Arrondissement", commune: "Cocody" },
+  { id: "0100214COC1751", codePada: "0100214COC1751", type: "RUE", nom: "Rond Point Soleil 3", commune: "Cocody" },
+  { id: "0100214COC3902", codePada: "0100214COC3902", type: "RUE", nom: "Rond Point de la Riviéra 3", commune: "Cocody" },
+  { id: "0100214COC120200237", codePada: "0100214COC120200237", type: "RUE", nom: "237 Rue Jean-paul Aidoo", commune: "Cocody" },
+  { id: "0100214COC082000037", codePada: "0100214COC082000037", type: "RUE", nom: "37 Rue Imam Karamoko Gaoussou", commune: "Cocody" },
+  { id: "0100214COC120600328", codePada: "0100214COC120600328", type: "RUE", nom: "328 Rue Boko Ouattara", commune: "Cocody" },
+  { id: "0100214COC043900093", codePada: "0100214COC043900093", type: "RUE", nom: "93 Rue Ninkouari Tao", commune: "Cocody" },
+  { id: "0100214COC350100231", codePada: "0100214COC350100231", type: "RUE", nom: "231 Rue Dr N'guessan Kotchi", commune: "Cocody" },
+  { id: "0100214COC111000312", codePada: "0100214COC111000312", type: "RUE", nom: "312 Rue Moïse Koumoué Koffi", commune: "Cocody" },
+  { id: "0100214COC121500031", codePada: "0100214COC121500031", type: "RUE", nom: "31 Rue Gui Norbert Boable", commune: "Cocody" },
+  { id: "0100214COC106201312", codePada: "0100214COC106201312", type: "RUE", nom: "1312 Avenue Antoine Cesareo", commune: "Cocody" },
+  { id: "0100214COC120300231", codePada: "0100214COC120300231", type: "RUE", nom: "231 Rue Djomo Aby", commune: "Cocody" },
+  { id: "0100214COC117500431", codePada: "0100214COC117500431", type: "RUE", nom: "431 Rue Makouéni Delphine Cissé", commune: "Cocody" },
+  { id: "0100214COC152500131", codePada: "0100214COC152500131", type: "RUE", nom: "131 Rue Gbogou Didier Lohoury", commune: "Cocody" },
+  { id: "0100214COC148200315", codePada: "0100214COC148200315", type: "RUE", nom: "315 Rue Simon Dedjo", commune: "Cocody" },
+  { id: "0100214COC204406316", codePada: "0100214COC204406316", type: "RUE", nom: "6316 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC131500334", codePada: "0100214COC131500334", type: "RUE", nom: "334 Rue Djama Sery", commune: "Cocody" },
+  { id: "0100214COC115900341", codePada: "0100214COC115900341", type: "RUE", nom: "341 Rue Dr Katiénéffooua Ouattara", commune: "Cocody" },
+  { id: "0100214COC131500434", codePada: "0100214COC131500434", type: "RUE", nom: "434 Rue Djama Sery", commune: "Cocody" },
+  { id: "0100214COC115800234", codePada: "0100214COC115800234", type: "RUE", nom: "234 Rue Aka Tanoe", commune: "Cocody" },
+  { id: "0100214COC117500345", codePada: "0100214COC117500345", type: "RUE", nom: "345 Rue Makouéni Delphine Cissé", commune: "Cocody" },
+  { id: "0100214COC108900334", codePada: "0100214COC108900334", type: "RUE", nom: "334 Avenue Abdoulaye Koné", commune: "Cocody" },
+  { id: "0100214COC155600234", codePada: "0100214COC155600234", type: "RUE", nom: "234 Rue Élie-robert Tehoua Kouadio", commune: "Cocody" },
+  { id: "0100214COC368900334", codePada: "0100214COC368900334", type: "RUE", nom: "334 Rue Bian Isaac N'tamé", commune: "Cocody" },
+  { id: "0100214COC368900341", codePada: "0100214COC368900341", type: "RUE", nom: "341 Rue Bian Isaac N'tamé", commune: "Cocody" },
+  { id: "0100214COC131500337", codePada: "0100214COC131500337", type: "RUE", nom: "337 Rue Djama Sery", commune: "Cocody" },
+  { id: "0100214COC204404370", codePada: "0100214COC204404370", type: "RUE", nom: "4370 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC082000237", codePada: "0100214COC082000237", type: "RUE", nom: "237 Rue Imam Karamoko Gaoussou", commune: "Cocody" },
+  { id: "0100214COC111000373", codePada: "0100214COC111000373", type: "RUE", nom: "373 Rue Moïse Koumoué Koffi", commune: "Cocody" },
+  { id: "0100214COC131500437", codePada: "0100214COC131500437", type: "RUE", nom: "437 Rue Djama Sery", commune: "Cocody" },
+  { id: "0100214COC117500379", codePada: "0100214COC117500379", type: "RUE", nom: "379 Rue Makouéni Delphine Cissé", commune: "Cocody" },
+  { id: "0100214COC204401378", codePada: "0100214COC204401378", type: "RUE", nom: "1378 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC341900237", codePada: "0100214COC341900237", type: "RUE", nom: "237 Avenue Téné Birahima Ouattara", commune: "Cocody" },
+  { id: "0100214COC1516", codePada: "0100214COC1516", type: "RUE", nom: "Rue de L'aventure 46", commune: "Cocody" },
+  { id: "0100214COC120400043", codePada: "0100214COC120400043", type: "RUE", nom: "43 Rue Werewere Liking", commune: "Cocody" },
+  { id: "0100214COC412200048", codePada: "0100214COC412200048", type: "RUE", nom: "48 Rue Apoueba", commune: "Cocody" },
+  { id: "0100214COC366500416", codePada: "0100214COC366500416", type: "RUE", nom: "416 Rue du 12e Arrondissement", commune: "Cocody" },
+  { id: "0100214COC043900094", codePada: "0100214COC043900094", type: "RUE", nom: "94 Rue Ninkouari Tao", commune: "Cocody" },
+  { id: "0100214COC366500419", codePada: "0100214COC366500419", type: "RUE", nom: "419 Rue du 12e Arrondissement", commune: "Cocody" },
+  { id: "0100214COC412700041", codePada: "0100214COC412700041", type: "RUE", nom: "41 Rue Zegbéhi Armand Didier Dally", commune: "Cocody" },
+  { id: "0100214COC131500415", codePada: "0100214COC131500415", type: "RUE", nom: "415 Rue Djama Sery", commune: "Cocody" },
+  { id: "0100214COC121500041", codePada: "0100214COC121500041", type: "RUE", nom: "41 Rue Gui Norbert Boable", commune: "Cocody" },
+  { id: "0100214COC131500418", codePada: "0100214COC131500418", type: "RUE", nom: "418 Rue Djama Sery", commune: "Cocody" },
+  { id: "0100214COC176900419", codePada: "0100214COC176900419", type: "RUE", nom: "419 Rue Dr Issa Malick Coulibaly", commune: "Cocody" },
+  { id: "0100214COC177100041", codePada: "0100214COC177100041", type: "RUE", nom: "41 Rue Jacqueline Konan", commune: "Cocody" },
+  { id: "0100214COC349900044", codePada: "0100214COC349900044", type: "RUE", nom: "44 Rue Dr Evelyne Gévère Marise Assi", commune: "Cocody" },
+  { id: "0100214COC204404464", codePada: "0100214COC204404464", type: "RUE", nom: "4464 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC204404486", codePada: "0100214COC204404486", type: "RUE", nom: "4486 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC204404478", codePada: "0100214COC204404478", type: "RUE", nom: "4478 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC204404474", codePada: "0100214COC204404474", type: "RUE", nom: "4474 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC204404436", codePada: "0100214COC204404436", type: "RUE", nom: "4436 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC204404496", codePada: "0100214COC204404496", type: "RUE", nom: "4496 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC413800474", codePada: "0100214COC413800474", type: "RUE", nom: "474 Rue Eden", commune: "Cocody" },
+  { id: "0100214COC333200047", codePada: "0100214COC333200047", type: "RUE", nom: "47 Rue Joseph Adjrogo", commune: "Cocody" },
+  { id: "0100214COC111000479", codePada: "0100214COC111000479", type: "RUE", nom: "479 Rue Moïse Koumoué Koffi", commune: "Cocody" },
+  { id: "0100214COC111000470", codePada: "0100214COC111000470", type: "RUE", nom: "470 Rue Moïse Koumoué Koffi", commune: "Cocody" },
+  { id: "0100214COC341900047", codePada: "0100214COC341900047", type: "RUE", nom: "47 Avenue Téné Birahima Ouattara", commune: "Cocody" },
+  { id: "0100214COC110000547", codePada: "0100214COC110000547", type: "RUE", nom: "547 Avenue du Lycée Technique", commune: "Cocody" },
+  { id: "0100214COC131500473", codePada: "0100214COC131500473", type: "RUE", nom: "473 Rue Djama Sery", commune: "Cocody" },
+  { id: "0100214COC082000295", codePada: "0100214COC082000295", type: "RUE", nom: "295 Rue Imam Karamoko Gaoussou", commune: "Cocody" },
+  { id: "0100214COC413100005", codePada: "0100214COC413100005", type: "RUE", nom: "5 Rue la Volupté", commune: "Cocody" },
+  { id: "0100214COC412200051", codePada: "0100214COC412200051", type: "RUE", nom: "51 Rue Apoueba", commune: "Cocody" },
+  { id: "0100214COC412200052", codePada: "0100214COC412200052", type: "RUE", nom: "52 Rue Apoueba", commune: "Cocody" },
+  { id: "0100214COC261000359", codePada: "0100214COC261000359", type: "RUE", nom: "359 Avenue Kablan Duncan", commune: "Cocody" },
+  { id: "0100214COC412800035", codePada: "0100214COC412800035", type: "RUE", nom: "35 Rue les Pruniers", commune: "Cocody" },
+  { id: "0100214COC120400085", codePada: "0100214COC120400085", type: "RUE", nom: "85 Rue Werewere Liking", commune: "Cocody" },
+  { id: "0100214COC111700151", codePada: "0100214COC111700151", type: "RUE", nom: "151 Rue Lambert Meazieu", commune: "Cocody" },
+  { id: "0100214COC351200651", codePada: "0100214COC351200651", type: "RUE", nom: "651 Rue Dicoh Garba", commune: "Cocody" },
+  { id: "0100214COC115700751", codePada: "0100214COC115700751", type: "RUE", nom: "751 Rue la Canebière", commune: "Cocody" },
+  { id: "0100214COC368900511", codePada: "0100214COC368900511", type: "RUE", nom: "511 Rue Bian Isaac N'tamé", commune: "Cocody" },
+  { id: "0100214COC341900251", codePada: "0100214COC341900251", type: "RUE", nom: "251 Avenue Téné Birahima Ouattara", commune: "Cocody" },
+  { id: "0100214COC117500516", codePada: "0100214COC117500516", type: "RUE", nom: "516 Rue Makouéni Delphine Cissé", commune: "Cocody" },
+  { id: "0100214COC117500517", codePada: "0100214COC117500517", type: "RUE", nom: "517 Rue Makouéni Delphine Cissé", commune: "Cocody" },
+  { id: "0100214COC122800051", codePada: "0100214COC122800051", type: "RUE", nom: "51 Rue Prof Marilyse Kouadio", commune: "Cocody" },
+  { id: "0100214COC120200151", codePada: "0100214COC120200151", type: "RUE", nom: "151 Rue Jean-paul Aidoo", commune: "Cocody" },
+  { id: "0100214COC204404454", codePada: "0100214COC204404454", type: "RUE", nom: "4454 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC115800254", codePada: "0100214COC115800254", type: "RUE", nom: "254 Rue Aka Tanoe", commune: "Cocody" },
+  { id: "0100214COC107700545", codePada: "0100214COC107700545", type: "RUE", nom: "545 Avenue Jean Kacou Diagou", commune: "Cocody" },
+  { id: "0100214COC108900354", codePada: "0100214COC108900354", type: "RUE", nom: "354 Avenue Abdoulaye Koné", commune: "Cocody" },
+  { id: "0100214COC117500549", codePada: "0100214COC117500549", type: "RUE", nom: "549 Rue Makouéni Delphine Cissé", commune: "Cocody" },
+  { id: "0100214COC368900254", codePada: "0100214COC368900254", type: "RUE", nom: "254 Rue Bian Isaac N'tamé", commune: "Cocody" },
+  { id: "0100214COC119400254", codePada: "0100214COC119400254", type: "RUE", nom: "254 Rue Roger Fulgence Kassy", commune: "Cocody" },
+  { id: "0100214COC152700254", codePada: "0100214COC152700254", type: "RUE", nom: "254 Rue Adjoua Coffi Kouakou", commune: "Cocody" },
+  { id: "0100214COC406400154", codePada: "0100214COC406400154", type: "RUE", nom: "154 Rue Sidi Tiémoko Touré", commune: "Cocody" },
+  { id: "0100214COC349900157", codePada: "0100214COC349900157", type: "RUE", nom: "157 Rue Dr Evelyne Gévère Marise Assi", commune: "Cocody" },
+  { id: "0100214COC082000257", codePada: "0100214COC082000257", type: "RUE", nom: "257 Rue Imam Karamoko Gaoussou", commune: "Cocody" },
+  { id: "0100214COC115700574", codePada: "0100214COC115700574", type: "RUE", nom: "574 Rue la Canebière", commune: "Cocody" },
+  { id: "0100214COC115700575", codePada: "0100214COC115700575", type: "RUE", nom: "575 Rue la Canebière", commune: "Cocody" },
+  { id: "0100214COC121500057", codePada: "0100214COC121500057", type: "RUE", nom: "57 Rue Gui Norbert Boable", commune: "Cocody" },
+  { id: "0100214COC111400057", codePada: "0100214COC111400057", type: "RUE", nom: "57 Rue Assi Adou", commune: "Cocody" },
+  { id: "0100214COC115800057", codePada: "0100214COC115800057", type: "RUE", nom: "57 Rue Aka Tanoe", commune: "Cocody" },
+  { id: "0100214COC107700570", codePada: "0100214COC107700570", type: "RUE", nom: "570 Avenue Jean Kacou Diagou", commune: "Cocody" },
+  { id: "0100214COC341900057", codePada: "0100214COC341900057", type: "RUE", nom: "57 Avenue Téné Birahima Ouattara", commune: "Cocody" },
+  { id: "0100214COC334100057", codePada: "0100214COC334100057", type: "RUE", nom: "57 Rue Cissé Roland", commune: "Cocody" },
+  { id: "0100214COC120200061", codePada: "0100214COC120200061", type: "RUE", nom: "61 Rue Jean-paul Aidoo", commune: "Cocody" },
+  { id: "0100214COC350100286", codePada: "0100214COC350100286", type: "RUE", nom: "286 Rue Dr N'guessan Kotchi", commune: "Cocody" },
+  { id: "0100214COC350100263", codePada: "0100214COC350100263", type: "RUE", nom: "263 Rue Dr N'guessan Kotchi", commune: "Cocody" },
+  { id: "0100214COC120400065", codePada: "0100214COC120400065", type: "RUE", nom: "65 Rue Werewere Liking", commune: "Cocody" },
+  { id: "0100214COC120000062", codePada: "0100214COC120000062", type: "RUE", nom: "62 Rue Lt Adjoua Laurence Aka", commune: "Cocody" },
+  { id: "0100214COC041400069", codePada: "0100214COC041400069", type: "RUE", nom: "69 Rue le Pétunia", commune: "Cocody" },
+  { id: "0100214COC120200226", codePada: "0100214COC120200226", type: "RUE", nom: "226 Rue Jean-paul Aidoo", commune: "Cocody" },
+  { id: "0100214COC110800613", codePada: "0100214COC110800613", type: "RUE", nom: "613 Avenue Bernard Cardinal Yago", commune: "Cocody" },
+  { id: "0100214COC406400161", codePada: "0100214COC406400161", type: "RUE", nom: "161 Rue Sidi Tiémoko Touré", commune: "Cocody" },
+  { id: "0100214COC115700613", codePada: "0100214COC115700613", type: "RUE", nom: "613 Rue la Canebière", commune: "Cocody" },
+  { id: "0100214COC110002161", codePada: "0100214COC110002161", type: "RUE", nom: "2161 Avenue du Lycée Technique", commune: "Cocody" },
+  { id: "0100214COC115800261", codePada: "0100214COC115800261", type: "RUE", nom: "261 Rue Aka Tanoe", commune: "Cocody" },
+  { id: "0100214COC152500061", codePada: "0100214COC152500061", type: "RUE", nom: "61 Rue Gbogou Didier Lohoury", commune: "Cocody" },
+  { id: "0100214COC117500561", codePada: "0100214COC117500561", type: "RUE", nom: "561 Rue Makouéni Delphine Cissé", commune: "Cocody" },
+  { id: "0100214COC152500161", codePada: "0100214COC152500161", type: "RUE", nom: "161 Rue Gbogou Didier Lohoury", commune: "Cocody" },
+  { id: "0100214COC333000164", codePada: "0100214COC333000164", type: "RUE", nom: "164 Rue Olivia Yacé", commune: "Cocody" },
+  { id: "0100214COC087600064", codePada: "0100214COC087600064", type: "RUE", nom: "64 Rue Kimboza", commune: "Cocody" },
+  { id: "0100214COC121500064", codePada: "0100214COC121500064", type: "RUE", nom: "64 Rue Gui Norbert Boable", commune: "Cocody" },
+  { id: "0100214COC129500064", codePada: "0100214COC129500064", type: "RUE", nom: "64 Rue Kouamé Martin", commune: "Cocody" },
+  { id: "0100214COC204404264", codePada: "0100214COC204404264", type: "RUE", nom: "4264 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC152500064", codePada: "0100214COC152500064", type: "RUE", nom: "64 Rue Gbogou Didier Lohoury", commune: "Cocody" },
+  { id: "0100214COC204406402", codePada: "0100214COC204406402", type: "RUE", nom: "6402 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC110000645", codePada: "0100214COC110000645", type: "RUE", nom: "645 Avenue du Lycée Technique", commune: "Cocody" },
+  { id: "0100214COC130300064", codePada: "0100214COC130300064", type: "RUE", nom: "64 Rue Kobe", commune: "Cocody" },
+  { id: "0100214COC351200677", codePada: "0100214COC351200677", type: "RUE", nom: "677 Rue Dicoh Garba", commune: "Cocody" },
+  { id: "0100214COC117400267", codePada: "0100214COC117400267", type: "RUE", nom: "267 Rue Mgr Maurice Konan Kouassi", commune: "Cocody" },
+  { id: "0100214COC119600677", codePada: "0100214COC119600677", type: "RUE", nom: "677 Rue Ahoutcha Juliette Danho Kassi", commune: "Cocody" },
+  { id: "0100214COC110000670", codePada: "0100214COC110000670", type: "RUE", nom: "670 Avenue du Lycée Technique", commune: "Cocody" },
+  { id: "0100214COC177100067", codePada: "0100214COC177100067", type: "RUE", nom: "67 Rue Jacqueline Konan", commune: "Cocody" },
+  { id: "0100214COC204404167", codePada: "0100214COC204404167", type: "RUE", nom: "4167 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC180100067", codePada: "0100214COC180100067", type: "RUE", nom: "67 Rue Chéri Samba", commune: "Cocody" },
+  { id: "0100214COC152700267", codePada: "0100214COC152700267", type: "RUE", nom: "267 Rue Adjoua Coffi Kouakou", commune: "Cocody" },
+  { id: "0100214COC351200067", codePada: "0100214COC351200067", type: "RUE", nom: "67 Rue Dicoh Garba", commune: "Cocody" },
+  { id: "0100214COC349900067", codePada: "0100214COC349900067", type: "RUE", nom: "67 Rue Dr Evelyne Gévère Marise Assi", commune: "Cocody" },
+  { id: "0100214COC082000077", codePada: "0100214COC082000077", type: "RUE", nom: "77 Rue Imam Karamoko Gaoussou", commune: "Cocody" },
+  { id: "0100214COC082000097", codePada: "0100214COC082000097", type: "RUE", nom: "97 Rue Imam Karamoko Gaoussou", commune: "Cocody" },
+  { id: "0100214COC118700287", codePada: "0100214COC118700287", type: "RUE", nom: "287 Rue Louis Georges Akoun", commune: "Cocody" },
+  { id: "0100214COC118700297", codePada: "0100214COC118700297", type: "RUE", nom: "297 Rue Louis Georges Akoun", commune: "Cocody" },
+  { id: "0100214COC115700715", codePada: "0100214COC115700715", type: "RUE", nom: "715 Rue la Canebière", commune: "Cocody" },
+  { id: "0100214COC351200871", codePada: "0100214COC351200871", type: "RUE", nom: "871 Rue Dicoh Garba", commune: "Cocody" },
+  { id: "0100214COC402700071", codePada: "0100214COC402700071", type: "RUE", nom: "71 Impasse les Oursons", commune: "Cocody" },
+  { id: "0100214COC341900271", codePada: "0100214COC341900271", type: "RUE", nom: "271 Avenue Téné Birahima Ouattara", commune: "Cocody" },
+  { id: "0100214COC119400471", codePada: "0100214COC119400471", type: "RUE", nom: "471 Rue Roger Fulgence Kassy", commune: "Cocody" },
+  { id: "0100214COC112400171", codePada: "0100214COC112400171", type: "RUE", nom: "171 Rue Kouame Louis-philippe Goli", commune: "Cocody" },
+  { id: "0100214COC129200071", codePada: "0100214COC129200071", type: "RUE", nom: "71 Rue Gal Soumaïla Bakayoko", commune: "Cocody" },
+  { id: "0100214COC155600171", codePada: "0100214COC155600171", type: "RUE", nom: "171 Rue Élie-robert Tehoua Kouadio", commune: "Cocody" },
+  { id: "0100214COC177500071", codePada: "0100214COC177500071", type: "RUE", nom: "71 Rue Pape Kouakou", commune: "Cocody" },
+  { id: "0100214COC351200742", codePada: "0100214COC351200742", type: "RUE", nom: "742 Rue Dicoh Garba", commune: "Cocody" },
+  { id: "0100214COC243300074", codePada: "0100214COC243300074", type: "RUE", nom: "74 Rue Mogador Séry", commune: "Cocody" },
+  { id: "0100214COC115700740", codePada: "0100214COC115700740", type: "RUE", nom: "740 Rue la Canebière", commune: "Cocody" },
+  { id: "0100214COC341900074", codePada: "0100214COC341900074", type: "RUE", nom: "74 Avenue Téné Birahima Ouattara", commune: "Cocody" },
+  { id: "0100214COC041400074", codePada: "0100214COC041400074", type: "RUE", nom: "74 Rue le Pétunia", commune: "Cocody" },
+  { id: "0100214COC117400074", codePada: "0100214COC117400074", type: "RUE", nom: "74 Rue Mgr Maurice Konan Kouassi", commune: "Cocody" },
+  { id: "0100214COC351200779", codePada: "0100214COC351200779", type: "RUE", nom: "779 Rue Dicoh Garba", commune: "Cocody" },
+  { id: "0100214COC207800877", codePada: "0100214COC207800877", type: "RUE", nom: "877 Rue Kouadio Adou", commune: "Cocody" },
+  { id: "0100214COC204406577", codePada: "0100214COC204406577", type: "RUE", nom: "6577 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC406000077", codePada: "0100214COC406000077", type: "RUE", nom: "77 Rue Jean Sansan Kambilé", commune: "Cocody" },
+  { id: "0100214COC110000977", codePada: "0100214COC110000977", type: "RUE", nom: "977 Avenue du Lycée Technique", commune: "Cocody" },
+  { id: "0100214COC368900277", codePada: "0100214COC368900277", type: "RUE", nom: "277 Rue Bian Isaac N'tamé", commune: "Cocody" },
+  { id: "0100216MAR0390", codePada: "0100216MAR0390", type: "RUE", nom: "Rue du 8 Mars", commune: "Marcory" },
+  { id: "0100214COC350100289", codePada: "0100214COC350100289", type: "RUE", nom: "289 Rue Dr N'guessan Kotchi", commune: "Cocody" },
+  { id: "0100214COC120700181", codePada: "0100214COC120700181", type: "RUE", nom: "181 Rue Gisèle N’zoré", commune: "Cocody" },
+  { id: "0100214COC351200816", codePada: "0100214COC351200816", type: "RUE", nom: "816 Rue Dicoh Garba", commune: "Cocody" },
+  { id: "0100214COC111800081", codePada: "0100214COC111800081", type: "RUE", nom: "81 Rue Massogbé Touré", commune: "Cocody" },
+  { id: "0100214COC115700811", codePada: "0100214COC115700811", type: "RUE", nom: "811 Rue la Canebière", commune: "Cocody" },
+  { id: "0100214COC115800081", codePada: "0100214COC115800081", type: "RUE", nom: "81 Rue Aka Tanoe", commune: "Cocody" },
+  { id: "0100214COC152500081", codePada: "0100214COC152500081", type: "RUE", nom: "81 Rue Gbogou Didier Lohoury", commune: "Cocody" },
+  { id: "0100214COC368900381", codePada: "0100214COC368900381", type: "RUE", nom: "381 Rue Bian Isaac N'tamé", commune: "Cocody" },
+  { id: "0100214COC119400481", codePada: "0100214COC119400481", type: "RUE", nom: "481 Rue Roger Fulgence Kassy", commune: "Cocody" },
+  { id: "0100214COC112400181", codePada: "0100214COC112400181", type: "RUE", nom: "181 Rue Kouame Louis-philippe Goli", commune: "Cocody" },
+  { id: "0100214COC152700181", codePada: "0100214COC152700181", type: "RUE", nom: "181 Rue Adjoua Coffi Kouakou", commune: "Cocody" },
+  { id: "0100214COC121500084", codePada: "0100214COC121500084", type: "RUE", nom: "84 Rue Gui Norbert Boable", commune: "Cocody" },
+  { id: "0100214COC110002184", codePada: "0100214COC110002184", type: "RUE", nom: "2184 Avenue du Lycée Technique", commune: "Cocody" },
+  { id: "0100214COC115900284", codePada: "0100214COC115900284", type: "RUE", nom: "284 Rue Dr Katiénéffooua Ouattara", commune: "Cocody" },
+  { id: "0100214COC139300084", codePada: "0100214COC139300084", type: "RUE", nom: "84 Rue Elysée Daingui", commune: "Cocody" },
+  { id: "0100214COC341900084", codePada: "0100214COC341900084", type: "RUE", nom: "84 Avenue Téné Birahima Ouattara", commune: "Cocody" },
+  { id: "0100214COC120200184", codePada: "0100214COC120200184", type: "RUE", nom: "184 Rue Jean-paul Aidoo", commune: "Cocody" },
+  { id: "0100214COC117500084", codePada: "0100214COC117500084", type: "RUE", nom: "84 Rue Makouéni Delphine Cissé", commune: "Cocody" },
+  { id: "0100214COC152500084", codePada: "0100214COC152500084", type: "RUE", nom: "84 Rue Gbogou Didier Lohoury", commune: "Cocody" },
+  { id: "0100214COC155600184", codePada: "0100214COC155600184", type: "RUE", nom: "184 Rue Élie-robert Tehoua Kouadio", commune: "Cocody" },
+  { id: "0100214COC111000384", codePada: "0100214COC111000384", type: "RUE", nom: "384 Rue Moïse Koumoué Koffi", commune: "Cocody" },
+  { id: "0100214COC349900187", codePada: "0100214COC349900187", type: "RUE", nom: "187 Rue Dr Evelyne Gévère Marise Assi", commune: "Cocody" },
+  { id: "0100214COC121500087", codePada: "0100214COC121500087", type: "RUE", nom: "87 Rue Gui Norbert Boable", commune: "Cocody" },
+  { id: "0100214COC148200287", codePada: "0100214COC148200287", type: "RUE", nom: "287 Rue Simon Dedjo", commune: "Cocody" },
+  { id: "0100214COC110800387", codePada: "0100214COC110800387", type: "RUE", nom: "387 Avenue Bernard Cardinal Yago", commune: "Cocody" },
+  { id: "0100214COC333200087", codePada: "0100214COC333200087", type: "RUE", nom: "87 Rue Joseph Adjrogo", commune: "Cocody" },
+  { id: "0100214COC152700187", codePada: "0100214COC152700187", type: "RUE", nom: "187 Rue Adjoua Coffi Kouakou", commune: "Cocody" },
+  { id: "0100214COC120200229", codePada: "0100214COC120200229", type: "RUE", nom: "229 Rue Jean-paul Aidoo", commune: "Cocody" },
+  { id: "0100214COC115800291", codePada: "0100214COC115800291", type: "RUE", nom: "291 Rue Aka Tanoe", commune: "Cocody" },
+  { id: "0100214COC207800914", codePada: "0100214COC207800914", type: "RUE", nom: "914 Rue Kouadio Adou", commune: "Cocody" },
+  { id: "0100214COC122600191", codePada: "0100214COC122600191", type: "RUE", nom: "191 Rue Imam Mattié Diakité", commune: "Cocody" },
+  { id: "0100214COC370500091", codePada: "0100214COC370500091", type: "RUE", nom: "91 Rue le Cœur Uni", commune: "Cocody" },
+  { id: "0100214COC122700391", codePada: "0100214COC122700391", type: "RUE", nom: "391 Rue Dr Assamoi Béatrice Ama-cauphys", commune: "Cocody" },
+  { id: "0100214COC045100091", codePada: "0100214COC045100091", type: "RUE", nom: "91 Impasse de la Jovialité", commune: "Cocody" },
+  { id: "0100214COC112400191", codePada: "0100214COC112400191", type: "RUE", nom: "191 Rue Kouame Louis-philippe Goli", commune: "Cocody" },
+  { id: "0100214COC181400091", codePada: "0100214COC181400091", type: "RUE", nom: "91 Rue Sihindou Coulibaly", commune: "Cocody" },
+  { id: "0100214COC177500091", codePada: "0100214COC177500091", type: "RUE", nom: "91 Rue Pape Kouakou", commune: "Cocody" },
+  { id: "0100214COC204404291", codePada: "0100214COC204404291", type: "RUE", nom: "4291 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC351200946", codePada: "0100214COC351200946", type: "RUE", nom: "946 Rue Dicoh Garba", commune: "Cocody" },
+  { id: "0100214COC155600194", codePada: "0100214COC155600194", type: "RUE", nom: "194 Rue Élie-robert Tehoua Kouadio", commune: "Cocody" },
+  { id: "0100214COC041400094", codePada: "0100214COC041400094", type: "RUE", nom: "94 Rue le Pétunia", commune: "Cocody" },
+  { id: "0100214COC204406394", codePada: "0100214COC204406394", type: "RUE", nom: "6394 Boulevard André Latrille", commune: "Cocody" },
+  { id: "0100214COC351200945", codePada: "0100214COC351200945", type: "RUE", nom: "945 Rue Dicoh Garba", commune: "Cocody" },
+  { id: "0100214COC148200294", codePada: "0100214COC148200294", type: "RUE", nom: "294 Rue Simon Dedjo", commune: "Cocody" },
+  { id: "0100214COC341900194", codePada: "0100214COC341900194", type: "RUE", nom: "194 Avenue Téné Birahima Ouattara", commune: "Cocody" },
+  { id: "0100214COC111700197", codePada: "0100214COC111700197", type: "RUE", nom: "197 Rue Lambert Meazieu", commune: "Cocody" },
+  { id: "0100214COC351200970", codePada: "0100214COC351200970", type: "RUE", nom: "970 Rue Dicoh Garba", commune: "Cocody" },
+  { id: "0100214COC179600097", codePada: "0100214COC179600097", type: "RUE", nom: "97 Rue Dr Séri Chardin Séri", commune: "Cocody" },
+  { id: "0100214COC041400097", codePada: "0100214COC041400097", type: "RUE", nom: "97 Rue le Pétunia", commune: "Cocody" },
+  { id: "0100214COC368900497", codePada: "0100214COC368900497", type: "RUE", nom: "497 Rue Bian Isaac N'tamé", commune: "Cocody" },
+  { id: "0100214COC368900397", codePada: "0100214COC368900397", type: "RUE", nom: "397 Rue Bian Isaac N'tamé", commune: "Cocody" },
+  { id: "0100214COC140300097", codePada: "0100214COC140300097", type: "RUE", nom: "97 Rue N'gbo Ako", commune: "Cocody" },
+  { id: "0100203BIN1354", codePada: "0100203BIN1354", type: "RUE", nom: "Rue le Jardinier", commune: "Cocody" },
+  { id: "0100211ABO0602", codePada: "0100211ABO0602", type: "RUE", nom: "Rue Topé Gabriel Ayépi", commune: "Cocody" },
+  { id: "0100211ABO1803", codePada: "0100211ABO1803", type: "RUE", nom: "Rue Largaton Gilbert Ouattara", commune: "Cocody" },
+  { id: "0100212ADJ0093", codePada: "0100212ADJ0093", type: "RUE", nom: "Autoroute du Nord", commune: "Cocody" },
+  { id: "0100212ADJ0388", codePada: "0100212ADJ0388", type: "AVENUE", nom: "Avenue Laurent Dona Fologo", commune: "Cocody" },
+  { id: "0100214COC3723", codePada: "0100214COC3723", type: "BOULEVARD", nom: "Boulevard du Pont Alassane Ouattara", commune: "Plateau" },
+  { id: "0100217PLA0001", codePada: "0100217PLA0001", type: "RUE", nom: "Rue Gourgas", commune: "Plateau" },
+  { id: "0100217PLA0002", codePada: "0100217PLA0002", type: "RUE", nom: "Rue des Moineaux", commune: "Plateau" },
+  { id: "0100217PLA0003", codePada: "0100217PLA0003", type: "RUE", nom: "Rue de la Percée", commune: "Plateau" },
+  { id: "0100217PLA0006", codePada: "0100217PLA0006", type: "RUE", nom: "Rue Paris Village", commune: "Plateau" },
+  { id: "0100217PLA0007", codePada: "0100217PLA0007", type: "RUE", nom: "Rue Venance Kacou", commune: "Plateau" },
+  { id: "0100217PLA0009", codePada: "0100217PLA0009", type: "RUE", nom: "Rue Thomasset", commune: "Plateau" },
+  { id: "0100217PLA0010", codePada: "0100217PLA0010", type: "RUE", nom: "Rue Jean Millier", commune: "Plateau" },
+  { id: "0100217PLA0011", codePada: "0100217PLA0011", type: "RUE", nom: "Rue Verdier", commune: "Plateau" },
+  { id: "0100212ADJ0097", codePada: "0100212ADJ0097", type: "AVENUE", nom: "Avenue Nangui Abrogroua", commune: "Plateau" },
+  { id: "0100213ATT0117", codePada: "0100213ATT0117", type: "RUE", nom: "Rue Jean Tially", commune: "Yopougon" },
+  { id: "0100213ATT0187", codePada: "0100213ATT0187", type: "RUE", nom: "Rue Adja Dembelé Tenin Coulibaly", commune: "Yopougon" },
+  { id: "0100213ATT0189", codePada: "0100213ATT0189", type: "RUE", nom: "Rue Ouraga Kako", commune: "Yopougon" },
+  { id: "0100213ATT0201", codePada: "0100213ATT0201", type: "RUE", nom: "Rue Kafaloh Tiécoura Koné", commune: "Yopougon" },
+  { id: "0100213ATT0202", codePada: "0100213ATT0202", type: "AVENUE", nom: "Avenue Alain Belkiri", commune: "Yopougon" },
+  { id: "0100213ATT0209", codePada: "0100213ATT0209", type: "BOULEVARD", nom: "Boulevard de la Zone Industrielle", commune: "Yopougon" },
+  { id: "0100213ATT0211", codePada: "0100213ATT0211", type: "AVENUE", nom: "Avenue de Locodjro", commune: "Yopougon" },
+  { id: "0100213ATT0221", codePada: "0100213ATT0221", type: "RUE", nom: "Rue Lcol Douagon Laye Diomandé", commune: "Yopougon" },
+  { id: "0100213ATT0223", codePada: "0100213ATT0223", type: "RUE", nom: "Rue Père Dapéa Gilles-césar Dogoua", commune: "Yopougon" },
+  { id: "0100213ATT0052", codePada: "0100213ATT0052", type: "RUE", nom: "Rue Prof Konan Manzan", commune: "Yopougon" },
+  { id: "0100202ANY0497", codePada: "0100202ANY0497", type: "RUE", nom: "Rue Elogne Malambla", commune: "Abobo" },
+  { id: "0100202ANY0508", codePada: "0100202ANY0508", type: "RUE", nom: "Rue Ibrahim Diakité", commune: "Abobo" },
+  { id: "0100202ANY0512", codePada: "0100202ANY0512", type: "RUE", nom: "Rue Aké Étienne Gauzi", commune: "Abobo" },
+  { id: "0100202ANY0594", codePada: "0100202ANY0594", type: "RUE", nom: "Rue Atin Akobe", commune: "Abobo" },
+  { id: "0100202ANY0640", codePada: "0100202ANY0640", type: "RUE", nom: "Rue Jean Martial Adou", commune: "Abobo" },
+  { id: "0100205SON0136", codePada: "0100205SON0136", type: "RUE", nom: "Rue Adjamé François Gnaba", commune: "Songon" },
+  { id: "0100211ABO0637", codePada: "0100211ABO0637", type: "BOULEVARD", nom: "Boulevard Alphonse Boni", commune: "Adjamé" },
+  { id: "0100212ADJ0001", codePada: "0100212ADJ0001", type: "RUE", nom: "Rue Ibrahima Kanté", commune: "Adjamé" },
+  { id: "0100212ADJ0002", codePada: "0100212ADJ0002", type: "RUE", nom: "Rue de L'amour", commune: "Adjamé" },
+  { id: "0100212ADJ0003", codePada: "0100212ADJ0003", type: "RUE", nom: "Rue Joelle Séka", commune: "Adjamé" },
+  { id: "0100212ADJ0004", codePada: "0100212ADJ0004", type: "RUE", nom: "Rue Diarrasouba Massandje", commune: "Adjamé" },
+  { id: "0100212ADJ0005", codePada: "0100212ADJ0005", type: "RUE", nom: "Rue Clément Moude", commune: "Adjamé" },
+  { id: "0100212ADJ0006", codePada: "0100212ADJ0006", type: "RUE", nom: "Rue Waby Spider", commune: "Adjamé" },
+  { id: "0100212ADJ0007", codePada: "0100212ADJ0007", type: "RUE", nom: "Rue Abodjé Soboa", commune: "Adjamé" },
+  { id: "0100205SON0040", codePada: "0100205SON0040", type: "RUE", nom: "Rue N'te Songon", commune: "Adjamé" },
+  { id: "0100215KOU0517", codePada: "0100215KOU0517", type: "AVENUE", nom: "Avenue Paul Yao Akoto", commune: "Marcory" },
+  { id: "0100215KOU0528", codePada: "0100215KOU0528", type: "AVENUE", nom: "Avenue Martin Luther King", commune: "Marcory" },
+  { id: "0100216MAR0001", codePada: "0100216MAR0001", type: "RUE", nom: "Rue Marcel Adam", commune: "Marcory" },
+  { id: "0100216MAR0003", codePada: "0100216MAR0003", type: "RUE", nom: "Rue Aurélie Eliam", commune: "Marcory" },
+  { id: "0100216MAR0004", codePada: "0100216MAR0004", type: "RUE", nom: "Rue Alphonse Zamble Bi", commune: "Marcory" },
+  { id: "0100216MAR0006", codePada: "0100216MAR0006", type: "RUE", nom: "Rue Fanta Camara", commune: "Marcory" },
+  { id: "0100216MAR0007", codePada: "0100216MAR0007", type: "RUE", nom: "Rue Kakedim", commune: "Marcory" },
+  { id: "0100216MAR0008", codePada: "0100216MAR0008", type: "RUE", nom: "Rue Barthélemy Grobi", commune: "Marcory" },
+  { id: "0100216MAR0009", codePada: "0100216MAR0009", type: "RUE", nom: "Rue des Kodabémas", commune: "Marcory" },
+  { id: "0100215KOU0424", codePada: "0100215KOU0424", type: "AVENUE", nom: "Avenue Adou Assalé", commune: "Marcory" },
+  { id: "0100215KOU0003", codePada: "0100215KOU0003", type: "RUE", nom: "Rue Cissé Sibiri", commune: "Koumassi" },
+  { id: "0100215KOU0004", codePada: "0100215KOU0004", type: "RUE", nom: "Rue Joseph Okro", commune: "Koumassi" },
+  { id: "0100215KOU0005", codePada: "0100215KOU0005", type: "RUE", nom: "Rue du Dediakpê", commune: "Koumassi" },
+  { id: "0100215KOU0006", codePada: "0100215KOU0006", type: "RUE", nom: "Rue Zere de Papara", commune: "Koumassi" },
+  { id: "0100215KOU0008", codePada: "0100215KOU0008", type: "RUE", nom: "Rue Djela", commune: "Koumassi" },
+  { id: "0100215KOU0009", codePada: "0100215KOU0009", type: "RUE", nom: "Rue de la Révérence", commune: "Koumassi" },
+  { id: "0100215KOU0011", codePada: "0100215KOU0011", type: "RUE", nom: "Rue Henriette Kouacou", commune: "Koumassi" },
+  { id: "0100215KOU0012", codePada: "0100215KOU0012", type: "RUE", nom: "Rue de L'iboga", commune: "Koumassi" },
+  { id: "0100215KOU0013", codePada: "0100215KOU0013", type: "RUE", nom: "Rue Jean-pierre Ayé", commune: "Koumassi" },
+  { id: "0100215KOU0001", codePada: "0100215KOU0001", type: "RUE", nom: "Rue Vaha Eloi", commune: "Koumassi" },
+  { id: "0100219TRE0010", codePada: "0100219TRE0010", type: "RUE", nom: "Rue Abbé Michel Pango", commune: "Treichville" },
+  { id: "0100219TRE0011", codePada: "0100219TRE0011", type: "RUE", nom: "Rue des Bâtisseurs", commune: "Treichville" },
+  { id: "0100219TRE0012", codePada: "0100219TRE0012", type: "RUE", nom: "Rue Moussa Dyss", commune: "Treichville" },
+  { id: "0100218POR0001", codePada: "0100218POR0001", type: "RUE", nom: "Rue des Donas", commune: "Port-Bouët" },
+  { id: "0100218POR0002", codePada: "0100218POR0002", type: "RUE", nom: "Rue les Bélugas", commune: "Port-Bouët" },
+  { id: "0100218POR0003", codePada: "0100218POR0003", type: "RUE", nom: "Rue les Rotalas", commune: "Port-Bouët" },
+  { id: "0100218POR0004", codePada: "0100218POR0004", type: "RUE", nom: "Rue Augustin Danho", commune: "Port-Bouët" },
+  { id: "0100218POR0005", codePada: "0100218POR0005", type: "RUE", nom: "Rue les Hyppocampes", commune: "Port-Bouët" },
+  { id: "0100218POR0006", codePada: "0100218POR0006", type: "RUE", nom: "Rue les Horifenes", commune: "Port-Bouët" },
+  { id: "0100218POR0007", codePada: "0100218POR0007", type: "RUE", nom: "Rue Marguerite Miezan", commune: "Port-Bouët" },
+  { id: "0100218POR0008", codePada: "0100218POR0008", type: "RUE", nom: "Rue Pierre Diomandé", commune: "Port-Bouët" },
+  { id: "0100218POR0009", codePada: "0100218POR0009", type: "RUE", nom: "Rue les Hôtesses", commune: "Port-Bouët" },
+  { id: "0100213ATT0001", codePada: "0100213ATT0001", type: "RUE", nom: "Rue les Agban", commune: "Attécoubé" },
+  { id: "0100213ATT0002", codePada: "0100213ATT0002", type: "RUE", nom: "Rue des Batelets", commune: "Attécoubé" },
+  { id: "0100213ATT0003", codePada: "0100213ATT0003", type: "RUE", nom: "Rue les Cailloux", commune: "Attécoubé" },
+  { id: "0100213ATT0004", codePada: "0100213ATT0004", type: "RUE", nom: "Rue Prof Vincent Edoh", commune: "Attécoubé" },
+  { id: "0100213ATT0005", codePada: "0100213ATT0005", type: "RUE", nom: "Rue Père Marcel Boisselier", commune: "Attécoubé" },
+  { id: "0100213ATT0006", codePada: "0100213ATT0006", type: "RUE", nom: "Rue Lamine Ouattara", commune: "Attécoubé" },
+  { id: "0100213ATT0007", codePada: "0100213ATT0007", type: "RUE", nom: "Rue Odo Djagoua", commune: "Attécoubé" },
+  { id: "0100213ATT0008", codePada: "0100213ATT0008", type: "RUE", nom: "Rue Jean Atakou", commune: "Attécoubé" },
+  { id: "0100213ATT0009", codePada: "0100213ATT0009", type: "RUE", nom: "Rue Darius Amangoua", commune: "Attécoubé" },
+  { id: "0100212ADJ0384", codePada: "0100212ADJ0384", type: "BOULEVARD", nom: "Boulevard Robert Gueï", commune: "Attécoubé" },
+  { id: "0100203BIN0011", codePada: "0100203BIN0011", type: "RUE", nom: "Rue le Bouton D'or", commune: "Bingerville" },
+  { id: "0100205SON0002", codePada: "0100205SON0002", type: "RUE", nom: "Rue Djako André Kokro", commune: "Songon" },
+  { id: "0100205SON0003", codePada: "0100205SON0003", type: "RUE", nom: "Rue Marie Akolia", commune: "Songon" },
+  { id: "0100205SON0004", codePada: "0100205SON0004", type: "RUE", nom: "Rue Col Soro", commune: "Songon" },
+  { id: "0100205SON0006", codePada: "0100205SON0006", type: "AVENUE", nom: "Avenue de Kassemblé Songon", commune: "Songon" },
+  { id: "0100205SON0016", codePada: "0100205SON0016", type: "RUE", nom: "Rue Philippe Etche", commune: "Songon" },
+  { id: "0100205SON0018", codePada: "0100205SON0018", type: "RUE", nom: "Rue Ésaïe Beugré", commune: "Songon" },
+  { id: "0100205SON0019", codePada: "0100205SON0019", type: "RUE", nom: "Rue Légué Blaise N’gbedje", commune: "Songon" },
+  { id: "0100205SON0020", codePada: "0100205SON0020", type: "RUE", nom: "Rue Danho Koffi", commune: "Songon" },
+  { id: "0100205SON0021", codePada: "0100205SON0021", type: "RUE", nom: "Rue Kakro Faustin Mobio", commune: "Songon" },
+  { id: "0100205SON0001", codePada: "0100205SON0001", type: "AVENUE", nom: "Avenue René Aphing Kouassi", commune: "Songon" },
+  { id: "0100214COC0417", codePada: "0100214COC0417", type: "RUE", nom: "Rue des Gloires de Bonoumin", commune: "Cocody" },
+  { id: "0100214COC1068", codePada: "0100214COC1068", type: "RUE", nom: "Rond Point Bonoumin", commune: "Cocody" },
+  { id: "0100214COC106800150", codePada: "0100214COC106800150", type: "RUE", nom: "150 Rond Point Bonoumin", commune: "Cocody" },
+  { id: "0100214COC041700060", codePada: "0100214COC041700060", type: "RUE", nom: "60 Rue des Gloires de Bonoumin", commune: "Cocody" },
+  { id: "0100214COC041700059", codePada: "0100214COC041700059", type: "RUE", nom: "59 Rue des Gloires de Bonoumin", commune: "Cocody" },
+  { id: "0100214COC041700029", codePada: "0100214COC041700029", type: "RUE", nom: "29 Rue des Gloires de Bonoumin", commune: "Cocody" },
+  { id: "0100214COC106800108", codePada: "0100214COC106800108", type: "RUE", nom: "108 Rond Point Bonoumin", commune: "Cocody" },
+  { id: "0100214COC1052", codePada: "0100214COC1052", type: "RUE", nom: "Rond Point de la Palmeraie", commune: "Cocody" },
+  { id: "0100214COC105200022", codePada: "0100214COC105200022", type: "RUE", nom: "22 Rond Point de la Palmeraie", commune: "Cocody" },
+  { id: "0100214COC105200172", codePada: "0100214COC105200172", type: "RUE", nom: "172 Rond Point de la Palmeraie", commune: "Cocody" },
+  { id: "0100214COC105200162", codePada: "0100214COC105200162", type: "RUE", nom: "162 Rond Point de la Palmeraie", commune: "Cocody" },
+  { id: "0100214COC105200174", codePada: "0100214COC105200174", type: "RUE", nom: "174 Rond Point de la Palmeraie", commune: "Cocody" },
+  { id: "0100214COC105200234", codePada: "0100214COC105200234", type: "RUE", nom: "234 Rond Point de la Palmeraie", commune: "Cocody" },
+  { id: "0100214COC105200146", codePada: "0100214COC105200146", type: "RUE", nom: "146 Rond Point de la Palmeraie", commune: "Cocody" },
+  { id: "0100214COC105200082", codePada: "0100214COC105200082", type: "RUE", nom: "82 Rond Point de la Palmeraie", commune: "Cocody" },
+  { id: "0100214COC105200156", codePada: "0100214COC105200156", type: "RUE", nom: "156 Rond Point de la Palmeraie", commune: "Cocody" },
+  { id: "0100214COC105200090", codePada: "0100214COC105200090", type: "RUE", nom: "90 Rond Point de la Palmeraie", commune: "Cocody" },
+  { id: "0100214COC0564", codePada: "0100214COC0564", type: "RUE", nom: "Rue Doumou Angré", commune: "Cocody" },
+  { id: "0100203BIN0243", codePada: "0100203BIN0243", type: "RUE", nom: "Rue Mangre Mondoudan", commune: "Bingerville" },
+  { id: "0100214COC1676", codePada: "0100214COC1676", type: "RUE", nom: "Rue Angré Kangabri", commune: "Cocody" },
+  { id: "0100211ABO1003", codePada: "0100211ABO1003", type: "RUE", nom: "Rue D'angré", commune: "Abobo" },
+  { id: "0100214COC0022", codePada: "0100214COC0022", type: "RUE", nom: "Rue Donatien Angré", commune: "Cocody" },
+  { id: "0100214COC002200013", codePada: "0100214COC002200013", type: "RUE", nom: "13 Rue Donatien Angré", commune: "Cocody" },
+  { id: "0100214COC002200042", codePada: "0100214COC002200042", type: "RUE", nom: "42 Rue Donatien Angré", commune: "Cocody" },
+  { id: "0100214COC002200114", codePada: "0100214COC002200114", type: "RUE", nom: "114 Rue Donatien Angré", commune: "Cocody" },
+  { id: "0100214COC056400038", codePada: "0100214COC056400038", type: "RUE", nom: "38 Rue Doumou Angré", commune: "Cocody" },
+  { id: "0100214COC056400041", codePada: "0100214COC056400041", type: "RUE", nom: "41 Rue Doumou Angré", commune: "Cocody" },
+  { id: "0100203BIN0293", codePada: "0100203BIN0293", type: "AVENUE", nom: "Avenue Anne Désirée Ouloto", commune: "Bingerville" },
+  { id: "0100203BIN0422", codePada: "0100203BIN0422", type: "AVENUE", nom: "Avenue du Jardin Botanique", commune: "Bingerville" },
+  { id: "0100203BIN0423", codePada: "0100203BIN0423", type: "AVENUE", nom: "Avenue Etienne Ahin", commune: "Bingerville" },
+  { id: "0100203BIN0425", codePada: "0100203BIN0425", type: "AVENUE", nom: "Avenue de M'batto Bouaké", commune: "Bingerville" },
+  { id: "0100205SON0144", codePada: "0100205SON0144", type: "BOULEVARD", nom: "Boulevard Koui Mamadou", commune: "Songon" },
+  { id: "0100211ABO0625", codePada: "0100211ABO0625", type: "BOULEVARD", nom: "Boulevard Ernest Boka", commune: "Abobo" },
+  { id: "0100203BIN0164", codePada: "0100203BIN0164", type: "IMPASSE", nom: "Impasse Krékré", commune: "Bingerville" },
+  { id: "0100203BIN0308", codePada: "0100203BIN0308", type: "IMPASSE", nom: "Impasse la Houlette", commune: "Bingerville" },
+  { id: "0100203BIN0394", codePada: "0100203BIN0394", type: "IMPASSE", nom: "Impasse la Binette", commune: "Bingerville" },
+  { id: "0100203BIN1351", codePada: "0100203BIN1351", type: "IMPASSE", nom: "Impasse des Fleurs", commune: "Bingerville" },
+  { id: "0100203BIN1588", codePada: "0100203BIN1588", type: "IMPASSE", nom: "Impasse Cœur D’amour", commune: "Bingerville" },
+  { id: "0100203BIN1663", codePada: "0100203BIN1663", type: "IMPASSE", nom: "Impasse le Renouement", commune: "Bingerville" },
+  { id: "0100214COC156200082", codePada: "0100214COC156200082", type: "RUE", nom: "82 Rue Kouabié Peggy Florence Attegbé", commune: "Cocody" },
+  { id: "0100214COC156200132", codePada: "0100214COC156200132", type: "RUE", nom: "132 Rue Kouabié Peggy Florence Attegbé", commune: "Cocody" },
+  { id: "0100214COC156200138", codePada: "0100214COC156200138", type: "RUE", nom: "138 Rue Kouabié Peggy Florence Attegbé", commune: "Cocody" },
+  { id: "0100214COC156200102", codePada: "0100214COC156200102", type: "RUE", nom: "102 Rue Kouabié Peggy Florence Attegbé", commune: "Cocody" },
+  { id: "0100202ANY0185", codePada: "0100202ANY0185", type: "RUE", nom: "Rue Prof Mama Ouattara", commune: "Anyama" },
+  { id: "0100202ANY0329", codePada: "0100202ANY0329", type: "RUE", nom: "Rue Prof Mahama Ouattara", commune: "Anyama" },
+  { id: "0100202ANY0445", codePada: "0100202ANY0445", type: "RUE", nom: "Rue Youssouf Ouattara", commune: "Anyama" },
+  { id: "0100202ANY0455", codePada: "0100202ANY0455", type: "RUE", nom: "Rue Lézéré Ouattara", commune: "Anyama" },
+  { id: "0100202ANY0536", codePada: "0100202ANY0536", type: "RUE", nom: "Rue Fadi Ouattara", commune: "Anyama" },
+  { id: "0100202ANY0648", codePada: "0100202ANY0648", type: "RUE", nom: "Rue Siaka Ouattara", commune: "Anyama" },
+  { id: "0100202ANY0708", codePada: "0100202ANY0708", type: "RUE", nom: "Rue Gnénéman Ouattara", commune: "Anyama" },
+  { id: "0100220YOP2511", codePada: "0100220YOP2511", type: "RUE", nom: "Rue Désiré Coffi Gadeau Alias Dez Gad", commune: "Yopougon" },
+  { id: "0100214COC3325", codePada: "0100214COC3325", type: "RUE", nom: "Rue Denise Kacou Gadeau", commune: "Cocody" },
+  { id: "0100214COC1044", codePada: "0100214COC1044", type: "BOULEVARD", nom: "Boulevard Germain Koffi Gadeau", commune: "Cocody" },
+  { id: "0100214COC104410112", codePada: "0100214COC104410112", type: "RUE", nom: "10112 Boulevard Germain Koffi Gadeau", commune: "Cocody" },
+  { id: "0100214COC104409852", codePada: "0100214COC104409852", type: "RUE", nom: "9852 Boulevard Germain Koffi Gadeau", commune: "Cocody" },
+  { id: "0100214COC104409978", codePada: "0100214COC104409978", type: "RUE", nom: "9978 Boulevard Germain Koffi Gadeau", commune: "Cocody" },
+  { id: "0100214COC104409990", codePada: "0100214COC104409990", type: "RUE", nom: "9990 Boulevard Germain Koffi Gadeau", commune: "Cocody" },
+  { id: "0100214COC104410016", codePada: "0100214COC104410016", type: "RUE", nom: "10016 Boulevard Germain Koffi Gadeau", commune: "Cocody" },
+  { id: "0100214COC104410062", codePada: "0100214COC104410062", type: "RUE", nom: "10062 Boulevard Germain Koffi Gadeau", commune: "Cocody" },
+  { id: "0100214COC104409758", codePada: "0100214COC104409758", type: "RUE", nom: "9758 Boulevard Germain Koffi Gadeau", commune: "Cocody" },
+];
+
+// ══════════════════════════════════════════════════════════════════════════════
 // 3. FONCTIONS DE RECHERCHE INTELLIGENTE & FILTRAGE
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -316,39 +2035,422 @@ function normalizeText(text: string): string {
  * Filtre par :
  * - Nom officiel de la voie (ex: "Gadeau", "Arafat", "Victor Doh")
  * - Ancien nom populaire (ex: "Mitterrand", "VGE", "Marseille")
+ * - Numéro de porte / Numéro métrique (ex: "123", "82")
  * - Code PADA / ID Voie (ex: "166710", "PADA-B-015")
- * - Commune et/ou Quartier (optionnels)
+ * - Commune et/ou Quartier (souple et tolérant aux préfixes "Riviera Bonoumin" vs "Bonoumin")
  */
+// ══════════════════════════════════════════════════════════════════════════════
+// 3. DICTIONNAIRE DES SYNONYMES POPULAIRES & ALIAS VERNACULAIRES (ABIDJAN)
+// ══════════════════════════════════════════════════════════════════════════════
+export const VERNACULAR_ALIASES: Record<string, string> = {
+  "mitterrand": "Germain Koffi Gadeau",
+  "miterrand": "Germain Koffi Gadeau",
+  "francois mitterrand": "Germain Koffi Gadeau",
+  "vge": "Félix Houphouët-Boigny",
+  "valery giscard": "Félix Houphouët-Boigny",
+  "giscard": "Félix Houphouët-Boigny",
+  "latrille": "André Latrille",
+  "route de dabou": "Koui Mamadou",
+  "dabou": "Koui Mamadou",
+  "express abobo": "Alphonse Boni",
+  "voie express abobo": "Alphonse Boni",
+  "route alepe": "Ernest Boka",
+  "samake": "Ernest Boka",
+  "route adzope": "Stade Olympique",
+  "ndotre": "Stade Olympique",
+  "pont hkb": "Aimé Henri Konan Bédié",
+  "3eme pont": "Aimé Henri Konan Bédié",
+  "4eme pont": "Laurent Gbagbo",
+  "5eme pont": "Pont Alassane Ouattara",
+  "pont alassane ouattara": "Pont Alassane Ouattara",
+  "boulevard du pont alassane ouattara": "Pont Alassane Ouattara",
+  "boulevard de marseille": "Philippe Grégoire Yacé",
+  "marseille": "Philippe Grégoire Yacé",
+  "7eme tranche": "DJ Arafat",
+  "arafat": "DJ Arafat",
+  "rue des ministres": "Robert Beugré Mambé",
+  "mambe": "Robert Beugré Mambé",
+  "rue des jardins": "Kablan Duncan",
+  "vallon": "Kablan Duncan",
+  "boulevard de france": "Marie-Thérèse Houphouët-Boigny",
+};
+
+/**
+ * Calcule la similarité de Levenshtein entre deux chaînes (0.0 à 1.0)
+ * Permet d'absorber les fautes de frappe (ex: "Kowabie" vs "Kouabié", "Gado" vs "Gadeau")
+ */
+export function fuzzySimilarity(str1: string, str2: string): number {
+  const s1 = normalizeText(str1);
+  const s2 = normalizeText(str2);
+  if (s1 === s2) return 1.0;
+  if (!s1 || !s2) return 0.0;
+  if (s1.includes(s2) || s2.includes(s1)) return 0.85;
+
+  const len1 = s1.length;
+  const len2 = s2.length;
+  const matrix: number[][] = Array.from({ length: len1 + 1 }, () => Array(len2 + 1).fill(0));
+
+  for (let i = 0; i <= len1; i++) matrix[i][0] = i;
+  for (let j = 0; j <= len2; j++) matrix[0][j] = j;
+
+  for (let i = 1; i <= len1; i++) {
+    for (let j = 1; j <= len2; j++) {
+      const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
+      );
+    }
+  }
+
+  const distance = matrix[len1][len2];
+  const maxLen = Math.max(len1, len2);
+  return Math.max(0, 1 - distance / maxLen);
+}
+
+export interface ScoredPadaWay {
+  way: PadaWay;
+  score: number; // 0 à 100
+  isLengthCompatible: boolean;
+  probabilityLabel: "Haute" | "Moyenne" | "Faible" | "Incompatible";
+  formattedSuggestion: string;
+  matchReason?: string;
+  // Nouveaux attributs pour l'adressage cadastral et porte-à-porte PADA :
+  isExactDoor?: boolean;
+  exactDoorId?: string;
+  closestDoorNumber?: number;
+  doorDelta?: number;
+  nearestDoorInfo?: string;
+  cadastralAddress?: string;
+}
+
+/**
+ * Recherche la porte exacte ou les plus proches voisins cadastraux sur une voie donnée
+ */
+export function findClosestDoorOnWay(wayId: string, wayNom: string, targetNumber: number) {
+  const doors = getDoorsByWayFast(wayId, wayNom);
+  if (!doors || doors.length === 0) return null;
+
+  // Correspondance exacte de la plaque de porte
+  const exact = doors.find(d => d.numero === targetNumber);
+  if (exact) {
+    return {
+      isExact: true,
+      door: exact,
+      closest: exact,
+      delta: 0,
+      exactDoorId: exact.id_numero,
+      reference: exact.adresse_complete
+    };
+  }
+
+  // Encadrement par plus proches voisins
+  let lower: PadaDoorNumber | null = null;
+  let higher: PadaDoorNumber | null = null;
+  for (const d of doors) {
+    if (d.numero < targetNumber) lower = d;
+    if (d.numero > targetNumber && !higher) higher = d;
+  }
+
+  let closest = doors[0];
+  let minDelta = Math.abs(doors[0].numero - targetNumber);
+
+  for (const d of doors) {
+    const delta = Math.abs(d.numero - targetNumber);
+    if (delta < minDelta) {
+      minDelta = delta;
+      closest = d;
+    }
+  }
+
+  const reference = lower && higher 
+    ? `Entre le N° ${lower.numero} et le N° ${higher.numero}`
+    : `Proche du N° ${closest.numero}`;
+
+  return {
+    isExact: false,
+    door: closest,
+    closest,
+    lower,
+    higher,
+    delta: minDelta,
+    reference
+  };
+}
+
+/**
+ * Voies issues du cadastre officiel porte-à-porte PADA
+ */
+export const PADA_CADASTRAL_WAYS: PadaWay[] = (() => {
+  const waysMap = new Map<string, PadaWay>();
+  for (const d of PADA_DOOR_NUMBERS) {
+    if (!waysMap.has(d.id_voie)) {
+      let type: PadaWay["type"] = "AVENUE";
+      if (d.voie.toLowerCase().startsWith("boulevard")) type = "BOULEVARD";
+      else if (d.voie.toLowerCase().startsWith("rue")) type = "RUE";
+
+      waysMap.set(d.id_voie, {
+        id: d.id_voie,
+        codePada: d.id_voie,
+        type,
+        nom: d.voie,
+        commune: d.commune.charAt(0).toUpperCase() + d.commune.slice(1).toLowerCase(),
+        longueurM: d.numero,
+      });
+    } else {
+      const existing = waysMap.get(d.id_voie)!;
+      if (d.numero > (existing.longueurM || 0)) {
+        existing.longueurM = d.numero;
+      }
+    }
+  }
+  return Array.from(waysMap.values());
+})();
+
+/**
+ * Recherche probabiliste et intelligente avec croisement par métrage (longueurM), cadastre (numéros de porte) et quartier.
+ * 
+ * Règle de Croisement Probabiliste PADA :
+ * 1. Extraire le numéro N tapé par l'utilisateur (ex: 82, 246, 1200, 3500).
+ * 2. Vérifier si N correspond à une plaque cadastrale officielle (PADA_DOOR_NUMBERS). Si oui -> Score 100% (Certifié).
+ * 3. Si N n'a pas de plaque exacte, localiser les numéros voisins sur la voie (ex: N° 245 entre 243 et 246) -> Interpolation haute précision.
+ * 4. Comparer N à la longueur maximale officielle (longueurM) de chaque voie du quartier.
+ * 5. Si N > longueurM * 1.2 : Élimination/Pénalité lourde (Une rue de 400m ne peut pas avoir un N° 3500).
+ * 6. Si N <= longueurM : Bonus de faisabilité + Priorité aux rues de quartier.
+ * 7. Classement automatique par score de probabilité décroissant (0% à 100%).
+ */
+export function searchPadaWaysScored(
+  query: string,
+  commune?: string,
+  quartier?: string,
+  userLat?: number,
+  userLng?: number
+): ScoredPadaWay[] {
+  const trimmed = query.trim();
+  const numberMatch = trimmed.match(/\d+/);
+  const extractedNumber = numberMatch ? parseInt(numberMatch[0], 10) : null;
+  const textQuery = normalizeText(trimmed.replace(/\d+/g, "").trim());
+  
+  // Fast Selection from 11,456 PADA Ways Registry + Cadastral Door Ways
+  let allWays: PadaWay[];
+  if (commune) {
+    const communeWays = getWaysByCommune(commune);
+    const cadWays = PADA_CADASTRAL_WAYS.filter(w => normalizeText(w.commune).includes(normalizeText(commune)));
+    allWays = [...PADA_BOULEVARDS, ...cadWays, ...communeWays];
+  } else {
+    allWays = [...PADA_BOULEVARDS, ...PADA_CADASTRAL_WAYS, ...PADA_AVENUES, ...PADA_RUES];
+  }
+
+  // Deduplicate by ID
+  const seenIds = new Set<string>();
+  const uniqueWays: PadaWay[] = [];
+  for (const w of allWays) {
+    if (!seenIds.has(w.id)) {
+      seenIds.add(w.id);
+      uniqueWays.push(w);
+    }
+  }
+
+  const results: ScoredPadaWay[] = [];
+
+  for (const way of uniqueWays) {
+    let score = 0;
+    let matchReason = "";
+    let isExactDoor = false;
+    let exactDoorId: string | undefined = undefined;
+    let closestDoorNumber: number | undefined = undefined;
+    let doorDelta: number | undefined = undefined;
+    let nearestDoorInfo: string | undefined = undefined;
+    let cadastralAddress: string | undefined = undefined;
+
+    // 0. Micro-Score Géodésique GPS (Distance Haversine instantanée)
+    if (userLat && userLng && way.lat && way.lng) {
+      const distMeters = haversineDistanceMeters(userLat, userLng, way.lat, way.lng);
+      if (distMeters <= 100) {
+        score += 45; // Bonus massif de proximité GPS (99% direct)
+        matchReason = `📍 À proximité immédiate (${Math.round(distMeters)}m)`;
+      } else if (distMeters <= 350) {
+        score += 25;
+        matchReason = `📍 Secteur GPS proche (${Math.round(distMeters)}m)`;
+      } else if (distMeters > 1000) {
+        score -= 20; // Éloigné
+      }
+    }
+
+    // 1. Filtrage par commune (les boulevards intercommunaux restent éligibles)
+    if (commune && way.commune) {
+      const normWayCommune = normalizeText(way.commune);
+      const normTargetCommune = normalizeText(commune);
+      if (!normWayCommune.includes(normTargetCommune) && way.type !== "BOULEVARD") {
+        continue; // Non éligible
+      }
+    }
+
+    // 2. Score de Quartier (0 à 40 pts)
+    let isQuartierMatch = false;
+    if (quartier && way.quartier) {
+      const normWayQuartier = normalizeText(way.quartier);
+      const normTargetQuartier = normalizeText(quartier);
+      if (normWayQuartier.includes(normTargetQuartier) || normTargetQuartier.includes(normWayQuartier)) {
+        isQuartierMatch = true;
+        score += 40;
+      }
+    } else if (way.type === "BOULEVARD") {
+      score += 20; // Boulevards majeurs
+    }
+
+    // 3. Croisement Numéro de Porte Cadastral PADA & Longueur Linéaire
+    let isLengthCompatible = true;
+    if (extractedNumber !== null) {
+      // A. Recherche dans le cadastre des numéros de porte réels PADA
+      const doorResult = findClosestDoorOnWay(way.id, way.nom, extractedNumber);
+      if (doorResult) {
+        if (doorResult.isExact) {
+          isExactDoor = true;
+          exactDoorId = doorResult.door.id_numero;
+          cadastralAddress = doorResult.door.adresse_complete;
+          closestDoorNumber = doorResult.door.numero;
+          doorDelta = 0;
+          score += 65; // Priorité absolue : plaque officielle homologuée
+          matchReason = `🎯 Plaque cadastrale PADA N° ${extractedNumber} certifiée`;
+        } else {
+          closestDoorNumber = doorResult.closest.numero;
+          doorDelta = doorResult.delta;
+          nearestDoorInfo = doorResult.reference;
+          if (doorResult.delta <= 10) {
+            score += 35;
+            matchReason = `📍 Proche du N° ${doorResult.closest.numero} (${doorResult.reference} — Écart ${doorResult.delta}m)`;
+          } else if (doorResult.delta <= 50) {
+            score += 20;
+            matchReason = `📍 Segment cadastré (${doorResult.reference})`;
+          }
+        }
+      }
+
+      // B. Validation par métrage linéaire officiel
+      if (way.longueurM) {
+        const maxAllowedNumber = Math.round(way.longueurM * 1.2);
+        if (extractedNumber > maxAllowedNumber && !isExactDoor) {
+          isLengthCompatible = false;
+          score -= 50; // Pénalisation forte
+        } else {
+          isLengthCompatible = true;
+          score += 30;
+
+          const ratio = extractedNumber / way.longueurM;
+          if (ratio >= 0.05 && ratio <= 0.95) {
+            score += 15;
+          }
+        }
+      } else if (way.type === "BOULEVARD") {
+        isLengthCompatible = true;
+        score += 20;
+      }
+    }
+
+    // 4. Score de Recherche Textuelle & Alias Vernaculaires (0 à 60 pts)
+    if (textQuery) {
+      const normNom = normalizeText(way.nom);
+      const normAncien = way.ancienNom ? normalizeText(way.ancienNom) : "";
+
+      // Vérification des alias populaires (ex: Mitterrand -> Germain Koffi Gadeau)
+      let aliasMatched = false;
+      for (const [aliasKey, aliasTarget] of Object.entries(VERNACULAR_ALIASES)) {
+        if (textQuery.includes(aliasKey) || aliasKey.includes(textQuery)) {
+          if (normNom.includes(normalizeText(aliasTarget)) || (normAncien && normAncien.includes(normalizeText(aliasTarget)))) {
+            score += 55;
+            aliasMatched = true;
+            matchReason = `Alias populaire : ${aliasKey.toUpperCase()}`;
+            break;
+          }
+        }
+      }
+
+      if (!aliasMatched) {
+        // Similarité floue (Fuzzy Levenshtein)
+        const simNom = fuzzySimilarity(textQuery, way.nom);
+        const simAncien = way.ancienNom ? fuzzySimilarity(textQuery, way.ancienNom) : 0;
+
+        if (simNom >= 0.75) {
+          score += Math.round(simNom * 50);
+          if (!matchReason) matchReason = `Correspondance nom (${Math.round(simNom * 100)}%)`;
+        } else if (simAncien >= 0.75) {
+          score += Math.round(simAncien * 45);
+          if (!matchReason) matchReason = `Correspondance ancien nom (${Math.round(simAncien * 100)}%)`;
+        } else {
+          score -= 15;
+        }
+      }
+    } else {
+      // Pas de mot-clé texte : bonus si la voie appartient directement au quartier
+      if (isQuartierMatch) score += 20;
+    }
+
+    // Si le score est négatif en cas d'incompatibilité texte ou numéro, on l'ajuste à min 5
+    const finalScore = Math.max(5, Math.min(100, score));
+
+    // Détermination de l'étiquette de probabilité
+    let probabilityLabel: "Haute" | "Moyenne" | "Faible" | "Incompatible" = "Faible";
+    if (!isLengthCompatible) {
+      probabilityLabel = "Incompatible";
+    } else if (isExactDoor || finalScore >= 70) {
+      probabilityLabel = "Haute";
+    } else if (finalScore >= 40) {
+      probabilityLabel = "Moyenne";
+    }
+
+    // Libellé de suggestion pré-formaté
+    let formattedSuggestion = way.nom;
+    if (extractedNumber !== null) {
+      formattedSuggestion = `${extractedNumber}, ${way.nom}`;
+    }
+
+    results.push({
+      way,
+      score: finalScore,
+      isLengthCompatible,
+      probabilityLabel,
+      formattedSuggestion,
+      matchReason: matchReason || undefined,
+      isExactDoor,
+      exactDoorId,
+      closestDoorNumber,
+      doorDelta,
+      nearestDoorInfo,
+      cadastralAddress,
+    });
+  }
+
+  // Tri par score de probabilité décroissant
+  return results.sort((a, b) => b.score - a.score);
+}
+
 export function searchPadaWays(query: string, commune?: string, quartier?: string): PadaWay[] {
-  const normQuery = normalizeText(query.trim());
-  const allWays: PadaWay[] = [...PADA_BOULEVARDS, ...PADA_AVENUES];
+  return searchPadaWaysScored(query, commune, quartier).map((res) => res.way);
+}
 
-  return allWays.filter((way) => {
-    // Filtrage commune si précisée
-    if (commune && way.commune && !way.commune.toLowerCase().includes(commune.toLowerCase())) {
-      // Les boulevards peuvent être transversaux
-      if (way.type !== "BOULEVARD") return false;
-    }
+/**
+ * Recherche toutes les adresses exactes ou les plus proches pour un numéro de porte donné
+ */
+export function searchClosestDoorNumbers(targetNumber: number, commune?: string, quartier?: string) {
+  const list = commune ? getDoorNumbersByCommune(commune) : PADA_DOOR_NUMBERS;
 
-    // Filtrage quartier si précisé (uniquement pour Avenues & Rues rattachées)
-    if (quartier && way.quartier && normalizeText(way.quartier) !== normalizeText(quartier)) {
-      if (way.type !== "BOULEVARD") return false;
-    }
-
-    if (!normQuery) return true;
-
-    // Correspondance sur nom officiel
-    if (normalizeText(way.nom).includes(normQuery)) return true;
-
-    // Correspondance sur ancien nom
-    if (way.ancienNom && normalizeText(way.ancienNom).includes(normQuery)) return true;
-
-    // Correspondance sur code PADA / ID
-    if (way.codePada && normalizeText(way.codePada).includes(normQuery)) return true;
-    if (way.id && normalizeText(way.id).includes(normQuery)) return true;
-
-    return false;
-  });
+  return list
+    .map(door => {
+      const delta = Math.abs(door.numero - targetNumber);
+      const isExact = delta === 0;
+      return {
+        door,
+        isExact,
+        delta,
+        score: isExact ? 100 : Math.max(10, 100 - delta * 5)
+      };
+    })
+    .sort((a, b) => {
+      if (a.isExact !== b.isExact) return a.isExact ? -1 : 1;
+      return a.delta - b.delta;
+    });
 }
 
 /**
@@ -356,11 +2458,20 @@ export function searchPadaWays(query: string, commune?: string, quartier?: strin
  */
 export function getWaysForQuartier(commune: string, quartier: string): PadaWay[] {
   const normQuartier = normalizeText(quartier);
-  const avenues = PADA_AVENUES.filter(
-    (w) => w.commune.toLowerCase() === commune.toLowerCase() && w.quartier && normalizeText(w.quartier) === normQuartier
-  );
-  // Ajoute les boulevards de la commune
-  const boulevards = PADA_BOULEVARDS.filter((b) => b.commune.toLowerCase().includes(commune.toLowerCase()));
+  const normCommune = normalizeText(commune);
 
-  return [...boulevards, ...avenues];
+  const communeWays = getWaysByCommune(commune);
+  const localWays = (communeWays.length > 0 ? communeWays : [...PADA_AVENUES, ...PADA_RUES]).filter((w) => {
+    const wCommune = normalizeText(w.commune);
+    const wQuartier = w.quartier ? normalizeText(w.quartier) : "";
+    const communeMatch = wCommune.includes(normCommune);
+    const quartierMatch = wQuartier ? (wQuartier.includes(normQuartier) || normQuartier.includes(wQuartier)) : true;
+    return communeMatch && quartierMatch;
+  });
+
+  // Ajoute les boulevards de la commune
+  const boulevards = PADA_BOULEVARDS.filter((b) => normalizeText(b.commune).includes(normCommune));
+
+  return [...boulevards, ...localWays];
 }
+
