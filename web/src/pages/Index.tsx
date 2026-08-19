@@ -372,7 +372,7 @@ const Index = () => {
               <span>Plateforme libre d'accès 100% sans inscription obligatoire</span>
             </motion.div>
 
-            {/* 3 Boutons d'Action Principaux */}
+            {/* 2 Boutons d'Action Principaux Uniformisés */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -394,27 +394,17 @@ const Index = () => {
               </Link>
 
               <Link
-                to="/carte"
-                className="group flex items-center gap-3.5 rounded-2xl border-2 border-slate-300 bg-white hover:bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900/80 dark:hover:bg-slate-800 dark:text-white px-6 py-4 font-bold text-base shadow-sm backdrop-blur-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <MapIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                <div className="flex flex-col text-left leading-tight">
-                  <span className="text-base font-extrabold tracking-wide">Consulter la carte</span>
-                  <span className="text-[11px] font-medium text-slate-500 dark:text-slate-300">Incidents en direct</span>
-                </div>
-              </Link>
-
-              <Link
                 to="/verification"
-                className="group flex items-center gap-3.5 rounded-2xl border-2 border-sky-300 bg-sky-50/90 hover:bg-sky-100 text-sky-950 dark:border-sky-800 dark:bg-sky-950/40 dark:hover:bg-sky-900/60 dark:text-sky-200 px-6 py-4 font-bold text-base shadow-sm backdrop-blur-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                className="group flex items-center gap-3.5 rounded-2xl border-2 border-sky-300 bg-sky-50/90 hover:bg-sky-100 text-sky-950 dark:border-sky-800 dark:bg-sky-950/40 dark:hover:bg-sky-900/60 dark:text-sky-200 px-7 py-4 font-bold text-base sm:text-lg shadow-sm backdrop-blur-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/20 text-sky-600 dark:text-sky-400 font-extrabold text-lg">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/20 text-sky-600 dark:text-sky-400 font-extrabold text-xl">
                   ✓
                 </div>
                 <div className="flex flex-col text-left leading-tight">
-                  <span className="text-base font-extrabold tracking-wide">Vérifier & Aider</span>
-                  <span className="text-[11px] font-medium text-sky-700 dark:text-sky-300">Confirmer un incident</span>
+                  <span className="text-base font-extrabold tracking-wide">Confirmer une coupure</span>
+                  <span className="text-[11px] font-medium text-sky-700 dark:text-sky-300">Vérifier les signalements</span>
                 </div>
+                <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
               </Link>
             </motion.div>
 
