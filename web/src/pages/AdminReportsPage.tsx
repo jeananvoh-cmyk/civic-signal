@@ -602,9 +602,9 @@ const AdminReportsPage = () => {
     const prenom = profile?.first_name || "vous";
     const message = encodeURIComponent(
       `Bonjour ${prenom}, nous vous contactons au sujet de votre signalement SIGNA-CI ` +
-      `(${serviceLabel} à ${report.commune}, ${report.quartier}) qui date de ${ageDays} jours. ` +
-      `La situation est-elle toujours en cours ? ` +
-      `Merci de confirmer ou de marquer comme résolu ici : https://signa.ci/verification`
+      `(${serviceLabel} à ${report.commune}, ${report.quartier}). ` +
+      `Le service est-il rétabli ? ` +
+      `Merci de confirmer ou de marquer comme résolu en 1 clic ici : https://signa.ci/signalement/${report.id}?action=resolve`
     );
     return `https://wa.me/${phone}?text=${message}`;
   };

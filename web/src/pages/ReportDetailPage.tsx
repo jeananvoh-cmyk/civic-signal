@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useGoBack } from "@/hooks/useGoBack";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -103,6 +103,8 @@ const TimelineStep = ({
 const ReportDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isResolveAction = searchParams.get("action") === "resolve";
   const goBack = useGoBack("/tableau-de-bord");
   const { user } = useAuth();
   const { data: thresholdStr } = useRelayConfig("corroboration_threshold", "3");
@@ -144,6 +146,9 @@ const ReportDetailPage = () => {
         if (error || !data) setNotFound(true);
         else {
           setReport(data as ReportDetail);
+          if (isResolveAction && data.status !== "resolved") {
+            toast.info("⚡ Confirmez si le service est rétabli en cliquant sur 'Oui, rétabli !'", { duration: 6000 });
+          }
           // Charger l'historique des statuts
           supabase
             .from("report_status_history")

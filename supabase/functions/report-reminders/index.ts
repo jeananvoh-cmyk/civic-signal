@@ -20,9 +20,9 @@ Deno.serve(async (req) => {
     const { data: reports, error } = await supabase
       .from("reports")
       .select(`
-        id, user_id, service_type, commune, quartier, created_at,
+        id, user_id, service_type, commune, quartier, created_at, start_time,
         reminder_count, last_reminder_at, report_category, status,
-        j3_author_notified, j7_author_notified, description
+        j3_author_notified, j7_author_notified, h24_author_notified, description
       `)
       .in("status", ["active", "chronic"])
       .or("report_category.eq.outage,and(report_category.eq.infrastructure,service_type.in.(electricity,water))");
@@ -44,7 +44,8 @@ Deno.serve(async (req) => {
     let j7Sent = 0;
 
     for (const report of reports) {
-      const ageMs = now - new Date(report.created_at).getTime();
+      const refDate = report.start_time || report.created_at;
+      const ageMs = now - new Date(refDate).getTime();
       const ageHours = ageMs / (1000 * 60 * 60);
       const ageDays = ageHours / 24;
       const lastReminderMs = report.last_reminder_at
