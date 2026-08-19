@@ -109,7 +109,7 @@ const CommuneDetailPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container py-8 max-w-3xl">
+      <main className="container py-8 max-w-6xl">
         {/* Back + Title */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <div className="flex items-center justify-between mb-3">
@@ -188,126 +188,117 @@ const CommuneDetailPage = () => {
           </button>
         </motion.div>
 
-        {/* Impact & Tendance */}
-        {!loading && impactStats && impactStats.total_reports > 0 && (() => {
-          const resRate = Math.round((impactStats.resolved_reports / impactStats.total_reports) * 100);
-          const delta = impactStats.reports_last_7 - impactStats.reports_prev_7;
-          const TrendIcon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
-          const trendColor = delta > 0 ? "text-red-500" : delta < 0 ? "text-green-500" : "text-muted-foreground";
-          const trendLabel = delta > 0 ? `+${delta} vs sem. préc.` : delta < 0 ? `${delta} vs sem. préc.` : "Stable";
-          return (
+        {/* Stats Grid 2 colonnes sur grand écran */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          {/* Impact & Tendance */}
+          {!loading && impactStats && impactStats.total_reports > 0 && (() => {
+            const resRate = Math.round((impactStats.resolved_reports / impactStats.total_reports) * 100);
+            const delta = impactStats.reports_last_7 - impactStats.reports_prev_7;
+            const TrendIcon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
+            const trendColor = delta > 0 ? "text-red-500" : delta < 0 ? "text-green-500" : "text-muted-foreground";
+            const trendLabel = delta > 0 ? `+${delta} vs sem. préc.` : delta < 0 ? `${delta} vs sem. préc.` : "Stable";
+            return (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.12 }}
+                className="rounded-2xl border border-border bg-card p-5 shadow-card flex flex-col justify-between"
+              >
+                <h2 className="font-display text-base font-bold text-foreground mb-3">Impact & Tendance</h2>
+                <div className="grid grid-cols-3 gap-3">
+                  {/* Taux de résolution */}
+                  <div className="flex flex-col items-center text-center gap-1">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-500/10">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    </div>
+                    <p className="font-display text-2xl font-extrabold text-green-500">{resRate}%</p>
+                    <p className="text-xs text-muted-foreground leading-tight">Taux de résolution</p>
+                    <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden mt-1">
+                      <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${resRate}%` }} />
+                    </div>
+                  </div>
+                  {/* Infra signalées */}
+                  <div className="flex flex-col items-center text-center gap-1">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500/10">
+                      <Wrench className="h-4 w-4 text-orange-500" />
+                    </div>
+                    <p className="font-display text-2xl font-extrabold text-orange-500">{impactStats.infra_reports}</p>
+                    <p className="text-xs text-muted-foreground leading-tight">Infra signalées</p>
+                    <p className="text-xs text-muted-foreground">(caniveaux, routes…)</p>
+                  </div>
+                  {/* Tendance 7j */}
+                  <div className="flex flex-col items-center text-center gap-1">
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${delta > 0 ? "bg-red-500/10" : delta < 0 ? "bg-green-500/10" : "bg-muted"}`}>
+                      <TrendIcon className={`h-4 w-4 ${trendColor}`} />
+                    </div>
+                    <p className={`font-display text-2xl font-extrabold ${trendColor}`}>{impactStats.reports_last_7}</p>
+                    <p className="text-xs text-muted-foreground leading-tight">Cette semaine</p>
+                    <p className={`text-xs font-semibold ${trendColor}`}>{trendLabel}</p>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })()}
+
+          {/* Duration stats */}
+          {!loading && (elecDuration?.total_resolved || waterDuration?.total_resolved) ? (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.12 }}
-              className="mb-6 rounded-2xl border border-border bg-card p-5 shadow-card"
+              transition={{ delay: 0.15 }}
+              className="rounded-2xl border border-border bg-card p-5 shadow-card flex flex-col justify-between"
             >
-              <h2 className="font-display text-base font-bold text-foreground mb-4">Impact & Tendance</h2>
-              <div className="grid grid-cols-3 gap-4">
-                {/* Taux de résolution */}
-                <div className="flex flex-col items-center text-center gap-1">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-500/10">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <div className="flex items-center gap-2 mb-3">
+                <Clock className="h-4.5 w-4.5 text-muted-foreground" />
+                <h2 className="font-display text-base font-bold text-foreground">Durée moyenne des coupures</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl bg-amber-500/5 border border-amber-500/20 p-3.5">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Zap className="h-3.5 w-3.5 text-amber-500" />
+                    <span className="text-xs font-semibold text-foreground">Électricité</span>
                   </div>
-                  <p className="font-display text-2xl font-extrabold text-green-500">{resRate}%</p>
-                  <p className="text-xs text-muted-foreground leading-tight">Taux de résolution</p>
-                  <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden mt-1">
-                    <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${resRate}%` }} />
-                  </div>
+                  {elecDuration && elecDuration.total_resolved > 0 ? (
+                    <div className="space-y-1">
+                      <div className="flex items-baseline gap-1.5">
+                        <p className="font-display text-xl font-extrabold text-amber-500">
+                          {formatMinutes(elecDuration.avg_duration_minutes)}
+                        </p>
+                        <span className="text-[11px] text-muted-foreground">moyenne</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        Max : {formatMinutes(elecDuration.longest_duration_minutes)} · {elecDuration.total_resolved} résolu{elecDuration.total_resolved > 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Aucune donnée</p>
+                  )}
                 </div>
-                {/* Infra signalées */}
-                <div className="flex flex-col items-center text-center gap-1">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500/10">
-                    <Wrench className="h-4 w-4 text-orange-500" />
+                <div className="rounded-xl bg-blue-500/5 border border-blue-500/20 p-3.5">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Droplets className="h-3.5 w-3.5 text-blue-500" />
+                    <span className="text-xs font-semibold text-foreground">Eau</span>
                   </div>
-                  <p className="font-display text-2xl font-extrabold text-orange-500">{impactStats.infra_reports}</p>
-                  <p className="text-xs text-muted-foreground leading-tight">Infra signalées</p>
-                  <p className="text-xs text-muted-foreground">(caniveaux, routes…)</p>
-                </div>
-                {/* Tendance 7j */}
-                <div className="flex flex-col items-center text-center gap-1">
-                  <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${delta > 0 ? "bg-red-500/10" : delta < 0 ? "bg-green-500/10" : "bg-muted"}`}>
-                    <TrendIcon className={`h-4 w-4 ${trendColor}`} />
-                  </div>
-                  <p className={`font-display text-2xl font-extrabold ${trendColor}`}>{impactStats.reports_last_7}</p>
-                  <p className="text-xs text-muted-foreground leading-tight">Cette semaine</p>
-                  <p className={`text-xs font-semibold ${trendColor}`}>{trendLabel}</p>
+                  {waterDuration && waterDuration.total_resolved > 0 ? (
+                    <div className="space-y-1">
+                      <div className="flex items-baseline gap-1.5">
+                        <p className="font-display text-xl font-extrabold text-blue-500">
+                          {formatMinutes(waterDuration.avg_duration_minutes)}
+                        </p>
+                        <span className="text-[11px] text-muted-foreground">moyenne</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        Max : {formatMinutes(waterDuration.longest_duration_minutes)} · {waterDuration.total_resolved} résolu{waterDuration.total_resolved > 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Aucune donnée</p>
+                  )}
                 </div>
               </div>
             </motion.div>
-          );
-        })()}
-
-        {/* Duration stats */}
-        {!loading && (elecDuration?.total_resolved || waterDuration?.total_resolved) ? (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="mb-6 rounded-2xl border border-border bg-card p-5 shadow-card"
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <Clock className="h-5 w-5 text-muted-foreground" />
-              <h2 className="font-display text-lg font-bold text-foreground">Durée des coupures</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-xl bg-amber-500/5 border border-amber-500/20 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Zap className="h-4 w-4 text-amber-500" />
-                  <span className="text-xs font-semibold text-foreground">Électricité</span>
-                </div>
-                {elecDuration && elecDuration.total_resolved > 0 ? (
-                  <div className="space-y-1">
-                    <div className="flex items-baseline gap-2">
-                      <p className="font-display text-2xl font-extrabold text-amber-500">
-                        {formatMinutes(elecDuration.avg_duration_minutes)}
-                      </p>
-                      <span className="text-xs text-muted-foreground">en moyenne</span>
-                    </div>
-                    <div className="flex items-baseline gap-2">
-                      <p className="font-display text-sm font-bold text-foreground">
-                        {formatMinutes(elecDuration.longest_duration_minutes)}
-                      </p>
-                      <span className="text-xs text-muted-foreground">la plus longue</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {elecDuration.total_resolved} résolu{elecDuration.total_resolved > 1 ? "s" : ""} · {elecDuration.total_active} actif{elecDuration.total_active > 1 ? "s" : ""}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Aucune donnée</p>
-                )}
-              </div>
-              <div className="rounded-xl bg-blue-500/5 border border-blue-500/20 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Droplets className="h-4 w-4 text-blue-500" />
-                  <span className="text-xs font-semibold text-foreground">Eau</span>
-                </div>
-                {waterDuration && waterDuration.total_resolved > 0 ? (
-                  <div className="space-y-1">
-                    <div className="flex items-baseline gap-2">
-                      <p className="font-display text-2xl font-extrabold text-blue-500">
-                        {formatMinutes(waterDuration.avg_duration_minutes)}
-                      </p>
-                      <span className="text-xs text-muted-foreground">en moyenne</span>
-                    </div>
-                    <div className="flex items-baseline gap-2">
-                      <p className="font-display text-sm font-bold text-foreground">
-                        {formatMinutes(waterDuration.longest_duration_minutes)}
-                      </p>
-                      <span className="text-xs text-muted-foreground">la plus longue</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {waterDuration.total_resolved} résolu{waterDuration.total_resolved > 1 ? "s" : ""} · {waterDuration.total_active} actif{waterDuration.total_active > 1 ? "s" : ""}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Aucune donnée</p>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        ) : null}
+          ) : null}
+        </div>
 
         {/* Quartier grid */}
         <QuartierOutageGrid
