@@ -317,7 +317,7 @@ const Index = () => {
         <div className="container relative z-10 pt-8 pb-16 sm:py-20">
           <div className="max-w-3xl">
 
-            {/* Slogan Officiel SIGNA */}
+            {/* Slogan & Nom Officiel SIGNA.ci pour conformité Branding & Moteurs */}
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -325,12 +325,12 @@ const Index = () => {
               className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 backdrop-blur-md"
             >
               <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[11px] font-black tracking-widest text-emerald-700 dark:text-emerald-300 uppercase">
-                SIGNALER · SUIVRE · RÉPARER
+              <span className="text-xs font-black tracking-wider text-emerald-800 dark:text-emerald-300 uppercase">
+                SIGNA.ci · SIGNALER · SUIVRE · RÉPARER
               </span>
             </motion.div>
 
-            {/* Titre avec mots rotatifs */}
+            {/* Titre H1 avec nom d'application exact SIGNA.ci et mots rotatifs */}
             <div className="overflow-hidden">
               <motion.h1
                 initial={{ opacity: 0, y: 30 }}
@@ -338,25 +338,39 @@ const Index = () => {
                 transition={{ duration: 0.65 }}
                 className="font-display font-extrabold leading-[1.05] text-slate-950 dark:text-white"
               >
-                <span className="block text-4xl sm:text-5xl md:text-6xl lg:text-[4.2rem]">
+                <span className="block text-2xl sm:text-3xl md:text-4xl text-emerald-600 dark:text-emerald-400 font-black mb-1">
+                  SIGNA.ci
+                </span>
+                <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-[3.8rem]">
                   Signalez les
                 </span>
-                <span className="block min-h-[1.15em] text-4xl sm:text-5xl md:text-6xl lg:text-[4.2rem]">
+                <span className="block min-h-[1.15em] text-3xl sm:text-4xl md:text-5xl lg:text-[3.8rem]">
                   <RotatingWord />
                 </span>
               </motion.h1>
             </div>
 
-            {/* Description claire */}
+            {/* Description claire de l'objectif de l'application SIGNA.ci */}
             <motion.p
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
               className="mt-4 sm:mt-5 max-w-xl text-base sm:text-lg leading-relaxed text-slate-600 dark:text-white/70"
             >
-              La plateforme citoyenne officielle en Côte d'Ivoire où les habitants signalent,
-              confirment et accélèrent la résolution des pannes publiques.
+              <strong>SIGNA.ci</strong> est la plateforme citoyenne officielle en Côte d'Ivoire où les habitants signalent,
+              géolocalisent et accélèrent la résolution des coupures d'eau (SODECI), coupures d'électricité (CIE) et pannes de voirie.
             </motion.p>
+
+            {/* Mention d'accès public & libre en toute transparence */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="mt-3 flex items-center gap-2 text-xs text-muted-foreground"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+              <span>Plateforme libre d'accès 100% sans inscription obligatoire</span>
+            </motion.div>
 
             {/* 2 Boutons d'Action Principaux */}
             <motion.div
