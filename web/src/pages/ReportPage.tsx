@@ -116,14 +116,14 @@ const REPORT_TYPES: ReportTypeConfig[] = [
   {
     id: "street_light",
     emoji: "💡",
-    label: "Éclairage public",
+    label: "Lampadaires & Éclairage public",
     description: "Lampadaire cassé, éteint ou éclairage public hors service",
     image: lampadaireIcon,
     color: "#EAB308",
     serviceType: "electricity",
     reportCategory: "infrastructure",
     operator: "CIE",
-    defaultDesc: (c) => `Éclairage public / Lampadaire hors service à ${c}`,
+    defaultDesc: (c) => `Lampadaire / Éclairage public hors service à ${c}`,
   },
   {
     id: "cie_pole",

@@ -8,7 +8,11 @@
 export const INFRA_LABEL_EMOJI: Record<string, string> = {
   // CIE (Électricité & Éclairage Public)
   "Éclairage public": "💡",
+  "Lampadaire & Éclairage public": "💡",
+  "Lampadaire": "💡",
+  "Lampadaires": "💡",
   "Lampadaire cassé": "💡",
+  "Lampadaire hors service": "💡",
   "Éclairage Public Hors Service": "💡",
   "Poteaux / Pylônes": "🗼",
   "Poteaux/Pilônes": "🗼",
@@ -44,8 +48,21 @@ export const INFRA_LABEL_EMOJI: Record<string, string> = {
  * Returns null if no bracket prefix found.
  */
 export function extractInfraLabel(description: string): string | null {
+  if (!description) return null;
   const match = description.match(/^\[([^\]]+)\]/);
-  return match ? match[1] : null;
+  if (match) return match[1];
+
+  const lower = description.toLowerCase();
+  if (lower.includes("lampadaire") || lower.includes("éclairage") || lower.includes("eclairage")) return "Lampadaire & Éclairage public";
+  if (lower.includes("poteau") || lower.includes("pylone") || lower.includes("pylône")) return "Poteaux / Pylônes";
+  if (lower.includes("branchement") || lower.includes("fil dénudé") || lower.includes("fil au sol")) return "Branchements dangereux";
+  if (lower.includes("fuite")) return "Fuite d'eau";
+  if (lower.includes("canalisation") || lower.includes("conduite")) return "Canalisation publique";
+  if (lower.includes("nid de poule") || lower.includes("nids de poule") || lower.includes("chaussée") || lower.includes("chaussee")) return "Nid de poule";
+  if (lower.includes("caniveau") || lower.includes("égout") || lower.includes("egout")) return "Caniveau bouché";
+  if (lower.includes("ordure") || lower.includes("déchet") || lower.includes("dechet") || lower.includes("dépôt") || lower.includes("depot")) return "Dépôt sauvage & Ordures";
+
+  return null;
 }
 
 /**
@@ -54,6 +71,7 @@ export function extractInfraLabel(description: string): string | null {
  * - strips the trailing `[X personne(s) dont ...]` bracket (impacted people metadata)
  */
 export function cleanDescription(description: string): string {
+  if (!description) return "";
   return description
     .replace(/^\[[^\]]+\]\s*/, "")        // remove [TypeLabel] prefix
     .replace(/\s*\[\d+[^\]]*\]\s*$/, "")  // remove [X personne(s)...] suffix
@@ -71,7 +89,11 @@ export function infraEmoji(label: string | null): string {
 /** Infra types managed by CIE (electricity operator) */
 export const INFRA_CIE = new Set([
   "Éclairage public",
+  "Lampadaire & Éclairage public",
+  "Lampadaire",
+  "Lampadaires",
   "Lampadaire cassé",
+  "Lampadaire hors service",
   "Éclairage Public Hors Service",
   "Poteaux / Pylônes",
   "Poteaux/Pilônes",

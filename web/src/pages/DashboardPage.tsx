@@ -968,18 +968,23 @@ const DashboardPage = () => {
               <div className="space-y-2">
                 {confirmedZones.slice(0, 8).map((z) => {
                   const isElecService = z.serviceType === "electricity";
-                  const isInfraReport = z.reportCategory === "infrastructure";
-                  const isMairieService = z.serviceType === "mairie";
+                  const isInfraReport = z.reportCategory === "infrastructure" || Boolean(extractInfraLabel(z.firstDescription));
+                  const isMairieService = z.serviceType === "mairie" || z.serviceType === "voirie";
                   const isInfraType = isInfraReport || isMairieService;
 
-                  const infraLabel = isInfraType ? extractInfraLabel(z.firstDescription) : null;
+                  const infraLabel = extractInfraLabel(z.firstDescription);
+                  const isLampadaire = infraLabel?.toLowerCase().includes("lampadaire") || infraLabel?.toLowerCase().includes("éclairage") || z.firstDescription?.toLowerCase().includes("lampadaire");
                   const operator = isInfraType
                     ? infraOperator(infraLabel, z.commune)
                     : isElecService ? "CIE" : "SODECI";
-                  const icon = isInfraType
+                  const icon = isLampadaire
+                    ? "💡"
+                    : isInfraType
                     ? infraEmoji(infraLabel)
                     : isElecService ? "⚡" : "💧";
-                  const typeLabel = isInfraType
+                  const typeLabel = isLampadaire
+                    ? "Lampadaire / Éclairage public"
+                    : isInfraType
                     ? (infraLabel ?? "Infrastructure")
                     : isElecService ? "Coupure électricité" : "Coupure d'eau";
 

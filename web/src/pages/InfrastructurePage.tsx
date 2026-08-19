@@ -65,25 +65,99 @@ const COMMUNES_LIST = [
   "Koumassi", "Marcory", "Plateau", "Port-Bouët", "Treichville", "Yopougon"
 ];
 
-// Sub-categories data for dropdowns
+// Sub-categories data with broad aliases for 100% resilient filtering
 const SUB_CATEGORIES = {
   electricite: [
-    { label: "Éclairage public", sub: "Éclairage public", icon: lampadaireIcon, desc: "Lampadaires éteints ou cassés" },
-    { label: "Poteaux & Pylônes", sub: "Poteaux & Pylônes", icon: poteauElectriqueIcon, desc: "Poteaux penchés ou brisés" },
-    { label: "Branchements dangereux", sub: "Branchements dangereux", icon: cieHazardIcon, desc: "Fils dénudés ou au sol", danger: true },
-    { label: "Autres pannes CIE", sub: "Autres", icon: cieAutreIcon, desc: "Transformateurs et câblage" },
+    {
+      label: "Lampadaires & Éclairage public",
+      sub: "lampadaire",
+      aliases: ["lampadaire", "éclairage", "eclairage", "lumiere", "lumière", "ampoule", "street_light"],
+      icon: lampadaireIcon,
+      desc: "Lampadaires éteints, cassés ou clignotants",
+    },
+    {
+      label: "Poteaux & Pylônes",
+      sub: "poteau",
+      aliases: ["poteau", "pylone", "pylône", "cable", "câble", "fil"],
+      icon: poteauElectriqueIcon,
+      desc: "Poteaux penchés ou câbles au sol",
+    },
+    {
+      label: "Branchements dangereux",
+      sub: "branchement",
+      aliases: ["branchement", "danger", "etincelle", "étincelle", "feu"],
+      icon: cieHazardIcon,
+      desc: "Fils dénudés ou installations à risque",
+      danger: true,
+    },
+    {
+      label: "Autres pannes CIE",
+      sub: "autre",
+      aliases: ["transformateur", "cie", "autre"],
+      icon: cieAutreIcon,
+      desc: "Transformateurs et équipements réseau",
+    },
   ],
   eau: [
-    { label: "Fuite d'eau sur voie", sub: "Fuite d'eau", icon: fuiteEauIcon, desc: "Écoulement sur la chaussée" },
-    { label: "Canalisation publique", sub: "Canalisation publique", icon: canalisationIcon, desc: "Conduite principale rompue" },
-    { label: "Qualité de l'eau", sub: "Qualité de l'eau", icon: sodeciAutreIcon, desc: "Eau trouble ou impropre", danger: true },
-    { label: "Autres soucis SODECI", sub: "Autres", icon: eauIcon, desc: "Compteurs généraux et vannes" },
+    {
+      label: "Fuites d'eau sur voie",
+      sub: "fuite",
+      aliases: ["fuite", "ecoulement", "écoulement", "tuyau", "vanne"],
+      icon: fuiteEauIcon,
+      desc: "Écoulement sur la chaussée",
+    },
+    {
+      label: "Canalisations publiques",
+      sub: "canalisation",
+      aliases: ["canalisation", "conduite", "tuyauterie"],
+      icon: canalisationIcon,
+      desc: "Conduite principale rompue",
+    },
+    {
+      label: "Qualité de l'eau",
+      sub: "qualite",
+      aliases: ["qualite", "qualité", "trouble", "couleur", "odeur", "marron"],
+      icon: sodeciAutreIcon,
+      desc: "Eau trouble ou impropre",
+      danger: true,
+    },
+    {
+      label: "Autres soucis SODECI",
+      sub: "autre",
+      aliases: ["compteur", "sodeci", "autre"],
+      icon: eauIcon,
+      desc: "Compteurs généraux et vannes",
+    },
   ],
   mairie: [
-    { label: "Nids-de-poule & Chaussée", sub: "Nid de poule", icon: voirieIcon, desc: "Trous, bitume dégradé" },
-    { label: "Caniveaux bouchés", sub: "Caniveau bouché", icon: caniveauIcon, desc: "Eaux stagnantes & odeurs" },
-    { label: "Amas d'ordures sauvages", sub: "Amas d'ordures", icon: depotOrduresIcon, desc: "Dépôts non collectés" },
-    { label: "Autres voirie municipale", sub: "Autres", icon: mairieAutreIcon, desc: "Trottoirs & signalisation" },
+    {
+      label: "Nids-de-poule & Chaussée",
+      sub: "nid de poule",
+      aliases: ["nid de poule", "nids de poule", "route", "chaussee", "chaussée", "bitume", "trottoir", "voie"],
+      icon: voirieIcon,
+      desc: "Trous, bitume dégradé",
+    },
+    {
+      label: "Caniveaux bouchés",
+      sub: "caniveau",
+      aliases: ["caniveau", "egout", "égout", "eaux usees", "eaux usées", "inondation", "stagnante"],
+      icon: caniveauIcon,
+      desc: "Eaux stagnantes & odeurs",
+    },
+    {
+      label: "Amas d'ordures sauvages",
+      sub: "ordure",
+      aliases: ["ordure", "dechet", "déchet", "depot", "dépôt", "poubelle", "salubrite", "salubrité"],
+      icon: depotOrduresIcon,
+      desc: "Dépôts non collectés",
+    },
+    {
+      label: "Autres voirie municipale",
+      sub: "autre",
+      aliases: ["trottoir", "signalisation", "mairie", "autre"],
+      icon: mairieAutreIcon,
+      desc: "Trottoirs & mobilier urbain",
+    },
   ],
 };
 
@@ -117,6 +191,13 @@ const InfrastructurePage = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const getActiveAliases = (categoryKey: FilterType, sub: string | null): string[] => {
+    if (!sub || categoryKey === "all") return [];
+    const list = SUB_CATEGORIES[categoryKey] || [];
+    const found = list.find((item) => item.sub === sub || item.label.toLowerCase().includes(sub.toLowerCase()));
+    return found?.aliases || [sub];
+  };
+
   const fetchReports = async (pageNum: number, append = false) => {
     const setter = append ? setLoadingMore : setLoading;
     setter(true);
@@ -126,18 +207,23 @@ const InfrastructurePage = () => {
     if (user) {
       let query = supabase
         .from("reports")
-        .select("id, user_id, service_type, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, support_count")
-        .eq("report_category", "infrastructure")
+        .select("id, user_id, service_type, report_category, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, support_count")
         .eq("status", "active")
-        .order("created_at", { ascending: false })
-        .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
+        .order("created_at", { ascending: false });
 
-      if (filter !== "all") {
-        const dbServiceType = filter === "eau" ? "water" : filter === "electricite" ? "electricity" : filter;
-        query = query.eq("service_type", dbServiceType);
+      // Broad filter covering infrastructure or infrastructure keywords (lampadaires, etc.)
+      if (filter === "all") {
+        query = query.or("report_category.eq.infrastructure,service_type.eq.infrastructure,description.ilike.%lampadaire%,description.ilike.%éclairage%,description.ilike.%eclairage%,description.ilike.%poteau%,description.ilike.%caniveau%,description.ilike.%nid de poule%,description.ilike.%fuite%");
+      } else if (filter === "electricite") {
+        query = query.or("and(report_category.eq.infrastructure,service_type.eq.electricity),description.ilike.%lampadaire%,description.ilike.%éclairage%,description.ilike.%eclairage%,description.ilike.%poteau%,description.ilike.%branchement%");
+      } else if (filter === "eau") {
+        query = query.or("and(report_category.eq.infrastructure,service_type.eq.water),description.ilike.%fuite%,description.ilike.%canalisation%");
+      } else if (filter === "mairie") {
+        query = query.or("and(report_category.eq.infrastructure,service_type.eq.mairie),service_type.eq.mairie,service_type.eq.voirie,description.ilike.%caniveau%,description.ilike.%nid de poule%,description.ilike.%ordure%,description.ilike.%voirie%");
       }
-      if (subFilter) query = query.ilike("description", `%${subFilter}%`);
+
       if (communeFilter) query = query.eq("commune", communeFilter);
+      query = query.range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
 
       const [{ data, error }, { data: myVotes }, { data: myRepairs }] = await Promise.all([
         query,
@@ -146,12 +232,23 @@ const InfrastructurePage = () => {
       ]);
       if (error) { setter(false); return; }
       items = (data ?? []) as unknown as InfraReport[];
+
+      // Sub-filter client side with multi-alias support
+      if (subFilter && filter !== "all") {
+        const aliases = getActiveAliases(filter, subFilter);
+        items = items.filter((r) => {
+          const desc = (r.description || "").toLowerCase();
+          return aliases.some((a) => desc.includes(a.toLowerCase()));
+        });
+      }
+
       if (myVotes) setSupported(new Set(myVotes.map((v: any) => v.report_id)));
       if (myRepairs) setRepaired(new Set(myRepairs.map((v: any) => v.report_id)));
     } else {
+      // Visiteur anonyme
       const { data, error } = await (supabase as any).rpc(
         "get_public_infrastructure_reports",
-        { p_limit: PAGE_SIZE, p_offset: pageNum * PAGE_SIZE },
+        { p_limit: 100, p_offset: pageNum * PAGE_SIZE },
       );
       if (error) { setter(false); return; }
 
@@ -160,15 +257,28 @@ const InfrastructurePage = () => {
 
       if (filter !== "all") {
         const dbServiceType = filter === "eau" ? "water" : filter === "electricite" ? "electricity" : filter;
-        rows = rows.filter((r) => r.service_type === dbServiceType);
+        rows = rows.filter((r) => {
+          if (r.service_type === dbServiceType) return true;
+          const desc = (r.description || "").toLowerCase();
+          if (filter === "electricite" && (desc.includes("lampadaire") || desc.includes("éclairage") || desc.includes("eclairage") || desc.includes("poteau") || desc.includes("branchement"))) return true;
+          if (filter === "eau" && (desc.includes("fuite") || desc.includes("canalisation"))) return true;
+          if (filter === "mairie" && (desc.includes("caniveau") || desc.includes("nid de poule") || desc.includes("ordure") || desc.includes("voirie"))) return true;
+          return false;
+        });
       }
-      if (subFilter) {
-        rows = rows.filter((r) => r.description?.toLowerCase().includes(subFilter.toLowerCase()));
+
+      if (subFilter && filter !== "all") {
+        const aliases = getActiveAliases(filter, subFilter);
+        rows = rows.filter((r) => {
+          const desc = (r.description || "").toLowerCase();
+          return aliases.some((a) => desc.includes(a.toLowerCase()));
+        });
       }
+
       if (communeFilter) {
         rows = rows.filter((r) => r.commune === communeFilter);
       }
-      items = rows;
+      items = rows.slice(0, PAGE_SIZE);
     }
 
     setHasMore(items.length === PAGE_SIZE);
@@ -303,6 +413,14 @@ const InfrastructurePage = () => {
     }
   };
 
+  // Get active subfilter label for display
+  const activeSubLabel = useMemo(() => {
+    if (!subFilter || filter === "all") return null;
+    const list = SUB_CATEGORIES[filter] || [];
+    const found = list.find((item) => item.sub === subFilter || item.label.toLowerCase().includes(subFilter.toLowerCase()));
+    return found ? found.label : subFilter;
+  }, [filter, subFilter]);
+
   return (
     <div className="min-h-screen bg-[#f0f2f5] dark:bg-[#060e17] text-foreground">
       <Header />
@@ -316,7 +434,7 @@ const InfrastructurePage = () => {
             </div>
             <div>
               <h1 className="text-lg sm:text-xl font-display font-extrabold text-foreground flex items-center gap-2">
-                Infrastructures & Voiries Publiques
+                Infrastructures, Lampadaires & Voiries
                 <span className="hidden sm:inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
                   En direct
                 </span>
@@ -357,7 +475,7 @@ const InfrastructurePage = () => {
               Réseaux :
             </span>
 
-            {/* 🌐 Bouton 1 : Tout le fil */}
+            {/* 🌐 Bouton 1 : Tous les réseaux */}
             <button
               type="button"
               onClick={() => {
@@ -376,7 +494,7 @@ const InfrastructurePage = () => {
               <span>Tous les réseaux</span>
             </button>
 
-            {/* ⚡ Bouton 2 : Électricité · CIE (Déroulant Fusionné) */}
+            {/* ⚡ Bouton 2 : Électricité & Lampadaires CIE (Déroulant Fusionné) */}
             <div className="relative shrink-0">
               <button
                 type="button"
@@ -389,12 +507,12 @@ const InfrastructurePage = () => {
                 )}
               >
                 <span className="flex h-5 w-5 items-center justify-center rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs">
-                  ⚡
+                  💡
                 </span>
-                <span>Électricité (CIE)</span>
+                <span>Électricité & Lampadaires (CIE)</span>
                 {filter === "electricite" && subFilter && (
                   <span className="rounded-md bg-amber-500/20 px-1.5 py-0.5 text-[11px] font-extrabold text-amber-700 dark:text-amber-300">
-                    {subFilter}
+                    {activeSubLabel || subFilter}
                   </span>
                 )}
                 <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200 opacity-70", activeDropdown === "electricite" && "rotate-180")} />
@@ -411,7 +529,7 @@ const InfrastructurePage = () => {
                     className="absolute left-0 top-full mt-2 w-72 sm:w-80 rounded-2xl border border-amber-500/30 bg-card p-2.5 shadow-xl z-50 backdrop-blur-xl"
                   >
                     <div className="flex items-center justify-between px-2 py-1 border-b border-border/60 mb-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-                      <span>Pannes Électriques CIE</span>
+                      <span>Lampadaires & Réseau CIE</span>
                       {subFilter && (
                         <button
                           onClick={() => { setSubFilter(null); setActiveDropdown(null); }}
@@ -473,7 +591,7 @@ const InfrastructurePage = () => {
                 <span>Eau (SODECI)</span>
                 {filter === "eau" && subFilter && (
                   <span className="rounded-md bg-sky-500/20 px-1.5 py-0.5 text-[11px] font-extrabold text-sky-700 dark:text-sky-300">
-                    {subFilter}
+                    {activeSubLabel || subFilter}
                   </span>
                 )}
                 <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200 opacity-70", activeDropdown === "eau" && "rotate-180")} />
@@ -552,7 +670,7 @@ const InfrastructurePage = () => {
                 <span>Voirie (Mairie)</span>
                 {filter === "mairie" && subFilter && (
                   <span className="rounded-md bg-emerald-500/20 px-1.5 py-0.5 text-[11px] font-extrabold text-emerald-700 dark:text-emerald-300">
-                    {subFilter}
+                    {activeSubLabel || subFilter}
                   </span>
                 )}
                 <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200 opacity-70", activeDropdown === "mairie" && "rotate-180")} />
@@ -717,13 +835,14 @@ const InfrastructurePage = () => {
                 Pannes Fréquentes
               </p>
               {[
-                { label: "Nid-de-poule & Route", sub: "Nid de poule", type: "mairie" as FilterType, icon: voirieIcon },
-                { label: "Éclairage public", sub: "Éclairage public", type: "electricite" as FilterType, icon: lampadaireIcon },
-                { label: "Caniveau bouché", sub: "Caniveau bouché", type: "mairie" as FilterType, icon: caniveauIcon },
-                { label: "Fuite d'eau sur voie", sub: "Fuite d'eau", type: "eau" as FilterType, icon: fuiteEauIcon },
-                { label: "Amas d'ordures", sub: "Amas d'ordures", type: "mairie" as FilterType, icon: depotOrduresIcon },
+                { label: "💡 Lampadaires & Éclairage", sub: "lampadaire", type: "electricite" as FilterType, icon: lampadaireIcon },
+                { label: "🚧 Nids-de-poule & Route", sub: "nid de poule", type: "mairie" as FilterType, icon: voirieIcon },
+                { label: "🌊 Caniveaux bouchés", sub: "caniveau", type: "mairie" as FilterType, icon: caniveauIcon },
+                { label: "🚿 Fuites d'eau sur voie", sub: "fuite", type: "eau" as FilterType, icon: fuiteEauIcon },
+                { label: "🗼 Poteaux & Pylônes", sub: "poteau", type: "electricite" as FilterType, icon: poteauElectriqueIcon },
+                { label: "🗑️ Amas d'ordures", sub: "ordure", type: "mairie" as FilterType, icon: depotOrduresIcon },
               ].map((item) => {
-                const isActive = subFilter === item.sub;
+                const isActive = subFilter === item.sub && filter === item.type;
                 return (
                   <button
                     key={item.sub}
@@ -780,27 +899,27 @@ const InfrastructurePage = () => {
                   onClick={() => navigate("/signaler")}
                   className="flex-1 text-left rounded-full bg-[#f0f2f5] dark:bg-muted/60 hover:bg-[#e4e6e9] dark:hover:bg-muted px-4 py-2.5 text-xs sm:text-sm font-medium text-muted-foreground transition-colors cursor-pointer border border-border/40"
                 >
-                  Signalez une panne ou un nid-de-poule dans votre rue...
+                  Signalez un lampadaire cassé, nid-de-poule ou fuite...
                 </button>
               </div>
 
               <div className="mt-3 pt-3 border-t border-border/60 grid grid-cols-3 gap-1 sm:gap-2">
                 <button
                   type="button"
-                  onClick={() => navigate("/signaler?type=pothole")}
-                  className="flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl py-2 px-1 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-muted/70 transition-colors"
-                >
-                  <span className="text-base">🚧</span>
-                  <span className="truncate">Nid de poule</span>
-                </button>
-
-                <button
-                  type="button"
                   onClick={() => navigate("/signaler?type=street_light")}
                   className="flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl py-2 px-1 text-xs font-bold text-amber-700 dark:text-amber-300 hover:bg-muted/70 transition-colors"
                 >
                   <span className="text-base">💡</span>
-                  <span className="truncate">Éclairage CIE</span>
+                  <span className="truncate">Lampadaire CIE</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => navigate("/signaler?type=pothole")}
+                  className="flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl py-2 px-1 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-muted/70 transition-colors"
+                >
+                  <span className="text-base">🚧</span>
+                  <span className="truncate">Nid-de-poule</span>
                 </button>
 
                 <button
@@ -832,10 +951,10 @@ const InfrastructurePage = () => {
             ) : reports.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center shadow-xs">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 mx-auto mb-3 text-2xl">
-                  ✓
+                  💡
                 </div>
                 <h3 className="font-display text-base font-bold text-foreground">
-                  Aucun signalement pour ce filtre
+                  Aucun signalement actif pour cette sélection
                 </h3>
                 <p className="mt-1 text-xs text-muted-foreground max-w-sm mx-auto">
                   Tout fonctionne normalement ou aucun problème n'a encore été signalé dans cette zone.
@@ -854,6 +973,7 @@ const InfrastructurePage = () => {
                 const isWater = report.service_type === "water" || report.service_type === "eau";
                 const isElec = report.service_type === "electricity" || report.service_type === "electricite";
                 const infraLabel = extractInfraLabel(report.description);
+                const isLampadaire = infraLabel?.toLowerCase().includes("lampadaire") || infraLabel?.toLowerCase().includes("éclairage") || report.description?.toLowerCase().includes("lampadaire") || report.description?.toLowerCase().includes("éclairage");
                 const hasPhotos = (report.photo_urls && report.photo_urls.length > 0) || Boolean(report.photo_url);
 
                 return (
@@ -872,11 +992,12 @@ const InfrastructurePage = () => {
                           <div className="relative">
                             <div className={cn(
                               "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl shadow-xs border",
-                              isWater ? "bg-sky-500/10 border-sky-500/25"
+                              isLampadaire ? "bg-amber-500/15 border-amber-500/30 text-amber-500"
+                                : isWater ? "bg-sky-500/10 border-sky-500/25"
                                 : isElec ? "bg-amber-500/10 border-amber-500/25"
                                 : "bg-emerald-500/10 border-emerald-500/25"
                             )}>
-                              {infraEmoji(infraLabel)}
+                              {isLampadaire ? "💡" : infraEmoji(infraLabel)}
                             </div>
                             <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-background ring-1 ring-border text-[9px]">
                               📍
@@ -894,7 +1015,12 @@ const InfrastructurePage = () => {
                                 </span>
                               )}
                               {infraLabel && (
-                                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
+                                <span className={cn(
+                                  "rounded-full px-2 py-0.5 text-[11px] font-bold",
+                                  isLampadaire
+                                    ? "bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30"
+                                    : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                                )}>
                                   {infraLabel}
                                 </span>
                               )}
@@ -958,7 +1084,8 @@ const InfrastructurePage = () => {
                           {/* Hashtags civiques Facebook-Style */}
                           <div className="flex flex-wrap gap-1.5 pt-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                             {report.commune && <span>#{report.commune.replace(/\s+/g, "")}</span>}
-                            {infraLabel && <span>#{infraLabel.replace(/[\s/]+/g, "")}</span>}
+                            {isLampadaire && <span>#Lampadaire #EclairagePublic</span>}
+                            {infraLabel && !isLampadaire && <span>#{infraLabel.replace(/[\s/]+/g, "")}</span>}
                             <span>#{isElec ? "CIE" : isWater ? "SODECI" : "Mairie"}</span>
                             <span>#CivicSignal</span>
                           </div>

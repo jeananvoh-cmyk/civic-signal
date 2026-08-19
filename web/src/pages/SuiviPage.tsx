@@ -202,7 +202,14 @@ const SuiviPage = () => {
   const filteredReports = reportsWithStatus
     .filter((r) => {
       if (filterCommune !== "all" && r.communeLabel !== filterCommune) return false;
-      if (filterCategory !== "all" && r.service_type !== filterCategory) return false;
+      if (filterCategory !== "all") {
+        if (filterCategory === "infrastructure") {
+          const isInf = r.report_category === "infrastructure" || r.service_type === "mairie" || r.service_type === "voirie" || Boolean(extractInfraLabel(r.description));
+          if (!isInf) return false;
+        } else if (r.service_type !== filterCategory) {
+          return false;
+        }
+      }
       if (filterStatus !== "all" && r.computedStatus !== filterStatus) return false;
       if (searchTerm.trim()) {
         const query = searchTerm.trim().toLowerCase();
@@ -460,8 +467,9 @@ const SuiviPage = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toutes catégories</SelectItem>
-                <SelectItem value="electricity">⚡ Électricité</SelectItem>
-                <SelectItem value="water">💧 Eau</SelectItem>
+                <SelectItem value="electricity">⚡ Électricité (CIE)</SelectItem>
+                <SelectItem value="water">💧 Eau (SODECI)</SelectItem>
+                <SelectItem value="infrastructure">💡 Lampadaires & Voiries</SelectItem>
               </SelectContent>
             </Select>
 
@@ -516,8 +524,9 @@ const SuiviPage = () => {
               {filteredReports.map((r) => {
                 const meta = STATUS_META[r.computedStatus];
                 const isElec = r.service_type === "electricity";
-                const isInfra = r.report_category === "infrastructure";
-                const infraLabel = isInfra ? extractInfraLabel(r.description) : null;
+                const isInfra = r.report_category === "infrastructure" || r.service_type === "mairie" || r.service_type === "voirie" || Boolean(extractInfraLabel(r.description));
+                const infraLabel = extractInfraLabel(r.description);
+                const isLampadaire = infraLabel?.toLowerCase().includes("lampadaire") || infraLabel?.toLowerCase().includes("éclairage") || r.description?.toLowerCase().includes("lampadaire");
                 const age = formatAge(r.created_at);
                 const ticketCode = getDisplayTicketCode({
                   ticket_code: r.ticket_code,
@@ -531,7 +540,7 @@ const SuiviPage = () => {
                   >
                     <CardContent className="p-3 flex items-start gap-3">
                       <span className="text-xl shrink-0 mt-0.5">
-                        {isInfra ? infraEmoji(infraLabel) : isElec ? "⚡" : "💧"}
+                        {isLampadaire ? "💡" : isInfra ? infraEmoji(infraLabel) : isElec ? "⚡" : "💧"}
                       </span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-1 flex-wrap">
