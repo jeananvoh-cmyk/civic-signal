@@ -231,7 +231,7 @@ const VerificationPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container max-w-lg py-8">
+      <main className="container max-w-6xl py-8">
         {/* Corroboration from notification */}
         {reportIdFromNotif && notifType !== "confirmation" ? (
           <>
@@ -349,7 +349,7 @@ const VerificationPage = () => {
           </motion.div>
         ) : (
           <AnimatePresence>
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
               {reports.map((r, i) => {
                 const color = COMMUNE_COLORS[r.commune] || "#6B7280";
                 const isElec = r.service_type === "electricity";

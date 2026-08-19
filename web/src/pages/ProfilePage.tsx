@@ -998,7 +998,7 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container max-w-3xl px-0 sm:px-4 py-0 sm:py-6">
+      <main className="container max-w-6xl px-0 sm:px-4 py-0 sm:py-6">
         <AnimatePresence mode="wait">
           {!activeSection ? (
             /* ═══ MAIN MENU VIEW ═══ */
@@ -1070,8 +1070,8 @@ const ProfilePage = () => {
                 </div>
               </div>
 
-              {/* ── Navigation sections ── */}
-              <div className="px-4 space-y-3 mt-4">
+              {/* ── Navigation sections en 2 colonnes sur grand écran ── */}
+              <div className="px-4 grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                 {/* Mon compte */}
                 <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
                   <p className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider bg-muted/30">Mon compte</p>

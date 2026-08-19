@@ -861,50 +861,54 @@ const ReportPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container max-w-md py-6 px-4">
+      <main className="container max-w-6xl py-6 px-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* ════ GAUCHE : Formulaire & Wizard de signalement (col-span-7) ════ */}
+          <div className="lg:col-span-7 space-y-4">
 
-        {/* Indicateur de progression */}
-        <div className="mb-6 space-y-2.5">
-          <div className="flex items-center gap-2">
-            {([1, 2] as const).map((s) => (
-              <div key={s} className="flex items-center gap-2 flex-1 last:flex-none">
-                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all ${
-                  step === s
-                    ? "bg-primary text-primary-foreground shadow-md"
-                    : step > s
-                    ? "bg-success text-success-foreground"
-                    : "bg-muted text-muted-foreground"
-                }`}>
-                  {step > s ? "✓" : s}
-                </div>
-                <span className={`text-xs hidden sm:block ${step === s ? "text-foreground font-semibold" : "text-muted-foreground"}`}>
-                  {s === 1 ? "Type & Lieu" : "Finaliser"}
-                </span>
-                {s < 2 && <div className={`flex-1 h-0.5 ${step > s ? "bg-success" : "bg-muted"}`} />}
+            {/* Indicateur de progression */}
+            <div className="mb-6 space-y-2.5">
+              <div className="flex items-center gap-2">
+                {([1, 2] as const).map((s) => (
+                  <div key={s} className="flex items-center gap-2 flex-1 last:flex-none">
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all ${
+                      step === s
+                        ? "bg-primary text-primary-foreground shadow-md"
+                        : step > s
+                        ? "bg-success text-success-foreground"
+                        : "bg-muted text-muted-foreground"
+                    }`}>
+                      {step > s ? "✓" : s}
+                    </div>
+                    <span className={`text-xs hidden sm:block ${step === s ? "text-foreground font-semibold" : "text-muted-foreground"}`}>
+                      {s === 1 ? "Type & Lieu" : "Finaliser"}
+                    </span>
+                    {s < 2 && <div className={`flex-1 h-0.5 ${step > s ? "bg-success" : "bg-muted"}`} />}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
-            <motion.div
-              className="h-full rounded-full bg-primary"
-              animate={{ width: step === 1 ? "50%" : "100%" }}
-              transition={{ duration: 0.35, ease: "easeOut" }}
-            />
-          </div>
-        </div>
+              <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full bg-primary"
+                  animate={{ width: step === 1 ? "50%" : "100%" }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                />
+              </div>
+            </div>
 
-        {/* Compteur journalier */}
-        {dailyCount !== null && (
-          <div className={`mb-4 rounded-xl border p-2.5 text-center text-xs font-medium ${
-            limitReached
-              ? "border-destructive/30 bg-destructive/5 text-destructive"
-              : "border-border bg-card text-muted-foreground"
-          }`}>
-            {limitReached
-              ? `Limite atteinte : ${dailyCount}/${DAILY_LIMIT} signalements aujourd'hui`
-              : `${dailyCount}/${DAILY_LIMIT} signalements utilisés aujourd'hui`}
-          </div>
-        )}
+            {/* Compteur journalier */}
+            {dailyCount !== null && (
+              <div className={`mb-4 rounded-xl border p-2.5 text-center text-xs font-medium ${
+                limitReached
+                  ? "border-destructive/30 bg-destructive/5 text-destructive"
+                  : "border-border bg-card text-muted-foreground"
+              }`}>
+                {limitReached
+                  ? `Limite atteinte : ${dailyCount}/${DAILY_LIMIT} signalements aujourd'hui`
+                  : `${dailyCount}/${DAILY_LIMIT} signalements utilisés aujourd'hui`}
+              </div>
+            )}
 
         <AnimatePresence mode="wait">
 
@@ -1989,6 +1993,66 @@ const ReportPage = () => {
             setShowOnboarding(false);
           }}
         />
+          </div>
+
+          {/* ════ DROITE : Volet d'Aide & Contexte Citoyen en direct (col-span-5) ════ */}
+          <div className="hidden lg:block lg:col-span-5 space-y-4 sticky top-20">
+            {/* Carte Récapitulative / Zone en cours */}
+            <div className="rounded-2xl border border-border bg-card shadow-card p-5 space-y-3.5">
+              <div className="flex items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  <MapPin className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-display text-sm font-bold text-foreground">Localisation active</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {commune ? `${commune}${quartier ? ` · ${quartier}` : ""}` : "Sélectionnez votre commune"}
+                  </p>
+                </div>
+              </div>
+
+              {selectedType && (
+                <div className="rounded-xl border border-border/80 bg-muted/40 p-3 flex items-center gap-3">
+                  {selectedType.image ? (
+                    <img src={selectedType.image} alt={selectedType.label} className="h-9 w-9 object-contain rounded-lg" />
+                  ) : (
+                    <span className="text-2xl">{selectedType.emoji}</span>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-foreground truncate">{selectedType.label}</p>
+                    <p className="text-[11px] text-muted-foreground">{selectedType.operator} · {selectedType.description || "Incident"}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Rappel du fonctionnement */}
+              <div className="space-y-2 pt-2 border-t border-border/60 text-xs text-muted-foreground">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span><strong>Adressage PADA officiel</strong> : Votre numéro de porte et voie facilitent la localisation de l'équipe technique.</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Users className="h-3.5 w-3.5 text-sky-500 shrink-0 mt-0.5" />
+                  <span><strong>Mobilisation de quartier</strong> : Les résidents voisins peuvent corroborer ce signalement en 1 clic.</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <ShieldAlert className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                  <span><strong>Escalade automatique</strong> : Si la panne persiste plus de 48h, le statut passe automatiquement en alerte opérateur.</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Conseils pour un signalement efficace */}
+            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-2 text-xs">
+              <p className="font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                💡 Conseil d'intervention rapide
+              </p>
+              <p className="text-muted-foreground leading-relaxed">
+                Une photo nette du compteur, du poteau ou de la fuite permet à l'équipe d'intervention d'apporter le matériel adapté dès leur premier déplacement.
+              </p>
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   );

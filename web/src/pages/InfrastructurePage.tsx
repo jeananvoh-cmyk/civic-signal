@@ -310,7 +310,7 @@ const InfrastructurePage = () => {
 
       {/* Page header */}
       <div className="bg-card border-b border-border pb-4">
-        <div className="container max-w-2xl pt-6 px-4">
+        <div className="container max-w-6xl pt-6 px-4">
           <div className="flex flex-col gap-2 mb-6">
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
               <AlertCircle className="h-6 w-6 text-primary" />
@@ -321,7 +321,7 @@ const InfrastructurePage = () => {
             </p>
           </div>
           {/* Alert Categories — Accordéon compact avec icônes 3D réalistes */}
-          <div className="space-y-2 mb-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
             {/* ── Électricité (CIE) ── */}
             {(filter === "all" || filter === "electricite") && (() => {
               const isOpen = openSection === "electricite";
@@ -505,7 +505,7 @@ const InfrastructurePage = () => {
       {/* Filters - horizontal scroll on mobile */}
       <div className="sticky top-14 z-40 bg-background border-b border-border">
         {/* Type filters */}
-        <div className="container max-w-2xl px-4 pt-2 pb-1 flex items-center gap-2 overflow-x-auto no-scrollbar">
+        <div className="container max-w-6xl px-4 pt-2 pb-1 flex items-center gap-2 overflow-x-auto no-scrollbar">
           <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
           {[
             { key: "all" as FilterType, label: "Tous", icon: TrendingUp },
@@ -528,7 +528,7 @@ const InfrastructurePage = () => {
           ))}
         </div>
         {/* Commune filters */}
-        <div className="container max-w-2xl px-4 pb-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+        <div className="container max-w-6xl px-4 pb-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
           <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           {communeFilter && (
             <button
@@ -554,7 +554,8 @@ const InfrastructurePage = () => {
       </div>
 
       {/* Feed */}
-      <div className="container max-w-2xl lg:max-w-3xl px-4 py-4 space-y-3">
+      <div className="container max-w-6xl px-4 py-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
         {loading
           ? Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="rounded-xl bg-card border border-border p-4 space-y-3">
@@ -778,7 +779,7 @@ const InfrastructurePage = () => {
 
         {/* Empty state */}
         {!loading && reports.length === 0 && (
-          <div className="text-center py-16 px-4">
+          <div className="col-span-full text-center py-16 px-4">
             <AlertCircle className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
             <p className="text-muted-foreground font-medium">Aucun signalement d'infrastructure</p>
             <p className="text-sm text-muted-foreground mt-1">
@@ -786,10 +787,11 @@ const InfrastructurePage = () => {
             </p>
           </div>
         )}
+        </div>
 
         {/* Load more */}
         {hasMore && reports.length > 0 && (
-          <div className="flex justify-center pt-2 pb-6">
+          <div className="flex justify-center pt-6 pb-6">
             <Button
               variant="outline"
               onClick={loadMore}

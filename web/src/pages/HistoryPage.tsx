@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Zap, Droplets, Loader2, History, Calendar, ArrowLeft, ChevronRight, CheckCircle2, AlertTriangle, Wrench } from "lucide-react";
@@ -78,7 +78,7 @@ const HistoryPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container max-w-2xl py-8">
+      <main className="container max-w-6xl py-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -159,7 +159,7 @@ const HistoryPage = () => {
             <p className="text-muted-foreground">Aucun signalement trouvé.</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
             {filtered.map((r, i) => {
               const color = COMMUNE_COLORS[r.commune] || "#888";
               const isElec = r.service_type === "electricity";
