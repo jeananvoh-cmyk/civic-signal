@@ -79,6 +79,23 @@ const Header = () => {
               )}
             </Link>
 
+            {/* 2. 🤝 Vérifier & Corroborer (Accès direct permanent) */}
+            <Link
+              to="/verification"
+              className={cn(
+                "relative rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-150 flex items-center gap-1.5",
+                isActive("/verification")
+                  ? "text-primary bg-primary/8 font-semibold"
+                  : "text-foreground/70 hover:text-foreground hover:bg-muted/60"
+              )}
+            >
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+              <span>Vérifier</span>
+              {isActive("/verification") && (
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-4 rounded-full bg-primary" />
+              )}
+            </Link>
+
             {/* 2. Voirie & Infrastructures (Accès direct) */}
             <Link
               to="/infrastructures"

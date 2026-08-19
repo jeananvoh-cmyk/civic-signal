@@ -140,9 +140,18 @@ const CommuneDetailPage = () => {
                   {(communeInfo.population / 1000).toFixed(0)}k habitants
                 </p>
               )}
-              <div className="mt-2">
-                <CommuneAlertButton commune={decodedName} />
-              </div>
+                <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                  <CommuneAlertButton commune={decodedName} />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate("/verification")}
+                    className="h-8 gap-1.5 rounded-full text-xs font-semibold border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300 hover:bg-sky-500/20"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5 text-sky-500" />
+                    Vérifier les signalements
+                  </Button>
+                </div>
             </div>
           </div>
         </motion.div>
