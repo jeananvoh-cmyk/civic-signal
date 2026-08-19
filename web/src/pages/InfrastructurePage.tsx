@@ -208,12 +208,11 @@ const InfrastructurePage = () => {
       let query = supabase
         .from("reports")
         .select("id, user_id, service_type, report_category, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, support_count")
-        .eq("status", "active")
         .order("created_at", { ascending: false });
 
       // Broad filter covering infrastructure or infrastructure keywords (lampadaires, etc.)
       if (filter === "all") {
-        query = query.or("report_category.eq.infrastructure,service_type.eq.infrastructure,description.ilike.%lampadaire%,description.ilike.%éclairage%,description.ilike.%eclairage%,description.ilike.%poteau%,description.ilike.%caniveau%,description.ilike.%nid de poule%,description.ilike.%fuite%");
+        query = query.or("report_category.eq.infrastructure,service_type.eq.infrastructure,service_type.eq.mairie,service_type.eq.voirie,description.ilike.%lampadaire%,description.ilike.%éclairage%,description.ilike.%eclairage%,description.ilike.%poteau%,description.ilike.%caniveau%,description.ilike.%nid de poule%,description.ilike.%fuite%");
       } else if (filter === "electricite") {
         query = query.or("and(report_category.eq.infrastructure,service_type.eq.electricity),description.ilike.%lampadaire%,description.ilike.%éclairage%,description.ilike.%eclairage%,description.ilike.%poteau%,description.ilike.%branchement%");
       } else if (filter === "eau") {
@@ -222,7 +221,9 @@ const InfrastructurePage = () => {
         query = query.or("and(report_category.eq.infrastructure,service_type.eq.mairie),service_type.eq.mairie,service_type.eq.voirie,description.ilike.%caniveau%,description.ilike.%nid de poule%,description.ilike.%ordure%,description.ilike.%voirie%");
       }
 
-      if (communeFilter) query = query.eq("commune", communeFilter);
+      if (communeFilter) {
+        query = query.eq("commune", communeFilter);
+      }
       query = query.range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
 
       const [{ data, error }, { data: myVotes }, { data: myRepairs }] = await Promise.all([
@@ -245,14 +246,25 @@ const InfrastructurePage = () => {
       if (myVotes) setSupported(new Set(myVotes.map((v: any) => v.report_id)));
       if (myRepairs) setRepaired(new Set(myRepairs.map((v: any) => v.report_id)));
     } else {
-      // Visiteur anonyme
+      // Visiteur anonyme : tentative RPC puis fallback requete directe si besoin
       const { data, error } = await (supabase as any).rpc(
         "get_public_infrastructure_reports",
         { p_limit: 100, p_offset: pageNum * PAGE_SIZE },
       );
-      if (error) { setter(false); return; }
+      
+      let rows: InfraReport[] = [];
+      if (!error && data && data.length > 0) {
+        rows = data as InfraReport[];
+      } else {
+        // Fallback requete directe publique
+        const { data: directData } = await supabase
+          .from("reports")
+          .select("id, user_id, service_type, report_category, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, support_count")
+          .order("created_at", { ascending: false })
+          .limit(100);
+        rows = (directData ?? []) as unknown as InfraReport[];
+      }
 
-      let rows = (data ?? []) as InfraReport[];
       rows.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
       if (filter !== "all") {
@@ -454,7 +466,7 @@ const InfrastructurePage = () => {
               <span className="hidden md:inline">Vue Carte</span>
             </Link>
             <Button
-              onClick={() => navigate("/signaler")}
+              onClick={() => navigate("/signaler?category=infrastructure")}
               className="rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs gap-1.5 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               <Plus className="h-4 w-4 stroke-[3]" />
@@ -896,7 +908,7 @@ const InfrastructurePage = () => {
                 </div>
                 <button
                   type="button"
-                  onClick={() => navigate("/signaler")}
+                  onClick={() => navigate("/signaler?category=infrastructure")}
                   className="flex-1 text-left rounded-full bg-[#f0f2f5] dark:bg-muted/60 hover:bg-[#e4e6e9] dark:hover:bg-muted px-4 py-2.5 text-xs sm:text-sm font-medium text-muted-foreground transition-colors cursor-pointer border border-border/40"
                 >
                   Signalez un lampadaire cassé, nid-de-poule ou fuite...
@@ -906,7 +918,7 @@ const InfrastructurePage = () => {
               <div className="mt-3 pt-3 border-t border-border/60 grid grid-cols-3 gap-1 sm:gap-2">
                 <button
                   type="button"
-                  onClick={() => navigate("/signaler?type=street_light")}
+                  onClick={() => navigate("/signaler?type=street_light&category=infrastructure")}
                   className="flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl py-2 px-1 text-xs font-bold text-amber-700 dark:text-amber-300 hover:bg-muted/70 transition-colors"
                 >
                   <span className="text-base">💡</span>
@@ -915,7 +927,7 @@ const InfrastructurePage = () => {
 
                 <button
                   type="button"
-                  onClick={() => navigate("/signaler?type=pothole")}
+                  onClick={() => navigate("/signaler?type=pothole&category=infrastructure")}
                   className="flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl py-2 px-1 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-muted/70 transition-colors"
                 >
                   <span className="text-base">🚧</span>
@@ -924,7 +936,7 @@ const InfrastructurePage = () => {
 
                 <button
                   type="button"
-                  onClick={() => navigate("/signaler")}
+                  onClick={() => navigate("/signaler?category=infrastructure")}
                   className="flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl py-2 px-1 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:bg-muted/70 transition-colors"
                 >
                   <Camera className="h-4 w-4 text-emerald-500" />

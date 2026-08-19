@@ -281,6 +281,19 @@ const ReportPage = () => {
   // Wizard — si step=2 dans l'URL (retour depuis auth après signalement anonyme), avancer directement
   const [step, setStep] = useState<1 | 2>(() => searchParams.get("step") === "2" ? 2 : 1);
 
+  // Filtre de catégorie (ex: venant de "Publier une panne" sur la page infrastructure)
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<"all" | "infrastructure" | "outage">(() => {
+    const cat = searchParams.get("category");
+    const typ = searchParams.get("type");
+    if (cat === "infrastructure" || typ === "street_light" || typ === "pothole" || typ === "drain_blocked" || typ === "water_leak" || typ === "cie_pole" || typ === "cie_hazard") {
+      return "infrastructure";
+    }
+    if (cat === "outage" || typ === "electricity_outage" || typ === "water_outage") {
+      return "outage";
+    }
+    return "all";
+  });
+
   // Étape 1
   const [selectedType, setSelectedType] = useState<ReportTypeConfig | null>(null);
   const [customTypeDesc, setCustomTypeDesc] = useState("");
@@ -373,6 +386,28 @@ const ReportPage = () => {
       if (draft.description) setDescription(draft.description);
     } catch { /* brouillon corrompu → ignoré */ }
   }, []);
+
+  // Synchronisation des paramètres URL (?type=... et ?category=...)
+  useEffect(() => {
+    const typeParam = searchParams.get("type");
+    if (typeParam) {
+      const found = REPORT_TYPES.find((t) => t.id === typeParam || t.label.toLowerCase().includes(typeParam.toLowerCase()));
+      if (found) {
+        setSelectedType(found);
+        if (found.reportCategory === "infrastructure") {
+          setActiveCategoryFilter("infrastructure");
+        } else if (found.reportCategory === "outage") {
+          setActiveCategoryFilter("outage");
+        }
+      }
+    }
+    const catParam = searchParams.get("category");
+    if (catParam === "infrastructure") {
+      setActiveCategoryFilter("infrastructure");
+    } else if (catParam === "outage") {
+      setActiveCategoryFilter("outage");
+    }
+  }, [searchParams]);
 
   // Sauvegarder le brouillon à chaque changement pertinent
   useEffect(() => {
@@ -925,57 +960,96 @@ const ReportPage = () => {
               className="space-y-4"
             >
               <div className="text-center">
-                <h1 className="text-2xl font-bold">Que se passe-t-il ?</h1>
+                <h1 className="text-2xl font-bold">
+                  {activeCategoryFilter === "infrastructure"
+                    ? "Signaler une Panne d'Infrastructure & Voirie"
+                    : activeCategoryFilter === "outage"
+                    ? "Signaler une Coupure Réseau"
+                    : "Que se passe-t-il ?"}
+                </h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {selectedType ? "Confirmez ensuite votre localisation" : "Touchez un type pour continuer"}
+                  {selectedType
+                    ? "Confirmez ensuite votre localisation"
+                    : activeCategoryFilter === "infrastructure"
+                    ? "Sélectionnez le problème d'infrastructure ou de voirie dans votre rue :"
+                    : "Touchez un type pour continuer"}
                 </p>
               </div>
 
-              {/* Grille des types — coupures réseau */}
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Coupure de réseau</p>
-              <div className="grid grid-cols-2 gap-3">
-                {REPORT_TYPES.filter((t) => t.reportCategory === "outage").map((type) => {
-                  const isSelected = selectedType?.id === type.id;
-                  return (
-                    <motion.button
-                      key={type.id}
-                      type="button"
-                      whileTap={{ scale: 0.94 }}
-                      onClick={() => handleTypeSelect(type)}
-                      className="group flex flex-col items-center gap-2.5 rounded-2xl border-2 p-5 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                      style={{
-                        borderColor: isSelected ? type.color : undefined,
-                        backgroundColor: isSelected ? type.color + colorAlpha : undefined,
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isSelected) {
-                          e.currentTarget.style.borderColor = type.color;
-                          e.currentTarget.style.backgroundColor = type.color + hoverAlpha;
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isSelected) {
-                          e.currentTarget.style.borderColor = "";
-                          e.currentTarget.style.backgroundColor = "";
-                        }
-                      }}
-                    >
-                      {type.image
-                        ? <img src={type.image} alt={type.label} className="h-10 w-10 object-contain rounded-lg" />
-                        : <span className="text-4xl leading-none">{type.emoji}</span>
-                      }
-                      <span className="text-xs font-semibold leading-tight text-foreground">{type.label}</span>
-                      {type.description && (
-                        <span className="text-xs leading-tight text-muted-foreground">{type.description}</span>
-                      )}
-                    </motion.button>
-                  );
-                })}
-              </div>
+              {/* Bannière explicative Mode Infrastructure */}
+              {activeCategoryFilter === "infrastructure" && (
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xl">🚧</span>
+                    <div>
+                      <p className="text-xs font-bold text-emerald-950 dark:text-emerald-200">
+                        Signalement d'Infrastructures Publiques
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Les coupures privées à domicile sont masquées
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveCategoryFilter("all")}
+                    className="text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:underline px-2.5 py-1 rounded-lg bg-emerald-500/15"
+                  >
+                    Afficher tout
+                  </button>
+                </div>
+              )}
+
+              {/* Grille des types — coupures réseau (Masquée en mode infrastructure) */}
+              {activeCategoryFilter !== "infrastructure" && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Coupure de réseau (à domicile)</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {REPORT_TYPES.filter((t) => t.reportCategory === "outage").map((type) => {
+                      const isSelected = selectedType?.id === type.id;
+                      return (
+                        <motion.button
+                          key={type.id}
+                          type="button"
+                          whileTap={{ scale: 0.94 }}
+                          onClick={() => handleTypeSelect(type)}
+                          className="group flex flex-col items-center gap-2.5 rounded-2xl border-2 p-5 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          style={{
+                            borderColor: isSelected ? type.color : undefined,
+                            backgroundColor: isSelected ? type.color + colorAlpha : undefined,
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.borderColor = type.color;
+                              e.currentTarget.style.backgroundColor = type.color + hoverAlpha;
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSelected) {
+                              e.currentTarget.style.borderColor = "";
+                              e.currentTarget.style.backgroundColor = "";
+                            }
+                          }}
+                        >
+                          {type.image
+                            ? <img src={type.image} alt={type.label} className="h-10 w-10 object-contain rounded-lg" />
+                            : <span className="text-4xl leading-none">{type.emoji}</span>
+                          }
+                          <span className="text-xs font-semibold leading-tight text-foreground">{type.label}</span>
+                          {type.description && (
+                            <span className="text-xs leading-tight text-muted-foreground">{type.description}</span>
+                          )}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Section Problème d'infrastructure par Opérateur */}
-              <div className="space-y-4 pt-1">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Signalement d'infrastructure par opérateur</p>
+              {activeCategoryFilter !== "outage" && (
+                <div className="space-y-4 pt-1">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Signalement d'infrastructure par opérateur</p>
 
                 {/* --- CIE --- */}
                 <div className="space-y-2 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
@@ -1118,6 +1192,7 @@ const ReportPage = () => {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Section localisation — visible après sélection du type */}
               <AnimatePresence>
