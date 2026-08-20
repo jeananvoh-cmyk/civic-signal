@@ -375,7 +375,7 @@ const Index = () => {
                   📢
                 </div>
                 <div className="flex flex-col text-left leading-tight">
-                  <span className="text-base font-extrabold tracking-wide">Signaler une panne ou dégradation</span>
+                  <span className="text-base font-extrabold tracking-wide">Documenter un incident</span>
                   <span className="text-[11px] font-medium text-white/80">Électricité (CIE) · Eau (SODECI) · Voirie (Mairie)</span>
                 </div>
                 <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
@@ -389,7 +389,7 @@ const Index = () => {
                   ✓
                 </div>
                 <div className="flex flex-col text-left leading-tight">
-                  <span className="text-base font-extrabold tracking-wide">Confirmer un signalement</span>
+                  <span className="text-base font-extrabold tracking-wide">Confirmer un constat</span>
                   <span className="text-[11px] font-medium text-sky-700 dark:text-sky-300">Vérifier &amp; corroborer dans mon quartier</span>
                 </div>
                 <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
