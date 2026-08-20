@@ -509,7 +509,7 @@ export default function InfrastructurePage() {
     }
   };
 
-  // Confirm Repair
+  // Confirm Repair with Geo-Verification
   const handleConfirmRepair = async (reportId: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (!user) {
@@ -518,29 +518,64 @@ export default function InfrastructurePage() {
       return;
     }
     const already = repaired.has(reportId);
-    setRepaired((prev) => {
-      const next = new Set(prev);
-      if (already) next.delete(reportId);
-      else next.add(reportId);
-      return next;
-    });
+
+    if (already) {
+      setRepaired((prev) => {
+        const next = new Set(prev);
+        next.delete(reportId);
+        return next;
+      });
+      try {
+        await (supabase as any).rpc("cancel_repair", { p_report_id: reportId });
+        toast.info("Confirmation annulée.");
+        fetchReports();
+      } catch {
+        fetchReports();
+      }
+      return;
+    }
+
+    // Capture GPS pour contrôle de proximité immédiate
+    let userLat: number | null = null;
+    let userLon: number | null = null;
+
+    if (navigator.geolocation) {
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 6000,
+          });
+        });
+        userLat = pos.coords.latitude;
+        userLon = pos.coords.longitude;
+      } catch {
+        // En cas de désactivation du GPS, l'appel RPC traitera la règle de tolérance
+      }
+    }
 
     try {
-      if (already) {
-        const { error } = await (supabase as any).rpc("cancel_repair", { p_report_id: reportId });
-        if (error) {
-          await supabase.from("repair_confirmations").delete().eq("report_id", reportId).eq("user_id", user.id);
-        }
-        toast.info("Confirmation annulée.");
-      } else {
-        const { error } = await (supabase as any).rpc("confirm_repair", { p_report_id: reportId });
-        if (error) {
-          await supabase.from("repair_confirmations").insert({ report_id: reportId, user_id: user.id });
-        }
-        toast.success("✅ Merci ! Votre confirmation citoyenne a été prise en compte.");
+      const { data, error } = await (supabase as any).rpc("confirm_repair_with_geo", {
+        p_report_id: reportId,
+        p_user_lat: userLat,
+        p_user_lon: userLon,
+        p_max_distance_meters: 500,
+      });
+
+      if (error) {
+        toast.error(error.message || "Vérification de localisation échouée.");
+        return;
       }
+
+      setRepaired((prev) => new Set(prev).add(reportId));
+      toast.success(
+        data?.resolved
+          ? "🎉 Réparation validée et certifiée sur le terrain !"
+          : "✅ Confirmation enregistrée avec vérification de proximité."
+      );
       fetchReports();
-    } catch {
+    } catch (err: any) {
+      toast.error(err?.message || "Impossible d'enregistrer la confirmation.");
       fetchReports();
     }
   };

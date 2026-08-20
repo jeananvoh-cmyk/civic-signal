@@ -15,11 +15,24 @@ interface PhotoUploadProps {
   onGpsFromPhoto?: (lat: number, lng: number) => void;
   photoUrls: string[];
   isInfrastructure?: boolean;
+  reportId?: string;
 }
 
 const MAX_OUTPUT_PX = 1920;
 const JPEG_QUALITY_HIGH = 0.90;
 const JPEG_QUALITY_LOW  = 0.82;
+
+// ── Calcul d'empreinte SHA-256 (Anti-Recyclage / Anti-Google Images) ──────────
+export async function computeImageHash(file: File): Promise<string> {
+  try {
+    const buffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  } catch {
+    return "";
+  }
+}
 
 // ── Compression canvas adaptative ─────────────────────────────────────────────
 async function compressImage(file: File): Promise<Blob> {
@@ -177,12 +190,27 @@ const PhotoUpload = ({
       }
       try {
         const isFirstEver = photoUrls.length === 0 && i === 0;
-        const [exifGps, path] = await Promise.all([
+        const [exifGps, photoHash, path] = await Promise.all([
           isFirstEver ? extractExifGps(file) : Promise.resolve(null),
+          computeImageHash(file),
           uploadFile(file, user.id, i),
         ]);
 
         addedUrls.push(path);
+
+        if (photoHash && reportId) {
+          try {
+            const { data: hashRes } = await (supabase as any).rpc("register_photo_hash", {
+              p_hash: photoHash,
+              p_report_id: reportId,
+            });
+            if (hashRes?.duplicate) {
+              toast.warning("⚠️ Attention : cette image a déjà été enregistrée sur un autre signalement.");
+            }
+          } catch {
+            // Silencieux
+          }
+        }
 
         if (isFirstEver && exifGps && onGpsFromPhoto && !exifHandled) {
           onGpsFromPhoto(exifGps.lat, exifGps.lng);
