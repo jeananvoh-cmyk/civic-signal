@@ -105,10 +105,11 @@ export default function Footer() {
           <div>
             <h4 className="text-sm font-bold text-white mb-3">Institutionnel & Transparence</h4>
             <ul className="space-y-2 text-xs text-slate-400">
-              <li><Link to="/transparence" className="hover:text-emerald-400 transition-colors">Transparence Open Data</Link></li>
-              <li><Link to="/mairie" className="hover:text-emerald-400 transition-colors">Espace Mairies (Services Techniques)</Link></li>
-              <li><Link to="/regulateurs" className="hover:text-emerald-400 transition-colors">Audit Régulateurs (ANARE & ONEP)</Link></li>
-              <li><Link to="/partenaires" className="hover:text-emerald-400 transition-colors">Relais & Mairies Partenaires</Link></li>
+              <li><Link to="/a-propos" className="hover:text-emerald-400 transition-colors">À propos de SIGNA.ci</Link></li>
+              <li><Link to="/transparence" className="hover:text-emerald-400 transition-colors font-semibold text-emerald-400">Transparence Open Data (Open311)</Link></li>
+              <li><Link to="/mairie" className="hover:text-emerald-400 transition-colors">Portail Mairies (Services Techniques)</Link></li>
+              <li><Link to="/partenaire" className="hover:text-emerald-400 transition-colors">Régulateurs (ANARE-CI & ONEP)</Link></li>
+              <li><Link to="/dons" className="hover:text-rose-400 transition-colors">Soutenir le projet (Dons)</Link></li>
               <li><Link to="/cgu" className="hover:text-emerald-400 transition-colors">Conditions d'Utilisation</Link></li>
               <li><Link to="/confidentialite" className="hover:text-emerald-400 transition-colors">Politique de Confidentialité</Link></li>
             </ul>

@@ -287,17 +287,18 @@ const Header = () => {
             </button>
           </div>
         </div>
+      </header>
 
-        {/* ── Drawer Menu Mobile Plein Écran Z-[60] Sans Conflit avec BottomNav ── */}
-        <AnimatePresence>
-          {mobileOpen && (
-            <motion.nav
-              initial={{ opacity: 0, y: -12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.22, ease: "easeOut" }}
-              className="fixed inset-x-0 top-[3.75rem] bottom-0 z-[60] bg-background/98 backdrop-blur-2xl overflow-y-auto md:hidden safe-area-pb p-4 sm:p-6 flex flex-col justify-between space-y-6 shadow-2xl border-t border-border/60"
-            >
+      {/* ── Drawer Menu Mobile Plein Écran Z-[60] Hors-Header (Résout le confinement CSS backdrop-filter) ── */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.nav
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="fixed inset-x-0 top-[3.75rem] bottom-0 z-[60] bg-background/98 backdrop-blur-2xl overflow-y-auto md:hidden safe-area-pb p-4 sm:p-6 flex flex-col justify-between space-y-6 shadow-2xl border-t border-border/60"
+          >
               <div className="space-y-5">
                 {/* 1. Action Principale Citoyenne */}
                 <Link
@@ -588,7 +589,6 @@ const Header = () => {
             </motion.nav>
           )}
         </AnimatePresence>
-      </header>
 
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </>

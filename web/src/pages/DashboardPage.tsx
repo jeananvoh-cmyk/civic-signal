@@ -574,7 +574,7 @@ const DashboardPage = () => {
         </motion.div>
       )}
 
-      <main className="container py-8">
+      <main className="container py-8 max-w-full overflow-x-hidden pb-28 md:pb-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -756,7 +756,7 @@ const DashboardPage = () => {
             <span className="text-xs font-extrabold text-destructive uppercase tracking-wider shrink-0 flex items-center gap-1">
               <Siren className="h-3.5 w-3.5" /> Urgences Live :
             </span>
-            <div className="overflow-x-auto whitespace-nowrap text-xs text-foreground font-semibold scrollbar-none flex-1">
+            <div className="overflow-x-auto whitespace-nowrap text-xs text-foreground font-semibold scrollbar-none flex-1 min-w-0">
               {highPriorityReports.slice(0, 5).map((r, i) => (
                 <span key={r.id} className="mr-6 inline-flex items-center gap-1 bg-background/60 border border-destructive/20 rounded-md px-2 py-0.5">
                   <span className="text-destructive font-bold">[{r.location}]</span> {r.description.slice(0, 65)} ({r.verifications} soutiens) {i < 4 ? "" : ""}
@@ -1141,28 +1141,31 @@ const DashboardPage = () => {
                   {topQuartiers.map((q, i) => {
                     const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`;
                     return (
-                      <div key={`${q.commune}-${q.quartier}`} className="flex items-center gap-4 px-5 py-3 hover:bg-secondary/50 transition-colors">
-                        <span className="text-lg font-bold w-8 text-center">{medal}</span>
+                      <div key={`${q.commune}-${q.quartier}`} className="flex items-center gap-3 sm:gap-4 px-3 sm:px-5 py-3 hover:bg-secondary/50 transition-colors">
+                        <span className="text-base sm:text-lg font-bold w-6 sm:w-8 text-center shrink-0">{medal}</span>
                         <div className="flex-1 min-w-0">
                           <button
                             onClick={() => navigate(`/commune/${encodeURIComponent(q.commune)}`)}
-                            className="font-bold text-sm hover:underline"
+                            className="font-bold text-sm hover:underline text-left block truncate max-w-full"
                             style={{ color: q.couleur }}
                           >
                             {q.quartier}
                           </button>
-                          <p className="text-xs text-muted-foreground">{q.commune}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
+                            <span className="font-medium">{q.commune}</span>
+                            <span className="text-border/80">•</span>
+                            <span className="inline-flex items-center gap-2 text-[11px]">
+                              <span className="flex items-center gap-0.5"><Zap className="h-3 w-3 text-electricity" />{q.elecActifs}</span>
+                              <span className="flex items-center gap-0.5"><Droplets className="h-3 w-3 text-water" />{q.eauActifs}</span>
+                              <span className="flex items-center gap-0.5"><Landmark className="h-3 w-3 text-infra" />{q.mairieActifs}</span>
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3 text-xs">
-                          <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-electricity" />{q.elecActifs}</span>
-                          <span className="flex items-center gap-1"><Droplets className="h-3 w-3 text-water" />{q.eauActifs}</span>
-                          <span className="flex items-center gap-1"><Landmark className="h-3 w-3 text-infra" />{q.mairieActifs}</span>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-display text-lg font-extrabold" style={{ color: q.totalActifs > 0 ? q.couleur : undefined }}>
+                        <div className="text-right shrink-0 pl-2">
+                          <p className="font-display text-base sm:text-lg font-extrabold" style={{ color: q.totalActifs > 0 ? q.couleur : undefined }}>
                             {q.totalActifs}
                           </p>
-                          <p className="text-xs text-muted-foreground">active{q.totalActifs !== 1 ? "s" : ""} / {q.totalAll}</p>
+                          <p className="text-[11px] text-muted-foreground whitespace-nowrap">active{q.totalActifs !== 1 ? "s" : ""} / {q.totalAll}</p>
                         </div>
                       </div>
                     );
