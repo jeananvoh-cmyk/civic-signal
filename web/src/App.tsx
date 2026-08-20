@@ -50,11 +50,19 @@ function lazyWithRetry<T extends React.ComponentType<any>>(
   });
 }
 
-const Index = lazyWithRetry(() => import("./pages/Index"));
-const AuthPage = lazyWithRetry(() => import("./pages/AuthPage"));
-const ReportPage = lazyWithRetry(() => import("./pages/ReportPage"));
-const DashboardPage = lazyWithRetry(() => import("./pages/DashboardPage"));
-const MapPage = lazyWithRetry(() => import("./pages/MapPage"));
+// Pages publiques principales importées directement pour garantir 0 erreur de chargement
+import Index from "./pages/Index";
+import AuthPage from "./pages/AuthPage";
+import ReportPage from "./pages/ReportPage";
+import DashboardPage from "./pages/DashboardPage";
+import MapPage from "./pages/MapPage";
+import InfrastructurePage from "./pages/InfrastructurePage";
+import ReportDetailPage from "./pages/ReportDetailPage";
+import TransparencyPage from "./pages/TransparencyPage";
+import SuiviPage from "./pages/SuiviPage";
+import CommuneDetailPage from "./pages/CommuneDetailPage";
+
+// Pages secondaires et administration chargées en différé avec reprise automatique
 const VerificationPage = lazyWithRetry(() => import("./pages/VerificationPage"));
 const ProfilePage = lazyWithRetry(() => import("./pages/ProfilePage"));
 const AdminLayout = lazyWithRetry(() => import("@/components/AdminLayout"));
@@ -70,22 +78,17 @@ const AdminMessagingPage = lazyWithRetry(() => import("./pages/AdminMessagingPag
 const AdminQuartiersPage = lazyWithRetry(() => import("./pages/AdminQuartiersPage"));
 const AdminRightsPage = lazyWithRetry(() => import("./pages/AdminRightsPage"));
 const AdminRelayPage = lazyWithRetry(() => import("./pages/AdminRelayPage"));
-const CommuneDetailPage = lazyWithRetry(() => import("./pages/CommuneDetailPage"));
 const AboutPage = lazyWithRetry(() => import("./pages/AboutPage"));
 const PrivacyPolicyPage = lazyWithRetry(() => import("./pages/PrivacyPolicyPage"));
 const CguPage = lazyWithRetry(() => import("./pages/CguPage"));
 const HistoryPage = lazyWithRetry(() => import("./pages/HistoryPage"));
 const DonationPage = lazyWithRetry(() => import("./pages/DonationPage"));
-const InfrastructurePage = lazyWithRetry(() => import("./pages/InfrastructurePage"));
 const InstallPage = lazyWithRetry(() => import("./pages/InstallPage"));
 const ConfirmationPage = lazyWithRetry(() => import("./pages/ConfirmationPage"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 const PartnerDashboardPage = lazyWithRetry(() => import("./pages/PartnerDashboardPage"));
 const PartnersPage = lazyWithRetry(() => import("./pages/PartnersPage"));
-const ReportDetailPage = lazyWithRetry(() => import("./pages/ReportDetailPage"));
-const TransparencyPage = lazyWithRetry(() => import("./pages/TransparencyPage"));
 const UpdatePasswordPage = lazyWithRetry(() => import("./pages/UpdatePasswordPage"));
-const SuiviPage = lazyWithRetry(() => import("./pages/SuiviPage"));
 const CompteurPage = lazyWithRetry(() => import("./pages/CompteurPage"));
 const BrandPage = lazyWithRetry(() => import("./pages/BrandPage"));
 

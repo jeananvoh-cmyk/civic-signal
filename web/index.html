@@ -7,28 +7,6 @@
     <link rel="canonical" href="https://signa.ci/" />
     <meta name="google-site-verification" content="YfJLmUWhEc15pSVNJNTfosGb6IXx_poWhZYetuDfFZM" />
 
-    <!-- ⚡ Auto-récupération instantanée en cas de nouveau déploiement -->
-    <script>
-      window.addEventListener('error', function (e) {
-        var msg = (e && e.message) ? e.message : '';
-        if (
-          msg.indexOf('Failed to fetch dynamically imported module') !== -1 ||
-          msg.indexOf('Importing a module script failed') !== -1 ||
-          msg.indexOf('error loading dynamically imported module') !== -1
-        ) {
-          if (!sessionStorage.getItem('signa_auto_reload_done')) {
-            sessionStorage.setItem('signa_auto_reload_done', '1');
-            window.location.reload();
-          }
-        }
-      });
-      window.addEventListener('vite:preloadError', function () {
-        if (!sessionStorage.getItem('signa_auto_reload_done')) {
-          sessionStorage.setItem('signa_auto_reload_done', '1');
-          window.location.reload();
-        }
-      });
-    </script>
 
     <!-- 🏷️ Titre & Méta-descriptions ciblées pour Google, Bing & Moteurs IA -->
     <title>SIGNA.ci — Signaler · Suivre · Réparer | Plateforme Citoyenne Côte d'Ivoire</title>
