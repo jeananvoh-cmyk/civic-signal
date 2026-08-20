@@ -4,8 +4,10 @@ import { motion } from "framer-motion";
 import {
   BarChart3, CheckCircle2, Clock, Users, TrendingUp,
   Zap, Droplets, MapPin, Loader2, Shield, AlertTriangle,
-  ArrowRight, Search, Activity, Sparkles, Filter,
+  ArrowRight, Search, Activity, Sparkles, Filter, Download,
+  FileText, Database,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   ResponsiveContainer, Legend,
@@ -110,6 +112,111 @@ const TransparencyPage = () => {
   const maxMonthly = stats?.monthly
     ? Math.max(...stats.monthly.map((m) => m.total), 1)
     : 1;
+
+  const handleExportPublicGeoJSON = async () => {
+    try {
+      toast.info("Génération du fichier SIG GeoJSON...");
+      const { data, error } = await supabase
+        .from("reports")
+        .select("id, ticket_code, service_type, report_category, commune, quartier, description, status, urgency, verifications, latitude, longitude, created_at, resolved_at")
+        .not("latitude", "is", null)
+        .not("longitude", "is", null)
+        .limit(1000);
+
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        toast.error("Aucune donnée géolocalisée disponible.");
+        return;
+      }
+
+      const geojson = {
+        type: "FeatureCollection",
+        generator: "SIGNA.ci Open Data Platform",
+        timestamp: new Date().toISOString(),
+        features: data.map((r) => ({
+          type: "Feature",
+          geometry: {
+            type: "Point",
+            coordinates: [r.longitude, r.latitude],
+          },
+          properties: {
+            id: r.id,
+            ticket_code: r.ticket_code,
+            service: r.service_type,
+            category: r.report_category,
+            commune: r.commune,
+            quartier: r.quartier,
+            description: r.description,
+            status: r.status,
+            urgency: r.urgency,
+            supports: r.verifications,
+            created_at: r.created_at,
+            resolved_at: r.resolved_at,
+          },
+        })),
+      };
+
+      const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: "application/geo+json;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `SIGNA_CI_OpenData_Couche_SIG_${new Date().toISOString().slice(0, 10)}.geojson`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("Couche SIG GeoJSON téléchargée avec succès !");
+    } catch (err: any) {
+      toast.error(err.message || "Erreur lors de l'export GeoJSON");
+    }
+  };
+
+  const handleExportPublicCSV = async () => {
+    try {
+      toast.info("Préparation de l'export Open Data CSV...");
+      const { data, error } = await supabase
+        .from("reports")
+        .select("created_at, ticket_code, service_type, report_category, commune, quartier, description, status, verifications, latitude, longitude, resolved_at")
+        .order("created_at", { ascending: false })
+        .limit(1000);
+
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        toast.error("Aucune donnée disponible.");
+        return;
+      }
+
+      const headers = ["Date", "Ticket", "Service", "Catégorie", "Commune", "Quartier", "Description", "Statut", "Soutiens", "Latitude", "Longitude", "Date Résolution"];
+      const rows = data.map((r) => [
+        `"${new Date(r.created_at).toLocaleDateString("fr-FR")}"`,
+        `"${r.ticket_code || "–"}"`,
+        `"${r.service_type}"`,
+        `"${r.report_category || "–"}"`,
+        `"${r.commune}"`,
+        `"${r.quartier || "–"}"`,
+        `"${(r.description || "").replace(/"/g, '""')}"`,
+        `"${r.status}"`,
+        `"${r.verifications || 0}"`,
+        `"${r.latitude || ""}"`,
+        `"${r.longitude || ""}"`,
+        `"${r.resolved_at ? new Date(r.resolved_at).toLocaleDateString("fr-FR") : "–"}"`,
+      ]);
+
+      const csvContent = "\uFEFF" + [headers.join(";"), ...rows.map((row) => row.join(";"))].join("\r\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `SIGNA_CI_OpenData_National_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("Fichier CSV Open Data téléchargé avec succès !");
+    } catch (err: any) {
+      toast.error(err.message || "Erreur lors de l'export CSV");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -695,24 +802,45 @@ const TransparencyPage = () => {
               </div>
 
               {/* Carte Développeurs & Open Data */}
-              <div className="rounded-3xl border border-blue-500/30 bg-blue-500/10 p-6 sm:p-8 flex flex-col justify-between">
+              <div className="rounded-3xl border border-blue-500/30 bg-blue-500/10 p-6 sm:p-8 flex flex-col justify-between space-y-4">
                 <div>
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-500 text-white mb-4">
-                    <Activity className="h-6 w-6" />
+                    <Database className="h-6 w-6" />
                   </div>
-                  <h3 className="text-lg font-black text-foreground">Pour les Développeurs &amp; Chercheurs</h3>
+                  <h3 className="text-lg font-black text-foreground">Pour les Urbanistes &amp; Chercheurs</h3>
                   <p className="text-xs sm:text-sm text-muted-foreground mt-2 leading-relaxed">
-                    Code 100% Open Source et flux de données ouvertes pour la recherche urbaine, le journalisme d'investigation et les civic techs.
+                    Téléchargez les données ouvertes géoréférencées pour vos analyses SIG, études d'impact urbain et recherches universitaires.
                   </p>
                 </div>
-                <a
-                  href="https://github.com/jeananvoh-cmyk/civic-signal"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-6 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
-                >
-                  Dépôt GitHub &amp; API <ExternalLink className="h-4 w-4" />
-                </a>
+
+                <div className="space-y-2 pt-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={handleExportPublicGeoJSON}
+                      className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] shadow-sm transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Couche SIG (GeoJSON)
+                    </button>
+
+                    <button
+                      onClick={handleExportPublicCSV}
+                      className="py-2.5 px-3 rounded-xl border border-blue-500/40 bg-card hover:bg-blue-500/20 text-foreground font-bold text-[11px] transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <FileText className="h-3.5 w-3.5 text-blue-500" />
+                      Tableau (CSV)
+                    </button>
+                  </div>
+
+                  <a
+                    href="https://github.com/jeananvoh-cmyk/civic-signal"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 rounded-xl border border-border bg-card hover:bg-muted text-foreground font-bold text-[11px] transition-all flex items-center justify-center gap-1.5"
+                  >
+                    Dépôt GitHub &amp; API Open311 <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                  </a>
+                </div>
               </div>
 
             </motion.div>

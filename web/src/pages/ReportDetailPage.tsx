@@ -17,6 +17,7 @@ import PhotoGallery from "@/components/PhotoGallery";
 import DurationBadge from "@/components/DurationBadge";
 import ShareButton from "@/components/ShareButton";
 import ReportComments from "@/components/ReportComments";
+import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNE_COLORS } from "@/lib/communes";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -371,12 +372,29 @@ const ReportDetailPage = () => {
                     </div>
                   </div>
                   <div className="mt-3 pt-3 border-t border-success/20 flex flex-wrap items-center justify-between gap-2">
-                    <Button asChild size="sm" variant="outline" className="border-success/40 text-success hover:bg-success/10 text-xs gap-1.5">
-                      <Link to="/signaler">
-                        {isInfra ? <Wrench className="h-3.5 w-3.5" /> : <Zap className="h-3.5 w-3.5" />}
-                        {isInfra ? "Signaler un autre problème" : "Signaler une coupure"}
-                      </Link>
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          const ticketDisplay = report.ticket_code ? `#${report.ticket_code}` : "";
+                          const text = `✅ *BONNE NOUVELLE (${report.commune} · ${report.quartier})* :\n\nL'incident ${ticketDisplay ? `(${ticketDisplay}) ` : ""}"${report.description || (isInfra ? "Voirie / Éclairage" : isElec ? "Coupure de courant" : "Coupure d'eau")}" a été résolu et rétabli !\n\nSuivez l'état des infrastructures de notre quartier en direct sur SIGNA.ci :\n👉 ${window.location.href}`;
+                          window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
+                        }}
+                        className="bg-[#25D366] hover:bg-[#1EBE5D] text-slate-950 font-bold text-xs gap-1.5 shadow-sm"
+                      >
+                        <div className="h-4 w-4 rounded-full flex items-center justify-center">
+                          <WhatsAppIcon className="h-3.5 w-3.5" />
+                        </div>
+                        <span>Annoncer aux voisins sur WhatsApp</span>
+                      </Button>
+
+                      <Button asChild size="sm" variant="outline" className="border-success/40 text-success hover:bg-success/10 text-xs gap-1.5">
+                        <Link to="/signaler">
+                          {isInfra ? <Wrench className="h-3.5 w-3.5" /> : <Zap className="h-3.5 w-3.5" />}
+                          {isInfra ? "Signaler un autre problème" : "Signaler une coupure"}
+                        </Link>
+                      </Button>
+                    </div>
 
                     {isInfra && (
                       <Button

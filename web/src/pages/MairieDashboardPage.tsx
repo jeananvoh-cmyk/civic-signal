@@ -7,7 +7,7 @@ import {
   CheckCircle2, Clock, AlertTriangle, UserCheck, FileText,
   Filter, Search, ArrowRight, Printer, Share2, Shield,
   TrendingUp, Users, ChevronRight, CheckCircle, ExternalLink,
-  Sparkles, Phone, Calendar
+  Sparkles, Phone, Calendar, Download
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -255,6 +255,54 @@ const MairieDashboardPage = () => {
     });
   };
 
+  // Exportation des données de la Mairie en CSV / Excel
+  const handleExportCSV = () => {
+    if (municipalReports.length === 0) {
+      toast.error("Aucun dossier à exporter pour cette mairie.");
+      return;
+    }
+
+    const headers = [
+      "Date de Signalement",
+      "N° Ticket",
+      "Commune",
+      "Quartier",
+      "Catégorie",
+      "Description",
+      "Statut",
+      "N° Ordre de Travail (OT)",
+      "Note Technique / Rapport",
+      "Délai Estimé / Clôture",
+      "Nombre de Soutiens Citoyens",
+    ];
+
+    const rows = municipalReports.map((r) => [
+      `"${new Date(r.created_at).toLocaleDateString("fr-FR")}"`,
+      `"${r.ticket_code || "–"}"`,
+      `"${r.commune}"`,
+      `"${r.quartier || "–"}"`,
+      `"${r.report_category || r.service_type}"`,
+      `"${(r.description || "").replace(/"/g, '""')}"`,
+      `"${r.status === "resolved" ? "Résolu" : r.status === "processing" ? "En cours" : "À planifier"}"`,
+      `"${r.operator_reference || "–"}"`,
+      `"${(r.operator_last_note || "").replace(/"/g, '""')}"`,
+      `"${r.resolved_at ? new Date(r.resolved_at).toLocaleDateString("fr-FR") : (r.estimated_resolution_time ? new Date(r.estimated_resolution_time).toLocaleDateString("fr-FR") : "–")}"`,
+      `"${r.verifications || 0}"`,
+    ]);
+
+    const csvContent = "\uFEFF" + [headers.join(";"), ...rows.map((row) => row.join(";"))].join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Rapport_Services_Techniques_Mairie_${selectedCommune}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`Export Excel/CSV de la Mairie de ${selectedCommune} téléchargé !`);
+  };
+
   const activeCommuneObj = COMMUNES.find((c) => c.nom === selectedCommune);
   const logoUrl = COMMUNE_LOGOS[selectedCommune];
 
@@ -311,6 +359,16 @@ const MairieDashboardPage = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportCSV}
+              className="h-11 px-4 rounded-xl border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-bold gap-2"
+            >
+              <Download className="h-4 w-4 text-emerald-600" />
+              Exporter Excel / CSV
+            </Button>
 
             <Button
               variant="outline"
