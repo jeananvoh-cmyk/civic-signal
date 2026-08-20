@@ -6,7 +6,7 @@ import {
   ArrowLeft, Zap, Droplets, MapPin, Calendar, CheckCircle2,
   Clock, Users, AlertTriangle, ExternalLink, Loader2, Shield, ThumbsUp,
   LogIn, UserPlus, Wrench, PartyPopper, Radio, AlertOctagon,
-  Ticket, Building2, Copy, Check
+  Ticket, Landmark, Copy, Check
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -579,7 +579,7 @@ const ReportDetailPage = () => {
 
                   {/* Adresse PADA */}
                   <div className="flex items-start gap-2 pt-0.5">
-                    <Building2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                    <Landmark className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                     <div className="min-w-0">
                       <span className="text-[10px] uppercase font-bold text-muted-foreground">Adressage PADA (MCLU) : </span>
                       <span className="text-foreground font-semibold">
@@ -670,7 +670,7 @@ const ReportDetailPage = () => {
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-primary" />
+                    <Landmark className="h-4 w-4 text-primary" />
                     <span className="text-xs font-bold uppercase tracking-wider text-primary">
                       {report.operator_name || "Opérateur / Mairie"}
                     </span>

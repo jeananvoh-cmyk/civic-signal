@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Radio, Users, BarChart3, Zap, ArrowRight, MapPin, Award, MessageCircle, Copy, Check, Ticket, Building2 } from "lucide-react";
+import { CheckCircle2, Radio, Users, BarChart3, Zap, ArrowRight, MapPin, Award, MessageCircle, Copy, Check, Ticket, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
@@ -262,7 +262,7 @@ const ConfirmationPage = () => {
 
           {/* Adresse Officielle PADA (MCLU) */}
           <div className="flex items-start gap-2.5 text-xs">
-            <Building2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+            <Landmark className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
             <div className="space-y-0.5 min-w-0">
               <p className="font-bold text-foreground flex items-center gap-1.5 flex-wrap">
                 <span>Nomenclature Nationale (PADA / MCLU)</span>

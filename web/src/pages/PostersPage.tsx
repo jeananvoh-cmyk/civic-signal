@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import {
   Printer, Share2, Download, Copy, Check, MapPin,
-  Building2, Zap, Droplets, Wrench, Trash2, Lightbulb,
+  Landmark, Zap, Droplets, Wrench, Trash2, Lightbulb,
   Sparkles, MessageCircle, AlertCircle, Info, ExternalLink,
   ChevronRight, CheckCircle2, ShieldCheck, HeartHandshake
 } from "lucide-react";
@@ -351,7 +351,7 @@ export default function PostersPage() {
                       {communeLogo ? (
                         <img src={communeLogo} alt={selectedCommune} className="h-full w-full object-contain" />
                       ) : (
-                        <Building2 className="h-8 w-8 text-emerald-700" />
+                        <Landmark className="h-8 w-8 text-emerald-700" />
                       )}
                     </div>
                     <div>

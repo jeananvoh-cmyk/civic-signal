@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
-  Zap, Droplets, Building2, BarChart3, Bell, Users, CheckCircle2,
+  Zap, Droplets, Building2, Landmark, BarChart3, Bell, Users, CheckCircle2,
   ArrowRight, Mail, MapPin, TrendingUp, Shield, Clock, MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -70,7 +70,7 @@ const BENEFITS_CIE_SODECI = [
 
 const BENEFITS_MAIRIE = [
   {
-    icon: Building2,
+    icon: Landmark,
     title: "Tableau de bord dédié",
     desc: "Suivez en temps réel tous les signalements d'infrastructure (voirie, caniveaux, éclairage) dans votre commune.",
   },
@@ -133,7 +133,7 @@ const PARTNER_TYPES = [
     desc: "Anticipez et suivez la maintenance des réseaux de drainage pluvial et réduisez les risques d'inondations urbaines.",
   },
   {
-    icon: Building2,
+    icon: Landmark,
     color: "#10B981",
     bg: "bg-emerald-500/10",
     title: "Mairies",

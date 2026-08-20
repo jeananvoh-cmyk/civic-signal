@@ -1,4 +1,4 @@
-import { Zap, Droplets, Building2, LucideIcon } from "lucide-react";
+import { Zap, Droplets, Landmark, LucideIcon } from "lucide-react";
 
 export type ServiceType = "electricity" | "water" | "mairie";
 export type UrgencyLevel = "low" | "medium" | "high" | "critical";
@@ -98,7 +98,7 @@ export const SERVICE_CONFIG: Record<ServiceType, { label: string; icon: LucideIc
   },
   mairie: {
     label: "Mairie",
-    icon: Building2,
+    icon: Landmark,
     colorClass: "text-emerald-500",
     bgClass: "bg-emerald-500",
     lightBgClass: "bg-emerald-500/10",

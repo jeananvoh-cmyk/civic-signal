@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Zap, Droplets, MapPin, Clock, ThumbsUp, CheckCircle,
   Filter, TrendingUp, AlertCircle, AlertTriangle, ChevronDown, Lightbulb,
-  Building2, ExternalLink, X as XIcon, Pencil, Map as MapIcon,
+  Landmark, ExternalLink, X as XIcon, Pencil, Map as MapIcon,
   Camera, MessageSquare, Share2, Globe, Sparkles, CheckCircle2,
   Flame, ShieldAlert, Navigation, Plus, PhoneCall, ChevronRight,
   SlidersHorizontal, Search, ArrowLeft, Send, CheckCheck, List, Layers, Compass
@@ -666,7 +666,7 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
         <div className="container max-w-7xl flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-500/20 shadow-xs">
-              <Building2 className="h-5 w-5" />
+              <Landmark className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -974,7 +974,7 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                   <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-4 space-y-2 shadow-xs">
                     <div className="flex items-center justify-between gap-1">
                       <div className="flex items-center gap-1.5">
-                        <Building2 className="h-4 w-4 text-primary" />
+                        <Landmark className="h-4 w-4 text-primary" />
                         <span className="text-xs font-bold uppercase tracking-wider text-primary">
                           {selectedReport.operator_name || "Services Techniques"}
                         </span>

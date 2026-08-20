@@ -5,7 +5,7 @@ import {
   Send, Clock, CheckCircle2, XCircle, RefreshCw,
   Zap, Droplets, AlertTriangle, MailCheck, MapPin, Users,
   ChevronDown, ChevronUp, ExternalLink, Settings, FlaskConical,
-  ShieldCheck, Save, Ban, MessageCircle, Building2, TicketCheck,
+  ShieldCheck, Save, Ban, MessageCircle, Building2, Landmark, TicketCheck,
   Scale, Copy, Eye, EyeOff, KeyRound, Calendar, Filter, Trash2, Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -1980,7 +1980,7 @@ const AdminRelayPage = () => {
           { label: "SODECI",      value: stats.sodeci,  icon: Droplets,     color: "text-sky-600" },
           { label: "ANARE-CI",    value: stats.anare,   icon: Scale,        color: "text-amber-600" },
           { label: "ONEP",       value: stats.onep,    icon: ShieldCheck,  color: "text-cyan-600" },
-          { label: "Mairies",     value: stats.mairie,  icon: Building2,    color: "text-orange-600" },
+          { label: "Mairies",     value: stats.mairie,  icon: Landmark,     color: "text-orange-600" },
         ].map((kpi) => (
           <div key={kpi.label} className="rounded-xl border border-border bg-card p-3 flex flex-col gap-1">
             <div className="flex items-center gap-1 text-muted-foreground truncate">
@@ -2001,7 +2001,7 @@ const AdminRelayPage = () => {
           className="rounded-xl border border-orange-200 dark:border-orange-800/40 bg-orange-50/50 dark:bg-orange-900/10 p-4"
         >
           <div className="flex items-center gap-2 mb-3">
-            <Building2 className="h-4 w-4 text-orange-600" />
+            <Landmark className="h-4 w-4 text-orange-600" />
             <p className="text-xs font-semibold text-orange-700 dark:text-orange-400">
               Signalements infrastructure par mairie
             </p>
@@ -3023,7 +3023,7 @@ const AdminRelayPage = () => {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-orange-500" />
+                  <Landmark className="h-4 w-4 text-orange-500" />
                   Mairies & Services Techniques Municipaux (Côte d'Ivoire)
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -3088,7 +3088,7 @@ const AdminRelayPage = () => {
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <Building2 className={`h-4 w-4 ${isEnabled || hasEmail ? "text-orange-600" : "text-muted-foreground/40"}`} />
+                        <Landmark className={`h-4 w-4 ${isEnabled || hasEmail ? "text-orange-600" : "text-muted-foreground/40"}`} />
                         <div>
                           <span className="text-sm font-bold text-foreground">{label}</span>
                           <span className="text-xs text-muted-foreground ml-2 font-medium">({region})</span>

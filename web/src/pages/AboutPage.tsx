@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
   Shield, Users, MapPin, Zap, Droplets, Heart, ArrowRight,
-  TrendingUp, Building2, ExternalLink, Download, QrCode,
+  TrendingUp, Landmark, ExternalLink, Download, QrCode,
   Sparkles, CheckCircle2, Share2, Printer
 } from "lucide-react";
 import Header from "@/components/Header";

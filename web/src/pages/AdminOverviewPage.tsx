@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   FileText, Users, AlertTriangle, CheckCircle2, Clock, Eye, Megaphone,
-  Zap, Droplets, Shield, Trash2, BarChart3, ArrowRight, Heart, MailCheck, Building2, Activity, AlertOctagon, SlidersHorizontal, Minus, Plus,
+  Zap, Droplets, Shield, Trash2, BarChart3, ArrowRight, Heart, MailCheck, Building2, Landmark, Activity, AlertOctagon, SlidersHorizontal, Minus, Plus,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -479,7 +479,7 @@ const AdminOverviewPage = () => {
             <div className="rounded-xl border border-teal-500/30 bg-teal-500/5 group-hover:bg-teal-500/10 p-3.5 flex items-center justify-between transition-all">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-500/20 text-teal-600 dark:text-teal-400">
-                  <Building2 className="h-5 w-5" />
+                  <Landmark className="h-5 w-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">

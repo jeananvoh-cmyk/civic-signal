@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Zap, Droplets, Clock, MapPin, TrendingUp, RefreshCw, Info, Search, Ticket, Building2, Copy } from "lucide-react";
+import { Zap, Droplets, Clock, MapPin, TrendingUp, RefreshCw, Info, Search, Ticket, Landmark, Copy } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

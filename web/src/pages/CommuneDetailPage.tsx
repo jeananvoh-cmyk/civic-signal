@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useGoBack } from "@/hooks/useGoBack";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Zap, Droplets, MapPin, Clock, TrendingUp, TrendingDown, Minus, Wrench, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Zap, Droplets, MapPin, Clock, TrendingUp, TrendingDown, Minus, Wrench, CheckCircle2, Landmark } from "lucide-react";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
 import CommuneAlertButton from "@/components/CommuneAlertButton";
@@ -157,7 +157,7 @@ const CommuneDetailPage = () => {
                     onClick={() => navigate(`/mairie/${encodeURIComponent(decodedName)}`)}
                     className="h-8 gap-1.5 rounded-full text-xs font-semibold border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20"
                   >
-                    <Building2 className="h-3.5 w-3.5 text-emerald-500" />
+                    <Landmark className="h-3.5 w-3.5 text-emerald-500" />
                     Services Techniques Mairie
                   </Button>
                 </div>
