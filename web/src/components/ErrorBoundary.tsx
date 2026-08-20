@@ -24,40 +24,19 @@ export class ErrorBoundary extends Component<Props, State> {
 
   private handleUpdate = async () => {
     try {
-      sessionStorage.removeItem("signa_eb_chunk_reload_ts");
-      sessionStorage.removeItem("signa_chunk_retry_ts");
+      sessionStorage.clear();
       if ("caches" in window) {
         const cacheNames = await caches.keys();
         await Promise.all(cacheNames.map((name) => caches.delete(name)));
       }
-      if ("serviceWorker" in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (const reg of registrations) {
-          await reg.unregister();
-        }
-      }
     } catch {
       // Ignorer
     }
-    window.location.href = window.location.pathname + "?v=" + Date.now();
+    window.location.reload();
   };
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
-    const isChunkError =
-      error?.message?.includes("Failed to fetch dynamically imported module") ||
-      error?.message?.includes("Importing a module script failed") ||
-      error?.message?.includes("Loading chunk") ||
-      error?.name === "ChunkLoadError";
-
-    if (isChunkError) {
-      const lastReload = parseInt(sessionStorage.getItem("signa_eb_chunk_reload_ts") || "0", 10);
-      const now = Date.now();
-      if (now - lastReload > 10000) {
-        sessionStorage.setItem("signa_eb_chunk_reload_ts", now.toString());
-        this.handleUpdate();
-      }
-    }
   }
 
   public render() {

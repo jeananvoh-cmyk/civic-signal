@@ -26,8 +26,7 @@ function lazyWithRetry<T extends React.ComponentType<any>>(
   return lazy(async () => {
     try {
       const component = await factory();
-      // Reset retry flag on success
-      window.sessionStorage.removeItem("signa_chunk_retry_refreshed");
+      window.sessionStorage.removeItem("signa_chunk_retried");
       return component;
     } catch (error: any) {
       const isDynamicImportError =
@@ -38,16 +37,10 @@ function lazyWithRetry<T extends React.ComponentType<any>>(
         error?.name === "ChunkLoadError";
 
       if (isDynamicImportError) {
-        const lastRetry = parseInt(window.sessionStorage.getItem("signa_chunk_retry_ts") || "0", 10);
-        const now = Date.now();
-        if (now - lastRetry > 8000) {
-          window.sessionStorage.setItem("signa_chunk_retry_ts", now.toString());
-          try {
-            if ("caches" in window) {
-              caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
-            }
-          } catch {}
-          window.location.href = window.location.pathname + "?v=" + now;
+        const alreadyRetried = window.sessionStorage.getItem("signa_chunk_retried");
+        if (!alreadyRetried) {
+          window.sessionStorage.setItem("signa_chunk_retried", "1");
+          window.location.reload();
           return new Promise<{ default: T }>(() => {});
         }
       }
