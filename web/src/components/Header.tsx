@@ -339,6 +339,28 @@ const Header = () => {
                     </Link>
 
                     <Link
+                      to="/verification"
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex items-center justify-between rounded-xl px-3.5 py-3 text-sm font-semibold transition-all border",
+                        isActive("/verification")
+                          ? "bg-primary/10 text-primary border-primary/30 font-bold"
+                          : "bg-card/70 border-border/60 text-foreground/90 hover:bg-muted/70"
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle2 className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="leading-tight">Vérifier & Corroborer</p>
+                          <p className="text-[11px] font-normal text-muted-foreground">Confirmer les pannes signalées près de chez vous</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+                    </Link>
+
+                    <Link
                       to="/infrastructures"
                       onClick={() => setMobileOpen(false)}
                       className={cn(
@@ -457,19 +479,43 @@ const Header = () => {
                       </div>
                     </Link>
 
-                    <Link
-                      to="/partenaire"
-                      onClick={() => setMobileOpen(false)}
-                      className="flex items-center gap-3 rounded-xl p-3 bg-card/60 border border-border/60 hover:bg-muted/60 text-xs font-semibold"
-                    >
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/15 text-sky-600 shrink-0">
-                        <Handshake className="h-3.5 w-3.5" />
-                      </div>
-                      <div>
-                        <p className="text-foreground font-bold leading-tight">Régulateurs & Opérateurs</p>
-                        <p className="text-[10px] text-muted-foreground">CIE · SODECI · ANARE-CI</p>
-                      </div>
-                    </Link>
+                    {/* Espace Admin / Modérateur pour les équipes habilitées */}
+                    {(isAdmin || isModerator) && (
+                      <Link
+                        to="/admin"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-3 rounded-xl p-3 bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 text-xs font-bold col-span-1 sm:col-span-2 shadow-xs"
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground shrink-0">
+                          <Shield className="h-3.5 w-3.5" />
+                        </div>
+                        <div>
+                          <p className="font-bold leading-tight flex items-center gap-1.5">
+                            <span>Panneau d'Administration</span>
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-primary text-primary-foreground font-black uppercase">
+                              {isAdmin ? "Super Admin" : "Modérateur"}
+                            </span>
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">Gestion des signalements, relais & réglages du site</p>
+                        </div>
+                      </Link>
+                    )}
+
+                    {partnersEnabled && (
+                      <Link
+                        to="/partenaire"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-3 rounded-xl p-3 bg-card/60 border border-border/60 hover:bg-muted/60 text-xs font-semibold"
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/15 text-sky-600 shrink-0">
+                          <Handshake className="h-3.5 w-3.5" />
+                        </div>
+                        <div>
+                          <p className="text-foreground font-bold leading-tight">Régulateurs & Opérateurs</p>
+                          <p className="text-[10px] text-muted-foreground">CIE · SODECI · ANARE-CI</p>
+                        </div>
+                      </Link>
+                    )}
 
                     <Link
                       to="/affiches"
