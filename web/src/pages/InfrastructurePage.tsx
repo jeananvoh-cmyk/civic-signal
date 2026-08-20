@@ -730,224 +730,234 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
           {/* LISTE OU FICHE DÉTAILLÉE MASTER-DETAIL */}
           <div className="flex-1 overflow-y-auto divide-y divide-border/40">
             {selectedReport ? (
-              /* ── VUE FICHE DÉTAILLÉE AVEC JOURNAL "UPDATES" (FixMyStreet Style) ── */
+              /* ── VUE FICHE OFFICIELLE STRICTE (Conforme 100% à la Base de Données) ── */
               <div className="p-4 space-y-4">
-                <button
-                  onClick={() => setSelectedReport(null)}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 hover:text-emerald-500 transition-colors"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5" />
-                  <span>Retour à la liste des pannes</span>
-                </button>
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    onClick={() => setSelectedReport(null)}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 hover:text-emerald-500 transition-colors"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    <span>Retour à la liste</span>
+                  </button>
 
-                {/* Header Fiche */}
-                <div className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-xs">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">
-                        {selectedReport.service_type === "electricity" ? "💡" : selectedReport.service_type === "water" ? "💧" : "🚧"}
-                      </span>
-                      <div>
-                        <h2 className="text-sm font-extrabold text-foreground">
-                          {extractInfraLabel(selectedReport.description)}
-                        </h2>
-                        <p className="text-xs text-muted-foreground">
-                          {selectedReport.commune} · {selectedReport.quartier || "Abidjan"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <Badge className={cn(
-                      "text-[10px] font-bold",
-                      selectedReport.status === "resolved"
-                        ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
-                        : "bg-amber-500/10 text-amber-600 border-amber-500/30"
-                    )}>
-                      {selectedReport.status === "resolved" ? "✓ Réparé" : "⏳ En attente"}
-                    </Badge>
-                  </div>
-
-                  {/* Description */}
-                  <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-line bg-muted/30 p-3 rounded-xl border border-border/40">
-                    {cleanDescription(selectedReport.description)}
-                  </p>
-
-                  {/* PADA & Ticket Ref */}
-                  <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
-                    <div className="p-2 rounded-lg bg-background border border-border/60">
-                      <span className="text-muted-foreground block text-[10px]">Réf. Ticket :</span>
-                      <span className="font-mono font-bold text-foreground">
-                        {getDisplayTicketCode({
-                          ticket_code: selectedReport.ticket_code,
-                          commune: selectedReport.commune,
-                          created_at: selectedReport.created_at,
-                          id: selectedReport.id,
-                        })}
-                      </span>
-                    </div>
-                    <div className="p-2 rounded-lg bg-background border border-border/60">
-                      <span className="text-muted-foreground block text-[10px]">Adresse :</span>
-                      <span className="font-semibold text-foreground truncate block">
-                        {selectedReport.location || `${selectedReport.quartier}, ${selectedReport.commune}`}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Operator Info Note if exists */}
-                  {(selectedReport.operator_name || selectedReport.operator_reference || selectedReport.operator_last_note) && (
-                    <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-1.5">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-300">
-                          🏛️ Note Opérateur : {selectedReport.operator_name || "Services Techniques"}
-                        </span>
-                        {selectedReport.operator_reference && (
-                          <Badge variant="outline" className="text-[9px] font-mono">
-                            {selectedReport.operator_reference}
-                          </Badge>
-                        )}
-                      </div>
-                      {selectedReport.operator_last_note && (
-                        <p className="text-xs italic text-foreground/90">
-                          "{selectedReport.operator_last_note}"
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Photo Gallery if any */}
-                  {(selectedReport.photo_url || (selectedReport.photo_urls && selectedReport.photo_urls.length > 0)) && (
-                    <div className="pt-2">
-                      <PhotoGallery
-                        photos={selectedReport.photo_urls && selectedReport.photo_urls.length > 0 ? selectedReport.photo_urls : [selectedReport.photo_url!]}
-                        thumbHeight="h-44"
-                      />
-                    </div>
-                  )}
-
-                  {/* Action Buttons */}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/60">
-                    <Button
-                      onClick={(e) => handleSupport(selectedReport.id, e)}
-                      variant={supported.has(selectedReport.id) ? "default" : "outline"}
-                      size="sm"
-                      className="rounded-xl text-xs font-bold gap-1.5 h-9"
-                    >
-                      <ThumbsUp className="h-3.5 w-3.5" />
-                      <span>{supported.has(selectedReport.id) ? "Soutenu" : "Soutenir"} ({selectedReport.support_count || 0})</span>
-                    </Button>
-
-                    <Button
-                      onClick={(e) => handleShareWhatsApp(selectedReport, e)}
-                      variant="outline"
-                      size="sm"
-                      className="rounded-xl text-xs font-bold gap-1.5 h-9 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20"
-                    >
-                      <Share2 className="h-3.5 w-3.5" />
-                      <span>Partager WhatsApp</span>
-                    </Button>
-                  </div>
+                  <Button
+                    asChild
+                    size="sm"
+                    variant="ghost"
+                    className="text-xs font-bold text-muted-foreground hover:text-foreground gap-1 h-7 px-2"
+                  >
+                    <Link to={`/signalement/${selectedReport.id}`}>
+                      <span>Fiche officielle</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </Button>
                 </div>
 
-                {/* ── JOURNAL OFFICIEL DE SUIVI (UPDATES) ── */}
-                <div className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-xs">
-                  <div className="flex items-center gap-2 pb-2 border-b border-border/60">
-                    <Clock className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-foreground">
-                      Journal Officiel de Suivi (Updates)
-                    </h3>
-                  </div>
+                {/* Header Fiche & Informations Réelles */}
+                <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
+                  {/* Bande de couleur de la commune */}
+                  <div
+                    className="h-1.5 w-full"
+                    style={{ backgroundColor: COMMUNE_COLORS[selectedReport.commune] || "#10B981" }}
+                  />
 
-                  <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-border">
-                    {/* Étape 1 : Signalement */}
-                    <div className="relative">
-                      <span className="absolute -left-6 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-[9px] text-white font-bold ring-4 ring-background">
-                        1
-                      </span>
-                      <div>
-                        <div className="text-xs font-bold text-foreground">Signalement Citoyen Enregistré</div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {formatDistanceToNow(new Date(selectedReport.created_at), { addSuffix: true, locale: fr })}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          Signalement validé par la vigie citoyenne et géolocalisé avec code cadastral PADA.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Étape 2 : Transmission Opérateur */}
-                    <div className="relative">
-                      <span className="absolute -left-6 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] text-white font-bold ring-4 ring-background">
-                        2
-                      </span>
-                      <div>
-                        <div className="text-xs font-bold text-foreground">Transmission aux Services Techniques</div>
-                        <div className="text-[10px] text-muted-foreground">
-                          Transmis à la {selectedReport.service_type === "electricity" ? "CIE (Dépannage 179)" : selectedReport.service_type === "water" ? "SODECI (175)" : `Mairie de ${selectedReport.commune}`}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          Dossier envoyé dans le flux de télé-relève institutionnel avec numéro de référence.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Étapes intermédiaires réelles depuis report_status_history */}
-                    {statusHistory.map((item, idx) => (
-                      <div key={item.id || idx} className="relative">
-                        <span className="absolute -left-6 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-sky-600 text-[9px] text-white font-bold ring-4 ring-background">
-                          ★
+                  <div className="p-4 space-y-3.5">
+                    {/* Catégorie & Statut réel */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">
+                          {selectedReport.service_type === "electricity" ? "💡" : selectedReport.service_type === "water" ? "💧" : "🚧"}
                         </span>
                         <div>
-                          <div className="text-xs font-bold text-foreground">
-                            {item.operator_name || "Opérateur Technique"} : {item.new_status === "processing" ? "Intervention en cours" : item.new_status === "resolved" ? "Réparation validée" : item.new_status}
+                          <h2 className="text-sm font-extrabold text-foreground leading-tight">
+                            {extractInfraLabel(selectedReport.description)}
+                          </h2>
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                            <MapPin className="h-3 w-3 text-emerald-600 shrink-0" />
+                            <span>{selectedReport.commune} {selectedReport.quartier ? `· ${selectedReport.quartier}` : ""}</span>
                           </div>
-                          <div className="text-[10px] text-muted-foreground">
-                            {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: fr })}
-                          </div>
-                          {item.public_note && (
-                            <p className="text-[11px] text-foreground/90 mt-0.5 italic bg-muted/40 p-2 rounded-lg">
-                              "{item.public_note}"
-                            </p>
-                          )}
                         </div>
                       </div>
-                    ))}
 
-                    {/* Étape 3 : Statut Actuel & Confirmation */}
-                    <div className="relative">
-                      <span className={cn(
-                        "absolute -left-6 top-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] text-white font-bold ring-4 ring-background",
-                        selectedReport.status === "resolved" ? "bg-emerald-600" : "bg-blue-500 animate-pulse"
+                      <Badge className={cn(
+                        "text-[10px] font-bold shrink-0",
+                        selectedReport.status === "resolved"
+                          ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+                          : "bg-destructive/10 text-destructive border-destructive/30"
                       )}>
-                        3
-                      </span>
-                      <div>
-                        <div className="text-xs font-bold text-foreground">
-                          {selectedReport.status === "resolved" ? "✅ Réparation Confirmée sur le Terrain" : "⏳ Prise en charge & Mobilisation"}
+                        {selectedReport.status === "resolved" ? "✅ Résolu" : "🔴 En attente"}
+                      </Badge>
+                    </div>
+
+                    {/* Référence Ticket Officiel & Adressage PADA */}
+                    <div className="rounded-xl border border-border/80 bg-muted/30 p-3 space-y-2 text-xs">
+                      <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-muted-foreground">Ticket Officiel : </span>
+                          <span className="font-mono font-black text-foreground">
+                            {getDisplayTicketCode({
+                              ticket_code: selectedReport.ticket_code,
+                              commune: selectedReport.commune,
+                              created_at: selectedReport.created_at,
+                              id: selectedReport.id,
+                            })}
+                          </span>
                         </div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {selectedReport.status === "resolved"
-                            ? selectedReport.resolved_at
-                              ? `Clôturé ${formatDistanceToNow(new Date(selectedReport.resolved_at), { addSuffix: true, locale: fr })}`
-                              : "Dossier clôturé avec succès"
-                            : `${selectedReport.support_count || 1} citoyen(s) soutiennent ce signalement · ${selectedReport.repair_verifications || 0} confirmation(s) de réparation`}
-                        </div>
-                        {selectedReport.status !== "resolved" && (
-                          <div className="mt-2">
-                            <Button
-                              onClick={(e) => handleConfirmRepair(selectedReport.id, e)}
-                              size="sm"
-                              variant="outline"
-                              className="text-[11px] font-bold h-8 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
-                            >
-                              <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                              {repaired.has(selectedReport.id) ? "Confirmation envoyée ✓" : "C'est déjà réparé ? Confirmer"}
-                            </Button>
-                          </div>
-                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 gap-1 hover:bg-emerald-500/10"
+                          onClick={() => {
+                            const code = getDisplayTicketCode({
+                              ticket_code: selectedReport.ticket_code,
+                              commune: selectedReport.commune,
+                              created_at: selectedReport.created_at,
+                              id: selectedReport.id,
+                            });
+                            navigator.clipboard.writeText(code);
+                            toast.success(`Ticket ${code} copié !`);
+                          }}
+                        >
+                          <span>Copier</span>
+                        </Button>
+                      </div>
+
+                      {/* Adresse cadastrale */}
+                      <div className="flex items-start gap-1.5 pt-0.5 text-[11px]">
+                        <Building2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                        <span className="text-foreground font-semibold">
+                          {selectedReport.location || `${selectedReport.quartier || ""}, ${selectedReport.commune}`}
+                        </span>
                       </div>
                     </div>
+
+                    {/* Description réelle */}
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Description</span>
+                      <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-line bg-muted/20 p-3 rounded-xl border border-border/40">
+                        {cleanDescription(selectedReport.description)}
+                      </p>
+                    </div>
+
+                    {/* Photos réelles depuis Supabase Storage */}
+                    {(selectedReport.photo_url || (selectedReport.photo_urls && selectedReport.photo_urls.length > 0)) && (
+                      <div className="pt-1">
+                        <PhotoGallery
+                          photos={
+                            selectedReport.photo_urls && selectedReport.photo_urls.length > 0
+                              ? selectedReport.photo_urls
+                              : [selectedReport.photo_url!]
+                          }
+                          thumbHeight="h-44"
+                        />
+                      </div>
+                    )}
+
+                    {/* Métadonnées réelles de la base */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/60 text-[11px] text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" />
+                        Signalé le {new Date(selectedReport.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
+                      </span>
+                      <span className="font-bold text-emerald-700 dark:text-emerald-300">
+                        👍 {selectedReport.support_count || 0} soutien(s)
+                      </span>
+                    </div>
+
+                    {/* Actions : Soutenir + Partager */}
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/60">
+                      <Button
+                        onClick={(e) => handleSupport(selectedReport.id, e)}
+                        variant={supported.has(selectedReport.id) ? "default" : "outline"}
+                        size="sm"
+                        className="rounded-xl text-xs font-bold gap-1.5 h-9"
+                      >
+                        <ThumbsUp className="h-3.5 w-3.5" />
+                        <span>{supported.has(selectedReport.id) ? "Soutenu" : "Soutenir"} ({selectedReport.support_count || 0})</span>
+                      </Button>
+
+                      <Button
+                        onClick={(e) => handleShareWhatsApp(selectedReport, e)}
+                        variant="outline"
+                        size="sm"
+                        className="rounded-xl text-xs font-bold gap-1.5 h-9 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20"
+                      >
+                        <Share2 className="h-3.5 w-3.5" />
+                        <span>Partager WhatsApp</span>
+                      </Button>
+                    </div>
+
+                    {/* Confirmation citoyenne de réparation si non résolu */}
+                    {selectedReport.status !== "resolved" && (
+                      <div className="pt-2 border-t border-border/40">
+                        <Button
+                          onClick={(e) => handleConfirmRepair(selectedReport.id, e)}
+                          size="sm"
+                          variant="outline"
+                          className="w-full text-xs font-bold h-8 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                          {repaired.has(selectedReport.id) ? "Confirmation envoyée ✓" : "C'est déjà réparé ? Confirmer"}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* ── ENCADRÉ OFFICIEL OPÉRATEUR (Affiché UNIQUEMENT si renseigné en BDD) ── */}
+                {(selectedReport.operator_name || selectedReport.operator_reference || selectedReport.operator_last_note) && (
+                  <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-4 space-y-2 shadow-xs">
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex items-center gap-1.5">
+                        <Building2 className="h-4 w-4 text-primary" />
+                        <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                          {selectedReport.operator_name || "Services Techniques"}
+                        </span>
+                      </div>
+                      {selectedReport.operator_reference && (
+                        <Badge variant="outline" className="text-[10px] font-mono bg-background border-primary/30 text-primary">
+                          Réf: {selectedReport.operator_reference}
+                        </Badge>
+                      )}
+                    </div>
+                    {selectedReport.operator_last_note && (
+                      <p className="text-xs italic text-foreground/90 bg-background/80 p-2.5 rounded-xl border border-border">
+                        "{selectedReport.operator_last_note}"
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* ── HISTORIQUE RÉEL DES MISES À JOUR (report_status_history) ── */}
+                {statusHistory.length > 0 && (
+                  <div className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-xs">
+                    <div className="flex items-center gap-2 pb-2 border-b border-border/60">
+                      <Clock className="h-4 w-4 text-emerald-600" />
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                        Historique des Mises à Jour
+                      </h3>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      {statusHistory.map((item, idx) => (
+                        <div key={item.id || idx} className="text-xs p-2.5 rounded-xl bg-muted/40 border border-border/40 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-foreground">
+                              {item.operator_name || "Opérateur"} : {item.new_status}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: fr })}
+                            </span>
+                          </div>
+                          {item.public_note && (
+                            <p className="text-[11px] text-foreground/80 italic">"{item.public_note}"</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : loading ? (
               /* Skeletons */
