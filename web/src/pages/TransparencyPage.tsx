@@ -5,7 +5,7 @@ import {
   BarChart3, CheckCircle2, Clock, Users, TrendingUp,
   Zap, Droplets, MapPin, Loader2, Shield, AlertTriangle,
   ArrowRight, Search, Activity, Sparkles, Filter, Download,
-  FileText, Database,
+  FileText, Database, ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import {

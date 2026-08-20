@@ -14,7 +14,8 @@ import {
   Landmark, ExternalLink, X as XIcon, Pencil, Map as MapIcon,
   Camera, MessageSquare, Share2, Globe, Sparkles, CheckCircle2,
   Flame, ShieldAlert, Navigation, Plus, PhoneCall, ChevronRight,
-  SlidersHorizontal, Search, ArrowLeft, Send, CheckCheck, List, Layers, Compass
+  SlidersHorizontal, Search, ArrowLeft, Send, CheckCheck, List, Layers, Compass,
+  Copy, Check
 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { formatDistanceToNow, format } from "date-fns";
