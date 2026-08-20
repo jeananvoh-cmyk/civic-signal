@@ -253,23 +253,48 @@ const DashboardPage = () => {
 
   const fetchAll = useCallback(async () => {
     const communeNames = COMMUNES.map((c) => c.nom);
-    const [statsRes, durRes, reportsRes, ...quartierResults] = await Promise.all([
+    const [statsRes, durRes, reportsRes, infraRes, adRes, ...quartierResults] = await Promise.all([
       supabase.rpc("get_commune_service_stats"),
       supabase.rpc("get_commune_duration_stats"),
       supabase.rpc("get_public_reports"),
+      supabase.rpc("get_commune_infrastructure_stats" as any),
+      supabase.rpc("get_commune_active_durations" as any),
       ...communeNames.map((nom) => supabase.rpc("get_commune_quartier_stats", { p_commune: nom })),
     ]);
     const rawStats = (!statsRes.error && Array.isArray(statsRes.data)) ? (statsRes.data as unknown as CommuneServiceStat[]) : [];
     const statsMap = new Map(rawStats.map((s) => [s.commune.toLowerCase().trim(), s]));
+    const infraList = (!infraRes.error && Array.isArray(infraRes.data)) ? (infraRes.data as any[]) : [];
+    const infraMap = new Map(infraList.map((i) => [i.commune?.toLowerCase().trim(), i]));
+    const activeDurMap = new Map<string, number>();
+    if (adRes?.data && Array.isArray(adRes.data)) {
+      (adRes.data as any[]).forEach((d) => {
+        const key = `${d.commune?.toLowerCase().trim()}_${d.service_type}`;
+        activeDurMap.set(key, Number(d.active_count || 0));
+      });
+    }
 
     const mergedStats: CommuneServiceStat[] = COMMUNES.map((c) => {
-      const existing = statsMap.get(c.nom.toLowerCase().trim());
+      const cKey = c.nom.toLowerCase().trim();
+      const existing = statsMap.get(cKey);
       if (existing) {
+        const elecKey = `${cKey}_electricity`;
+        const eauKey = `${cKey}_water`;
+
+        const elecActifs = activeDurMap.has(elecKey)
+          ? activeDurMap.get(elecKey)!
+          : Math.max(0, existing.electricite_actifs - (infraMap.get(cKey)?.elec_infra_actifs || 0));
+
+        const eauActifs = activeDurMap.has(eauKey)
+          ? activeDurMap.get(eauKey)!
+          : Math.max(0, existing.eau_actifs - (infraMap.get(cKey)?.eau_infra_actifs || 0));
+
         return {
           ...existing,
           commune: c.nom,
           couleur: c.couleur || existing.couleur,
           population: c.population || existing.population,
+          electricite_actifs: elecActifs,
+          eau_actifs: eauActifs,
         };
       }
       return {

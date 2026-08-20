@@ -242,10 +242,48 @@ const MapPage = () => {
       supabase.rpc("get_commune_duration_stats"),
       supabase.rpc("get_commune_active_durations" as any),
     ]);
-    if (!sRes.error && sRes.data) setStats(sRes.data as unknown as CommuneServiceStat[]);
-    if (!dRes.error && dRes.data) setDurationStats(dRes.data as unknown as DurationStat[]);
+
+    const infraList = (!iRes.error && iRes.data) ? (iRes.data as unknown as InfraStats[]) : [];
+    const infraMap = new Map(infraList.map((i) => [i.commune.toLowerCase().trim(), i]));
+
     if (!adRes.error && adRes.data) setActiveDurations(adRes.data as unknown as ActiveDurationStat[]);
-    if (!iRes.error && iRes.data) setInfraStats(iRes.data as unknown as InfraStats[]);
+    if (!iRes.error && iRes.data) setInfraStats(infraList);
+    if (!dRes.error && dRes.data) setDurationStats(dRes.data as unknown as DurationStat[]);
+
+    if (!sRes.error && sRes.data) {
+      const rawStats = sRes.data as unknown as CommuneServiceStat[];
+      const activeDurMap = new Map<string, number>();
+      if (adRes?.data && Array.isArray(adRes.data)) {
+        (adRes.data as any[]).forEach((d) => {
+          const key = `${d.commune?.toLowerCase().trim()}_${d.service_type}`;
+          activeDurMap.set(key, Number(d.active_count || 0));
+        });
+      }
+
+      // Reconcilie strictement les coupures domestiques en excluant les lampadaires/voirie
+      const sanitizedStats = rawStats.map((st) => {
+        const cKey = st.commune.toLowerCase().trim();
+        const elecKey = `${cKey}_electricity`;
+        const eauKey = `${cKey}_water`;
+
+        const elecActifs = activeDurMap.has(elecKey)
+          ? activeDurMap.get(elecKey)!
+          : Math.max(0, st.electricite_actifs - (infraMap.get(cKey)?.elec_infra_actifs || 0));
+
+        const eauActifs = activeDurMap.has(eauKey)
+          ? activeDurMap.get(eauKey)!
+          : Math.max(0, st.eau_actifs - (infraMap.get(cKey)?.eau_infra_actifs || 0));
+
+        return {
+          ...st,
+          electricite_actifs: elecActifs,
+          eau_actifs: eauActifs,
+        };
+      });
+
+      setStats(sanitizedStats);
+    }
+
     if (geoRes) setBoundaries(geoRes);
     setLastUpdated(new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
     setLoading(false);
@@ -280,54 +318,20 @@ const MapPage = () => {
       try {
         const list: ActiveReport[] = [];
 
-        // 1. Fetch public infrastructure reports via RPC (bypasses RLS)
-        try {
-          const { data: infraData } = await (supabase as any).rpc(
-            "get_public_infrastructure_reports",
-            { p_limit: 200 }
-          );
-          if (infraData && Array.isArray(infraData)) {
-            infraData.forEach((item: any) => {
-              const lat = item.latitude || item.latitude_approx;
-              const lon = item.longitude || item.longitude_approx;
-              if (lat && lon) {
-                list.push({
-                  id: item.id,
-                  latitude: Number(lat),
-                  longitude: Number(lon),
-                  service_type: item.service_type || "mairie",
-                  report_category: item.report_category || "infrastructure",
-                  description: item.description,
-                  photo_url: item.photo_url,
-                  photo_urls: item.photo_urls,
-                  verifications: Number(item.support_count || item.verifications || 0),
-                  commune: item.commune,
-                  quartier: item.quartier,
-                  created_at: item.created_at,
-                  start_time: item.start_time,
-                  status: item.status || "active",
-                });
-              }
-            });
-          }
-        } catch (e) {
-          console.warn("Public infra reports RPC note:", e);
-        }
-
-        // 2. Fetch public outage reports via RPC
+        // 1. Fetch public outage reports via RPC (bypasses RLS)
         try {
           const { data: pubData } = await (supabase as any).rpc("get_public_reports");
           if (pubData && Array.isArray(pubData)) {
             pubData.forEach((item: any) => {
               const lat = item.latitude || item.latitude_approx;
               const lon = item.longitude || item.longitude_approx;
-              if (lat && lon) {
+              if (lat && lon && (item.report_category === "outage" || !item.report_category)) {
                 list.push({
                   id: item.id,
                   latitude: Number(lat),
                   longitude: Number(lon),
                   service_type: item.service_type || "electricity",
-                  report_category: item.report_category || "outage",
+                  report_category: "outage",
                   description: item.description,
                   photo_url: item.photo_url,
                   photo_urls: item.photo_urls,
@@ -345,12 +349,13 @@ const MapPage = () => {
           console.warn("Public reports RPC note:", e);
         }
 
-        // 3. Direct query fallback for authenticated users
+        // 2. Direct query fallback for authenticated users (strictly outage category)
         try {
           let directQuery = supabase
             .from("reports")
             .select("id, latitude, longitude, service_type, report_category, description, photo_url, photo_urls, verifications, commune, quartier, created_at, start_time, status")
             .in("status", ["active", "chronic", "in_progress", "open", "verified"])
+            .or("report_category.eq.outage,report_category.is.null")
             .not("latitude", "is", null)
             .not("longitude", "is", null)
             .limit(300);
@@ -362,13 +367,13 @@ const MapPage = () => {
           const { data: directData } = await directQuery;
           if (directData && Array.isArray(directData)) {
             directData.forEach((item: any) => {
-              if (item.latitude && item.longitude) {
+              if (item.latitude && item.longitude && (item.report_category === "outage" || !item.report_category)) {
                 list.push({
                   id: item.id,
                   latitude: Number(item.latitude),
                   longitude: Number(item.longitude),
                   service_type: item.service_type || "electricity",
-                  report_category: item.report_category,
+                  report_category: "outage",
                   description: item.description,
                   photo_url: item.photo_url,
                   photo_urls: item.photo_urls,
