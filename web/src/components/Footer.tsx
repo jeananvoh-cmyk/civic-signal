@@ -97,6 +97,7 @@ export default function Footer() {
               <li><Link to="/carte" className="hover:text-emerald-400 transition-colors">Carte interactive</Link></li>
               <li><Link to="/tableau-de-bord" className="hover:text-emerald-400 transition-colors">Tableau de bord des Réseaux</Link></li>
               <li><Link to="/infrastructures" className="hover:text-emerald-400 transition-colors">Voirie & Infrastructures</Link></li>
+              <li><Link to="/affiches" className="hover:text-emerald-400 transition-colors">Affiches & QR Codes Quartier</Link></li>
               <li><Link to="/suivi" className="hover:text-emerald-400 transition-colors">Suivre un ticket</Link></li>
             </ul>
           </div>

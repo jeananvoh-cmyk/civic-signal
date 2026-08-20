@@ -170,28 +170,23 @@ const AboutPage = () => {
                   Vous souhaitez mobiliser vos voisins face à un lampadaire cassé, un caniveau bouché ou une coupure d'eau récurrente ? Imprimez et collez l'affiche officielle SIGNA.ci dans votre syndic d'immeuble, marché de quartier ou arrêt de bus.
                 </p>
 
-                {/* Sélecteur de Commune pour l'Affiche */}
+                {/* Sélecteur & Accès au Générateur d'Affiches */}
                 <div className="pt-2 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-                  <select
-                    value={selectedPosterCommune}
-                    onChange={(e) => setSelectedPosterCommune(e.target.value)}
-                    className="h-11 rounded-xl bg-background border border-amber-500/50 px-4 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  <Link
+                    to="/affiches"
+                    className="h-11 px-6 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-extrabold text-xs shadow transition-all flex items-center justify-center gap-2"
                   >
-                    <option value="Toutes les communes">Affiche Générale Grand Abidjan</option>
-                    {COMMUNES.map((c) => (
-                      <option key={c.id} value={c.nom}>
-                        Affiche Commune de {c.nom}
-                      </option>
-                    ))}
-                  </select>
+                    <Sparkles className="h-4 w-4" />
+                    Ouvrir le Générateur d'Affiches de Quartier
+                  </Link>
 
-                  <button
-                    onClick={handlePrintPoster}
-                    className="h-11 px-5 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs shadow transition-all flex items-center justify-center gap-2 shrink-0"
+                  <Link
+                    to="/affiches"
+                    className="h-11 px-4 rounded-xl border border-amber-500/50 bg-background/50 hover:bg-background text-foreground font-bold text-xs transition-all flex items-center justify-center gap-2"
                   >
                     <Printer className="h-4 w-4" />
-                    Imprimer l'Affiche A4
-                  </button>
+                    Imprimer en Direct (A4)
+                  </Link>
                 </div>
               </div>
 
