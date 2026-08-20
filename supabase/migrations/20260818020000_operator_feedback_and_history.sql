@@ -26,11 +26,13 @@ CREATE INDEX IF NOT EXISTS idx_status_history_created_at ON public.report_status
 ALTER TABLE public.report_status_history ENABLE ROW LEVEL SECURITY;
 
 -- Tout le monde peut voir l'historique public des statuts d'un signalement
+DROP POLICY IF EXISTS "Public status history is viewable by everyone" ON public.report_status_history;
 CREATE POLICY "Public status history is viewable by everyone"
   ON public.report_status_history FOR SELECT
   USING (true);
 
 -- Insertion autorisée pour les partenaires et administrateurs
+DROP POLICY IF EXISTS "Partners and admins can insert status history" ON public.report_status_history;
 CREATE POLICY "Partners and admins can insert status history"
   ON public.report_status_history FOR INSERT
   TO authenticated

@@ -1,7 +1,7 @@
--- 1. Activation page transparence (désactivée par défaut, admin choisit)
-INSERT INTO public.site_settings (key, value, description)
-VALUES ('transparency_enabled', 'false'::jsonb, 'Affiche la page publique de transparence /transparence')
-ON CONFLICT (key) DO NOTHING;
+-- 1. Activation page transparence (clé/valeur standard)
+INSERT INTO public.site_settings (key, value)
+VALUES ('transparency_enabled', 'true'::jsonb)
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 
 -- 2. RPC publique de statistiques de transparence
 CREATE OR REPLACE FUNCTION get_transparency_stats()

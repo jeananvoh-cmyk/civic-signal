@@ -17,10 +17,12 @@ CREATE INDEX IF NOT EXISTS idx_photo_fingerprints_report_id ON public.photo_fing
 
 ALTER TABLE public.photo_fingerprints ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Public read for photo fingerprints" ON public.photo_fingerprints;
 CREATE POLICY "Public read for photo fingerprints"
   ON public.photo_fingerprints FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can insert photo fingerprints" ON public.photo_fingerprints;
 CREATE POLICY "Authenticated users can insert photo fingerprints"
   ON public.photo_fingerprints FOR INSERT
   TO authenticated
