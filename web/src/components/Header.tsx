@@ -3,7 +3,8 @@ import { cn } from "@/lib/utils";
 import {
   Zap, Menu, X, LogOut, User, Shield, Moon, Sun, Monitor,
   Wrench, ChevronDown, Search, BarChart3, TrendingUp, Info, HelpCircle,
-  Building2, Landmark, Heart, CheckCircle2, FileText, Map as MapIcon
+  Building2, Landmark, Heart, CheckCircle2, FileText, Map as MapIcon,
+  Printer, Handshake, ChevronRight, Sparkles
 } from "lucide-react";
 import SignaLogo from "@/components/SignaLogo";
 import NotificationBell from "@/components/NotificationBell";
@@ -23,6 +24,18 @@ const Header = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  // Verrouillage du défilement d'arrière-plan quand le menu mobile est ouvert
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -275,155 +288,301 @@ const Header = () => {
           </div>
         </div>
 
-        {/* ── Drawer Menu Mobile Structuré ── */}
+        {/* ── Drawer Menu Mobile Plein Écran Z-[60] Sans Conflit avec BottomNav ── */}
         <AnimatePresence>
           {mobileOpen && (
             <motion.nav
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
-              className="border-t border-border/60 bg-background/95 backdrop-blur-md overflow-hidden md:hidden max-h-[85vh] overflow-y-auto"
+              initial={{ opacity: 0, y: -12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="fixed inset-x-0 top-[3.75rem] bottom-0 z-[60] bg-background/98 backdrop-blur-2xl overflow-y-auto md:hidden safe-area-pb p-4 sm:p-6 flex flex-col justify-between space-y-6 shadow-2xl border-t border-border/60"
             >
-              <div className="container py-4 space-y-4">
-
-                {/* 1. Action Principale */}
+              <div className="space-y-5">
+                {/* 1. Action Principale Citoyenne */}
                 <Link
                   to="/signaler"
-                  className="flex items-center justify-center gap-2 w-full rounded-2xl bg-emerald-600 text-white py-3 font-extrabold text-sm shadow-md"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center justify-center gap-2.5 w-full rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white py-3.5 px-4 font-black text-sm shadow-[0_6px_20px_rgba(5,150,105,0.35)] active:scale-[0.98] transition-all"
                 >
                   <Zap className="h-4 w-4 fill-white" />
-                  Signaler un incident (Eau · Courant · Voirie)
+                  <span>Signaler un incident (Eau · Courant · Voirie)</span>
                 </Link>
 
-                {/* 2. Cartes & Suivi */}
-                <div>
-                  <p className="px-2 text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
-                    Cartographie & Suivi
+                {/* 2. Cartes & Données Réelles */}
+                <div className="space-y-1.5">
+                  <p className="px-2 text-[11px] font-black text-muted-foreground/80 uppercase tracking-wider">
+                    Cartographie & Suivi Civique
                   </p>
-                  <div className="space-y-1">
+                  <div className="grid grid-cols-1 gap-1.5">
                     <Link
                       to="/carte"
-                      className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors", isActive("/carte") ? "bg-primary/10 text-primary font-bold" : "text-foreground/80 hover:bg-muted")}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex items-center justify-between rounded-xl px-3.5 py-3 text-sm font-semibold transition-all border",
+                        isActive("/carte")
+                          ? "bg-primary/10 text-primary border-primary/30 font-bold"
+                          : "bg-card/70 border-border/60 text-foreground/90 hover:bg-muted/70"
+                      )}
                     >
-                      <MapIcon className="h-4 w-4 text-sky-500" />
-                      <span>Carte des coupures d'eau & électricité</span>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400">
+                          <MapIcon className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="leading-tight">Carte des coupures</p>
+                          <p className="text-[11px] font-normal text-muted-foreground">Eau SODECI & Électricité CIE</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
                     </Link>
+
                     <Link
                       to="/infrastructures"
-                      className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors", isActive("/infrastructures") ? "bg-primary/10 text-primary font-bold" : "text-foreground/80 hover:bg-muted")}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex items-center justify-between rounded-xl px-3.5 py-3 text-sm font-semibold transition-all border",
+                        isActive("/infrastructures")
+                          ? "bg-primary/10 text-primary border-primary/30 font-bold"
+                          : "bg-card/70 border-border/60 text-foreground/90 hover:bg-muted/70"
+                      )}
                     >
-                      <Landmark className="h-4 w-4 text-emerald-500" />
-                      <span>Fil Voirie & Infrastructures publiques</span>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                          <Landmark className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="leading-tight">Fil Voirie & Lampadaires</p>
+                          <p className="text-[11px] font-normal text-muted-foreground">Nids-de-poule, feux & voirie Mairies</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
                     </Link>
-                    {suiviEnabled && (
-                      <Link
-                        to="/suivi"
-                        className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors", isActive("/suivi") ? "bg-primary/10 text-primary font-bold" : "text-foreground/80 hover:bg-muted")}
-                      >
-                        <Search className="h-4 w-4 text-emerald-500" />
-                        <span>Suivre un ticket #SIG</span>
-                      </Link>
-                    )}
-                  </div>
-                </div>
 
-                {/* 3. Données & Transparence */}
-                <div>
-                  <p className="px-2 text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
-                    Données & Statistiques Publiques
-                  </p>
-                  <div className="space-y-1">
                     {transparencyEnabled && (
                       <Link
                         to="/transparence"
-                        className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors", isActive("/transparence") ? "bg-emerald-500/15 text-emerald-600 font-bold" : "text-foreground/80 hover:bg-muted")}
+                        onClick={() => setMobileOpen(false)}
+                        className={cn(
+                          "flex items-center justify-between rounded-xl px-3.5 py-3 text-sm font-semibold transition-all border",
+                          isActive("/transparence")
+                            ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30 font-bold"
+                            : "bg-card/70 border-border/60 text-foreground/90 hover:bg-muted/70"
+                        )}
                       >
-                        <TrendingUp className="h-4 w-4 text-emerald-500" />
-                        <span className="font-bold text-emerald-700 dark:text-emerald-400">Transparence Open Data</span>
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600/15 text-emerald-600 dark:text-emerald-400">
+                            <TrendingUp className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <p className="leading-tight font-bold text-emerald-600 dark:text-emerald-400">Transparence Open Data</p>
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                                Open311
+                              </span>
+                            </div>
+                            <p className="text-[11px] font-normal text-muted-foreground">Export SIG GeoJSON & métriques</p>
+                          </div>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
                       </Link>
                     )}
+
                     <Link
                       to="/tableau-de-bord"
-                      className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors", isActive("/tableau-de-bord") ? "bg-primary/10 text-primary font-bold" : "text-foreground/80 hover:bg-muted")}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex items-center justify-between rounded-xl px-3.5 py-3 text-sm font-semibold transition-all border",
+                        isActive("/tableau-de-bord")
+                          ? "bg-primary/10 text-primary border-primary/30 font-bold"
+                          : "bg-card/70 border-border/60 text-foreground/90 hover:bg-muted/70"
+                      )}
                     >
-                      <BarChart3 className="h-4 w-4 text-primary" />
-                      <span>Tableau de bord communal</span>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/15 text-violet-600 dark:text-violet-400">
+                          <BarChart3 className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="leading-tight">Tableau Communal</p>
+                          <p className="text-[11px] font-normal text-muted-foreground">Stats par commune & opérateur</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
                     </Link>
+
+                    {suiviEnabled && (
+                      <Link
+                        to="/suivi"
+                        onClick={() => setMobileOpen(false)}
+                        className={cn(
+                          "flex items-center justify-between rounded-xl px-3.5 py-3 text-sm font-semibold transition-all border",
+                          isActive("/suivi")
+                            ? "bg-primary/10 text-primary border-primary/30 font-bold"
+                            : "bg-card/70 border-border/60 text-foreground/90 hover:bg-muted/70"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                            <Search className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <p className="leading-tight">Suivre un ticket #SIG</p>
+                            <p className="text-[11px] font-normal text-muted-foreground">Recherche par numéro cadastral PADA</p>
+                          </div>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+                      </Link>
+                    )}
+                  </div>
+                </div>
+
+                {/* 3. Espaces Professionnels & Partenaires */}
+                <div className="space-y-1.5">
+                  <p className="px-2 text-[11px] font-black text-muted-foreground/80 uppercase tracking-wider">
+                    Espaces Institutionnels & Collectivités
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                     <Link
-                      to="/verification"
-                      className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors", isActive("/verification") ? "bg-primary/10 text-primary font-bold" : "text-foreground/80 hover:bg-muted")}
+                      to="/mairie"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-3 rounded-xl p-3 bg-card/60 border border-border/60 hover:bg-muted/60 text-xs font-semibold"
                     >
-                      <CheckCircle2 className="h-4 w-4 text-sky-500" />
-                      <span>Vérifier & corroborer un signalement</span>
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 shrink-0">
+                        <Landmark className="h-3.5 w-3.5" />
+                      </div>
+                      <div>
+                        <p className="text-foreground font-bold leading-tight">Portail Mairies</p>
+                        <p className="text-[10px] text-muted-foreground">Services Techniques DST</p>
+                      </div>
+                    </Link>
+
+                    <Link
+                      to="/partenaire"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-3 rounded-xl p-3 bg-card/60 border border-border/60 hover:bg-muted/60 text-xs font-semibold"
+                    >
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/15 text-sky-600 shrink-0">
+                        <Handshake className="h-3.5 w-3.5" />
+                      </div>
+                      <div>
+                        <p className="text-foreground font-bold leading-tight">Régulateurs & Opérateurs</p>
+                        <p className="text-[10px] text-muted-foreground">CIE · SODECI · ANARE-CI</p>
+                      </div>
+                    </Link>
+
+                    <Link
+                      to="/affiches"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-3 rounded-xl p-3 bg-card/60 border border-border/60 hover:bg-muted/60 text-xs font-semibold col-span-1 sm:col-span-2"
+                    >
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 shrink-0">
+                        <Printer className="h-3.5 w-3.5" />
+                      </div>
+                      <div>
+                        <p className="text-foreground font-bold leading-tight">Affiches de Quartier A4 & QR Codes</p>
+                        <p className="text-[10px] text-muted-foreground">À imprimer pour les syndics et commerces</p>
+                      </div>
                     </Link>
                   </div>
                 </div>
 
-                {/* 4. Projet & Légal */}
+                {/* 4. Liens Utiles & Légal */}
                 <div className="pt-2 border-t border-border/60">
-                  <p className="px-2 text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
-                    Institutionnel
-                  </p>
-                  <div className="grid grid-cols-2 gap-1 text-xs">
-                    <Link to="/a-propos" className="px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground">
-                      À propos & Mission
+                  <div className="grid grid-cols-2 gap-2 text-xs font-medium">
+                    <Link
+                      to="/a-propos"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-card/40 border border-border/40 text-muted-foreground hover:text-foreground"
+                    >
+                      <Info className="h-3.5 w-3.5 text-primary" />
+                      <span>À propos</span>
                     </Link>
-                    {partnersEnabled && (
-                      <Link to="/partenaires" className="px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground">
-                        Relais & Mairies
-                      </Link>
-                    )}
                     {donationsEnabled && (
-                      <Link to="/dons" className="px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground">
-                        Faire un don
+                      <Link
+                        to="/dons"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 font-semibold"
+                      >
+                        <Heart className="h-3.5 w-3.5 fill-rose-500 text-rose-500" />
+                        <span>Faire un don</span>
                       </Link>
                     )}
-                    <Link to="/confidentialite" className="px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground">
+                    <Link
+                      to="/confidentialite"
+                      onClick={() => setMobileOpen(false)}
+                      className="px-3 py-2 text-[11px] text-muted-foreground hover:text-foreground truncate"
+                    >
                       Protection Données
                     </Link>
-                    <Link to="/cgu" className="px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground">
-                      CGU
+                    <Link
+                      to="/cgu"
+                      onClick={() => setMobileOpen(false)}
+                      className="px-3 py-2 text-[11px] text-muted-foreground hover:text-foreground truncate"
+                    >
+                      CGU & Mentions
                     </Link>
                   </div>
                 </div>
+              </div>
 
-                {/* 5. Profil & Connexion */}
-                <div className="pt-2 border-t border-border/60">
-                  {user ? (
-                    <div className="space-y-2">
-                      <Link to="/profil" className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-card border border-border">
-                        <User className="h-4 w-4 text-primary" />
-                        <span className="font-bold text-sm text-foreground">Mon profil ({user.email?.split("@")[0]})</span>
-                      </Link>
-                      <button
-                        onClick={() => signOut()}
-                        className="flex w-full items-center gap-3 px-3 py-2 text-xs font-bold text-destructive hover:bg-destructive/10 rounded-xl"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        Se déconnecter
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Link to="/auth?tab=login" className="flex-1 text-center py-2.5 rounded-xl border border-border text-sm font-bold">
-                        Connexion
-                      </Link>
-                      <Link to="/auth?tab=signup" className="flex-1 text-center py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold">
-                        S'inscrire
-                      </Link>
-                    </div>
-                  )}
-                </div>
+              {/* 5. Bas du Tiroir : Session & Thème */}
+              <div className="pt-4 border-t border-border/60 space-y-3 shrink-0">
+                {user ? (
+                  <div className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-card border border-border/80 shadow-sm">
+                    <Link
+                      to="/profil"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-2.5 min-w-0"
+                    >
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary font-black text-xs text-primary-foreground">
+                        {user.email?.[0]?.toUpperCase() || "?"}
+                      </div>
+                      <div className="truncate">
+                        <p className="text-xs font-bold text-foreground truncate">{user.email?.split("@")[0]}</p>
+                        <p className="text-[10px] text-muted-foreground">Mon profil citoyen</p>
+                      </div>
+                    </Link>
+                    <button
+                      onClick={() => { signOut(); setMobileOpen(false); }}
+                      className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      title="Se déconnecter"
+                      aria-label="Déconnexion"
+                    >
+                      <LogOut className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link
+                      to="/auth?tab=login"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center justify-center py-2.5 rounded-xl border border-border bg-card text-xs font-bold text-foreground hover:bg-muted/60 shadow-sm"
+                    >
+                      Connexion
+                    </Link>
+                    <Link
+                      to="/auth?tab=signup"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center justify-center py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-sm"
+                    >
+                      S'inscrire
+                    </Link>
+                  </div>
+                )}
 
-                {/* 6. Thème */}
+                {/* Sélecteur de Thème Tactile */}
                 <button
                   type="button"
                   onClick={toggleTheme}
-                  className="flex w-full items-center justify-between px-3 py-2 rounded-xl bg-muted/40 text-xs font-semibold text-muted-foreground"
+                  className="flex w-full items-center justify-between px-3.5 py-2.5 rounded-xl bg-muted/60 border border-border/40 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <span>Thème d'affichage</span>
-                  <div className="flex items-center gap-1.5">{themeIcon} <span className="capitalize">{theme}</span></div>
+                  <span className="flex items-center gap-2">
+                    <span>Thème d'affichage</span>
+                  </span>
+                  <div className="flex items-center gap-1.5 font-bold text-foreground capitalize">
+                    {themeIcon}
+                    <span>{theme === "dark" ? "Sombre" : theme === "light" ? "Clair" : "Système"}</span>
+                  </div>
                 </button>
               </div>
             </motion.nav>

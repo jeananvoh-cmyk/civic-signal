@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, BarChart3, Plus, Wrench, User, Download } from "lucide-react";
+import { Home, BarChart3, Plus, Landmark, User, Download } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -93,7 +93,7 @@ export default function BottomNav() {
             </Link>
           </div>
 
-          <NavTab to="/infrastructures" icon={Wrench} label="Infra" active={location.pathname === "/infrastructures"} />
+          <NavTab to="/infrastructures" icon={Landmark} label="Infra" active={location.pathname === "/infrastructures"} />
 
           <NavTab
             to={user ? "/profil" : "/auth"}

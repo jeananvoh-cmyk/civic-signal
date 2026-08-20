@@ -785,7 +785,7 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
           </div>
 
           {/* LISTE OU FICHE DÉTAILLÉE MASTER-DETAIL */}
-          <div className="flex-1 overflow-y-auto divide-y divide-border/40">
+          <div className="flex-1 overflow-y-auto divide-y divide-border/40 pb-32 lg:pb-6">
             {selectedReport ? (
               /* ── VUE FICHE OFFICIELLE STRICTE (Conforme 100% à la Base de Données) ── */
               <div className="p-4 space-y-4">
@@ -1207,10 +1207,10 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
         {/* ═══════════════════════════════════════════════════════════════
             BOUTON FLOTTANT TACTILE MOBILE : [📋 Liste] ⇄ [🗺️ Carte]
             ═══════════════════════════════════════════════════════════════ */}
-        <div className="lg:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-[500]">
+        <div className="lg:hidden absolute bottom-20 left-1/2 -translate-x-1/2 z-[500]">
           <button
             onClick={() => setMobileTab(mobileTab === "list" ? "map" : "list")}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-950 text-white dark:bg-white dark:text-slate-950 font-bold text-xs shadow-xl active:scale-95 transition-transform"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-950/95 text-white dark:bg-white/95 dark:text-slate-950 font-black text-xs shadow-2xl backdrop-blur-md border border-white/20 dark:border-black/20 active:scale-95 transition-all"
           >
             {mobileTab === "list" ? (
               <>
@@ -1236,7 +1236,7 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="lg:hidden absolute bottom-16 left-3 right-3 z-[450] bg-card rounded-2xl border border-border shadow-2xl p-3.5 space-y-3"
+              className="lg:hidden absolute bottom-20 left-3 right-3 z-[450] bg-card/98 backdrop-blur-xl rounded-2xl border border-border shadow-2xl p-3.5 space-y-3"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
