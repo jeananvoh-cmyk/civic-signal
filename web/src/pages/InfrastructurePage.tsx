@@ -306,8 +306,8 @@ export default function InfrastructurePage() {
           const hash = r.id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
           const jitterLat = ((hash % 100) - 50) * 0.0003;
           const jitterLon = (((hash * 13) % 100) - 50) * 0.0003;
-          lat = commObj.coords[0] + jitterLat;
-          lon = commObj.coords[1] + jitterLon;
+          lat = commObj.centerLat + jitterLat;
+          lon = commObj.centerLon + jitterLon;
         }
       }
 
@@ -404,7 +404,7 @@ export default function InfrastructurePage() {
     if (communeFilter !== "all") {
       const c = COMMUNES.find((item) => item.nom.toLowerCase() === communeFilter.toLowerCase());
       if (c) {
-        map.flyTo(c.coords, 14, { duration: 1 });
+        map.flyTo([c.centerLat, c.centerLon], 14, { duration: 1 });
       }
     }
   }, [filteredReports, selectedReport, communeFilter]);
@@ -1029,7 +1029,7 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                     {(r.photo_url || (r.photo_urls && r.photo_urls.length > 0)) && (
                       <div className="h-12 w-12 shrink-0 rounded-lg overflow-hidden border border-border/60 bg-muted">
                         <img
-                          src={r.photo_url || r.photo_urls![0]}
+                          src={r.photo_url || (r.photo_urls && r.photo_urls[0]) || ""}
                           alt="Preuve"
                           className="h-full w-full object-cover"
                         />
