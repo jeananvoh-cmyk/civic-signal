@@ -1,7 +1,7 @@
 import { useState, useMemo, lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Download, FileSpreadsheet, FileText, FileDown, ChevronDown, Users, Baby, Heart, Clock, Shield, Zap, Droplets, Construction, Calendar, TrendingUp, Building2, CheckCircle2, Loader } from "lucide-react";
+import { Download, FileSpreadsheet, FileText, FileDown, ChevronDown, Users, Baby, Heart, Clock, Shield, Zap, Droplets, Landmark, Calendar, TrendingUp, Building2, CheckCircle2, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
@@ -493,7 +493,7 @@ const AdminStatsPage = () => {
                   </div>
                   <div className="rounded-xl border border-border bg-card p-4 shadow-card">
                     <div className="flex items-center gap-2 mb-2">
-                      <Construction className="h-5 w-5 text-teal-500" />
+                      <Landmark className="h-5 w-5 text-teal-500" />
                       <span className="font-bold text-foreground">Voirie & Infra</span>
                     </div>
                     <p className="text-2xl font-extrabold text-teal-500">{totMairie}</p>

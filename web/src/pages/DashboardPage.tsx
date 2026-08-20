@@ -5,7 +5,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Zap, Droplets, Clock, Trophy, ChevronDown, Radio, Flame, AlertTriangle,
-  MapPin, Siren, Construction, CheckCircle2, Info, Wrench, HelpCircle,
+  MapPin, Siren, Landmark, CheckCircle2, Info, Wrench, HelpCircle,
   ShieldCheck, Send, Building2, Users, BarChart2, Filter, Sparkles,
   Search, LayoutGrid, List, SlidersHorizontal, ArrowUpDown, X, ArrowRight,
 } from "lucide-react";
@@ -875,14 +875,14 @@ const DashboardPage = () => {
               {/* Voirie & Infrastructure */}
               <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-card hover:shadow-md transition-shadow">
                 <div className="absolute -right-4 -top-4 h-24 w-24 opacity-10">
-                  <Construction className="h-full w-full text-infra" />
+                  <Landmark className="h-full w-full text-infra" />
                 </div>
                 <div className="flex items-center gap-3 mb-1">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-infra/15 shadow-xs">
-                    <Construction className="h-5 w-5 text-infra" />
+                    <Landmark className="h-5 w-5 text-infra" />
                   </div>
                   <div>
-                    <h2 className="font-display text-base font-bold text-foreground">Mairies & Voirie</h2>
+                    <h2 className="font-display text-base font-bold text-foreground">Mairies &amp; Voirie</h2>
                     <p className="text-xs text-muted-foreground">Lampadaires · Caniveaux · Salubrité</p>
                   </div>
                 </div>
@@ -1131,7 +1131,7 @@ const DashboardPage = () => {
                         <div className="flex items-center gap-3 text-xs">
                           <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-electricity" />{q.elecActifs}</span>
                           <span className="flex items-center gap-1"><Droplets className="h-3 w-3 text-water" />{q.eauActifs}</span>
-                          <span className="flex items-center gap-1"><Construction className="h-3 w-3 text-infra" />{q.mairieActifs}</span>
+                          <span className="flex items-center gap-1"><Landmark className="h-3 w-3 text-infra" />{q.mairieActifs}</span>
                         </div>
                         <div className="text-right">
                           <p className="font-display text-lg font-extrabold" style={{ color: q.totalActifs > 0 ? q.couleur : undefined }}>
@@ -1194,7 +1194,7 @@ const DashboardPage = () => {
                             <div className="flex gap-3 text-xs text-muted-foreground">
                               <span className="flex items-center gap-0.5"><Zap className="h-3 w-3 text-electricity" />{c.electricite_actifs}</span>
                               <span className="flex items-center gap-0.5"><Droplets className="h-3 w-3 text-water" />{c.eau_actifs}</span>
-                              <span className="flex items-center gap-0.5"><Construction className="h-3 w-3 text-infra" />{c.mairie_actifs}</span>
+                              <span className="flex items-center gap-0.5"><Landmark className="h-3 w-3 text-infra" />{c.mairie_actifs}</span>
                             </div>
                           </div>
                           <div className="text-right">
@@ -1331,7 +1331,7 @@ const DashboardPage = () => {
                 onClick={() => setFilterMode("mairie")}
                 className="h-8 px-2.5 text-xs rounded-lg whitespace-nowrap"
               >
-                <Construction className="h-3 w-3 mr-1 text-infra" />
+                <Landmark className="h-3 w-3 mr-1 text-infra" />
                 Mairie ({stats.filter((c) => c.mairie_actifs > 0).length})
               </Button>
             </div>
@@ -1457,7 +1457,7 @@ const DashboardPage = () => {
 
                       <div className="rounded-xl bg-infra/5 border border-infra/20 p-2 text-center">
                         <div className="flex items-center justify-center gap-1 mb-0.5">
-                          <Construction className="h-3 w-3 text-infra" />
+                          <Landmark className="h-3 w-3 text-infra" />
                           <span className="text-[11px] font-semibold text-foreground">Mairie</span>
                         </div>
                         <p className="font-display text-sm font-bold text-infra">
@@ -1584,7 +1584,7 @@ const DashboardPage = () => {
 
                     <div className="rounded-xl bg-infra/5 border border-infra/20 p-3">
                       <div className="flex items-center gap-2 mb-2">
-                        <Construction className="h-4 w-4 text-infra" />
+                        <Landmark className="h-4 w-4 text-infra" />
                         <span className="text-xs font-semibold text-foreground">Mairie</span>
                       </div>
                       <div className="flex items-baseline gap-2 flex-wrap">
@@ -1635,7 +1635,7 @@ const DashboardPage = () => {
                               )}
                               {mairieCount > 0 && (
                                 <span className="flex items-center gap-0.5">
-                                  <Construction className="h-3 w-3 text-infra" />
+                                  <Landmark className="h-3 w-3 text-infra" />
                                   {mairieCount}
                                 </span>
                               )}

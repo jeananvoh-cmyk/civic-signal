@@ -11,7 +11,7 @@ import { COMMUNE_COLORS, COMMUNES } from "@/lib/communes";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  TrendingUp, BarChart3, Zap, Droplets, Construction, ArrowUpRight, ArrowDownRight,
+  TrendingUp, BarChart3, Zap, Droplets, Landmark, ArrowUpRight, ArrowDownRight,
   Minus, Target, ShieldCheck, Lightbulb, AlertTriangle, TrendingDown, MapPin, Activity,
   Sparkles, PlusCircle, Calendar, RefreshCw
 } from "lucide-react";
@@ -40,7 +40,7 @@ const SERVICE_CONFIG: Record<ServiceFilter, { label: string; color: string; icon
   all: { label: "Tous services", color: "hsl(var(--primary))", icon: Target },
   electricity: { label: "CIE — Électricité", color: "#f59e0b", icon: Zap },
   water: { label: "SODECI — Eau", color: "#3b82f6", icon: Droplets },
-  mairie: { label: "Mairie — Voirie & Infra", color: "#14b8a6", icon: Construction },
+  mairie: { label: "Mairie — Voirie & Infra", color: "#14b8a6", icon: Landmark },
 };
 
 function getWeekNumber(d: Date): number {

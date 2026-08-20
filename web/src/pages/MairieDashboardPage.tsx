@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  Building2, MapPin, Wrench, Lightbulb, Waves, Trash2,
+  Building2, Landmark, MapPin, Wrench, Lightbulb, Waves, Trash2,
   CheckCircle2, Clock, AlertTriangle, UserCheck, FileText,
   Filter, Search, ArrowRight, Printer, Share2, Shield,
   TrendingUp, Users, ChevronRight, CheckCircle, ExternalLink,
@@ -64,7 +64,7 @@ const CATEGORY_MAP: Record<string, { label: string; icon: React.ElementType; col
   caniveau: { label: "Caniveau & Drainage", icon: Waves, color: "text-blue-500 bg-blue-500/10 border-blue-500/30" },
   voirie: { label: "Voirie & Chaussée", icon: Wrench, color: "text-teal-600 bg-teal-600/10 border-teal-600/30" },
   salubrite: { label: "Salubrité & Déchets", icon: Trash2, color: "text-emerald-600 bg-emerald-500/10 border-emerald-500/30" },
-  infrastructure: { label: "Infrastructure", icon: Building2, color: "text-slate-600 bg-slate-500/10 border-slate-500/30" },
+  infrastructure: { label: "Infrastructure", icon: Landmark, color: "text-slate-600 bg-slate-500/10 border-slate-500/30" },
 };
 
 function formatHours(h: number) {
@@ -387,7 +387,7 @@ const MairieDashboardPage = () => {
           <Card className="rounded-3xl border border-border shadow-sm p-5 bg-card">
             <div className="flex items-center justify-between text-xs text-muted-foreground font-semibold">
               <span>Incidents Totaux</span>
-              <Building2 className="h-4 w-4 text-primary" />
+              <Landmark className="h-4 w-4 text-primary" />
             </div>
             <div className="text-3xl font-black text-foreground mt-2">{stats.total}</div>
             <p className="text-[11px] text-muted-foreground mt-1">Voirie, lampadaires &amp; salubrité</p>

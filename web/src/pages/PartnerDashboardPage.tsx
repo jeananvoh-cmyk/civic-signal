@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Zap, Droplets, Building2, Handshake, MapPin, Users,
+  Zap, Droplets, Building2, Landmark, Handshake, MapPin, Users,
   Clock, CheckCircle2, Loader2, AlertTriangle, RefreshCw,
   TrendingUp, MessageSquare, Send, BarChart3, Ticket,
   Shield, Download, Filter, Search, ChevronRight,
@@ -125,7 +125,7 @@ const OPERATOR_THEMES: Record<string, OperatorTheme> = {
     fullName: "Services Techniques Municipaux (DST)",
     regulatorName: "District Autonome d'Abidjan · SLA Cible < 72h",
     slaHours: 72,
-    icon: Building2,
+    icon: Landmark,
     primaryHex: "#10B981",
     primaryColor: "text-emerald-500",
     badgeBg: "bg-emerald-500/10",
@@ -165,7 +165,7 @@ const OPERATOR_THEMES: Record<string, OperatorTheme> = {
 const SERVICE_ICONS: Record<string, React.ReactNode> = {
   electricity: <Zap className="h-4 w-4 text-amber-500" />,
   water: <Droplets className="h-4 w-4 text-sky-500" />,
-  infrastructure: <Building2 className="h-4 w-4 text-emerald-500" />,
+  infrastructure: <Landmark className="h-4 w-4 text-emerald-500" />,
 };
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap, Droplets, Construction, AlertTriangle, Flame, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Zap, Droplets, Landmark, AlertTriangle, Flame, RefreshCw, CheckCircle2 } from "lucide-react";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
 import { supabase } from "@/integrations/supabase/client";
