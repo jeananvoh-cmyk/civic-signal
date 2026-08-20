@@ -581,34 +581,38 @@ const DashboardPage = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="mb-8 flex flex-wrap gap-4"
+          className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4"
         >
           <Link
             to="/signaler"
-            className="group flex items-center gap-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white px-7 py-4 font-extrabold text-base sm:text-lg shadow-[0_8px_32px_rgba(5,150,105,0.35)] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+            className="group flex items-center justify-between rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white px-6 sm:px-7 py-4 font-extrabold text-base sm:text-lg shadow-[0_8px_32px_rgba(5,150,105,0.35)] transition-all duration-200 hover:scale-[1.01] active:scale-[0.98]"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-xl backdrop-blur-sm">
-              📢
+            <div className="flex items-center gap-3.5">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 text-xl backdrop-blur-sm shrink-0">
+                📢
+              </div>
+              <div className="flex flex-col text-left leading-tight">
+                <span className="text-base sm:text-lg font-extrabold tracking-wide">Documenter une coupure</span>
+                <span className="text-xs font-medium text-white/80">CIE · SODECI · Mairies</span>
+              </div>
             </div>
-            <div className="flex flex-col text-left leading-tight">
-              <span className="text-base font-extrabold tracking-wide">Documenter une coupure</span>
-              <span className="text-[11px] font-medium text-white/80">CIE · SODECI · Mairies</span>
-            </div>
-            <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
+            <ArrowRight className="h-5 w-5 ml-1 transition-transform group-hover:translate-x-1 shrink-0" />
           </Link>
 
           <Link
             to="/verification"
-            className="group flex items-center gap-3.5 rounded-2xl border-2 border-sky-300 bg-sky-50/90 hover:bg-sky-100 text-sky-950 dark:border-sky-800 dark:bg-sky-950/40 dark:hover:bg-sky-900/60 dark:text-sky-200 px-7 py-4 font-bold text-base sm:text-lg shadow-sm backdrop-blur-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+            className="group flex items-center justify-between rounded-2xl border-2 border-sky-300 bg-sky-50/90 hover:bg-sky-100 text-sky-950 dark:border-sky-800 dark:bg-sky-950/40 dark:hover:bg-sky-900/60 dark:text-sky-200 px-6 sm:px-7 py-4 font-bold text-base sm:text-lg shadow-sm backdrop-blur-md transition-all duration-200 hover:scale-[1.01] active:scale-[0.98]"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/20 text-sky-600 dark:text-sky-400 font-extrabold text-xl">
-              ✓
+            <div className="flex items-center gap-3.5">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/20 text-sky-600 dark:text-sky-400 font-extrabold text-xl shrink-0">
+                ✓
+              </div>
+              <div className="flex flex-col text-left leading-tight">
+                <span className="text-base sm:text-lg font-extrabold tracking-wide">Confirmer une coupure</span>
+                <span className="text-xs font-medium text-sky-700 dark:text-sky-300">Vérifier &amp; suivre en direct</span>
+              </div>
             </div>
-            <div className="flex flex-col text-left leading-tight">
-              <span className="text-base font-extrabold tracking-wide">Confirmer une coupure</span>
-              <span className="text-[11px] font-medium text-sky-700 dark:text-sky-300">Vérifier & suivre en direct</span>
-            </div>
-            <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
+            <ArrowRight className="h-5 w-5 ml-1 transition-transform group-hover:translate-x-1 shrink-0" />
           </Link>
         </motion.div>
 
@@ -788,36 +792,6 @@ const DashboardPage = () => {
               Tout va bien dans votre commune pour l'instant.
               <span className="ml-1 text-muted-foreground font-normal">Aucune coupure critique signalée.</span>
             </p>
-          </motion.div>
-        )}
-
-        {/* CTA citoyen — 100% cohérent avec l'accueil et la version mobile */}
-        {!canValidate && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button
-              onClick={() => navigate("/signaler")}
-              className="flex items-center justify-center gap-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 px-6 py-4 text-white shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
-            >
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-lg backdrop-blur-sm">
-                📢
-              </div>
-              <div className="flex flex-col text-left leading-tight">
-                <span className="text-sm font-extrabold tracking-wide">Documenter une coupure</span>
-                <span className="text-xs text-white/80">CIE · SODECI · Mairies</span>
-              </div>
-            </button>
-            <button
-              onClick={() => navigate("/verification")}
-              className="flex items-center justify-center gap-3 rounded-2xl border-2 border-sky-300 bg-sky-50/90 hover:bg-sky-100 text-sky-950 dark:border-sky-800 dark:bg-sky-950/40 dark:hover:bg-sky-900/60 dark:text-sky-200 px-6 py-4 shadow-sm transition-all active:scale-[0.98]"
-            >
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/20 text-sky-600 dark:text-sky-400 font-extrabold text-base">
-                ✓
-              </div>
-              <div className="flex flex-col text-left leading-tight">
-                <span className="text-sm font-extrabold tracking-wide">Confirmer une coupure</span>
-                <span className="text-xs text-sky-700 dark:text-sky-300">Vérifier & suivre en direct</span>
-              </div>
-            </button>
           </motion.div>
         )}
 
