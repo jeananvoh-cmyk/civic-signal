@@ -329,18 +329,18 @@ export default function InfrastructurePage() {
       let lon = r.longitude;
 
       if (!lat || !lon) {
-        const commObj = COMMUNES.find((c) => c.nom.toLowerCase() === (r.commune || "").toLowerCase());
-        if (commObj) {
-          // slight random jitter to prevent exact overlap
-          const hash = r.id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-          const jitterLat = ((hash % 100) - 50) * 0.0003;
-          const jitterLon = (((hash * 13) % 100) - 50) * 0.0003;
-          lat = commObj.centerLat + jitterLat;
-          lon = commObj.centerLon + jitterLon;
-        }
+        const rCommune = (r.commune || "").trim().toLowerCase();
+        const commObj = COMMUNES.find((c) => c.nom.toLowerCase() === rCommune || rCommune.includes(c.nom.toLowerCase()));
+        const baseLat = commObj ? commObj.centerLat : 5.3600;
+        const baseLon = commObj ? commObj.centerLon : -3.9670;
+        
+        // slight random jitter to prevent exact overlap
+        const hash = r.id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const jitterLat = ((hash % 100) - 50) * 0.0004;
+        const jitterLon = (((hash * 13) % 100) - 50) * 0.0004;
+        lat = baseLat + jitterLat;
+        lon = baseLon + jitterLon;
       }
-
-      if (!lat || !lon) return;
 
       const isResolved = r.status === "resolved";
       const descLower = (r.description || "").toLowerCase();
@@ -602,14 +602,14 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
+    <div className="flex flex-col h-screen max-h-screen bg-background text-foreground overflow-hidden">
       <Header />
 
       {/* ── TOP HEADER CIVIQUE FIXMYSTREET ── */}
-      <div className="border-b border-border/80 bg-card px-4 py-3 shadow-xs">
+      <div className="border-b border-border/80 bg-card px-4 py-2.5 shrink-0 shadow-xs">
         <div className="container max-w-7xl flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-500/20 shadow-xs">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-500/20 shadow-xs">
               <Building2 className="h-5 w-5" />
             </div>
             <div>
@@ -639,14 +639,14 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
         </div>
       </div>
 
-      {/* ── CONTENEUR PRINCIPAL SPLIT-SCREEN ── */}
-      <main className="flex-1 relative flex flex-col lg:flex-row h-[calc(100vh-125px)] overflow-hidden">
+      {/* ── CONTENEUR PRINCIPAL SPLIT-SCREEN PLEIN ÉCRAN ── */}
+      <main className="flex-1 min-h-0 relative flex flex-col lg:flex-row overflow-hidden">
         
         {/* ═══════════════════════════════════════════════════════════════
             VOLET GAUCHE (40%) : FIL ÉPURÉ & JOURNAL OFFICIEL DES MISES À JOUR
             ═══════════════════════════════════════════════════════════════ */}
         <div className={cn(
-          "w-full lg:w-[42%] xl:w-[38%] flex flex-col h-full bg-background border-r border-border/80 z-10 transition-all",
+          "w-full lg:w-[42%] xl:w-[38%] flex flex-col h-full min-h-0 bg-background border-r border-border/80 z-10 transition-all",
           mobileTab === "map" ? "hidden lg:flex" : "flex"
         )}>
           
@@ -1072,14 +1072,14 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
             VOLET DROIT (60%) : CARTE INTERACTIVE LEAFLET SYNCHRONISÉE
             ═══════════════════════════════════════════════════════════════ */}
         <div className={cn(
-          "w-full lg:w-[58%] xl:w-[62%] h-full min-h-[500px] lg:min-h-0 relative bg-slate-100 dark:bg-slate-900 transition-all",
+          "w-full lg:w-[58%] xl:w-[62%] h-full min-h-0 relative bg-slate-100 dark:bg-slate-900 transition-all",
           mobileTab === "list" ? "hidden lg:block" : "block"
         )}>
-          {/* Leaflet Map Canvas */}
+          {/* Leaflet Map Canvas — Remplissage absolu 100% de la zone droite */}
           <div
             ref={mapContainerRef}
-            className="w-full h-full min-h-[500px] lg:min-h-full"
-            style={{ width: "100%", height: "100%" }}
+            className="absolute inset-0 w-full h-full"
+            style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }}
           />
 
           {/* Quick GPS Floating Action */}
@@ -1195,8 +1195,6 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
           )}
         </AnimatePresence>
       </main>
-
-      <Footer />
     </div>
   );
 }
