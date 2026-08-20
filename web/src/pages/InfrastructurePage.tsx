@@ -790,46 +790,37 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                       </Badge>
                     </div>
 
-                    {/* Référence Ticket Officiel & Adressage PADA */}
-                    <div className="rounded-xl border border-border/80 bg-muted/30 p-3 space-y-2 text-xs">
-                      <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2">
-                        <div>
-                          <span className="text-[10px] uppercase font-bold text-muted-foreground">Ticket Officiel : </span>
-                          <span className="font-mono font-black text-foreground">
-                            {getDisplayTicketCode({
-                              ticket_code: selectedReport.ticket_code,
-                              commune: selectedReport.commune,
-                              created_at: selectedReport.created_at,
-                              id: selectedReport.id,
-                            })}
-                          </span>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 px-2 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 gap-1 hover:bg-emerald-500/10"
-                          onClick={() => {
-                            const code = getDisplayTicketCode({
-                              ticket_code: selectedReport.ticket_code,
-                              commune: selectedReport.commune,
-                              created_at: selectedReport.created_at,
-                              id: selectedReport.id,
-                            });
-                            navigator.clipboard.writeText(code);
-                            toast.success(`Ticket ${code} copié !`);
-                          }}
-                        >
-                          <span>Copier</span>
-                        </Button>
-                      </div>
-
-                      {/* Adresse cadastrale */}
-                      <div className="flex items-start gap-1.5 pt-0.5 text-[11px]">
-                        <Building2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                        <span className="text-foreground font-semibold">
-                          {selectedReport.location || `${selectedReport.quartier || ""}, ${selectedReport.commune}`}
+                    {/* Référence Ticket Officiel */}
+                    <div className="rounded-xl border border-border/80 bg-muted/30 p-2.5 flex items-center justify-between gap-2 text-xs">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground">TICKET OFFICIEL : </span>
+                        <span className="font-mono font-black text-foreground">
+                          {getDisplayTicketCode({
+                            ticket_code: selectedReport.ticket_code,
+                            commune: selectedReport.commune,
+                            created_at: selectedReport.created_at,
+                            id: selectedReport.id,
+                          })}
                         </span>
                       </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 gap-1 hover:bg-emerald-500/10"
+                        onClick={() => {
+                          const code = getDisplayTicketCode({
+                            ticket_code: selectedReport.ticket_code,
+                            commune: selectedReport.commune,
+                            created_at: selectedReport.created_at,
+                            id: selectedReport.id,
+                          });
+                          navigator.clipboard.writeText(code);
+                          toast.success(`Ticket ${code} copié !`);
+                        }}
+                      >
+                        <Copy className="h-3 w-3" />
+                        <span>Copier</span>
+                      </Button>
                     </div>
 
                     {/* Description réelle */}
@@ -861,29 +852,34 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                         Signalé le {new Date(selectedReport.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
                       </span>
                       <span className="font-bold text-emerald-700 dark:text-emerald-300">
-                        👍 {selectedReport.support_count || 0} soutien(s)
+                        👍 {selectedReport.support_count || 0} soutien(s) citoyen(s)
                       </span>
                     </div>
 
-                    {/* Actions : Soutenir + Partager */}
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/60">
+                    {/* Actions : Bouton Soutenir très visible + Partager */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-border/60">
                       <Button
                         onClick={(e) => handleSupport(selectedReport.id, e)}
-                        variant={supported.has(selectedReport.id) ? "default" : "outline"}
-                        size="sm"
-                        className="rounded-xl text-xs font-bold gap-1.5 h-9"
+                        className={cn(
+                          "rounded-xl text-xs font-extrabold gap-2 h-10 shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99]",
+                          supported.has(selectedReport.id)
+                            ? "bg-emerald-700 text-white"
+                            : "bg-emerald-600 hover:bg-emerald-500 text-white"
+                        )}
                       >
-                        <ThumbsUp className="h-3.5 w-3.5" />
-                        <span>{supported.has(selectedReport.id) ? "Soutenu" : "Soutenir"} ({selectedReport.support_count || 0})</span>
+                        <ThumbsUp className="h-4 w-4 stroke-[2.5]" />
+                        <span>{supported.has(selectedReport.id) ? "Soutien enregistré ✓" : "Soutenir la réparation"}</span>
+                        <span className="ml-1 px-1.5 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-black">
+                          {selectedReport.support_count || 0}
+                        </span>
                       </Button>
 
                       <Button
                         onClick={(e) => handleShareWhatsApp(selectedReport, e)}
                         variant="outline"
-                        size="sm"
-                        className="rounded-xl text-xs font-bold gap-1.5 h-9 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20"
+                        className="rounded-xl text-xs font-bold gap-1.5 h-10 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20"
                       >
-                        <Share2 className="h-3.5 w-3.5" />
+                        <Share2 className="h-4 w-4" />
                         <span>Partager WhatsApp</span>
                       </Button>
                     </div>
@@ -1044,7 +1040,7 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                         {cleanDescription(r.description)}
                       </p>
 
-                      <div className="flex items-center justify-between gap-2 mt-2 text-[10px] text-muted-foreground">
+                      <div className="flex items-center justify-between gap-2 mt-2.5 text-[10px] text-muted-foreground">
                         <div className="flex items-center gap-1.5 truncate">
                           <MapPin className="h-3 w-3 shrink-0 text-emerald-600" />
                           <span className="font-semibold text-foreground truncate">
@@ -1052,12 +1048,33 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0 font-medium">
-                          <span className="text-emerald-700 dark:text-emerald-300 font-bold">
-                            👍 {r.support_count || 0}
-                          </span>
-                          <span>·</span>
-                          <span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {/* Bouton de soutien interactif & visible directement sur chaque carte */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSupport(r.id, e);
+                            }}
+                            className={cn(
+                              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-extrabold transition-all active:scale-95 shadow-2xs",
+                              supported.has(r.id)
+                                ? "bg-emerald-600 text-white"
+                                : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/30"
+                            )}
+                            title="Soutenir ce signalement pour accélérer la réparation"
+                          >
+                            <ThumbsUp className="h-3 w-3 stroke-[2.5]" />
+                            <span>{supported.has(r.id) ? "Soutenu" : "Soutenir"}</span>
+                            <span className={cn(
+                              "px-1.5 py-0.2 rounded-full text-[10px] font-black",
+                              supported.has(r.id) ? "bg-white/25 text-white" : "bg-emerald-600/15 text-emerald-800 dark:text-emerald-200"
+                            )}>
+                              {r.support_count || 0}
+                            </span>
+                          </button>
+
+                          <span className="hidden sm:inline">·</span>
+                          <span className="hidden sm:inline">
                             {formatDistanceToNow(new Date(r.created_at), { addSuffix: true, locale: fr })}
                           </span>
                         </div>
