@@ -158,10 +158,35 @@ const ReportDetailPage = () => {
             .then(({ data: histData }) => {
               if (histData) setStatusHistory(histData);
             });
+
+          // Vérifier si l'utilisateur a déjà soutenu / corroboré
+          if (user) {
+            if (data.report_category === "infrastructure") {
+              supabase
+                .from("report_support_votes")
+                .select("id")
+                .eq("report_id", id)
+                .eq("user_id", user.id)
+                .maybeSingle()
+                .then(({ data: voteData }) => {
+                  if (voteData) setCorroborated(true);
+                });
+            } else {
+              supabase
+                .from("corroborations")
+                .select("id")
+                .eq("report_id", id)
+                .eq("user_id", user.id)
+                .maybeSingle()
+                .then(({ data: corrData }) => {
+                  if (corrData) setCorroborated(true);
+                });
+            }
+          }
         }
         setLoading(false);
       });
-  }, [id]);
+  }, [id, user, isResolveAction]);
 
   if (loading) {
     return (
@@ -233,7 +258,7 @@ const ReportDetailPage = () => {
         .eq("id", report.id);
       if (error) throw error;
       setReport((prev) => prev ? { ...prev, status: "resolved", resolved_at: new Date().toISOString() } : prev);
-      toast.success("✅ Coupure marquée comme résolue ! Merci pour votre civisme.");
+      toast.success("✅ Signalement marqué comme résolu ! Merci pour votre civisme.");
     } catch (err: any) {
       toast.error("Impossible de clôturer pour le moment : " + (err?.message || ""));
     } finally {
@@ -242,18 +267,30 @@ const ReportDetailPage = () => {
   };
 
   const handleCorroborate = async () => {
-    if (!user) { toast.error("Connectez-vous pour confirmer ce signalement"); return; }
+    if (!user) { toast.error("Connectez-vous pour soutenir ce signalement"); return; }
     setCorroborating(true);
     try {
-      const { error } = await supabase.rpc("corroborate_report", { p_report_id: report.id });
-      if (error) throw error;
-      setCorroborated(true);
-      setReport((prev) => prev ? { ...prev, verifications: prev.verifications + 1 } : prev);
-      toast.success(`✅ ${corroboratedLabel} — merci !`);
+      if (isInfra) {
+        const { data, error } = await (supabase as any).rpc("vote_infrastructure_support", {
+          p_report_id: report.id,
+        });
+        if (error) {
+          await supabase.from("report_support_votes").insert({ report_id: report.id, user_id: user.id });
+        }
+        setCorroborated(true);
+        setReport((prev) => prev ? { ...prev, verifications: prev.verifications + 1 } : prev);
+        toast.success(`✅ ${corroboratedLabel} — merci !`);
+      } else {
+        const { error } = await supabase.rpc("corroborate_report", { p_report_id: report.id });
+        if (error) throw error;
+        setCorroborated(true);
+        setReport((prev) => prev ? { ...prev, verifications: prev.verifications + 1 } : prev);
+        toast.success(`✅ ${corroboratedLabel} — merci !`);
+      }
     } catch (err: any) {
       const msg = err?.message || "";
-      if (msg.includes("déjà confirmé")) toast.info("Vous avez déjà confirmé ce signalement.");
-      else toast.error("Impossible de confirmer pour le moment.");
+      if (msg.includes("déjà confirmé") || msg.includes("déjà voté")) toast.info("Vous avez déjà soutenu ce signalement.");
+      else toast.error("Impossible d'enregistrer pour le moment.");
     } finally {
       setCorroborating(false);
     }

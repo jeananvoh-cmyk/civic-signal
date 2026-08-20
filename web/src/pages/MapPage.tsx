@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Droplets, Construction, AlertTriangle, Flame, RefreshCw, CheckCircle2 } from "lucide-react";
 import Header from "@/components/Header";
@@ -203,14 +203,20 @@ const computeCentroid = (feature: any): [number, number] | null => {
 
 const MapPage = () => {
   const [searchParams] = useSearchParams();
-  const initialMode: MapMode = searchParams.get("mode") === "infrastructures" ? "infrastructures" : "coupures";
+  const navigate = useNavigate();
   const initialCoupureFilter = (searchParams.get("service") as CoupureFilter) || "all";
 
-  const [mode, setMode] = useState<MapMode>(initialMode);
+  const [mode] = useState<MapMode>("coupures");
   const [coupureFilter, setCoupureFilter] = useState<CoupureFilter>(initialCoupureFilter);
   const [infraFilter, setInfraFilter] = useState<InfraFilter>("all");
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("all");
   const [focusedCommune, setFocusedCommune] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (searchParams.get("mode") === "infrastructures") {
+      navigate("/infrastructures", { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   const [stats, setStats] = useState<CommuneServiceStat[]>([]);
   const [infraStats, setInfraStats] = useState<InfraStats[]>([]);
@@ -790,35 +796,26 @@ const MapPage = () => {
       <main className="container py-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-4 flex items-start justify-between">
           <div>
-            <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground uppercase tracking-tight">
-              {mode === "coupures"
-                ? "Coupures d'eau & d'électricité — en temps réel"
-                : "Infrastructures publiques — signalements citoyens"}
+            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              Coupures d'eau & d'électricité — en temps réel
             </h1>
             <p className="text-xs text-muted-foreground mt-0.5">14 communes du Grand Abidjan disponibles</p>
             <p className="mt-1 text-muted-foreground">
               {loading ? "Chargement..." : (
                 <>
                   <strong className={currentActifs > 0 ? "text-destructive" : "text-success"}>
-                    {currentActifs} signalement{currentActifs > 1 ? "s" : ""} actif{currentActifs > 1 ? "s" : ""}
+                    {currentActifs} coupure{currentActifs > 1 ? "s" : ""} active{currentActifs > 1 ? "s" : ""}
                   </strong> en ce moment
-                  {mode === "coupures" && coupureFilter === "all" && (
+                  {coupureFilter === "all" && (
                     <span className="ml-2 inline-flex items-center gap-2 text-sm">
                       <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">⚡ {ct.elec}</span>
                       <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">💧 {ct.eau}</span>
                     </span>
                   )}
-                  {mode === "infrastructures" && infraFilter === "all" && (
-                    <span className="ml-2 inline-flex items-center gap-2 text-sm">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"><img src={INFRA_CATEGORY_ICONS.cie} className="h-3.5 w-3.5 object-contain inline" /> {it.cie}</span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"><img src={INFRA_CATEGORY_ICONS.sodeci} className="h-3.5 w-3.5 object-contain inline" /> {it.sod}</span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"><img src={INFRA_CATEGORY_ICONS.mairie} className="h-3.5 w-3.5 object-contain inline" /> {it.mai}</span>
-                    </span>
-                  )}
                 </>
               )}
             </p>
-            {!loading && mode === "coupures" && ct.verified > 0 && (
+            {!loading && ct.verified > 0 && (
               <p className="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-success">
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-success/10 text-xs">✓</span>
                 {ct.verified} confirmé{ct.verified > 1 ? 's' : ''} par la communauté
@@ -842,30 +839,23 @@ const MapPage = () => {
           </div>
         </motion.div>
 
-        {/* Mode Toggle */}
-        <div className="mb-4 flex items-center gap-1 rounded-xl border border-border bg-card p-1 shadow-sm w-fit">
-          <button
-            onClick={() => setMode("coupures")}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200 ${
-              mode === "coupures"
-                ? "bg-destructive text-destructive-foreground shadow-md"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            }`}
+        {/* Contextual Banner — Zéro Redondance */}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/80 bg-card p-3.5 shadow-xs">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-base text-amber-600 dark:text-amber-400 font-bold">
+              ⚡💧
+            </span>
+            <div>
+              <p className="text-xs sm:text-sm font-bold text-foreground">Météo des coupures de réseau dans les foyers</p>
+              <p className="text-[11px] sm:text-xs text-muted-foreground">Suivi en temps réel des pannes d'électricité (CIE) et d'eau (SODECI) à Abidjan.</p>
+            </div>
+          </div>
+          <Link
+            to="/infrastructures"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-600/30 bg-emerald-500/10 hover:bg-emerald-500/20 px-3.5 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 transition-colors shadow-xs"
           >
-            <AlertTriangle className="h-4 w-4" />
-            Coupures
-          </button>
-          <button
-            onClick={() => setMode("infrastructures")}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-200 ${
-              mode === "infrastructures"
-                ? "bg-emerald-600 text-white shadow-md"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            }`}
-          >
-            <Construction className="h-4 w-4" />
-            Infrastructures
-          </button>
+            <span>💡 Voirie & Lampadaires (Fil + Carte) ➔</span>
+          </Link>
         </div>
 
         {/* Heat-map toggle */}
@@ -948,50 +938,25 @@ const MapPage = () => {
           ))}
         </div>
 
-        {/* Sub-filters */}
+        {/* Sub-filters (Électricité & Eau) */}
         <div className="mb-4 flex flex-wrap gap-2">
-          {mode === "coupures" ? (
-            <>
-              {([
-                { key: "all" as CoupureFilter, label: "Tous", icon: <span>⚡💧</span> },
-                { key: "electricity" as CoupureFilter, label: "Électricité", icon: <Zap className="h-3.5 w-3.5" /> },
-                { key: "water" as CoupureFilter, label: "Eau", icon: <Droplets className="h-3.5 w-3.5" /> },
-              ]).map((f) => (
-                <button
-                  key={f.key}
-                  onClick={() => setCoupureFilter(f.key)}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
-                    coupureFilter === f.key
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground hover:bg-accent"
-                  }`}
-                >
-                  {f.icon} {f.label}
-                </button>
-              ))}
-            </>
-          ) : (
-            <>
-              {([
-                { key: "all" as InfraFilter, label: "Tous", iconSrc: null },
-                { key: "cie" as InfraFilter, label: "CIE (Lampadaires)", iconSrc: INFRA_CATEGORY_ICONS.cie },
-                { key: "sodeci" as InfraFilter, label: "SODECI (Fuites)", iconSrc: INFRA_CATEGORY_ICONS.sodeci },
-                { key: "mairie" as InfraFilter, label: "Mairie (Voirie)", iconSrc: INFRA_CATEGORY_ICONS.mairie },
-              ]).map((f) => (
-                <button
-                  key={f.key}
-                  onClick={() => setInfraFilter(f.key)}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
-                    infraFilter === f.key
-                      ? "bg-emerald-600 text-white"
-                      : "bg-secondary text-secondary-foreground hover:bg-accent"
-                  }`}
-                >
-                  {f.iconSrc ? <img src={f.iconSrc} className="h-4 w-4 object-contain rounded-sm" alt="" /> : <Construction className="h-3.5 w-3.5" />} {f.label}
-                </button>
-              ))}
-            </>
-          )}
+          {([
+            { key: "all" as CoupureFilter, label: "Tous", icon: <span>⚡💧</span> },
+            { key: "electricity" as CoupureFilter, label: "Électricité (CIE)", icon: <Zap className="h-3.5 w-3.5" /> },
+            { key: "water" as CoupureFilter, label: "Eau (SODECI)", icon: <Droplets className="h-3.5 w-3.5" /> },
+          ]).map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setCoupureFilter(f.key)}
+              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
+                coupureFilter === f.key
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "bg-secondary text-secondary-foreground hover:bg-accent"
+              }`}
+            >
+              {f.icon} {f.label}
+            </button>
+          ))}
         </div>
 
         {/* Commune active counts (compact) */}

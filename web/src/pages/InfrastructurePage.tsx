@@ -1,10 +1,9 @@
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PhotoGallery from "@/components/PhotoGallery";
-import ShareButton from "@/components/ShareButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,33 +13,25 @@ import {
   Filter, TrendingUp, AlertCircle, ChevronDown, Lightbulb,
   Building2, ExternalLink, X as XIcon, Pencil, Map as MapIcon,
   Camera, MessageSquare, Share2, Globe, Sparkles, CheckCircle2,
-  Flame, ShieldAlert, Navigation, Plus, PhoneCall, ChevronRight, SlidersHorizontal
+  Flame, ShieldAlert, Navigation, Plus, PhoneCall, ChevronRight,
+  SlidersHorizontal, Search, ArrowLeft, Send, CheckCheck, List, Layers, Compass
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { formatDistanceToNow } from "date-fns";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { formatDistanceToNow, format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
-import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
+import { extractInfraLabel, infraEmoji, cleanDescription, INFRA_CIE, INFRA_SODECI } from "@/lib/report-display";
+import { getDisplayTicketCode, formatPadaAddress } from "@/lib/pada";
+import { COMMUNES, COMMUNE_COLORS } from "@/lib/communes";
 import { cn } from "@/lib/utils";
-import {
-  electriciteIcon,
-  eauIcon,
-  lampadaireIcon,
-  poteauElectriqueIcon,
-  cieHazardIcon,
-  cieAutreIcon,
-  canalisationIcon,
-  fuiteEauIcon,
-  sodeciAutreIcon,
-  voirieIcon,
-  caniveauIcon,
-  depotOrduresIcon,
-  mairieAutreIcon,
-} from "@/lib/infra-icons";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
-type InfraReport = {
+export interface InfraReport {
   id: string;
+  user_id?: string;
   service_type: string;
+  report_category?: string;
   description: string;
   location: string;
   commune: string;
@@ -48,1292 +39,1134 @@ type InfraReport = {
   status: string;
   urgency: string;
   created_at: string;
+  resolved_at?: string | null;
   photo_url: string | null;
   photo_urls: string[] | null;
   verifications: number;
   repair_verifications: number;
   support_count: number;
-  user_id?: string;
-};
+  latitude?: number | null;
+  longitude?: number | null;
+  ticket_code?: string | null;
+  operator_name?: string | null;
+  operator_reference?: string | null;
+  operator_last_note?: string | null;
+  estimated_resolution_time?: string | null;
+}
 
-type FilterType = "all" | "eau" | "electricite" | "mairie";
+export interface StatusHistoryItem {
+  id: string;
+  old_status?: string | null;
+  new_status: string;
+  operator_name?: string | null;
+  operator_reference?: string | null;
+  public_note?: string | null;
+  estimated_resolution_time?: string | null;
+  created_at: string;
+}
 
-const PAGE_SIZE = 12;
+type OperatorFilter = "all" | "cie" | "sodeci" | "mairie";
+type StatusFilter = "all" | "active" | "resolved";
+type SortFilter = "newest" | "supported";
 
-const COMMUNES_LIST = [
-  "Abobo", "Adjamé", "Attécoubé", "Bingerville", "Cocody",
-  "Koumassi", "Marcory", "Plateau", "Port-Bouët", "Treichville", "Yopougon"
+const PAGE_SIZE = 40;
+
+const OPERATOR_FILTERS: { key: OperatorFilter; label: string; icon: string; color: string }[] = [
+  { key: "all", label: "Tous les opérateurs", icon: "🌐", color: "bg-slate-900 text-white dark:bg-white dark:text-slate-900" },
+  { key: "cie", label: "⚡ CIE (Lampadaires & Réseau)", icon: "💡", color: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30" },
+  { key: "sodeci", label: "💧 SODECI (Fuites & Tuyaux)", icon: "💧", color: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30" },
+  { key: "mairie", label: "🏛️ Mairie (Nids-de-poule & Voirie)", icon: "🚧", color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30" },
 ];
 
-// Sub-categories data with broad aliases for 100% resilient filtering
-const SUB_CATEGORIES = {
-  electricite: [
-    {
-      label: "Lampadaires & Éclairage public",
-      sub: "lampadaire",
-      aliases: ["lampadaire", "éclairage", "eclairage", "lumiere", "lumière", "ampoule", "street_light"],
-      icon: lampadaireIcon,
-      desc: "Lampadaires éteints, cassés ou clignotants",
-    },
-    {
-      label: "Poteaux & Pylônes",
-      sub: "poteau",
-      aliases: ["poteau", "pylone", "pylône", "cable", "câble", "fil"],
-      icon: poteauElectriqueIcon,
-      desc: "Poteaux penchés ou câbles au sol",
-    },
-    {
-      label: "Branchements dangereux",
-      sub: "branchement",
-      aliases: ["branchement", "danger", "etincelle", "étincelle", "feu"],
-      icon: cieHazardIcon,
-      desc: "Fils dénudés ou installations à risque",
-      danger: true,
-    },
-    {
-      label: "Autres pannes CIE",
-      sub: "autre",
-      aliases: ["transformateur", "cie", "autre"],
-      icon: cieAutreIcon,
-      desc: "Transformateurs et équipements réseau",
-    },
-  ],
-  eau: [
-    {
-      label: "Fuites d'eau sur voie",
-      sub: "fuite",
-      aliases: ["fuite", "ecoulement", "écoulement", "tuyau", "vanne"],
-      icon: fuiteEauIcon,
-      desc: "Écoulement sur la chaussée",
-    },
-    {
-      label: "Canalisations publiques",
-      sub: "canalisation",
-      aliases: ["canalisation", "conduite", "tuyauterie"],
-      icon: canalisationIcon,
-      desc: "Conduite principale rompue",
-    },
-    {
-      label: "Qualité de l'eau",
-      sub: "qualite",
-      aliases: ["qualite", "qualité", "trouble", "couleur", "odeur", "marron"],
-      icon: sodeciAutreIcon,
-      desc: "Eau trouble ou impropre",
-      danger: true,
-    },
-    {
-      label: "Autres soucis SODECI",
-      sub: "autre",
-      aliases: ["compteur", "sodeci", "autre"],
-      icon: eauIcon,
-      desc: "Compteurs généraux et vannes",
-    },
-  ],
-  mairie: [
-    {
-      label: "Nids-de-poule & Chaussée",
-      sub: "nid de poule",
-      aliases: ["nid de poule", "nids de poule", "route", "chaussee", "chaussée", "bitume", "trottoir", "voie"],
-      icon: voirieIcon,
-      desc: "Trous, bitume dégradé",
-    },
-    {
-      label: "Caniveaux bouchés",
-      sub: "caniveau",
-      aliases: ["caniveau", "egout", "égout", "eaux usees", "eaux usées", "inondation", "stagnante"],
-      icon: caniveauIcon,
-      desc: "Eaux stagnantes & odeurs",
-    },
-    {
-      label: "Amas d'ordures sauvages",
-      sub: "ordure",
-      aliases: ["ordure", "dechet", "déchet", "depot", "dépôt", "poubelle", "salubrite", "salubrité"],
-      icon: depotOrduresIcon,
-      desc: "Dépôts non collectés",
-    },
-    {
-      label: "Autres voirie municipale",
-      sub: "autre",
-      aliases: ["trottoir", "signalisation", "mairie", "autre"],
-      icon: mairieAutreIcon,
-      desc: "Trottoirs & mobilier urbain",
-    },
-  ],
-};
+/** Escape HTML special chars to prevent XSS in Leaflet popup strings */
+function escHtml(s: string): string {
+  return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
 
-const InfrastructurePage = () => {
+export default function InfrastructurePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Data state
   const [reports, setReports] = useState<InfraReport[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<FilterType>("all");
-  const [subFilter, setSubFilter] = useState<string | null>(null);
-  const [activeDropdown, setActiveDropdown] = useState<FilterType | null>(null);
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const [selectedReport, setSelectedReport] = useState<InfraReport | null>(null);
+  const [hoveredReportId, setHoveredReportId] = useState<string | null>(null);
+  const [statusHistory, setStatusHistory] = useState<StatusHistoryItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // Filters state
+  const [operatorFilter, setOperatorFilter] = useState<OperatorFilter>(
+    (searchParams.get("operator") as OperatorFilter) || "all"
+  );
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(
+    (searchParams.get("status") as StatusFilter) || "all"
+  );
+  const [communeFilter, setCommuneFilter] = useState<string>(
+    searchParams.get("commune") || "all"
+  );
+  const [searchQuery, setSearchQuery] = useState<string>(
+    searchParams.get("search") || ""
+  );
+  const [sortBy, setSortBy] = useState<SortFilter>("newest");
+
+  // Mobile View Toggle: "list" | "map"
+  const [mobileTab, setMobileTab] = useState<"list" | "map">("list");
+  const [mobileBottomSheetOpen, setMobileBottomSheetOpen] = useState(false);
+
+  // User interactions
   const [supported, setSupported] = useState<Set<string>>(new Set());
   const [repaired, setRepaired] = useState<Set<string>>(new Set());
-  const [communeFilter, setCommuneFilter] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editText, setEditText] = useState("");
 
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  // Leaflet Map Refs
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapInstance = useRef<L.Map | null>(null);
+  const markersRef = useRef<Map<string, L.Marker>>(new Map());
 
-  // Close dropdown on click outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setActiveDropdown(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const getActiveAliases = (categoryKey: FilterType, sub: string | null): string[] => {
-    if (!sub || categoryKey === "all") return [];
-    const list = SUB_CATEGORIES[categoryKey] || [];
-    const found = list.find((item) => item.sub === sub || item.label.toLowerCase().includes(sub.toLowerCase()));
-    return found?.aliases || [sub];
-  };
-
-  const fetchReports = async (pageNum: number, append = false) => {
-    const setter = append ? setLoadingMore : setLoading;
-    setter(true);
-
-    let items: InfraReport[] = [];
-
-    if (user) {
-      let query = supabase
-        .from("reports")
-        .select("id, user_id, service_type, report_category, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, support_count")
-        .order("created_at", { ascending: false });
-
-      // Broad filter covering infrastructure or infrastructure keywords (lampadaires, etc.)
-      if (filter === "all") {
-        query = query.or("report_category.eq.infrastructure,service_type.eq.infrastructure,service_type.eq.mairie,service_type.eq.voirie,description.ilike.%lampadaire%,description.ilike.%éclairage%,description.ilike.%eclairage%,description.ilike.%poteau%,description.ilike.%caniveau%,description.ilike.%nid de poule%,description.ilike.%fuite%");
-      } else if (filter === "electricite") {
-        query = query.or("and(report_category.eq.infrastructure,service_type.eq.electricity),description.ilike.%lampadaire%,description.ilike.%éclairage%,description.ilike.%eclairage%,description.ilike.%poteau%,description.ilike.%branchement%");
-      } else if (filter === "eau") {
-        query = query.or("and(report_category.eq.infrastructure,service_type.eq.water),description.ilike.%fuite%,description.ilike.%canalisation%");
-      } else if (filter === "mairie") {
-        query = query.or("and(report_category.eq.infrastructure,service_type.eq.mairie),service_type.eq.mairie,service_type.eq.voirie,description.ilike.%caniveau%,description.ilike.%nid de poule%,description.ilike.%ordure%,description.ilike.%voirie%");
-      }
-
-      if (communeFilter) {
-        query = query.eq("commune", communeFilter);
-      }
-      query = query.range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
-
-      const [{ data, error }, { data: myVotes }, { data: myRepairs }] = await Promise.all([
-        query,
-        supabase.from("corroborations").select("report_id").eq("user_id", user.id),
-        supabase.from("repair_confirmations").select("report_id").eq("user_id", user.id),
-      ]);
-      if (error) { setter(false); return; }
-      items = (data ?? []) as unknown as InfraReport[];
-
-      // Sub-filter client side with multi-alias support
-      if (subFilter && filter !== "all") {
-        const aliases = getActiveAliases(filter, subFilter);
-        items = items.filter((r) => {
-          const desc = (r.description || "").toLowerCase();
-          return aliases.some((a) => desc.includes(a.toLowerCase()));
-        });
-      }
-
-      if (myVotes) setSupported(new Set(myVotes.map((v: any) => v.report_id)));
-      if (myRepairs) setRepaired(new Set(myRepairs.map((v: any) => v.report_id)));
-    } else {
-      // Visiteur anonyme : tentative RPC puis fallback requete directe si besoin
-      const { data, error } = await (supabase as any).rpc(
+  // Fetch all infrastructure reports
+  const fetchReports = useCallback(async () => {
+    setLoading(true);
+    try {
+      // 1. Try public RPC first
+      const { data: rpcData, error: rpcError } = await (supabase as any).rpc(
         "get_public_infrastructure_reports",
-        { p_limit: 100, p_offset: pageNum * PAGE_SIZE },
+        { p_limit: 150, p_offset: 0 }
       );
-      
-      let rows: InfraReport[] = [];
-      if (!error && data && data.length > 0) {
-        rows = data as InfraReport[];
+
+      let list: InfraReport[] = [];
+      if (!rpcError && Array.isArray(rpcData) && rpcData.length > 0) {
+        list = rpcData.map((item: any) => ({
+          ...item,
+          support_count: Number(item.support_count || item.verifications || 0),
+          repair_verifications: Number(item.repair_verifications || 0),
+          latitude: item.latitude ? Number(item.latitude) : null,
+          longitude: item.longitude ? Number(item.longitude) : null,
+        }));
       } else {
-        // Fallback requete directe publique
+        // Fallback direct query
         const { data: directData } = await supabase
           .from("reports")
-          .select("id, user_id, service_type, report_category, description, location, commune, quartier, status, urgency, created_at, photo_url, photo_urls, verifications, repair_verifications, support_count")
+          .select("id, user_id, service_type, report_category, description, location, commune, quartier, status, urgency, created_at, resolved_at, photo_url, photo_urls, verifications, repair_verifications, support_count, latitude, longitude, ticket_code, operator_name, operator_reference, operator_last_note, estimated_resolution_time")
+          .or("report_category.eq.infrastructure,service_type.eq.infrastructure,service_type.eq.mairie,service_type.eq.voirie,description.ilike.%lampadaire%,description.ilike.%éclairage%,description.ilike.%eclairage%,description.ilike.%poteau%,description.ilike.%caniveau%,description.ilike.%nid de poule%,description.ilike.%fuite%")
           .order("created_at", { ascending: false })
-          .limit(100);
-        rows = (directData ?? []) as unknown as InfraReport[];
+          .limit(150);
+
+        list = (directData ?? []).map((item: any) => ({
+          ...item,
+          support_count: Number(item.support_count || item.verifications || 0),
+          repair_verifications: Number(item.repair_verifications || 0),
+          latitude: item.latitude ? Number(item.latitude) : null,
+          longitude: item.longitude ? Number(item.longitude) : null,
+        }));
       }
 
-      rows.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-      if (filter !== "all") {
-        const dbServiceType = filter === "eau" ? "water" : filter === "electricite" ? "electricity" : filter;
-        rows = rows.filter((r) => {
-          if (r.service_type === dbServiceType) return true;
-          const desc = (r.description || "").toLowerCase();
-          if (filter === "electricite" && (desc.includes("lampadaire") || desc.includes("éclairage") || desc.includes("eclairage") || desc.includes("poteau") || desc.includes("branchement"))) return true;
-          if (filter === "eau" && (desc.includes("fuite") || desc.includes("canalisation"))) return true;
-          if (filter === "mairie" && (desc.includes("caniveau") || desc.includes("nid de poule") || desc.includes("ordure") || desc.includes("voirie"))) return true;
-          return false;
-        });
+      // If user logged in, fetch user support votes and repair confirmations
+      if (user) {
+        const [{ data: myVotes }, { data: myRepairs }] = await Promise.all([
+          supabase.from("report_support_votes").select("report_id").eq("user_id", user.id),
+          supabase.from("repair_confirmations").select("report_id").eq("user_id", user.id),
+        ]);
+        if (myVotes) setSupported(new Set(myVotes.map((v: any) => v.report_id)));
+        if (myRepairs) setRepaired(new Set(myRepairs.map((v: any) => v.report_id)));
       }
 
-      if (subFilter && filter !== "all") {
-        const aliases = getActiveAliases(filter, subFilter);
-        rows = rows.filter((r) => {
-          const desc = (r.description || "").toLowerCase();
-          return aliases.some((a) => desc.includes(a.toLowerCase()));
-        });
-      }
+      setReports(list);
 
-      if (communeFilter) {
-        rows = rows.filter((r) => r.commune === communeFilter);
+      // Check if URL specifies a report ID to select
+      const reportIdParam = searchParams.get("id");
+      if (reportIdParam) {
+        const target = list.find((r) => r.id === reportIdParam);
+        if (target) {
+          setSelectedReport(target);
+          if (window.innerWidth < 1024) setMobileBottomSheetOpen(true);
+        }
       }
-      items = rows.slice(0, PAGE_SIZE);
+    } catch (e) {
+      console.warn("Error fetching infrastructure reports:", e);
+    } finally {
+      setLoading(false);
     }
-
-    setHasMore(items.length === PAGE_SIZE);
-    setReports((prev) => (append ? [...prev, ...items] : items));
-    setter(false);
-  };
+  }, [user, searchParams]);
 
   useEffect(() => {
-    setPage(0);
-    fetchReports(0);
-  }, [filter, subFilter, communeFilter]);
+    fetchReports();
+  }, [fetchReports]);
 
-  const loadMore = () => {
-    const next = page + 1;
-    setPage(next);
-    fetchReports(next, true);
+  // Load Status History for selected report
+  useEffect(() => {
+    if (!selectedReport) {
+      setStatusHistory([]);
+      return;
+    }
+    setLoadingHistory(true);
+    supabase
+      .from("report_status_history")
+      .select("id, old_status, new_status, operator_name, operator_reference, public_note, estimated_resolution_time, created_at")
+      .eq("report_id", selectedReport.id)
+      .order("created_at", { ascending: true })
+      .then(({ data, error }) => {
+        if (!error && data) {
+          setStatusHistory(data as StatusHistoryItem[]);
+        } else {
+          setStatusHistory([]);
+        }
+        setLoadingHistory(false);
+      });
+  }, [selectedReport]);
+
+  // Filtered & Sorted Reports
+  const filteredReports = useMemo(() => {
+    return reports.filter((r) => {
+      // 1. Status Filter
+      if (statusFilter === "active" && r.status === "resolved") return false;
+      if (statusFilter === "resolved" && r.status !== "resolved") return false;
+
+      // 2. Operator Filter
+      const desc = (r.description || "").toLowerCase();
+      if (operatorFilter === "cie") {
+        const isCie = r.service_type === "electricity" || desc.includes("lampadaire") || desc.includes("éclairage") || desc.includes("eclairage") || desc.includes("poteau") || desc.includes("cie");
+        if (!isCie) return false;
+      } else if (operatorFilter === "sodeci") {
+        const isSodeci = r.service_type === "water" || desc.includes("fuite") || desc.includes("canalisation") || desc.includes("sodeci") || desc.includes("tuyau");
+        if (!isSodeci) return false;
+      } else if (operatorFilter === "mairie") {
+        const isMairie = r.service_type === "mairie" || r.service_type === "voirie" || desc.includes("nid de poule") || desc.includes("caniveau") || desc.includes("ordure") || desc.includes("voirie") || desc.includes("chaussée");
+        if (!isMairie) return false;
+      }
+
+      // 3. Commune Filter
+      if (communeFilter !== "all" && r.commune?.toLowerCase() !== communeFilter.toLowerCase()) {
+        return false;
+      }
+
+      // 4. Text Search Query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchesDesc = desc.includes(q);
+        const matchesLoc = (r.location || "").toLowerCase().includes(q);
+        const matchesQuartier = (r.quartier || "").toLowerCase().includes(q);
+        const matchesCommune = (r.commune || "").toLowerCase().includes(q);
+        const matchesTicket = (r.ticket_code || "").toLowerCase().includes(q);
+        if (!matchesDesc && !matchesLoc && !matchesQuartier && !matchesCommune && !matchesTicket) {
+          return false;
+        }
+      }
+
+      return true;
+    }).sort((a, b) => {
+      if (sortBy === "supported") {
+        return (b.support_count || 0) - (a.support_count || 0);
+      }
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [reports, statusFilter, operatorFilter, communeFilter, searchQuery, sortBy]);
+
+  // Init Leaflet Map
+  useEffect(() => {
+    if (!mapContainerRef.current || mapInstance.current) return;
+
+    const map = L.map(mapContainerRef.current, {
+      zoomControl: false,
+    }).setView([5.35, -4.01], 12);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19,
+    }).addTo(map);
+
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+
+    mapInstance.current = map;
+
+    return () => {
+      map.remove();
+      mapInstance.current = null;
+    };
+  }, []);
+
+  // Update Markers on Map
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map) return;
+
+    // Clear old markers
+    markersRef.current.forEach((marker) => marker.remove());
+    markersRef.current.clear();
+
+    filteredReports.forEach((r) => {
+      // Use exact coordinates or fallback approximate coordinates by commune
+      let lat = r.latitude;
+      let lon = r.longitude;
+
+      if (!lat || !lon) {
+        const commObj = COMMUNES.find((c) => c.nom.toLowerCase() === (r.commune || "").toLowerCase());
+        if (commObj) {
+          // slight random jitter to prevent exact overlap
+          const hash = r.id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+          const jitterLat = ((hash % 100) - 50) * 0.0003;
+          const jitterLon = (((hash * 13) % 100) - 50) * 0.0003;
+          lat = commObj.coords[0] + jitterLat;
+          lon = commObj.coords[1] + jitterLon;
+        }
+      }
+
+      if (!lat || !lon) return;
+
+      const isResolved = r.status === "resolved";
+      const descLower = (r.description || "").toLowerCase();
+      const isCie = r.service_type === "electricity" || descLower.includes("lampadaire") || descLower.includes("éclairage") || descLower.includes("eclairage") || descLower.includes("poteau");
+      const isSodeci = r.service_type === "water" || descLower.includes("fuite") || descLower.includes("canalisation");
+
+      const iconEmoji = isCie ? "💡" : isSodeci ? "💧" : "🚧";
+      const bgColor = isResolved ? "#10b981" : isCie ? "#f59e0b" : isSodeci ? "#3b82f6" : "#059669";
+      const isSelected = selectedReport?.id === r.id;
+
+      const markerHtml = `
+        <div style="
+          position: relative;
+          width: ${isSelected ? 44 : 36}px;
+          height: ${isSelected ? 44 : 36}px;
+          background: ${bgColor};
+          border: ${isSelected ? "3px solid #000" : "2.5px solid #fff"};
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: ${isSelected ? 20 : 16}px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+          cursor: pointer;
+          transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+          transform: ${isSelected ? "scale(1.15)" : "scale(1)"};
+        ">
+          <span>${iconEmoji}</span>
+          ${isResolved ? `<span style="position: absolute; top: -4px; right: -4px; background: #16a34a; color: white; width: 16px; height: 16px; border-radius: 50%; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; border: 1.5px solid white;">✓</span>` : ""}
+          ${r.support_count > 0 && !isResolved ? `<span style="position: absolute; bottom: -4px; right: -4px; background: #dc2626; color: white; padding: 0 4px; height: 16px; border-radius: 999px; font-size: 9px; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 1.5px solid white;">${r.support_count}</span>` : ""}
+        </div>
+      `;
+
+      const customIcon = L.divIcon({
+        className: "",
+        html: markerHtml,
+        iconSize: [isSelected ? 44 : 36, isSelected ? 44 : 36],
+        iconAnchor: [isSelected ? 22 : 18, isSelected ? 22 : 18],
+      });
+
+      const marker = L.marker([lat, lon], { icon: customIcon }).addTo(map);
+
+      // Popup Content
+      const popupHtml = `
+        <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 220px; max-width: 260px; padding: 4px;">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+            <span style="font-size: 16px;">${iconEmoji}</span>
+            <div>
+              <div style="font-weight: 800; font-size: 12px; color: #0f172a; line-height: 1.2;">${escHtml(r.quartier || r.commune)}</div>
+              <div style="font-size: 10px; color: #64748b;">${escHtml(r.commune)} · ${isResolved ? "✅ Réparé" : "⏳ En attente"}</div>
+            </div>
+          </div>
+          <p style="font-size: 11px; color: #334155; margin: 4px 0 8px 0; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+            ${escHtml(cleanDescription(r.description))}
+          </p>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 6px;">
+            <span style="font-size: 10px; font-weight: 700; color: #16a34a;">👍 ${r.support_count} soutiens</span>
+            <button id="view-report-${r.id}" style="background: #10b981; color: white; border: none; border-radius: 6px; padding: 3px 8px; font-size: 10px; font-weight: 700; cursor: pointer;">
+              Ouvrir la fiche ➔
+            </button>
+          </div>
+        </div>
+      `;
+
+      marker.bindPopup(popupHtml);
+
+      marker.on("popupopen", () => {
+        const btn = document.getElementById(`view-report-${r.id}`);
+        if (btn) {
+          btn.onclick = () => {
+            setSelectedReport(r);
+            if (window.innerWidth < 1024) {
+              setMobileBottomSheetOpen(true);
+            }
+          };
+        }
+      });
+
+      marker.on("click", () => {
+        setSelectedReport(r);
+        if (window.innerWidth < 1024) {
+          setMobileBottomSheetOpen(true);
+        }
+      });
+
+      markersRef.current.set(r.id, marker);
+    });
+
+    // If commune filter changed, center map on commune
+    if (communeFilter !== "all") {
+      const c = COMMUNES.find((item) => item.nom.toLowerCase() === communeFilter.toLowerCase());
+      if (c) {
+        map.flyTo(c.coords, 14, { duration: 1 });
+      }
+    }
+  }, [filteredReports, selectedReport, communeFilter]);
+
+  // Handle select report & pan map
+  const handleSelectReport = (r: InfraReport) => {
+    setSelectedReport(r);
+    const marker = markersRef.current.get(r.id);
+    if (marker && mapInstance.current) {
+      const latLng = marker.getLatLng();
+      mapInstance.current.flyTo(latLng, 15, { duration: 0.8 });
+      marker.openPopup();
+    }
+    if (window.innerWidth < 1024) {
+      setMobileBottomSheetOpen(true);
+    }
   };
 
-  const handleSupport = async (reportId: string) => {
+  // Support / Vote Infrastructure Report
+  const handleSupport = async (reportId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     if (!user) {
-      toast.info("Connectez-vous pour voter");
+      toast.error("Veuillez vous connecter pour soutenir ce signalement.");
+      navigate(`/auth?redirect=/infrastructures?id=${reportId}`);
       return;
     }
-    const report = reports.find((r) => r.id === reportId);
-    if (report?.user_id === user.id) {
-      toast.info("Vous ne pouvez pas voter pour votre propre signalement");
-      return;
-    }
-    const { data, error } = await (supabase.rpc as any)("support_infra_report", { p_report_id: reportId });
-    if (error) {
-      const msg = error.message || "";
-      if (msg.includes("déjà le vôtre")) {
-        toast.info("Vous ne pouvez pas soutenir votre propre signalement");
-      } else {
-        toast.error("Impossible d'enregistrer votre soutien");
-      }
-      return;
-    }
-    const voted: boolean = data?.voted;
-    const newCount: number = data?.support_count;
+    const already = supported.has(reportId);
     setSupported((prev) => {
       const next = new Set(prev);
-      voted ? next.add(reportId) : next.delete(reportId);
+      if (already) next.delete(reportId);
+      else next.add(reportId);
       return next;
     });
+
     setReports((prev) =>
-      prev.map((r) => (r.id === reportId ? { ...r, support_count: newCount } : r))
+      prev.map((r) =>
+        r.id === reportId
+          ? { ...r, support_count: Math.max(0, r.support_count + (already ? -1 : 1)) }
+          : r
+      )
     );
-    if (voted) {
-      toast.success("👍 Vous soutenez cette réparation !", {
-        description: "Votre vote augmente la priorité auprès des services techniques.",
+
+    try {
+      const { data, error } = await (supabase as any).rpc("vote_infrastructure_support", {
+        p_report_id: reportId,
       });
-    } else {
-      toast.info("Soutien retiré");
-    }
-  };
 
-  const handleConfirmRepair = async (reportId: string) => {
-    if (!user) {
-      toast.info("Connectez-vous pour confirmer la réparation");
-      return;
-    }
-
-    if (repaired.has(reportId)) {
-      const { error } = await (supabase.rpc as any)("cancel_repair", { p_report_id: reportId });
       if (error) {
-        toast.error(error.message || "Impossible d'annuler");
-        return;
+        // Fallback direct table toggle
+        if (already) {
+          await supabase.from("report_support_votes").delete().eq("report_id", reportId).eq("user_id", user.id);
+          toast.info("Soutien retiré.");
+        } else {
+          await supabase.from("report_support_votes").insert({ report_id: reportId, user_id: user.id });
+          toast.success("✊ Soutien enregistré ! Cela augmente la priorité d'intervention.");
+        }
+      } else if (data) {
+        if (data.voted) {
+          toast.success("✊ Soutien enregistré ! Cela augmente la priorité d'intervention.");
+        } else {
+          toast.info("Soutien retiré.");
+        }
+        if (typeof data.support_count === "number") {
+          setReports((prev) =>
+            prev.map((r) =>
+              r.id === reportId ? { ...r, support_count: data.support_count } : r
+            )
+          );
+        }
       }
-      setRepaired((prev) => { const next = new Set(prev); next.delete(reportId); return next; });
-      setReports((prev) =>
-        prev.map((r) => (r.id === reportId ? { ...r, repair_verifications: Math.max(0, (r.repair_verifications || 0) - 1) } : r))
-      );
-      toast.info("Confirmation retirée");
-      return;
+    } catch {
+      fetchReports();
     }
+  };
 
-    const { error } = await supabase.rpc("confirm_repair", { p_report_id: reportId });
-    if (error) {
-      toast.error(error.message || "Impossible de confirmer");
+  // Confirm Repair
+  const handleConfirmRepair = async (reportId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!user) {
+      toast.error("Connectez-vous pour confirmer la réparation.");
+      navigate(`/auth?redirect=/infrastructures?id=${reportId}`);
       return;
     }
-    setRepaired((prev) => new Set(prev).add(reportId));
-    setReports((prev) =>
-      prev.map((r) => (r.id === reportId ? { ...r, repair_verifications: (r.repair_verifications || 0) + 1 } : r))
-    );
-    toast.success("✅ Réparation confirmée !", {
-      description: "Merci pour votre contribution citoyenne.",
+    const already = repaired.has(reportId);
+    setRepaired((prev) => {
+      const next = new Set(prev);
+      if (already) next.delete(reportId);
+      else next.add(reportId);
+      return next;
     });
-  };
 
-  const handleEditSave = async (reportId: string) => {
-    const trimmed = editText.trim();
-    if (!trimmed || !user) return;
-    const original = reports.find((r) => r.id === reportId)?.description ?? "";
-    const prefix = original.match(/^(\[[^\]]+\]\s*)/)?.[1] ?? "";
-    const suffix = original.match(/(\s*\[\d+[^\]]*\])\s*$/)?.[1] ?? "";
-    const newDescription = `${prefix}${trimmed}${suffix}`;
-    const { error } = await supabase
-      .from("reports")
-      .update({ description: newDescription })
-      .eq("id", reportId)
-      .eq("user_id", user.id);
-    if (error) { toast.error("Impossible de modifier le signalement"); return; }
-    setReports((prev) => prev.map((r) => r.id === reportId ? { ...r, description: newDescription } : r));
-    setEditingId(null);
-    toast.success("Publication modifiée");
-  };
-
-  const timeAgo = (date: string) =>
-    formatDistanceToNow(new Date(date), { addSuffix: true, locale: fr });
-
-  // Top 3 most supported reports for Right Sidebar
-  const topSupportedReports = useMemo(() => {
-    return [...reports]
-      .sort((a, b) => (b.support_count || 0) - (a.support_count || 0))
-      .slice(0, 3);
-  }, [reports]);
-
-  const totalReportsCount = reports.length;
-
-  // Handler for toggle dropdown menu
-  const toggleDropdown = (type: FilterType) => {
-    if (activeDropdown === type) {
-      setActiveDropdown(null);
-    } else {
-      setActiveDropdown(type);
-      if (filter !== type) {
-        setFilter(type);
-        setSubFilter(null);
+    try {
+      if (already) {
+        const { error } = await (supabase as any).rpc("cancel_repair", { p_report_id: reportId });
+        if (error) {
+          await supabase.from("repair_confirmations").delete().eq("report_id", reportId).eq("user_id", user.id);
+        }
+        toast.info("Confirmation annulée.");
+      } else {
+        const { error } = await (supabase as any).rpc("confirm_repair", { p_report_id: reportId });
+        if (error) {
+          await supabase.from("repair_confirmations").insert({ report_id: reportId, user_id: user.id });
+        }
+        toast.success("✅ Merci ! Votre confirmation citoyenne a été prise en compte.");
       }
+      fetchReports();
+    } catch {
+      fetchReports();
     }
   };
 
-  // Get active subfilter label for display
-  const activeSubLabel = useMemo(() => {
-    if (!subFilter || filter === "all") return null;
-    const list = SUB_CATEGORIES[filter] || [];
-    const found = list.find((item) => item.sub === subFilter || item.label.toLowerCase().includes(subFilter.toLowerCase()));
-    return found ? found.label : subFilter;
-  }, [filter, subFilter]);
+  // Generate Official WhatsApp Share Message with PADA code
+  const handleShareWhatsApp = (r: InfraReport, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    const isResolved = r.status === "resolved";
+    const statusText = isResolved ? "✅ RÉPARÉ & CLÔTURÉ" : "⏳ EN ATTENTE D'INTERVENTION";
+    const displayLabel = extractInfraLabel(r.description);
+    const ticketRef = getDisplayTicketCode({
+      ticket_code: r.ticket_code,
+      commune: r.commune,
+      created_at: r.created_at,
+      id: r.id,
+    });
+    const url = `https://signa.ci/infrastructures?id=${r.id}`;
+
+    const text = `🚨 *SIGNALEMENT CITOYEN SIGNA.ci*
+━━━━━━━━━━━━━━━━━━━━
+💡 *Panne* : ${displayLabel}
+📍 *Commune & Quartier* : ${r.commune} · ${r.quartier || "Abidjan"}
+🏛️ *Adresse PADA* : ${r.location || "Non renseignée"}
+📋 *Réf. Ticket* : ${ticketRef}
+📊 *Statut* : ${statusText}
+👥 *Mobilisation* : ${r.support_count || 1} citoyen(s) soutiennent ce ticket
+
+✊ Voisins de ${r.quartier || r.commune}, cliquez ici pour soutenir et faire accélérer l'intervention :
+🔗 ${url}
+━━━━━━━━━━━━━━━━━━━━
+_SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
+
+    const encoded = encodeURIComponent(text);
+    window.open(`https://wa.me/?text=${encoded}`, "_blank");
+  };
+
+  // Center on User GPS
+  const handleLocateMe = () => {
+    if (!navigator.geolocation) {
+      toast.error("La géolocalisation n'est pas supportée par votre navigateur.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        if (mapInstance.current) {
+          mapInstance.current.flyTo([latitude, longitude], 15, { duration: 1 });
+          L.circleMarker([latitude, longitude], {
+            radius: 8,
+            fillColor: "#3b82f6",
+            color: "#ffffff",
+            weight: 3,
+            fillOpacity: 1,
+          }).addTo(mapInstance.current).bindPopup("📍 Vous êtes ici").openPopup();
+        }
+      },
+      () => toast.error("Impossible de récupérer votre position GPS.")
+    );
+  };
 
   return (
-    <div className="min-h-screen bg-[#f0f2f5] dark:bg-[#060e17] text-foreground">
+    <div className="flex flex-col min-h-screen bg-background text-foreground">
       <Header />
 
-      {/* ── Bandeau Titre & Fil d'Actualité ── */}
-      <div className="border-b border-border/70 bg-card/95 backdrop-blur-md sticky top-0 z-30 shadow-xs">
-        <div className="container max-w-7xl px-4 py-3 flex items-center justify-between gap-4">
+      {/* ── TOP HEADER CIVIQUE FIXMYSTREET ── */}
+      <div className="border-b border-border/80 bg-card px-4 py-3 shadow-xs">
+        <div className="container max-w-7xl flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold text-xl shadow-xs">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white font-bold shadow-xs">
               🚧
             </div>
             <div>
-              <h1 className="text-lg sm:text-xl font-display font-extrabold text-foreground flex items-center gap-2">
-                Infrastructures, Lampadaires & Voiries
-                <span className="hidden sm:inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                  En direct
-                </span>
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base sm:text-lg font-extrabold tracking-tight text-foreground">
+                  Voirie, Lampadaires & Infrastructures
+                </h1>
+                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[11px] font-bold">
+                  ● En direct
+                </Badge>
+              </div>
               <p className="text-xs text-muted-foreground hidden sm:block">
-                Le fil d'actualité citoyen pour documenter, soutenir et faire réparer les pannes dans votre quartier.
+                Le hub citoyen pour documenter, soutenir et faire réparer les pannes publiques (CIE, SODECI, Mairies).
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <Link
-              to="/carte"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background hover:bg-muted/70 px-3.5 py-2 text-xs font-bold text-foreground shadow-xs transition-colors"
-            >
-              <MapIcon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              <span className="hidden md:inline">Vue Carte</span>
-            </Link>
             <Button
               onClick={() => navigate("/signaler?category=infrastructure")}
-              className="rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs gap-1.5 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs gap-1.5 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               <Plus className="h-4 w-4 stroke-[3]" />
-              <span>Publier une panne</span>
+              <span>Signaler un problème</span>
             </Button>
           </div>
         </div>
       </div>
 
-      {/* ── BARRE DE FILTRES UNIFIÉE & COMMUNE ERGONOMIQUE ── */}
-      <section className="bg-card border-b border-border/80 shadow-xs relative z-20" ref={dropdownRef}>
-        <div className="container max-w-7xl px-4 py-3 space-y-2.5">
+      {/* ── CONTENEUR PRINCIPAL SPLIT-SCREEN ── */}
+      <main className="flex-1 relative flex flex-col lg:flex-row h-[calc(100vh-125px)] overflow-hidden">
+        
+        {/* ═══════════════════════════════════════════════════════════════
+            VOLET GAUCHE (40%) : FIL ÉPURÉ & JOURNAL OFFICIEL DES MISES À JOUR
+            ═══════════════════════════════════════════════════════════════ */}
+        <div className={cn(
+          "w-full lg:w-[42%] xl:w-[38%] flex flex-col h-full bg-background border-r border-border/80 z-10 transition-all",
+          mobileTab === "map" ? "hidden lg:flex" : "flex"
+        )}>
           
-          {/* Ligne 1 : Filtres par Types avec Dropdowns Fusionnés */}
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap overflow-x-auto no-scrollbar pb-1">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground shrink-0 hidden md:flex items-center gap-1.5 mr-1">
-              <Filter className="h-3.5 w-3.5 text-emerald-500" />
-              Réseaux :
-            </span>
-
-            {/* 🌐 Bouton 1 : Tous les réseaux */}
-            <button
-              type="button"
-              onClick={() => {
-                setFilter("all");
-                setSubFilter(null);
-                setActiveDropdown(null);
-              }}
-              className={cn(
-                "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all shadow-xs shrink-0",
-                filter === "all" && !subFilter
-                  ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm"
-                  : "bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/70"
+          {/* BARRE DE RECHERCHE ET FILTRES RAPIDES */}
+          <div className="p-3 border-b border-border/60 bg-card/60 space-y-2.5 shrink-0">
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Rechercher une rue, un quartier (ex: Bonoumin, 2 Plateaux)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-9 pl-9 pr-8 rounded-xl bg-muted/60 border border-border/60 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-emerald-500 font-medium"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <XIcon className="h-3.5 w-3.5" />
+                </button>
               )}
-            >
-              <span>🌐</span>
-              <span>Tous les réseaux</span>
-            </button>
-
-            {/* ⚡ Bouton 2 : Électricité & Lampadaires CIE (Déroulant Fusionné) */}
-            <div className="relative shrink-0">
-              <button
-                type="button"
-                onClick={() => toggleDropdown("electricite")}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-bold transition-all shadow-xs border",
-                  filter === "electricite"
-                    ? "bg-amber-500/15 border-amber-500/50 text-amber-900 dark:text-amber-300 ring-2 ring-amber-500/20"
-                    : "bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border-border/70"
-                )}
-              >
-                <span className="flex h-5 w-5 items-center justify-center rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs">
-                  💡
-                </span>
-                <span>Électricité & Lampadaires (CIE)</span>
-                {filter === "electricite" && subFilter && (
-                  <span className="rounded-md bg-amber-500/20 px-1.5 py-0.5 text-[11px] font-extrabold text-amber-700 dark:text-amber-300">
-                    {activeSubLabel || subFilter}
-                  </span>
-                )}
-                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200 opacity-70", activeDropdown === "electricite" && "rotate-180")} />
-              </button>
-
-              {/* Popover Menu Déroulant CIE */}
-              <AnimatePresence>
-                {activeDropdown === "electricite" && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6, scale: 0.97 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 6, scale: 0.97 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute left-0 top-full mt-2 w-72 sm:w-80 rounded-2xl border border-amber-500/30 bg-card p-2.5 shadow-xl z-50 backdrop-blur-xl"
-                  >
-                    <div className="flex items-center justify-between px-2 py-1 border-b border-border/60 mb-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-                      <span>Lampadaires & Réseau CIE</span>
-                      {subFilter && (
-                        <button
-                          onClick={() => { setSubFilter(null); setActiveDropdown(null); }}
-                          className="text-muted-foreground hover:text-foreground text-[10px] lowercase"
-                        >
-                          effacer sous-filtre
-                        </button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-1 gap-1">
-                      {SUB_CATEGORIES.electricite.map((item) => {
-                        const isSubActive = subFilter === item.sub && filter === "electricite";
-                        return (
-                          <button
-                            key={item.sub}
-                            type="button"
-                            onClick={() => {
-                              setFilter("electricite");
-                              setSubFilter(item.sub);
-                              setActiveDropdown(null);
-                            }}
-                            className={cn(
-                              "w-full flex items-center gap-3 p-2 rounded-xl text-left transition-colors",
-                              isSubActive
-                                ? "bg-amber-500/15 text-amber-950 dark:text-amber-200 font-bold"
-                                : "hover:bg-muted/70 text-foreground"
-                            )}
-                          >
-                            <img src={item.icon} alt="" className="h-7 w-7 object-contain rounded-md shrink-0 bg-background/50 p-0.5" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs font-bold leading-tight">{item.label}</p>
-                              <p className="text-[10px] text-muted-foreground truncate">{item.desc}</p>
-                            </div>
-                            {isSubActive && <CheckCircle2 className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
 
-            {/* 💧 Bouton 3 : Eau · SODECI (Déroulant Fusionné) */}
-            <div className="relative shrink-0">
-              <button
-                type="button"
-                onClick={() => toggleDropdown("eau")}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-bold transition-all shadow-xs border",
-                  filter === "eau"
-                    ? "bg-sky-500/15 border-sky-500/50 text-sky-900 dark:text-sky-300 ring-2 ring-sky-500/20"
-                    : "bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border-border/70"
-                )}
+            {/* Dropdown Filters Toolbar */}
+            <div className="grid grid-cols-3 gap-1.5 text-xs">
+              {/* Statut */}
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                className="h-8 px-2 rounded-lg bg-background border border-border/80 text-[11px] font-semibold text-foreground focus:outline-none"
               >
-                <span className="flex h-5 w-5 items-center justify-center rounded-lg bg-sky-500/20 text-sky-600 dark:text-sky-400 text-xs">
-                  💧
-                </span>
-                <span>Eau (SODECI)</span>
-                {filter === "eau" && subFilter && (
-                  <span className="rounded-md bg-sky-500/20 px-1.5 py-0.5 text-[11px] font-extrabold text-sky-700 dark:text-sky-300">
-                    {activeSubLabel || subFilter}
-                  </span>
-                )}
-                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200 opacity-70", activeDropdown === "eau" && "rotate-180")} />
-              </button>
+                <option value="all">Statut : Tous</option>
+                <option value="active">🔴 En attente (Actifs)</option>
+                <option value="resolved">✅ Réparés</option>
+              </select>
 
-              {/* Popover Menu Déroulant SODECI */}
-              <AnimatePresence>
-                {activeDropdown === "eau" && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6, scale: 0.97 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 6, scale: 0.97 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute left-0 top-full mt-2 w-72 sm:w-80 rounded-2xl border border-sky-500/30 bg-card p-2.5 shadow-xl z-50 backdrop-blur-xl"
-                  >
-                    <div className="flex items-center justify-between px-2 py-1 border-b border-border/60 mb-1.5 text-[11px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-wider">
-                      <span>Réseau d'Eau SODECI</span>
-                      {subFilter && (
-                        <button
-                          onClick={() => { setSubFilter(null); setActiveDropdown(null); }}
-                          className="text-muted-foreground hover:text-foreground text-[10px] lowercase"
-                        >
-                          effacer sous-filtre
-                        </button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-1 gap-1">
-                      {SUB_CATEGORIES.eau.map((item) => {
-                        const isSubActive = subFilter === item.sub && filter === "eau";
-                        return (
-                          <button
-                            key={item.sub}
-                            type="button"
-                            onClick={() => {
-                              setFilter("eau");
-                              setSubFilter(item.sub);
-                              setActiveDropdown(null);
-                            }}
-                            className={cn(
-                              "w-full flex items-center gap-3 p-2 rounded-xl text-left transition-colors",
-                              isSubActive
-                                ? "bg-sky-500/15 text-sky-950 dark:text-sky-200 font-bold"
-                                : "hover:bg-muted/70 text-foreground"
-                            )}
-                          >
-                            <img src={item.icon} alt="" className="h-7 w-7 object-contain rounded-md shrink-0 bg-background/50 p-0.5" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs font-bold leading-tight">{item.label}</p>
-                              <p className="text-[10px] text-muted-foreground truncate">{item.desc}</p>
-                            </div>
-                            {isSubActive && <CheckCircle2 className="h-4 w-4 text-sky-600 dark:text-sky-400 shrink-0" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* Opérateur */}
+              <select
+                value={operatorFilter}
+                onChange={(e) => setOperatorFilter(e.target.value as OperatorFilter)}
+                className="h-8 px-2 rounded-lg bg-background border border-border/80 text-[11px] font-semibold text-foreground focus:outline-none"
+              >
+                <option value="all">Réseau : Tous</option>
+                <option value="cie">💡 CIE (Électricité)</option>
+                <option value="sodeci">💧 SODECI (Eau)</option>
+                <option value="mairie">🚧 Mairie (Voirie)</option>
+              </select>
+
+              {/* Commune */}
+              <select
+                value={communeFilter}
+                onChange={(e) => setCommuneFilter(e.target.value)}
+                className="h-8 px-2 rounded-lg bg-background border border-border/80 text-[11px] font-semibold text-foreground focus:outline-none"
+              >
+                <option value="all">Commune : Toutes</option>
+                {COMMUNES.map((c) => (
+                  <option key={c.nom} value={c.nom}>{c.nom}</option>
+                ))}
+              </select>
             </div>
 
-            {/* 🚧 Bouton 4 : Voirie · Mairie (Déroulant Fusionné) */}
-            <div className="relative shrink-0">
-              <button
-                type="button"
-                onClick={() => toggleDropdown("mairie")}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-bold transition-all shadow-xs border",
-                  filter === "mairie"
-                    ? "bg-emerald-500/15 border-emerald-500/50 text-emerald-900 dark:text-emerald-300 ring-2 ring-emerald-500/20"
-                    : "bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border-border/70"
-                )}
-              >
-                <span className="flex h-5 w-5 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs">
-                  🚧
-                </span>
-                <span>Voirie (Mairie)</span>
-                {filter === "mairie" && subFilter && (
-                  <span className="rounded-md bg-emerald-500/20 px-1.5 py-0.5 text-[11px] font-extrabold text-emerald-700 dark:text-emerald-300">
-                    {activeSubLabel || subFilter}
-                  </span>
-                )}
-                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200 opacity-70", activeDropdown === "mairie" && "rotate-180")} />
-              </button>
-
-              {/* Popover Menu Déroulant Mairie */}
-              <AnimatePresence>
-                {activeDropdown === "mairie" && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6, scale: 0.97 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 6, scale: 0.97 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute left-0 top-full mt-2 w-72 sm:w-80 rounded-2xl border border-emerald-500/30 bg-card p-2.5 shadow-xl z-50 backdrop-blur-xl"
-                  >
-                    <div className="flex items-center justify-between px-2 py-1 border-b border-border/60 mb-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                      <span>Voirie & Services Municipaux</span>
-                      {subFilter && (
-                        <button
-                          onClick={() => { setSubFilter(null); setActiveDropdown(null); }}
-                          className="text-muted-foreground hover:text-foreground text-[10px] lowercase"
-                        >
-                          effacer sous-filtre
-                        </button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-1 gap-1">
-                      {SUB_CATEGORIES.mairie.map((item) => {
-                        const isSubActive = subFilter === item.sub && filter === "mairie";
-                        return (
-                          <button
-                            key={item.sub}
-                            type="button"
-                            onClick={() => {
-                              setFilter("mairie");
-                              setSubFilter(item.sub);
-                              setActiveDropdown(null);
-                            }}
-                            className={cn(
-                              "w-full flex items-center gap-3 p-2 rounded-xl text-left transition-colors",
-                              isSubActive
-                                ? "bg-emerald-500/15 text-emerald-950 dark:text-emerald-200 font-bold"
-                                : "hover:bg-muted/70 text-foreground"
-                            )}
-                          >
-                            <img src={item.icon} alt="" className="h-7 w-7 object-contain rounded-md shrink-0 bg-background/50 p-0.5" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs font-bold leading-tight">{item.label}</p>
-                              <p className="text-[10px] text-muted-foreground truncate">{item.desc}</p>
-                            </div>
-                            {isSubActive && <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+            {/* Sub-bar: Count & Sort */}
+            <div className="flex items-center justify-between pt-1 text-[11px] text-muted-foreground">
+              <span className="font-semibold">
+                {filteredReports.length} signalement{filteredReports.length > 1 ? "s" : ""} trouvé{filteredReports.length > 1 ? "s" : ""}
+              </span>
+              <div className="flex items-center gap-1">
+                <span>Trier :</span>
+                <button
+                  onClick={() => setSortBy(sortBy === "newest" ? "supported" : "newest")}
+                  className="font-bold text-foreground hover:text-emerald-600 underline"
+                >
+                  {sortBy === "newest" ? "Plus récents" : "Plus soutenus"}
+                </button>
+              </div>
             </div>
-
-            {/* Reset All Filters Button */}
-            {(filter !== "all" || subFilter || communeFilter) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setFilter("all");
-                  setSubFilter(null);
-                  setCommuneFilter(null);
-                  setActiveDropdown(null);
-                }}
-                className="inline-flex items-center gap-1 text-xs font-bold text-destructive hover:underline px-2 py-1 shrink-0 ml-auto"
-              >
-                <XIcon className="h-3.5 w-3.5" />
-                <span>Effacer tout</span>
-              </button>
-            )}
           </div>
 
-          {/* Ligne 2 : Sélecteur de Communes Design & Ergonomique */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1 pb-0.5">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground shrink-0 flex items-center gap-1 mr-1">
-              <MapPin className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-              Communes :
-            </span>
-
-            {/* Pilule : Toutes les communes */}
-            <button
-              type="button"
-              onClick={() => setCommuneFilter(null)}
-              className={cn(
-                "rounded-full px-3 py-1 text-xs font-bold transition-all shrink-0 shadow-2xs",
-                communeFilter === null
-                  ? "bg-emerald-600 text-white shadow-xs"
-                  : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/60"
-              )}
-            >
-              Toutes
-            </button>
-
-            {/* Liste des 11 Communes avec Design Pill Chic */}
-            {COMMUNES_LIST.map((c) => {
-              const isSelected = communeFilter === c;
-              return (
+          {/* LISTE OU FICHE DÉTAILLÉE MASTER-DETAIL */}
+          <div className="flex-1 overflow-y-auto divide-y divide-border/40">
+            {selectedReport ? (
+              /* ── VUE FICHE DÉTAILLÉE AVEC JOURNAL "UPDATES" (FixMyStreet Style) ── */
+              <div className="p-4 space-y-4">
                 <button
-                  key={c}
-                  type="button"
-                  onClick={() => setCommuneFilter(isSelected ? null : c)}
-                  className={cn(
-                    "rounded-full px-3 py-1 text-xs font-bold transition-all shrink-0 flex items-center gap-1 shadow-2xs",
-                    isSelected
-                      ? "bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-500/30"
-                      : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted border border-border/80 hover:border-emerald-500/40"
-                  )}
+                  onClick={() => setSelectedReport(null)}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 hover:text-emerald-500 transition-colors"
                 >
-                  <span>{c}</span>
-                  {isSelected && <XIcon className="h-3 w-3 shrink-0 opacity-80" />}
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  <span>Retour à la liste des pannes</span>
                 </button>
-              );
-            })}
-          </div>
 
-        </div>
-      </section>
+                {/* Header Fiche */}
+                <div className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-xs">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">
+                        {selectedReport.service_type === "electricity" ? "💡" : selectedReport.service_type === "water" ? "💧" : "🚧"}
+                      </span>
+                      <div>
+                        <h2 className="text-sm font-extrabold text-foreground">
+                          {extractInfraLabel(selectedReport.description)}
+                        </h2>
+                        <p className="text-xs text-muted-foreground">
+                          {selectedReport.commune} · {selectedReport.quartier || "Abidjan"}
+                        </p>
+                      </div>
+                    </div>
 
-      {/* ── Main Layout (Facebook 3-Column Feed) ── */}
-      <main className="container max-w-7xl px-2 sm:px-4 py-5 sm:py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    <Badge className={cn(
+                      "text-[10px] font-bold",
+                      selectedReport.status === "resolved"
+                        ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+                        : "bg-amber-500/10 text-amber-600 border-amber-500/30"
+                    )}>
+                      {selectedReport.status === "resolved" ? "✓ Réparé" : "⏳ En attente"}
+                    </Badge>
+                  </div>
 
-          {/* ════════════════════════════════════════════════════════════
-              1. COLONNE GAUCHE — Raccourcis & Profil (3 cols)
-          ════════════════════════════════════════════════════════════ */}
-          <aside className="hidden lg:block lg:col-span-3 sticky top-24 space-y-4">
-            
-            {/* Carte Profil / Rôle Citoyen */}
-            <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white font-bold text-lg shadow-sm">
-                  {user ? (user.email?.[0]?.toUpperCase() ?? "C") : "🇨🇮"}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-foreground truncate">
-                    {user ? (user.user_metadata?.full_name || user.email?.split("@")[0] || "Citoyen SIGNA") : "Visiteur Citoyen"}
+                  {/* Description */}
+                  <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-line bg-muted/30 p-3 rounded-xl border border-border/40">
+                    {cleanDescription(selectedReport.description)}
                   </p>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Globe className="h-3 w-3 text-emerald-500" />
-                    <span>Côte d'Ivoire</span>
-                  </p>
-                </div>
-              </div>
 
-              <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-muted-foreground">
-                <span>Signalements actifs</span>
-                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                  {totalReportsCount}
-                </span>
-              </div>
-            </div>
-
-            {/* Pannes Fréquentes Raccourcis Rapides */}
-            <div className="rounded-2xl border border-border/80 bg-card p-3 shadow-sm space-y-1">
-              <p className="px-3 pt-2 pb-1 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
-                Pannes Fréquentes
-              </p>
-              {[
-                { label: "💡 Lampadaires & Éclairage", sub: "lampadaire", type: "electricite" as FilterType, icon: lampadaireIcon },
-                { label: "🚧 Nids-de-poule & Route", sub: "nid de poule", type: "mairie" as FilterType, icon: voirieIcon },
-                { label: "🌊 Caniveaux bouchés", sub: "caniveau", type: "mairie" as FilterType, icon: caniveauIcon },
-                { label: "🚿 Fuites d'eau sur voie", sub: "fuite", type: "eau" as FilterType, icon: fuiteEauIcon },
-                { label: "🗼 Poteaux & Pylônes", sub: "poteau", type: "electricite" as FilterType, icon: poteauElectriqueIcon },
-                { label: "🗑️ Amas d'ordures", sub: "ordure", type: "mairie" as FilterType, icon: depotOrduresIcon },
-              ].map((item) => {
-                const isActive = subFilter === item.sub && filter === item.type;
-                return (
-                  <button
-                    key={item.sub}
-                    type="button"
-                    onClick={() => {
-                      if (isActive) {
-                        setSubFilter(null);
-                      } else {
-                        setFilter(item.type);
-                        setSubFilter(item.sub);
-                      }
-                    }}
-                    className={cn(
-                      "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-semibold transition-all",
-                      isActive
-                        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                    )}
-                  >
-                    <img src={item.icon} alt="" className="h-5 w-5 object-contain rounded-sm shrink-0" />
-                    <span className="truncate">{item.label}</span>
-                    {isActive && <CheckCircle2 className="h-3.5 w-3.5 ml-auto text-emerald-600 dark:text-emerald-400 shrink-0" />}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Widget Assistance Mairies & Opérateurs */}
-            <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/20 via-card to-card p-4 shadow-sm text-center">
-              <span className="text-2xl">🤝</span>
-              <h4 className="font-display text-xs font-bold text-foreground mt-1">
-                La force du collectif
-              </h4>
-              <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-                Chaque publication et vote citoyen obligent les opérateurs et mairies à réagir avec transparence.
-              </p>
-            </div>
-
-          </aside>
-
-          {/* ════════════════════════════════════════════════════════════
-              2. COLONNE CENTRALE — Le Fil d'Actualité Facebook (6 cols)
-          ════════════════════════════════════════════════════════════ */}
-          <div className="col-span-1 lg:col-span-6 space-y-4">
-
-            {/* ── Boîte de Création Rapide (Style Facebook "Exprimez-vous") ── */}
-            <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white font-bold shadow-xs">
-                  {user ? (user.email?.[0]?.toUpperCase() ?? "C") : "🇨🇮"}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => navigate("/signaler?category=infrastructure")}
-                  className="flex-1 text-left rounded-full bg-[#f0f2f5] dark:bg-muted/60 hover:bg-[#e4e6e9] dark:hover:bg-muted px-4 py-2.5 text-xs sm:text-sm font-medium text-muted-foreground transition-colors cursor-pointer border border-border/40"
-                >
-                  Signalez un lampadaire cassé, nid-de-poule ou fuite...
-                </button>
-              </div>
-
-              <div className="mt-3 pt-3 border-t border-border/60 grid grid-cols-3 gap-1 sm:gap-2">
-                <button
-                  type="button"
-                  onClick={() => navigate("/signaler?type=street_light&category=infrastructure")}
-                  className="flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl py-2 px-1 text-xs font-bold text-amber-700 dark:text-amber-300 hover:bg-muted/70 transition-colors"
-                >
-                  <span className="text-base">💡</span>
-                  <span className="truncate">Lampadaire CIE</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => navigate("/signaler?type=pothole&category=infrastructure")}
-                  className="flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl py-2 px-1 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-muted/70 transition-colors"
-                >
-                  <span className="text-base">🚧</span>
-                  <span className="truncate">Nid-de-poule</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => navigate("/signaler?category=infrastructure")}
-                  className="flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl py-2 px-1 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:bg-muted/70 transition-colors"
-                >
-                  <Camera className="h-4 w-4 text-emerald-500" />
-                  <span className="truncate">Avec photo</span>
-                </button>
-              </div>
-            </div>
-
-            {/* ── FEED LIST (Cartes Facebook) ── */}
-            {loading ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="rounded-2xl border border-border/80 bg-card p-4 space-y-3 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <Skeleton className="h-11 w-11 rounded-full" />
-                    <div className="space-y-1.5 flex-1">
-                      <Skeleton className="h-4 w-40" />
-                      <Skeleton className="h-3 w-24" />
+                  {/* PADA & Ticket Ref */}
+                  <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                    <div className="p-2 rounded-lg bg-background border border-border/60">
+                      <span className="text-muted-foreground block text-[10px]">Réf. Ticket :</span>
+                      <span className="font-mono font-bold text-foreground">
+                        {getDisplayTicketCode({
+                          ticket_code: selectedReport.ticket_code,
+                          commune: selectedReport.commune,
+                          created_at: selectedReport.created_at,
+                          id: selectedReport.id,
+                        })}
+                      </span>
+                    </div>
+                    <div className="p-2 rounded-lg bg-background border border-border/60">
+                      <span className="text-muted-foreground block text-[10px]">Adresse :</span>
+                      <span className="font-semibold text-foreground truncate block">
+                        {selectedReport.location || `${selectedReport.quartier}, ${selectedReport.commune}`}
+                      </span>
                     </div>
                   </div>
-                  <Skeleton className="h-16 w-full rounded-xl" />
-                  <Skeleton className="h-48 w-full rounded-xl" />
+
+                  {/* Operator Info Note if exists */}
+                  {(selectedReport.operator_name || selectedReport.operator_reference || selectedReport.operator_last_note) && (
+                    <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-1.5">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-300">
+                          🏛️ Note Opérateur : {selectedReport.operator_name || "Services Techniques"}
+                        </span>
+                        {selectedReport.operator_reference && (
+                          <Badge variant="outline" className="text-[9px] font-mono">
+                            {selectedReport.operator_reference}
+                          </Badge>
+                        )}
+                      </div>
+                      {selectedReport.operator_last_note && (
+                        <p className="text-xs italic text-foreground/90">
+                          "{selectedReport.operator_last_note}"
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Photo Gallery if any */}
+                  {(selectedReport.photo_url || (selectedReport.photo_urls && selectedReport.photo_urls.length > 0)) && (
+                    <div className="pt-2">
+                      <PhotoGallery
+                        photos={selectedReport.photo_urls && selectedReport.photo_urls.length > 0 ? selectedReport.photo_urls : [selectedReport.photo_url!]}
+                        thumbHeight="h-44"
+                      />
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/60">
+                    <Button
+                      onClick={(e) => handleSupport(selectedReport.id, e)}
+                      variant={supported.has(selectedReport.id) ? "default" : "outline"}
+                      size="sm"
+                      className="rounded-xl text-xs font-bold gap-1.5 h-9"
+                    >
+                      <ThumbsUp className="h-3.5 w-3.5" />
+                      <span>{supported.has(selectedReport.id) ? "Soutenu" : "Soutenir"} ({selectedReport.support_count || 0})</span>
+                    </Button>
+
+                    <Button
+                      onClick={(e) => handleShareWhatsApp(selectedReport, e)}
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl text-xs font-bold gap-1.5 h-9 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20"
+                    >
+                      <Share2 className="h-3.5 w-3.5" />
+                      <span>Partager WhatsApp</span>
+                    </Button>
+                  </div>
                 </div>
-              ))
-            ) : reports.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center shadow-xs">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 mx-auto mb-3 text-2xl">
-                  💡
+
+                {/* ── JOURNAL OFFICIEL DE SUIVI (UPDATES) ── */}
+                <div className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-xs">
+                  <div className="flex items-center gap-2 pb-2 border-b border-border/60">
+                    <Clock className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-foreground">
+                      Journal Officiel de Suivi (Updates)
+                    </h3>
+                  </div>
+
+                  <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-border">
+                    {/* Étape 1 : Signalement */}
+                    <div className="relative">
+                      <span className="absolute -left-6 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-[9px] text-white font-bold ring-4 ring-background">
+                        1
+                      </span>
+                      <div>
+                        <div className="text-xs font-bold text-foreground">Signalement Citoyen Enregistré</div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {formatDistanceToNow(new Date(selectedReport.created_at), { addSuffix: true, locale: fr })}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Signalement validé par la vigie citoyenne et géolocalisé avec code cadastral PADA.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Étape 2 : Transmission Opérateur */}
+                    <div className="relative">
+                      <span className="absolute -left-6 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] text-white font-bold ring-4 ring-background">
+                        2
+                      </span>
+                      <div>
+                        <div className="text-xs font-bold text-foreground">Transmission aux Services Techniques</div>
+                        <div className="text-[10px] text-muted-foreground">
+                          Transmis à la {selectedReport.service_type === "electricity" ? "CIE (Dépannage 179)" : selectedReport.service_type === "water" ? "SODECI (175)" : `Mairie de ${selectedReport.commune}`}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Dossier envoyé dans le flux de télé-relève institutionnel avec numéro de référence.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Étapes intermédiaires réelles depuis report_status_history */}
+                    {statusHistory.map((item, idx) => (
+                      <div key={item.id || idx} className="relative">
+                        <span className="absolute -left-6 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-sky-600 text-[9px] text-white font-bold ring-4 ring-background">
+                          ★
+                        </span>
+                        <div>
+                          <div className="text-xs font-bold text-foreground">
+                            {item.operator_name || "Opérateur Technique"} : {item.new_status === "processing" ? "Intervention en cours" : item.new_status === "resolved" ? "Réparation validée" : item.new_status}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {formatDistanceToNow(new Date(item.created_at), { addSuffix: true, locale: fr })}
+                          </div>
+                          {item.public_note && (
+                            <p className="text-[11px] text-foreground/90 mt-0.5 italic bg-muted/40 p-2 rounded-lg">
+                              "{item.public_note}"
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Étape 3 : Statut Actuel & Confirmation */}
+                    <div className="relative">
+                      <span className={cn(
+                        "absolute -left-6 top-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] text-white font-bold ring-4 ring-background",
+                        selectedReport.status === "resolved" ? "bg-emerald-600" : "bg-blue-500 animate-pulse"
+                      )}>
+                        3
+                      </span>
+                      <div>
+                        <div className="text-xs font-bold text-foreground">
+                          {selectedReport.status === "resolved" ? "✅ Réparation Confirmée sur le Terrain" : "⏳ Prise en charge & Mobilisation"}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {selectedReport.status === "resolved"
+                            ? selectedReport.resolved_at
+                              ? `Clôturé ${formatDistanceToNow(new Date(selectedReport.resolved_at), { addSuffix: true, locale: fr })}`
+                              : "Dossier clôturé avec succès"
+                            : `${selectedReport.support_count || 1} citoyen(s) soutiennent ce signalement · ${selectedReport.repair_verifications || 0} confirmation(s) de réparation`}
+                        </div>
+                        {selectedReport.status !== "resolved" && (
+                          <div className="mt-2">
+                            <Button
+                              onClick={(e) => handleConfirmRepair(selectedReport.id, e)}
+                              size="sm"
+                              variant="outline"
+                              className="text-[11px] font-bold h-8 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                              {repaired.has(selectedReport.id) ? "Confirmation envoyée ✓" : "C'est déjà réparé ? Confirmer"}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="font-display text-base font-bold text-foreground">
-                  Aucun signalement actif pour cette sélection
-                </h3>
-                <p className="mt-1 text-xs text-muted-foreground max-w-sm mx-auto">
-                  Tout fonctionne normalement ou aucun problème n'a encore été signalé dans cette zone.
+              </div>
+            ) : loading ? (
+              /* Skeletons */
+              <div className="p-4 space-y-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="p-3 rounded-2xl border border-border bg-card space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                    <Skeleton className="h-8 w-full" />
+                  </div>
+                ))}
+              </div>
+            ) : filteredReports.length === 0 ? (
+              /* Empty State */
+              <div className="p-8 text-center space-y-3">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted text-2xl">
+                  🔍
+                </div>
+                <h3 className="text-sm font-bold text-foreground">Aucune panne trouvée</h3>
+                <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                  Aucun signalement ne correspond à vos filtres actuels. Essayez de réinitialiser les filtres ou signalez une nouvelle panne.
                 </p>
                 <Button
-                  onClick={() => { setFilter("all"); setSubFilter(null); setCommuneFilter(null); }}
+                  onClick={() => {
+                    setOperatorFilter("all");
+                    setStatusFilter("all");
+                    setCommuneFilter("all");
+                    setSearchQuery("");
+                  }}
                   variant="outline"
                   size="sm"
-                  className="mt-4 rounded-xl text-xs font-bold"
+                  className="rounded-xl text-xs font-semibold"
                 >
-                  Voir tous les signalements
+                  Réinitialiser les filtres
                 </Button>
               </div>
             ) : (
-              reports.map((report, index) => {
-                const isWater = report.service_type === "water" || report.service_type === "eau";
-                const isElec = report.service_type === "electricity" || report.service_type === "electricite";
-                const infraLabel = extractInfraLabel(report.description);
-                const isLampadaire = infraLabel?.toLowerCase().includes("lampadaire") || infraLabel?.toLowerCase().includes("éclairage") || report.description?.toLowerCase().includes("lampadaire") || report.description?.toLowerCase().includes("éclairage");
-                const hasPhotos = (report.photo_urls && report.photo_urls.length > 0) || Boolean(report.photo_url);
+              /* ── LISTE ÉPURÉE DES PANNES STYLE FIXMYSTREET ── */
+              filteredReports.map((r) => {
+                const isSelected = selectedReport?.id === r.id;
+                const isResolved = r.status === "resolved";
+                const iconEmoji = r.service_type === "electricity" ? "💡" : r.service_type === "water" ? "💧" : "🚧";
 
                 return (
-                  <motion.article
-                    key={report.id}
-                    initial={{ opacity: 0, y: 14 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: Math.min(index * 0.04, 0.25), duration: 0.3 }}
-                    className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                  <div
+                    key={r.id}
+                    onClick={() => handleSelectReport(r)}
+                    onMouseEnter={() => setHoveredReportId(r.id)}
+                    onMouseLeave={() => setHoveredReportId(null)}
+                    className={cn(
+                      "p-3.5 transition-all cursor-pointer hover:bg-muted/50 flex gap-3 items-start",
+                      isSelected ? "bg-emerald-500/5 border-l-4 border-emerald-600" : ""
+                    )}
                   >
-                    {/* ── Post Header (Style Facebook) ── */}
-                    <div className="p-4 pb-2">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          {/* Avatar 3D de l'infrastructure */}
-                          <div className="relative">
-                            <div className={cn(
-                              "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl shadow-xs border",
-                              isLampadaire ? "bg-amber-500/15 border-amber-500/30 text-amber-500"
-                                : isWater ? "bg-sky-500/10 border-sky-500/25"
-                                : isElec ? "bg-amber-500/10 border-amber-500/25"
-                                : "bg-emerald-500/10 border-emerald-500/25"
-                            )}>
-                              {isLampadaire ? "💡" : infraEmoji(infraLabel)}
-                            </div>
-                            <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-background ring-1 ring-border text-[9px]">
-                              📍
-                            </span>
-                          </div>
+                    {/* Category Icon */}
+                    <div className={cn(
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-base shadow-xs font-bold",
+                      isResolved
+                        ? "bg-emerald-500/10 text-emerald-600"
+                        : r.service_type === "electricity"
+                        ? "bg-amber-500/10 text-amber-600"
+                        : r.service_type === "water"
+                        ? "bg-blue-500/10 text-blue-600"
+                        : "bg-emerald-500/10 text-emerald-600"
+                    )}>
+                      {iconEmoji}
+                    </div>
 
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-bold text-foreground">
-                                {report.quartier || report.commune || "Signalement Citoyen"}
-                              </span>
-                              {report.commune && (
-                                <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-bold text-muted-foreground">
-                                  {report.commune}
-                                </span>
-                              )}
-                              {infraLabel && (
-                                <span className={cn(
-                                  "rounded-full px-2 py-0.5 text-[11px] font-bold",
-                                  isLampadaire
-                                    ? "bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30"
-                                    : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                                )}>
-                                  {infraLabel}
-                                </span>
-                              )}
-                            </div>
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <h4 className="text-xs font-bold text-foreground truncate">
+                          {extractInfraLabel(r.description)}
+                        </h4>
+                        <span className={cn(
+                          "shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md",
+                          isResolved ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
+                        )}>
+                          {isResolved ? "✓ Réparé" : "En cours"}
+                        </span>
+                      </div>
 
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                              <Clock className="h-3 w-3 shrink-0" />
-                              <span>{timeAgo(report.created_at)}</span>
-                              <span>·</span>
-                              <Globe className="h-3 w-3 text-muted-foreground/70" />
-                              <span>Public</span>
-                            </div>
-                          </div>
+                      <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
+                        {cleanDescription(r.description)}
+                      </p>
+
+                      <div className="flex items-center justify-between gap-2 mt-2 text-[10px] text-muted-foreground">
+                        <div className="flex items-center gap-1.5 truncate">
+                          <MapPin className="h-3 w-3 shrink-0 text-emerald-600" />
+                          <span className="font-semibold text-foreground truncate">
+                            {r.commune} · {r.quartier || "Abidjan"}
+                          </span>
                         </div>
 
-                        {/* Statut & Badge Urgence */}
-                        <div className="flex flex-col items-end gap-1 shrink-0">
-                          {report.status === "active" ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-2.5 py-0.5 text-[11px] font-bold text-destructive">
-                              <span className="h-1.5 w-1.5 rounded-full bg-destructive animate-pulse" />
-                              En attente
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600">
-                              ✓ Réparé
-                            </span>
-                          )}
+                        <div className="flex items-center gap-2 shrink-0 font-medium">
+                          <span className="text-emerald-700 dark:text-emerald-300 font-bold">
+                            👍 {r.support_count || 0}
+                          </span>
+                          <span>·</span>
+                          <span>
+                            {formatDistanceToNow(new Date(r.created_at), { addSuffix: true, locale: fr })}
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* ── Post Body / Description ── */}
-                    <div className="px-4 py-2">
-                      {editingId === report.id ? (
-                        <div className="space-y-2">
-                          <textarea
-                            value={editText}
-                            onChange={(e) => setEditText(e.target.value)}
-                            className="w-full rounded-xl border border-border bg-muted/40 p-3 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                            rows={3}
-                            maxLength={500}
-                            autoFocus
-                          />
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">{editText.length}/500</span>
-                            <div className="flex gap-2">
-                              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setEditingId(null)}>
-                                Annuler
-                              </Button>
-                              <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-500" onClick={() => handleEditSave(report.id)}>
-                                Enregistrer
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <p className="text-sm sm:text-base font-normal text-foreground leading-relaxed">
-                            {cleanDescription(report.description)}
-                          </p>
-                          {/* Hashtags civiques Facebook-Style */}
-                          <div className="flex flex-wrap gap-1.5 pt-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                            {report.commune && <span>#{report.commune.replace(/\s+/g, "")}</span>}
-                            {isLampadaire && <span>#Lampadaire #EclairagePublic</span>}
-                            {infraLabel && !isLampadaire && <span>#{infraLabel.replace(/[\s/]+/g, "")}</span>}
-                            <span>#{isElec ? "CIE" : isWater ? "SODECI" : "Mairie"}</span>
-                            <span>#CivicSignal</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* ── Post Media / Photos plein format Facebook ── */}
-                    {hasPhotos && (
-                      <div className="mt-2 border-y border-border/40 bg-black/5 dark:bg-black/20">
-                        <PhotoGallery
-                          photos={
-                            (report.photo_urls && report.photo_urls.length > 0)
-                              ? report.photo_urls
-                              : report.photo_url ? [report.photo_url] : []
-                          }
-                          thumbHeight="h-72 sm:h-80"
-                          reportDate={report.created_at}
+                    {/* Thumbnail if photo exists */}
+                    {(r.photo_url || (r.photo_urls && r.photo_urls.length > 0)) && (
+                      <div className="h-12 w-12 shrink-0 rounded-lg overflow-hidden border border-border/60 bg-muted">
+                        <img
+                          src={r.photo_url || r.photo_urls![0]}
+                          alt="Preuve"
+                          className="h-full w-full object-cover"
                         />
                       </div>
                     )}
-
-                    {/* ── Social Reactions Bar (Compteur Facebook) ── */}
-                    <div className="px-4 py-2 flex items-center justify-between text-xs text-muted-foreground border-b border-border/60">
-                      <div className="flex items-center gap-1.5">
-                        <div className="flex -space-x-1 items-center">
-                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-white text-[10px] shadow-xs">
-                            👍
-                          </span>
-                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-sky-600 text-white text-[10px] shadow-xs">
-                            🙋
-                          </span>
-                        </div>
-                        <span className="font-semibold text-foreground">
-                          {report.support_count > 0 ? (
-                            <span>{report.support_count} citoyen{report.support_count > 1 ? "s" : ""} soutiennent</span>
-                          ) : (
-                            <span>Soyez le 1er à soutenir</span>
-                          )}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        {report.repair_verifications > 0 && (
-                          <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                            {report.repair_verifications} confirmation{report.repair_verifications > 1 ? "s" : ""} de réparation
-                          </span>
-                        )}
-                        <Link
-                          to={`/signalement/${report.id}`}
-                          className="hover:underline font-medium text-muted-foreground"
-                        >
-                          Détails →
-                        </Link>
-                      </div>
-                    </div>
-
-                    {/* ── Post Action Bar (Boutons Horizontaux Facebook-Style) ── */}
-                    <div className="px-2 py-1.5 grid grid-cols-4 gap-1 text-xs">
-                      {/* Bouton 1 : Soutenir */}
-                      <button
-                        type="button"
-                        onClick={() => handleSupport(report.id)}
-                        className={cn(
-                          "flex items-center justify-center gap-1.5 rounded-xl py-2.5 font-bold transition-all",
-                          supported.has(report.id)
-                            ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-                            : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
-                        )}
-                      >
-                        <ThumbsUp className={cn("h-4 w-4 shrink-0", supported.has(report.id) && "fill-emerald-600 text-emerald-600")} />
-                        <span className="hidden sm:inline">
-                          {supported.has(report.id) ? "Soutenu" : "Soutenir"}
-                        </span>
-                      </button>
-
-                      {/* Bouton 2 : Confirmer Réparation */}
-                      <button
-                        type="button"
-                        onClick={() => handleConfirmRepair(report.id)}
-                        className={cn(
-                          "flex items-center justify-center gap-1.5 rounded-xl py-2.5 font-bold transition-all",
-                          repaired.has(report.id)
-                            ? "bg-emerald-500/20 text-emerald-800 dark:text-emerald-200"
-                            : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
-                        )}
-                      >
-                        <CheckCircle className={cn("h-4 w-4 shrink-0", repaired.has(report.id) && "fill-emerald-600 text-emerald-600")} />
-                        <span className="hidden sm:inline">
-                          {repaired.has(report.id) ? "Réparé ✓" : "C'est réparé ?"}
-                        </span>
-                      </button>
-
-                      {/* Bouton 3 : Consulter / Commenter */}
-                      <Link
-                        to={`/signalement/${report.id}`}
-                        className="flex items-center justify-center gap-1.5 rounded-xl py-2.5 font-bold text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-all"
-                      >
-                        <MessageSquare className="h-4 w-4 shrink-0" />
-                        <span className="hidden sm:inline">Consulter</span>
-                      </Link>
-
-                      {/* Bouton 4 : Partager */}
-                      <div className="flex items-center justify-center">
-                        <ShareButton
-                          title={`Signalement Voirie & Infra — ${report.quartier || report.commune}`}
-                          text={[
-                            `🚧 SIGNALEMENT VOIRIE & INFRASTRUCTURE — ${report.quartier || ""}, ${report.commune || ""}`,
-                            ``,
-                            report.description?.replace(/\s*\[\d+\s*personne\(s\)\]/gi, "").trim(),
-                            ``,
-                            report.support_count > 0 ? `👥 ${report.support_count} citoyen(s) demandent la réparation.` : ``,
-                            `✊ Soutenez ce signalement sur SIGNA.ci :`,
-                          ].filter(Boolean).join("\n")}
-                          url={`${window.location.origin}/signalement/${report.id}`}
-                          variant="ghost"
-                          size="sm"
-                          className="w-full h-full rounded-xl py-2.5 font-bold text-xs text-muted-foreground hover:bg-muted/70 hover:text-foreground"
-                        />
-                      </div>
-                    </div>
-                  </motion.article>
+                  </div>
                 );
               })
             )}
+          </div>
+        </div>
 
-            {/* Load More Button */}
-            {hasMore && reports.length > 0 && (
-              <div className="flex justify-center pt-3 pb-8">
-                <Button
-                  variant="outline"
-                  onClick={loadMore}
-                  disabled={loadingMore}
-                  className="rounded-full px-6 py-2.5 text-xs font-bold gap-2 shadow-xs bg-card border-border hover:bg-muted"
+        {/* ═══════════════════════════════════════════════════════════════
+            VOLET DROIT (60%) : CARTE INTERACTIVE LEAFLET SYNCHRONISÉE
+            ═══════════════════════════════════════════════════════════════ */}
+        <div className={cn(
+          "w-full lg:w-[58%] xl:w-[62%] h-full relative bg-slate-100 dark:bg-slate-900 transition-all",
+          mobileTab === "list" ? "hidden lg:block" : "block"
+        )}>
+          {/* Leaflet Map Canvas */}
+          <div ref={mapContainerRef} className="w-full h-full" />
+
+          {/* Quick GPS Floating Action */}
+          <button
+            onClick={handleLocateMe}
+            className="absolute top-4 right-4 z-[400] h-10 w-10 rounded-xl bg-card border border-border/80 text-foreground flex items-center justify-center shadow-lg hover:bg-muted transition-all active:scale-95"
+            title="Me géolocaliser"
+          >
+            <Compass className="h-5 w-5 text-emerald-600" />
+          </button>
+
+          {/* Floating Live Legend */}
+          <div className="hidden sm:flex absolute top-4 left-4 z-[400] items-center gap-3 px-3.5 py-2 rounded-2xl bg-card/90 backdrop-blur-md border border-border/80 shadow-lg text-xs font-semibold">
+            <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300">
+              <span className="h-2.5 w-2.5 rounded-full bg-amber-500 inline-block"></span> 💡 CIE
+            </span>
+            <span className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
+              <span className="h-2.5 w-2.5 rounded-full bg-blue-500 inline-block"></span> 💧 SODECI
+            </span>
+            <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-600 inline-block"></span> 🚧 Mairie
+            </span>
+            <span className="flex items-center gap-1.5 text-green-700 dark:text-green-300 border-l border-border pl-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-green-500 inline-block"></span> ✓ Réparé
+            </span>
+          </div>
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            BOUTON FLOTTANT TACTILE MOBILE : [📋 Liste] ⇄ [🗺️ Carte]
+            ═══════════════════════════════════════════════════════════════ */}
+        <div className="lg:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-[500]">
+          <button
+            onClick={() => setMobileTab(mobileTab === "list" ? "map" : "list")}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-950 text-white dark:bg-white dark:text-slate-950 font-bold text-xs shadow-xl active:scale-95 transition-transform"
+          >
+            {mobileTab === "list" ? (
+              <>
+                <MapIcon className="h-4 w-4 text-emerald-400" />
+                <span>Afficher la Carte</span>
+              </>
+            ) : (
+              <>
+                <List className="h-4 w-4 text-emerald-400" />
+                <span>Afficher la Liste ({filteredReports.length})</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            BOTTOM-SHEET TACTILE MOBILE QUAND UN MARQUEUR EST CLIQUÉ
+            ═══════════════════════════════════════════════════════════════ */}
+        <AnimatePresence>
+          {mobileTab === "map" && mobileBottomSheetOpen && selectedReport && (
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="lg:hidden absolute bottom-16 left-3 right-3 z-[450] bg-card rounded-2xl border border-border shadow-2xl p-3.5 space-y-3"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">
+                    {selectedReport.service_type === "electricity" ? "💡" : selectedReport.service_type === "water" ? "💧" : "🚧"}
+                  </span>
+                  <div>
+                    <h4 className="text-xs font-bold text-foreground truncate max-w-[200px]">
+                      {extractInfraLabel(selectedReport.description)}
+                    </h4>
+                    <p className="text-[10px] text-muted-foreground">
+                      {selectedReport.commune} · {selectedReport.quartier}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setMobileBottomSheetOpen(false)}
+                  className="p-1 text-muted-foreground hover:text-foreground"
                 >
-                  {loadingMore ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-600" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                  Afficher plus de publications
+                  <XIcon className="h-4 w-4" />
+                </button>
+              </div>
+
+              <p className="text-[11px] text-muted-foreground line-clamp-2">
+                {cleanDescription(selectedReport.description)}
+              </p>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={(e) => handleSupport(selectedReport.id, e)}
+                  size="sm"
+                  variant="outline"
+                  className="rounded-xl text-xs font-bold h-8"
+                >
+                  <ThumbsUp className="h-3 w-3 mr-1" />
+                  <span>Soutenir ({selectedReport.support_count || 0})</span>
+                </Button>
+
+                <Button
+                  onClick={() => {
+                    setMobileTab("list");
+                    setMobileBottomSheetOpen(false);
+                  }}
+                  size="sm"
+                  className="rounded-xl text-xs font-bold h-8 bg-emerald-600 hover:bg-emerald-500 text-white"
+                >
+                  <span>Fiche & Updates ➔</span>
                 </Button>
               </div>
-            )}
-
-          </div>
-
-          {/* ════════════════════════════════════════════════════════════
-              3. COLONNE DROITE — Pannes Chaudes & Solidarité (3 cols)
-          ════════════════════════════════════════════════════════════ */}
-          <aside className="hidden lg:block lg:col-span-3 sticky top-24 space-y-4">
-
-            {/* Widget 1 : Les Plus Soutenues / Alertes Chaudes */}
-            <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 text-sm">
-                  🔥
-                </div>
-                <h3 className="font-display text-sm font-bold text-foreground">
-                  Pannes les plus soutenues
-                </h3>
-              </div>
-
-              <div className="space-y-2.5">
-                {topSupportedReports.length > 0 ? (
-                  topSupportedReports.map((r) => (
-                    <Link
-                      key={r.id}
-                      to={`/signalement/${r.id}`}
-                      className="block p-2.5 rounded-xl border border-border/60 hover:border-emerald-500/40 bg-muted/30 hover:bg-muted/60 transition-all"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-bold text-foreground truncate">
-                          {r.quartier || r.commune}
-                        </span>
-                        <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 shrink-0">
-                          {r.support_count} votes
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground line-clamp-2 mt-1">
-                        {cleanDescription(r.description)}
-                      </p>
-                    </Link>
-                  ))
-                ) : (
-                  <p className="text-xs text-muted-foreground">Aucune donnée disponible.</p>
-                )}
-              </div>
-            </div>
-
-            {/* Widget 2 : Numéros Utiles & Urgences Réseaux */}
-            <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/15 text-sky-600 text-sm">
-                  📞
-                </div>
-                <h3 className="font-display text-sm font-bold text-foreground">
-                  Numéros d'Urgence
-                </h3>
-              </div>
-
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between p-2 rounded-xl bg-muted/40">
-                  <div>
-                    <p className="font-bold text-foreground">Dépannage CIE</p>
-                    <p className="text-[10px] text-muted-foreground">Électricité & Poteaux</p>
-                  </div>
-                  <span className="font-extrabold text-amber-600 text-sm font-mono">179</span>
-                </div>
-
-                <div className="flex items-center justify-between p-2 rounded-xl bg-muted/40">
-                  <div>
-                    <p className="font-bold text-foreground">Centre d'Appel SODECI</p>
-                    <p className="text-[10px] text-muted-foreground">Fuites & Canalisations</p>
-                  </div>
-                  <span className="font-extrabold text-sky-600 text-sm font-mono">175</span>
-                </div>
-
-                <div className="flex items-center justify-between p-2 rounded-xl bg-muted/40">
-                  <div>
-                    <p className="font-bold text-foreground">Mairie & Voirie</p>
-                    <p className="text-[10px] text-muted-foreground">Services Techniques</p>
-                  </div>
-                  <span className="font-bold text-emerald-600 text-[11px]">Via SIGNA.ci</span>
-                </div>
-              </div>
-            </div>
-
-          </aside>
-
-        </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       <Footer />
     </div>
   );
-};
-
-export default InfrastructurePage;
+}
