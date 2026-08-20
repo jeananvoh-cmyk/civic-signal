@@ -24,8 +24,20 @@ import { extractInfraLabel, infraEmoji, cleanDescription, INFRA_CIE, INFRA_SODEC
 import { getDisplayTicketCode, formatPadaAddress } from "@/lib/pada";
 import { COMMUNES, COMMUNE_COLORS } from "@/lib/communes";
 import { cn } from "@/lib/utils";
+import { useSignedUrl } from "@/hooks/useSignedUrl";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+
+// Vignette photo avec résolution de signature Supabase
+function ReportThumbnail({ path, alt = "Photo" }: { path?: string | null; alt?: string }) {
+  const url = useSignedUrl(path ?? null);
+  if (!url) return null;
+  return (
+    <div className="h-12 w-12 shrink-0 rounded-lg overflow-hidden border border-border/60 bg-muted">
+      <img src={url} alt={alt} className="h-full w-full object-cover" loading="lazy" />
+    </div>
+  );
+}
 
 export interface InfraReport {
   id: string;
@@ -266,7 +278,8 @@ export default function InfrastructurePage() {
   useEffect(() => {
     if (!mapContainerRef.current || mapInstance.current) return;
 
-    const map = L.map(mapContainerRef.current, {
+    const container = mapContainerRef.current;
+    const map = L.map(container, {
       zoomControl: false,
     }).setView([5.35, -4.01], 12);
 
@@ -279,7 +292,23 @@ export default function InfrastructurePage() {
 
     mapInstance.current = map;
 
+    // Invalidation de taille immédiate + progressive pour garantir l'affichage des tuiles
+    requestAnimationFrame(() => {
+      map.invalidateSize();
+    });
+
+    const timer1 = setTimeout(() => map.invalidateSize(), 150);
+    const timer2 = setTimeout(() => map.invalidateSize(), 500);
+
+    const resizeObserver = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    resizeObserver.observe(container);
+
     return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      resizeObserver.disconnect();
       map.remove();
       mapInstance.current = null;
     };
@@ -580,8 +609,8 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
       <div className="border-b border-border/80 bg-card px-4 py-3 shadow-xs">
         <div className="container max-w-7xl flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white font-bold shadow-xs">
-              🚧
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-500/20 shadow-xs">
+              <Building2 className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -1027,13 +1056,10 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
 
                     {/* Thumbnail if photo exists */}
                     {(r.photo_url || (r.photo_urls && r.photo_urls.length > 0)) && (
-                      <div className="h-12 w-12 shrink-0 rounded-lg overflow-hidden border border-border/60 bg-muted">
-                        <img
-                          src={r.photo_url || (r.photo_urls && r.photo_urls[0]) || ""}
-                          alt="Preuve"
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
+                      <ReportThumbnail
+                        path={r.photo_url || (r.photo_urls && r.photo_urls[0])}
+                        alt="Preuve"
+                      />
                     )}
                   </div>
                 );
@@ -1046,11 +1072,15 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
             VOLET DROIT (60%) : CARTE INTERACTIVE LEAFLET SYNCHRONISÉE
             ═══════════════════════════════════════════════════════════════ */}
         <div className={cn(
-          "w-full lg:w-[58%] xl:w-[62%] h-full relative bg-slate-100 dark:bg-slate-900 transition-all",
+          "w-full lg:w-[58%] xl:w-[62%] h-full min-h-[500px] lg:min-h-0 relative bg-slate-100 dark:bg-slate-900 transition-all",
           mobileTab === "list" ? "hidden lg:block" : "block"
         )}>
           {/* Leaflet Map Canvas */}
-          <div ref={mapContainerRef} className="w-full h-full" />
+          <div
+            ref={mapContainerRef}
+            className="w-full h-full min-h-[500px] lg:min-h-full"
+            style={{ width: "100%", height: "100%" }}
+          />
 
           {/* Quick GPS Floating Action */}
           <button
