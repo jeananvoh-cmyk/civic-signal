@@ -88,6 +88,8 @@ const ConfirmationPage = lazyWithRetry(() => import("./pages/ConfirmationPage"))
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 const PartnerDashboardPage = lazyWithRetry(() => import("./pages/PartnerDashboardPage"));
 const PartnersPage = lazyWithRetry(() => import("./pages/PartnersPage"));
+const MairieDashboardPage = lazyWithRetry(() => import("./pages/MairieDashboardPage"));
+const RegulateursPage = lazyWithRetry(() => import("./pages/RegulateursPage"));
 const UpdatePasswordPage = lazyWithRetry(() => import("./pages/UpdatePasswordPage"));
 const CompteurPage = lazyWithRetry(() => import("./pages/CompteurPage"));
 const BrandPage = lazyWithRetry(() => import("./pages/BrandPage"));
@@ -197,6 +199,9 @@ const App = () => {
 
                     <Route path="/partner/dashboard" element={<ProtectedRoute><PartnerDashboardPage /></ProtectedRoute>} />
                     <Route path="/partenaires" element={<PartnersPage />} />
+                    <Route path="/mairie" element={<MairieDashboardPage />} />
+                    <Route path="/mairie/:communeName" element={<MairieDashboardPage />} />
+                    <Route path="/regulateurs" element={<RegulateursPage />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Suspense>

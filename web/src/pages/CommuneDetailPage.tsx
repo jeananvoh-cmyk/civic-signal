@@ -151,6 +151,15 @@ const CommuneDetailPage = () => {
                     <CheckCircle2 className="h-3.5 w-3.5 text-sky-500" />
                     Vérifier les signalements
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate(`/mairie/${encodeURIComponent(decodedName)}`)}
+                    className="h-8 gap-1.5 rounded-full text-xs font-semibold border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20"
+                  >
+                    <Building2 className="h-3.5 w-3.5 text-emerald-500" />
+                    Services Techniques Mairie
+                  </Button>
                 </div>
             </div>
           </div>
