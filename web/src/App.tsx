@@ -38,10 +38,16 @@ function lazyWithRetry<T extends React.ComponentType<any>>(
         error?.name === "ChunkLoadError";
 
       if (isDynamicImportError) {
-        const alreadyRetried = window.sessionStorage.getItem("signa_chunk_retry_refreshed") === "1";
-        if (!alreadyRetried) {
-          window.sessionStorage.setItem("signa_chunk_retry_refreshed", "1");
-          window.location.reload();
+        const lastRetry = parseInt(window.sessionStorage.getItem("signa_chunk_retry_ts") || "0", 10);
+        const now = Date.now();
+        if (now - lastRetry > 8000) {
+          window.sessionStorage.setItem("signa_chunk_retry_ts", now.toString());
+          try {
+            if ("caches" in window) {
+              caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+            }
+          } catch {}
+          window.location.href = window.location.pathname + "?v=" + now;
           return new Promise<{ default: T }>(() => {});
         }
       }

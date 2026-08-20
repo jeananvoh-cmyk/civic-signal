@@ -22,18 +22,40 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
+  private handleUpdate = async () => {
+    try {
+      sessionStorage.removeItem("signa_eb_chunk_reload_ts");
+      sessionStorage.removeItem("signa_chunk_retry_ts");
+      if ("caches" in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map((name) => caches.delete(name)));
+      }
+      if ("serviceWorker" in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          await reg.unregister();
+        }
+      }
+    } catch {
+      // Ignorer
+    }
+    window.location.href = window.location.pathname + "?v=" + Date.now();
+  };
+
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
     const isChunkError =
       error?.message?.includes("Failed to fetch dynamically imported module") ||
       error?.message?.includes("Importing a module script failed") ||
-      error?.message?.includes("Loading chunk");
+      error?.message?.includes("Loading chunk") ||
+      error?.name === "ChunkLoadError";
 
     if (isChunkError) {
-      const hasAutoReloaded = sessionStorage.getItem("signa_eb_chunk_reload");
-      if (!hasAutoReloaded) {
-        sessionStorage.setItem("signa_eb_chunk_reload", "1");
-        window.location.reload();
+      const lastReload = parseInt(sessionStorage.getItem("signa_eb_chunk_reload_ts") || "0", 10);
+      const now = Date.now();
+      if (now - lastReload > 10000) {
+        sessionStorage.setItem("signa_eb_chunk_reload_ts", now.toString());
+        this.handleUpdate();
       }
     }
   }
@@ -43,7 +65,8 @@ export class ErrorBoundary extends Component<Props, State> {
       const isChunkError =
         this.state.error?.message?.includes("Failed to fetch dynamically imported module") ||
         this.state.error?.message?.includes("Importing a module script failed") ||
-        this.state.error?.message?.includes("Loading chunk");
+        this.state.error?.message?.includes("Loading chunk") ||
+        this.state.error?.name === "ChunkLoadError";
 
       return (
         <div className="min-h-screen bg-background flex items-center justify-center p-6 text-center">
@@ -66,9 +89,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
               <Button
                 variant="default"
-                onClick={() => {
-                  window.location.reload();
-                }}
+                onClick={this.handleUpdate}
                 className="w-full sm:w-auto gap-2 font-bold bg-primary text-primary-foreground"
               >
                 <RefreshCw className="h-4 w-4" />
@@ -76,7 +97,7 @@ export class ErrorBoundary extends Component<Props, State> {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => (window.location.href = "/")}
+                onClick={() => (window.location.href = "/?v=" + Date.now())}
                 className="w-full sm:w-auto gap-2 font-semibold"
               >
                 <Home className="h-4 w-4" />
