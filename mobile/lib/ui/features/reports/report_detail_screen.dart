@@ -3,10 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/communes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/models/report_model.dart';
 import '../../common/civic_photo_view.dart';
+import '../../common/whatsapp_icon.dart';
 
 class ReportDetailScreen extends StatefulWidget {
   final ReportModel report;
@@ -169,6 +171,26 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
         if (mounted) setState(() => _isResolving = false);
       }
     }
+  }
+
+  void _shareVictoryToWhatsApp() {
+    final ticketCode = _currentReport.displayTicketCode;
+    final commune = _currentReport.commune;
+    final quartier = _currentReport.quartier;
+    final link = 'https://signa.ci/signalement/${_currentReport.id}';
+    final shareText = '''✅ INCIDENT RÉSOLU ! 🎉
+
+📍 $quartier ($commune)
+🎫 Ticket : $ticketCode
+🛠️ Le problème a été rétabli et vérifié sur le terrain grâce à la mobilisation citoyenne SIGNA.ci.
+
+🔗 Détails : $link
+''';
+
+    launchUrl(
+      Uri.parse('https://wa.me/?text=${Uri.encodeComponent(shareText)}'),
+      mode: LaunchMode.externalApplication,
+    );
   }
 
   @override
@@ -370,6 +392,81 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
                 ),
               ),
               const SizedBox(height: 16),
+
+              // ══════════════════════════════════════════════════════════
+              // BANNIÈRE VICTOIRE CITOYENNE & PARTAGE WHATSAPP
+              // ══════════════════════════════════════════════════════════
+              if (isResolved) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFDCFCE7), Color(0xFFF0FDF4)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFF86EFAC), width: 1.5),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF16A34A),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(LucideIcons.checkCheck, color: Colors.white, size: 18),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Incident Rétabli & Confirmé 🎉',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14,
+                                    color: const Color(0xFF14532D),
+                                  ),
+                                ),
+                                const Text(
+                                  'Partagez cette bonne nouvelle avec vos voisins !',
+                                  style: TextStyle(fontSize: 11, color: Color(0xFF15803D)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF25D366),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
+                          icon: const WhatsAppIcon(size: 18),
+                          label: const Text(
+                            'Annoncer la résolution sur WhatsApp',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          onPressed: _shareVictoryToWhatsApp,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
 
               // ══════════════════════════════════════════════════════════
               // ENCADRÉ RETOUR OPÉRATEUR (CIE, SODECI, Mairie)

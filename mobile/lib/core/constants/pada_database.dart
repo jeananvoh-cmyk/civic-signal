@@ -2087,6 +2087,7 @@ class ScoredPadaWay {
   final int? doorDelta;
   final String? nearestDoorInfo;
   final String? cadastralAddress;
+  final String? matchReason;
 
   const ScoredPadaWay({
     required this.way,
@@ -2100,6 +2101,7 @@ class ScoredPadaWay {
     this.doorDelta,
     this.nearestDoorInfo,
     this.cadastralAddress,
+    this.matchReason,
   });
 }
 
@@ -2120,6 +2122,7 @@ List<ScoredPadaWay> searchPadaWaysScored(String query, {String? commune, String?
     int? doorDelta;
     String? nearestDoorInfo;
     String? cadastralAddress;
+    String? matchReason;
 
     // 1. Filtrage strict par commune
     if (commune != null && commune.isNotEmpty) {
@@ -2138,6 +2141,7 @@ List<ScoredPadaWay> searchPadaWaysScored(String query, {String? commune, String?
       if (normWayQuartier.contains(normTargetQuartier) || normTargetQuartier.contains(normWayQuartier)) {
         isQuartierMatch = true;
         score += 80; // Priorité majeure au quartier sélectionné
+        matchReason = 'Quartier $quartier';
       }
     }
 
@@ -2146,6 +2150,7 @@ List<ScoredPadaWay> searchPadaWaysScored(String query, {String? commune, String?
     if (extractedNumber != null) {
       if (isQuartierMatch) {
         score += 50; // Priorité absolue au quartier courant pour ce numéro
+        matchReason = 'Quartier $quartier & Porte n°$extractedNumber';
       }
 
       if (way.longueurM != null) {
@@ -2172,6 +2177,7 @@ List<ScoredPadaWay> searchPadaWaysScored(String query, {String? commune, String?
         score += 50;
       } else if (normAncien.isNotEmpty && normAncien.contains(textQuery)) {
         score += 40;
+        matchReason ??= 'Alias : ${way.ancienNom}';
       } else {
         score -= 20;
       }
@@ -2207,6 +2213,7 @@ List<ScoredPadaWay> searchPadaWaysScored(String query, {String? commune, String?
       doorDelta: doorDelta,
       nearestDoorInfo: nearestDoorInfo,
       cadastralAddress: cadastralAddress,
+      matchReason: matchReason,
     ));
   }
 

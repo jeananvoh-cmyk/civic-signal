@@ -100,6 +100,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               if (lat != null && lon != null) {
                 map['latitude'] = lat;
                 map['longitude'] = lon;
+                map['report_category'] ??= 'outage';
                 loaded.add(ReportModel.fromJson(map));
               }
             }
@@ -151,8 +152,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   IconData _getIconForReport(ReportModel r) {
-    if (r.serviceType == 'electricity') return LucideIcons.zap;
-    if (r.serviceType == 'water') return LucideIcons.droplets;
+    if (r.reportCategory == 'outage') {
+      if (r.serviceType == 'electricity') return LucideIcons.zap;
+      if (r.serviceType == 'water') return LucideIcons.droplets;
+    }
 
     final desc = r.description.toLowerCase();
     if (desc.contains('lampadaire') || desc.contains('éclairage') || desc.contains('poteau') || desc.contains('obscurité')) {
@@ -167,12 +170,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     if (desc.contains('ordure') || desc.contains('poubelle') || desc.contains('décharge') || desc.contains('saleté')) {
       return LucideIcons.trash2;
     }
-    return LucideIcons.wrench;
+    return LucideIcons.landmark;
   }
 
   Color _getColorForReport(ReportModel r) {
-    if (r.serviceType == 'electricity') return const Color(0xFFF59E0B);
-    if (r.serviceType == 'water') return const Color(0xFF0284C7);
+    if (r.reportCategory == 'outage') {
+      if (r.serviceType == 'electricity') return const Color(0xFFF59E0B);
+      if (r.serviceType == 'water') return const Color(0xFF0284C7);
+    }
 
     final desc = r.description.toLowerCase();
     if (desc.contains('lampadaire') || desc.contains('éclairage') || desc.contains('poteau')) {
@@ -191,12 +196,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   String _getCategoryLabel(ReportModel r) {
-    if (r.serviceType == 'electricity') return 'Électricité (CIE)';
-    if (r.serviceType == 'water') return 'Eau courante (SODECI)';
+    if (r.reportCategory == 'outage') {
+      if (r.serviceType == 'electricity') return 'Électricité (CIE)';
+      if (r.serviceType == 'water') return 'Eau courante (SODECI)';
+    }
 
     final desc = r.description.toLowerCase();
     if (desc.contains('lampadaire') || desc.contains('éclairage') || desc.contains('poteau')) {
-      return 'Éclairage public & Poteaux';
+      return 'Éclairage public & Poteaux (CIE)';
     }
     if (desc.contains('caniveau') || desc.contains('inondation') || desc.contains('eau usée')) {
       return 'Caniveau bouché & Assainissement';
@@ -214,9 +221,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     return _reports.where((r) {
       if (r.latitude == null || r.longitude == null) return false;
 
-      // Mode filter
+      // Mode filter (Coupures réseau foyers vs Infrastructures publiques)
       if (_selectedMode == 'coupures') {
-        final isCoupure = r.reportCategory == 'outage' || r.serviceType == 'electricity' || r.serviceType == 'water';
+        final isCoupure = r.reportCategory == 'outage' &&
+            (r.serviceType == 'electricity' || r.serviceType == 'water');
         if (!isCoupure) return false;
       } else if (_selectedMode == 'infrastructures') {
         final isInfra = r.reportCategory == 'infrastructure' || r.serviceType == 'mairie' || r.serviceType == 'voirie';
@@ -225,8 +233,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
       // Service filter
       if (_selectedService != 'all') {
-        if (_selectedService == 'electricity' && r.serviceType != 'electricity') return false;
-        if (_selectedService == 'water' && r.serviceType != 'water') return false;
+        if (_selectedService == 'electricity' && (r.serviceType != 'electricity' || r.reportCategory == 'infrastructure')) return false;
+        if (_selectedService == 'water' && (r.serviceType != 'water' || r.reportCategory == 'infrastructure')) return false;
         if (_selectedService == 'mairie' && r.serviceType != 'mairie' && r.reportCategory != 'infrastructure') return false;
       }
 

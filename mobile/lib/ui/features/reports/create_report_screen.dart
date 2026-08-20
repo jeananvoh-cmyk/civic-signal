@@ -12,6 +12,7 @@ import '../../../core/constants/quartiers.dart';
 import '../../../core/constants/supabase_constants.dart';
 import '../../../core/constants/pada.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../data/services/offline_queue_service.dart';
 import '../../common/pada_address_input.dart';
 
 // ─── Modèle de type de signalement (Miroir exact de Web ReportPage.tsx) ─────────
@@ -372,6 +373,43 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
 
     setState(() => _isSubmitting = true);
 
+    final now = DateTime.now();
+    final reportStartTime = DateTime(now.year, now.month, now.day, _startTime.hour, _startTime.minute).toIso8601String();
+
+    final effectiveQuartier = _isCustomQuartier && _customQuartierController.text.trim().isNotEmpty
+        ? _customQuartierController.text.trim()
+        : normalizeQuartier(_selectedQuartier, _selectedCommune);
+
+    final hasVulnerable = _babies > 0 || _pregnant > 0 || _elderly > 0;
+    final defaultDesc = _selectedType!.defaultDesc(_selectedCommune);
+    final desc = _descriptionController.text.trim().isNotEmpty ? _descriptionController.text.trim() : defaultDesc;
+
+    final padaInfo = _padaAddress?.formattedAddress != null ? ' [PADA : ${_padaAddress!.formattedAddress}]' : '';
+    final fullDesc = '[${_selectedType!.label}] $desc [$_impactedPeople personne(s)${_babies > 0 ? ", $_babies bébé(s)" : ""}${_pregnant > 0 ? ", $_pregnant femme(s) enceinte(s)" : ""}${_elderly > 0 ? ", $_elderly aîné(s)" : ""}]$padaInfo';
+
+    final Map<String, dynamic> payload = {
+      'user_id': user.id,
+      'service_type': _selectedType!.serviceType,
+      'report_category': _selectedType!.reportCategory,
+      'description': fullDesc,
+      'location': _padaAddress?.formattedAddress != null ? '$_selectedCommune - ${_padaAddress!.formattedAddress}' : _selectedCommune,
+      'commune': _selectedCommune,
+      'quartier': effectiveQuartier,
+      'custom_quartier': _isCustomQuartier ? _customQuartierController.text.trim() : null,
+      'latitude': _latitude,
+      'longitude': _longitude,
+      'urgency': hasVulnerable ? 'high' : 'medium',
+      'start_time': reportStartTime,
+      'photo_url': null,
+      'photo_urls': null,
+      'impacted_people': _impactedPeople,
+      'babies': _babies,
+      'pregnant': _pregnant,
+      'elderly': _elderly,
+      'meter_number': _meterNumberController.text.trim().isNotEmpty ? _meterNumberController.text.trim() : null,
+      if (_selectedType!.id.contains('outage')) 'contract_type': _contractType,
+    };
+
     try {
       final List<String> uploadedPhotoUrls = [];
       for (var photo in _selectedPhotos) {
@@ -382,42 +420,10 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
         uploadedPhotoUrls.add(path);
       }
 
-      final now = DateTime.now();
-      final reportStartTime = DateTime(now.year, now.month, now.day, _startTime.hour, _startTime.minute).toIso8601String();
-
-      final effectiveQuartier = _isCustomQuartier && _customQuartierController.text.trim().isNotEmpty
-          ? _customQuartierController.text.trim()
-          : normalizeQuartier(_selectedQuartier, _selectedCommune);
-
-      final hasVulnerable = _babies > 0 || _pregnant > 0 || _elderly > 0;
-      final defaultDesc = _selectedType!.defaultDesc(_selectedCommune);
-      final desc = _descriptionController.text.trim().isNotEmpty ? _descriptionController.text.trim() : defaultDesc;
-
-      final padaInfo = _padaAddress?.formattedAddress != null ? ' [PADA : ${_padaAddress!.formattedAddress}]' : '';
-      final fullDesc = '[${_selectedType!.label}] $desc [$_impactedPeople personne(s)${_babies > 0 ? ", $_babies bébé(s)" : ""}${_pregnant > 0 ? ", $_pregnant femme(s) enceinte(s)" : ""}${_elderly > 0 ? ", $_elderly aîné(s)" : ""}]$padaInfo';
-
-      final payload = {
-        'user_id': user.id,
-        'service_type': _selectedType!.serviceType,
-        'report_category': _selectedType!.reportCategory,
-        'description': fullDesc,
-        'location': _padaAddress?.formattedAddress != null ? '$_selectedCommune - ${_padaAddress!.formattedAddress}' : _selectedCommune,
-        'commune': _selectedCommune,
-        'quartier': effectiveQuartier,
-        'custom_quartier': _isCustomQuartier ? _customQuartierController.text.trim() : null,
-        'latitude': _latitude,
-        'longitude': _longitude,
-        'urgency': hasVulnerable ? 'high' : 'medium',
-        'start_time': reportStartTime,
-        'photo_url': uploadedPhotoUrls.isNotEmpty ? uploadedPhotoUrls.first : null,
-        'photo_urls': uploadedPhotoUrls.isNotEmpty ? uploadedPhotoUrls : null,
-        'impacted_people': _impactedPeople,
-        'babies': _babies,
-        'pregnant': _pregnant,
-        'elderly': _elderly,
-        'meter_number': _meterNumberController.text.trim().isNotEmpty ? _meterNumberController.text.trim() : null,
-        if (_selectedType!.id.contains('outage')) 'contract_type': _contractType,
-      };
+      if (uploadedPhotoUrls.isNotEmpty) {
+        payload['photo_url'] = uploadedPhotoUrls.first;
+        payload['photo_urls'] = uploadedPhotoUrls;
+      }
 
       final res = await Supabase.instance.client.from('reports').insert(payload).select('id, ticket_code').single();
 
@@ -432,8 +438,26 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
         _showSuccessDialog(res['id'] as String, effectiveQuartier, ticketCode);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red));
+      try {
+        await OfflineQueueService.enqueueReport(
+          payload,
+          localPhotoPath: _selectedPhotos.isNotEmpty ? _selectedPhotos.first.path : null,
+        );
+        if (mounted) {
+          HapticFeedback.mediumImpact();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('📶 Enregistré Hors-Ligne ! Votre signalement sera transmis automatiquement dès le retour du réseau.'),
+              backgroundColor: Color(0xFFD97706),
+              duration: Duration(seconds: 4),
+            ),
+          );
+          Navigator.pop(context);
+        }
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red));
+        }
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);

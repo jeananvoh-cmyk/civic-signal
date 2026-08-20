@@ -119,9 +119,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               index: 0,
               activeColor: AppTheme.primaryTeal,
             ),
-            // 2. Voirie & Infra (Icône améliorée)
+            // 2. Voirie & Infra (Icône civique officielle 🏛️)
             _buildDockNavItem(
-              icon: LucideIcons.construction,
+              icon: LucideIcons.landmark,
               label: 'Voirie & Infra',
               index: 1,
               activeColor: const Color(0xFFEA580C),

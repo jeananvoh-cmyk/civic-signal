@@ -924,41 +924,78 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         itemBuilder: (ctx, idx) {
                           final q = _topQuartiers[idx];
                           final medal = idx == 0 ? "🥇" : idx == 1 ? "🥈" : idx == 2 ? "🥉" : "#${idx + 1}";
+                          final elec = (q['elecActifs'] as num?)?.toInt() ?? 0;
+                          final eau = (q['eauActifs'] as num?)?.toInt() ?? 0;
+                          final mairie = (q['mairieActifs'] as num?)?.toInt() ?? 0;
+                          final total = (q['totalActifs'] as num?)?.toInt() ?? (elec + eau + mairie);
+
                           return Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                             child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Text(medal, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                const SizedBox(width: 10),
+                                SizedBox(
+                                  width: 32,
+                                  child: Text(medal, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                ),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(q['quartier'] as String, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                      Text(q['commune'] as String, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                                      Text(
+                                        q['quartier'] as String,
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Wrap(
+                                        spacing: 8,
+                                        runSpacing: 4,
+                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                        children: [
+                                          Text(
+                                            q['commune'] as String,
+                                            style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                                          ),
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(LucideIcons.zap, size: 12, color: Color(0xFFF59E0B)),
+                                              const SizedBox(width: 2),
+                                              Text('$elec', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                                              const SizedBox(width: 6),
+                                              const Icon(LucideIcons.droplets, size: 12, color: Color(0xFF0284C7)),
+                                              const SizedBox(width: 2),
+                                              Text('$eau', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                                              if (mairie > 0) ...[
+                                                const SizedBox(width: 6),
+                                                const Icon(LucideIcons.landmark, size: 12, color: Color(0xFF8B5CF6)),
+                                                const SizedBox(width: 2),
+                                                Text('$mairie', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                                              ],
+                                            ],
+                                          ),
+                                        ],
+                                      ),
                                     ],
                                   ),
                                 ),
-                                Row(
-                                  children: [
-                                    const Icon(LucideIcons.zap, size: 12, color: Color(0xFFF59E0B)),
-                                    Text('${q['elecActifs']}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                                    const SizedBox(width: 6),
-                                    const Icon(LucideIcons.droplets, size: 12, color: Color(0xFF0284C7)),
-                                    Text('${q['eauActifs']}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF10B981).withAlpha(30),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Text(
-                                        '${q['totalActifs']} active(s)',
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF059669)),
-                                      ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: total > 0 ? const Color(0xFFEF4444).withAlpha(25) : const Color(0xFF10B981).withAlpha(25),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    '$total active(s)',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11,
+                                      color: total > 0 ? const Color(0xFFDC2626) : const Color(0xFF059669),
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ],
                             ),

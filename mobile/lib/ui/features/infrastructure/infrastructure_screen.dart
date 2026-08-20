@@ -459,7 +459,7 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
                 children: [
                   _buildServiceFilterChip('all', 'Tous', LucideIcons.layers, null),
                   const SizedBox(width: 8),
-                  _buildServiceFilterChip('mairie', 'Voirie & Mairie', LucideIcons.building2, const Color(0xFF059669)),
+                  _buildServiceFilterChip('mairie', 'Voirie & Mairie', LucideIcons.landmark, const Color(0xFF059669)),
                   const SizedBox(width: 8),
                   _buildServiceFilterChip('electricite', 'Éclairage & CIE', LucideIcons.zap, const Color(0xFFEA580C)),
                   const SizedBox(width: 8),
