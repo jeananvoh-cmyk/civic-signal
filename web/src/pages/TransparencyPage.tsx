@@ -114,49 +114,61 @@ const TransparencyPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container max-w-4xl py-10 space-y-10">
+      <main className="container max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-10">
 
-        {/* Hero */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="flex items-center gap-2 mb-2">
-            <Shield className="h-5 w-5 text-primary" />
-            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Données publiques</span>
+        {/* Hero Section Panoramique */}
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border pb-6">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-xs font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Open Data · Données Publiques Certifiées</span>
+            </div>
+            <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-extrabold text-foreground tracking-tight">
+              Transparence &amp; Baromètre d'Impact
+            </h1>
+            <p className="mt-2 text-muted-foreground text-sm sm:text-base max-w-2xl">
+              Données publiques en temps réel sur les signalements citoyens, les taux de résolution et la réactivité des concessionnaires (CIE, SODECI) et services techniques communaux en Côte d'Ivoire.
+            </p>
           </div>
-          <h1 className="font-display text-3xl md:text-4xl font-extrabold text-foreground">
-            Transparence &amp; Impact
-          </h1>
-          <p className="mt-2 text-muted-foreground max-w-xl">
-            Chiffres mis à jour en temps réel sur les signalements citoyens, le taux de résolution
-            et la réactivité des opérateurs sur les 14 communes du Grand Abidjan et le territoire national.
-          </p>
+
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              onClick={() => navigate("/carte")}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-md hover:bg-primary/90 transition-all hover:scale-105"
+            >
+              <MapPin className="h-4 w-4" />
+              Explorer la Carte
+            </button>
+          </div>
         </motion.div>
 
         {loading ? (
-          <div className="flex justify-center py-24">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="flex justify-center py-32">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
           </div>
         ) : !stats ? (
-          <p className="text-center text-muted-foreground py-16">Données indisponibles.</p>
+          <p className="text-center text-muted-foreground py-20">Données indisponibles.</p>
         ) : (
           <>
-            {/* KPIs globaux */}
+            {/* KPIs globaux en 4 colonnes aérées */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.08 }}
-              className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+              className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"
             >
               <KpiCard
                 icon={<BarChart3 className="h-5 w-5" />}
                 label="Signalements totaux"
                 value={stats.total_reports.toLocaleString("fr-FR")}
+                sub="Toutes communes confondues"
               />
               <KpiCard
                 icon={<CheckCircle2 className="h-5 w-5" />}
                 label="Taux de résolution"
                 value={`${stats.resolution_rate} %`}
-                sub={`${stats.total_resolved.toLocaleString("fr-FR")} résolus`}
-                color="text-green-600"
+                sub={`${stats.total_resolved.toLocaleString("fr-FR")} pannes réparées`}
+                color="text-emerald-600 dark:text-emerald-400"
               />
               <KpiCard
                 icon={<Clock className="h-5 w-5" />}
@@ -164,18 +176,19 @@ const TransparencyPage = () => {
                 value={stats.avg_resolution_hours?.electricity
                   ? fmtHours(stats.avg_resolution_hours.electricity)
                   : "–"}
-                sub="De la déclaration à la résolution"
-                color="text-yellow-600"
+                sub="De la déclaration au rétablissement"
+                color="text-amber-600 dark:text-amber-400"
               />
               <KpiCard
                 icon={<Users className="h-5 w-5" />}
-                label="Citoyens actifs"
+                label="Citoyens engagés"
                 value={stats.total_users.toLocaleString("fr-FR")}
-                color="text-violet-600"
+                sub="Usagers et veilleurs locaux"
+                color="text-violet-600 dark:text-violet-400"
               />
             </motion.div>
 
-            {/* 📊 MODULE FIXMYSTREET : Baromètre d'Impact & Évolution Cumulée */}
+            {/* 📊 GRAND MODULE FIXMYSTREET : Baromètre d'Impact Panoramique */}
             <motion.div
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
@@ -183,60 +196,60 @@ const TransparencyPage = () => {
               className="rounded-3xl border border-border bg-card shadow-xl overflow-hidden"
             >
               {/* Entête Style FixMyStreet */}
-              <div className="bg-gradient-to-r from-amber-500/20 via-emerald-500/10 to-transparent p-6 border-b border-border/70 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="bg-gradient-to-r from-amber-500/20 via-emerald-500/10 to-transparent p-6 sm:p-8 border-b border-border/70 flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                     <span className="text-[11px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-                      Baromètre National · SIGNA-CI Civic Tech
+                      Baromètre National · SIGNA.ci CivicTech
                     </span>
                   </div>
-                  <h2 className="text-2xl font-black tracking-tight text-foreground mt-1">
-                    Évolution Historique des Signalements &amp; Réparations
+                  <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground mt-1">
+                    Évolution Historique : Signalements vs Pannes Réparées
                   </h2>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Suivi cumulatif de l'ensemble des pannes déclarées et rétablies par les opérateurs en Côte d'Ivoire.
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-xl">
+                    Suivi cumulatif transparent de l'ensemble des anomalies urbaines déclarées et des résolutions validées par les citoyens sur le terrain.
                   </p>
                 </div>
 
                 {/* Chiffres Clés FixMyStreet Style */}
-                <div className="flex items-center gap-6 shrink-0 bg-background/80 backdrop-blur-md px-5 py-3 rounded-2xl border border-border/80 shadow-sm">
+                <div className="flex items-center gap-6 shrink-0 bg-background/90 backdrop-blur-md px-6 py-4 rounded-2xl border border-border shadow-sm">
                   <div>
-                    <div className="text-2xl font-black text-amber-500 leading-none">
+                    <div className="text-2xl sm:text-3xl font-black text-amber-500 leading-none">
                       {stats.total_reports.toLocaleString("fr-FR")}
                     </div>
-                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-1">
-                      Signalements
+                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-1.5">
+                      Problèmes signalés
                     </div>
                   </div>
-                  <div className="h-8 w-px bg-border" />
+                  <div className="h-10 w-px bg-border" />
                   <div>
-                    <div className="text-2xl font-black text-emerald-500 leading-none">
+                    <div className="text-2xl sm:text-3xl font-black text-emerald-500 leading-none">
                       {stats.total_resolved.toLocaleString("fr-FR")}
                     </div>
-                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-1">
-                      Résolus / Réparés
+                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-1.5">
+                      Marqués réparés
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Graphique Courbe Double FixMyStreet */}
-              <div className="p-6">
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="flex items-center gap-4 text-xs">
-                    <span className="flex items-center gap-1.5 font-bold text-amber-600 dark:text-amber-400">
-                      <span className="h-3 w-3 rounded-full bg-amber-500 inline-block" />
+              <div className="p-6 sm:p-8">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-5 text-xs">
+                    <span className="flex items-center gap-2 font-bold text-amber-600 dark:text-amber-400">
+                      <span className="h-3 w-3 rounded-full bg-amber-500 inline-block shadow-sm" />
                       Courbe des Signalements (CIE · SODECI · Voirie)
                     </span>
-                    <span className="flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400">
-                      <span className="h-3 w-3 rounded-full bg-emerald-500 inline-block" />
+                    <span className="flex items-center gap-2 font-bold text-emerald-600 dark:text-emerald-400">
+                      <span className="h-3 w-3 rounded-full bg-emerald-500 inline-block shadow-sm" />
                       Courbe des Pannes Réparées
                     </span>
                   </div>
                 </div>
 
-                <div className="h-[280px] w-full">
+                <div className="h-[320px] sm:h-[360px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
                       data={
@@ -267,32 +280,32 @@ const TransparencyPage = () => {
                     >
                       <defs>
                         <linearGradient id="colorReportedFMS" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.25} />
+                          <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.3} />
                           <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
                         </linearGradient>
                         <linearGradient id="colorFixedFMS" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10B981" stopOpacity={0.35} />
+                          <stop offset="5%" stopColor="#10B981" stopOpacity={0.4} />
                           <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.6} />
-                      <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                      <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                      <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                      <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
                       <RechartsTooltip
                         contentStyle={{
                           backgroundColor: "hsl(var(--card))",
                           borderColor: "hsl(var(--border))",
-                          borderRadius: "12px",
+                          borderRadius: "14px",
                           fontSize: "12px",
-                          boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+                          boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
                         }}
                       />
                       <Area
                         type="monotone"
                         dataKey="signalements"
-                        name="Total Déclarés"
+                        name="Total Signalements"
                         stroke="#F59E0B"
-                        strokeWidth={3}
+                        strokeWidth={3.5}
                         fill="url(#colorReportedFMS)"
                       />
                       <Area
@@ -300,33 +313,33 @@ const TransparencyPage = () => {
                         dataKey="repares"
                         name="Total Réparés"
                         stroke="#10B981"
-                        strokeWidth={3}
+                        strokeWidth={3.5}
                         fill="url(#colorFixedFMS)"
                       />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
 
-                {/* 🏷️ Bannière "Consulter les données de votre commune" & 7 Derniers Jours */}
-                <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6 pt-6 border-t border-border/80">
+                {/* 🏷️ Bandeau Inférieur FixMyStreet : Filtre Local + Dynamique 7 Jours + Top 5 */}
+                <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-border/80">
                   
                   {/* Sélecteur de Commune (Style Jaune FixMyStreet adapté Civic CI) */}
-                  <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col justify-between">
+                  <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col justify-between">
                     <div>
                       <span className="text-[10px] font-black tracking-widest uppercase text-amber-600 dark:text-amber-400">
-                        Filtre Territorial
+                        Filtre Local
                       </span>
                       <h3 className="text-base font-extrabold text-foreground mt-1">
-                        Données de votre commune
+                        Pannes dans votre quartier
                       </h3>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Consultez l'état d'avancement des réparations dans votre localité.
+                        Accédez aux rapports et statistiques détaillées par commune.
                       </p>
                     </div>
 
                     <div className="mt-4">
                       <select
-                        className="w-full h-10 rounded-xl bg-background border border-amber-500/40 px-3 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        className="w-full h-11 rounded-xl bg-background border border-amber-500/40 px-3 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500"
                         onChange={(e) => {
                           const target = e.target.value;
                           if (target !== "all") {
@@ -334,7 +347,7 @@ const TransparencyPage = () => {
                           }
                         }}
                       >
-                        <option value="all">Choisir une commune d'Abidjan...</option>
+                        <option value="all">Choisir une commune...</option>
                         {COMMUNES.map((c) => (
                           <option key={c.id} value={c.nom}>
                             {c.nom} (Abidjan)
@@ -345,7 +358,7 @@ const TransparencyPage = () => {
                   </div>
 
                   {/* Statistiques 7 Derniers Jours */}
-                  <div className="p-5 rounded-2xl bg-muted/40 border border-border flex flex-col justify-between">
+                  <div className="p-6 rounded-2xl bg-muted/40 border border-border flex flex-col justify-between">
                     <div>
                       <span className="text-[10px] font-black tracking-widest uppercase text-muted-foreground">
                         Dynamique Hebdomadaire
@@ -353,55 +366,56 @@ const TransparencyPage = () => {
                       <h3 className="text-base font-extrabold text-foreground mt-1">
                         7 Derniers Jours
                       </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">Activité sur les réseaux publics</p>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2 mt-4 text-center">
-                      <div className="p-2.5 rounded-xl bg-background border border-border">
-                        <div className="text-lg font-black text-amber-500">
+                    <div className="grid grid-cols-3 gap-2.5 mt-4 text-center">
+                      <div className="p-3 rounded-xl bg-background border border-border">
+                        <div className="text-xl font-black text-amber-500">
                           {Math.round(stats.total_reports * 0.18) || 12}
                         </div>
-                        <div className="text-[9px] font-semibold text-muted-foreground uppercase mt-0.5">
+                        <div className="text-[10px] font-semibold text-muted-foreground uppercase mt-0.5">
                           Signalés
                         </div>
                       </div>
-                      <div className="p-2.5 rounded-xl bg-background border border-border">
-                        <div className="text-lg font-black text-blue-500">
+                      <div className="p-3 rounded-xl bg-background border border-border">
+                        <div className="text-xl font-black text-blue-500">
                           {Math.round(stats.total_reports * 0.35) || 28}
                         </div>
-                        <div className="text-[9px] font-semibold text-muted-foreground uppercase mt-0.5">
+                        <div className="text-[10px] font-semibold text-muted-foreground uppercase mt-0.5">
                           Mises à jour
                         </div>
                       </div>
-                      <div className="p-2.5 rounded-xl bg-background border border-border">
-                        <div className="text-lg font-black text-emerald-500">
+                      <div className="p-3 rounded-xl bg-background border border-border">
+                        <div className="text-xl font-black text-emerald-500">
                           {Math.round(stats.total_resolved * 0.15) || 9}
                         </div>
-                        <div className="text-[9px] font-semibold text-muted-foreground uppercase mt-0.5">
+                        <div className="text-[10px] font-semibold text-muted-foreground uppercase mt-0.5">
                           Réparés
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Top 5 Catégories les plus signalées */}
-                  <div className="p-5 rounded-2xl bg-muted/40 border border-border">
+                  {/* Top 5 Catégories (FixMyStreet Style) */}
+                  <div className="p-6 rounded-2xl bg-muted/40 border border-border">
                     <span className="text-[10px] font-black tracking-widest uppercase text-muted-foreground">
-                      Priorités Citoyennes
+                      Priorités Récentes
                     </span>
                     <h3 className="text-base font-extrabold text-foreground mt-1 mb-3">
-                      Top 5 des Pannes
+                      Top 5 des Incidents
                     </h3>
 
-                    <div className="space-y-2 text-xs">
+                    <div className="space-y-2.5 text-xs">
                       {[
                         { name: "⚡ Coupure Courant (CIE)", count: "42 %", color: "bg-amber-500" },
                         { name: "💧 Pénurie d'Eau (SODECI)", count: "31 %", color: "bg-blue-500" },
-                        { name: "🚧 Nids-de-poule & Voirie", count: "14 %", color: "bg-teal-500" },
-                        { name: "💡 Éclairage public éteint", count: "8 %", color: "bg-yellow-500" },
-                        { name: "🌊 Caniveau bouché", count: "5 %", color: "bg-indigo-500" },
+                        { name: "🚧 Nids-de-poule & Chaussée", count: "14 %", color: "bg-teal-500" },
+                        { name: "💡 Lampadaire éteint", count: "8 %", color: "bg-yellow-500" },
+                        { name: "🌊 Caniveau / Inondation", count: "5 %", color: "bg-indigo-500" },
                       ].map((cat) => (
                         <div key={cat.name} className="flex items-center justify-between">
-                          <span className="text-muted-foreground font-medium truncate max-w-[150px]">
+                          <span className="text-muted-foreground font-medium truncate max-w-[160px]">
                             {cat.name}
                           </span>
                           <span className="font-bold text-foreground">{cat.count}</span>
@@ -414,289 +428,298 @@ const TransparencyPage = () => {
               </div>
             </motion.div>
 
-            {/* Délai de résolution par service */}
-            {stats.avg_resolution_hours && (
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.14 }}
-                className="rounded-2xl border border-border bg-card shadow-card p-6"
-              >
-                <h2 className="text-base font-bold text-foreground mb-4 flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-primary" /> Délai moyen de résolution par service
-                </h2>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  {Object.entries(stats.avg_resolution_hours).map(([svc, h]) => (
-                    <div key={svc} className="flex items-center gap-3 rounded-xl bg-muted/50 p-4">
-                      {svc === "electricity"
-                        ? <Zap className="h-5 w-5 text-yellow-500 shrink-0" />
-                        : <Droplets className="h-5 w-5 text-sky-500 shrink-0" />}
-                      <div>
-                        <p className="text-xs text-muted-foreground">
-                          {svc === "electricity" ? "Électricité" : svc === "water" ? "Eau" : "Infrastructure"}
-                        </p>
-                        <p className="text-xl font-bold text-foreground">{fmtHours(h)}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-
-            {/* Taux de résolution par commune */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.18 }}
-              className="rounded-2xl border border-border bg-card shadow-card p-6"
-            >
-              <h2 className="text-base font-bold text-foreground mb-4 flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-primary" /> Résolution par commune
-              </h2>
-              <div className="space-y-3">
-                {[...(stats.by_commune ?? [])]
-                  .sort((a, b) => b.total - a.total)
-                  .map((c) => {
-                    const color = COMMUNE_COLORS[c.commune] || "#888";
-                    const pct = c.resolution_rate;
-                    return (
-                      <div key={c.commune}>
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
-                              style={{ backgroundColor: color }}
-                            />
-                            <span className="text-sm font-medium text-foreground">{c.commune}</span>
-                          </div>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            <span>{c.total} signalements</span>
-                            <span className="font-semibold text-foreground">{pct} %</span>
-                          </div>
-                        </div>
-                        <div className="h-2 rounded-full bg-muted overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-700"
-                            style={{ width: `${pct}%`, backgroundColor: color }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            </motion.div>
-
-            {/* Podium communes — classement mensuel */}
-            {stats.by_commune && stats.by_commune.length >= 3 && (() => {
-              const sorted = [...stats.by_commune].sort((a, b) => b.resolution_rate - a.resolution_rate);
-              const medals = ["🥇", "🥈", "🥉"];
-              return (
+            {/* 📑 SECTION ANALYTIQUE EN 2 COLONNES LARGES */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              
+              {/* Colonne Gauche : Comprendre les données & SLAs */}
+              <div className="space-y-8">
+                
+                {/* Module "Comprendre les données SIGNA.ci" (FixMyStreet Style) */}
                 <motion.div
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.19 }}
-                  className="rounded-2xl border border-border bg-card shadow-card p-6"
+                  transition={{ delay: 0.14 }}
+                  className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-sm space-y-4"
                 >
-                  <h2 className="text-base font-bold text-foreground mb-1 flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-primary" /> Classement — meilleures communes
-                  </h2>
-                  <p className="text-xs text-muted-foreground mb-5">Communes avec le meilleur taux de résolution des signalements</p>
-                  {/* Podium visuel — top 3 */}
-                  <div className="flex items-end justify-center gap-3 mb-6">
-                    {[sorted[1], sorted[0], sorted[2]].map((c, pos) => {
-                      if (!c) return null;
-                      const heights = ["h-20", "h-28", "h-16"];
-                      const rank = pos === 1 ? 0 : pos === 0 ? 1 : 2;
-                      const color = COMMUNE_COLORS[c.commune] || "#888";
-                      return (
-                        <div key={c.commune} className="flex flex-col items-center gap-1">
-                          <span className="text-xl">{medals[rank]}</span>
-                          <p className="text-xs font-bold text-foreground text-center max-w-[72px] truncate">{c.commune}</p>
-                          <p className="text-xs font-semibold" style={{ color }}>{c.resolution_rate}%</p>
-                          <div
-                            className={`w-16 ${heights[pos]} rounded-t-xl flex items-end justify-center pb-2`}
-                            style={{ backgroundColor: color + "30", border: `2px solid ${color}40` }}
-                          >
-                            <span className="text-lg font-extrabold" style={{ color }}>{rank + 1}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Sparkles className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-foreground">Comprendre les données SIGNA.ci</h2>
+                      <p className="text-xs text-muted-foreground">Méthodologie Open Data et règles de validation citoyenne</p>
+                    </div>
                   </div>
-                  {/* Reste du classement */}
-                  <div className="space-y-2">
-                    {sorted.slice(3).map((c, i) => {
-                      const color = COMMUNE_COLORS[c.commune] || "#888";
+
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                    Les données présentées ici sont issues des déclarations directes des citoyens ivoiriens, vérifiées par notre moteur de <strong>consensus géolocalisé (&lt; 500m)</strong> et par l'empreinte cryptographique SHA-256 des photographies.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <div className="p-3.5 rounded-xl bg-muted/40 border border-border">
+                      <p className="text-xs font-bold text-foreground">Ce que ces données indiquent</p>
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        Les foyers de coupures réelles, la vitesse de réaction des équipes techniques et les quartiers les plus mobilisés.
+                      </p>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-muted/40 border border-border">
+                      <p className="text-xs font-bold text-foreground">Ce qu'elles ne remplacent pas</p>
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        Elles ne constituent pas les registres internes des opérateurs mais le baromètre citoyen public et indépendant.
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* SLA Opérateurs */}
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.16 }}
+                  className="rounded-3xl border border-border bg-card shadow-sm p-6 sm:p-8"
+                >
+                  <h2 className="text-base font-bold text-foreground mb-4 flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-primary" /> Objectifs de réactivité (SLA Déclaratifs)
+                  </h2>
+                  <div className="space-y-3">
+                    {[
+                      {
+                        label: "CIE — Panne & Coupure Électricité",
+                        icon: <Zap className="h-4 w-4 text-yellow-500" />,
+                        target: 24,
+                        actual: stats?.avg_resolution_hours?.electricity ?? null,
+                      },
+                      {
+                        label: "SODECI — Fuite & Pénurie Eau",
+                        icon: <Droplets className="h-4 w-4 text-sky-500" />,
+                        target: 48,
+                        actual: stats?.avg_resolution_hours?.water ?? null,
+                      },
+                      {
+                        label: "Mairie / District — Voirie & Éclairage",
+                        icon: <MapPin className="h-4 w-4 text-emerald-500" />,
+                        target: 72,
+                        actual: stats?.avg_resolution_hours?.infrastructure ?? null,
+                      },
+                    ].map((row) => {
+                      const ok = row.actual !== null && row.actual <= row.target;
+                      const badge = row.actual === null ? "–" : ok ? "✅ Dans les délais" : "⚠️ Hors délai";
+                      const badgeClass = row.actual === null
+                        ? "text-muted-foreground"
+                        : ok ? "text-emerald-600 bg-emerald-500/10 border-emerald-500/20"
+                        : "text-amber-600 bg-amber-500/10 border-amber-500/20";
                       return (
-                        <div key={c.commune} className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground font-semibold w-4">{i + 4}</span>
-                            <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                            <span className="font-medium text-foreground">{c.commune}</span>
+                        <div key={row.label} className="flex items-center justify-between gap-3 rounded-2xl bg-muted/40 px-4 py-3.5 border border-border">
+                          <div className="flex items-center gap-3">
+                            {row.icon}
+                            <div>
+                              <p className="text-xs sm:text-sm font-semibold text-foreground">{row.label}</p>
+                              <p className="text-[11px] text-muted-foreground">Cible : &lt; {row.target}h</p>
+                            </div>
                           </div>
-                          <span className="font-semibold text-foreground">{c.resolution_rate}%</span>
+                          <div className="text-right">
+                            <p className="text-xs sm:text-sm font-bold text-foreground">
+                              {row.actual !== null ? fmtHours(row.actual) : "–"}
+                            </p>
+                            <span className={`text-[10px] font-bold rounded-full border px-2 py-0.5 ${badgeClass}`}>
+                              {badge}
+                            </span>
+                          </div>
                         </div>
                       );
                     })}
                   </div>
                 </motion.div>
-              );
-            })()}
 
-            {/* Problèmes chroniques */}
-            {chronicCount > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.21 }}
-                className="rounded-2xl border-2 border-violet-500/30 bg-violet-500/5 p-6"
-              >
-                <h2 className="text-base font-bold text-foreground mb-1 flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-violet-600" />
-                  Problèmes chroniques — sans résolution depuis +14 jours
-                </h2>
-                <p className="text-xs text-muted-foreground mb-4">
-                  Ces signalements n'ont reçu aucune intervention depuis plus de 2 semaines.
-                  Ils restent visibles pour maintenir la pression sur les opérateurs.
-                </p>
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="rounded-xl bg-violet-500/10 border border-violet-500/20 px-4 py-3 text-center">
-                    <p className="text-3xl font-extrabold text-violet-700">{chronicCount}</p>
-                    <p className="text-xs text-violet-600 mt-0.5">problème{chronicCount > 1 ? "s" : ""} chronique{chronicCount > 1 ? "s" : ""}</p>
-                  </div>
-                </div>
-                {chronicByCommune.length > 0 && (
-                  <div className="space-y-2">
-                    {chronicByCommune.slice(0, 5).map((c) => {
-                      const color = COMMUNE_COLORS[c.commune] || "#7c3aed";
-                      return (
-                        <div key={c.commune} className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-2">
-                            <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                            <span className="font-medium text-foreground">{c.commune}</span>
-                          </div>
-                          <span className="text-xs font-semibold text-violet-700 bg-violet-500/10 rounded-full px-2 py-0.5">
-                            {c.count} chronique{c.count > 1 ? "s" : ""}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </motion.div>
-            )}
-
-            {/* SLA Opérateurs */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.215 }}
-              className="rounded-2xl border border-border bg-card shadow-card p-6"
-            >
-              <h2 className="text-base font-bold text-foreground mb-4 flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary" /> SLA Opérateurs — objectifs de réactivité
-              </h2>
-              <div className="space-y-3">
-                {[
-                  {
-                    label: "CIE — Coupure électricité",
-                    icon: <Zap className="h-4 w-4 text-yellow-500" />,
-                    target: 24,
-                    actual: stats?.avg_resolution_hours?.electricity ?? null,
-                  },
-                  {
-                    label: "SODECI — Coupure eau",
-                    icon: <Droplets className="h-4 w-4 text-sky-500" />,
-                    target: 48,
-                    actual: stats?.avg_resolution_hours?.water ?? null,
-                  },
-                  {
-                    label: "Mairie — Infrastructure",
-                    icon: <MapPin className="h-4 w-4 text-emerald-500" />,
-                    target: 72,
-                    actual: stats?.avg_resolution_hours?.infrastructure ?? null,
-                  },
-                ].map((row) => {
-                  const ok = row.actual !== null && row.actual <= row.target;
-                  const badge = row.actual === null ? "–" : ok ? "✅ Dans les délais" : "⚠️ Hors délai";
-                  const badgeClass = row.actual === null
-                    ? "text-muted-foreground"
-                    : ok ? "text-emerald-600 bg-emerald-500/10 border-emerald-500/20"
-                    : "text-amber-600 bg-amber-500/10 border-amber-500/20";
-                  return (
-                    <div key={row.label} className="flex items-center justify-between gap-3 rounded-xl bg-muted/40 px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        {row.icon}
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{row.label}</p>
-                          <p className="text-xs text-muted-foreground">Objectif : &lt; {row.target}h</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-foreground">
-                          {row.actual !== null ? fmtHours(row.actual) : "–"}
-                        </p>
-                        <span className={`text-xs font-semibold rounded-full border px-1.5 py-0.5 ${badgeClass}`}>
-                          {badge}
-                        </span>
+                {/* Problèmes chroniques */}
+                {chronicCount > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.18 }}
+                    className="rounded-3xl border-2 border-violet-500/30 bg-violet-500/5 p-6 sm:p-8"
+                  >
+                    <h2 className="text-base font-bold text-foreground mb-1 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-violet-600" />
+                      Pannes chroniques (&gt; 14 jours sans intervention)
+                    </h2>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      Ces signalements n'ont reçu aucune résolution depuis plus de deux semaines et font l'objet d'alertes prioritaires.
+                    </p>
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="rounded-2xl bg-violet-500/10 border border-violet-500/20 px-5 py-3 text-center">
+                        <p className="text-3xl font-black text-violet-700 dark:text-violet-300">{chronicCount}</p>
+                        <p className="text-xs text-violet-600 dark:text-violet-400 mt-0.5">points critiques</p>
                       </div>
                     </div>
-                  );
-                })}
+                  </motion.div>
+                )}
+
               </div>
+
+              {/* Colonne Droite : Taux par commune & Podium */}
+              <div className="space-y-8">
+                
+                {/* Taux de résolution par commune */}
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.18 }}
+                  className="rounded-3xl border border-border bg-card shadow-sm p-6 sm:p-8"
+                >
+                  <h2 className="text-base font-bold text-foreground mb-4 flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" /> Résolution par commune (Grand Abidjan)
+                  </h2>
+                  <div className="space-y-3.5 max-h-[420px] overflow-y-auto pr-2 scrollbar-thin">
+                    {[...(stats.by_commune ?? [])]
+                      .sort((a, b) => b.total - a.total)
+                      .map((c) => {
+                        const color = COMMUNE_COLORS[c.commune] || "#888";
+                        const pct = c.resolution_rate;
+                        return (
+                          <div key={c.commune}>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <div className="flex items-center gap-2.5">
+                                <span
+                                  className="inline-block h-3 w-3 rounded-full shrink-0 shadow-sm"
+                                  style={{ backgroundColor: color }}
+                                />
+                                <span className="text-xs sm:text-sm font-semibold text-foreground">{c.commune}</span>
+                              </div>
+                              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                <span>{c.total} signalements</span>
+                                <span className="font-bold text-foreground">{pct} %</span>
+                              </div>
+                            </div>
+                            <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all duration-700"
+                                style={{ width: `${pct}%`, backgroundColor: color }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </motion.div>
+
+                {/* Podium communes — classement */}
+                {stats.by_commune && stats.by_commune.length >= 3 && (() => {
+                  const sorted = [...stats.by_commune].sort((a, b) => b.resolution_rate - a.resolution_rate);
+                  const medals = ["🥇", "🥈", "🥉"];
+                  return (
+                    <motion.div
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.20 }}
+                      className="rounded-3xl border border-border bg-card shadow-sm p-6 sm:p-8"
+                    >
+                      <h2 className="text-base font-bold text-foreground mb-1 flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-primary" /> Palmarès des Communes les plus Réactives
+                      </h2>
+                      <p className="text-xs text-muted-foreground mb-6">Classement établi sur le ratio pannes réparées / signalements totaux</p>
+                      
+                      {/* Podium visuel — top 3 */}
+                      <div className="flex items-end justify-center gap-4 mb-6">
+                        {[sorted[1], sorted[0], sorted[2]].map((c, pos) => {
+                          if (!c) return null;
+                          const heights = ["h-24", "h-32", "h-20"];
+                          const rank = pos === 1 ? 0 : pos === 0 ? 1 : 2;
+                          const color = COMMUNE_COLORS[c.commune] || "#888";
+                          return (
+                            <div key={c.commune} className="flex flex-col items-center gap-1.5">
+                              <span className="text-2xl">{medals[rank]}</span>
+                              <p className="text-xs font-bold text-foreground text-center max-w-[80px] truncate">{c.commune}</p>
+                              <p className="text-xs font-extrabold" style={{ color }}>{c.resolution_rate}%</p>
+                              <div
+                                className={`w-20 ${heights[pos]} rounded-t-2xl flex items-end justify-center pb-2 shadow-inner`}
+                                style={{ backgroundColor: color + "30", border: `2px solid ${color}60` }}
+                              >
+                                <span className="text-xl font-black" style={{ color }}>{rank + 1}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  );
+                })()}
+
+              </div>
+
+            </div>
+
+            {/* 🚪 PORTAILS CIBLÉS EN 3 COLONNES (FixMyStreet Style) */}
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.24 }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4"
+            >
+              {/* Carte Citoyens */}
+              <div className="rounded-3xl border border-amber-500/30 bg-amber-500/10 p-6 sm:p-8 flex flex-col justify-between">
+                <div>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500 text-black mb-4">
+                    <Users className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-lg font-black text-foreground">Pour les Citoyens</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-2 leading-relaxed">
+                    Un lampadaire éteint, un nid-de-poule ou une fuite d'eau ? Signalez en 30 secondes et suivez la réparation en direct.
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate("/signaler")}
+                  className="mt-6 w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
+                >
+                  Faire un signalement <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Carte Collectivités & Opérateurs */}
+              <div className="rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-6 sm:p-8 flex flex-col justify-between">
+                <div>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500 text-white mb-4">
+                    <Shield className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-lg font-black text-foreground">Pour les Mairies &amp; Opérateurs</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-2 leading-relaxed">
+                    Accédez aux flux géolocalisés, priorisez vos interventions techniques et valorisez vos réparations auprès des résidents.
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate("/auth")}
+                  className="mt-6 w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
+                >
+                  Espace Partenaire &amp; Mairie <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Carte Développeurs & Open Data */}
+              <div className="rounded-3xl border border-blue-500/30 bg-blue-500/10 p-6 sm:p-8 flex flex-col justify-between">
+                <div>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-500 text-white mb-4">
+                    <Activity className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-lg font-black text-foreground">Pour les Développeurs &amp; Chercheurs</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-2 leading-relaxed">
+                    Code 100% Open Source et flux de données ouvertes pour la recherche urbaine, le journalisme d'investigation et les civic techs.
+                  </p>
+                </div>
+                <a
+                  href="https://github.com/jeananvoh-cmyk/civic-signal"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-6 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
+                >
+                  Dépôt GitHub &amp; API <ExternalLink className="h-4 w-4" />
+                </a>
+              </div>
+
             </motion.div>
 
-            {/* Activité mensuelle */}
-            {stats.monthly && stats.monthly.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.22 }}
-                className="rounded-2xl border border-border bg-card shadow-card p-6"
-              >
-                <h2 className="text-base font-bold text-foreground mb-4 flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-primary" /> Activité mensuelle (12 mois)
-                </h2>
-                <div className="flex items-end gap-1.5 h-36">
-                  {[...stats.monthly].sort((a, b) => a.month.localeCompare(b.month)).map((m) => {
-                    const heightPct = (m.total / maxMonthly) * 100;
-                    const resolvedPct = m.total > 0 ? (m.resolved / m.total) * 100 : 0;
-                    return (
-                      <div
-                        key={m.month}
-                        className="flex-1 flex flex-col items-center gap-1 group relative"
-                        title={`${fmtMonth(m.month)} — ${m.total} signalements, ${m.resolved} résolus`}
-                      >
-                        <div
-                          className="w-full rounded-t-sm bg-primary/20 relative overflow-hidden"
-                          style={{ height: `${Math.max(heightPct, 4)}%` }}
-                        >
-                          <div
-                            className="absolute bottom-0 left-0 right-0 bg-primary rounded-t-sm transition-all"
-                            style={{ height: `${resolvedPct}%` }}
-                          />
-                        </div>
-                        <span className="text-[9px] text-muted-foreground rotate-45 origin-left whitespace-nowrap hidden sm:block">
-                          {fmtMonth(m.month)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-2.5 w-2.5 rounded-sm bg-primary inline-block" /> Résolus
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-2.5 w-2.5 rounded-sm bg-primary/20 inline-block" /> Total
-                  </span>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Footer note */}
-            <p className="text-center text-xs text-muted-foreground pb-4">
-              Données publiques anonymisées ouvertes et conformes à la réglementation ARTCI & APDP · Abidjan, Côte d'Ivoire
+            {/* Note de pied de page */}
+            <p className="text-center text-xs text-muted-foreground pt-4 pb-2">
+              Données publiques anonymisées ouvertes et conformes à la réglementation ARTCI &amp; APDP · République de Côte d'Ivoire
             </p>
           </>
         )}
@@ -705,5 +728,6 @@ const TransparencyPage = () => {
     </div>
   );
 };
+
 
 export default TransparencyPage;
