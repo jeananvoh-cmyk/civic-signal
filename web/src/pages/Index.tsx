@@ -375,8 +375,8 @@ const Index = () => {
                   📢
                 </div>
                 <div className="flex flex-col text-left leading-tight">
-                  <span className="text-base font-extrabold tracking-wide">Documenter une coupure</span>
-                  <span className="text-[11px] font-medium text-white/80">CIE · SODECI · Mairies</span>
+                  <span className="text-base font-extrabold tracking-wide">Signaler une panne ou dégradation</span>
+                  <span className="text-[11px] font-medium text-white/80">Électricité (CIE) · Eau (SODECI) · Voirie (Mairie)</span>
                 </div>
                 <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
               </Link>
@@ -389,8 +389,8 @@ const Index = () => {
                   ✓
                 </div>
                 <div className="flex flex-col text-left leading-tight">
-                  <span className="text-base font-extrabold tracking-wide">Confirmer une coupure</span>
-                  <span className="text-[11px] font-medium text-sky-700 dark:text-sky-300">Vérifier & suivre en direct</span>
+                  <span className="text-base font-extrabold tracking-wide">Confirmer un signalement</span>
+                  <span className="text-[11px] font-medium text-sky-700 dark:text-sky-300">Vérifier &amp; corroborer dans mon quartier</span>
                 </div>
                 <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
               </Link>
@@ -478,7 +478,7 @@ const Index = () => {
             CIE · SODECI · MAIRIES & SERVICES MUNICIPAUX
           </span>
           <h2 className="mt-4 font-display text-3xl font-extrabold text-foreground md:text-4xl">
-            Que souhaitez-vous documenter ?
+            Que souhaitez-vous signaler ?
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm sm:text-base text-muted-foreground">
             Des coupures de réseaux (CIE, SODECI) aux pannes de voirie gérées par votre Mairie (éclairage public, caniveaux, chaussée) : sélectionnez votre situation pour lancer l'alerte.

@@ -678,7 +678,7 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground hidden sm:block">
-                Le hub citoyen pour documenter, soutenir et faire réparer les pannes publiques (CIE, SODECI, Mairies).
+                Le hub citoyen pour signaler, soutenir et faire réparer les pannes et dégradations urbaines.
               </p>
             </div>
           </div>
