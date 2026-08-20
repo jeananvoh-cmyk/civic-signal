@@ -248,6 +248,26 @@ const ReportDetailPage = () => {
     : `${isElec ? "⚡" : "💧"} ALERTE COUPURE — ${report.quartier ? `${report.quartier}, ` : ""}${report.commune}\n\nCoupure ${isElec ? "d'électricité" : "d'eau"} en cours. Toujours sans intervention.\n📢 Rejoignez-nous sur SIGNA-CI pour faire pression sur ${isElec ? "CIE" : "SODECI"}.\nPlus on est nombreux, plus vite ils interviennent !`;
 
   const [resolving, setResolving] = useState(false);
+  const [reopening, setReopening] = useState(false);
+
+  const handleReopen = async () => {
+    if (!user) { toast.error("Connectez-vous pour signaler que le problème persiste"); return; }
+    setReopening(true);
+    try {
+      const { error } = await (supabase as any).rpc("reopen_infrastructure_report", {
+        p_report_id: report.id,
+        p_reason: "Signalé toujours présent par un riverain.",
+      });
+      if (error) throw error;
+      setReport((prev) => prev ? { ...prev, status: "active", resolved_at: null } : prev);
+      toast.success("⚠️ Signalement réouvert. Les équipes techniques ont été notifiées.");
+    } catch (err: any) {
+      toast.error("Impossible de réouvrir : " + (err?.message || ""));
+    } finally {
+      setReopening(false);
+    }
+  };
+
   const handleResolve = async () => {
     if (!user) { toast.error("Connectez-vous pour marquer ce signalement comme résolu"); return; }
     setResolving(true);
@@ -350,16 +370,26 @@ const ReportDetailPage = () => {
                       )}
                     </div>
                   </div>
-                  <div className="mt-3 pt-3 border-t border-success/20">
-                    <p className="text-xs text-success/70 mb-2">
-                      {isInfra ? "Un autre problème dans votre quartier ?" : "Un nouveau problème dans votre quartier ?"}
-                    </p>
+                  <div className="mt-3 pt-3 border-t border-success/20 flex flex-wrap items-center justify-between gap-2">
                     <Button asChild size="sm" variant="outline" className="border-success/40 text-success hover:bg-success/10 text-xs gap-1.5">
                       <Link to="/signaler">
                         {isInfra ? <Wrench className="h-3.5 w-3.5" /> : <Zap className="h-3.5 w-3.5" />}
-                        {isInfra ? "Signaler un problème" : "Signaler une coupure"}
+                        {isInfra ? "Signaler un autre problème" : "Signaler une coupure"}
                       </Link>
                     </Button>
+
+                    {isInfra && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleReopen}
+                        disabled={reopening}
+                        className="text-xs text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 border border-dashed border-amber-500/30 gap-1.5"
+                      >
+                        <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                        <span>Ce n'est pas réparé ? Rouvrir</span>
+                      </Button>
+                    )}
                   </div>
                 </motion.div>
               )}

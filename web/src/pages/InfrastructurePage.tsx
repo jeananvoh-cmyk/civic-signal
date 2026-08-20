@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Zap, Droplets, MapPin, Clock, ThumbsUp, CheckCircle,
-  Filter, TrendingUp, AlertCircle, ChevronDown, Lightbulb,
+  Filter, TrendingUp, AlertCircle, AlertTriangle, ChevronDown, Lightbulb,
   Building2, ExternalLink, X as XIcon, Pencil, Map as MapIcon,
   Camera, MessageSquare, Share2, Globe, Sparkles, CheckCircle2,
   Flame, ShieldAlert, Navigation, Plus, PhoneCall, ChevronRight,
@@ -545,6 +545,27 @@ export default function InfrastructurePage() {
     }
   };
 
+  // Citizen Dispute / Reopen Report if mistakenly resolved
+  const handleReopenReport = async (reportId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!user) {
+      toast.error("Connectez-vous pour contester la résolution.");
+      navigate(`/auth?redirect=/infrastructures?id=${reportId}`);
+      return;
+    }
+    try {
+      const { error } = await (supabase as any).rpc("reopen_infrastructure_report", {
+        p_report_id: reportId,
+        p_reason: "Contesté par un riverain : le problème persiste sur le terrain.",
+      });
+      if (error) throw error;
+      toast.success("⚠️ Signalement réactivé. Les équipes et la communauté sont notifiées.");
+      fetchReports();
+    } catch (err: any) {
+      toast.error("Impossible de réouvrir : " + (err?.message || ""));
+    }
+  };
+
   // Generate Official WhatsApp Share Message with PADA code
   const handleShareWhatsApp = (r: InfraReport, e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -885,7 +906,7 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                     </div>
 
                     {/* Confirmation citoyenne de réparation si non résolu */}
-                    {selectedReport.status !== "resolved" && (
+                    {selectedReport.status !== "resolved" ? (
                       <div className="pt-2 border-t border-border/40">
                         <Button
                           onClick={(e) => handleConfirmRepair(selectedReport.id, e)}
@@ -895,6 +916,18 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                         >
                           <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
                           {repaired.has(selectedReport.id) ? "Confirmation envoyée ✓" : "C'est déjà réparé ? Confirmer"}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="pt-2 border-t border-border/40">
+                        <Button
+                          onClick={(e) => handleReopenReport(selectedReport.id, e)}
+                          size="sm"
+                          variant="ghost"
+                          className="w-full text-xs font-semibold h-8 rounded-xl text-amber-750 dark:text-amber-350 hover:bg-amber-500/10 border border-dashed border-amber-500/30"
+                        >
+                          <AlertTriangle className="h-3.5 w-3.5 mr-1.5 text-amber-600" />
+                          <span>Ce n'est pas réparé ? Signaler que la panne persiste</span>
                         </Button>
                       </div>
                     )}
