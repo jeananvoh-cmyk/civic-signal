@@ -804,7 +804,6 @@ const ReportPage = () => {
         location: padaAddress?.formattedAddress ? `${commune} - ${padaAddress.formattedAddress}` : commune,
         commune,
         quartier: effectiveQuartierName,
-        custom_quartier: quartier === "__other" ? customQuartier?.trim() || null : null,
         latitude,
         longitude,
         urgency: hasVulnerable ? "high" : "medium",

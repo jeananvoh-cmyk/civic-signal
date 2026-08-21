@@ -456,7 +456,6 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
       'location': _padaAddress?.formattedAddress != null ? '$_selectedCommune - ${_padaAddress!.formattedAddress}' : _selectedCommune,
       'commune': _selectedCommune,
       'quartier': effectiveQuartier,
-      'custom_quartier': _isCustomQuartier ? _customQuartierController.text.trim() : null,
       'latitude': _latitude,
       'longitude': _longitude,
       'urgency': hasVulnerable ? 'high' : 'medium',
