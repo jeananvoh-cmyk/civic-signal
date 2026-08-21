@@ -159,3 +159,27 @@ CommuneData? findCommuneByName(String name) {
     return null;
   }
 }
+
+double haversineDistance(double lat1, double lon1, double lat2, double lon2) {
+  const r = 6371000.0;
+  final dLat = (lat2 - lat1) * (3.141592653589793 / 180.0);
+  final dLon = (lon2 - lon1) * (3.141592653589793 / 180.0);
+  final sinDLat = (dLat / 2);
+  final sinDLon = (dLon / 2);
+  return r * 2 * (sinDLat * sinDLat + sinDLon * sinDLon).clamp(0.0, 1.0);
+}
+
+CommuneData? findNearestCommune(double lat, double lon) {
+  CommuneData? best;
+  double minDistance = double.infinity;
+  for (final c in PILOT_COMMUNES) {
+    final dLat = (lat - c.centerLat);
+    final dLon = (lon - c.centerLon);
+    final dist = dLat * dLat + dLon * dLon;
+    if (dist < minDistance) {
+      minDistance = dist;
+      best = c;
+    }
+  }
+  return best;
+}

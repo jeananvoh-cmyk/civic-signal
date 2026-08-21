@@ -288,24 +288,58 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
   Future<void> _autoCaptureGps() async {
     setState(() => _isGettingGps = true);
     try {
-      final perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) {
-        await Geolocator.requestPermission();
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Veuillez activer le service de localisation GPS')),
+        );
       }
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 10)),
-      );
-      if (mounted) {
+
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+
+      Position? pos;
+      try {
+        pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 8)),
+        );
+      } catch (_) {
+        try {
+          pos = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium, timeLimit: Duration(seconds: 6)),
+          );
+        } catch (_) {
+          pos = await Geolocator.getLastKnownPosition();
+        }
+      }
+
+      final finalPos = pos;
+      if (finalPos != null && mounted) {
+        final detected = findNearestCommune(finalPos.latitude, finalPos.longitude);
         setState(() {
-          _latitude = pos.latitude;
-          _longitude = pos.longitude;
-          _gpsAccuracy = pos.accuracy;
+          _latitude = finalPos.latitude;
+          _longitude = finalPos.longitude;
+          _gpsAccuracy = finalPos.accuracy;
+          if (detected != null) {
+            _selectedCommune = detected.nom;
+          }
           _isGettingGps = false;
         });
+        if (detected != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✓ Vous êtes à ${detected.nom} (±${finalPos.accuracy.round()} m)'),
+              backgroundColor: AppTheme.secondaryEmerald,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
       }
-    } catch (_) {
-      if (mounted) setState(() => _isGettingGps = false);
-    }
+    } catch (_) {}
+    if (mounted) setState(() => _isGettingGps = false);
   }
 
   Future<void> _checkSimilarReports() async {
@@ -328,12 +362,40 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
 
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final photo = await _picker.pickImage(source: source, maxWidth: 1200, maxHeight: 1200, imageQuality: 80);
-      if (photo != null && mounted) {
-        setState(() => _selectedPhotos.add(photo));
+      final remaining = 3 - _selectedPhotos.length;
+      if (remaining <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Limite de 3 photos atteinte')),
+        );
+        return;
+      }
+
+      if (source == ImageSource.gallery) {
+        final photos = await _picker.pickMultiImage(
+          maxWidth: 1200,
+          maxHeight: 1200,
+          imageQuality: 80,
+          limit: remaining,
+        );
+        if (photos.isNotEmpty && mounted) {
+          final toAdd = photos.take(remaining).toList();
+          setState(() => _selectedPhotos.addAll(toAdd));
+        }
+      } else {
+        final photo = await _picker.pickImage(
+          source: ImageSource.camera,
+          maxWidth: 1200,
+          maxHeight: 1200,
+          imageQuality: 80,
+        );
+        if (photo != null && mounted) {
+          setState(() => _selectedPhotos.add(photo));
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur photo: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur photo: $e')));
+      }
     }
   }
 

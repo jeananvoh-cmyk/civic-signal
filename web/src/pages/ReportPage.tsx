@@ -459,11 +459,11 @@ const ReportPage = () => {
     setGpsRetrying(false);
     setGpsWeakSignal(false);
 
-    const getPosition = (): Promise<GeolocationPosition> =>
+    const getPosition = (highAccuracy = true): Promise<GeolocationPosition> =>
       new Promise((resolve, reject) =>
         navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 15000,
+          enableHighAccuracy: highAccuracy,
+          timeout: highAccuracy ? 10000 : 8000,
           maximumAge: 30000,
         })
       );
@@ -478,9 +478,14 @@ const ReportPage = () => {
       try {
         if (attempt > 1) {
           setGpsRetrying(true);
-          await new Promise((r) => setTimeout(r, 3000));
+          await new Promise((r) => setTimeout(r, 2000));
         }
-        const pos = await getPosition();
+        let pos: GeolocationPosition;
+        try {
+          pos = await getPosition(true);
+        } catch {
+          pos = await getPosition(false);
+        }
         if (!bestPos || pos.coords.accuracy < bestPos.coords.accuracy) {
           bestPos = pos;
         }

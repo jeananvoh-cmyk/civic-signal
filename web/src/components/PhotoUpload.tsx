@@ -179,63 +179,48 @@ const PhotoUpload = ({
     }
 
     setUploading(true);
-    const addedUrls: string[] = [];
-    let exifHandled = false;
 
-    for (let i = 0; i < toProcess.length; i++) {
-      const file = toProcess[i];
+    const uploadPromises = toProcess.map(async (file, i) => {
       if (!file.type.startsWith("image/") && !file.name.match(/\.(heic|heif)$/i)) {
-        toast.error(`"${file.name}" n'est pas une image valide`);
-        continue;
+        throw new Error(`"${file.name}" n'est pas une image valide`);
       }
-      try {
-        const isFirstEver = photoUrls.length === 0 && i === 0;
-        const [exifGps, photoHash, path] = await Promise.all([
-          isFirstEver ? extractExifGps(file) : Promise.resolve(null),
-          computeImageHash(file),
-          uploadFile(file, user.id, i),
-        ]);
 
-        addedUrls.push(path);
+      const isFirstEver = photoUrls.length === 0 && i === 0;
+      const [exifGps, photoHash, path] = await Promise.all([
+        isFirstEver ? extractExifGps(file) : Promise.resolve(null),
+        computeImageHash(file),
+        uploadFile(file, user.id, i),
+      ]);
 
-        if (photoHash && reportId) {
-          try {
-            const { data: hashRes } = await (supabase as any).rpc("register_photo_hash", {
-              p_hash: photoHash,
-              p_report_id: reportId,
-            });
-            if (hashRes?.duplicate) {
-              toast.warning("⚠️ Attention : cette image a déjà été enregistrée sur un autre signalement.");
-            }
-          } catch {
-            // Silencieux
-          }
-        }
-
-        if (isFirstEver && exifGps && onGpsFromPhoto && !exifHandled) {
-          onGpsFromPhoto(exifGps.lat, exifGps.lng);
-          setGpsSource("photo");
-          exifHandled = true;
-          toast.success("📸 Position GPS extraite de la photo", {
-            description: `${exifGps.lat.toFixed(5)}, ${exifGps.lng.toFixed(5)}`,
-            duration: 5000,
-          });
-        }
-      } catch (err: unknown) {
-        toast.error(getUserFriendlyError(err, `Erreur photo ${i + 1}`));
+      if (isFirstEver && exifGps && onGpsFromPhoto) {
+        onGpsFromPhoto(exifGps.lat, exifGps.lng);
+        setGpsSource("photo");
+        toast.success("📸 Position GPS extraite de la photo", {
+          description: `${exifGps.lat.toFixed(5)}, ${exifGps.lng.toFixed(5)}`,
+          duration: 5000,
+        });
       }
-    }
+
+      return path;
+    });
+
+    const results = await Promise.allSettled(uploadPromises);
+    const addedUrls: string[] = [];
+    results.forEach((r, idx) => {
+      if (r.status === "fulfilled") {
+        addedUrls.push(r.value);
+      } else {
+        toast.error(getUserFriendlyError(r.reason, `Erreur photo ${idx + 1}`));
+      }
+    });
 
     if (addedUrls.length > 0) {
       const allUrls = [...photoUrls, ...addedUrls];
       onPhotosChanged(allUrls);
-      if (!exifHandled) {
-        setGpsSource("device");
-        toast.success(
-          addedUrls.length === 1 ? "Photo ajoutée !" : `${addedUrls.length} photos ajoutées !`,
-          { description: `${allUrls.length}/${MAX_PHOTOS} au total` },
-        );
-      }
+      toast.success(
+        addedUrls.length === 1 ? "Photo ajoutée !" : `${addedUrls.length} photos ajoutées simultanément !`,
+        { description: `${allUrls.length}/${MAX_PHOTOS} au total` },
+      );
     }
 
     setUploading(false);
