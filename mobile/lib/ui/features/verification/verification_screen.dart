@@ -130,12 +130,19 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> with Si
             .update({'status': 'resolved', 'resolved_at': DateTime.now().toIso8601String()})
             .eq('id', report.id);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✓ Signalement marqué comme résolu !'), backgroundColor: AppTheme.secondaryEmerald),
-        );
-        _fetchVerificationData();
+        // Vérifier que le State est toujours monté avant d'utiliser context
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('✓ Signalement marqué comme résolu !'), backgroundColor: AppTheme.secondaryEmerald),
+          );
+          _fetchVerificationData();
+        }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+        } else {
+          // Optionnel : logger localement si nécessaire
+        }
       }
     }
   }
@@ -147,12 +154,17 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> with Si
           .update({'last_reminder_at': DateTime.now().toIso8601String()})
           .eq('id', report.id);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✓ Signalement relancé avec succès.'), backgroundColor: AppTheme.primaryTeal),
-      );
-      _fetchVerificationData();
+      // Vérifier que le State est toujours monté avant d'utiliser context
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✓ Signalement relancé avec succès.'), backgroundColor: AppTheme.primaryTeal),
+        );
+        _fetchVerificationData();
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      }
     }
   }
 
@@ -189,9 +201,9 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> with Si
     );
   }
 
-  // ════════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════�[...]
   // ONGLET 1 : CORROBORATION DES VOISINS
-  // ════════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════�[...]
   Widget _buildNeighborReportsTab(bool isDark) {
     final filtered = _selectedCommune == 'all'
         ? _neighborReports
@@ -309,9 +321,9 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> with Si
     );
   }
 
-  // ════════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════�[...]
   // ONGLET 2 : MES SIGNALEMENTS ACTIFS
-  // ════════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════�[...]
   Widget _buildMyReportsTab(bool isDark) {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
