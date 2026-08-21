@@ -2378,18 +2378,45 @@ export function searchPadaWaysScored(
       }
 
       if (!aliasMatched) {
-        // Similarité floue (Fuzzy Levenshtein)
-        const simNom = fuzzySimilarity(textQuery, way.nom);
-        const simAncien = way.ancienNom ? fuzzySimilarity(textQuery, way.ancienNom) : 0;
-
-        if (simNom >= 0.75) {
-          score += Math.round(simNom * 50);
-          if (!matchReason) matchReason = `Correspondance nom (${Math.round(simNom * 100)}%)`;
-        } else if (simAncien >= 0.75) {
-          score += Math.round(simAncien * 45);
-          if (!matchReason) matchReason = `Correspondance ancien nom (${Math.round(simAncien * 100)}%)`;
+        // A. Correspondance directe par inclusion (sous-chaîne exacte)
+        if (normNom.includes(textQuery)) {
+          score += 65;
+          if (!matchReason) matchReason = "Correspondance voie officielle";
+        } else if (normAncien && normAncien.includes(textQuery)) {
+          score += 55;
+          if (!matchReason) matchReason = `Ancienne dénomination : ${way.ancienNom}`;
         } else {
-          score -= 15;
+          // B. Correspondance par mots-clés (ex: "avenue honore gui" -> "honore", "gui")
+          const queryWords = textQuery
+            .split(/[\s\-',]+/)
+            .filter((w) => !["rue", "avenue", "boulevard", "boulevar", "bd", "av", "de", "la", "du", "le", "les", "d"].includes(w) && w.length >= 2);
+
+          if (queryWords.length > 0) {
+            const matchedWords = queryWords.filter((w) => normNom.includes(w) || (normAncien && normAncien.includes(w)));
+            if (matchedWords.length === queryWords.length) {
+              score += 60;
+              if (!matchReason) matchReason = "Mots-clés reconnus";
+            } else if (matchedWords.length > 0) {
+              score += Math.round((matchedWords.length / queryWords.length) * 40);
+              if (!matchReason) matchReason = "Correspondance partielle";
+            } else {
+              // C. Similarité floue (Fuzzy Levenshtein)
+              const simNom = fuzzySimilarity(textQuery, way.nom);
+              const simAncien = way.ancienNom ? fuzzySimilarity(textQuery, way.ancienNom) : 0;
+
+              if (simNom >= 0.65) {
+                score += Math.round(simNom * 45);
+                if (!matchReason) matchReason = `Correspondance nom (${Math.round(simNom * 100)}%)`;
+              } else if (simAncien >= 0.65) {
+                score += Math.round(simAncien * 40);
+                if (!matchReason) matchReason = `Correspondance ancien nom (${Math.round(simAncien * 100)}%)`;
+              } else {
+                score -= 15;
+              }
+            }
+          } else {
+            score -= 15;
+          }
         }
       }
     } else {

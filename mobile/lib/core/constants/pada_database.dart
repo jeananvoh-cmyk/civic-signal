@@ -2174,12 +2174,31 @@ List<ScoredPadaWay> searchPadaWaysScored(String query, {String? commune, String?
       final normAncien = way.ancienNom != null ? _normalize(way.ancienNom!) : '';
 
       if (normNom.contains(textQuery)) {
-        score += 50;
+        score += 65;
+        matchReason ??= 'Voie officielle';
       } else if (normAncien.isNotEmpty && normAncien.contains(textQuery)) {
-        score += 40;
-        matchReason ??= 'Alias : ${way.ancienNom}';
+        score += 55;
+        matchReason ??= 'Ancien nom : ${way.ancienNom}';
       } else {
-        score -= 20;
+        final queryWords = textQuery
+            .split(RegExp(r"[\s\-',]+"))
+            .where((w) => !['rue', 'avenue', 'boulevard', 'boulevar', 'bd', 'av', 'de', 'la', 'du', 'le', 'les', 'd'].contains(w) && w.length >= 2)
+            .toList();
+
+        if (queryWords.isNotEmpty) {
+          final matchedCount = queryWords.where((w) => normNom.contains(w) || (normAncien.isNotEmpty && normAncien.contains(w))).length;
+          if (matchedCount == queryWords.length) {
+            score += 60;
+            matchReason ??= 'Mots-clés reconnus';
+          } else if (matchedCount > 0) {
+            score += ((matchedCount / queryWords.length) * 40).round();
+            matchReason ??= 'Correspondance partielle';
+          } else {
+            score -= 20;
+          }
+        } else {
+          score -= 20;
+        }
       }
     } else {
       if (isQuartierMatch) score += 20;
