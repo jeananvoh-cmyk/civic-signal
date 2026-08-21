@@ -260,25 +260,25 @@ const AuthPage = () => {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-5xl"
       >
-        <div className="mb-4">
+        <div className="mb-6">
           <button
             onClick={goBack}
-            className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors bg-background/80 backdrop-blur-xs px-3 py-1.5 rounded-lg border border-border/60 shadow-xs"
+            className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors bg-background/80 backdrop-blur-xs px-3.5 py-1.5 rounded-xl border border-border/60 shadow-xs"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Retour à l'application
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           {/* ── PANNEAU GAUCHE : IDENTITÉ & VALEUR CIVIQUE (Desktop & Tablet) ── */}
-          <div className="lg:col-span-6 space-y-6">
+          <div className="lg:col-span-6 space-y-6 pt-1">
             <div className="space-y-3">
               <Link to="/" className="inline-block transition-transform hover:scale-105 active:scale-95" title="Accueil SIGNA.ci">
                 <SignaLogo size="lg" />
               </Link>
               <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight leading-tight">
-                La plateforme citoyenne qui fait bouger les lignes à Abidjan 🇨🇮
+                La plateforme citoyenne qui fait bouger les lignes <span className="whitespace-nowrap">à Abidjan 🇨🇮</span>
               </h1>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Connectez-vous pour signaler des anomalies, corroborer les pannes de vos voisins et suivre l'avancement des réparations en temps réel.
@@ -287,7 +287,7 @@ const AuthPage = () => {
 
             {/* 4 Avantages Clés */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
-              <div className="flex items-start gap-3 p-3 rounded-2xl bg-card border border-border/80 shadow-xs">
+              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-card border border-border/80 shadow-xs">
                 <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold text-base shrink-0">
                   ⚡
                 </div>
@@ -297,7 +297,7 @@ const AuthPage = () => {
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3 rounded-2xl bg-card border border-border/80 shadow-xs">
+              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-card border border-border/80 shadow-xs">
                 <div className="w-8 h-8 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center font-bold text-base shrink-0">
                   💧
                 </div>
@@ -307,17 +307,17 @@ const AuthPage = () => {
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3 rounded-2xl bg-card border border-border/80 shadow-xs">
+              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-card border border-border/80 shadow-xs">
                 <div className="w-8 h-8 rounded-xl bg-teal-500/10 text-teal-600 flex items-center justify-center font-bold text-base shrink-0">
                   🏛️
                 </div>
                 <div>
                   <h2 className="text-xs font-bold text-foreground">Mairies (Voirie &amp; Salubrité)</h2>
-                  <p className="text-[11px] text-muted-foreground leading-snug">Nids-de-poule, caniveaux bouchés et ramassage des ordures.</p>
+                  <p className="text-[11px] text-muted-foreground leading-snug">Nids-de-poule, caniveaux bouchés et salubrité des quartiers.</p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3 rounded-2xl bg-card border border-border/80 shadow-xs">
+              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-card border border-border/80 shadow-xs">
                 <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold text-base shrink-0">
                   🛡️
                 </div>
@@ -343,7 +343,7 @@ const AuthPage = () => {
                 type="button"
                 onClick={() => setMode("login")}
                 className={cn(
-                  "flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all",
+                  "flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer",
                   mode === "login"
                     ? "bg-emerald-600 text-white shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
@@ -355,7 +355,7 @@ const AuthPage = () => {
                 type="button"
                 onClick={() => setMode("signup")}
                 className={cn(
-                  "flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all",
+                  "flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer",
                   mode === "signup"
                     ? "bg-emerald-600 text-white shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
@@ -524,10 +524,10 @@ const AuthPage = () => {
 
         {/* ── INSCRIPTION ───────────────────────────────────────────────── */}
         {mode === "signup" && (
-          <div className="rounded-xl border border-border bg-card p-6 shadow-card space-y-4">
+          <div className="rounded-3xl border border-border/80 bg-card p-6 sm:p-7 shadow-sm space-y-4">
             <div>
-              <h2 className="font-display text-xl font-bold text-foreground">Créer un compte</h2>
-              <p className="text-sm text-muted-foreground">Rejoignez la communauté SIGNA-CI</p>
+              <h2 className="font-display text-xl font-black text-foreground">Créer un compte</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Rejoignez la communauté citoyenne SIGNA.ci</p>
             </div>
 
             {/* Google — le plus rapide */}
@@ -538,12 +538,12 @@ const AuthPage = () => {
             <form onSubmit={handleSignup} className="space-y-3">
               {/* Nom */}
               <div className="relative">
-                <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <User className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Nom complet"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className="h-12 pl-10 rounded-lg text-base"
+                  className="h-11 pl-10 rounded-xl text-sm focus-visible:ring-emerald-500"
                   required
                 />
               </div>
@@ -553,19 +553,19 @@ const AuthPage = () => {
                 placeholder="Email ou numéro de téléphone"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                className="h-12 rounded-lg text-base"
+                className="h-11 rounded-xl text-sm focus-visible:ring-emerald-500"
                 required
               />
 
               {/* Téléphone optionnel si email */}
               {!isPhone(identifier) && (
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     placeholder="Téléphone (optionnel)"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="h-12 pl-10 rounded-lg text-base"
+                    className="h-11 pl-10 rounded-xl text-sm focus-visible:ring-emerald-500"
                   />
                 </div>
               )}
@@ -578,17 +578,17 @@ const AuthPage = () => {
                     placeholder="Mot de passe (8 caractères min.)"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-12 rounded-lg text-base pr-12"
+                    className="h-11 rounded-xl text-sm pr-12 focus-visible:ring-emerald-500"
                     required
                     minLength={8}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none rounded cursor-pointer"
                     aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
                   >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
                 {password && <PasswordStrengthBar password={password} />}
@@ -604,7 +604,7 @@ const AuthPage = () => {
                   aria-invalid={confirmPwd.length > 0 && confirmPwd !== password}
                   aria-describedby={confirmPwd !== password && confirmPwd.length > 0 ? "confirm-pwd-error" : undefined}
                   className={cn(
-                    "h-12 rounded-lg text-base pr-12",
+                    "h-11 rounded-xl text-sm pr-12 focus-visible:ring-emerald-500",
                     confirmPwd && confirmPwd !== password && "border-destructive focus-visible:ring-destructive",
                     confirmPwd && confirmPwd === password && "border-success focus-visible:ring-success"
                   )}
@@ -613,10 +613,10 @@ const AuthPage = () => {
                 <button
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none rounded cursor-pointer"
                   aria-label={showConfirm ? "Masquer la confirmation" : "Afficher la confirmation"}
                 >
-                  {showConfirm ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
                 {confirmPwd && confirmPwd !== password && (
                   <p id="confirm-pwd-error" role="alert" className="text-xs text-destructive mt-1">Les mots de passe ne correspondent pas</p>
@@ -624,8 +624,8 @@ const AuthPage = () => {
               </div>
 
               {/* Type de profil */}
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">Type de profil</Label>
+              <div className="space-y-1.5 pt-1">
+                <Label className="text-xs font-bold text-foreground">Type de profil</Label>
                 <RadioGroup
                   value={userType}
                   onValueChange={(v) => setUserType(v as "household" | "business")}
@@ -633,21 +633,21 @@ const AuthPage = () => {
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="household" id="auth-household" />
-                    <Label htmlFor="auth-household" className="flex items-center gap-1.5 text-sm">
-                      <Home className="h-4 w-4" /> Ménage
+                    <Label htmlFor="auth-household" className="flex items-center gap-1.5 text-xs font-medium cursor-pointer">
+                      <Home className="h-3.5 w-3.5 text-emerald-600" /> Ménage
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="business" id="auth-business" />
-                    <Label htmlFor="auth-business" className="flex items-center gap-1.5 text-sm">
-                      <Building2 className="h-4 w-4" /> Entreprise
+                    <Label htmlFor="auth-business" className="flex items-center gap-1.5 text-xs font-medium cursor-pointer">
+                      <Building2 className="h-3.5 w-3.5 text-emerald-600" /> Entreprise
                     </Label>
                   </div>
                 </RadioGroup>
               </div>
 
               {/* Consentement */}
-              <div className="rounded-xl border border-border bg-muted/50 p-3">
+              <div className="rounded-xl border border-border/80 bg-muted/40 p-3">
                 <div className="flex items-start gap-2.5">
                   <Checkbox
                     id="privacy-consent"
@@ -657,14 +657,14 @@ const AuthPage = () => {
                   />
                   <label
                     htmlFor="privacy-consent"
-                    className="text-xs leading-relaxed cursor-pointer text-muted-foreground"
+                    className="text-[11px] leading-relaxed cursor-pointer text-muted-foreground"
                   >
                     Je certifie avoir <strong className="text-foreground">18 ans ou plus</strong> et j'accepte la{" "}
-                    <Link to="/confidentialite" target="_blank" className="text-emerald-600 underline font-semibold">
+                    <Link to="/confidentialite" target="_blank" className="text-emerald-600 dark:text-emerald-400 underline font-semibold">
                       politique de confidentialité
                     </Link>{" "}
                     et les{" "}
-                    <Link to="/cgu" target="_blank" className="text-emerald-600 underline font-semibold">
+                    <Link to="/cgu" target="_blank" className="text-emerald-600 dark:text-emerald-400 underline font-semibold">
                       conditions d'utilisation
                     </Link>.
                   </label>
@@ -674,12 +674,12 @@ const AuthPage = () => {
               <Button
                 type="submit"
                 disabled={loading || !signupValid}
-                className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-xs transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+                className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-xs transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
               >
                 {loading ? "Création..." : "Créer mon compte"}
               </Button>
               {!signupValid && !loading && (privacyConsent || password.length > 0) && (
-                <p className="text-xs text-center text-muted-foreground">
+                <p className="text-[11px] text-center text-muted-foreground">
                   {!privacyConsent
                     ? "Acceptez la politique de confidentialité pour continuer"
                     : password.length < 8
@@ -697,7 +697,7 @@ const AuthPage = () => {
               <button
                 type="button"
                 onClick={() => setMode("login")}
-                className="text-xs text-muted-foreground hover:text-foreground"
+                className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 Déjà un compte ?{" "}
                 <span className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline">Se connecter</span>
@@ -708,14 +708,14 @@ const AuthPage = () => {
 
         {/* ── MOT DE PASSE OUBLIÉ ───────────────────────────────────────── */}
         {mode === "forgot" && (
-          <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-sm space-y-4">
+          <div className="rounded-3xl border border-border/80 bg-card p-6 sm:p-7 shadow-sm space-y-4">
             <div>
-              <h2 className="font-display text-xl font-extrabold text-foreground">Mot de passe oublié</h2>
-              <p className="text-xs text-muted-foreground">Recevez un lien pour réinitialiser votre mot de passe</p>
+              <h2 className="font-display text-xl font-black text-foreground">Mot de passe oublié</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Recevez un lien pour réinitialiser votre mot de passe</p>
             </div>
             <form onSubmit={handleForgotPassword} className="space-y-3">
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="email"
                   placeholder="Votre email"
@@ -728,7 +728,7 @@ const AuthPage = () => {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-xs transition-all hover:scale-[1.01] active:scale-[0.99]"
+                className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-xs transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
               >
                 {loading ? "Envoi..." : "Envoyer le lien"}
               </Button>
@@ -737,7 +737,7 @@ const AuthPage = () => {
               <button
                 type="button"
                 onClick={() => setMode("login")}
-                className="text-xs text-muted-foreground hover:text-foreground"
+                className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 Retour à la <span className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline">connexion</span>
               </button>
