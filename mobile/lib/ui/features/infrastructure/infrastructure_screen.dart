@@ -1106,7 +1106,7 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
                           : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                     ),
                     label: Text(
-                      isSupported ? 'Soutenu ✓' : 'Moi aussi ($supportCount)',
+                      isSupported ? 'Soutenu ✓ ($supportCount)' : 'Soutenir ($supportCount)',
                       style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: isSupported ? FontWeight.bold : FontWeight.w600,

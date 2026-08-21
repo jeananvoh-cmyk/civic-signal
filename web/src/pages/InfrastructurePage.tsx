@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PhotoGallery from "@/components/PhotoGallery";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,9 +14,9 @@ import {
   Filter, TrendingUp, AlertCircle, AlertTriangle, ChevronDown, Lightbulb,
   Landmark, ExternalLink, X as XIcon, Pencil, Map as MapIcon,
   Camera, MessageSquare, Share2, Globe, Sparkles, CheckCircle2,
-  Flame, ShieldAlert, Navigation, Plus, PhoneCall, ChevronRight,
+  Flame, ShieldAlert, Navigation, Plus, PhoneCall, ChevronRight, ChevronLeft,
   SlidersHorizontal, Search, ArrowLeft, Send, CheckCheck, List, Layers, Compass,
-  Copy, Check
+  Copy, Check, Maximize2
 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { formatDistanceToNow, format } from "date-fns";
@@ -29,13 +30,59 @@ import { useSignedUrl } from "@/hooks/useSignedUrl";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-// Vignette photo avec résolution de signature Supabase
-function ReportThumbnail({ path, alt = "Photo" }: { path?: string | null; alt?: string }) {
+// Image plein écran dans le lightbox
+function LightboxImage({ path }: { path: string }) {
+  const url = useSignedUrl(path);
+  return url ? (
+    <img
+      src={url}
+      alt="Photo agrandie du signalement"
+      className="w-full max-h-[82vh] object-contain rounded-xl"
+    />
+  ) : null;
+}
+
+// Vignette photo agrandie avec résolution de signature Supabase et prévisualisation au clic
+function ReportThumbnail({
+  path,
+  alt = "Photo",
+  count = 1,
+  onOpen,
+}: {
+  path?: string | null;
+  alt?: string;
+  count?: number;
+  onOpen?: () => void;
+}) {
   const url = useSignedUrl(path ?? null);
   if (!url) return null;
   return (
-    <div className="h-12 w-12 shrink-0 rounded-lg overflow-hidden border border-border/60 bg-muted">
-      <img src={url} alt={alt} className="h-full w-full object-cover" loading="lazy" />
+    <div
+      onClick={(e) => {
+        if (onOpen) {
+          e.stopPropagation();
+          onOpen();
+        }
+      }}
+      className="group relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 rounded-xl overflow-hidden border-2 border-border/80 bg-muted shadow-xs transition-all duration-200 hover:border-emerald-500/60 hover:shadow-md cursor-pointer"
+      title="Cliquer pour agrandir la photo"
+    >
+      <img
+        src={url}
+        alt={alt}
+        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+        loading="lazy"
+      />
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+        <div className="bg-black/60 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-sm">
+          <Maximize2 className="h-3.5 w-3.5" />
+        </div>
+      </div>
+      {count > 1 && (
+        <span className="absolute bottom-1 right-1 bg-black/75 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-xs backdrop-blur-xs">
+          +{count - 1}
+        </span>
+      )}
     </div>
   );
 }
@@ -108,6 +155,7 @@ export default function InfrastructurePage() {
   const [hoveredReportId, setHoveredReportId] = useState<string | null>(null);
   const [statusHistory, setStatusHistory] = useState<StatusHistoryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [lightboxPhotos, setLightboxPhotos] = useState<{ photos: string[]; index: number } | null>(null);
 
   // Filters state
   const [operatorFilter, setOperatorFilter] = useState<OperatorFilter>(
@@ -1065,6 +1113,7 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                 const isSelected = selectedReport?.id === r.id;
                 const isResolved = r.status === "resolved";
                 const iconEmoji = r.service_type === "electricity" ? "💡" : r.service_type === "water" ? "💧" : "🚧";
+                const photos = r.photo_urls && r.photo_urls.length > 0 ? r.photo_urls : (r.photo_url ? [r.photo_url] : []);
 
                 return (
                   <div
@@ -1073,13 +1122,13 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                     onMouseEnter={() => setHoveredReportId(r.id)}
                     onMouseLeave={() => setHoveredReportId(null)}
                     className={cn(
-                      "p-3.5 transition-all cursor-pointer hover:bg-muted/50 flex gap-3 items-start",
+                      "p-3.5 sm:p-4 transition-all cursor-pointer hover:bg-muted/50 flex gap-3 sm:gap-3.5 items-start",
                       isSelected ? "bg-emerald-500/5 border-l-4 border-emerald-600" : ""
                     )}
                   >
                     {/* Category Icon */}
                     <div className={cn(
-                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-base shadow-xs font-bold",
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg shadow-xs font-bold",
                       isResolved
                         ? "bg-emerald-500/10 text-emerald-600"
                         : r.service_type === "electricity"
@@ -1092,69 +1141,73 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1.5">
-                        <h4 className="text-xs font-bold text-foreground truncate">
-                          {extractInfraLabel(r.description)}
-                        </h4>
-                        <span className={cn(
-                          "shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md",
-                          isResolved ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
-                        )}>
-                          {isResolved ? "✓ Réparé" : "En cours"}
-                        </span>
+                    <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch">
+                      <div>
+                        <div className="flex items-center justify-between gap-1.5">
+                          <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">
+                            {extractInfraLabel(r.description)}
+                          </h4>
+                          <span className={cn(
+                            "shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-md",
+                            isResolved ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
+                          )}>
+                            {isResolved ? "✓ Réparé" : "En cours"}
+                          </span>
+                        </div>
+
+                        <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">
+                          {cleanDescription(r.description)}
+                        </p>
                       </div>
 
-                      <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
-                        {cleanDescription(r.description)}
-                      </p>
-
-                      <div className="flex items-center justify-between gap-2 mt-2.5 text-[10px] text-muted-foreground">
+                      {/* Footer harmonisé et bien aligné */}
+                      <div className="flex items-center justify-between gap-2 mt-2.5 pt-1.5 border-t border-border/40 text-[10px] sm:text-[11px] text-muted-foreground">
                         <div className="flex items-center gap-1.5 truncate">
-                          <MapPin className="h-3 w-3 shrink-0 text-emerald-600" />
+                          <MapPin className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
                           <span className="font-semibold text-foreground truncate">
                             {r.commune} · {r.quartier || "Abidjan"}
                           </span>
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          {/* Bouton de soutien interactif & visible directement sur chaque carte */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSupport(r.id, e);
-                            }}
-                            className={cn(
-                              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-extrabold transition-all active:scale-95 shadow-2xs",
-                              supported.has(r.id)
-                                ? "bg-emerald-600 text-white"
-                                : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/30"
-                            )}
-                            title="Soutenir ce signalement pour accélérer la réparation"
-                          >
-                            <ThumbsUp className="h-3 w-3 stroke-[2.5]" />
-                            <span>{supported.has(r.id) ? "Soutenu" : "Soutenir"}</span>
-                            <span className={cn(
-                              "px-1.5 py-0.2 rounded-full text-[10px] font-black",
-                              supported.has(r.id) ? "bg-white/25 text-white" : "bg-emerald-600/15 text-emerald-800 dark:text-emerald-200"
-                            )}>
-                              {r.support_count || 0}
-                            </span>
-                          </button>
-
-                          <span className="hidden sm:inline">·</span>
-                          <span className="hidden sm:inline">
+                          <span className="hidden md:inline text-muted-foreground/60">·</span>
+                          <span className="hidden md:inline text-[10px] text-muted-foreground">
                             {formatDistanceToNow(new Date(r.created_at), { addSuffix: true, locale: fr })}
                           </span>
                         </div>
+
+                        {/* Bouton de soutien interactif harmonisé & aligné */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSupport(r.id, e);
+                          }}
+                          className={cn(
+                            "inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 shrink-0 shadow-2xs",
+                            supported.has(r.id)
+                              ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                              : "bg-emerald-50 hover:bg-emerald-100/80 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60 border border-emerald-300/80 dark:border-emerald-700/60"
+                          )}
+                          title="Soutenir ce signalement pour accélérer la réparation"
+                        >
+                          <ThumbsUp className={cn("h-3.5 w-3.5 stroke-[2.5]", supported.has(r.id) ? "fill-white/20" : "")} />
+                          <span>{supported.has(r.id) ? "Soutenu" : "Soutenir"}</span>
+                          <span className={cn(
+                            "min-w-[18px] text-center px-1.5 py-0.5 rounded-full text-[10px] font-black leading-none",
+                            supported.has(r.id)
+                              ? "bg-white/25 text-white"
+                              : "bg-emerald-600/15 text-emerald-800 dark:text-emerald-200"
+                          )}>
+                            {r.support_count || 0}
+                          </span>
+                        </button>
                       </div>
                     </div>
 
-                    {/* Thumbnail if photo exists */}
-                    {(r.photo_url || (r.photo_urls && r.photo_urls.length > 0)) && (
+                    {/* Thumbnail photo bien agrandie et cliquable */}
+                    {photos.length > 0 && (
                       <ReportThumbnail
-                        path={r.photo_url || (r.photo_urls && r.photo_urls[0])}
-                        alt="Preuve"
+                        path={photos[0]}
+                        count={photos.length}
+                        alt={cleanDescription(r.description)}
+                        onOpen={() => setLightboxPhotos({ photos, index: 0 })}
                       />
                     )}
                   </div>
@@ -1290,6 +1343,61 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Lightbox photo plein écran au clic */}
+        {lightboxPhotos && (
+          <Dialog open={!!lightboxPhotos} onOpenChange={(open) => !open && setLightboxPhotos(null)}>
+            <DialogContent className="max-w-3xl p-3 bg-black/95 border-none text-white overflow-hidden sm:rounded-2xl">
+              <div className="relative flex flex-col items-center justify-center min-h-[320px]">
+                <button
+                  onClick={() => setLightboxPhotos(null)}
+                  className="absolute top-2 right-2 z-50 bg-white/15 hover:bg-white/25 text-white rounded-full p-2 transition-colors cursor-pointer"
+                  title="Fermer"
+                >
+                  <XIcon className="h-5 w-5" />
+                </button>
+
+                <LightboxImage path={lightboxPhotos.photos[lightboxPhotos.index]} />
+
+                {lightboxPhotos.photos.length > 1 && (
+                  <div className="absolute inset-x-0 bottom-4 flex items-center justify-center gap-4">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="bg-black/60 hover:bg-black/80 text-white rounded-full h-8 w-8 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLightboxPhotos((prev) => prev ? {
+                          ...prev,
+                          index: (prev.index - 1 + prev.photos.length) % prev.photos.length,
+                        } : null);
+                      }}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-xs font-mono bg-black/60 px-3 py-1 rounded-full text-white">
+                      {lightboxPhotos.index + 1} / {lightboxPhotos.photos.length}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="bg-black/60 hover:bg-black/80 text-white rounded-full h-8 w-8 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLightboxPhotos((prev) => prev ? {
+                          ...prev,
+                          index: (prev.index + 1) % prev.photos.length,
+                        } : null);
+                      }}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </main>
     </div>
   );
