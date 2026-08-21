@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PhotoGallery from "@/components/PhotoGallery";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -1145,7 +1145,7 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                       <div>
                         <div className="flex items-center justify-between gap-1.5">
                           <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">
-                            {extractInfraLabel(r.description)}
+                            {extractInfraLabel(r.description) || "Signalement infrastructure"}
                           </h4>
                           <span className={cn(
                             "shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-md",
@@ -1156,7 +1156,7 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                         </div>
 
                         <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">
-                          {cleanDescription(r.description)}
+                          {cleanDescription(r.description) || "Dégradation signalée"}
                         </p>
                       </div>
 
@@ -1348,6 +1348,7 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
         {lightboxPhotos && (
           <Dialog open={!!lightboxPhotos} onOpenChange={(open) => !open && setLightboxPhotos(null)}>
             <DialogContent className="max-w-3xl p-3 bg-black/95 border-none text-white overflow-hidden sm:rounded-2xl">
+              <DialogTitle className="sr-only">Aperçu photo du signalement</DialogTitle>
               <div className="relative flex flex-col items-center justify-center min-h-[320px]">
                 <button
                   onClick={() => setLightboxPhotos(null)}

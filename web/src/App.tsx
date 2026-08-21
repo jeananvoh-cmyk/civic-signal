@@ -143,12 +143,12 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <PullToRefresh>
-              <OfflineBar />
-              <ProfileCompletionNotifier />
-              <PWAInstallBanner />
-              <OnboardingSlides />
-              <ErrorBoundary>
+            <ErrorBoundary>
+              <PullToRefresh>
+                <OfflineBar />
+                <ProfileCompletionNotifier />
+                <PWAInstallBanner />
+                <OnboardingSlides />
                 <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
                   <Routes>
                     <Route path="/" element={<Index />} />
@@ -211,9 +211,9 @@ const App = () => {
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Suspense>
-              </ErrorBoundary>
-              <BottomNav />
-            </PullToRefresh>
+                <BottomNav />
+              </PullToRefresh>
+            </ErrorBoundary>
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>

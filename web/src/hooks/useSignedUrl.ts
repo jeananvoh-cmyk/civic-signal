@@ -10,7 +10,7 @@ export function useSignedUrl(storagePath: string | null, expiresIn = 3600) {
   const [url, setUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!storagePath) {
+    if (!storagePath || typeof storagePath !== "string") {
       setUrl(null);
       return;
     }
