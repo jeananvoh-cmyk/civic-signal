@@ -14,6 +14,7 @@ import '../../../core/constants/pada.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/services/offline_queue_service.dart';
 import '../../common/pada_address_input.dart';
+import '../../../core/utils/exif_gps_reader.dart';
 
 // ─── Modèle de type de signalement (Miroir exact de Web ReportPage.tsx) ─────────
 class ReportTypeConfig {
@@ -370,6 +371,7 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
         return;
       }
 
+      final List<XFile> newlyAdded = [];
       if (source == ImageSource.gallery) {
         final photos = await _picker.pickMultiImage(
           maxWidth: 1200,
@@ -378,8 +380,8 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
           limit: remaining,
         );
         if (photos.isNotEmpty && mounted) {
-          final toAdd = photos.take(remaining).toList();
-          setState(() => _selectedPhotos.addAll(toAdd));
+          newlyAdded.addAll(photos.take(remaining));
+          setState(() => _selectedPhotos.addAll(newlyAdded));
         }
       } else {
         final photo = await _picker.pickImage(
@@ -389,7 +391,32 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
           imageQuality: 80,
         );
         if (photo != null && mounted) {
+          newlyAdded.add(photo);
           setState(() => _selectedPhotos.add(photo));
+        }
+      }
+
+      // Check if any photo contains EXIF GPS coordinates (e.g. taken on site)
+      for (final p in newlyAdded) {
+        final exif = await ExifGpsReader.extractGps(p);
+        if (exif != null && mounted) {
+          final detected = findNearestCommune(exif.latitude, exif.longitude);
+          setState(() {
+            _latitude = exif.latitude;
+            _longitude = exif.longitude;
+            _gpsAccuracy = 10.0;
+            if (detected != null) {
+              _selectedCommune = detected.nom;
+            }
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('📸 Position exacte extraite de la photo (${detected?.nom ?? ""})'),
+              backgroundColor: AppTheme.secondaryEmerald,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+          break;
         }
       }
     } catch (e) {

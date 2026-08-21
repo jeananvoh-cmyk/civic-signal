@@ -180,24 +180,26 @@ const PhotoUpload = ({
 
     setUploading(true);
 
+    let exifExtracted = false;
+
     const uploadPromises = toProcess.map(async (file, i) => {
       if (!file.type.startsWith("image/") && !file.name.match(/\.(heic|heif)$/i)) {
         throw new Error(`"${file.name}" n'est pas une image valide`);
       }
 
-      const isFirstEver = photoUrls.length === 0 && i === 0;
       const [exifGps, photoHash, path] = await Promise.all([
-        isFirstEver ? extractExifGps(file) : Promise.resolve(null),
+        extractExifGps(file),
         computeImageHash(file),
         uploadFile(file, user.id, i),
       ]);
 
-      if (isFirstEver && exifGps && onGpsFromPhoto) {
+      if (exifGps && onGpsFromPhoto && !exifExtracted) {
+        exifExtracted = true;
         onGpsFromPhoto(exifGps.lat, exifGps.lng);
         setGpsSource("photo");
-        toast.success("📸 Position GPS extraite de la photo", {
-          description: `${exifGps.lat.toFixed(5)}, ${exifGps.lng.toFixed(5)}`,
-          duration: 5000,
+        toast.success("📸 Position GPS exacte extraite de la photo !", {
+          description: `${exifGps.lat.toFixed(5)}, ${exifGps.lng.toFixed(5)} · Localisation du lieu réel`,
+          duration: 6000,
         });
       }
 
