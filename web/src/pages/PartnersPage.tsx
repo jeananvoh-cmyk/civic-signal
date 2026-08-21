@@ -367,33 +367,92 @@ const PartnersPage = () => {
         </div>
       </section>
 
-      {/* Bénéfices Mairies */}
-      <section className="py-14 border-t border-border">
-        <div className="container max-w-4xl px-4 space-y-8">
+      {/* 🏛️ Les 3 Paliers d'Intégration Institutionnelle */}
+      <section className="py-14 border-t border-border bg-slate-900 text-white">
+        <div className="container max-w-5xl px-4 space-y-8">
           <div className="text-center space-y-2">
-            <h2 className="text-2xl font-bold text-foreground">Pour les Mairies d'Abidjan</h2>
-            <p className="text-sm text-muted-foreground">
-              Centralisez les remontées terrain et prouvez votre réactivité aux citoyens.
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+              Modèle d'Adhésion & Partenariat Civique
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
+              3 Niveaux d'Intégration pour Mairies & Régulateurs
+            </h2>
+            <p className="text-sm text-slate-300 max-w-2xl mx-auto">
+              Du simple accès aux données citoyennes ouvertes jusqu'au connecteur direct avec vos logiciels métiers et équipes de terrain.
             </p>
           </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            {BENEFITS_MAIRIE.map((b, i) => (
-              <motion.div
-                key={b.title}
-                initial={{ opacity: 0, x: 8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.07 }}
-                className="flex gap-4 rounded-2xl border border-border bg-card p-4"
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10">
-                  <b.icon className="h-5 w-5 text-emerald-600" />
+
+          <div className="grid md:grid-cols-3 gap-6 pt-4">
+            {/* Palier 1 */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-6 flex flex-col justify-between space-y-4 hover:border-slate-700 transition-colors">
+              <div className="space-y-3">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-800 text-slate-300 text-xs font-bold">
+                  🥉 Palier 1 · Open Data
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">{b.title}</p>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{b.desc}</p>
+                <h3 className="text-lg font-bold text-white">Accès Données Libres (Open311)</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Accès instantané et sans frais aux flux de données publiques anonymisées et géoréférencées (~150 m) pour les observatoires et citoyens.
+                </p>
+                <ul className="space-y-2 text-xs text-slate-300 pt-2">
+                  <li className="flex items-center gap-2">✓ API GeoReport v2 standard</li>
+                  <li className="flex items-center gap-2">✓ Exports CSV / JSON publics</li>
+                  <li className="flex items-center gap-2">✓ Licence Open Source AGPL-3.0</li>
+                </ul>
+              </div>
+              <div className="pt-4 border-t border-slate-800">
+                <p className="text-sm font-bold text-emerald-400">100% Gratuit & Libre</p>
+                <p className="text-[11px] text-slate-500">Bien commun citoyen</p>
+              </div>
+            </div>
+
+            {/* Palier 2 */}
+            <div className="rounded-2xl border-2 border-emerald-500/50 bg-emerald-950/20 p-6 flex flex-col justify-between space-y-4 relative shadow-lg">
+              <div className="absolute -top-3 right-4 px-2.5 py-0.5 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black uppercase tracking-wider">
+                Populaire Mairies
+              </div>
+              <div className="space-y-3">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-bold">
+                  🥈 Palier 2 · Portail Dédié
                 </div>
-              </motion.div>
-            ))}
+                <h3 className="text-lg font-bold text-white">Console Services Techniques</h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Espace d'administration dédié pour la Mairie ou le Régulateur permettant de suivre, qualifier et clôturer les incidents en direct.
+                </p>
+                <ul className="space-y-2 text-xs text-slate-200 pt-2">
+                  <li className="flex items-center gap-2">✓ Tableau de bord par commune / secteur</li>
+                  <li className="flex items-center gap-2">✓ Mise à jour des statuts d'intervention</li>
+                  <li className="flex items-center gap-2">✓ Réponse officielle visible par les riverains</li>
+                  <li className="flex items-center gap-2">✓ Rapports mensuels pour Conseil Municipal</li>
+                </ul>
+              </div>
+              <div className="pt-4 border-t border-emerald-900/60">
+                <p className="text-sm font-bold text-emerald-400">Convention Municipale</p>
+                <p className="text-[11px] text-slate-400">Déploiement sous 48h</p>
+              </div>
+            </div>
+
+            {/* Palier 3 */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-6 flex flex-col justify-between space-y-4 hover:border-slate-700 transition-colors">
+              <div className="space-y-3">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-purple-500/20 text-purple-400 text-xs font-bold">
+                  🥇 Palier 3 · Intégration Certifiée
+                </div>
+                <h3 className="text-lg font-bold text-white">Connecteur Métier & SIG / CRM</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Interconnexion automatisée avec vos systèmes informatiques internes (ArcGIS, QGIS, GMAO, CRM) et assistance technique prioritaire.
+                </p>
+                <ul className="space-y-2 text-xs text-slate-300 pt-2">
+                  <li className="flex items-center gap-2">✓ Webhooks temps réel & API bidirectionnelle</li>
+                  <li className="flex items-center gap-2">✓ Adresses PADA exactes pour équipes d'urgence</li>
+                  <li className="flex items-center gap-2">✓ SLA 99.9% & Support dédié 24/7</li>
+                  <li className="flex items-center gap-2">✓ Formation sur site des agents techniques</li>
+                </ul>
+              </div>
+              <div className="pt-4 border-t border-slate-800">
+                <p className="text-sm font-bold text-purple-400">Assistance & SLA Entreprise</p>
+                <p className="text-[11px] text-slate-500">Pérennité de l'écosystème associatif</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
