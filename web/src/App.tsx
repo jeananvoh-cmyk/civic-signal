@@ -164,6 +164,8 @@ const App = () => {
                     <Route path="/confidentialite" element={<PrivacyPolicyPage />} />
                     <Route path="/cgu" element={<CguPage />} />
                     <Route path="/faire-un-don" element={<DonationPage />} />
+                    <Route path="/dons" element={<DonationPage />} />
+                    <Route path="/donations" element={<DonationPage />} />
                     <Route path="/infrastructures" element={<InfrastructurePage />} />
                     <Route path="/installer" element={<InstallPage />} />
                     <Route path="/install" element={<InstallPage />} />
@@ -200,6 +202,7 @@ const App = () => {
 
                     <Route path="/partner/dashboard" element={<ProtectedRoute><PartnerDashboardPage /></ProtectedRoute>} />
                     <Route path="/partenaires" element={<PartnersPage />} />
+                    <Route path="/partenaire" element={<RegulateursPage />} />
                     <Route path="/mairie" element={<MairieDashboardPage />} />
                     <Route path="/mairie/:communeName" element={<MairieDashboardPage />} />
                     <Route path="/regulateurs" element={<RegulateursPage />} />

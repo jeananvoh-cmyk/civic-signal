@@ -108,9 +108,9 @@ export default function Footer() {
               <li><Link to="/a-propos" className="hover:text-emerald-400 transition-colors">À propos de SIGNA.ci</Link></li>
               <li><Link to="/transparence" className="hover:text-emerald-400 transition-colors font-semibold text-emerald-400">Transparence Open Data (Open311)</Link></li>
               <li><Link to="/mairie" className="hover:text-emerald-400 transition-colors">Portail Mairies (Services Techniques)</Link></li>
-              <li><Link to="/partenaire" className="hover:text-emerald-400 transition-colors">Régulateurs (ANARE-CI & ONEP)</Link></li>
-              <li><Link to="/dons" className="hover:text-rose-400 transition-colors">Soutenir le projet (Dons)</Link></li>
-              <li><Link to="/cgu" className="hover:text-emerald-400 transition-colors">Conditions d'Utilisation</Link></li>
+              <li><Link to="/regulateurs" className="hover:text-emerald-400 transition-colors">Régulateurs (ANARE-CI & ONEP)</Link></li>
+              <li><Link to="/faire-un-don" className="hover:text-rose-400 transition-colors">Soutenir le projet (Dons)</Link></li>
+              <li><Link to="/cgu" className="hover:text-emerald-400 transition-colors">Conditions Générales d'Utilisation</Link></li>
               <li><Link to="/confidentialite" className="hover:text-emerald-400 transition-colors">Politique de Confidentialité</Link></li>
             </ul>
           </div>

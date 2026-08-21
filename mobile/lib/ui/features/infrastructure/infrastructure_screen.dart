@@ -368,22 +368,30 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       appBar: AppBar(
+        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.transparent,
+        elevation: 0,
         title: Row(
           children: [
             const Icon(LucideIcons.alertCircle, color: Color(0xFFEA580C), size: 22),
             const SizedBox(width: 8),
             Text(
               'Infrastructures Publiques',
-              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 18),
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+                color: isDark ? Colors.white : const Color(0xFF0F172A),
+              ),
             ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(LucideIcons.refreshCw, size: 18),
+            icon: Icon(LucideIcons.refreshCw, size: 18, color: isDark ? Colors.white70 : const Color(0xFF64748B)),
             tooltip: 'Actualiser',
             onPressed: _fetchReports,
           ),
@@ -411,13 +419,15 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFFF7ED), Color(0xFFFFEDD5)],
+                gradient: LinearGradient(
+                  colors: isDark
+                      ? [const Color(0xFF431407), const Color(0xFF2E1065)]
+                      : [const Color(0xFFFFF7ED), const Color(0xFFFFEDD5)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFFED7AA)),
+                border: Border.all(color: isDark ? const Color(0xFF7C2D12) : const Color(0xFFFED7AA)),
               ),
               child: Row(
                 children: [
@@ -427,7 +437,7 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
                       color: const Color(0xFFEA580C),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(LucideIcons.construction, color: Colors.white, size: 22),
+                    child: const Icon(LucideIcons.landmark, color: Colors.white, size: 22),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -436,12 +446,19 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
                       children: [
                         Text(
                           'Fil des Dégradations de la Voirie',
-                          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 14, color: const Color(0xFF9A3412)),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: isDark ? const Color(0xFFFFEDD5) : const Color(0xFF9A3412),
+                          ),
                         ),
                         const SizedBox(height: 2),
-                        const Text(
+                        Text(
                           'Nids de poules, lampadaires éteints, caniveaux bouchés, fuites d\'eau sur la voie publique.',
-                          style: TextStyle(fontSize: 12, color: Color(0xFFC2410C)),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? const Color(0xFFFDBA74) : const Color(0xFFC2410C),
+                          ),
                         ),
                       ],
                     ),
@@ -457,13 +474,13 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildServiceFilterChip('all', 'Tous', LucideIcons.layers, null),
+                  _buildServiceFilterChip('all', 'Tous', LucideIcons.layers, null, isDark),
                   const SizedBox(width: 8),
-                  _buildServiceFilterChip('mairie', 'Voirie & Mairie', LucideIcons.landmark, const Color(0xFF059669)),
+                  _buildServiceFilterChip('mairie', 'Voirie & Mairie', LucideIcons.landmark, const Color(0xFF059669), isDark),
                   const SizedBox(width: 8),
-                  _buildServiceFilterChip('electricite', 'Éclairage & CIE', LucideIcons.zap, const Color(0xFFEA580C)),
+                  _buildServiceFilterChip('electricite', 'Éclairage & CIE', LucideIcons.zap, const Color(0xFFEA580C), isDark),
                   const SizedBox(width: 8),
-                  _buildServiceFilterChip('eau', 'Fuites & SODECI', LucideIcons.droplets, const Color(0xFF0284C7)),
+                  _buildServiceFilterChip('eau', 'Fuites & SODECI', LucideIcons.droplets, const Color(0xFF0284C7), isDark),
                 ],
               ),
             ),
@@ -471,7 +488,7 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
             const SizedBox(height: 10),
 
             // Accordion sub-categories based on selected filter
-            _buildSubCategoriesAccordion(),
+            _buildSubCategoriesAccordion(isDark),
 
             const SizedBox(height: 12),
 
@@ -479,20 +496,37 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   value: _selectedCommune,
+                  dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                   isExpanded: true,
                   icon: const Icon(LucideIcons.mapPin, size: 18, color: Color(0xFF64748B)),
                   items: [
-                    const DropdownMenuItem(value: 'all', child: Text('Toutes les communes d\'Abidjan', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
+                    DropdownMenuItem(
+                      value: 'all',
+                      child: Text(
+                        'Toutes les communes d\'Abidjan',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                      ),
+                    ),
                     ...PILOT_COMMUNES.map((c) => DropdownMenuItem(
                           value: c.nom,
-                          child: Text(c.nom, style: const TextStyle(fontSize: 13)),
+                          child: Text(
+                            c.nom,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            ),
+                          ),
                         )),
                   ],
                   onChanged: (val) {
@@ -513,18 +547,22 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
+                  color: isDark ? const Color(0xFF1E3A8A).withAlpha(100) : const Color(0xFFEFF6FF),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                  border: Border.all(color: isDark ? const Color(0xFF1D4ED8) : const Color(0xFFBFDBFE)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(LucideIcons.filter, size: 14, color: Color(0xFF2563EB)),
+                    const Icon(LucideIcons.filter, size: 14, color: Color(0xFF3B82F6)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Mot-clé : "$_subFilter"',
-                        style: const TextStyle(color: Color(0xFF1D4ED8), fontWeight: FontWeight.bold, fontSize: 12),
+                        style: TextStyle(
+                          color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                     InkWell(
@@ -532,7 +570,7 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
                         setState(() => _subFilter = null);
                         _fetchReports();
                       },
-                      child: const Icon(LucideIcons.x, size: 16, color: Color(0xFF1D4ED8)),
+                      child: Icon(LucideIcons.x, size: 16, color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8)),
                     ),
                   ],
                 ),
@@ -550,9 +588,9 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
               Container(
                 padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
                   children: [
@@ -560,19 +598,26 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
                     const SizedBox(height: 12),
                     Text(
                       'Aucune dégradation signalée',
-                      style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'Aucun signalement d\'infrastructure ne correspond à vos critères de recherche.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                      style: TextStyle(
+                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
               )
             else
-              ..._reports.map((report) => _buildInfraReportCard(report)),
+              ..._reports.map((report) => _buildInfraReportCard(report, isDark)),
 
             const SizedBox(height: 80),
           ],
@@ -581,9 +626,9 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
     );
   }
 
-  Widget _buildServiceFilterChip(String filterKey, String label, IconData icon, Color? color) {
+  Widget _buildServiceFilterChip(String filterKey, String label, IconData icon, Color? color, bool isDark) {
     final isSelected = _selectedFilter == filterKey;
-    final activeColor = color ?? const Color(0xFF0F172A);
+    final activeColor = color ?? (isDark ? const Color(0xFF38BDF8) : const Color(0xFF0F172A));
     return InkWell(
       onTap: () {
         setState(() {
@@ -596,10 +641,10 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         decoration: BoxDecoration(
-          color: isSelected ? activeColor : Colors.white,
+          color: isSelected ? activeColor : (isDark ? const Color(0xFF1E293B) : Colors.white),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? activeColor : const Color(0xFFE2E8F0),
+            color: isSelected ? activeColor : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
           ),
           boxShadow: isSelected
               ? [BoxShadow(color: activeColor.withAlpha(50), blurRadius: 6, offset: const Offset(0, 2))]
@@ -613,9 +658,9 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.white : const Color(0xFF334155),
+                color: isSelected ? Colors.white : (isDark ? const Color(0xFFE2E8F0) : const Color(0xFF334155)),
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                fontSize: 12,
+                fontSize: 13,
               ),
             ),
           ],
@@ -624,72 +669,75 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
     );
   }
 
-  Widget _buildSubCategoriesAccordion() {
+  Widget _buildSubCategoriesAccordion(bool isDark) {
     return Material(
-      color: Colors.white,
+      color: isDark ? const Color(0xFF1E293B) : Colors.white,
       borderRadius: BorderRadius.circular(14),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
         ),
         child: Column(
-        children: [
-          // 1. Électricité CIE
-          if (_selectedFilter == 'all' || _selectedFilter == 'electricite')
-            _buildAccordionTile(
-              'electricite',
-              'ÉLECTRICITÉ · CIE',
-              LucideIcons.zap,
-              const Color(0xFFEA580C),
-              [
-                {'label': 'Éclairage public', 'sub': 'Éclairage public', 'asset': 'assets/infra/lampadaire.jpg'},
-                {'label': 'Poteaux & Pylônes', 'sub': 'Poteaux & Pylônes', 'asset': 'assets/infra/poteau-electrique.png'},
-                {'label': 'Branchements dangereux', 'sub': 'Branchements dangereux', 'asset': 'assets/infra/cie-danger.jpg', 'danger': 'true'},
-                {'label': 'Autres', 'sub': 'Autres', 'asset': 'assets/infra/cie-autre.jpg'},
-              ],
-            ),
+          children: [
+            // 1. Électricité CIE
+            if (_selectedFilter == 'all' || _selectedFilter == 'electricite')
+              _buildAccordionTile(
+                'electricite',
+                'ÉLECTRICITÉ · CIE',
+                LucideIcons.zap,
+                const Color(0xFFEA580C),
+                [
+                  {'label': 'Éclairage public', 'sub': 'Éclairage public', 'asset': 'assets/infra/lampadaire.jpg'},
+                  {'label': 'Poteaux & Pylônes', 'sub': 'Poteaux & Pylônes', 'asset': 'assets/infra/poteau-electrique.png'},
+                  {'label': 'Branchements dangereux', 'sub': 'Branchements dangereux', 'asset': 'assets/infra/cie-danger.jpg', 'danger': 'true'},
+                  {'label': 'Autres', 'sub': 'Autres', 'asset': 'assets/infra/cie-autre.jpg'},
+                ],
+                isDark,
+              ),
 
-          if (_selectedFilter == 'all') const Divider(height: 1),
+            if (_selectedFilter == 'all') Divider(height: 1, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
 
-          // 2. Eau SODECI
-          if (_selectedFilter == 'all' || _selectedFilter == 'eau')
-            _buildAccordionTile(
-              'eau',
-              'EAU · SODECI',
-              LucideIcons.droplets,
-              const Color(0xFF0284C7),
-              [
-                {'label': 'Fuite d\'eau', 'sub': 'Fuite d\'eau', 'asset': 'assets/infra/fuite-eau.png'},
-                {'label': 'Canalisation publique', 'sub': 'Canalisation publique', 'asset': 'assets/infra/canalisation-publique.jpg'},
-                {'label': 'Qualité de l\'eau', 'sub': 'Qualité de l\'eau', 'asset': 'assets/infra/eau-autre.jpg', 'danger': 'true'},
-                {'label': 'Autres', 'sub': 'Autres', 'asset': 'assets/water-icon.png'},
-              ],
-            ),
+            // 2. Eau SODECI
+            if (_selectedFilter == 'all' || _selectedFilter == 'eau')
+              _buildAccordionTile(
+                'eau',
+                'EAU · SODECI',
+                LucideIcons.droplets,
+                const Color(0xFF0284C7),
+                [
+                  {'label': 'Fuite d\'eau', 'sub': 'Fuite d\'eau', 'asset': 'assets/infra/fuite-eau.png'},
+                  {'label': 'Canalisation publique', 'sub': 'Canalisation publique', 'asset': 'assets/infra/canalisation-publique.jpg'},
+                  {'label': 'Qualité de l\'eau', 'sub': 'Qualité de l\'eau', 'asset': 'assets/infra/eau-autre.jpg', 'danger': 'true'},
+                  {'label': 'Autres', 'sub': 'Autres', 'asset': 'assets/water-icon.png'},
+                ],
+                isDark,
+              ),
 
-          if (_selectedFilter == 'all') const Divider(height: 1),
+            if (_selectedFilter == 'all') Divider(height: 1, color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
 
-          // 3. Voirie Mairie
-          if (_selectedFilter == 'all' || _selectedFilter == 'mairie')
-            _buildAccordionTile(
-              'mairie',
-              'VOIRIE · MAIRIE',
-              LucideIcons.map,
-              const Color(0xFF059669),
-              [
-                {'label': 'Nid de poule / Route', 'sub': 'Nid de poule', 'asset': 'assets/infra/voirie.png'},
-                {'label': 'Caniveau bouché', 'sub': 'Caniveau bouché', 'asset': 'assets/infra/caniveau.png'},
-                {'label': 'Amas d\'ordures', 'sub': 'Amas d\'ordures', 'asset': 'assets/infra/depot-ordures.jpg'},
-                {'label': 'Autres', 'sub': 'Autres', 'asset': 'assets/infra/mairie-autre.jpg'},
-              ],
-            ),
-        ],
-      ),
+            // 3. Voirie Mairie
+            if (_selectedFilter == 'all' || _selectedFilter == 'mairie')
+              _buildAccordionTile(
+                'mairie',
+                'VOIRIE · MAIRIE',
+                LucideIcons.landmark,
+                const Color(0xFF059669),
+                [
+                  {'label': 'Nid de poule / Route', 'sub': 'Nid de poule', 'asset': 'assets/infra/voirie.png'},
+                  {'label': 'Caniveau bouché', 'sub': 'Caniveau bouché', 'asset': 'assets/infra/caniveau.png'},
+                  {'label': 'Amas d\'ordures', 'sub': 'Amas d\'ordures', 'asset': 'assets/infra/depot-ordures.jpg'},
+                  {'label': 'Autres', 'sub': 'Autres', 'asset': 'assets/infra/mairie-autre.jpg'},
+                ],
+                isDark,
+              ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildAccordionTile(String key, String title, IconData icon, Color color, List<Map<String, String>> items) {
+  Widget _buildAccordionTile(String key, String title, IconData icon, Color color, List<Map<String, String>> items, bool isDark) {
     final isOpen = _openAccordion == key;
     return Column(
       children: [
@@ -699,8 +747,15 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
             setState(() => _openAccordion = isOpen ? null : key);
           },
           leading: Icon(icon, color: color, size: 18),
-          title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-          trailing: Icon(isOpen ? LucideIcons.chevronUp : LucideIcons.chevronDown, size: 18, color: const Color(0xFF64748B)),
+          title: Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
+            ),
+          ),
+          trailing: Icon(isOpen ? LucideIcons.chevronUp : LucideIcons.chevronDown, size: 18, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
         ),
         if (isOpen)
           Padding(
@@ -716,7 +771,9 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
                 final isSelected = _subFilter == it['sub'];
                 final isDanger = it['danger'] == 'true';
                 final activeBorderColor = isDanger ? const Color(0xFFEF4444) : color;
-                final activeBgColor = isDanger ? const Color(0xFFFEF2F2) : color.withAlpha(20);
+                final activeBgColor = isDanger
+                    ? (isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEF2F2))
+                    : color.withAlpha(isDark ? 40 : 20);
 
                 return InkWell(
                   onTap: () {
@@ -730,10 +787,10 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: isSelected ? activeBgColor : const Color(0xFFF8FAFC),
+                      color: isSelected ? activeBgColor : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isSelected ? activeBorderColor : const Color(0xFFE2E8F0),
+                        color: isSelected ? activeBorderColor : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                         width: isSelected ? 1.8 : 1.0,
                       ),
                       boxShadow: isSelected
@@ -764,7 +821,9 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                            color: isSelected ? activeBorderColor : const Color(0xFF334155),
+                            color: isSelected
+                                ? activeBorderColor
+                                : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
                             height: 1.15,
                           ),
                         ),
@@ -779,7 +838,7 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
     );
   }
 
-  Widget _buildInfraReportCard(Map<String, dynamic> report) {
+  Widget _buildInfraReportCard(Map<String, dynamic> report, bool isDark) {
     final user = Supabase.instance.client.auth.currentUser;
     final id = report['id'] as String;
     final commune = report['commune'] as String? ?? 'Abidjan';
@@ -802,28 +861,30 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(color: Color(0x06000000), blurRadius: 10, offset: Offset(0, 3)),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black.withAlpha(50) : const Color(0x06000000),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ─── 1. EN-TÊTE DU POST (AVATAR EMOJI + BADGES + LOCALISATION + STATUT) ───
           Padding(
             padding: const EdgeInsets.only(left: 14, right: 14, top: 14, bottom: 8),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Avatar rond pastel avec Emoji de l'infra (1:1 Web)
                 Container(
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0D9488).withAlpha(25),
+                    color: const Color(0xFF0D9488).withAlpha(isDark ? 50 : 25),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
@@ -835,12 +896,10 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
                 ),
                 const SizedBox(width: 10),
 
-                // Colonne métadonnées
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Badges : Label Infra + Modéré
                       Wrap(
                         spacing: 6,
                         runSpacing: 4,
@@ -850,13 +909,13 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF0D9488).withAlpha(20),
+                                color: const Color(0xFF0D9488).withAlpha(isDark ? 40 : 20),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
                                 infraLabel,
-                                style: const TextStyle(
-                                  color: Color(0xFF0F766E),
+                                style: TextStyle(
+                                  color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F766E),
                                   fontWeight: FontWeight.bold,
                                   fontSize: 11,
                                 ),
@@ -865,14 +924,14 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFEF3C7),
+                              color: isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFFFDE68A)),
+                              border: Border.all(color: isDark ? const Color(0xFF92400E) : const Color(0xFFFDE68A)),
                             ),
-                            child: const Text(
+                            child: Text(
                               'Modéré',
                               style: TextStyle(
-                                color: Color(0xFFD97706),
+                                color: isDark ? const Color(0xFFFDE68A) : const Color(0xFFD97706),
                                 fontWeight: FontWeight.bold,
                                 fontSize: 10,
                               ),
@@ -882,30 +941,29 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
                       ),
                       const SizedBox(height: 4),
 
-                      // Localisation & Date relative
                       Row(
                         children: [
-                          const Icon(LucideIcons.mapPin, size: 12, color: Color(0xFF64748B)),
+                          Icon(LucideIcons.mapPin, size: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                           const SizedBox(width: 3),
                           Text(
                             quartier.isNotEmpty ? quartier : commune,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1E293B)),
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isDark ? Colors.white : const Color(0xFF1E293B)),
                           ),
                           if (quartier.isNotEmpty && commune.isNotEmpty) ...[
                             const SizedBox(width: 3),
-                            const Text('·', style: TextStyle(color: Color(0xFF94A3B8), fontWeight: FontWeight.bold)),
+                            Text('·', style: TextStyle(color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8), fontWeight: FontWeight.bold)),
                             const SizedBox(width: 3),
                             Text(
                               commune,
-                              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                              style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                             ),
                           ],
                           const SizedBox(width: 8),
-                          const Icon(LucideIcons.clock, size: 12, color: Color(0xFF64748B)),
+                          Icon(LucideIcons.clock, size: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                           const SizedBox(width: 3),
                           Text(
                             timeAgoStr,
-                            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                            style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                           ),
                         ],
                       ),
@@ -913,7 +971,6 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
                   ),
                 ),
 
-                // Statut En direct (Pastille animée)
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -940,21 +997,19 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
             ),
           ),
 
-          // ─── 2. DESCRIPTION PROPRE (Sans crochets disgracieux) ───
           Padding(
             padding: const EdgeInsets.only(left: 14, right: 14, bottom: 10),
             child: Text(
               cleanDesc.isEmpty ? 'Dégradation signalée' : cleanDesc,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13.5,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF1E293B),
+                color: isDark ? const Color(0xFFF1F5F9) : const Color(0xFF1E293B),
                 height: 1.45,
               ),
             ),
           ),
 
-          // ─── 3. GALERIE PHOTOS HD AVEC LIGHTBOX & ZOOM ───
           if ((photoUrl != null && photoUrl.isNotEmpty) || (report['photo_urls'] != null && (report['photo_urls'] as List).isNotEmpty))
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
@@ -967,7 +1022,6 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
               ),
             ),
 
-          // ─── 4. BARRE DE STATISTIQUES CITOYENNES (1:1 Web) ───
           Padding(
             padding: const EdgeInsets.only(left: 14, right: 14, top: 8, bottom: 8),
             child: Row(
@@ -976,14 +1030,18 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
                   const Text('🙋 ', style: TextStyle(fontSize: 13)),
                   Text(
                     '$supportCount citoyen${supportCount > 1 ? 's' : ''} veulent une réparation rapide',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF0D9488)),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0D9488),
+                    ),
                   ),
                 ] else ...[
-                  const Icon(LucideIcons.thumbsUp, size: 12, color: Color(0xFF94A3B8)),
+                  Icon(LucideIcons.thumbsUp, size: 12, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
                   const SizedBox(width: 5),
-                  const Text(
+                  Text(
                     'Soyez le premier à soutenir',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                   ),
                 ],
                 if (repairCount > 0 && status != 'resolved') ...[
@@ -999,25 +1057,23 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
             ),
           ),
 
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          Divider(height: 1, color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
 
-          // ─── 5. BARRE D'ACTIONS (Moi aussi, Modifier, Réparé, Partager) ───
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             child: Row(
               children: [
-                // Bouton Soutien ou Mon signalement
                 if (isOwner) ...[
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(LucideIcons.thumbsUp, size: 14, color: Color(0xFF94A3B8)),
-                        SizedBox(width: 4),
+                        Icon(LucideIcons.thumbsUp, size: 14, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                        const SizedBox(width: 4),
                         Text(
                           'Mon signalement',
-                          style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+                          style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontWeight: FontWeight.w500),
                         ),
                       ],
                     ),
@@ -1027,7 +1083,7 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
                       onPressed: () => _editReportDialog(id, cleanDesc),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        foregroundColor: const Color(0xFF475569),
+                        foregroundColor: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
                       ),
                       icon: const Icon(LucideIcons.edit3, size: 13),
                       label: const Text('Modifier', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
@@ -1036,14 +1092,18 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
                   TextButton.icon(
                     onPressed: () => _toggleSupport(id, report['user_id'] as String?),
                     style: TextButton.styleFrom(
-                      backgroundColor: isSupported ? const Color(0xFF0D9488).withAlpha(20) : Colors.transparent,
+                      backgroundColor: isSupported ? const Color(0xFF0D9488).withAlpha(isDark ? 40 : 20) : Colors.transparent,
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      foregroundColor: isSupported ? const Color(0xFF0D9488) : const Color(0xFF475569),
+                      foregroundColor: isSupported
+                          ? (isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0D9488))
+                          : (isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569)),
                     ),
                     icon: Icon(
                       LucideIcons.thumbsUp,
                       size: 14,
-                      color: isSupported ? const Color(0xFF0D9488) : const Color(0xFF64748B),
+                      color: isSupported
+                          ? (isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0D9488))
+                          : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                     ),
                     label: Text(
                       isSupported ? 'Soutenu ✓' : 'Moi aussi ($supportCount)',
@@ -1056,19 +1116,22 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
 
                 const Spacer(),
 
-                // Bouton "C'est réparé ?"
                 if (status == 'active')
                   TextButton.icon(
                     onPressed: () => _toggleRepairConfirmation(id),
                     style: TextButton.styleFrom(
-                      backgroundColor: isRepaired ? const Color(0xFFDCFCE7) : Colors.transparent,
+                      backgroundColor: isRepaired
+                          ? const Color(0xFF16A34A).withAlpha(isDark ? 40 : 20)
+                          : Colors.transparent,
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      foregroundColor: isRepaired ? const Color(0xFF16A34A) : const Color(0xFF059669),
+                      foregroundColor: isRepaired
+                          ? const Color(0xFF4ADE80)
+                          : (isDark ? const Color(0xFF4ADE80) : const Color(0xFF059669)),
                     ),
                     icon: Icon(
                       isRepaired ? LucideIcons.checkCircle : LucideIcons.checkCircle2,
                       size: 14,
-                      color: const Color(0xFF16A34A),
+                      color: isRepaired ? const Color(0xFF4ADE80) : const Color(0xFF16A34A),
                     ),
                     label: Text(
                       isRepaired ? 'Réparé ✓' : 'C\'est réparé ?',
@@ -1079,13 +1142,12 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
                     ),
                   ),
 
-                // Lien Détail externe
                 IconButton(
                   onPressed: () {
                     final rep = ReportModel.fromJson(report);
                     Navigator.push(context, MaterialPageRoute(builder: (_) => ReportDetailScreen(report: rep)));
                   },
-                  icon: const Icon(LucideIcons.externalLink, size: 15, color: Color(0xFF64748B)),
+                  icon: Icon(LucideIcons.externalLink, size: 15, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                   tooltip: 'Voir le détail',
                 ),
 
@@ -1094,9 +1156,9 @@ class _InfrastructureScreenState extends State<InfrastructureScreen> {
                   onPressed: () => _shareReport(report),
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    foregroundColor: const Color(0xFF475569),
+                    foregroundColor: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
                   ),
-                  icon: const Icon(LucideIcons.share2, size: 14, color: Color(0xFF64748B)),
+                  icon: Icon(LucideIcons.share2, size: 14, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
                   label: const Text('Partager', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
                 ),
               ],

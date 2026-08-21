@@ -465,6 +465,7 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
   }
 
   void _showSuccessDialog(String reportId, String quartier, String ticketCode) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final padaAddress = PadaConstants.formatAddress(commune: _selectedCommune, quartier: quartier);
 
     showDialog(
@@ -491,9 +492,9 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF059669).withOpacity(0.08),
+                  color: const Color(0xFF059669).withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFF059669).withOpacity(0.3)),
+                  border: Border.all(color: const Color(0xFF059669).withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -518,7 +519,7 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF059669).withOpacity(0.15),
+                              color: const Color(0xFF059669).withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: const Row(
@@ -547,7 +548,7 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
                         Expanded(
                           child: RichText(
                             text: TextSpan(
-                              style: const TextStyle(fontSize: 11, color: Colors.black87),
+                              style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFFE2E8F0) : Colors.black87),
                               children: [
                                 const TextSpan(text: 'PADA (MCLU) : ', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
                                 TextSpan(text: padaAddress, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -761,22 +762,35 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFFBEB),
+                color: isDark ? const Color(0xFF78350F).withAlpha(60) : const Color(0xFFFFFBEB),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFFDE68A)),
+                border: Border.all(color: isDark ? const Color(0xFF92400E) : const Color(0xFFFDE68A)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    children: const [
-                      Icon(LucideIcons.alertTriangle, color: Color(0xFFD97706), size: 18),
-                      SizedBox(width: 8),
-                      Text('Coupure déjà signalée dans ce quartier !', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF92400E))),
+                    children: [
+                      const Icon(LucideIcons.alertTriangle, color: Color(0xFFD97706), size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Coupure déjà signalée dans ce quartier !',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 6),
-                  Text('${_similarReports.length} voisin(s) ont déjà signalé cette coupure à $_selectedCommune ($_selectedQuartier). Vous pouvez directement corroborer pour renforcer l\'alerte :', style: const TextStyle(fontSize: 11, color: Color(0xFF78350F))),
+                  Text(
+                    '${_similarReports.length} voisin(s) ont déjà signalé cette coupure à $_selectedCommune ($_selectedQuartier). Vous pouvez directement corroborer pour renforcer l\'alerte :',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? const Color(0xFFFEF3C7) : const Color(0xFF78350F),
+                    ),
+                  ),
                   const SizedBox(height: 10),
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEA580C), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
@@ -1088,6 +1102,7 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
   }
 
   Widget _buildCounterRow(String label, int value, ValueChanged<int> onChanged, {required IconData icon}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       children: [
         Icon(icon, size: 18, color: const Color(0xFF64748B)),
@@ -1098,8 +1113,11 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
           borderRadius: BorderRadius.circular(8),
           child: Container(
             padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(8)),
-            child: const Icon(LucideIcons.minus, size: 14, color: Colors.black87),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(LucideIcons.minus, size: 14, color: isDark ? Colors.white : Colors.black87),
           ),
         ),
         SizedBox(width: 36, child: Text('$value', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),

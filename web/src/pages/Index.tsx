@@ -341,11 +341,8 @@ const Index = () => {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="mt-6 sm:mt-8 max-w-3xl text-base sm:text-xl leading-relaxed text-slate-600 dark:text-white/75 font-normal"
             >
-              <span className="hidden sm:inline">
-                Grâce à <strong>SIGNA.ci</strong>, unissons nos voix auprès de la CIE, SODECI et nos Mairies. Et alertez vos voisins en un clic, suivez l'avancement en temps réel et faisons accélérer les réparations ensemble.
-              </span>
-              <span className="inline sm:hidden">
-                Grâce à <strong>SIGNA.ci</strong>, documentez, confirmez et suivez vos coupures (CIE, SODECI) ainsi que les pannes de voirie gérées par vos Mairies : unissons nos voix pour accélérer les réparations ensemble.
+              <span>
+                Plateforme citoyenne et participative en Côte d'Ivoire. Signalez, géolocalisez et suivez en temps réel les <strong>coupures d'électricité (CIE)</strong>, les <strong>coupures d'eau (SODECI)</strong> et les <strong>dégradations de voirie (Mairie)</strong> pour accélérer les réparations ensemble.
               </span>
             </motion.p>
 
@@ -357,7 +354,7 @@ const Index = () => {
               className="mt-4 flex items-center justify-center gap-2 text-xs sm:text-sm font-medium text-muted-foreground"
             >
               <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-              <span>Plateforme libre d'accès 100% sans inscription obligatoire</span>
+              <span>Plateforme civique 100% ouverte — Consultation libre sans inscription obligatoire</span>
             </motion.div>
 
             {/* 2 Boutons d'Action Principaux Uniformisés et Centrés */}
@@ -376,7 +373,7 @@ const Index = () => {
                 </div>
                 <div className="flex flex-col text-left leading-tight">
                   <span className="text-base font-extrabold tracking-wide">Documenter un incident</span>
-                  <span className="text-[11px] font-medium text-white/80">Électricité (CIE) · Eau (SODECI) · Voirie (Mairie)</span>
+                  <span className="text-[11px] font-medium text-white/80">CIE · SODECI · Voirie communale</span>
                 </div>
                 <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
               </Link>
@@ -386,7 +383,7 @@ const Index = () => {
                 className="group flex items-center gap-3.5 rounded-2xl border-2 border-sky-300 bg-sky-50/90 hover:bg-sky-100 text-sky-950 dark:border-sky-800 dark:bg-sky-950/40 dark:hover:bg-sky-900/60 dark:text-sky-200 px-8 py-4 font-bold text-base sm:text-lg shadow-sm backdrop-blur-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/20 text-sky-600 dark:text-sky-400 font-extrabold text-xl">
-                  ✓
+                  🤝
                 </div>
                 <div className="flex flex-col text-left leading-tight">
                   <span className="text-base font-extrabold tracking-wide">Confirmer un constat</span>
@@ -407,7 +404,7 @@ const Index = () => {
           <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
             {[
               {
-                value: "14+",
+                value: "14",
                 label: "Communes & Villes couvertes",
                 Icon: MapPin,
                 live: false,
@@ -416,21 +413,21 @@ const Index = () => {
               {
                 value: landingStats ? fmtNum(landingStats.total_reports) : "…",
                 label: "Signalements citoyens",
-                Icon: BarChart3,
+                Icon: Users,
                 live: false,
                 color: "text-slate-900 dark:text-white"
               },
               {
                 value: landingStats ? fmtNum(landingStats.resolved_reports) : "…",
                 label: "Incidents résolus",
-                Icon: TrendingUp,
+                Icon: CheckCircle2,
                 live: false,
                 color: "text-emerald-600 dark:text-emerald-400"
               },
               {
                 value: liveCount !== null ? String(liveCount) : "…",
                 label: "Coupures actives",
-                Icon: Radio,
+                Icon: Zap,
                 live: true,
                 color: "text-amber-600 dark:text-amber-400"
               },

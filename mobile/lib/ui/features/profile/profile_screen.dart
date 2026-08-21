@@ -490,6 +490,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
 
   // ── 3. MES DROITS & TEXTES DE LOIS TAB (Identique à RightsTabContent) ──
   Widget _buildRightsTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -517,19 +518,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
+            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text('📞 Contacts d’Urgence & Régulateurs', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              SizedBox(height: 8),
-              Text('• CIE Dépannage 24/7 : 179 ou 27 20 20 20 20', style: TextStyle(fontSize: 12)),
-              Text('• SODECI Urgence Eau : 175 ou 27 21 21 21 21', style: TextStyle(fontSize: 12)),
-              Text('• ANARE (Régulateur Électricité) : 27 20 20 60 00', style: TextStyle(fontSize: 12)),
-              Text('• ONEP (Office National Eau) : 27 22 51 43 00', style: TextStyle(fontSize: 12)),
+            children: [
+              Text(
+                '📞 Contacts d’Urgence & Régulateurs',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+              ),
+              const SizedBox(height: 8),
+              Text('• CIE Dépannage 24/7 : 179 ou 27 20 20 20 20', style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569))),
+              const SizedBox(height: 4),
+              Text('• SODECI Urgence Eau : 175 ou 27 21 21 21 21', style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569))),
+              const SizedBox(height: 4),
+              Text('• ANARE (Régulateur Électricité) : 27 20 20 60 00', style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569))),
+              const SizedBox(height: 4),
+              Text('• ONEP (Office National Eau) : 27 22 51 43 00', style: TextStyle(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569))),
             ],
           ),
         ),
@@ -538,14 +545,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
   }
 
   Widget _buildLawCard({required String title, required Color color, required String content}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withAlpha(6), blurRadius: 6, offset: const Offset(0, 2)),
+          BoxShadow(color: Colors.black.withAlpha(isDark ? 20 : 6), blurRadius: 6, offset: const Offset(0, 2)),
         ],
       ),
       child: Column(
@@ -555,11 +563,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
             children: [
               Container(height: 14, width: 4, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
               const SizedBox(width: 8),
-              Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
-          Text(content, style: const TextStyle(fontSize: 12, height: 1.5, color: Color(0xFF334155))),
+          Text(
+            content,
+            style: TextStyle(fontSize: 12, height: 1.5, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155)),
+          ),
         ],
       ),
     );
@@ -798,7 +814,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
               children: [
                 ListTile(
                   leading: const Icon(LucideIcons.trendingUp, color: Color(0xFF059669)),
-                  title: const Text('Transparence & Open Data', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF065F46))),
+                  title: Text('Transparence & Open Data', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? const Color(0xFF34D399) : const Color(0xFF065F46))),
                   subtitle: const Text('Délais réels de résolution CIE/SODECI & statistiques publiques', style: TextStyle(fontSize: 11, color: Colors.grey)),
                   trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrendsScreen())),
@@ -1028,10 +1044,46 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> with SingleTicker
               child: Column(
                 children: [
                   ListTile(
+                    leading: const Icon(LucideIcons.trendingUp, color: Color(0xFF059669)),
+                    title: const Text('Transparence & Open Data', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    subtitle: const Text('Statistiques et délais moyens de résolution', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                    trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrendsScreen())),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(LucideIcons.barChart3, color: AppTheme.primaryTeal),
+                    title: const Text('Tableau de Bord Communal', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardScreen())),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(LucideIcons.search, color: AppTheme.primaryTeal),
+                    title: const Text('Suivi de Signalement (#SIG-XXXX)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TrackingScreen())),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
                     leading: const Icon(LucideIcons.scale, color: AppTheme.primaryTeal),
                     title: const Text('Mes Droits & Lois (CIE & SODECI)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                     trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen())),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(LucideIcons.info, color: AppTheme.primaryTeal),
+                    title: const Text('À propos de SIGNA·CI', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen())),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(LucideIcons.heart, color: Color(0xFFEF4444)),
+                    title: const Text('Faire un Don / Soutenir SIGNA·CI', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DonationScreen())),
                   ),
                   const Divider(height: 1),
                   ListTile(

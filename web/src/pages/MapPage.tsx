@@ -986,16 +986,20 @@ const MapPage = () => {
 
         {/* Verification legend (coupures only) */}
         {mode === "coupures" && (
-          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-2.5 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border-2 border-success bg-success/10 text-xs font-bold text-success">✓</span>
-              <span>Coupure confirmée par les voisins</span>
-            </span>
-            <span className="hidden sm:inline text-border">|</span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block h-3 w-3 rounded-full border-2 border-white shadow" style={{ background: '#888' }} />
-              <span><strong className="text-foreground">En attente</strong> — en cours de vérification</span>
-            </span>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/80 bg-card p-3.5 text-xs text-muted-foreground shadow-xs">
+            <div className="flex flex-wrap items-center gap-4">
+              <span className="flex items-center gap-2">
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-emerald-500 bg-emerald-500/15 text-xs font-black text-emerald-600 dark:text-emerald-400">✓</span>
+                <span className="font-semibold text-foreground">Coupure confirmée par les voisins</span>
+                <span className="text-[11px] text-muted-foreground">(2+ corroborations citoyennes)</span>
+              </span>
+              <span className="hidden sm:inline text-border">|</span>
+              <span className="flex items-center gap-2">
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-amber-500 bg-amber-500/15 text-xs font-black text-amber-600 dark:text-amber-400">⏳</span>
+                <span className="font-semibold text-foreground">En attente</span>
+                <span className="text-[11px] text-muted-foreground">(en cours de vérification de quartier)</span>
+              </span>
+            </div>
           </div>
         )}
 
@@ -1018,13 +1022,19 @@ const MapPage = () => {
           </div>
         )}
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="overflow-hidden rounded-xl border border-border shadow-card">
-          <div ref={mapRef} className="h-[500px] w-full" role="region" aria-label="Carte interactive des signalements" />
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="overflow-hidden rounded-2xl border border-border shadow-card">
+          <div ref={mapRef} className="h-[520px] w-full" role="region" aria-label="Carte interactive des signalements" />
         </motion.div>
 
-        <p className="mt-3 text-center text-xs text-muted-foreground">
-          🔒 Les positions affichées sont légèrement décalées (~150 m) pour protéger la vie privée des utilisateurs.
-        </p>
+        {/* 🛡️ Bandeau de Sécurité & Confidentialité GPS */}
+        <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-950/20 p-3.5 text-xs text-slate-700 dark:text-slate-300 flex items-start sm:items-center gap-3">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">
+            🛡️
+          </div>
+          <p className="leading-relaxed text-[11px] sm:text-xs">
+            <strong>Protection de la Vie Privée & Données GPS :</strong> Pour préserver la sécurité des foyers, les positions sur cette carte publique sont légèrement décalées (~150 m). Seules les équipes techniques habilitées (CIE, SODECI, Mairies) accèdent à la localisation d'intervention. Aucune donnée n'est commercialisée.
+          </p>
+        </div>
       </main>
     </div>
   );

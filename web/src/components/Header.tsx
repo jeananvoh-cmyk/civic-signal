@@ -22,7 +22,6 @@ import { motion, AnimatePresence } from "framer-motion";
 const Header = () => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   // Verrouillage du défilement d'arrière-plan quand le menu mobile est ouvert
@@ -196,20 +195,6 @@ const Header = () => {
 
           {/* ── Actions Droite / Toolbar ── */}
           <div className="hidden md:flex items-center gap-2 shrink-0">
-            {/* 🔍 Bouton Recherche Globale */}
-            <button
-              onClick={() => setSearchOpen(true)}
-              className="flex items-center gap-2 rounded-xl border border-border/70 bg-muted/40 hover:bg-muted px-2.5 py-1.5 text-xs text-muted-foreground transition-all hover:text-foreground"
-              title="Rechercher un incident, quartier ou commune (⌘K)"
-              aria-label="Rechercher"
-            >
-              <Search className="h-3.5 w-3.5 text-primary" />
-              <span className="hidden xl:inline text-foreground/75 font-medium">Rechercher...</span>
-              <kbd className="hidden xl:inline-flex items-center rounded border border-border/70 bg-background/80 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
-                ⌘K
-              </kbd>
-            </button>
-
             {/* Sélecteur de Thème */}
             <button
               onClick={toggleTheme}
@@ -271,13 +256,6 @@ const Header = () => {
           {/* ── Mobile Right Toolbar ── */}
           <div className="flex items-center gap-1 md:hidden">
             {user && <NotificationBell />}
-            <button
-              onClick={() => setSearchOpen(true)}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted/60 transition-colors"
-              aria-label="Rechercher"
-            >
-              <Search className="h-4 w-4" />
-            </button>
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
               className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted/60 transition-colors"
@@ -635,8 +613,6 @@ const Header = () => {
             </motion.nav>
           )}
         </AnimatePresence>
-
-      <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
   );
 };

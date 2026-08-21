@@ -14,56 +14,63 @@ export default function PullToRefresh({ children }: { children: React.ReactNode 
   const [pullY, setPullY] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const startY = useRef<number | null>(null);
-  const pulling = useRef(false);
+  const isAtTop = useRef(false);
 
   useEffect(() => {
     const onTouchStart = (e: TouchEvent) => {
-      // Only activate when scrolled to very top
-      if (window.scrollY > 4) return;
-      startY.current = e.touches[0].clientY;
-      pulling.current = true;
+      // Activer uniquement au sommet absolu
+      if (window.scrollY === 0 || document.documentElement.scrollTop === 0) {
+        startY.current = e.touches[0].clientY;
+        isAtTop.current = true;
+      } else {
+        isAtTop.current = false;
+        startY.current = null;
+      }
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      if (!pulling.current || startY.current === null) return;
-      const delta = e.touches[0].clientY - startY.current;
-      if (delta <= 0) {
+      if (!isAtTop.current || startY.current === null) return;
+      if (window.scrollY > 0 || document.documentElement.scrollTop > 0) {
+        isAtTop.current = false;
         setPullY(0);
         return;
       }
-      // Rubber-band resistance
-      const pulled = Math.min(delta * 0.5, MAX_PULL);
-      setPullY(pulled);
-      if (pulled > 8) e.preventDefault(); // prevent default scroll
+      const currentY = e.touches[0].clientY;
+      const delta = currentY - startY.current;
+      if (delta > 0) {
+        // Défilement vers le bas au sommet absolu
+        const pulled = Math.min(delta * 0.4, MAX_PULL);
+        setPullY(pulled);
+      } else {
+        setPullY(0);
+      }
     };
 
     const onTouchEnd = () => {
-      if (!pulling.current) return;
-      pulling.current = false;
-      if (pullY >= THRESHOLD) {
+      if (isAtTop.current && pullY >= THRESHOLD && !refreshing) {
         setRefreshing(true);
-        // Rafraîchissement propre des requêtes en cours sans recharger toute la page
         queryClient.invalidateQueries().finally(() => {
           setTimeout(() => {
             setRefreshing(false);
             setPullY(0);
-          }, 500);
+          }, 400);
         });
       } else {
         setPullY(0);
       }
       startY.current = null;
+      isAtTop.current = false;
     };
 
-    document.addEventListener("touchstart", onTouchStart, { passive: true });
-    document.addEventListener("touchmove", onTouchMove, { passive: false });
-    document.addEventListener("touchend", onTouchEnd);
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
     return () => {
-      document.removeEventListener("touchstart", onTouchStart);
-      document.removeEventListener("touchmove", onTouchMove);
-      document.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
     };
-  }, [pullY, queryClient]);
+  }, [queryClient, refreshing, pullY]);
 
   const progress = Math.min(pullY / THRESHOLD, 1);
   const ready = pullY >= THRESHOLD;

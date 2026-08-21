@@ -783,14 +783,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
               // ══════════════════════════════════════════════════════════
               // 6. DURÉE MOYENNE DES COUPURES (Exact Web)
               // ══════════════════════════════════════════════════════════
-              const Text(
+              Text(
                 'Durée moyenne des coupures',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0F172A)),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                ),
               ),
               const SizedBox(height: 2),
-              const Text(
+              Text(
                 'Temps écoulé entre le début de coupure (déclaré) et la résolution. Basé uniquement sur les signalements résolus.',
-                style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
               ),
               const SizedBox(height: 12),
               Row(
@@ -801,7 +805,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       decoration: BoxDecoration(
                         color: isDark ? const Color(0xFF1E293B) : Colors.white,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFFEF3C7)),
+                        border: Border.all(color: isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -810,7 +814,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             children: const [
                               Icon(LucideIcons.zap, size: 14, color: Color(0xFFD97706)),
                               SizedBox(width: 4),
-                              Text('Électricité (CIE)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF92400E))),
+                              Text('Électricité (CIE)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFFD97706))),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -818,20 +822,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             crossAxisAlignment: CrossAxisAlignment.baseline,
                             textBaseline: TextBaseline.alphabetic,
                             children: [
-                              Text(_elecAvgDur, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF92400E))),
+                              Text(_elecAvgDur, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFFD97706))),
                               const SizedBox(width: 6),
-                              Text(_elecMaxDur, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF0F172A))),
+                              Text(_elecMaxDur, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF0F172A))),
                               const Spacer(),
                               Text('$_elecResolvedCount', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
                             ],
                           ),
                           Row(
-                            children: const [
-                              Text('durée moy.', style: TextStyle(fontSize: 9, color: Color(0xFF64748B))),
-                              SizedBox(width: 14),
-                              Text('la plus longue', style: TextStyle(fontSize: 9, color: Color(0xFF64748B))),
-                              Spacer(),
-                              Text('résolus', style: TextStyle(fontSize: 9, color: Color(0xFF64748B))),
+                            children: [
+                              Text('durée moy.', style: TextStyle(fontSize: 9, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                              const SizedBox(width: 14),
+                              Text('la plus longue', style: TextStyle(fontSize: 9, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                              const Spacer(),
+                              Text('résolus', style: TextStyle(fontSize: 9, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
                             ],
                           ),
                         ],
@@ -845,7 +849,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       decoration: BoxDecoration(
                         color: isDark ? const Color(0xFF1E293B) : Colors.white,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFE0F2FE)),
+                        border: Border.all(color: isDark ? const Color(0xFF0369A1) : const Color(0xFFE0F2FE)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -854,7 +858,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             children: const [
                               Icon(LucideIcons.droplets, size: 14, color: Color(0xFF0284C7)),
                               SizedBox(width: 4),
-                              Text('Eau (SODECI)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF075985))),
+                              Text('Eau (SODECI)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF0284C7))),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -862,20 +866,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             crossAxisAlignment: CrossAxisAlignment.baseline,
                             textBaseline: TextBaseline.alphabetic,
                             children: [
-                              Text(_eauAvgDur, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF075985))),
+                              Text(_eauAvgDur, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF0284C7))),
                               const SizedBox(width: 6),
-                              Text(_eauMaxDur, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF0F172A))),
+                              Text(_eauMaxDur, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF0F172A))),
                               const Spacer(),
                               Text('$_eauResolvedCount', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
                             ],
                           ),
                           Row(
-                            children: const [
-                              Text('durée moy.', style: TextStyle(fontSize: 9, color: Color(0xFF64748B))),
-                              SizedBox(width: 14),
-                              Text('la plus longue', style: TextStyle(fontSize: 9, color: Color(0xFF64748B))),
-                              Spacer(),
-                              Text('résolus', style: TextStyle(fontSize: 9, color: Color(0xFF64748B))),
+                            children: [
+                              Text('durée moy.', style: TextStyle(fontSize: 9, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                              const SizedBox(width: 14),
+                              Text('la plus longue', style: TextStyle(fontSize: 9, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                              const Spacer(),
+                              Text('résolus', style: TextStyle(fontSize: 9, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
                             ],
                           ),
                         ],
@@ -1080,7 +1084,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(child: Text(c.nom, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: c.couleur))),
-                                Text('$totalAct actives', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF0F172A))),
+                                Text(
+                                  '$totalAct actives',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                  ),
+                                ),
                               ],
                             ),
                           );
@@ -1737,7 +1748,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         const SizedBox(height: 4),
                                         RichText(
                                           text: TextSpan(
-                                            style: const TextStyle(fontSize: 11, color: Colors.black87),
+                                            style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFFE2E8F0) : Colors.black87),
                                             children: [
                                               TextSpan(text: '$cElecActive ', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFD97706))),
                                               const TextSpan(text: 'actifs  '),
@@ -1757,9 +1768,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   child: Container(
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFE0F2FE).withAlpha(60),
+                                      color: isDark ? const Color(0xFF0369A1).withAlpha(40) : const Color(0xFFE0F2FE).withAlpha(60),
                                       borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(color: const Color(0xFFBAE6FD)),
+                                      border: Border.all(color: isDark ? const Color(0xFF0284C7).withAlpha(80) : const Color(0xFFBAE6FD)),
                                     ),
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1774,7 +1785,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         const SizedBox(height: 4),
                                         RichText(
                                           text: TextSpan(
-                                            style: const TextStyle(fontSize: 11, color: Colors.black87),
+                                            style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFFE2E8F0) : Colors.black87),
                                             children: [
                                               TextSpan(text: '$cEauActive ', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0284C7))),
                                               const TextSpan(text: 'actifs  '),
@@ -1794,9 +1805,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   child: Container(
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFF3E8FF).withAlpha(60),
+                                      color: isDark ? const Color(0xFF6B21A8).withAlpha(40) : const Color(0xFFF3E8FF).withAlpha(60),
                                       borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(color: const Color(0xFFE9D5FF)),
+                                      border: Border.all(color: isDark ? const Color(0xFF9333EA).withAlpha(80) : const Color(0xFFE9D5FF)),
                                     ),
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1811,7 +1822,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         const SizedBox(height: 4),
                                         RichText(
                                           text: TextSpan(
-                                            style: const TextStyle(fontSize: 11, color: Colors.black87),
+                                            style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFFE2E8F0) : Colors.black87),
                                             children: [
                                               TextSpan(text: '$cMairieActive ', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF9333EA))),
                                               const TextSpan(text: 'actifs  '),
@@ -1880,7 +1891,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: iconBgColor,
+                        color: isDark ? iconBgColor.withAlpha(50) : iconBgColor,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(icon, color: iconColor, size: 22),
@@ -1890,8 +1901,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15)),
-                          Text(subtitle, style: const TextStyle(color: Color(0xFF64748B), fontSize: 11)),
+                          Text(
+                            title,
+                            style: GoogleFonts.outfit(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            ),
+                          ),
+                          Text(
+                            subtitle,
+                            style: TextStyle(
+                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                              fontSize: 11,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1902,8 +1926,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _buildNumberColumn('$actives', isMairie ? 'Actifs' : 'Actives', isMairie ? const Color(0xFF9333EA) : const Color(0xFFD97706)),
-                    _buildNumberColumn('$resolues', isMairie ? 'Réparés' : 'Résolues', const Color(0xFF0F172A)),
-                    _buildNumberColumn('$total', 'Total', const Color(0xFF0F172A)),
+                    _buildNumberColumn('$resolues', isMairie ? 'Réparés' : 'Résolues', isDark ? Colors.white : const Color(0xFF0F172A)),
+                    _buildNumberColumn('$total', 'Total', isDark ? Colors.white : const Color(0xFF0F172A)),
                   ],
                 ),
               ],
@@ -1921,12 +1945,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Text(
                   bottomLeftText,
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontStyle: FontStyle.italic),
+                  style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B), fontStyle: FontStyle.italic),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFEF3C7),
+                    color: isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -1934,7 +1958,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: bottomRightColor,
+                      color: isDark ? const Color(0xFFFDE68A) : bottomRightColor,
                     ),
                   ),
                 ),

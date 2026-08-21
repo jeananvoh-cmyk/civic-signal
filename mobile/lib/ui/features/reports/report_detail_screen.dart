@@ -331,7 +331,7 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF059669).withOpacity(0.1),
+                                    color: const Color(0xFF059669).withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: const Row(
@@ -400,13 +400,15 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFDCFCE7), Color(0xFFF0FDF4)],
+                    gradient: LinearGradient(
+                      colors: isDark
+                          ? [const Color(0xFF064E3B).withAlpha(80), const Color(0xFF065F46).withAlpha(60)]
+                          : [const Color(0xFFDCFCE7), const Color(0xFFF0FDF4)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFF86EFAC), width: 1.5),
+                    border: Border.all(color: isDark ? const Color(0xFF047857) : const Color(0xFF86EFAC), width: 1.5),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -431,12 +433,12 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
                                   style: GoogleFonts.plusJakartaSans(
                                     fontWeight: FontWeight.w800,
                                     fontSize: 14,
-                                    color: const Color(0xFF14532D),
+                                    color: isDark ? const Color(0xFF86EFAC) : const Color(0xFF14532D),
                                   ),
                                 ),
-                                const Text(
+                                Text(
                                   'Partagez cette bonne nouvelle avec vos voisins !',
-                                  style: TextStyle(fontSize: 11, color: Color(0xFF15803D)),
+                                  style: TextStyle(fontSize: 11, color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF15803D)),
                                 ),
                               ],
                             ),
@@ -768,15 +770,27 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
   }
 
   Widget _buildPill(IconData icon, String text, Color color, Color bg) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8), border: Border.all(color: color.withAlpha(50))),
+      decoration: BoxDecoration(
+        color: isDark ? color.withAlpha(40) : bg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withAlpha(isDark ? 80 : 50)),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: color),
+          Icon(icon, size: 12, color: isDark ? color.withAlpha(240) : color),
           const SizedBox(width: 6),
-          Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : color,
+            ),
+          ),
         ],
       ),
     );
@@ -790,6 +804,7 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
     required IconData icon,
     bool isLast = false,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -798,17 +813,17 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: done ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
+                color: done ? (isDark ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7)) : (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
                 shape: BoxShape.circle,
-                border: Border.all(color: done ? const Color(0xFF16A34A) : Colors.grey.shade300),
+                border: Border.all(color: done ? const Color(0xFF16A34A) : (isDark ? const Color(0xFF475569) : Colors.grey.shade300)),
               ),
-              child: Icon(icon, size: 14, color: done ? const Color(0xFF16A34A) : Colors.grey),
+              child: Icon(icon, size: 14, color: done ? const Color(0xFF16A34A) : (isDark ? Colors.grey.shade400 : Colors.grey)),
             ),
             if (!isLast)
               Container(
                 width: 2,
                 height: 30,
-                color: done ? const Color(0xFF16A34A) : Colors.grey.shade300,
+                color: done ? const Color(0xFF16A34A) : (isDark ? const Color(0xFF334155) : Colors.grey.shade300),
               ),
           ],
         ),
@@ -822,11 +837,24 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: done ? const Color(0xFF0F172A) : Colors.grey)),
-                    if (date != null) Text(date, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: done ? (isDark ? Colors.white : const Color(0xFF0F172A)) : (isDark ? Colors.grey.shade500 : Colors.grey),
+                      ),
+                    ),
+                    if (date != null) Text(date, style: TextStyle(fontSize: 10, color: isDark ? Colors.grey.shade400 : Colors.grey)),
                   ],
                 ),
-                Text(subtitle, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                  ),
+                ),
               ],
             ),
           ),

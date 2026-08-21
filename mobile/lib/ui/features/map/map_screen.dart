@@ -438,13 +438,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _buildFilterChip('Tous services', 'all', LucideIcons.layers, const Color(0xFF0F172A)),
+                        _buildFilterChip('Tous services', 'all', LucideIcons.layers, const Color(0xFF0F172A), isDark),
                         const SizedBox(width: 6),
-                        _buildFilterChip('CIE (Électricité)', 'electricity', LucideIcons.zap, const Color(0xFFF59E0B)),
+                        _buildFilterChip('CIE (Électricité)', 'electricity', LucideIcons.zap, const Color(0xFFF59E0B), isDark),
                         const SizedBox(width: 6),
-                        _buildFilterChip('SODECI (Eau)', 'water', LucideIcons.droplets, const Color(0xFF0284C7)),
+                        _buildFilterChip('SODECI (Eau)', 'water', LucideIcons.droplets, const Color(0xFF0284C7), isDark),
                         const SizedBox(width: 6),
-                        _buildFilterChip('Mairie (Voirie & Assainissement)', 'mairie', LucideIcons.landmark, const Color(0xFF10B981)),
+                        _buildFilterChip('Mairie (Voirie & Assainissement)', 'mairie', LucideIcons.landmark, const Color(0xFF10B981), isDark),
                       ],
                     ),
                   ),
@@ -569,7 +569,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, String serviceKey, IconData icon, Color activeColor) {
+  Widget _buildFilterChip(String label, String serviceKey, IconData icon, Color activeColor, bool isDark) {
     final isSelected = _selectedService == serviceKey;
     return InkWell(
       onTap: () => setState(() => _selectedService = serviceKey),
@@ -577,24 +577,24 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? activeColor : Colors.white,
+          color: isSelected ? activeColor : (isDark ? const Color(0xFF1E293B) : Colors.white),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? activeColor : const Color(0xFFE2E8F0)),
+          border: Border.all(color: isSelected ? activeColor : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
           boxShadow: [
-            BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 4, offset: const Offset(0, 2)),
+            BoxShadow(color: Colors.black.withAlpha(isDark ? 30 : 10), blurRadius: 4, offset: const Offset(0, 2)),
           ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 13, color: isSelected ? Colors.white : activeColor),
+            Icon(icon, size: 13, color: isSelected ? Colors.white : (isDark ? Colors.white70 : activeColor)),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.white : const Color(0xFF334155),
+                color: isSelected ? Colors.white : (isDark ? const Color(0xFFE2E8F0) : const Color(0xFF334155)),
               ),
             ),
           ],
@@ -632,7 +632,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -655,7 +655,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       children: [
                         Text(
                           '${r.commune}${r.quartier.isNotEmpty ? " · ${r.quartier}" : ""}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Container(
@@ -673,7 +677,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(LucideIcons.x),
+                    icon: Icon(LucideIcons.x, color: isDark ? Colors.white70 : Colors.black87),
                     onPressed: () => Navigator.pop(ctx),
                   ),
                 ],
@@ -712,13 +716,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: (r.supportCount > 0 || r.repairVerifications > 0)
-                      ? const Color(0xFFF0FDF4)
-                      : const Color(0xFFFFFBEB),
+                      ? (isDark ? const Color(0xFF064E3B).withAlpha(60) : const Color(0xFFF0FDF4))
+                      : (isDark ? const Color(0xFF78350F).withAlpha(60) : const Color(0xFFFFFBEB)),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: (r.supportCount > 0 || r.repairVerifications > 0)
-                        ? const Color(0xFFBBF7D0)
-                        : const Color(0xFFFDE68A),
+                        ? (isDark ? const Color(0xFF047857) : const Color(0xFFBBF7D0))
+                        : (isDark ? const Color(0xFF92400E) : const Color(0xFFFDE68A)),
                   ),
                 ),
                 child: Row(
@@ -742,8 +746,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600,
                           color: (r.supportCount > 0 || r.repairVerifications > 0)
-                              ? const Color(0xFF15803D)
-                              : const Color(0xFF92400E),
+                              ? (isDark ? const Color(0xFF86EFAC) : const Color(0xFF15803D))
+                              : (isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E)),
                         ),
                       ),
                     ),
