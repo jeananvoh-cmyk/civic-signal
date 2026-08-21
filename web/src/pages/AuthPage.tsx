@@ -254,42 +254,126 @@ const AuthPage = () => {
   const signupValid = privacyConsent && password.length >= 8 && password === confirmPwd && pwdStrength.score >= 3;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/50 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4 py-8 sm:p-6 lg:p-10">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-sm"
+        className="w-full max-w-5xl"
       >
-        <button
-          onClick={goBack}
-          className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Retour
-        </button>
-
-        {/* Logo & Identité Officielle */}
-        <div className="mb-6 flex flex-col items-center justify-center text-center">
-          <Link to="/" className="inline-block transition-transform hover:scale-105 active:scale-95 mb-1.5" title="Accéder à l'application SIGNA.ci">
-            <SignaLogo size="md" />
-          </Link>
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-            <span>Accéder à l'application</span>
-            <Link to="/" className="font-extrabold text-foreground hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
-              SIGNA.ci
-            </Link>
-          </div>
+        <div className="mb-4">
+          <button
+            onClick={goBack}
+            className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors bg-background/80 backdrop-blur-xs px-3 py-1.5 rounded-lg border border-border/60 shadow-xs"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Retour à l'application
+          </button>
         </div>
 
-        <AnimatePresence mode="wait">
-          <motion.div key={mode} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
-        {/* ── CONNEXION ─────────────────────────────────────────────────── */}
-        {mode === "login" && (
-          <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-sm space-y-4">
-            <div>
-              <h2 className="font-display text-xl font-extrabold text-foreground">Connexion</h2>
-              <p className="text-xs text-muted-foreground">Accédez à votre espace citoyen SIGNA.ci</p>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          {/* ── PANNEAU GAUCHE : IDENTITÉ & VALEUR CIVIQUE (Desktop & Tablet) ── */}
+          <div className="lg:col-span-6 space-y-6">
+            <div className="space-y-3">
+              <Link to="/" className="inline-block transition-transform hover:scale-105 active:scale-95" title="Accueil SIGNA.ci">
+                <SignaLogo size="lg" />
+              </Link>
+              <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight leading-tight">
+                La plateforme citoyenne qui fait bouger les lignes à Abidjan 🇨🇮
+              </h1>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Connectez-vous pour signaler des anomalies, corroborer les pannes de vos voisins et suivre l'avancement des réparations en temps réel.
+              </p>
             </div>
+
+            {/* 4 Avantages Clés */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
+              <div className="flex items-start gap-3 p-3 rounded-2xl bg-card border border-border/80 shadow-xs">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold text-base shrink-0">
+                  ⚡
+                </div>
+                <div>
+                  <h2 className="text-xs font-bold text-foreground">CIE (Électricité &amp; Éclairage)</h2>
+                  <p className="text-[11px] text-muted-foreground leading-snug">Coupures de courant, transformateurs et lampadaires en panne.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-2xl bg-card border border-border/80 shadow-xs">
+                <div className="w-8 h-8 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center font-bold text-base shrink-0">
+                  💧
+                </div>
+                <div>
+                  <h2 className="text-xs font-bold text-foreground">SODECI (Eau Potable)</h2>
+                  <p className="text-[11px] text-muted-foreground leading-snug">Robinets à sec, baisses de pression et fuites sur la voie publique.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-2xl bg-card border border-border/80 shadow-xs">
+                <div className="w-8 h-8 rounded-xl bg-teal-500/10 text-teal-600 flex items-center justify-center font-bold text-base shrink-0">
+                  🏛️
+                </div>
+                <div>
+                  <h2 className="text-xs font-bold text-foreground">Mairies (Voirie &amp; Salubrité)</h2>
+                  <p className="text-[11px] text-muted-foreground leading-snug">Nids-de-poule, caniveaux bouchés et ramassage des ordures.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-2xl bg-card border border-border/80 shadow-xs">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold text-base shrink-0">
+                  🛡️
+                </div>
+                <div>
+                  <h2 className="text-xs font-bold text-foreground">Vie Privée (Loi n° 2013-450)</h2>
+                  <p className="text-[11px] text-muted-foreground leading-snug">Coordonnées confidentielles et floutage GPS (~150 m) sur la carte.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-2 rounded-xl w-fit">
+              <span>📍 14 Communes du Grand Abidjan</span>
+              <span>·</span>
+              <span>100% Citoyen &amp; Gratuit</span>
+            </div>
+          </div>
+
+          {/* ── PANNEAU DROIT : FORMULAIRE AUTHENTIFICATION ── */}
+          <div className="lg:col-span-6 w-full max-w-md mx-auto">
+            {/* Onglets Rapides Connexion / Inscription */}
+            <div className="flex rounded-2xl border border-border/80 bg-card p-1.5 mb-3 shadow-xs">
+              <button
+                type="button"
+                onClick={() => setMode("login")}
+                className={cn(
+                  "flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all",
+                  mode === "login"
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Se connecter
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("signup")}
+                className={cn(
+                  "flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all",
+                  mode === "signup"
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Créer un compte
+              </button>
+            </div>
+
+            <AnimatePresence mode="wait">
+              <motion.div key={mode} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
+            {/* ── CONNEXION ─────────────────────────────────────────────────── */}
+            {mode === "login" && (
+              <div className="rounded-3xl border border-border/80 bg-card p-6 sm:p-7 shadow-sm space-y-4">
+                <div>
+                  <h2 className="font-display text-xl font-black text-foreground">Connexion</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Accédez à votre espace citoyen SIGNA.ci</p>
+                </div>
 
             {/* Google */}
             <GoogleButton loading={googleLoading} onClick={handleGoogle} />
@@ -660,11 +744,13 @@ const AuthPage = () => {
             </div>
           </div>
         )}
-          </motion.div>
-        </AnimatePresence>
-      </motion.div>
-    </div>
-  );
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+    </motion.div>
+  </div>
+);
 };
 
 export default AuthPage;
