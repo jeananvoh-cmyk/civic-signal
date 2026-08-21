@@ -1,0 +1,41 @@
+name: 💡 Demande de Fonctionnalité (Amélioration Citoyenne)
+description: Proposer une nouvelle fonctionnalité ou une amélioration pour SIGNA.ci
+title: "[FEAT]: "
+labels: ["enhancement", "civic-tech"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Toutes les idées au service des résidents et des services publics sont les bienvenues !
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Périmètre de la fonctionnalité
+      options:
+        - Expérience Citoyenne (Signalement, Corroboration, Suivi)
+        - Cartographie & Géolocalisation PADA
+        - Portail Mairies & Services Techniques
+        - Régulateurs & Open Data (Open311)
+        - Application Mobile Flutter Natif
+        - Autre
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Quel problème cette idée résout-elle ?
+      placeholder: Décrivez la situation ou le besoin rencontré par les résidents...
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solution proposée
+      placeholder: Décrivez la fonctionnalité ou le flux souhaité...
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives envisagées (Facultatif)
+      placeholder: Y a-t-il d'autres moyens d'aborder ce problème ?

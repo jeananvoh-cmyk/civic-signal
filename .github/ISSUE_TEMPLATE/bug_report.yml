@@ -1,0 +1,53 @@
+name: 🐛 Signalement de Bug
+description: Signaler un dysfonctionnement ou un problème technique sur SIGNA.ci
+title: "[BUG]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de nous aider à rendre SIGNA.ci plus stable et performant pour les citoyens ivoiriens !
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Plateforme concernée
+      description: Sur quel environnement le bug se produit-il ?
+      options:
+        - Web Desktop (Chrome, Firefox, Safari...)
+        - Web Mobile / PWA Smartphone
+        - Application Android (Capacitor APK)
+        - Application Mobile Flutter (Natif)
+        - API / Supabase / Base de données
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description du bug
+      description: Que se passe-t-il exactement ?
+      placeholder: Expliquez clairement le problème rencontré...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Étapes de reproduction
+      description: Comment reproduire le problème ?
+      placeholder: |
+        1. Aller sur la page '...'
+        2. Cliquer sur '...'
+        3. Observer l'erreur '...'
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportement attendu
+      placeholder: Ce qui aurait dû se passer normalement...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs ou Captures d'écran (Facultatif)
+      placeholder: Collez ici les messages d'erreur de la console ou glissez vos captures d'écran...

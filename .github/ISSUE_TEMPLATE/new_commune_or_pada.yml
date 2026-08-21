@@ -1,0 +1,28 @@
+name: 📍 Nouvelle Commune / Quartier / Données PADA
+description: Proposer l'ajout ou la mise à jour d'une commune, d'un quartier ou de données cadastrales d'Abidjan et de l'intérieur
+title: "[PADA/COMMUNE]: "
+labels: ["cartographie", "pada", "territoires"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Aidez-nous à étendre la couverture de SIGNA.ci à de nouvelles communes ou à affiner la précision des quartiers !
+  - type: input
+    id: commune
+    attributes:
+      label: Nom de la Commune ou Ville
+      placeholder: Ex: Yamoussoukro, Bouaké, San Pedro, Songon, etc.
+    validations:
+      required: true
+  - type: textarea
+    id: quartiers
+    attributes:
+      label: Liste des Quartiers majeurs
+      placeholder: Listez les quartiers, sous-quartiers ou repères notables...
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Sources ou Références géographiques
+      placeholder: Liens OpenStreetMap, arrêtés municipaux ou données de repérage...

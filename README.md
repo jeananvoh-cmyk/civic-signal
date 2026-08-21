@@ -1,73 +1,121 @@
-# Welcome to your Lovable project
+# SIGNA.ci — CivicTech Côte d'Ivoire 🇨🇮
 
-## Project info
+<div align="center">
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+**Plateforme Citoyenne & Participative de Suivi des Réseaux et Dégradations d'Infrastructures Publiques**
 
-## How can I edit this code?
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
+[![CI Pipeline](https://img.shields.io/badge/CI-GitHub%20Actions-brightgreen.svg)](.github/workflows/ci.yml)
+[![Web / PWA](https://img.shields.io/badge/Web-React%2018%20%7C%20Vite-61dafb.svg)](web/)
+[![Mobile](https://img.shields.io/badge/Mobile-Flutter%20%7C%20Capacitor-02569B.svg)](mobile/)
+[![Backend](https://img.shields.io/badge/Backend-Supabase%20%7C%20PostgreSQL-3ECF8E.svg)](supabase/)
+[![Open311 Standard](https://img.shields.io/badge/Standard-Open311%20Compliant-orange.svg)](docs/)
 
-There are several ways of editing your application.
+*Signaler · Suivre · Réparer — Pour des services publics transparents et performants au service de tous les Ivoiriens.*
 
-**Use Lovable**
+</div>
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🌟 À Propos de SIGNA.ci
 
-**Use your preferred IDE**
+**SIGNA.ci** est une initiative **CivicTech Open Source** conçue pour transformer la gestion des incidents d'infrastructures urbaines dans le Grand Abidjan et en Côte d'Ivoire. 
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+La plateforme permet aux résidents de documenter les incidents en quelques secondes, de corroborer les alertes entre voisins et d'accélérer l'intervention des opérateurs techniques et des collectivités locales.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+       ┌─────────────────────────────────────────────────────────────┐
+       │                       SIGNA.ci 🇨🇮                           │
+       └──────────────────────────────┬──────────────────────────────┘
+                                      │
+         ┌────────────────────────────┼────────────────────────────┐
+         ▼                            ▼                            ▼
+   ⚡ ÉLECTRICITÉ (CIE)        💧 EAU POTABLE (SODECI)      🏛️ VOIRIE & INFRA (MAIRIES)
+  - Coupures secteur / foyer - Coupures de fourniture   - Lampadaires & Éclairage public
+  - Poteaux & fils tombés    - Fuites & canalisations   - Nids-de-poule & Chaussée
+  - Transformateurs grillés  - Baisse de pression       - Caniveaux bouchés & Décharges
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## ✨ Fonctionnalités Majeures
 
-**Use GitHub Codespaces**
+- 📍 **Adressage Cadastral PADA & Géo-repérage** : Sélection intuitive parmi les 14 communes du Grand Abidjan et leurs quartiers officiels, avec support des numéros de porte cadastraux PADA.
+- 🤝 **Solidarité de Quartier & Corroboration** : Les voisins confirment les coupures en un clic pour valider la réalité terrain et augmenter le score d'urgence civique.
+- 📶 **Mode Hors-Ligne & File d'Attente (Offline-First)** : Enregistrement local des signalements même en cas de coupure totale d'Internet avec synchronisation automatique au retour du réseau.
+- 🛡️ **Confidentialité & Floutage GPS (~150 m)** : Les coordonnées affichées publiquement sur la carte sont automatiquement décalées pour protéger l'intimité des foyers (Loi ivoirienne n° 2013-450).
+- 📊 **Tableau de Bord & Météo des Réseaux** : Indicateurs en temps réel, cartes choroplèthes, statistiques par commune et historique de résolution.
+- 🌐 **Transparence Open Data (Open311)** : API publique documentée permettant l'interopérabilité avec les régulateurs (**ANARE-CI**, **ONEP**) et les services techniques municipaux.
+- 💬 **Boucle de Partage WhatsApp** : Génération de fiches d'alertes et de victoires de quartier directement partageables dans les groupes de résidents.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+## 🏛️ Architecture & Technologies
 
-This project is built with:
+Le projet est conçu avec une architecture monorepo modulaire garantissant haute disponibilité et parité complète :
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+| Couche | Technologies Clés |
+| :--- | :--- |
+| **Frontend Web & PWA** | React 18, Vite, TypeScript, Tailwind CSS, Radix UI, Leaflet, Lucide Icons |
+| **Mobile Hybride** | Capacitor 8 (Android & iOS) |
+| **Mobile Natif** | Flutter 3.x, Dart, Riverpod, FlutterMap, Geolocator |
+| **Backend & Base de Données** | Supabase, PostgreSQL 15, PostGIS, Row Level Security (RLS) |
+| **Normes Civiques** | Open311 GeoReport v2, Cadastre PADA Côte d'Ivoire |
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## 🚀 Démarrage Rapide en Local
 
-## Can I connect a custom domain to my Lovable project?
+### 1. Cloner le Dépôt
+```bash
+git clone https://github.com/jeananvoh-cmyk/civic-signal.git
+cd civic-signal
+```
 
-Yes, you can!
+### 2. Lancer la Version Web & Capacitor (`web/`)
+```bash
+cd web
+npm install
+cp .env.example .env
+npm run dev
+```
+> Accédez à l'application sur `http://localhost:5173`.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Pour lancer les tests :
+```bash
+npm test        # Suite Vitest (71 tests passants)
+npm run lint    # Analyse ESLint
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+### 3. Lancer la Version Mobile Flutter (`mobile/`)
+```bash
+cd ../mobile
+flutter pub get
+flutter test
+flutter run
+```
+
+---
+
+## 🤝 Comment Contribuer ?
+
+Le projet est ouvert à toutes les contributions (développeurs, designers, cartographes, citoyens) !
+
+1. Consultez le **[Guide de Contribution (CONTRIBUTING.md)](CONTRIBUTING.md)** pour connaître nos standards de code.
+2. Respectez notre **[Code de Conduite (CODE_OF_CONDUCT.md)](CODE_OF_CONDUCT.md)**.
+3. Pour proposer une nouvelle commune ou affiner les quartiers PADA, utilisez le template d'issue dédié.
+4. Pour toute question de sécurité, consultez notre **[Politique de Sécurité (SECURITY.md)](SECURITY.md)**.
+
+---
+
+## 📜 Licence
+
+Ce projet est distribué sous licence **GNU Affero General Public License v3.0 (AGPL-3.0)**. Consultez le fichier [LICENSE](LICENSE) pour plus d'informations.
+
+---
+
+<div align="center">
+
+**SIGNA.ci — Fait avec cœur pour la Côte d'Ivoire 🇨🇮**
+
+</div>
