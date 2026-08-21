@@ -54,7 +54,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<ReportModel> _publicReports = [];
 
   bool _quartiersExpanded = true;
-  final bool _prioritiesExpanded = true;
   bool _leaderboardExpanded = false;
 
   RealtimeChannel? _realtimeChannel;

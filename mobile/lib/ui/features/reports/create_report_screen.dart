@@ -247,7 +247,6 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
   double? _longitude;
   double? _gpsAccuracy;
   bool _isGettingGps = false;
-  final bool _gpsConsent = true;
 
   // Vulnérabilité
   int _impactedPeople = 1;

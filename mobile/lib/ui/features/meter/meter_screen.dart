@@ -22,7 +22,6 @@ class _MeterScreenState extends State<MeterScreen> with SingleTickerProviderStat
   final double _avgKwhPerDay = 3.8;
   int _daysRemaining = 12;
   String _meterNumber = '1428592019';
-  final bool _isLoading = false;
 
   final List<Map<String, dynamic>> _recharges = [
     {'date': '12 Août 2026', 'amount': '5 000 FCFA', 'kwh': '42.5 kWh', 'method': 'Wave'},
