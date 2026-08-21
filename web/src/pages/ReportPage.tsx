@@ -1240,105 +1240,47 @@ const ReportPage = () => {
                       </div>
                     )}
 
-                    {/* Hint GPS */}
-                    <p className="flex items-start gap-1.5 text-xs text-muted-foreground px-1">
-                      <Navigation className="h-3.5 w-3.5 shrink-0 mt-0.5 text-primary/60" aria-hidden="true" />
-                      <span>Soyez <strong>proche du problème</strong> pour une meilleure localisation.</span>
-                    </p>
-
-                    {/* Bannière GPS */}
-                    <div
-                      className="rounded-xl border-2 p-4 transition-colors"
-                      style={{ borderColor: detectedCommune?.couleur || "var(--border)" }}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <MapPin className="h-4 w-4 shrink-0" style={{ color: detectedCommune?.couleur }} />
-                          {gpsLoading ? (
-                            <span className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                              {gpsRetrying ? "Amélioration du signal…" : "Détection GPS..."}
-                            </span>
-                          ) : detectedCommune ? (
-                            <span className="font-bold text-sm truncate" style={{ color: detectedCommune.couleur }}>
-                              {detectedCommune.nom} ✓
-                            </span>
-                          ) : outsidePilotZone ? (
-                            <span className="text-sm text-destructive font-medium">⚠️ Hors zone pilote</span>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">GPS non disponible</span>
-                          )}
+                    {/* Bannière de localisation automatique claire, transparente et rassurante */}
+                    <div className="rounded-2xl border-2 border-emerald-500/30 bg-emerald-500/8 p-4 flex items-center justify-between gap-3 shadow-xs">
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                          <MapPin className="h-5 w-5" />
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => captureGPS(true)}
-                          disabled={gpsLoading}
-                          className="flex shrink-0 items-center gap-1 rounded-lg bg-muted px-3 py-1.5 text-xs font-medium hover:bg-muted/70 transition-colors disabled:opacity-50"
-                        >
-                          <Navigation className="h-3 w-3" />
-                          {latitude ? "Relocaliser" : "Localiser"}
-                        </button>
-                      </div>
-                      {latitude && longitude && (
-                        <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-                          <p className="text-xs text-muted-foreground font-mono">
-                            {latitude.toFixed(5)}, {longitude.toFixed(5)}
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                            Localisation automatique détectée
                           </p>
-                          {gpsAccuracy !== null && (
-                            <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium border ${
-                              gpsAccuracy <= 80
-                                ? "bg-success/10 text-success border-success/25"
-                                : gpsAccuracy <= 200
-                                ? "bg-warning/10 text-warning border-warning/25"
-                                : "bg-destructive/10 text-destructive border-destructive/25"
-                            }`}>
-                              ± {Math.round(gpsAccuracy)} m
-                            </span>
-                          )}
-                          {gpsSource && (
-                            <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium border bg-muted text-muted-foreground border-border">
-                              {gpsSource === "geojson" ? "polygone" : gpsSource}
-                            </span>
-                          )}
+                          <h4 className="text-base font-black text-foreground truncate">
+                            {detectedCommune ? (
+                              <>
+                                Vous êtes à <span className="text-emerald-600 dark:text-emerald-400">{detectedCommune.nom}</span> 🇨🇮
+                              </>
+                            ) : gpsLoading ? (
+                              <span className="flex items-center gap-1.5 text-sm font-semibold">
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Détection de votre commune…
+                              </span>
+                            ) : (
+                              <span>Position en cours de détection…</span>
+                            )}
+                          </h4>
                         </div>
-                      )}
-                      {gpsWeakSignal && !outsidePilotZone && detectedCommune && storedGpsAgeMin === null && (
-                        <p className="mt-1 text-xs text-amber-600 flex items-center gap-1">
-                          <AlertTriangle className="h-3 w-3 shrink-0" />
-                          Signal GPS faible — déplacez-vous près d'une fenêtre pour améliorer la précision
-                        </p>
-                      )}
-                      {storedGpsAgeMin !== null && latitude !== null && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="mt-2 flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/8 px-3 py-2.5"
-                        >
-                          <Clock className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
-                              📍 Position mémorisée il y a {storedGpsAgeMin < 60 ? `${storedGpsAgeMin} min` : `${Math.round(storedGpsAgeMin / 60)}h`}
-                            </p>
-                            <p className="text-xs text-muted-foreground leading-snug mt-0.5">
-                              Vous avez peut-être quitté le lieu — vous pouvez quand même finaliser votre signalement.
-                            </p>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs shrink-0 text-amber-700"
-                            onClick={() => captureGPS(true)}
-                            disabled={gpsLoading}
-                          >
-                            <Navigation className="h-3 w-3 mr-1" />
-                            Relocaliser
-                          </Button>
-                        </motion.div>
-                      )}
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => captureGPS(true)}
+                        disabled={gpsLoading}
+                        className="shrink-0 text-xs h-8 px-2.5 rounded-lg text-emerald-700 hover:bg-emerald-500/15 gap-1.5 font-semibold"
+                        title="Réactualiser votre position"
+                      >
+                        <Navigation className={`h-3.5 w-3.5 ${gpsLoading ? "animate-spin" : ""}`} />
+                        <span>{gpsLoading ? "Détection…" : "Actualiser"}</span>
+                      </Button>
                     </div>
 
-                    {/* Fallback ou notification si GPS non détecté / hors zone */}
+                    {/* Fallback uniquement si GPS indisponible ou hors zone */}
                     {!gpsLoading && (!detectedCommune || outsidePilotZone) && (
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
@@ -1358,7 +1300,7 @@ const ReportPage = () => {
                         <p className="text-xs text-muted-foreground leading-relaxed">
                           {outsidePilotZone
                             ? "SIGNA·CI couvre les 14 communes du Grand Abidjan. Choisissez directement votre commune ci-dessous pour continuer votre signalement."
-                            : "Votre géolocalisation automatique n'a pas abouti. Vous pouvez réessayer ou sélectionner manuellement votre commune ci-dessous :"}
+                            : "Votre géolocalisation automatique n'a pas abouti. Vous pouvez réessayer ou sélectionner votre commune ci-dessous :"}
                         </p>
                         <Button
                           type="button"
@@ -1375,7 +1317,7 @@ const ReportPage = () => {
                         {/* Choix manuel direct de secours */}
                         <div className="pt-3 border-t border-amber-500/20 text-left space-y-3">
                           <label className="text-xs font-bold text-foreground block">
-                            📍 Choisir ma commune manuellement :
+                            📍 Choisir ma commune :
                           </label>
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                             {COMMUNES.map((c) => (
@@ -1394,59 +1336,19 @@ const ReportPage = () => {
                               </button>
                             ))}
                           </div>
-
-                          {/* Avertissement dissuasif anti-fraude */}
-                          <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-3 text-left">
-                            <ShieldAlert className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                            <div className="text-xs space-y-0.5">
-                              <p className="font-bold text-amber-900 dark:text-amber-200">
-                                Localisation manuelle sous contrôle citoyen
-                              </p>
-                              <p className="text-amber-800/90 dark:text-amber-300/90 leading-snug">
-                                Ce signalement sera soumis à la corroboration de vos voisins du quartier avant toute transmission officielle aux services techniques.
-                              </p>
-                            </div>
-                          </div>
                         </div>
                       </motion.div>
                     )}
 
-                    {/* Commune & Quartier */}
+                    {/* Formulaire Quartier + PADA (Direct et fluide dès que la commune est détectée) */}
                     {canReport && (
-                      <>
-                        <div className="space-y-2">
+                      <div className="space-y-4 pt-1">
+                        {/* Sélecteur & Recherche de Quartier avec autocomplétion par frappe */}
+                        <div className="space-y-1.5">
                           <div className="flex items-center justify-between">
-                            <label className="text-sm font-semibold">Commune *</label>
-                            <span className="text-xs text-muted-foreground">
-                              {gpsSource === "manual" ? "sélection manuelle" : "détectée par GPS"}
-                            </span>
+                            <label className="text-sm font-bold text-foreground">Quartier *</label>
+                            <span className="text-xs text-muted-foreground">Sélectionnez ou tapez les premières lettres</span>
                           </div>
-                          <Select value={commune} onValueChange={handleManualCommuneSelect}>
-                            <SelectTrigger className="w-full h-12 rounded-xl bg-card border-border font-semibold text-sm">
-                              <SelectValue placeholder="Choisir une commune" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {COMMUNES.map((c) => (
-                                <SelectItem key={c.nom} value={c.nom}>
-                                  <div className="flex items-center gap-2">
-                                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: c.couleur }} />
-                                    <span>{c.nom}</span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-
-                          {gpsSource === "manual" && (
-                            <div className="flex items-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/8 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
-                              <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-amber-600" />
-                              <span>Signalement manuel — soumis à corroboration citoyenne (3 voisins du quartier).</span>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-sm font-semibold">Quartier *</label>
                           <QuartierSearch
                             quartiers={getQuartiersForCommune(commune)}
                             value={quartier}
@@ -1456,17 +1358,20 @@ const ReportPage = () => {
                             }}
                           />
                           {quartier === "__other" && (
-                            <>
-                              <label htmlFor="custom-quartier" className="text-xs font-medium text-muted-foreground">Nom du quartier *</label>
+                            <div className="pt-1.5 space-y-1">
+                              <label htmlFor="custom-quartier" className="text-xs font-medium text-muted-foreground">
+                                Précisez le nom de votre quartier *
+                              </label>
                               <Input
                                 id="custom-quartier"
-                                placeholder="Ex: Williamsville plateau"
+                                placeholder="Ex: Williamsville plateau, Attoban sud..."
                                 value={customQuartier}
                                 onChange={(e) => setCustomQuartier(e.target.value)}
                                 maxLength={100}
+                                className="h-11 rounded-xl"
                                 autoFocus
                               />
-                            </>
+                            </div>
                           )}
                         </div>
 
@@ -1481,16 +1386,17 @@ const ReportPage = () => {
                           />
                         )}
 
+                        {/* Bouton de progression */}
                         <Button
                           type="button"
-                          className="w-full py-5 text-base font-bold"
+                          className="w-full py-5 text-base font-bold rounded-xl shadow-md transition-all hover:opacity-90 mt-2"
                           style={{ backgroundColor: selectedType.color, color: "white" }}
                           onClick={handleLocationNext}
                           disabled={!commune || !resolvedQuartier || !latitude}
                         >
                           Continuer →
                         </Button>
-                      </>
+                      </div>
                     )}
                   </motion.div>
                 )}
