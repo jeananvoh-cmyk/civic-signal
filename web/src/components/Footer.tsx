@@ -129,7 +129,7 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-xs text-slate-400">
               <li><Link to="/tableau-de-bord" className="hover:text-emerald-400 transition-colors">Tableau de bord & Météo des réseaux</Link></li>
-              <li><Link to="/infrastructures" className="hover:text-emerald-400 transition-colors">Voirie & Éclairage public communal</Link></li>
+              <li><Link to="/infrastructures" className="hover:text-emerald-400 transition-colors">Voirie, Caniveaux & Salubrité locale</Link></li>
               <li><Link to="/mairie" className="hover:text-emerald-400 transition-colors">Portail Mairies (Services Techniques)</Link></li>
               <li><Link to="/regulateurs" className="hover:text-emerald-400 transition-colors">Baromètre Régulateurs (ANARE-CI & ONEP)</Link></li>
               <li><Link to="/transparence" className="hover:text-emerald-400 transition-colors font-semibold text-emerald-400">Transparence Open Data (Open311)</Link></li>

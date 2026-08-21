@@ -55,9 +55,9 @@ Civic Signal est une application citoyenne de signalement et de suivi des probl�
 | Utilisateur | Rôle dans l'application |
 |---|---|
 | **Citoyens** | Signalent, confirment, suivent les problèmes de leur quartier |
-| **CIE** (électricité) | Reçoit les alertes consolidées par commune |
-| **SODECI** (eau) | Reçoit les alertes consolidées par commune |
-| **Mairies** | Reçoivent les signalements de voirie, lampadaires, infrastructure |
+| **CIE** (électricité & éclairage) | Reçoit les alertes de coupures de courant et pannes de lampadaires / poteaux |
+| **SODECI** (eau & assainissement) | Reçoit les alertes de coupures d'eau et fuites sur conduites publiques |
+| **Mairies** | Reçoivent les signalements de voirie (nids-de-poule), caniveaux, salubrité & suivi communal |
 | **Administrateurs** | Valident, modèrent, gèrent les relais et les statistiques |
 | **Partenaires/Institutions** | Accèdent aux données agrégées via le tableau de bord public |
 
@@ -65,17 +65,19 @@ Civic Signal est une application citoyenne de signalement et de suivi des probl�
 
 ## Les types de problèmes signalés
 
-### Coupures de services essentiels
-- **Coupure d'eau** (SODECI) — interruption de distribution
-- **Coupure d'électricité** (CIE) — interruption de courant
+### 1. Électricité & Éclairage Public (CIE & ANARE-CI)
+- **Coupure d'électricité** (secteur ou foyer) — interruption de courant
+- **Lampadaire cassé ou éclairage public éteint** — maintenance technique CIE
+- **Poteau électrique penché ou câble à terre** — danger public imminent
 
-### Problèmes d'infrastructure (voirie, mairie)
-- Nid-de-poule ou dégradation de chaussée
-- Lampadaire cassé ou éclairage public défaillant
-- Caniveau bouché ou inondation
-- Dépôt illégal d'ordures
-- Fuite d'eau sur la voie publique
-- Tout autre problème de voirie
+### 2. Eau Potable & Fuites (SODECI & ONEP)
+- **Coupure d'eau** — robinets à sec ou baisse critique de pression
+- **Fuite sur conduite publique** — gaspillage avant compteur
+
+### 3. Voirie & Cadre de Vie Communal (Mairies & Collectivités)
+- **Nid-de-poule ou dégradation de chaussée** — voirie locale
+- **Caniveau bouché ou stagnation d'eaux pluviales** — drainage de quartier
+- **Dépôt sauvage d'ordures** — salubrité publique et hygiène urbaine
 
 ---
 

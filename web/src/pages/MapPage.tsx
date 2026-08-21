@@ -859,7 +859,7 @@ const MapPage = () => {
             to="/infrastructures"
             className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-600/30 bg-emerald-500/10 hover:bg-emerald-500/20 px-3.5 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 transition-colors shadow-xs"
           >
-            <span>💡 Voirie & Lampadaires (Fil + Carte) ➔</span>
+            <span>💡 Voirie, Caniveaux &amp; Lampadaires ➔</span>
           </Link>
         </div>
 

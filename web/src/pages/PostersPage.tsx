@@ -49,7 +49,7 @@ const POSTER_THEMES = [
   },
   {
     id: "electricity",
-    label: "⚡ Électricité & Lampadaires (CIE / Mairie)",
+    label: "⚡ Électricité & Lampadaires (CIE)",
     headline: "Coupure de courant ou lampadaire éteint ?",
     subhead: "Flashez pour informer le quartier et lancer l'alerte !",
     icon: Zap,

@@ -52,15 +52,15 @@ interface InfraReport {
 
 const MUNICIPAL_TEAMS = [
   "Brigade Voirie & Enrobé (Nids-de-poule)",
-  "Équipe Éclairage Public (Lampadaires)",
+  "Liaison CIE Éclairage (Lampadaires)",
   "Équipe Curage & Caniveaux (Hydraulique)",
   "Régie Salubrité & Déchets Urbains",
   "Service Urbanisme & Sécurité Publique",
 ];
 
 const CATEGORY_MAP: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  lampadaire: { label: "Éclairage Public", icon: Lightbulb, color: "text-amber-500 bg-amber-500/10 border-amber-500/30" },
-  poteau: { label: "Poteau Électrique", icon: Lightbulb, color: "text-amber-600 bg-amber-600/10 border-amber-600/30" },
+  lampadaire: { label: "Éclairage Public (CIE)", icon: Lightbulb, color: "text-amber-500 bg-amber-500/10 border-amber-500/30" },
+  poteau: { label: "Poteau Électrique (CIE)", icon: Lightbulb, color: "text-amber-600 bg-amber-600/10 border-amber-600/30" },
   caniveau: { label: "Caniveau & Drainage", icon: Waves, color: "text-blue-500 bg-blue-500/10 border-blue-500/30" },
   voirie: { label: "Voirie & Chaussée", icon: Wrench, color: "text-teal-600 bg-teal-600/10 border-teal-600/30" },
   salubrite: { label: "Salubrité & Déchets", icon: Trash2, color: "text-emerald-600 bg-emerald-500/10 border-emerald-500/30" },
@@ -390,7 +390,7 @@ const MairieDashboardPage = () => {
               <Landmark className="h-4 w-4 text-primary" />
             </div>
             <div className="text-3xl font-black text-foreground mt-2">{stats.total}</div>
-            <p className="text-[11px] text-muted-foreground mt-1">Voirie, lampadaires &amp; salubrité</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Voirie, caniveaux, salubrité &amp; suivi CIE</p>
           </Card>
 
           <Card className="rounded-3xl border border-border shadow-sm p-5 bg-card">

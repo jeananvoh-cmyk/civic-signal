@@ -55,7 +55,7 @@ const PROBLEM_TYPES = [
     type: "street_light",
     iconImg: lampadaireIcon,
     label: "Lampadaires cassés",
-    desc: "Éclairage public hors service",
+    desc: "CIE Éclairage · Candélabres & ampoules",
     border: "border-orange-500/20 dark:border-orange-400/30",
     grad: "from-orange-500/10 to-yellow-500/5 dark:from-orange-500/15 dark:to-yellow-500/5",
     text: "text-orange-600 dark:text-orange-300",
