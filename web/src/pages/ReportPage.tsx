@@ -959,242 +959,249 @@ const ReportPage = () => {
               transition={{ duration: 0.2 }}
               className="space-y-4"
             >
-              <div className="text-center">
-                <h1 className="text-2xl font-bold">
-                  {activeCategoryFilter === "infrastructure"
-                    ? "Signaler une Panne d'Infrastructure & Voirie"
-                    : activeCategoryFilter === "outage"
-                    ? "Signaler une Coupure Réseau"
-                    : "Que se passe-t-il ?"}
-                </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {selectedType
-                    ? "Confirmez ensuite votre localisation"
-                    : activeCategoryFilter === "infrastructure"
-                    ? "Sélectionnez le problème d'infrastructure ou de voirie dans votre rue :"
-                    : "Touchez un type pour continuer"}
-                </p>
-              </div>
+              {/* ── Mode 1 : Sélection du type d'incident (Masqué dès qu'un choix est fait) ── */}
+              {!selectedType ? (
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <h1 className="text-2xl font-bold">
+                      {activeCategoryFilter === "infrastructure"
+                        ? "Signaler une Panne d'Infrastructure & Voirie"
+                        : activeCategoryFilter === "outage"
+                        ? "Signaler une Coupure Réseau"
+                        : "Que souhaitez-vous signaler ?"}
+                    </h1>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {activeCategoryFilter === "infrastructure"
+                        ? "Sélectionnez le problème d'infrastructure ou de voirie dans votre rue :"
+                        : "Touchez un incident pour démarrer votre signalement citoyen"}
+                    </p>
+                  </div>
 
-              {/* Bannière explicative Mode Infrastructure */}
-              {activeCategoryFilter === "infrastructure" && (
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-xl">🚧</span>
-                    <div>
-                      <p className="text-xs font-bold text-emerald-950 dark:text-emerald-200">
-                        Signalement d'Infrastructures Publiques
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        Les coupures privées à domicile sont masquées
+                  {/* Bannière explicative Mode Infrastructure */}
+                  {activeCategoryFilter === "infrastructure" && (
+                    <div className="flex items-center justify-between p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-xl">🚧</span>
+                        <div>
+                          <p className="text-xs font-bold text-emerald-950 dark:text-emerald-200">
+                            Signalement d'Infrastructures Publiques
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            Les coupures privées à domicile sont masquées
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveCategoryFilter("all")}
+                        className="text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:underline px-2.5 py-1 rounded-lg bg-emerald-500/15"
+                      >
+                        Afficher tout
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Grille des types — coupures réseau (Masquée en mode infrastructure) */}
+                  {activeCategoryFilter !== "infrastructure" && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Coupure de réseau (à domicile)</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        {REPORT_TYPES.filter((t) => t.reportCategory === "outage").map((type) => (
+                          <motion.button
+                            key={type.id}
+                            type="button"
+                            whileTap={{ scale: 0.94 }}
+                            onClick={() => handleTypeSelect(type)}
+                            className="group flex flex-col items-center gap-2.5 rounded-2xl border-2 p-5 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary bg-card"
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderColor = type.color;
+                              e.currentTarget.style.backgroundColor = type.color + hoverAlpha;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor = "";
+                              e.currentTarget.style.backgroundColor = "";
+                            }}
+                          >
+                            {type.image
+                              ? <img src={type.image} alt={type.label} className="h-10 w-10 object-contain rounded-lg" />
+                              : <span className="text-4xl leading-none">{type.emoji}</span>
+                            }
+                            <span className="text-xs font-semibold leading-tight text-foreground">{type.label}</span>
+                            {type.description && (
+                              <span className="text-xs leading-tight text-muted-foreground">{type.description}</span>
+                            )}
+                          </motion.button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Section Problème d'infrastructure par Opérateur */}
+                  {activeCategoryFilter !== "outage" && (
+                    <div className="space-y-4 pt-1">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Signalement d'infrastructure par opérateur</p>
+
+                      {/* --- CIE --- */}
+                      <div className="space-y-2 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded-md text-[11px] font-black tracking-wider bg-amber-500 text-white shadow-xs">CIE</span>
+                          <span className="text-xs font-bold text-amber-900 dark:text-amber-200">Électricité & Éclairage Public</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {REPORT_TYPES.filter((t) => t.operator === "CIE").map((type) => (
+                            <motion.button
+                              key={type.id}
+                              type="button"
+                              whileTap={{ scale: 0.94 }}
+                              onClick={() => handleTypeSelect(type)}
+                              className="group flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary bg-card"
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = type.color;
+                                e.currentTarget.style.backgroundColor = type.color + hoverAlpha;
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = "";
+                                e.currentTarget.style.backgroundColor = "";
+                              }}
+                            >
+                              {type.image
+                                ? <img src={type.image} alt={type.label} className="h-8 w-8 object-contain rounded-md" />
+                                : <span className="text-2xl leading-none">{type.emoji}</span>
+                              }
+                              <span className="text-xs font-bold leading-tight text-foreground">{type.label}</span>
+                              {type.description && (
+                                <span className="text-[11px] leading-tight text-muted-foreground line-clamp-2">{type.description}</span>
+                              )}
+                            </motion.button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* --- SODECI --- */}
+                      <div className="space-y-2 rounded-xl border border-sky-500/20 bg-sky-500/5 p-3">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded-md text-[11px] font-black tracking-wider bg-sky-600 text-white shadow-xs">SODECI</span>
+                          <span className="text-xs font-bold text-sky-900 dark:text-sky-200">Eau Potable & Assainissement</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {REPORT_TYPES.filter((t) => t.operator === "SODECI").map((type) => (
+                            <motion.button
+                              key={type.id}
+                              type="button"
+                              whileTap={{ scale: 0.94 }}
+                              onClick={() => handleTypeSelect(type)}
+                              className="group flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary bg-card"
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = type.color;
+                                e.currentTarget.style.backgroundColor = type.color + hoverAlpha;
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = "";
+                                e.currentTarget.style.backgroundColor = "";
+                              }}
+                            >
+                              {type.image
+                                ? <img src={type.image} alt={type.label} className="h-8 w-8 object-contain rounded-md" />
+                                : <span className="text-2xl leading-none">{type.emoji}</span>
+                              }
+                              <span className="text-xs font-bold leading-tight text-foreground">{type.label}</span>
+                              {type.description && (
+                                <span className="text-[11px] leading-tight text-muted-foreground line-clamp-2">{type.description}</span>
+                              )}
+                            </motion.button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* --- MAIRIE --- */}
+                      <div className="space-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded-md text-[11px] font-black tracking-wider bg-emerald-600 text-white shadow-xs">MAIRIE</span>
+                          <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">Voirie & Salubrité Municipale</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {REPORT_TYPES.filter((t) => t.operator === "MAIRIE").map((type) => (
+                            <motion.button
+                              key={type.id}
+                              type="button"
+                              whileTap={{ scale: 0.94 }}
+                              onClick={() => handleTypeSelect(type)}
+                              className="group flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary bg-card"
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = type.color;
+                                e.currentTarget.style.backgroundColor = type.color + hoverAlpha;
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = "";
+                                e.currentTarget.style.backgroundColor = "";
+                              }}
+                            >
+                              {type.image
+                                ? <img src={type.image} alt={type.label} className="h-8 w-8 object-contain rounded-md" />
+                                : <span className="text-2xl leading-none">{type.emoji}</span>
+                              }
+                              <span className="text-xs font-bold leading-tight text-foreground">{type.label}</span>
+                              {type.description && (
+                                <span className="text-[11px] leading-tight text-muted-foreground line-clamp-2">{type.description}</span>
+                              )}
+                            </motion.button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* ── Mode 2 : Incident sélectionné (Carte compacte & Formulaire Localisation PADA immédiat) ── */
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="rounded-2xl border-2 p-4 bg-card shadow-sm flex items-center justify-between gap-3"
+                  style={{
+                    borderColor: selectedType.color,
+                    backgroundColor: selectedType.color + "0D",
+                  }}
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-xs"
+                      style={{ backgroundColor: selectedType.color + "25" }}
+                    >
+                      {selectedType.image ? (
+                        <img src={selectedType.image} alt={selectedType.label} className="h-8 w-8 object-contain" />
+                      ) : (
+                        <span className="text-3xl leading-none">{selectedType.emoji}</span>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider text-white shadow-xs"
+                          style={{ backgroundColor: selectedType.color }}
+                        >
+                          {selectedType.operator || (selectedType.reportCategory === "outage" ? "Coupure Foyer" : "Voirie")}
+                        </span>
+                        <h2 className="font-bold text-base text-foreground truncate">{selectedType.label}</h2>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                        {selectedType.description || "Incident sélectionné"}
                       </p>
                     </div>
                   </div>
-                  <button
+
+                  <Button
                     type="button"
-                    onClick={() => setActiveCategoryFilter("all")}
-                    className="text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:underline px-2.5 py-1 rounded-lg bg-emerald-500/15"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedType(null)}
+                    className="shrink-0 h-9 text-xs font-bold hover:bg-muted/80 rounded-xl border-dashed border-2 transition-all hover:scale-105"
                   >
-                    Afficher tout
-                  </button>
-                </div>
+                    Changer de type ↺
+                  </Button>
+                </motion.div>
               )}
 
-              {/* Grille des types — coupures réseau (Masquée en mode infrastructure) */}
-              {activeCategoryFilter !== "infrastructure" && (
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Coupure de réseau (à domicile)</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {REPORT_TYPES.filter((t) => t.reportCategory === "outage").map((type) => {
-                      const isSelected = selectedType?.id === type.id;
-                      return (
-                        <motion.button
-                          key={type.id}
-                          type="button"
-                          whileTap={{ scale: 0.94 }}
-                          onClick={() => handleTypeSelect(type)}
-                          className="group flex flex-col items-center gap-2.5 rounded-2xl border-2 p-5 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                          style={{
-                            borderColor: isSelected ? type.color : undefined,
-                            backgroundColor: isSelected ? type.color + colorAlpha : undefined,
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!isSelected) {
-                              e.currentTarget.style.borderColor = type.color;
-                              e.currentTarget.style.backgroundColor = type.color + hoverAlpha;
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!isSelected) {
-                              e.currentTarget.style.borderColor = "";
-                              e.currentTarget.style.backgroundColor = "";
-                            }
-                          }}
-                        >
-                          {type.image
-                            ? <img src={type.image} alt={type.label} className="h-10 w-10 object-contain rounded-lg" />
-                            : <span className="text-4xl leading-none">{type.emoji}</span>
-                          }
-                          <span className="text-xs font-semibold leading-tight text-foreground">{type.label}</span>
-                          {type.description && (
-                            <span className="text-xs leading-tight text-muted-foreground">{type.description}</span>
-                          )}
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Section Problème d'infrastructure par Opérateur */}
-              {activeCategoryFilter !== "outage" && (
-                <div className="space-y-4 pt-1">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Signalement d'infrastructure par opérateur</p>
-
-                {/* --- CIE --- */}
-                <div className="space-y-2 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-md text-[11px] font-black tracking-wider bg-amber-500 text-white shadow-xs">CIE</span>
-                    <span className="text-xs font-bold text-amber-900 dark:text-amber-200">Électricité & Éclairage Public</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {REPORT_TYPES.filter((t) => t.operator === "CIE").map((type) => {
-                      const isSelected = selectedType?.id === type.id;
-                      return (
-                        <motion.button
-                          key={type.id}
-                          type="button"
-                          whileTap={{ scale: 0.94 }}
-                          onClick={() => handleTypeSelect(type)}
-                          className="group flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary bg-card"
-                          style={{
-                            borderColor: isSelected ? type.color : undefined,
-                            backgroundColor: isSelected ? type.color + colorAlpha : undefined,
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!isSelected) {
-                              e.currentTarget.style.borderColor = type.color;
-                              e.currentTarget.style.backgroundColor = type.color + hoverAlpha;
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!isSelected) {
-                              e.currentTarget.style.borderColor = "";
-                              e.currentTarget.style.backgroundColor = "";
-                            }
-                          }}
-                        >
-                          {type.image
-                            ? <img src={type.image} alt={type.label} className="h-8 w-8 object-contain rounded-md" />
-                            : <span className="text-2xl leading-none">{type.emoji}</span>
-                          }
-                          <span className="text-xs font-bold leading-tight text-foreground">{type.label}</span>
-                          {type.description && (
-                            <span className="text-[11px] leading-tight text-muted-foreground line-clamp-2">{type.description}</span>
-                          )}
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* --- SODECI --- */}
-                <div className="space-y-2 rounded-xl border border-sky-500/20 bg-sky-500/5 p-3">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-md text-[11px] font-black tracking-wider bg-sky-600 text-white shadow-xs">SODECI</span>
-                    <span className="text-xs font-bold text-sky-900 dark:text-sky-200">Eau Potable & Assainissement</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {REPORT_TYPES.filter((t) => t.operator === "SODECI").map((type) => {
-                      const isSelected = selectedType?.id === type.id;
-                      return (
-                        <motion.button
-                          key={type.id}
-                          type="button"
-                          whileTap={{ scale: 0.94 }}
-                          onClick={() => handleTypeSelect(type)}
-                          className="group flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary bg-card"
-                          style={{
-                            borderColor: isSelected ? type.color : undefined,
-                            backgroundColor: isSelected ? type.color + colorAlpha : undefined,
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!isSelected) {
-                              e.currentTarget.style.borderColor = type.color;
-                              e.currentTarget.style.backgroundColor = type.color + hoverAlpha;
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!isSelected) {
-                              e.currentTarget.style.borderColor = "";
-                              e.currentTarget.style.backgroundColor = "";
-                            }
-                          }}
-                        >
-                          {type.image
-                            ? <img src={type.image} alt={type.label} className="h-8 w-8 object-contain rounded-md" />
-                            : <span className="text-2xl leading-none">{type.emoji}</span>
-                          }
-                          <span className="text-xs font-bold leading-tight text-foreground">{type.label}</span>
-                          {type.description && (
-                            <span className="text-[11px] leading-tight text-muted-foreground line-clamp-2">{type.description}</span>
-                          )}
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* --- MAIRIE --- */}
-                <div className="space-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-md text-[11px] font-black tracking-wider bg-emerald-600 text-white shadow-xs">MAIRIE</span>
-                    <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">Voirie & Salubrité Municipale</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {REPORT_TYPES.filter((t) => t.operator === "MAIRIE").map((type) => {
-                      const isSelected = selectedType?.id === type.id;
-                      return (
-                        <motion.button
-                          key={type.id}
-                          type="button"
-                          whileTap={{ scale: 0.94 }}
-                          onClick={() => handleTypeSelect(type)}
-                          className="group flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary bg-card"
-                          style={{
-                            borderColor: isSelected ? type.color : undefined,
-                            backgroundColor: isSelected ? type.color + colorAlpha : undefined,
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!isSelected) {
-                              e.currentTarget.style.borderColor = type.color;
-                              e.currentTarget.style.backgroundColor = type.color + hoverAlpha;
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!isSelected) {
-                              e.currentTarget.style.borderColor = "";
-                              e.currentTarget.style.backgroundColor = "";
-                            }
-                          }}
-                        >
-                          {type.image
-                            ? <img src={type.image} alt={type.label} className="h-8 w-8 object-contain rounded-md" />
-                            : <span className="text-2xl leading-none">{type.emoji}</span>
-                          }
-                          <span className="text-xs font-bold leading-tight text-foreground">{type.label}</span>
-                          {type.description && (
-                            <span className="text-[11px] leading-tight text-muted-foreground line-clamp-2">{type.description}</span>
-                          )}
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-              )}
-
-              {/* Section localisation — visible après sélection du type */}
+              {/* Section localisation & Adressage PADA — visible après sélection du type */}
               <AnimatePresence>
                 {selectedType && (
                   <motion.div
@@ -1203,23 +1210,19 @@ const ReportPage = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 8 }}
                     transition={{ duration: 0.25 }}
-                    className="space-y-4 pt-2"
+                    className="space-y-4 pt-1"
                   >
-                    {/* Séparateur + label */}
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1 h-px bg-border" />
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
-                        <span
-                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
-                          style={{ backgroundColor: selectedType.color + "20" }}
-                        >
-                          {selectedType.image
-                            ? <img src={selectedType.image} alt="" className="h-4 w-4 object-contain" />
-                            : <span className="text-base leading-none">{selectedType.emoji}</span>}
-                        </span>
-                        <span>{selectedType.label} — où ?</span>
+                    {/* En-tête Localisation & PADA */}
+                    <div className="flex items-center justify-between pb-1">
+                      <div>
+                        <h3 className="font-bold text-base text-foreground flex items-center gap-1.5">
+                          <span>Localisation & Adressage Officiel PADA</span>
+                          <span>🇨🇮</span>
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Confirmez votre position pour orienter l'intervention technique
+                        </p>
                       </div>
-                      <div className="flex-1 h-px bg-border" />
                     </div>
 
                     {/* Champ libre si "Autre" */}
