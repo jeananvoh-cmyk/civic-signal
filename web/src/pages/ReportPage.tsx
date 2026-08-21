@@ -779,13 +779,18 @@ const ReportPage = () => {
         selectedType.id === "other" && customTypeDesc ? customTypeDesc : selectedType.label;
       const baseDesc = description || selectedType.defaultDesc(commune);
       const fullBaseDesc = `[${typeLabel}] ${baseDesc}`;
+      const isInfra = selectedType.reportCategory === "infrastructure";
       const vulnParts: string[] = [];
-      if (babies > 0) vulnParts.push(`${babies} bébé(s)`);
-      if (pregnant > 0) vulnParts.push(`${pregnant} femme(s) enceinte(s)`);
-      if (elderly > 0) vulnParts.push(`${elderly} personne(s) âgée(s)`);
-      const impactInfo = `[${impactedPeople} personne(s)${vulnParts.length ? ` dont ${vulnParts.join(", ")}` : ""}]`;
-      const fullDesc = `${fullBaseDesc} ${impactInfo}`.slice(0, 600);
-      const hasVulnerable = babies > 0 || pregnant > 0 || elderly > 0;
+      if (!isInfra) {
+        if (babies > 0) vulnParts.push(`${babies} bébé(s)`);
+        if (pregnant > 0) vulnParts.push(`${pregnant} femme(s) enceinte(s)`);
+        if (elderly > 0) vulnParts.push(`${elderly} personne(s) âgée(s)`);
+      }
+      const impactInfo = !isInfra
+        ? ` [${impactedPeople} personne(s)${vulnParts.length ? ` dont ${vulnParts.join(", ")}` : ""}]`
+        : "";
+      const fullDesc = `${fullBaseDesc}${impactInfo}`.slice(0, 600);
+      const hasVulnerable = !isInfra && (babies > 0 || pregnant > 0 || elderly > 0);
 
       const canonicalQuartier = normalizeQuartier(resolvedQuartier, commune);
       const effectiveQuartierName =
@@ -810,10 +815,10 @@ const ReportPage = () => {
         start_time: reportStartTime,
         photo_url: photoUrls[0] || null,
         photo_urls: photoUrls.length > 0 ? photoUrls : null,
-        impacted_people: impactedPeople,
-        babies,
-        pregnant,
-        elderly,
+        impacted_people: isInfra ? null : impactedPeople,
+        babies: isInfra ? 0 : babies,
+        pregnant: isInfra ? 0 : pregnant,
+        elderly: isInfra ? 0 : elderly,
         meter_number: meterNumber || null,
         ...(selectedType.id === "electricity_outage" || selectedType.id === "water_outage"
           ? { contract_type: contractType || null }

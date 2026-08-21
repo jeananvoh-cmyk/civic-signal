@@ -468,12 +468,15 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
         ? _customQuartierController.text.trim()
         : normalizeQuartier(_selectedQuartier, _selectedCommune);
 
-    final hasVulnerable = _babies > 0 || _pregnant > 0 || _elderly > 0;
+    final isInfra = _selectedType!.reportCategory == 'infrastructure';
+    final hasVulnerable = !isInfra && (_babies > 0 || _pregnant > 0 || _elderly > 0);
     final defaultDesc = _selectedType!.defaultDesc(_selectedCommune);
     final desc = _descriptionController.text.trim().isNotEmpty ? _descriptionController.text.trim() : defaultDesc;
 
     final padaInfo = _padaAddress?.formattedAddress != null ? ' [PADA : ${_padaAddress!.formattedAddress}]' : '';
-    final fullDesc = '[${_selectedType!.label}] $desc [$_impactedPeople personne(s)${_babies > 0 ? ", $_babies bébé(s)" : ""}${_pregnant > 0 ? ", $_pregnant femme(s) enceinte(s)" : ""}${_elderly > 0 ? ", $_elderly aîné(s)" : ""}]$padaInfo';
+    final fullDesc = isInfra
+        ? '[${_selectedType!.label}] $desc$padaInfo'
+        : '[${_selectedType!.label}] $desc [$_impactedPeople personne(s)${_babies > 0 ? ", $_babies bébé(s)" : ""}${_pregnant > 0 ? ", $_pregnant femme(s) enceinte(s)" : ""}${_elderly > 0 ? ", $_elderly aîné(s)" : ""}]$padaInfo';
 
     final Map<String, dynamic> payload = {
       'user_id': user.id,
@@ -489,10 +492,10 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
       'start_time': reportStartTime,
       'photo_url': null,
       'photo_urls': null,
-      'impacted_people': _impactedPeople,
-      'babies': _babies,
-      'pregnant': _pregnant,
-      'elderly': _elderly,
+      'impacted_people': isInfra ? null : _impactedPeople,
+      'babies': isInfra ? 0 : _babies,
+      'pregnant': isInfra ? 0 : _pregnant,
+      'elderly': isInfra ? 0 : _elderly,
       'meter_number': _meterNumberController.text.trim().isNotEmpty ? _meterNumberController.text.trim() : null,
       if (_selectedType!.id.contains('outage')) 'contract_type': _contractType,
     };
@@ -525,25 +528,43 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
         _showSuccessDialog(res['id'] as String, effectiveQuartier, ticketCode);
       }
     } catch (e) {
-      try {
-        await OfflineQueueService.enqueueReport(
-          payload,
-          localPhotoPath: _selectedPhotos.isNotEmpty ? _selectedPhotos.first.path : null,
-        );
-        if (mounted) {
-          HapticFeedback.mediumImpact();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('📶 Enregistré Hors-Ligne ! Votre signalement sera transmis automatiquement dès le retour du réseau.'),
-              backgroundColor: Color(0xFFD97706),
-              duration: Duration(seconds: 4),
-            ),
+      // Vérifier s'il s'agit d'une réelle coupure de connectivité vs une erreur serveur/SQL
+      final isNetworkError = e is SocketException ||
+          e is HttpException ||
+          e.toString().toLowerCase().contains('socket') ||
+          e.toString().toLowerCase().contains('network') ||
+          e.toString().toLowerCase().contains('connection') ||
+          e.toString().toLowerCase().contains('failed host lookup');
+
+      if (isNetworkError) {
+        try {
+          await OfflineQueueService.enqueueReport(
+            payload,
+            localPhotoPath: _selectedPhotos.isNotEmpty ? _selectedPhotos.first.path : null,
           );
-          Navigator.pop(context);
+          if (mounted) {
+            HapticFeedback.mediumImpact();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('📶 Enregistré Hors-Ligne ! Votre signalement sera transmis automatiquement dès le retour du réseau.'),
+                backgroundColor: Color(0xFFD97706),
+                duration: Duration(seconds: 4),
+              ),
+            );
+            Navigator.pop(context);
+          }
+        } catch (_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red));
+          }
         }
-      } catch (_) {
+      } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Erreur lors de l\'envoi: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 6),
+          ));
         }
       }
     } finally {
@@ -1055,29 +1076,31 @@ class _CreateReportScreenState extends ConsumerState<CreateReportScreen> {
             const SizedBox(height: 16),
           ],
 
-          // 4. PERSONNES IMPACTÉES & VULNÉRABILITÉS (Exact Web)
-          Text('Personnes impactées & Urgences', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+          // 4. PERSONNES IMPACTÉES & VULNÉRABILITÉS (Coupures uniquement)
+          if (_selectedType?.reportCategory == 'outage') ...[
+            Text('Personnes impactées & Urgences', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                children: [
+                  _buildCounterRow('Nombre total de personnes', _impactedPeople, (v) => setState(() => _impactedPeople = v.clamp(1, 100)), icon: LucideIcons.users),
+                  const Divider(height: 20),
+                  _buildCounterRow('Bébés / Nourrissons (< 2 ans)', _babies, (v) => setState(() => _babies = v.clamp(0, 20)), icon: LucideIcons.baby),
+                  const Divider(height: 20),
+                  _buildCounterRow('Femmes enceintes', _pregnant, (v) => setState(() => _pregnant = v.clamp(0, 10)), icon: LucideIcons.heart),
+                  const Divider(height: 20),
+                  _buildCounterRow('Personnes âgées / Vulnérables', _elderly, (v) => setState(() => _elderly = v.clamp(0, 20)), icon: LucideIcons.userCheck),
+                ],
+              ),
             ),
-            child: Column(
-              children: [
-                _buildCounterRow('Nombre total de personnes', _impactedPeople, (v) => setState(() => _impactedPeople = v.clamp(1, 100)), icon: LucideIcons.users),
-                const Divider(height: 20),
-                _buildCounterRow('Bébés / Nourrissons (< 2 ans)', _babies, (v) => setState(() => _babies = v.clamp(0, 20)), icon: LucideIcons.baby),
-                const Divider(height: 20),
-                _buildCounterRow('Femmes enceintes', _pregnant, (v) => setState(() => _pregnant = v.clamp(0, 10)), icon: LucideIcons.heart),
-                const Divider(height: 20),
-                _buildCounterRow('Personnes âgées / Vulnérables', _elderly, (v) => setState(() => _elderly = v.clamp(0, 20)), icon: LucideIcons.userCheck),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
+          ],
 
           // 5. PHOTOS (Obligatoire pour voirie/infrastructure)
           Text('Photos justificatives ${_selectedType?.reportCategory == "infrastructure" ? "(Obligatoire)" : "(Optionnel)"}', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),

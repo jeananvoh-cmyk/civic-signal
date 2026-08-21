@@ -6,7 +6,7 @@ import {
   ArrowLeft, Zap, Droplets, MapPin, Calendar, CheckCircle2,
   Clock, Users, AlertTriangle, ExternalLink, Loader2, Shield, ThumbsUp,
   LogIn, UserPlus, Wrench, PartyPopper, Radio, AlertOctagon,
-  Ticket, Landmark, Copy, Check
+  Ticket, Landmark, Copy, Check, Pencil, X, Save
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -134,6 +134,48 @@ const ReportDetailPage = () => {
   });
 
   const [statusHistory, setStatusHistory] = useState<any[]>([]);
+  const [isEditingDesc, setIsEditingDesc] = useState(false);
+  const [editDescValue, setEditDescValue] = useState("");
+  const [isSavingDesc, setIsSavingDesc] = useState(false);
+
+  const handleStartEditDesc = () => {
+    if (!report) return;
+    setEditDescValue(report.description);
+    setIsEditingDesc(true);
+  };
+
+  const handleSaveDescription = async () => {
+    if (!report || !editDescValue.trim()) return;
+    if (editDescValue.trim().length < 5) {
+      toast.error("La description doit comporter au moins 5 caractères");
+      return;
+    }
+    setIsSavingDesc(true);
+    try {
+      const { error } = await supabase
+        .from("reports")
+        .update({ description: editDescValue.trim(), updated_at: new Date().toISOString() } as any)
+        .eq("id", report.id);
+
+      if (error) {
+        const { error: rpcError } = await supabase.rpc("update_report_description", {
+          p_report_id: report.id,
+          p_description: editDescValue.trim(),
+        });
+        if (rpcError) throw rpcError;
+      }
+
+      setReport((prev) => (prev ? { ...prev, description: editDescValue.trim() } : prev));
+      setIsEditingDesc(false);
+      toast.success("Description mise à jour avec succès !");
+    } catch (err: any) {
+      toast.error("Impossible de modifier la description", {
+        description: err?.message || "Erreur de mise à jour",
+      });
+    } finally {
+      setIsSavingDesc(false);
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -595,8 +637,55 @@ const ReportDetailPage = () => {
 
                 {/* Description */}
                 <div className="space-y-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Description</span>
-                  <p className="text-sm text-foreground leading-relaxed">{isInfra ? cleanDescription(report.description) : report.description}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Description</span>
+                    {user && report.user_id === user.id && report.status === "active" && !isEditingDesc && (
+                      <button
+                        type="button"
+                        onClick={handleStartEditDesc}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                      >
+                        <Pencil className="h-3 w-3" />
+                        <span>Modifier</span>
+                      </button>
+                    )}
+                  </div>
+                  {isEditingDesc ? (
+                    <div className="space-y-2 pt-1">
+                      <textarea
+                        value={editDescValue}
+                        onChange={(e) => setEditDescValue(e.target.value)}
+                        rows={3}
+                        maxLength={600}
+                        className="w-full rounded-xl border-2 border-primary/40 bg-background p-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="Précisez les détails ou l'évolution de votre signalement..."
+                      />
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setIsEditingDesc(false)}
+                          disabled={isSavingDesc}
+                        >
+                          <X className="h-3.5 w-3.5 mr-1" /> Annuler
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={handleSaveDescription}
+                          disabled={isSavingDesc || editDescValue.trim().length < 5}
+                        >
+                          {isSavingDesc ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                          ) : (
+                            <Save className="h-3.5 w-3.5 mr-1" />
+                          )}
+                          Enregistrer
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-foreground leading-relaxed">{isInfra ? cleanDescription(report.description) : report.description}</p>
+                  )}
                 </div>
 
                 {/* Tags */}
@@ -631,7 +720,7 @@ const ReportDetailPage = () => {
                     <Users className="h-3.5 w-3.5" />
                     {report.verifications} {isInfra ? `soutien${report.verifications !== 1 ? "s" : ""}` : `confirmation${report.verifications !== 1 ? "s" : ""}`}
                   </span>
-                  {report.impacted_people > 1 && (
+                  {!isInfra && report.impacted_people > 1 && (
                     <span className="flex items-center gap-1.5">
                       <Users className="h-3.5 w-3.5" />
                       ~{report.impacted_people} personnes
@@ -648,7 +737,7 @@ const ReportDetailPage = () => {
                 </div>
 
                 {/* Personnes vulnérables */}
-                {hasVulnerable && (
+                {!isInfra && hasVulnerable && (
                   <div className="rounded-xl bg-warning/10 border border-warning/20 px-3.5 py-2.5 text-xs text-warning space-y-0.5">
                     <p className="font-semibold">Personnes vulnérables signalées</p>
                     <div className="flex gap-3 flex-wrap">

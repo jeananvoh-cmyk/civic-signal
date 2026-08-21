@@ -342,32 +342,36 @@ export function calculatePriority(input: PriorityInput): PriorityResult {
     }
   }
 
-  // 2. Vulnerability score (Sphère Handbook)
-  const babies = input.babies ?? 0;
-  const pregnant = input.pregnant ?? 0;
-  const elderly = input.elderly ?? 0;
-  if (babies > 0) {
-    const pts = Math.min(babies * VULNERABILITY.babies.ptsEach, 24);
-    rawScore += pts;
-    factors.push(`${babies} nourrisson(s) (+${pts}pts)`);
-  }
-  if (pregnant > 0) {
-    const pts = Math.min(pregnant * VULNERABILITY.pregnant.ptsEach, 16);
-    rawScore += pts;
-    factors.push(`${pregnant} femme(s) enceinte(s) (+${pts}pts)`);
-  }
-  if (elderly > 0) {
-    const pts = Math.min(elderly * VULNERABILITY.elderly.ptsEach, 15);
-    rawScore += pts;
-    factors.push(`${elderly} personne(s) âgée(s) (+${pts}pts)`);
-  }
+  const isInfra = input.report_category === "infrastructure";
 
-  // 3. Impact scale
-  const impacted = input.impacted_people ?? 1;
-  const imp = impactPoints(impacted);
-  if (imp.pts > 0) {
-    rawScore += imp.pts;
-    factors.push(imp.label);
+  // 2. Vulnerability score (Sphère Handbook) — coupures / pannes uniquement
+  if (!isInfra) {
+    const babies = input.babies ?? 0;
+    const pregnant = input.pregnant ?? 0;
+    const elderly = input.elderly ?? 0;
+    if (babies > 0) {
+      const pts = Math.min(babies * VULNERABILITY.babies.ptsEach, 24);
+      rawScore += pts;
+      factors.push(`${babies} nourrisson(s) (+${pts}pts)`);
+    }
+    if (pregnant > 0) {
+      const pts = Math.min(pregnant * VULNERABILITY.pregnant.ptsEach, 16);
+      rawScore += pts;
+      factors.push(`${pregnant} femme(s) enceinte(s) (+${pts}pts)`);
+    }
+    if (elderly > 0) {
+      const pts = Math.min(elderly * VULNERABILITY.elderly.ptsEach, 15);
+      rawScore += pts;
+      factors.push(`${elderly} personne(s) âgée(s) (+${pts}pts)`);
+    }
+
+    // 3. Impact scale
+    const impacted = input.impacted_people ?? 1;
+    const imp = impactPoints(impacted);
+    if (imp.pts > 0) {
+      rawScore += imp.pts;
+      factors.push(imp.label);
+    }
   }
 
   // 4. Verification bonus (fiabilité communautaire)

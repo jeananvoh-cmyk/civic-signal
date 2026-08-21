@@ -108,6 +108,83 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
     }
   }
 
+  Future<void> _editDescriptionDialog() async {
+    final controller = TextEditingController(text: _currentReport.description);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final updated = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        title: Text('Modifier la description', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Précisez les détails ou l\'évolution de votre signalement :', style: TextStyle(fontSize: 12, color: Colors.grey)),
+            const SizedBox(height: 10),
+            TextField(
+              controller: controller,
+              maxLines: 4,
+              maxLength: 600,
+              decoration: InputDecoration(
+                hintText: 'Description détaillée...',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryTeal,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              final text = controller.text.trim();
+              if (text.length >= 5) {
+                Navigator.pop(ctx, text);
+              }
+            },
+            child: const Text('Enregistrer'),
+          ),
+        ],
+      ),
+    );
+
+    if (updated != null && updated.isNotEmpty && mounted) {
+      try {
+        await Supabase.instance.client
+            .from('reports')
+            .update({'description': updated, 'updated_at': DateTime.now().toIso8601String()})
+            .eq('id', _currentReport.id);
+
+        setState(() {
+          _currentReport = _currentReport.copyWith(description: updated);
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✓ Description mise à jour avec succès !'),
+              backgroundColor: AppTheme.secondaryEmerald,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
+  }
+
   Future<void> _corroborate() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
@@ -370,6 +447,29 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
                     ),
                     const SizedBox(height: 12),
 
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Text('Description', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                        if (Supabase.instance.client.auth.currentUser?.id == _currentReport.userId && _currentReport.status == 'active')
+                          InkWell(
+                            onTap: _editDescriptionDialog,
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(LucideIcons.pencil, size: 12, color: AppTheme.primaryTeal),
+                                  SizedBox(width: 4),
+                                  Text('Modifier', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryTeal)),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
                     Text(_currentReport.description, style: const TextStyle(fontSize: 14, height: 1.4)),
                     const SizedBox(height: 14),
 
@@ -378,13 +478,15 @@ class _ReportDetailScreenState extends State<ReportDetailScreen> {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        _buildPill(LucideIcons.users, '${_currentReport.impactedPeople} impacté(s)', const Color(0xFF0284C7), const Color(0xFFE0F2FE)),
-                        if (_currentReport.babies > 0)
-                          _buildPill(LucideIcons.baby, '${_currentReport.babies} bébé(s)', const Color(0xFFDC2626), const Color(0xFFFEF2F2)),
-                        if (_currentReport.pregnant > 0)
-                          _buildPill(LucideIcons.heart, '${_currentReport.pregnant} enceinte(s)', const Color(0xFFEC4899), const Color(0xFFFDF2F8)),
-                        if (_currentReport.elderly > 0)
-                          _buildPill(LucideIcons.userCheck, '${_currentReport.elderly} aîné(s)', const Color(0xFF7C3AED), const Color(0xFFF5F3FF)),
+                        if (_currentReport.reportCategory == 'outage') ...[
+                          _buildPill(LucideIcons.users, '${_currentReport.impactedPeople} impacté(s)', const Color(0xFF0284C7), const Color(0xFFE0F2FE)),
+                          if (_currentReport.babies > 0)
+                            _buildPill(LucideIcons.baby, '${_currentReport.babies} bébé(s)', const Color(0xFFDC2626), const Color(0xFFFEF2F2)),
+                          if (_currentReport.pregnant > 0)
+                            _buildPill(LucideIcons.heart, '${_currentReport.pregnant} enceinte(s)', const Color(0xFFEC4899), const Color(0xFFFDF2F8)),
+                          if (_currentReport.elderly > 0)
+                            _buildPill(LucideIcons.userCheck, '${_currentReport.elderly} aîné(s)', const Color(0xFF7C3AED), const Color(0xFFF5F3FF)),
+                        ],
                         _buildPill(LucideIcons.checkCircle, '✓ ${_currentReport.supportCount} corroboration(s)', const Color(0xFF16A34A), const Color(0xFFF0FDF4)),
                       ],
                     ),
