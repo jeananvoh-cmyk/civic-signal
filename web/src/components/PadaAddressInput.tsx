@@ -142,8 +142,8 @@ export function PadaAddressInput({
       {/* En-tête PADA */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-600 text-white font-black text-[10px] shadow-xs">
-            🇨🇮
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-600 text-white shadow-xs">
+            <MapPin className="h-3.5 w-3.5" />
           </span>
           <div>
             <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">

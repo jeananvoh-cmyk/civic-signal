@@ -1217,7 +1217,6 @@ const ReportPage = () => {
                       <div>
                         <h3 className="font-bold text-base text-foreground flex items-center gap-1.5">
                           <span>Localisation & Adressage Officiel PADA</span>
-                          <span>🇨🇮</span>
                         </h3>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           Confirmez votre position pour orienter l'intervention technique
@@ -1253,7 +1252,7 @@ const ReportPage = () => {
                           <h4 className="text-base font-black text-foreground truncate">
                             {detectedCommune ? (
                               <>
-                                Vous êtes à <span className="text-emerald-600 dark:text-emerald-400">{detectedCommune.nom}</span> 🇨🇮
+                                Vous êtes à <span className="text-emerald-600 dark:text-emerald-400">{detectedCommune.nom}</span>
                               </>
                             ) : gpsLoading ? (
                               <span className="flex items-center gap-1.5 text-sm font-semibold">
@@ -1460,7 +1459,6 @@ const ReportPage = () => {
                     </p>
                     {padaAddress?.formattedAddress && (
                       <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 mt-1 flex items-center gap-1">
-                        <span>🇨🇮</span>
                         <span>{padaAddress.formattedAddress}</span>
                       </p>
                     )}
