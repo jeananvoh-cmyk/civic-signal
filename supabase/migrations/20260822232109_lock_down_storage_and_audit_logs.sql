@@ -1,0 +1,16 @@
+BEGIN;
+DROP POLICY IF EXISTS "Anon can view report photos" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can view report photos" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can upload report photos" ON storage.objects;
+DROP POLICY IF EXISTS "Only image uploads allowed" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete own report photos" ON storage.objects;
+CREATE POLICY "Users can view own report photos" ON storage.objects FOR SELECT TO authenticated USING (bucket_id='report-photos' AND (auth.uid())::text=(storage.foldername(name))[1]);
+CREATE POLICY "Admins can view all report photos" ON storage.objects FOR SELECT TO authenticated USING (bucket_id='report-photos' AND (has_role(auth.uid(),'admin'::app_role) OR has_role(auth.uid(),'moderator'::app_role)));
+CREATE POLICY "Users can upload own report photos" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id='report-photos' AND (auth.uid())::text=(storage.foldername(name))[1] AND lower(storage.extension(name))=ANY(ARRAY['jpg','jpeg','png','gif','webp','heic']));
+CREATE POLICY "Users can delete own report photos" ON storage.objects FOR DELETE TO authenticated USING (bucket_id='report-photos' AND (auth.uid())::text=(storage.foldername(name))[1]);
+DROP POLICY IF EXISTS "Public can read relay_logs" ON public.relay_logs;
+DROP POLICY IF EXISTS "Authenticated can insert relay_logs" ON public.relay_logs;
+DROP POLICY IF EXISTS "Authenticated can update relay_logs" ON public.relay_logs;
+DROP POLICY IF EXISTS "Authenticated can delete relay_logs" ON public.relay_logs;
+DROP POLICY IF EXISTS "Public status history is viewable by everyone" ON public.report_status_history;
+COMMIT;
