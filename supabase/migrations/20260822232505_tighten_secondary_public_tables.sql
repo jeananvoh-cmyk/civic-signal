@@ -1,0 +1,12 @@
+BEGIN;
+DROP POLICY IF EXISTS "Public can read relay_config" ON public.relay_config;
+DROP POLICY IF EXISTS "Public read for photo fingerprints" ON public.photo_fingerprints;
+DROP POLICY IF EXISTS "Anyone can read repair confirmations" ON public.repair_confirmations;
+DROP POLICY IF EXISTS "Public read repair_confirmations" ON public.repair_confirmations;
+DROP POLICY IF EXISTS "Admins can view all repair confirmations" ON public.repair_confirmations;
+CREATE POLICY "Users and admins can read repair confirmations" ON public.repair_confirmations FOR SELECT TO authenticated USING (user_id=auth.uid() OR has_role(auth.uid(),'admin'::app_role) OR has_role(auth.uid(),'moderator'::app_role));
+DROP POLICY IF EXISTS "Public can read comments" ON public.report_comments;
+CREATE POLICY "Public can read visible comments" ON public.report_comments FOR SELECT TO public USING (hidden=false);
+DROP POLICY IF EXISTS "Authenticated can insert comment" ON public.report_comments;
+CREATE POLICY "Authenticated can insert comment" ON public.report_comments FOR INSERT TO authenticated WITH CHECK (auth.uid()=user_id AND (SELECT count(*) FROM public.report_comments rc WHERE rc.report_id=report_comments.report_id AND rc.user_id=auth.uid()) < 5);
+COMMIT;
