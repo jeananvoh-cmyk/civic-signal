@@ -1,0 +1,13 @@
+BEGIN;
+DROP POLICY IF EXISTS "Public can read infrastructure reports" ON public.reports;
+DROP POLICY IF EXISTS "Deny anonymous access to reports" ON public.reports;
+CREATE POLICY "Public can read validated infrastructure reports" ON public.reports FOR SELECT TO anon USING (report_category='infrastructure' AND validated=true);
+DROP POLICY IF EXISTS "Partners can read relevant reports" ON public.reports;
+CREATE POLICY "Partners can read validated relevant reports" ON public.reports FOR SELECT TO authenticated USING (validated=true AND EXISTS (SELECT 1 FROM public.partner_profiles pp WHERE pp.user_id=auth.uid() AND ((pp.partner_type='cie' AND reports.service_type='electricity') OR (pp.partner_type='sodeci' AND reports.service_type='water') OR (pp.partner_type='mairie' AND reports.report_category='infrastructure' AND pp.commune=reports.commune) OR pp.partner_type IN ('ngo','other'))));
+DROP POLICY IF EXISTS "Authenticated users can create reports" ON public.reports;
+CREATE POLICY "Authenticated users can create reports" ON public.reports FOR INSERT TO authenticated WITH CHECK (auth.uid()=user_id);
+DROP POLICY IF EXISTS "Users can delete own reports" ON public.reports;
+CREATE POLICY "Users can delete own reports" ON public.reports FOR DELETE TO authenticated USING (auth.uid()=user_id);
+DROP POLICY IF EXISTS "Users can update own reports" ON public.reports;
+CREATE POLICY "Users can update own reports" ON public.reports FOR UPDATE TO authenticated USING (auth.uid()=user_id) WITH CHECK (auth.uid()=user_id);
+COMMIT;
