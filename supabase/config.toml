@@ -3,6 +3,15 @@ project_id = "uycoawpbchgznkdbznfc"
 [functions.report-reminders]
 verify_jwt = true
 
+[functions.weekly-report]
+verify_jwt = true
+
+[functions.extract-meter-info]
+verify_jwt = true
+
+[functions.notify-partner]
+verify_jwt = false
+
 [functions.reset-password]
 verify_jwt = false
 
