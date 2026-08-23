@@ -1,0 +1,3 @@
+-- This file documents production security migrations applied directly to Supabase on 2026-08-23.
+-- Source-of-truth SQL is kept in the two preceding migration files.
+-- No application data is modified by this migration.
