@@ -1,5 +1,6 @@
 name: CI Pipeline (Web & Flutter)
 
+# Security audit: PR validation is intentionally enabled for changes targeting main.
 on:
   push:
     branches: [ main, master ]
