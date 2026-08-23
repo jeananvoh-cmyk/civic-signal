@@ -161,7 +161,6 @@ const App = () => {
                     <Route path="/a-propos" element={<AboutPage />} />
                     <Route path="/confidentialite" element={<PrivacyPolicyPage />} />
                     <Route path="/cgu" element={<CguPage />} />
-                    <Route path="/cgu" element={<CguPage />} />
                     <Route path="/faire-un-don" element={<DonationPage />} />
                     <Route path="/dons" element={<DonationPage />} />
                     <Route path="/donations" element={<DonationPage />} />
