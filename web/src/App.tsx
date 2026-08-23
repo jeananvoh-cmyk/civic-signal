@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import RoleBasedDashboardRedirect from "@/components/RoleBasedDashboardRedirect";
 import AdminRoute from "@/components/AdminRoute";
 import ProfileCompletionNotifier from "@/components/ProfileCompletionNotifier";
 import PWAInstallBanner from "@/components/PWAInstallBanner";
@@ -98,15 +99,14 @@ const BrandPage = lazyWithRetry(() => import("./pages/BrandPage"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 2, // 2 minutes de mise en cache fluide
-      gcTime: 1000 * 60 * 10,   // 10 minutes de mémoire tampon
+      staleTime: 1000 * 60 * 2,
+      gcTime: 1000 * 60 * 10,
       retry: 1,
-      refetchOnWindowFocus: false, // Évite les saccades et surcharges lors du basculement d'onglets
+      refetchOnWindowFocus: false,
     },
   },
 });
 
-// Ensure official brand theme is active on startup
 localStorage.removeItem("signa_brand_theme");
 document.documentElement.classList.remove("theme-ivoire");
 
@@ -114,7 +114,6 @@ const App = () => {
   useEffect(() => {
     runAutoClosureCheck();
 
-    // Native Android Status Bar Styling
     try {
       StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
       StatusBar.setBackgroundColor({ color: "#0F172A" }).catch(() => {});
@@ -122,7 +121,6 @@ const App = () => {
       // Ignoré en environnement Web pur
     }
 
-    // Native Android Hardware Back Button Handler
     const backListener = CapApp.addListener("backButton", ({ canGoBack }) => {
       if (!canGoBack || window.location.pathname === "/" || window.location.pathname === "") {
         CapApp.minimizeApp();
@@ -154,7 +152,7 @@ const App = () => {
                     <Route path="/" element={<Index />} />
                     <Route path="/auth" element={<AuthPage />} />
                     <Route path="/signaler" element={<ReportPage />} />
-                    <Route path="/tableau-de-bord" element={<DashboardPage />} />
+                    <Route path="/tableau-de-bord" element={<RoleBasedDashboardRedirect><DashboardPage /></RoleBasedDashboardRedirect>} />
                     <Route path="/carte" element={<MapPage />} />
                     <Route path="/commune/:communeName" element={<CommuneDetailPage />} />
                     <Route path="/verification" element={<ProtectedRoute><VerificationPage /></ProtectedRoute>} />
@@ -162,6 +160,7 @@ const App = () => {
                     <Route path="/historique" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
                     <Route path="/a-propos" element={<AboutPage />} />
                     <Route path="/confidentialite" element={<PrivacyPolicyPage />} />
+                    <Route path="/cgu" element={<CguPage />} />
                     <Route path="/cgu" element={<CguPage />} />
                     <Route path="/faire-un-don" element={<DonationPage />} />
                     <Route path="/dons" element={<DonationPage />} />
@@ -178,7 +177,6 @@ const App = () => {
                     <Route path="/brand" element={<BrandPage />} />
                     <Route path="/logo" element={<BrandPage />} />
 
-                    {/* Admin routes */}
                     <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
                       <Route index element={<AdminOverviewPage />} />
                       <Route path="signalements" element={<AdminReportsPage />} />
@@ -200,7 +198,7 @@ const App = () => {
                       <Route path="relais" element={<AdminRelayPage />} />
                     </Route>
 
-                    <Route path="/partner/dashboard" element={<ProtectedRoute><PartnerDashboardPage /></ProtectedRoute>} />
+                    <Route path="/partner/dashboard" element={<ProtectedRoute requiredRole="partner"><PartnerDashboardPage /></ProtectedRoute>} />
                     <Route path="/partenaires" element={<PartnersPage />} />
                     <Route path="/partenaire" element={<RegulateursPage />} />
                     <Route path="/mairie" element={<MairieDashboardPage />} />
