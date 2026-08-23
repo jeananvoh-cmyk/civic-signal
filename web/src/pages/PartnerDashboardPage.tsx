@@ -33,24 +33,27 @@ interface PartnerProfile {
 
 interface Report {
   id: string;
-  user_id: string;
   ticket_code?: string | null;
   service_type: string;
   report_category: string;
   description: string;
+  location?: string | null;
+  pada_formatted_address?: string | null;
   commune: string;
   quartier: string;
   status: string;
   urgency: string;
-  verifications: number;
-  impacted_people: number;
+  verifications?: number;
   created_at: string;
-  resolved_at: string | null;
-  photo_url: string | null;
-  photo_urls: string[] | null;
+  updated_at?: string | null;
+  validated_at?: string | null;
+  resolved_at?: string | null;
   operator_reference?: string | null;
   estimated_resolution_time?: string | null;
   operator_last_note?: string | null;
+  cie_ticket_number?: string | null;
+  operator_name?: string | null;
+  support_count?: number;
 }
 
 interface OperatorTheme {
@@ -237,24 +240,25 @@ const PartnerDashboardPage = () => {
   const currentTheme = OPERATOR_THEMES[selectedOperatorId] || OPERATOR_THEMES.cie;
   const OperatorIcon = currentTheme.icon;
 
-  // Charger les signalements
+  // Charger les signalements via RPC sécurisé
   const { data: reports = [], isLoading: reportsLoading } = useQuery<Report[]>({
     queryKey: ["partner-reports", selectedOperatorId],
     queryFn: async () => {
-      let query = supabase
-        .from("reports")
-        .select("id, user_id, ticket_code, service_type, report_category, description, commune, quartier, status, urgency, verifications, impacted_people, created_at, resolved_at, photo_url, photo_urls, operator_reference, estimated_resolution_time, operator_last_note")
-        .order("created_at", { ascending: false })
-        .limit(200);
-
-      // Si CIE -> électricité, si SODECI -> eau, si Mairie -> infrastructure
-      if (currentTheme.defaultServiceFilter !== "all") {
-        query = query.eq("service_type", currentTheme.defaultServiceFilter);
-      }
-
-      const { data, error } = await query;
+      const { data, error } = await supabase.rpc("get_partner_reports");
       if (error) throw error;
-      return (data ?? []) as Report[];
+      
+      let reportsList = (data ?? []) as Report[];
+      
+      // Filtrage côté frontend par service (la RPC ne reçoit pas de paramètres)
+      if (currentTheme.defaultServiceFilter !== "all") {
+        reportsList = reportsList.filter(r => r.service_type === currentTheme.defaultServiceFilter);
+      }
+      
+      // Tri par date de création
+      reportsList.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      
+      // Limiter à 200 résultats
+      return reportsList.slice(0, 200);
     },
   });
 
@@ -357,7 +361,7 @@ const PartnerDashboardPage = () => {
       `"${currentTheme.slaHours}h"`,
       `"${r.resolved_at ? new Date(r.resolved_at).toLocaleDateString("fr-FR") : "–"}"`,
       `"${(r.operator_last_note || "").replace(/"/g, '""')}"`,
-      `"${r.verifications || 0}"`,
+      `"${r.support_count || 0}"`,
     ]);
 
     const csvContent = "\uFEFF" + [headers.join(";"), ...rows.map((row) => row.join(";"))].join("\r\n");
@@ -373,7 +377,7 @@ const PartnerDashboardPage = () => {
     toast.success(`Export CSV ${currentTheme.name} téléchargé avec succès !`);
   };
 
-  // ─── Guards ───────────────────────────────────────────────────────────────
+  // ─── Guards ─────────────────────────────────────────────────────────────────
 
   if (authLoading || roleLoading) {
     return (
@@ -386,7 +390,7 @@ const PartnerDashboardPage = () => {
   if (!user) return <Navigate to="/auth" replace />;
   if (isPartner === false) return <Navigate to="/" replace />;
 
-  // ─── Données KPIs ─────────────────────────────────────────────────────────
+  // ─── Données KPIs ───────────────────────────────────────────────────────────
 
   const active     = filteredReports.filter((r) => r.status === "active");
   const processing = filteredReports.filter((r) => r.status === "processing");
@@ -465,7 +469,7 @@ const PartnerDashboardPage = () => {
             </span>
             <span className="flex items-center gap-1">
               <Users className="h-3.5 w-3.5" />
-              {report.verifications} confirmation{report.verifications > 1 ? "s" : ""}
+              {(report.support_count ?? report.verifications ?? 0)} confirmation{((report.support_count ?? report.verifications ?? 0) > 1 ? "s" : "")}
             </span>
             <span className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />
