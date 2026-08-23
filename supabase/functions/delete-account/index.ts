@@ -6,111 +6,68 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Non authentifié" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!authHeader) return new Response(JSON.stringify({ error: "Non authentifié" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    // Client with user's JWT to verify identity
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) return new Response(JSON.stringify({ error: "Non authentifié" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const admin = createClient(supabaseUrl, serviceKey);
+    const { reason = "Non spécifié" } = await req.json().catch(() => ({}));
 
-    const { data: { user }, error: userError } = await userClient.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Non authentifié" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const userId = user.id;
-    const { reason } = await req.json();
-
-    // Admin client for privileged operations
-    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-
-    // 1. Delete user's photos from storage
-    const { data: reports } = await adminClient
-      .from("reports")
-      .select("photo_url")
-      .eq("user_id", userId)
-      .not("photo_url", "is", null);
-
-    if (reports) {
-      const photoPaths = reports
-        .map((r: { photo_url: string | null }) => r.photo_url)
-        .filter(Boolean)
-        .map((url: string) => {
-          // Extract path from full URL or path
-          const match = url.match(/report-photos\/(.+)/);
-          return match ? match[1] : null;
-        })
-        .filter((p): p is string => p !== null);
-
-      if (photoPaths.length > 0) {
-        await adminClient.storage.from("report-photos").remove(photoPaths);
+    // Storage is authoritative for photo cleanup: report.photo_urls may be stale/incomplete.
+    // User photos are stored under <user_id>/..., so remove every object in that prefix.
+    const photoPaths: string[] = [];
+    let offset = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data: objects, error: listError } = await admin.storage.from("report-photos").list(user.id, { limit: pageSize, offset });
+      if (listError) {
+        console.error("Storage listing failed:", listError.message);
+        break;
       }
+      if (!objects?.length) break;
+      for (const object of objects) {
+        if (object.name && !object.name.endsWith("/")) photoPaths.push(`${user.id}/${object.name}`);
+      }
+      if (objects.length < pageSize) break;
+      offset += objects.length;
+    }
+    if (photoPaths.length) {
+      const { error: removeError } = await admin.storage.from("report-photos").remove(photoPaths);
+      if (removeError) console.error("Photo cleanup failed:", removeError.message);
     }
 
-    // 2. Delete corroborations
-    await adminClient.from("corroborations").delete().eq("user_id", userId);
+    await admin.from("corroborations").delete().eq("user_id", user.id);
+    await admin.from("repair_confirmations").delete().eq("user_id", user.id);
+    await admin.from("notifications").delete().eq("user_id", user.id);
+    await admin.from("reports").delete().eq("user_id", user.id);
 
-    // 3. Delete repair confirmations
-    await adminClient.from("repair_confirmations").delete().eq("user_id", userId);
-
-    // 4. Delete notifications
-    await adminClient.from("notifications").delete().eq("user_id", userId);
-
-    // 5. Delete reports (cascades corroborations via report_id if any)
-    await adminClient.from("reports").delete().eq("user_id", userId);
-
-    // 6. Log the deletion
-    await adminClient.from("report_deletions").insert({
+    await admin.from("report_deletions").insert({
       report_id: "00000000-0000-0000-0000-000000000000",
-      user_id: userId,
-      reason: `[SUPPRESSION COMPTE] ${reason || "Non spécifié"}`,
+      user_id: user.id,
+      reason: `[SUPPRESSION COMPTE] ${String(reason).slice(0, 500)}`,
       service_type: "account",
       description: "Suppression complète du compte utilisateur",
     });
 
-    // 7. Delete profile
-    await adminClient.from("profiles").delete().eq("user_id", userId);
-
-    // 8. Delete user roles
-    await adminClient.from("user_roles").delete().eq("user_id", userId);
-
-    // 9. Delete the auth user
-    const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId);
+    await admin.from("profiles").delete().eq("user_id", user.id);
+    await admin.from("user_roles").delete().eq("user_id", user.id);
+    const { error: deleteError } = await admin.auth.admin.deleteUser(user.id);
     if (deleteError) {
-      console.error("Error deleting auth user:", deleteError);
-      return new Response(
-        JSON.stringify({ error: "Erreur lors de la suppression du compte" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.error("Error deleting auth user:", deleteError.message);
+      return new Response(JSON.stringify({ error: "Erreur lors de la suppression du compte" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    return new Response(
-      JSON.stringify({ success: true }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
     console.error("delete-account error:", err);
-    return new Response(
-      JSON.stringify({ error: "Erreur interne" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Erreur interne" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
