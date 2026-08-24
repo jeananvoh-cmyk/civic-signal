@@ -14,7 +14,7 @@ import {
 import { stagePhotoFingerprint, uploadPhotoArtifact } from "@/lib/photo-sync";
 
 const DB_NAME = "signa-ci-offline";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE = "reports";
 type QueueStatus = "pending" | "uploading" | "sent" | "failed";
 
@@ -42,6 +42,19 @@ function openDb(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains("photos")) {
         const photos = db.createObjectStore("photos", { keyPath: "key" });
         photos.createIndex("submissionId", "submissionId", { unique: false });
+      } else if (request.transaction) {
+        // Remove EXIF GPS that may have been persisted by DB_VERSION 2.
+        const photos = request.transaction.objectStore("photos");
+        photos.openCursor().onsuccess = (event) => {
+          const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
+          if (!cursor) return;
+          const value = cursor.value as Record<string, unknown>;
+          if ("exifGps" in value) {
+            delete value.exifGps;
+            cursor.update(value);
+          }
+          cursor.continue();
+        };
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -178,7 +191,7 @@ export function useOfflineQueue() {
               id: stored.id,
               blob: stored.blob,
               sha256: stored.sha256,
-              exifGps: stored.exifGps,
+              exifGps: null,
               storagePath: stored.storagePath,
             };
 
