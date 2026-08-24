@@ -76,6 +76,7 @@ class _CivicPhotoViewState extends State<CivicPhotoView> {
       if (_resolvedUrls.containsKey(path)) continue;
 
       if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+        // Legacy data compatibility. New uploads are private Storage paths.
         _resolvedUrls[path] = path;
       } else {
         try {
@@ -84,10 +85,8 @@ class _CivicPhotoViewState extends State<CivicPhotoView> {
               .createSignedUrl(path, 7200);
           _resolvedUrls[path] = res;
         } catch (_) {
-          final publicUrl = Supabase.instance.client.storage
-              .from(SupabaseConstants.photoBucket)
-              .getPublicUrl(path);
-          _resolvedUrls[path] = publicUrl;
+          // The bucket is private: never downgrade a failed signed URL to a public URL.
+          _resolvedUrls[path] = '';
         }
       }
     }
@@ -138,7 +137,6 @@ class _CivicPhotoViewState extends State<CivicPhotoView> {
       );
     }
 
-    // ── Single Photo (Responsive Edge-to-Edge with Cover & Zoom Icon) ──
     if (_effectivePaths.length == 1) {
       final url = _resolvedUrls[_effectivePaths[0]];
       if (url == null || url.isEmpty) return const SizedBox.shrink();
@@ -158,7 +156,6 @@ class _CivicPhotoViewState extends State<CivicPhotoView> {
                   errorBuilder: (_, _, _) => _buildFallback(),
                 ),
               ),
-              // Zoom Hint Button (1:1 Web)
               Positioned(
                 right: 8,
                 bottom: 8,
@@ -180,7 +177,6 @@ class _CivicPhotoViewState extends State<CivicPhotoView> {
       );
     }
 
-    // ── 2 Photos: Side-by-Side Responsive Grid (1:1 with Web PhotoGallery.tsx) ──
     if (_effectivePaths.length == 2) {
       final url0 = _resolvedUrls[_effectivePaths[0]];
       final url1 = _resolvedUrls[_effectivePaths[1]];
@@ -220,7 +216,6 @@ class _CivicPhotoViewState extends State<CivicPhotoView> {
       );
     }
 
-    // ── 3+ Photos: Responsive Carousel with Dot Navigation (1:1 with Web) ──
     return ClipRRect(
       borderRadius: radius,
       child: AspectRatio(
@@ -245,7 +240,6 @@ class _CivicPhotoViewState extends State<CivicPhotoView> {
                 );
               },
             ),
-            // Page Indicator badge (Top Right 1:1 Web)
             Positioned(
               top: 8,
               right: 8,
@@ -261,7 +255,6 @@ class _CivicPhotoViewState extends State<CivicPhotoView> {
                 ),
               ),
             ),
-            // Dots indicator (Bottom Center 1:1 Web)
             Positioned(
               bottom: 8,
               left: 0,
@@ -364,7 +357,6 @@ class _PhotoLightboxScreenState extends State<_PhotoLightboxScreen> {
               );
             },
           ),
-          // Exact date/time pill matching web PhotoGallery.tsx 1:1
           if (widget.reportDate != null)
             Builder(builder: (_) {
               final dateStr = ReportDisplayUtils.formatReportDateTime(widget.reportDate);
