@@ -2,7 +2,10 @@ import { supabase } from "@/integrations/supabase/client";
 import type { PhotoArtifact } from "@/lib/photo-artifact";
 
 export async function uploadPhotoArtifact(artifact: PhotoArtifact, userId: string, index = 0): Promise<string> {
-  const path = artifact.storagePath ?? `${userId}/${Date.now()}_${index}_${artifact.id}.jpg`;
+  // Keep the path deterministic across retries. If an offline upload succeeds
+  // but report insertion fails, the next flush must upsert the same object
+  // rather than creating a second Storage object from Date.now().
+  const path = artifact.storagePath ?? `${userId}/${artifact.id}.jpg`;
   const { error } = await supabase.storage.from("report-photos").upload(path, artifact.blob, {
     upsert: true,
     contentType: artifact.blob.type || "image/jpeg",
