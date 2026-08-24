@@ -31,7 +31,6 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Configuration serveur invalide" }, 500);
     }
 
-    // User-scoped client: preserves auth.uid() for the SECURITY DEFINER RPC.
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -52,13 +51,13 @@ Deno.serve(async (req) => {
         reason = body.reason.trim().slice(0, 500) || null;
       }
     } catch {
-      // Reason is optional; continue with the authenticated user.
+      // Reason is optional.
     }
 
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
     const userId = user.id;
 
-    // Capture the user's storage paths before the DB RPC removes the report rows.
+    // Capture storage paths before the DB RPC removes report rows.
     const { data: reports, error: reportsError } = await adminClient
       .from("reports")
       .select("photo_url")
@@ -74,15 +73,13 @@ Deno.serve(async (req) => {
       .map((report: { photo_url: string | null }) => report.photo_url)
       .filter((path): path is string => typeof path === "string" && path.length > 0)
       .map((path) => {
-        // Current rows store paths such as <userId>/<timestamp>.jpg.
-        // Also accept legacy absolute/public URLs containing report-photos/.
         const marker = "report-photos/";
         const markerIndex = path.indexOf(marker);
         return markerIndex >= 0 ? path.slice(markerIndex + marker.length) : path;
       });
 
-    // The current storage layout is <userId>/<filename>. Listing the user's
-    // folder makes cleanup retryable even after reports have been deleted.
+    // Current storage layout is <userId>/<filename>. Listing the folder also
+    // lets a retry clean objects that survived a previous failed attempt.
     const { data: listedFiles, error: listError } = await adminClient.storage
       .from("report-photos")
       .list(userId, { limit: 1000 });
@@ -98,21 +95,9 @@ Deno.serve(async (req) => {
 
     const pathsToRemove = [...new Set([...photoPaths, ...listedPaths])];
 
-    // Remove storage objects before deleting the DB rows so we still have the
-    // complete set of paths if the DB operation fails and the request is retried.
-    if (pathsToRemove.length > 0) {
-      const { error: storageError } = await adminClient.storage
-        .from("report-photos")
-        .remove(pathsToRemove);
-
-      if (storageError) {
-        console.error("delete-account: storage cleanup failed", storageError);
-        return jsonResponse({ error: "Impossible de supprimer les fichiers du compte" }, 500);
-      }
-    }
-
-    // Centralized, authenticated deletion. The user-scoped client is intentional:
-    // delete_user_account_data() validates p_user_id against auth.uid().
+    // First delete application data through the authenticated SECURITY DEFINER
+    // RPC. If this succeeds but storage cleanup fails, a retry can still finish
+    // the cleanup because the storage paths were captured/listed independently.
     const { error: deletionError } = await userClient.rpc("delete_user_account_data", {
       p_user_id: userId,
       p_reason: reason,
@@ -123,8 +108,19 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Erreur lors de la suppression des données du compte" }, 500);
     }
 
-    // Auth deletion is deliberately last: the database RPC and storage cleanup
-    // must succeed before the identity itself is permanently removed.
+    if (pathsToRemove.length > 0) {
+      const { error: storageError } = await adminClient.storage
+        .from("report-photos")
+        .remove(pathsToRemove);
+
+      if (storageError) {
+        console.error("delete-account: storage cleanup failed", storageError);
+        return jsonResponse({ error: "Les données ont été supprimées, mais certains fichiers restent à nettoyer" }, 500);
+      }
+    }
+
+    // Auth deletion is deliberately last. If it fails, the authenticated user
+    // can retry the operation without reintroducing application data.
     const { error: authDeletionError } = await adminClient.auth.admin.deleteUser(userId);
     if (authDeletionError) {
       console.error("delete-account: auth user deletion failed", authDeletionError);
