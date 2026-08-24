@@ -16,7 +16,9 @@ export interface PhotoArtifact {
 }
 
 export async function sha256Blob(blob: Blob): Promise<string> {
-  const buffer = await blob.arrayBuffer();
+  // Response.arrayBuffer() is available in both browsers and the Vitest
+  // environment used by the project, unlike Blob.arrayBuffer() in older jsdom.
+  const buffer = await new Response(blob as BodyInit).arrayBuffer();
   const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
   const bytes = new Uint8Array(hashBuffer);
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
