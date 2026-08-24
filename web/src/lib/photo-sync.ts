@@ -18,5 +18,11 @@ export async function stagePhotoFingerprint(storagePath: string, userId: string,
     user_id: userId,
     hash: sha256,
   });
-  if (error) throw error;
+
+  // A retry of the same submission may stage the same fingerprint again.
+  // Treat a PostgreSQL unique-constraint conflict as already staged so the
+  // queue remains idempotent across reconnects and repeated flush attempts.
+  if (error && !String((error as { code?: unknown }).code ?? "").includes("23505")) {
+    throw error;
+  }
 }
