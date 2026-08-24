@@ -77,13 +77,20 @@ async function deleteQueueEntry(id: string): Promise<void> {
   });
 }
 
-function isDuplicateSubmission(error: unknown): boolean {
-  return Boolean(error && typeof error === "object" && "code" in error && String((error as { code?: unknown }).code).includes("23505"));
-}
-
 function getPayloadString(payload: Record<string, unknown>, key: string): string | null {
   const value = payload[key];
   return typeof value === "string" && value.trim() ? value : null;
+}
+
+async function isDuplicateSubmission(error: unknown, clientSubmissionId: string): Promise<boolean> {
+  const { data, error: lookupError } = await supabase
+    .from("reports")
+    .select("id, client_submission_id")
+    .eq("client_submission_id", clientSubmissionId)
+    .maybeSingle();
+
+  if (lookupError) return false;
+  return Boolean(data?.client_submission_id === clientSubmissionId);
 }
 
 export function useOfflineQueue() {
@@ -102,8 +109,6 @@ export function useOfflineQueue() {
     photoArtifacts: PhotoArtifact[] = [],
   ) => {
     const now = new Date().toISOString();
-    // Reuse a caller-provided idempotency key when available so the report
-    // metadata and its photo artifacts share one stable submission identity.
     const client_submission_id = getPayloadString(payload, "client_submission_id") ?? crypto.randomUUID();
     const photoGroupId = getPayloadString(payload, "offline_photo_group_id");
     const entry: QueuedReport = {
@@ -116,9 +121,6 @@ export function useOfflineQueue() {
       payload: { ...payload, client_submission_id },
     };
 
-    // The report and its photo blobs are linked by the same idempotency key.
-    // A photo group id is also accepted so PhotoUpload can persist artifacts
-    // before ReportPage creates the queue entry.
     await putQueueEntry(entry);
     if (photoArtifacts.length > 0) {
       await storePhotoArtifacts(client_submission_id, photoArtifacts);
@@ -194,7 +196,11 @@ export function useOfflineQueue() {
           delete payload.offline_photo_group_id;
 
           const { error } = await supabase.from("reports").insert(payload as any);
-          if (error && !isDuplicateSubmission(error)) throw error;
+          if (error) {
+            if (!(String(error.code) === "23505" && await isDuplicateSubmission(error, item.client_submission_id))) {
+              throw error;
+            }
+          }
 
           await putQueueEntry({
             ...uploading,
