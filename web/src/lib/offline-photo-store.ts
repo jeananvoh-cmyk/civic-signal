@@ -12,7 +12,7 @@ export interface StoredPhotoArtifact {
 
 const DB_NAME = "signa-ci-offline";
 const STORE = "photos";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 function openPhotoDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -27,6 +27,19 @@ function openPhotoDb(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(STORE)) {
         const photos = db.createObjectStore(STORE, { keyPath: "key" });
         photos.createIndex("submissionId", "submissionId", { unique: false });
+      } else if (request.transaction) {
+        // Remove EXIF GPS that may have been persisted by DB_VERSION 2.
+        const store = request.transaction.objectStore(STORE);
+        store.openCursor().onsuccess = (event) => {
+          const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
+          if (!cursor) return;
+          const value = cursor.value as Record<string, unknown>;
+          if ("exifGps" in value) {
+            delete value.exifGps;
+            cursor.update(value);
+          }
+          cursor.continue();
+        };
       }
     };
     request.onsuccess = () => resolve(request.result);
