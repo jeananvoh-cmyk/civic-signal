@@ -173,8 +173,7 @@ export function useOfflineQueue() {
             throw new Error("Utilisateur requis pour synchroniser les photos du signalement");
           }
 
-          for (let index = 0; index < storedArtifacts.length; index++) {
-            const stored = storedArtifacts[index];
+          for (const stored of storedArtifacts) {
             const artifact: PhotoArtifact = {
               id: stored.id,
               blob: stored.blob,
@@ -183,7 +182,7 @@ export function useOfflineQueue() {
               storagePath: stored.storagePath,
             };
 
-            const storagePath = await uploadPhotoArtifact(artifact, userId!, index);
+            const storagePath = await uploadPhotoArtifact(artifact, userId!);
             await stagePhotoFingerprint(storagePath, userId!, artifact.sha256);
             uploadedPaths.push(storagePath);
           }
