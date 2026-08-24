@@ -12,6 +12,7 @@ import { MAX_PHOTOS } from "@/lib/constants";
 
 interface PhotoUploadProps {
   onPhotosChanged: (urls: string[]) => void;
+  onPhotoHashesChanged?: (hashes: Record<string, string>) => void;
   onGpsFromPhoto?: (lat: number, lng: number) => void;
   photoUrls: string[];
   isInfrastructure?: boolean;
@@ -22,8 +23,8 @@ const MAX_OUTPUT_PX = 1920;
 const JPEG_QUALITY_HIGH = 0.90;
 const JPEG_QUALITY_LOW  = 0.82;
 
-// ── Calcul d'empreinte SHA-256 (Anti-Recyclage / Anti-Google Images) ──────────
-export async function computeImageHash(file: File): Promise<string> {
+// SHA-256 du blob effectivement conservé dans Storage.
+export async function computeImageHash(file: Blob): Promise<string> {
   try {
     const buffer = await file.arrayBuffer();
     const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
@@ -34,7 +35,6 @@ export async function computeImageHash(file: File): Promise<string> {
   }
 }
 
-// ── Compression canvas adaptative ─────────────────────────────────────────────
 async function compressImage(file: File): Promise<Blob> {
   const quality = file.size > 1 * 1024 * 1024 ? JPEG_QUALITY_LOW : JPEG_QUALITY_HIGH;
 
@@ -85,7 +85,6 @@ async function compressImage(file: File): Promise<Blob> {
   });
 }
 
-// ── Extraction GPS EXIF ───────────────────────────────────────────────────────
 async function extractExifGps(file: File): Promise<{ lat: number; lng: number } | null> {
   try {
     const gps = await exifr.gps(file);
@@ -99,34 +98,31 @@ async function extractExifGps(file: File): Promise<{ lat: number; lng: number } 
   return null;
 }
 
-// ── Upload d'un fichier avec fallback si compression échoue ───────────────────
-async function uploadFile(file: File, userId: string, index: number): Promise<string> {
+type UploadedPhoto = { path: string; hash: string };
+
+// La photo originale n'est jamais utilisée comme fallback : elle peut contenir
+// des métadonnées EXIF et son MIME peut être refusé par le bucket privé.
+async function uploadFile(file: File, userId: string, index: number): Promise<UploadedPhoto> {
   let blob: Blob;
-  let contentType = "image/jpeg";
-  let ext = "jpg";
 
   try {
     blob = await compressImage(file);
   } catch {
-    // HEIC ou format canvas non supporté → upload original
-    blob = file;
-    const ALLOWED_TYPES = new Set(["image/jpeg","image/png","image/webp","image/heic","image/heif","image/gif"])
-    contentType = ALLOWED_TYPES.has(file.type) ? file.type : "application/octet-stream";
-    const ALLOWED_EXTS = new Set(["jpg","jpeg","png","webp","heic","heif","gif"])
-    const rawExt = file.name.split(".").pop()?.toLowerCase() ?? ""
-    ext = ALLOWED_EXTS.has(rawExt) ? rawExt : "bin";
+    throw new Error("Cette photo ne peut pas être normalisée en JPEG sur cet appareil. Choisissez une autre photo.");
   }
 
-  const path = `${userId}/${Date.now()}_${index}.${ext}`;
+  const hash = await computeImageHash(blob);
+  if (!hash) throw new Error("Impossible de calculer l'empreinte de la photo");
+
+  const path = `${userId}/${Date.now()}_${index}.jpg`;
   const { error } = await supabase.storage
     .from("report-photos")
-    .upload(path, blob, { upsert: true, contentType });
+    .upload(path, blob, { upsert: true, contentType: "image/jpeg" });
 
   if (error) throw error;
-  return path;
+  return { path, hash };
 }
 
-// ── Sous-composant : vignette d'une photo uploadée ────────────────────────────
 function PhotoThumb({ path, onRemove }: { path: string; onRemove: () => void }) {
   const displayUrl = useSignedUrl(path);
   return (
@@ -150,9 +146,9 @@ function PhotoThumb({ path, onRemove }: { path: string; onRemove: () => void }) 
   );
 }
 
-// ── Composant principal ────────────────────────────────────────────────────────
 const PhotoUpload = ({
   onPhotosChanged,
+  onPhotoHashesChanged,
   onGpsFromPhoto,
   photoUrls,
   isInfrastructure = false,
@@ -179,7 +175,6 @@ const PhotoUpload = ({
     }
 
     setUploading(true);
-
     let exifExtracted = false;
 
     const uploadPromises = toProcess.map(async (file, i) => {
@@ -187,9 +182,8 @@ const PhotoUpload = ({
         throw new Error(`"${file.name}" n'est pas une image valide`);
       }
 
-      const [exifGps, photoHash, path] = await Promise.all([
+      const [exifGps, uploaded] = await Promise.all([
         extractExifGps(file),
-        computeImageHash(file),
         uploadFile(file, user.id, i),
       ]);
 
@@ -203,14 +197,17 @@ const PhotoUpload = ({
         });
       }
 
-      return path;
+      return uploaded;
     });
 
     const results = await Promise.allSettled(uploadPromises);
     const addedUrls: string[] = [];
+    const addedHashes: Record<string, string> = {};
+
     results.forEach((r, idx) => {
       if (r.status === "fulfilled") {
-        addedUrls.push(r.value);
+        addedUrls.push(r.value.path);
+        addedHashes[r.value.path] = r.value.hash;
       } else {
         toast.error(getUserFriendlyError(r.reason, `Erreur photo ${idx + 1}`));
       }
@@ -219,6 +216,7 @@ const PhotoUpload = ({
     if (addedUrls.length > 0) {
       const allUrls = [...photoUrls, ...addedUrls];
       onPhotosChanged(allUrls);
+      onPhotoHashesChanged?.(addedHashes);
       toast.success(
         addedUrls.length === 1 ? "Photo ajoutée !" : `${addedUrls.length} photos ajoutées simultanément !`,
         { description: `${allUrls.length}/${MAX_PHOTOS} au total` },
@@ -235,8 +233,12 @@ const PhotoUpload = ({
   };
 
   const removePhoto = (index: number) => {
+    const removedPath = photoUrls[index];
     const newUrls = photoUrls.filter((_, i) => i !== index);
     onPhotosChanged(newUrls);
+    if (removedPath) {
+      onPhotoHashesChanged?.({ [removedPath]: "" });
+    }
     if (newUrls.length === 0) setGpsSource(null);
   };
 
@@ -244,202 +246,76 @@ const PhotoUpload = ({
 
   return (
     <div className="space-y-3">
-      {/* Inputs cachés */}
-      <input
-        ref={galleryRef}
-        type="file"
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={handleFileChange}
-      />
-      <input
-        ref={cameraRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={handleFileChange}
-      />
+      <input ref={galleryRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileChange} />
+      <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
 
-      {/* Grille de photos + boutons d'ajout */}
       {(photoUrls.length > 0 || uploading) && (
         <div className="space-y-2.5">
           <div className="flex items-center justify-between text-xs font-semibold text-foreground px-0.5">
             <span>Photos du signalement ({photoUrls.length}/{MAX_PHOTOS})</span>
-            {canAddMore && (
-              <span className="text-[11px] text-muted-foreground font-normal">
-                Encore {MAX_PHOTOS - photoUrls.length} photo(s) possible(s)
-              </span>
-            )}
+            {canAddMore && <span className="text-[11px] text-muted-foreground font-normal">Encore {MAX_PHOTOS - photoUrls.length} photo(s) possible(s)</span>}
           </div>
 
           <div className={`grid gap-2 ${photoUrls.length >= 2 ? "grid-cols-3" : "grid-cols-2"}`}>
-            {photoUrls.map((url, i) => (
-              <PhotoThumb key={url} path={url} onRemove={() => removePhoto(i)} />
-            ))}
+            {photoUrls.map((url, i) => <PhotoThumb key={url} path={url} onRemove={() => removePhoto(i)} />)}
 
             {canAddMore && !uploading && (
               <div className="col-span-1 border-2 border-dashed border-border rounded-xl p-1.5 flex flex-col justify-center gap-1 bg-muted/20">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => cameraRef.current?.click()}
-                  className="h-7 text-[10px] font-semibold justify-start gap-1 px-1.5 hover:bg-primary/10 hover:text-primary text-foreground"
-                  title="Prendre une photo directe avec l'appareil photo"
-                >
-                  <Camera className="h-3.5 w-3.5 shrink-0 text-primary" />
-                  <span>Caméra</span>
+                <Button type="button" size="sm" variant="ghost" onClick={() => cameraRef.current?.click()} className="h-7 text-[10px] font-semibold justify-start gap-1 px-1.5 hover:bg-primary/10 hover:text-primary text-foreground" title="Prendre une photo directe avec l'appareil photo">
+                  <Camera className="h-3.5 w-3.5 shrink-0 text-primary" /><span>Caméra</span>
                 </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => galleryRef.current?.click()}
-                  className="h-7 text-[10px] font-semibold justify-start gap-1 px-1.5 hover:bg-blue-500/10 hover:text-blue-600 text-foreground"
-                  title="Sélectionner des photos dans la galerie"
-                >
-                  <ImageIcon className="h-3.5 w-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
-                  <span>Galerie</span>
+                <Button type="button" size="sm" variant="ghost" onClick={() => galleryRef.current?.click()} className="h-7 text-[10px] font-semibold justify-start gap-1 px-1.5 hover:bg-blue-500/10 hover:text-blue-600 text-foreground" title="Sélectionner des photos dans la galerie">
+                  <ImageIcon className="h-3.5 w-3.5 shrink-0 text-blue-600 dark:text-blue-400" /><span>Galerie</span>
                 </Button>
               </div>
             )}
 
-            {uploading && (
-              <div className="aspect-square rounded-xl border border-border flex flex-col items-center justify-center gap-1 bg-muted/30">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                <span className="text-[10px] text-muted-foreground font-medium">Chargement…</span>
-              </div>
-            )}
+            {uploading && <div className="aspect-square rounded-xl border border-border flex flex-col items-center justify-center gap-1 bg-muted/30"><Loader2 className="h-5 w-5 animate-spin text-primary" /><span className="text-[10px] text-muted-foreground font-medium">Chargement…</span></div>}
           </div>
 
           {gpsSource && photoUrls.length > 0 && (
-            <div
-              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium w-fit
-                ${gpsSource === "photo"
-                  ? "bg-emerald-600 text-white shadow-sm"
-                  : "bg-slate-700 text-white"}`}
-            >
+            <div className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium w-fit ${gpsSource === "photo" ? "bg-emerald-600 text-white shadow-sm" : "bg-slate-700 text-white"}`}>
               <MapPin className="h-3 w-3" />
-              {gpsSource === "photo"
-                ? "Position GPS extraite de la photo"
-                : "Position GPS de l'appareil"}
+              {gpsSource === "photo" ? "Position GPS extraite de la photo" : "Position GPS de l'appareil"}
             </div>
           )}
         </div>
       )}
 
-      {/* Boutons principaux — visibles uniquement si aucune photo encore */}
       {photoUrls.length === 0 && !uploading && (
         <div className="grid grid-cols-2 gap-2.5">
-          <Button
-            type="button"
-            variant="outline"
-            className="h-24 border-2 border-dashed border-primary/40 hover:border-primary hover:bg-primary/5 flex flex-col items-center justify-center gap-1.5 transition-all group"
-            onClick={() => cameraRef.current?.click()}
-          >
-            <div className="p-2 rounded-full bg-primary/10 text-primary group-hover:scale-110 transition-transform">
-              <Camera className="h-5 w-5" />
-            </div>
-            <div className="text-center">
-              <span className="text-xs font-bold text-foreground block">Prendre une photo</span>
-              <span className="text-[10px] text-muted-foreground">Appareil photo en direct</span>
-            </div>
+          <Button type="button" variant="outline" className="h-24 border-2 border-dashed border-primary/40 hover:border-primary hover:bg-primary/5 flex flex-col items-center justify-center gap-1.5 transition-all group" onClick={() => cameraRef.current?.click()}>
+            <div className="p-2 rounded-full bg-primary/10 text-primary group-hover:scale-110 transition-transform"><Camera className="h-5 w-5" /></div>
+            <div className="text-center"><span className="text-xs font-bold text-foreground block">Prendre une photo</span><span className="text-[10px] text-muted-foreground">Appareil photo en direct</span></div>
           </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            className="h-24 border-2 border-dashed border-blue-500/40 hover:border-blue-500 hover:bg-blue-500/5 flex flex-col items-center justify-center gap-1.5 transition-all group"
-            onClick={() => galleryRef.current?.click()}
-          >
-            <div className="p-2 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
-              <ImageIcon className="h-5 w-5" />
-            </div>
-            <div className="text-center">
-              <span className="text-xs font-bold text-foreground block">Depuis la galerie</span>
-              <span className="text-[10px] text-muted-foreground">Sélectionner (jusqu'à 3)</span>
-            </div>
+          <Button type="button" variant="outline" className="h-24 border-2 border-dashed border-blue-500/40 hover:border-blue-500 hover:bg-blue-500/5 flex flex-col items-center justify-center gap-1.5 transition-all group" onClick={() => galleryRef.current?.click()}>
+            <div className="p-2 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform"><ImageIcon className="h-5 w-5" /></div>
+            <div className="text-center"><span className="text-xs font-bold text-foreground block">Depuis la galerie</span><span className="text-[10px] text-muted-foreground">Sélectionner (jusqu'à 3)</span></div>
           </Button>
         </div>
       )}
 
-      {photoUrls.length === 0 && uploading && (
-        <div className="w-full h-20 border rounded-xl flex flex-col items-center justify-center gap-2 bg-muted/20">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <span className="text-xs text-muted-foreground font-medium">Compression et envoi des photos…</span>
-        </div>
-      )}
+      {photoUrls.length === 0 && uploading && <div className="w-full h-20 border rounded-xl flex flex-col items-center justify-center gap-2 bg-muted/20"><Loader2 className="h-6 w-6 animate-spin text-primary" /><span className="text-xs text-muted-foreground font-medium">Compression et envoi des photos…</span></div>}
 
-      <p className="text-xs text-muted-foreground">
-        📸 Appareil photo ou Galerie · JPG, PNG, HEIC, WEBP · Max {MAX_PHOTOS} photos
-      </p>
+      <p className="text-xs text-muted-foreground">📸 Appareil photo ou Galerie · JPG, PNG, HEIC, WEBP · Max {MAX_PHOTOS} photos</p>
 
-      {/* Recommandations photo — infrastructure uniquement */}
       {isInfrastructure && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 overflow-hidden">
-          <button
-            type="button"
-            aria-expanded={showTips}
-            aria-controls="photo-tips-content"
-            className="w-full flex items-center justify-between px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-            onClick={() => setShowTips((v) => !v)}
-          >
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
-              <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              Comment prendre une bonne photo de signalement ?
-            </span>
-            {showTips
-              ? <ChevronUp className="h-3.5 w-3.5 text-amber-600 shrink-0" aria-hidden="true" />
-              : <ChevronDown className="h-3.5 w-3.5 text-amber-600 shrink-0" aria-hidden="true" />}
+          <button type="button" aria-expanded={showTips} aria-controls="photo-tips-content" className="w-full flex items-center justify-between px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500" onClick={() => setShowTips((v) => !v)}>
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400"><AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />Comment prendre une bonne photo de signalement ?</span>
+            {showTips ? <ChevronUp className="h-3.5 w-3.5 text-amber-600 shrink-0" aria-hidden="true" /> : <ChevronDown className="h-3.5 w-3.5 text-amber-600 shrink-0" aria-hidden="true" />}
           </button>
-
           {showTips && (
             <div id="photo-tips-content" className="px-3 pb-3 space-y-3 border-t border-amber-500/20">
               <div className="pt-2 space-y-1.5">
-                <p className="text-[11px] font-bold text-green-700 dark:text-green-400 uppercase tracking-wide">
-                  À faire
-                </p>
-                {[
-                  "Prenez la photo directement sur place, au moment du constat",
-                  "Cadrez le problème entièrement (route, trottoir, infrastructure, etc.)",
-                  "Incluez un repère visible : panneau de rue, bâtiment, numéro de maison",
-                  "Prenez plusieurs angles si possible (jusqu'à 3 photos)",
-                  "Activez le GPS de votre téléphone avant de prendre la photo",
-                ].map((tip) => (
-                  <div key={tip} className="flex items-start gap-1.5">
-                    <CheckCircle2 className="h-3 w-3 text-green-600 shrink-0 mt-0.5" />
-                    <span className="text-[11px] text-muted-foreground leading-snug">{tip}</span>
-                  </div>
-                ))}
+                <p className="text-[11px] font-bold text-green-700 dark:text-green-400 uppercase tracking-wide">À faire</p>
+                {["Prenez la photo directement sur place, au moment du constat","Cadrez le problème entièrement (route, trottoir, infrastructure, etc.)","Incluez un repère visible : panneau de rue, bâtiment, numéro de maison","Prenez plusieurs angles si possible (jusqu'à 3 photos)","Activez le GPS de votre téléphone avant de prendre la photo"].map((tip) => <div key={tip} className="flex items-start gap-1.5"><CheckCircle2 className="h-3 w-3 text-green-600 shrink-0 mt-0.5" /><span className="text-[11px] text-muted-foreground leading-snug">{tip}</span></div>)}
               </div>
-
               <div className="space-y-1.5">
-                <p className="text-[11px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wide">
-                  À éviter
-                </p>
-                {[
-                  "Photos floues, trop sombres ou prises de trop loin",
-                  "Screenshots de Google Maps ou réseaux sociaux (pas de GPS réel)",
-                  "Photos reçues sur WhatsApp — WhatsApp supprime les coordonnées GPS",
-                  "Photos prises depuis chez vous montrant le problème au loin",
-                ].map((tip) => (
-                  <div key={tip} className="flex items-start gap-1.5">
-                    <XCircle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
-                    <span className="text-[11px] text-muted-foreground leading-snug">{tip}</span>
-                  </div>
-                ))}
+                <p className="text-[11px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wide">À éviter</p>
+                {["Photos floues, trop sombres ou prises de trop loin","Screenshots de Google Maps ou réseaux sociaux (pas de GPS réel)","Photos reçues sur WhatsApp — WhatsApp supprime les coordonnées GPS","Photos prises depuis chez vous montrant le problème au loin"].map((tip) => <div key={tip} className="flex items-start gap-1.5"><XCircle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" /><span className="text-[11px] text-muted-foreground leading-snug">{tip}</span></div>)}
               </div>
-
-              <div className="flex items-start gap-1.5 rounded-md bg-blue-500/10 border border-blue-500/20 p-2">
-                <MapPin className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
-                <p className="text-[11px] text-blue-700 dark:text-blue-400 leading-snug">
-                  Si votre <strong>première photo</strong> a été prise <strong>sur les lieux</strong>, ses coordonnées GPS
-                  seront extraites automatiquement et utilisées à la place du GPS de votre appareil —
-                  même si vous êtes rentrés chez vous depuis.
-                </p>
-              </div>
+              <div className="flex items-start gap-1.5 rounded-md bg-blue-500/10 border border-blue-500/20 p-2"><MapPin className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" /><p className="text-[11px] text-blue-700 dark:text-blue-400 leading-snug">Si votre <strong>première photo</strong> a été prise <strong>sur les lieux</strong>, ses coordonnées GPS seront extraites automatiquement et utilisées à la place du GPS de votre appareil — même si vous êtes rentrés chez vous depuis.</p></div>
             </div>
           )}
         </div>
