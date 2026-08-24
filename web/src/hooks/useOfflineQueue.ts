@@ -7,11 +7,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import type { PhotoArtifact } from "@/lib/photo-artifact";
+import { storePhotoArtifacts } from "@/lib/offline-photo-store";
 
 const DB_NAME = "signa-ci-offline";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE = "reports";
-
 type QueueStatus = "pending" | "uploading" | "sent" | "failed";
 
 export interface QueuedReport {
@@ -35,6 +36,10 @@ function openDb(): Promise<IDBDatabase> {
         const store = db.createObjectStore(STORE, { keyPath: "id" });
         store.createIndex("status", "status", { unique: false });
         store.createIndex("queued_at", "queued_at", { unique: false });
+      }
+      if (!db.objectStoreNames.contains("photos")) {
+        const photos = db.createObjectStore("photos", { keyPath: "key" });
+        photos.createIndex("submissionId", "submissionId", { unique: false });
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -81,7 +86,10 @@ export function useOfflineQueue() {
 
   useEffect(() => { void refreshQueue(); }, [refreshQueue]);
 
-  const enqueue = useCallback(async (payload: Record<string, unknown>) => {
+  const enqueue = useCallback(async (
+    payload: Record<string, unknown>,
+    photoArtifacts: PhotoArtifact[] = [],
+  ) => {
     const now = new Date().toISOString();
     const client_submission_id = crypto.randomUUID();
     const entry: QueuedReport = {
@@ -93,7 +101,12 @@ export function useOfflineQueue() {
       attempts: 0,
       payload: { ...payload, client_submission_id },
     };
+
+    // Persist the report metadata and the photo blobs together logically through
+    // the same client_submission_id. Photo blobs are kept in a dedicated store
+    // so the report queue stays small and retryable.
     await putQueueEntry(entry);
+    await storePhotoArtifacts(client_submission_id, photoArtifacts);
     await refreshQueue();
     return entry.id;
   }, [refreshQueue]);
