@@ -102,7 +102,9 @@ export function useOfflineQueue() {
     photoArtifacts: PhotoArtifact[] = [],
   ) => {
     const now = new Date().toISOString();
-    const client_submission_id = crypto.randomUUID();
+    // Reuse a caller-provided idempotency key when available so the report
+    // metadata and its photo artifacts share one stable submission identity.
+    const client_submission_id = getPayloadString(payload, "client_submission_id") ?? crypto.randomUUID();
     const photoGroupId = getPayloadString(payload, "offline_photo_group_id");
     const entry: QueuedReport = {
       id: `offline_${client_submission_id}`,
@@ -121,8 +123,6 @@ export function useOfflineQueue() {
     if (photoArtifacts.length > 0) {
       await storePhotoArtifacts(client_submission_id, photoArtifacts);
     } else if (photoGroupId && photoGroupId !== client_submission_id) {
-      // Keep the pre-queue photo group intact. The flush reads it by this id
-      // and removes it only after the report has been persisted successfully.
       entry.payload = { ...entry.payload, offline_photo_group_id: photoGroupId };
       await putQueueEntry(entry);
     }
