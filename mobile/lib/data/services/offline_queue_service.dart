@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 class PendingReportItem {
   final String localId;
@@ -88,21 +89,40 @@ class OfflineQueueService {
       try {
         final payload = Map<String, dynamic>.from(item.data);
 
-        // Si une photo locale existe, tenter de l'uploader
+        // If a local photo exists, normalize it to JPEG before upload.
         if (item.localPhotoPath != null && item.localPhotoPath!.isNotEmpty) {
           final file = File(item.localPhotoPath!);
           if (await file.exists()) {
-            final fileName = 'report_${DateTime.now().millisecondsSinceEpoch}.jpg';
-            final uploadRes = await Supabase.instance.client.storage
-                .from('report-photos')
-                .upload(fileName, file);
-            if (uploadRes.isNotEmpty) {
-              final publicUrl = Supabase.instance.client.storage
-                  .from('report-photos')
-                  .getPublicUrl(fileName);
-              payload['photo_url'] = publicUrl;
-              payload['photo_urls'] = [publicUrl];
+            final user = Supabase.instance.client.auth.currentUser;
+            if (user == null) throw const AuthException('Session expirée.');
+
+            // Transcode offline sources to JPEG with EXIF disabled. This also
+            // normalizes HEIC/HEIF sources before they reach Storage.
+            final compressed = await FlutterImageCompress.compressWithFile(
+              file.path,
+              minWidth: 1200,
+              minHeight: 1200,
+              quality: 80,
+              format: CompressFormat.jpeg,
+              keepExif: false,
+            );
+            if (compressed == null || compressed.isEmpty) {
+              throw const FormatException('Impossible de traiter la photo hors ligne.');
             }
+
+            final fileName = 'report_${DateTime.now().millisecondsSinceEpoch}.jpg';
+            final path = '${user.id}/$fileName';
+            await Supabase.instance.client.storage
+                .from('report-photos')
+                .uploadBinary(
+                  path,
+                  compressed,
+                  fileOptions: const FileOptions(contentType: 'image/jpeg'),
+                );
+
+            // Reports store the private Storage path, never a public URL.
+            payload['photo_url'] = path;
+            payload['photo_urls'] = [path];
           }
         }
 
