@@ -15,6 +15,10 @@ ALTER TABLE public.photo_fingerprint_pending ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.photo_fingerprint_pending FROM anon;
 REVOKE ALL ON TABLE public.photo_fingerprint_pending FROM authenticated;
 
+-- RLS policies do not grant table privileges by themselves. Authenticated users
+-- need INSERT privilege so the policy can enforce ownership of staged rows.
+GRANT INSERT ON TABLE public.photo_fingerprint_pending TO authenticated;
+
 DROP POLICY IF EXISTS "Users can stage their own photo fingerprints" ON public.photo_fingerprint_pending;
 CREATE POLICY "Users can stage their own photo fingerprints"
   ON public.photo_fingerprint_pending
