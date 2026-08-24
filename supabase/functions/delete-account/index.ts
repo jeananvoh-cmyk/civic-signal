@@ -11,6 +11,53 @@ const jsonResponse = (body: Record<string, unknown>, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+const normalizePhotoPath = (rawPath: string, userId: string): string | null => {
+  const path = rawPath.trim();
+  if (!path) return null;
+
+  const marker = "report-photos/";
+  const markerIndex = path.indexOf(marker);
+  if (markerIndex >= 0) {
+    const objectPath = path.slice(markerIndex + marker.length).replace(/^\/+/, "");
+    return objectPath || null;
+  }
+
+  if (path === userId || path.startsWith(`${userId}/`)) {
+    return path;
+  }
+
+  return null;
+};
+
+const listStoragePaths = async (
+  adminClient: ReturnType<typeof createClient>,
+  bucket: string,
+  prefix: string,
+): Promise<string[]> => {
+  const { data, error } = await adminClient.storage.from(bucket).list(prefix, {
+    limit: 1000,
+    offset: 0,
+  });
+
+  if (error) throw error;
+
+  const paths: string[] = [];
+  for (const entry of data ?? []) {
+    if (!entry.name) continue;
+    const path = prefix ? `${prefix}/${entry.name}` : entry.name;
+
+    // Files have metadata/id; folders returned by Storage generally do not.
+    // Recurse into folders so nested user objects cannot survive deletion.
+    if (entry.id || entry.metadata) {
+      paths.push(path);
+    } else {
+      paths.push(...await listStoragePaths(adminClient, bucket, path));
+    }
+  }
+
+  return paths;
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -72,32 +119,22 @@ Deno.serve(async (req) => {
     const photoPaths = (reports ?? [])
       .map((report: { photo_url: string | null }) => report.photo_url)
       .filter((path): path is string => typeof path === "string" && path.length > 0)
-      .map((path) => {
-        const marker = "report-photos/";
-        const markerIndex = path.indexOf(marker);
-        return markerIndex >= 0 ? path.slice(markerIndex + marker.length) : path;
-      });
+      .map((path) => normalizePhotoPath(path, userId))
+      .filter((path): path is string => path !== null);
 
-    // Current storage layout is <userId>/<filename>. Listing the folder also
-    // lets a retry clean objects that survived a previous failed attempt.
-    const { data: listedFiles, error: listError } = await adminClient.storage
-      .from("report-photos")
-      .list(userId, { limit: 1000 });
-
-    if (listError) {
-      console.error("delete-account: failed to list user storage", listError);
+    // Current storage layout is <userId>/<filename>. Recursively listing the
+    // user's prefix also lets a retry clean nested objects from a prior attempt.
+    let listedPaths: string[];
+    try {
+      listedPaths = await listStoragePaths(adminClient, "report-photos", userId);
+    } catch (error) {
+      console.error("delete-account: failed to list user storage", error);
       return jsonResponse({ error: "Impossible de préparer la suppression des fichiers" }, 500);
     }
 
-    const listedPaths = (listedFiles ?? [])
-      .filter((file) => file.name)
-      .map((file) => `${userId}/${file.name}`);
-
     const pathsToRemove = [...new Set([...photoPaths, ...listedPaths])];
 
-    // First delete application data through the authenticated SECURITY DEFINER
-    // RPC. If this succeeds but storage cleanup fails, a retry can still finish
-    // the cleanup because the storage paths were captured/listed independently.
+    // Delete application data through the authenticated SECURITY DEFINER RPC.
     const { error: deletionError } = await userClient.rpc("delete_user_account_data", {
       p_user_id: userId,
       p_reason: reason,
