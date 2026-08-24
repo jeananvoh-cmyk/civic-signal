@@ -33,21 +33,17 @@ interface PartnerProfile {
 
 interface Report {
   id: string;
-  user_id: string;
   ticket_code?: string | null;
   service_type: string;
   report_category: string;
   description: string;
-  commune: string;
-  quartier: string;
+  commune: string | null;
+  quartier: string | null;
   status: string;
   urgency: string;
   verifications: number;
-  impacted_people: number;
   created_at: string;
   resolved_at: string | null;
-  photo_url: string | null;
-  photo_urls: string[] | null;
   operator_reference?: string | null;
   estimated_resolution_time?: string | null;
   operator_last_note?: string | null;
@@ -224,38 +220,39 @@ const PartnerDashboardPage = () => {
     enabled: !!user && isPartner === true,
   });
 
-  // Détection du type opérateur (avec fallback CIE par défaut et sélecteur interactif)
-  const [selectedOperatorId, setSelectedOperatorId] = useState<string>("cie");
-
-  // Synchroniser avec le profil si disponible
-  useMemo(() => {
-    if (partnerProfile?.partner_type && OPERATOR_THEMES[partnerProfile.partner_type]) {
-      setSelectedOperatorId(partnerProfile.partner_type);
-    }
-  }, [partnerProfile]);
-
+  // Le périmètre opérateur vient exclusivement du profil partenaire.
+  const selectedOperatorId = partnerProfile?.partner_type && OPERATOR_THEMES[partnerProfile.partner_type]
+    ? partnerProfile.partner_type
+    : "cie";
   const currentTheme = OPERATOR_THEMES[selectedOperatorId] || OPERATOR_THEMES.cie;
   const OperatorIcon = currentTheme.icon;
+  const canManageTickets = selectedOperatorId !== "ngo";
 
-  // Charger les signalements
+  // Lecture exclusivement via la RPC à périmètre contrôlé.
   const { data: reports = [], isLoading: reportsLoading } = useQuery<Report[]>({
     queryKey: ["partner-reports", selectedOperatorId],
     queryFn: async () => {
-      let query = supabase
-        .from("reports")
-        .select("id, user_id, ticket_code, service_type, report_category, description, commune, quartier, status, urgency, verifications, impacted_people, created_at, resolved_at, photo_url, photo_urls, operator_reference, estimated_resolution_time, operator_last_note")
-        .order("created_at", { ascending: false })
-        .limit(200);
-
-      // Si CIE -> électricité, si SODECI -> eau, si Mairie -> infrastructure
-      if (currentTheme.defaultServiceFilter !== "all") {
-        query = query.eq("service_type", currentTheme.defaultServiceFilter);
-      }
-
-      const { data, error } = await query;
+      const { data, error } = await supabase.rpc("get_partner_reports");
       if (error) throw error;
-      return (data ?? []) as Report[];
+      return (data ?? []).map((r: any) => ({
+        id: r.id,
+        ticket_code: r.ticket_code,
+        service_type: r.service_type,
+        report_category: r.report_category,
+        description: r.description,
+        commune: r.commune,
+        quartier: r.quartier,
+        status: r.status,
+        urgency: r.urgency,
+        verifications: r.support_count ?? 0,
+        created_at: r.created_at,
+        resolved_at: r.resolved_at ?? null,
+        operator_reference: r.operator_reference,
+        estimated_resolution_time: r.estimated_resolution_time,
+        operator_last_note: r.operator_last_note,
+      })) as Report[];
     },
+    enabled: !!user && isPartner === true && !!partnerProfile,
   });
 
   // Filtrage combiné (recherche & commune)
@@ -302,13 +299,7 @@ const PartnerDashboardPage = () => {
         p_public_note: publicNote || null,
         p_estimated_resolution: etaDate,
       });
-      if (error) {
-        const { error: fallbackErr } = await supabase.rpc("partner_update_report_status", {
-          p_report_id: reportId,
-          p_status: status,
-        });
-        if (fallbackErr) throw fallbackErr;
-      }
+      if (error) throw error;
     },
     onSuccess: (_, { status }) => {
       queryClient.invalidateQueries({ queryKey: ["partner-reports"] });
@@ -350,69 +341,57 @@ const PartnerDashboardPage = () => {
       `"${r.ticket_code || "–"}"`,
       `"${r.operator_reference || "–"}"`,
       `"${r.service_type}"`,
-      `"${r.commune}"`,
+      `"${r.commune || "–"}"`,
       `"${r.quartier || "–"}"`,
       `"${(r.description || "").replace(/"/g, '""')}"`,
-      `"${r.status === "resolved" ? "Résolu" : r.status === "processing" ? "En cours" : "À traiter"}"`,
-      `"${currentTheme.slaHours}h"`,
+      `"${STATUS_LABELS[r.status]?.label || r.status}"`,
+      `"${currentTheme.slaHours}"`,
       `"${r.resolved_at ? new Date(r.resolved_at).toLocaleDateString("fr-FR") : "–"}"`,
       `"${(r.operator_last_note || "").replace(/"/g, '""')}"`,
       `"${r.verifications || 0}"`,
     ]);
 
-    const csvContent = "\uFEFF" + [headers.join(";"), ...rows.map((row) => row.join(";"))].join("\r\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Rapport_${currentTheme.name}_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
+    link.href = url;
+    link.download = `SIGNA_${currentTheme.name}_${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
-    document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    toast.success(`Export CSV ${currentTheme.name} téléchargé avec succès !`);
   };
 
-  // ─── Guards ───────────────────────────────────────────────────────────────
-
-  if (authLoading || roleLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (!user) return <Navigate to="/auth" replace />;
-  if (isPartner === false) return <Navigate to="/" replace />;
-
-  // ─── Données KPIs ─────────────────────────────────────────────────────────
-
-  const active     = filteredReports.filter((r) => r.status === "active");
-  const processing = filteredReports.filter((r) => r.status === "processing");
-  const resolved   = filteredReports.filter((r) => r.status === "resolved");
-
-  const resolutionRate = filteredReports.length > 0
-    ? Math.round((resolved.length / filteredReports.length) * 100)
-    : 0;
-
-  const avgResolutionHours = (() => {
+  // KPIs opérateur
+  const resolved = useMemo(() => reports.filter((r) => r.status === "resolved"), [reports]);
+  const active = useMemo(() => reports.filter((r) => r.status === "active"), [reports]);
+  const processing = useMemo(() => reports.filter((r) => r.status === "processing"), [reports]);
+  const resolutionRate = reports.length ? Math.round((resolved.length / reports.length) * 100) : 0;
+  const avgResolutionHours = useMemo(() => {
     const withTime = resolved.filter((r) => r.resolved_at);
     if (!withTime.length) return null;
-    const avg = withTime.reduce((sum, r) => {
-      return sum + (new Date(r.resolved_at!).getTime() - new Date(r.created_at).getTime());
-    }, 0) / withTime.length;
-    const h = avg / 3_600_000;
-    return h < 24 ? `${Math.round(h)} h` : `${Math.round(h / 24)} j`;
-  })();
+    const avg = withTime.reduce((sum, r) => sum + (new Date(r.resolved_at!).getTime() - new Date(r.created_at).getTime()) / 3600000, 0) / withTime.length;
+    return `${avg.toFixed(1)} h`;
+  }, [resolved]);
+  const slaCompliance = useMemo(() => {
+    const withTime = resolved.filter((r) => r.resolved_at);
+    if (!withTime.length) return 0;
+    return Math.round((withTime.filter((r) => ((new Date(r.resolved_at!).getTime() - new Date(r.created_at).getTime()) / 3600000) <= currentTheme.slaHours).length / withTime.length) * 100);
+  }, [resolved, currentTheme.slaHours]);
+  const uniqueCommunes = useMemo(() => Array.from(new Set(reports.map((r) => r.commune).filter(Boolean))) as string[], [reports]);
 
-  const handleActionConfirm = async () => {
-    if (!actionDialog) return;
+  const openActionDialog = (report: Report, newStatus: string) => {
+    if (!canManageTickets) return;
+    setActionDialog({ report, newStatus });
+    setActionOperatorRef(report.operator_reference || `OT-${currentTheme.name}-${Math.floor(1000 + Math.random() * 9000)}`);
+    setActionComment(newStatus === "resolved" ? "Intervention technique terminée et service rétabli avec succès." : "");
+  };
+
+  const submitAction = async () => {
+    if (!actionDialog || !canManageTickets) return;
     const { report, newStatus } = actionDialog;
-    const etaNum = actionEtaHours ? parseInt(actionEtaHours, 10) : undefined;
+    const etaNum = Number(actionEtaHours);
     await updateStatusMutation.mutateAsync({
       reportId: report.id,
-      ticketCode: report.ticket_code,
       status: newStatus,
       operatorRef: actionOperatorRef.trim() || undefined,
       publicNote: actionComment.trim() || undefined,
@@ -461,7 +440,7 @@ const PartnerDashboardPage = () => {
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1 font-semibold text-foreground">
               <MapPin className="h-3.5 w-3.5 text-primary" />
-              {report.quartier ? `${report.quartier}, ` : ""}{report.commune}
+              {report.quartier ? `${report.quartier}, ` : ""}{report.commune || "–"}
             </span>
             <span className="flex items-center gap-1">
               <Users className="h-3.5 w-3.5" />
@@ -481,7 +460,7 @@ const PartnerDashboardPage = () => {
           {/* Ticket & Référence interne */}
           <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-border/60">
             <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-lg">
-              <Ticket className="h-3 w-3" /> {report.ticket_code || `SIG-${report.commune.slice(0,3).toUpperCase()}-${report.id.slice(0,4).toUpperCase()}`}
+              <Ticket className="h-3 w-3" /> {report.ticket_code || `SIG-${(report.commune || "CI").slice(0,3).toUpperCase()}-${report.id.slice(0,4).toUpperCase()}`}
             </span>
             {report.operator_reference && (
               <span className="inline-flex items-center text-[11px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-lg border border-border">
@@ -497,7 +476,7 @@ const PartnerDashboardPage = () => {
 
           {/* Boutons d'Action Opérateur */}
           <div className="flex gap-2 pt-2 flex-wrap items-center justify-between">
-            <div className="flex gap-2 flex-wrap">
+            {canManageTickets && <div className="flex gap-2 flex-wrap">
               {report.status === "active" && (
                 <Button
                   size="sm"
@@ -541,7 +520,7 @@ const PartnerDashboardPage = () => {
                   <RefreshCw className="mr-1.5 h-3 w-3" /> Rouvrir le dossier
                 </Button>
               )}
-            </div>
+            </div>}
 
             <a
               href={`/signalement/${report.id}`}
@@ -558,6 +537,18 @@ const PartnerDashboardPage = () => {
   };
 
   // ─── Rendu Principal ──────────────────────────────────────────────────────────
+
+  if (authLoading || roleLoading || (isPartner && !partnerProfile)) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user || !isPartner) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -600,23 +591,15 @@ const PartnerDashboardPage = () => {
             <div className="flex flex-wrap items-center gap-3 shrink-0">
               <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-card border border-border shadow-sm">
                 <span className="text-[11px] font-bold text-muted-foreground px-2">Vue :</span>
-                <Select value={selectedOperatorId} onValueChange={setSelectedOperatorId}>
+                <Select value={selectedOperatorId} disabled>
                   <SelectTrigger className="h-9 w-[180px] rounded-xl border-none font-bold text-xs bg-muted/50">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cie" className="text-xs font-bold text-amber-600">
-                      ⚡ CIE (Électricité)
-                    </SelectItem>
-                    <SelectItem value="sodeci" className="text-xs font-bold text-sky-600">
-                      💧 SODECI (Eau Potable)
-                    </SelectItem>
-                    <SelectItem value="mairie" className="text-xs font-bold text-emerald-600">
-                      🏛️ Mairie (Voirie / DST)
-                    </SelectItem>
-                    <SelectItem value="ngo" className="text-xs font-bold text-indigo-600">
-                      🤝 Observatoire Citoyen
-                    </SelectItem>
+                    <SelectItem value="cie" className="text-xs font-bold text-amber-600">⚡ CIE (Électricité)</SelectItem>
+                    <SelectItem value="sodeci" className="text-xs font-bold text-sky-600">💧 SODECI (Eau Potable)</SelectItem>
+                    <SelectItem value="mairie" className="text-xs font-bold text-emerald-600">🏛️ Mairie (Voirie / DST)</SelectItem>
+                    <SelectItem value="ngo" className="text-xs font-bold text-indigo-600">🤝 Observatoire Citoyen</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -669,174 +652,97 @@ const PartnerDashboardPage = () => {
               <Clock className="h-4 w-4 text-primary" />
             </div>
             <div className="text-3xl font-black text-foreground mt-2">{avgResolutionHours ?? "–"}</div>
-            <p className="text-[11px] text-muted-foreground mt-1">Cible légale : &lt; {currentTheme.slaHours}h</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Cible : &lt; {currentTheme.slaHours}h</p>
           </Card>
         </div>
 
-        {/* RECHERCHE & FILTRAGE COMMUNE */}
-        <div className="flex flex-col sm:flex-row items-center gap-3">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Rechercher par quartier, n° ticket, ordre de travail..."
-              className="pl-10 h-11 rounded-2xl border-border bg-card text-xs font-medium"
-            />
-          </div>
-          <Select value={communeFilter} onValueChange={setCommuneFilter}>
-            <SelectTrigger className="h-11 w-full sm:w-[200px] rounded-2xl border-border bg-card text-xs font-semibold">
-              <SelectValue placeholder="Toutes les communes" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Toutes les communes</SelectItem>
-              <SelectItem value="Cocody">Cocody</SelectItem>
-              <SelectItem value="Yopougon">Yopougon</SelectItem>
-              <SelectItem value="Abobo">Abobo</SelectItem>
-              <SelectItem value="Marcory">Marcory</SelectItem>
-              <SelectItem value="Plateau">Plateau</SelectItem>
-              <SelectItem value="Koumassi">Koumassi</SelectItem>
-              <SelectItem value="Port-Bouët">Port-Bouët</SelectItem>
-              <SelectItem value="Treichville">Treichville</SelectItem>
-              <SelectItem value="Adjamé">Adjamé</SelectItem>
-              <SelectItem value="Attécoubé">Attécoubé</SelectItem>
-              <SelectItem value="Bingerville">Bingerville</SelectItem>
-              <SelectItem value="Anyama">Anyama</SelectItem>
-              <SelectItem value="Grand-Bassam">Grand-Bassam</SelectItem>
-              <SelectItem value="Songon">Songon</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* LISTE DES SIGNALEMENTS PAR ONGLETS */}
-        <Tabs defaultValue="active" className="space-y-4">
-          <TabsList className="w-full h-12 rounded-2xl bg-muted/60 p-1 border border-border">
-            <TabsTrigger value="active" className={`flex-1 rounded-xl text-xs ${currentTheme.activeTabClass}`}>
-              À Traiter <Badge variant="secondary" className="ml-1.5 text-[10px]">{active.length}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="processing" className={`flex-1 rounded-xl text-xs ${currentTheme.activeTabClass}`}>
-              En Intervention <Badge variant="secondary" className="ml-1.5 text-[10px]">{processing.length}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="resolved" className={`flex-1 rounded-xl text-xs ${currentTheme.activeTabClass}`}>
-              Résolus <Badge variant="secondary" className="ml-1.5 text-[10px]">{resolved.length}</Badge>
-            </TabsTrigger>
-          </TabsList>
-
-          {(["active", "processing", "resolved"] as const).map((tab) => {
-            const list = tab === "active" ? active : tab === "processing" ? processing : resolved;
-            return (
-              <TabsContent key={tab} value={tab} className="space-y-3 mt-4">
-                {reportsLoading ? (
-                  <div className="flex justify-center py-16">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                  </div>
-                ) : list.length === 0 ? (
-                  <Card className="rounded-3xl border border-dashed border-border bg-card/50 p-12 text-center">
-                    <CheckCircle className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
-                    <p className="text-sm font-bold text-foreground">Aucun signalement dans cette section</p>
-                    <p className="text-xs text-muted-foreground mt-1">Tous les incidents correspondants ont été traités.</p>
-                  </Card>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {list.map((report) => <ReportCard key={report.id} report={report} />)}
-                  </div>
-                )}
-              </TabsContent>
-            );
-          })}
-        </Tabs>
-      </main>
-
-      {/* DIALOG DE MISE À JOUR DU STATUT & NOTE PUBLIQUE */}
-      <Dialog open={!!actionDialog} onOpenChange={(v) => { if (!v) setActionDialog(null); }}>
-        <DialogContent className="sm:max-w-md rounded-3xl p-6 border-border">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base font-bold">
-              {actionDialog?.newStatus === "resolved"
-                ? <><CheckCircle2 className="h-5 w-5 text-emerald-600" /> Clôturer et marquer résolu</>
-                : <><RefreshCw className="h-5 w-5 text-amber-600" /> Prise en charge de l'intervention</>}
-            </DialogTitle>
-          </DialogHeader>
-          {actionDialog && (
-            <div className="space-y-4 pt-2">
-              <div className="rounded-2xl bg-muted/60 p-3.5 text-xs border border-border">
-                <p className="font-bold text-foreground">{actionDialog.report.commune} · {actionDialog.report.quartier}</p>
-                <p className="text-muted-foreground mt-1 line-clamp-2">{actionDialog.report.description}</p>
-              </div>
-
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-foreground">
-                      N° Ordre de travail / Réf.
-                    </label>
-                    <Input
-                      value={actionOperatorRef}
-                      onChange={(e) => setActionOperatorRef(e.target.value)}
-                      placeholder={`Ex: OT-${currentTheme.name}-8942`}
-                      className="h-10 rounded-xl text-xs"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-foreground">
-                      Délai prévisionnel
-                    </label>
-                    <Select value={actionEtaHours} onValueChange={setActionEtaHours}>
-                      <SelectTrigger className="h-10 rounded-xl text-xs">
-                        <SelectValue placeholder="Estimation" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="2">~ 2 heures</SelectItem>
-                        <SelectItem value="4">~ 4 heures</SelectItem>
-                        <SelectItem value="12">~ 12 heures</SelectItem>
-                        <SelectItem value="24">~ 24 heures (SLA CIE)</SelectItem>
-                        <SelectItem value="48">~ 48 heures (SLA SODECI)</SelectItem>
-                        <SelectItem value="72">~ 72 heures (Mairie)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold flex items-center gap-1.5 text-foreground">
-                    <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
-                    Note publique pour les résidents
-                  </label>
-                  <Textarea
-                    value={actionComment}
-                    onChange={(e) => setActionComment(e.target.value)}
-                    placeholder={actionDialog.newStatus === "resolved"
-                      ? "Ex: Le câble Haute Tension a été réparé par l'équipe de permanence. Service rétabli à 100%."
-                      : "Ex: Équipe technique dépêchée sur les lieux pour diagnostiquer la fuite."}
-                    rows={3}
-                    maxLength={200}
-                    className="resize-none text-xs rounded-xl"
-                  />
-                  {actionComment.length > 150 && (
-                    <p className="text-[11px] text-muted-foreground text-right">{actionComment.length}/200</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <Button variant="outline" className="flex-1 rounded-xl h-11 text-xs font-bold" onClick={() => setActionDialog(null)}>
-                  Annuler
-                </Button>
-                <Button
-                  className={`flex-1 rounded-xl h-11 text-xs gap-2 ${actionDialog.newStatus === "resolved" ? "bg-emerald-600 hover:bg-emerald-700 text-white font-bold" : currentTheme.primaryButtonClass}`}
-                  disabled={updateStatusMutation.isPending}
-                  onClick={handleActionConfirm}
-                >
-                  {updateStatusMutation.isPending
-                    ? <Loader2 className="h-4 w-4 animate-spin" />
-                    : <Send className="h-4 w-4" />}
-                  Valider
+        <Card className="rounded-3xl border-border shadow-sm">
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <CardTitle className="text-lg font-black flex items-center gap-2">
+                <Ticket className={`h-5 w-5 ${currentTheme.primaryColor}`} />
+                Suivi des Signalements
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Badge className={`${currentTheme.badgeBg} ${currentTheme.badgeText} ${currentTheme.badgeBorder} border font-bold text-xs`}>
+                  {filteredReports.length} dossier{filteredReports.length !== 1 ? "s" : ""}
+                </Badge>
+                <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => queryClient.invalidateQueries({ queryKey: ["partner-reports"] })}>
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Actualiser
                 </Button>
               </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Rechercher ticket, quartier, description..." className="pl-9 rounded-xl" />
+              </div>
+              <div className="flex items-center gap-2 min-w-[200px]">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <Select value={communeFilter} onValueChange={setCommuneFilter}>
+                  <SelectTrigger className="h-10 rounded-xl text-xs flex-1">
+                    <SelectValue placeholder="Toutes les communes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toutes les communes</SelectItem>
+                    {uniqueCommunes.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 text-xs text-muted-foreground bg-muted/30 rounded-xl px-3 py-2">
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red-500" /> À traiter: {active.length}</span>
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-500" /> En cours: {processing.length}</span>
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Résolus: {resolved.length}</span>
+              {slaCompliance > 0 && <span className="ml-auto font-semibold text-foreground">SLA: {slaCompliance}%</span>}
+            </div>
+
+            {reportsLoading ? (
+              <div className="flex justify-center py-12"><Loader2 className="h-7 w-7 animate-spin text-primary" /></div>
+            ) : filteredReports.length === 0 ? (
+              <div className="text-center py-12 text-sm text-muted-foreground">
+                <CheckCircle className="h-8 w-8 mx-auto mb-2 text-emerald-500" />
+                Aucun signalement dans votre périmètre.
+              </div>
+            ) : (
+              <div className="space-y-3">{filteredReports.map((report) => <ReportCard key={report.id} report={report} />)}</div>
+            )}
+          </CardContent>
+        </Card>
+
+        {actionDialog && canManageTickets && (
+          <Dialog open={!!actionDialog} onOpenChange={(open) => !open && setActionDialog(null)}>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Mettre à jour le signalement</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground">Référence opérateur</label>
+                  <Input value={actionOperatorRef} onChange={(e) => setActionOperatorRef(e.target.value)} placeholder="Référence interne" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground">Note publique</label>
+                  <Textarea value={actionComment} onChange={(e) => setActionComment(e.target.value)} placeholder="Message visible par le citoyen..." rows={4} />
+                </div>
+                {actionDialog.newStatus === "processing" && (
+                  <div>
+                    <label className="text-xs font-bold text-muted-foreground">Délai estimé (heures)</label>
+                    <Input type="number" min="1" value={actionEtaHours} onChange={(e) => setActionEtaHours(e.target.value)} placeholder="Ex: 12" />
+                  </div>
+                )}
+                <Button className={`w-full ${currentTheme.primaryButtonClass}`} disabled={updateStatusMutation.isPending} onClick={submitAction}>
+                  {updateStatusMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+                  Confirmer la mise à jour
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </main>
       <Footer />
     </div>
   );
