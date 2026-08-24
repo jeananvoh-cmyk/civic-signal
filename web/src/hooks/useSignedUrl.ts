@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Given a storage path (from report-photos bucket), returns a signed URL.
- * If the value looks like a full URL (legacy data), returns it as-is.
- * Falls back to public URL if signed URL generation fails.
+ * Legacy full URLs remain supported for backward compatibility.
+ * Private report photos fail closed if signing fails; there is no public fallback.
  */
 export function useSignedUrl(storagePath: string | null, expiresIn = 3600) {
   const [url, setUrl] = useState<string | null>(null);
@@ -15,7 +15,8 @@ export function useSignedUrl(storagePath: string | null, expiresIn = 3600) {
       return;
     }
 
-    // Legacy: if it's already a full URL, use it directly
+    // Legacy: if it's already a full URL, use it directly.
+    // New uploads store private Storage paths and use signed URLs below.
     if (storagePath.startsWith("http")) {
       setUrl(storagePath);
       return;
@@ -33,14 +34,10 @@ export function useSignedUrl(storagePath: string | null, expiresIn = 3600) {
       if (!error && data) {
         setUrl(data.signedUrl);
       } else {
-        // Fallback: try public URL
-        console.warn("Signed URL failed, using public URL fallback:", error?.message);
-        const { data: publicData } = supabase.storage
-          .from("report-photos")
-          .getPublicUrl(storagePath);
-        if (publicData?.publicUrl) {
-          setUrl(publicData.publicUrl);
-        }
+        // The bucket is private. Never downgrade a failed authorization
+        // attempt to a public URL.
+        console.warn("Signed URL failed for private report photo:", error?.message);
+        setUrl(null);
       }
     };
 
