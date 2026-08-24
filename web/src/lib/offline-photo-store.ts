@@ -1,4 +1,4 @@
-import type { PhotoArtifact, PhotoArtifactGps } from "@/lib/photo-artifact";
+import type { PhotoArtifact } from "@/lib/photo-artifact";
 
 export interface StoredPhotoArtifact {
   key: string;
@@ -6,7 +6,6 @@ export interface StoredPhotoArtifact {
   id: string;
   blob: Blob;
   sha256: string;
-  exifGps: PhotoArtifactGps | null;
   storagePath?: string;
   createdAt: string;
 }
@@ -46,13 +45,14 @@ export async function storePhotoArtifacts(
     const store = tx.objectStore(STORE);
     const createdAt = new Date().toISOString();
     for (const artifact of artifacts) {
+      // EXIF GPS is intentionally not persisted in IndexedDB. The photo blob,
+      // hash and deterministic Storage path are sufficient for offline retry.
       const record: StoredPhotoArtifact = {
         key: `${submissionId}:${artifact.id}`,
         submissionId,
         id: artifact.id,
         blob: artifact.blob,
         sha256: artifact.sha256,
-        exifGps: artifact.exifGps,
         storagePath: artifact.storagePath,
         createdAt,
       };
