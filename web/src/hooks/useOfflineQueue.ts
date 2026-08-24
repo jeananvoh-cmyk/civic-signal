@@ -1,14 +1,17 @@
 /**
  * Offline submission queue for reports.
- * Uses IndexedDB instead of localStorage so report payloads/photos are not
- * copied into the plain-text web storage namespace. Entries have explicit
- * lifecycle states and a server-side idempotency key.
+ * Uses IndexedDB so report metadata and photo blobs survive reloads/reconnects.
  */
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import type { PhotoArtifact } from "@/lib/photo-artifact";
-import { storePhotoArtifacts } from "@/lib/offline-photo-store";
+import {
+  deletePhotoArtifacts,
+  readPhotoArtifacts,
+  storePhotoArtifacts,
+} from "@/lib/offline-photo-store";
+import { stagePhotoFingerprint, uploadPhotoArtifact } from "@/lib/photo-sync";
 
 const DB_NAME = "signa-ci-offline";
 const DB_VERSION = 2;
@@ -24,7 +27,6 @@ export interface QueuedReport {
   attempts: number;
   last_error?: string;
   payload: Record<string, unknown>;
-  photo_base64?: string;
 }
 
 function openDb(): Promise<IDBDatabase> {
@@ -75,6 +77,10 @@ async function deleteQueueEntry(id: string): Promise<void> {
   });
 }
 
+function isDuplicateSubmission(error: unknown): boolean {
+  return Boolean(error && typeof error === "object" && "code" in error && String((error as { code?: unknown }).code).includes("23505"));
+}
+
 export function useOfflineQueue() {
   const { isOnline } = useNetworkStatus();
   const [queue, setQueue] = useState<QueuedReport[]>([]);
@@ -102,9 +108,7 @@ export function useOfflineQueue() {
       payload: { ...payload, client_submission_id },
     };
 
-    // Persist the report metadata and the photo blobs together logically through
-    // the same client_submission_id. Photo blobs are kept in a dedicated store
-    // so the report queue stays small and retryable.
+    // The report and its photo blobs are linked by the same idempotency key.
     await putQueueEntry(entry);
     await storePhotoArtifacts(client_submission_id, photoArtifacts);
     await refreshQueue();
@@ -117,25 +121,75 @@ export function useOfflineQueue() {
     if (!q.length) return 0;
     setFlushing(true);
     let sent = 0;
+
     try {
       for (const item of q) {
-        if (item.status === "sent") { await deleteQueueEntry(item.id); sent++; continue; }
-        const uploading: QueuedReport = { ...item, status: "uploading", attempts: item.attempts + 1, updated_at: new Date().toISOString() };
+        if (item.status === "sent") {
+          await deletePhotoArtifacts(item.client_submission_id);
+          await deleteQueueEntry(item.id);
+          sent++;
+          continue;
+        }
+
+        const uploading: QueuedReport = {
+          ...item,
+          status: "uploading",
+          attempts: item.attempts + 1,
+          updated_at: new Date().toISOString(),
+        };
         await putQueueEntry(uploading);
+
         try {
-          const { error } = await supabase.from("reports").insert(uploading.payload as any);
-          if (error && !String(error.code).includes("23505")) throw error;
-          await putQueueEntry({ ...uploading, status: "sent", updated_at: new Date().toISOString(), last_error: undefined });
-          await deleteQueueEntry(uploading.id);
+          const storedArtifacts = await readPhotoArtifacts(item.client_submission_id);
+          const uploadedPaths: string[] = [];
+
+          for (let index = 0; index < storedArtifacts.length; index++) {
+            const stored = storedArtifacts[index];
+            const artifact: PhotoArtifact = {
+              id: stored.id,
+              blob: stored.blob,
+              sha256: stored.sha256,
+              exifGps: stored.exifGps,
+              storagePath: stored.storagePath,
+            };
+
+            const storagePath = await uploadPhotoArtifact(artifact, String(item.payload.user_id ?? ""), index);
+            await stagePhotoFingerprint(storagePath, String(item.payload.user_id ?? ""), artifact.sha256);
+            uploadedPaths.push(storagePath);
+          }
+
+          const payload: Record<string, unknown> = {
+            ...item.payload,
+            photo_url: uploadedPaths[0] ?? null,
+            photo_urls: uploadedPaths.length > 0 ? uploadedPaths : null,
+          };
+
+          const { error } = await supabase.from("reports").insert(payload as any);
+          if (error && !isDuplicateSubmission(error)) throw error;
+
+          await putQueueEntry({
+            ...uploading,
+            status: "sent",
+            updated_at: new Date().toISOString(),
+            last_error: undefined,
+          });
+          await deletePhotoArtifacts(item.client_submission_id);
+          await deleteQueueEntry(item.id);
           sent++;
         } catch (error) {
-          await putQueueEntry({ ...uploading, status: "failed", updated_at: new Date().toISOString(), last_error: error instanceof Error ? error.message : "Échec d'envoi" });
+          await putQueueEntry({
+            ...uploading,
+            status: "failed",
+            updated_at: new Date().toISOString(),
+            last_error: error instanceof Error ? error.message : "Échec d'envoi",
+          });
         }
       }
     } finally {
       setFlushing(false);
       await refreshQueue();
     }
+
     return sent;
   }, [flushing, refreshQueue]);
 
