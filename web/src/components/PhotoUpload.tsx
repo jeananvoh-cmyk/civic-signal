@@ -36,11 +36,9 @@ export async function computeImageHash(file: Blob): Promise<string> {
 
 async function compressImage(file: File): Promise<Blob> {
   const quality = file.size > 1 * 1024 * 1024 ? JPEG_QUALITY_LOW : JPEG_QUALITY_HIGH;
-
   return new Promise((resolve, reject) => {
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
-
     img.onload = () => {
       URL.revokeObjectURL(objectUrl);
       let { width, height } = img;
@@ -53,7 +51,6 @@ async function compressImage(file: File): Promise<Blob> {
           height = MAX_OUTPUT_PX;
         }
       }
-
       const canvas = document.createElement("canvas");
       canvas.width = width;
       canvas.height = height;
@@ -63,16 +60,11 @@ async function compressImage(file: File): Promise<Blob> {
         return;
       }
       ctx.drawImage(img, 0, 0, width, height);
-      canvas.toBlob(
-        (blob) => {
-          if (blob) resolve(blob);
-          else reject(new Error("Compression échouée"));
-        },
-        "image/jpeg",
-        quality,
-      );
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Compression échouée"));
+      }, "image/jpeg", quality);
     };
-
     img.onerror = () => {
       URL.revokeObjectURL(objectUrl);
       reject(new Error("Format non supporté"));
@@ -84,8 +76,7 @@ async function compressImage(file: File): Promise<Blob> {
 async function extractExifGps(file: File): Promise<{ lat: number; lng: number } | null> {
   try {
     const gps = await exifr.gps(file);
-    if (gps && typeof gps.latitude === "number" && typeof gps.longitude === "number"
-        && (gps.latitude !== 0 || gps.longitude !== 0)) {
+    if (gps && typeof gps.latitude === "number" && typeof gps.longitude === "number" && (gps.latitude !== 0 || gps.longitude !== 0)) {
       return { lat: gps.latitude, lng: gps.longitude };
     }
   } catch {
@@ -98,21 +89,15 @@ type UploadedPhoto = { path: string; hash: string };
 
 async function uploadFile(file: File, userId: string, index: number): Promise<UploadedPhoto> {
   let blob: Blob;
-
   try {
     blob = await compressImage(file);
   } catch {
     throw new Error("Cette photo ne peut pas être normalisée en JPEG sur cet appareil. Choisissez une autre photo.");
   }
-
   const hash = await computeImageHash(blob);
   if (!hash) throw new Error("Impossible de calculer l'empreinte de la photo");
-
   const path = `${userId}/${Date.now()}_${index}.jpg`;
-  const { error } = await supabase.storage
-    .from("report-photos")
-    .upload(path, blob, { upsert: true, contentType: "image/jpeg" });
-
+  const { error } = await supabase.storage.from("report-photos").upload(path, blob, { upsert: true, contentType: "image/jpeg" });
   if (error) throw error;
   return { path, hash };
 }
@@ -129,13 +114,7 @@ function PhotoThumb({ path, onRemove }: { path: string; onRemove: () => void }) 
   );
 }
 
-const PhotoUpload = ({
-  onPhotosChanged,
-  onPhotoHashesChanged,
-  onGpsFromPhoto,
-  photoUrls,
-  isInfrastructure = false,
-}: PhotoUploadProps) => {
+const PhotoUpload = ({ onPhotosChanged, onPhotoHashesChanged, onGpsFromPhoto, photoUrls, isInfrastructure = false }: PhotoUploadProps) => {
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [gpsSource, setGpsSource] = useState<"photo" | "device" | null>(null);
@@ -150,31 +129,20 @@ const PhotoUpload = ({
       toast.error(`Maximum ${MAX_PHOTOS} photos par signalement`);
       return;
     }
-
     const toProcess = files.slice(0, remaining);
-    if (files.length > remaining) {
-      toast.info(`${files.length - remaining} photo(s) ignorée(s) — limite de ${MAX_PHOTOS} atteinte`);
-    }
-
+    if (files.length > remaining) toast.info(`${files.length - remaining} photo(s) ignorée(s) — limite de ${MAX_PHOTOS} atteinte`);
     setUploading(true);
     let exifExtracted = false;
 
     const uploadPromises = toProcess.map(async (file, i) => {
-      if (!file.type.startsWith("image/") && !file.name.match(/\.(heic|heif)$/i)) {
-        throw new Error(`"${file.name}" n'est pas une image valide`);
-      }
-
-      const [exifGps, uploaded] = await Promise.all([
-        extractExifGps(file),
-        uploadFile(file, user.id, i),
-      ]);
-
+      if (!file.type.startsWith("image/") && !file.name.match(/\.(heic|heif)$/i)) throw new Error(`"${file.name}" n'est pas une image valide`);
+      const [exifGps, uploaded] = await Promise.all([extractExifGps(file), uploadFile(file, user.id, i)]);
       if (exifGps && onGpsFromPhoto && !exifExtracted) {
         exifExtracted = true;
         onGpsFromPhoto(exifGps.lat, exifGps.lng);
         setGpsSource("photo");
         toast.success("📸 Position GPS exacte extraite de la photo !", {
-          description: `${exifGps.lat.toFixed(5)}, ${exifGps.longitude?.toFixed?.(5) ?? exifGps.lng.toFixed(5)} · Localisation du lieu réel`,
+          description: `${exifGps.lat.toFixed(5)}, ${exifGps.lng.toFixed(5)} · Localisation du lieu réel`,
           duration: 6000,
         });
       }
@@ -184,7 +152,6 @@ const PhotoUpload = ({
     const results = await Promise.allSettled(uploadPromises);
     const addedUrls: string[] = [];
     const addedHashes: Record<string, string> = {};
-
     results.forEach((r, idx) => {
       if (r.status === "fulfilled") {
         addedUrls.push(r.value.path);
@@ -196,35 +163,18 @@ const PhotoUpload = ({
 
     if (addedUrls.length > 0) {
       const allUrls = [...photoUrls, ...addedUrls];
-      const pendingRows = addedUrls.map((storage_path) => ({
-        storage_path,
-        user_id: user.id,
-        hash: addedHashes[storage_path],
-      }));
-
-      const { error: fingerprintError } = await supabase
-        .from("photo_fingerprint_pending")
-        .upsert(pendingRows, { onConflict: "storage_path" });
-
+      const pendingRows = addedUrls.map((storage_path) => ({ storage_path, user_id: user.id, hash: addedHashes[storage_path] }));
+      const { error: fingerprintError } = await supabase.from("photo_fingerprint_pending").upsert(pendingRows, { onConflict: "storage_path" });
       if (fingerprintError) {
-        await Promise.all(
-          addedUrls.map((storagePath) =>
-            supabase.storage.from("report-photos").remove([storagePath])
-          )
-        );
+        await Promise.all(addedUrls.map((storagePath) => supabase.storage.from("report-photos").remove([storagePath])));
         toast.error("Impossible de sécuriser l'empreinte de la photo. Veuillez réessayer.");
         setUploading(false);
         return;
       }
-
       onPhotosChanged(allUrls);
       onPhotoHashesChanged?.(addedHashes);
-      toast.success(
-        addedUrls.length === 1 ? "Photo ajoutée !" : `${addedUrls.length} photos ajoutées simultanément !`,
-        { description: `${allUrls.length}/${MAX_PHOTOS} au total` },
-      );
+      toast.success(addedUrls.length === 1 ? "Photo ajoutée !" : `${addedUrls.length} photos ajoutées simultanément !`, { description: `${allUrls.length}/${MAX_PHOTOS} au total` });
     }
-
     setUploading(false);
   };
 
@@ -248,42 +198,21 @@ const PhotoUpload = ({
     <div className="space-y-3">
       <input ref={galleryRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileChange} />
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
-
       {(photoUrls.length > 0 || uploading) && (
         <div className="space-y-2.5">
-          <div className="flex items-center justify-between text-xs font-semibold text-foreground px-0.5">
-            <span>Photos du signalement ({photoUrls.length}/{MAX_PHOTOS})</span>
-            {canAddMore && <span className="text-[11px] text-muted-foreground font-normal">Encore {MAX_PHOTOS - photoUrls.length} photo(s) possible(s)</span>}
-          </div>
+          <div className="flex items-center justify-between text-xs font-semibold text-foreground px-0.5"><span>Photos du signalement ({photoUrls.length}/{MAX_PHOTOS})</span>{canAddMore && <span className="text-[11px] text-muted-foreground font-normal">Encore {MAX_PHOTOS - photoUrls.length} photo(s) possible(s)</span>}</div>
           <div className={`grid gap-2 ${photoUrls.length >= 2 ? "grid-cols-3" : "grid-cols-2"}`}>
             {photoUrls.map((url, i) => <PhotoThumb key={url} path={url} onRemove={() => removePhoto(i)} />)}
-            {canAddMore && !uploading && (
-              <div className="col-span-1 border-2 border-dashed border-border rounded-xl p-1.5 flex flex-col justify-center gap-1 bg-muted/20">
-                <Button type="button" size="sm" variant="ghost" onClick={() => cameraRef.current?.click()} className="h-7 text-[10px] font-semibold justify-start gap-1 px-1.5 hover:bg-primary/10 hover:text-primary text-foreground" title="Prendre une photo directe avec l'appareil photo"><Camera className="h-3.5 w-3.5 shrink-0 text-primary" /><span>Caméra</span></Button>
-                <Button type="button" size="sm" variant="ghost" onClick={() => galleryRef.current?.click()} className="h-7 text-[10px] font-semibold justify-start gap-1 px-1.5 hover:bg-blue-500/10 hover:text-blue-600 text-foreground" title="Sélectionner des photos dans la galerie"><ImageIcon className="h-3.5 w-3.5 shrink-0 text-blue-600 dark:text-blue-400" /><span>Galerie</span></Button>
-              </div>
-            )}
+            {canAddMore && !uploading && <div className="col-span-1 border-2 border-dashed border-border rounded-xl p-1.5 flex flex-col justify-center gap-1 bg-muted/20"><Button type="button" size="sm" variant="ghost" onClick={() => cameraRef.current?.click()} className="h-7 text-[10px] font-semibold justify-start gap-1 px-1.5 hover:bg-primary/10 hover:text-primary text-foreground"><Camera className="h-3.5 w-3.5 shrink-0 text-primary" /><span>Caméra</span></Button><Button type="button" size="sm" variant="ghost" onClick={() => galleryRef.current?.click()} className="h-7 text-[10px] font-semibold justify-start gap-1 px-1.5 hover:bg-blue-500/10 hover:text-blue-600 text-foreground"><ImageIcon className="h-3.5 w-3.5 shrink-0 text-blue-600 dark:text-blue-400" /><span>Galerie</span></Button></div>}
             {uploading && <div className="aspect-square rounded-xl border border-border flex flex-col items-center justify-center gap-1 bg-muted/30"><Loader2 className="h-5 w-5 animate-spin text-primary" /><span className="text-[10px] text-muted-foreground font-medium">Chargement…</span></div>}
           </div>
           {gpsSource && photoUrls.length > 0 && <div className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium w-fit ${gpsSource === "photo" ? "bg-emerald-600 text-white shadow-sm" : "bg-slate-700 text-white"}`}><MapPin className="h-3 w-3" />{gpsSource === "photo" ? "Position GPS extraite de la photo" : "Position GPS de l'appareil"}</div>}
         </div>
       )}
-
-      {photoUrls.length === 0 && !uploading && (
-        <div className="grid grid-cols-2 gap-2.5">
-          <Button type="button" variant="outline" className="h-24 border-2 border-dashed border-primary/40 hover:border-primary hover:bg-primary/5 flex flex-col items-center justify-center gap-1.5 transition-all group" onClick={() => cameraRef.current?.click()}><div className="p-2 rounded-full bg-primary/10 text-primary group-hover:scale-110 transition-transform"><Camera className="h-5 w-5" /></div><div className="text-center"><span className="text-xs font-bold text-foreground block">Prendre une photo</span><span className="text-[10px] text-muted-foreground">Appareil photo en direct</span></div></Button>
-          <Button type="button" variant="outline" className="h-24 border-2 border-dashed border-blue-500/40 hover:border-blue-500 hover:bg-blue-500/5 flex flex-col items-center justify-center gap-1.5 transition-all group" onClick={() => galleryRef.current?.click()}><div className="p-2 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform"><ImageIcon className="h-5 w-5" /></div><div className="text-center"><span className="text-xs font-bold text-foreground block">Depuis la galerie</span><span className="text-[10px] text-muted-foreground">Sélectionner (jusqu'à 3)</span></div></Button>
-        </div>
-      )}
+      {photoUrls.length === 0 && !uploading && <div className="grid grid-cols-2 gap-2.5"><Button type="button" variant="outline" className="h-24 border-2 border-dashed border-primary/40 hover:border-primary hover:bg-primary/5 flex flex-col items-center justify-center gap-1.5 transition-all group" onClick={() => cameraRef.current?.click()}><div className="p-2 rounded-full bg-primary/10 text-primary group-hover:scale-110 transition-transform"><Camera className="h-5 w-5" /></div><div className="text-center"><span className="text-xs font-bold text-foreground block">Prendre une photo</span><span className="text-[10px] text-muted-foreground">Appareil photo en direct</span></div></Button><Button type="button" variant="outline" className="h-24 border-2 border-dashed border-blue-500/40 hover:border-blue-500 hover:bg-blue-500/5 flex flex-col items-center justify-center gap-1.5 transition-all group" onClick={() => galleryRef.current?.click()}><div className="p-2 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform"><ImageIcon className="h-5 w-5" /></div><div className="text-center"><span className="text-xs font-bold text-foreground block">Depuis la galerie</span><span className="text-[10px] text-muted-foreground">Sélectionner (jusqu'à 3)</span></div></Button></div>}
       {photoUrls.length === 0 && uploading && <div className="w-full h-20 border rounded-xl flex flex-col items-center justify-center gap-2 bg-muted/20"><Loader2 className="h-6 w-6 animate-spin text-primary" /><span className="text-xs text-muted-foreground font-medium">Compression et envoi des photos…</span></div>}
       <p className="text-xs text-muted-foreground">📸 Appareil photo ou Galerie · JPG, PNG, HEIC, WEBP · Max {MAX_PHOTOS} photos</p>
-
-      {isInfrastructure && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 overflow-hidden">
-          <button type="button" aria-expanded={showTips} aria-controls="photo-tips-content" className="w-full flex items-center justify-between px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500" onClick={() => setShowTips((v) => !v)}><span className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400"><AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />Comment prendre une bonne photo de signalement ?</span>{showTips ? <ChevronUp className="h-3.5 w-3.5 text-amber-600 shrink-0" aria-hidden="true" /> : <ChevronDown className="h-3.5 w-3.5 text-amber-600 shrink-0" aria-hidden="true" />}</button>
-          {showTips && <div id="photo-tips-content" className="px-3 pb-3 space-y-3 border-t border-amber-500/20"><div className="pt-2 space-y-1.5"><p className="text-[11px] font-bold text-green-700 dark:text-green-400 uppercase tracking-wide">À faire</p>{["Prenez la photo directement sur place, au moment du constat","Cadrez le problème entièrement (route, trottoir, infrastructure, etc.)","Incluez un repère visible : panneau de rue, bâtiment, numéro de maison","Prenez plusieurs angles si possible (jusqu'à 3 photos)","Activez le GPS de votre téléphone avant de prendre la photo"].map((tip) => <div key={tip} className="flex items-start gap-1.5"><CheckCircle2 className="h-3 w-3 text-green-600 shrink-0 mt-0.5" /><span className="text-[11px] text-muted-foreground leading-snug">{tip}</span></div>)}</div><div className="space-y-1.5"><p className="text-[11px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wide">À éviter</p>{["Photos floues, trop sombres ou prises de trop loin","Screenshots de Google Maps ou réseaux sociaux (pas de GPS réel)","Photos reçues sur WhatsApp — WhatsApp supprime les coordonnées GPS","Photos prises depuis chez vous montrant le problème au loin"].map((tip) => <div key={tip} className="flex items-start gap-1.5"><XCircle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" /><span className="text-[11px] text-muted-foreground leading-snug">{tip}</span></div>)}</div><div className="flex items-start gap-1.5 rounded-md bg-blue-500/10 border border-blue-500/20 p-2"><MapPin className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" /><p className="text-[11px] text-blue-700 dark:text-blue-400 leading-snug">Si votre <strong>première photo</strong> a été prise <strong>sur les lieux</strong>, ses coordonnées GPS seront extraites automatiquement et utilisées à la place du GPS de votre appareil — même si vous êtes rentrés chez vous depuis.</p></div></div>}
-        </div>
-      )}
+      {isInfrastructure && <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 overflow-hidden"><button type="button" aria-expanded={showTips} aria-controls="photo-tips-content" className="w-full flex items-center justify-between px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500" onClick={() => setShowTips((v) => !v)}><span className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400"><AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />Comment prendre une bonne photo de signalement ?</span>{showTips ? <ChevronUp className="h-3.5 w-3.5 text-amber-600 shrink-0" aria-hidden="true" /> : <ChevronDown className="h-3.5 w-3.5 text-amber-600 shrink-0" aria-hidden="true" />}</button>{showTips && <div id="photo-tips-content" className="px-3 pb-3 space-y-3 border-t border-amber-500/20"><div className="pt-2 space-y-1.5"><p className="text-[11px] font-bold text-green-700 dark:text-green-400 uppercase tracking-wide">À faire</p>{["Prenez la photo directement sur place, au moment du constat","Cadrez le problème entièrement (route, trottoir, infrastructure, etc.)","Incluez un repère visible : panneau de rue, bâtiment, numéro de maison","Prenez plusieurs angles si possible (jusqu'à 3 photos)","Activez le GPS de votre téléphone avant de prendre la photo"].map((tip) => <div key={tip} className="flex items-start gap-1.5"><CheckCircle2 className="h-3 w-3 text-green-600 shrink-0 mt-0.5" /><span className="text-[11px] text-muted-foreground leading-snug">{tip}</span></div>)}</div><div className="space-y-1.5"><p className="text-[11px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wide">À éviter</p>{["Photos floues, trop sombres ou prises de trop loin","Screenshots de Google Maps ou réseaux sociaux (pas de GPS réel)","Photos reçues sur WhatsApp — WhatsApp supprime les coordonnées GPS","Photos prises depuis chez vous montrant le problème au loin"].map((tip) => <div key={tip} className="flex items-start gap-1.5"><XCircle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" /><span className="text-[11px] text-muted-foreground leading-snug">{tip}</span></div>)}</div><div className="flex items-start gap-1.5 rounded-md bg-blue-500/10 border border-blue-500/20 p-2"><MapPin className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" /><p className="text-[11px] text-blue-700 dark:text-blue-400 leading-snug">Si votre <strong>première photo</strong> a été prise <strong>sur les lieux</strong>, ses coordonnées GPS seront extraites automatiquement et utilisées à la place du GPS de votre appareil — même si vous êtes rentrés chez vous depuis.</p></div></div>}</div>}
     </div>
   );
 };
