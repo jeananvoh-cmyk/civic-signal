@@ -25,3 +25,22 @@ export async function sha256Blob(blob: Blob): Promise<string> {
 export function createPhotoArtifactId(): string {
   return crypto.randomUUID();
 }
+
+/**
+ * Builds the canonical artifact from the final blob that will be uploaded.
+ * Keeping this operation centralized prevents hashing the original source file
+ * when compression/transcoding has changed the bytes that reach Storage.
+ */
+export async function createPhotoArtifact(
+  blob: Blob,
+  exifGps: PhotoArtifactGps | null = null,
+): Promise<PhotoArtifact> {
+  const sha256 = await sha256Blob(blob);
+
+  return {
+    id: createPhotoArtifactId(),
+    blob,
+    sha256,
+    exifGps,
+  };
+}
