@@ -81,6 +81,11 @@ function isDuplicateSubmission(error: unknown): boolean {
   return Boolean(error && typeof error === "object" && "code" in error && String((error as { code?: unknown }).code).includes("23505"));
 }
 
+function getPayloadString(payload: Record<string, unknown>, key: string): string | null {
+  const value = payload[key];
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
 export function useOfflineQueue() {
   const { isOnline } = useNetworkStatus();
   const [queue, setQueue] = useState<QueuedReport[]>([]);
@@ -98,6 +103,7 @@ export function useOfflineQueue() {
   ) => {
     const now = new Date().toISOString();
     const client_submission_id = crypto.randomUUID();
+    const photoGroupId = getPayloadString(payload, "offline_photo_group_id");
     const entry: QueuedReport = {
       id: `offline_${client_submission_id}`,
       client_submission_id,
@@ -109,8 +115,17 @@ export function useOfflineQueue() {
     };
 
     // The report and its photo blobs are linked by the same idempotency key.
+    // A photo group id is also accepted so PhotoUpload can persist artifacts
+    // before ReportPage creates the queue entry.
     await putQueueEntry(entry);
-    await storePhotoArtifacts(client_submission_id, photoArtifacts);
+    if (photoArtifacts.length > 0) {
+      await storePhotoArtifacts(client_submission_id, photoArtifacts);
+    } else if (photoGroupId && photoGroupId !== client_submission_id) {
+      // Keep the pre-queue photo group intact. The flush reads it by this id
+      // and removes it only after the report has been persisted successfully.
+      entry.payload = { ...entry.payload, offline_photo_group_id: photoGroupId };
+      await putQueueEntry(entry);
+    }
     await refreshQueue();
     return entry.id;
   }, [refreshQueue]);
@@ -125,7 +140,9 @@ export function useOfflineQueue() {
     try {
       for (const item of q) {
         if (item.status === "sent") {
+          const photoGroupId = getPayloadString(item.payload, "offline_photo_group_id") ?? item.client_submission_id;
           await deletePhotoArtifacts(item.client_submission_id);
+          if (photoGroupId !== item.client_submission_id) await deletePhotoArtifacts(photoGroupId);
           await deleteQueueEntry(item.id);
           sent++;
           continue;
@@ -140,8 +157,19 @@ export function useOfflineQueue() {
         await putQueueEntry(uploading);
 
         try {
-          const storedArtifacts = await readPhotoArtifacts(item.client_submission_id);
+          const photoGroupId = getPayloadString(item.payload, "offline_photo_group_id");
+          const storedArtifacts = [
+            ...(await readPhotoArtifacts(item.client_submission_id)),
+            ...(photoGroupId && photoGroupId !== item.client_submission_id
+              ? await readPhotoArtifacts(photoGroupId)
+              : []),
+          ];
           const uploadedPaths: string[] = [];
+          const userId = getPayloadString(item.payload, "user_id");
+
+          if (storedArtifacts.length > 0 && !userId) {
+            throw new Error("Utilisateur requis pour synchroniser les photos du signalement");
+          }
 
           for (let index = 0; index < storedArtifacts.length; index++) {
             const stored = storedArtifacts[index];
@@ -153,8 +181,8 @@ export function useOfflineQueue() {
               storagePath: stored.storagePath,
             };
 
-            const storagePath = await uploadPhotoArtifact(artifact, String(item.payload.user_id ?? ""), index);
-            await stagePhotoFingerprint(storagePath, String(item.payload.user_id ?? ""), artifact.sha256);
+            const storagePath = await uploadPhotoArtifact(artifact, userId!, index);
+            await stagePhotoFingerprint(storagePath, userId!, artifact.sha256);
             uploadedPaths.push(storagePath);
           }
 
@@ -163,6 +191,7 @@ export function useOfflineQueue() {
             photo_url: uploadedPaths[0] ?? null,
             photo_urls: uploadedPaths.length > 0 ? uploadedPaths : null,
           };
+          delete payload.offline_photo_group_id;
 
           const { error } = await supabase.from("reports").insert(payload as any);
           if (error && !isDuplicateSubmission(error)) throw error;
@@ -174,6 +203,7 @@ export function useOfflineQueue() {
             last_error: undefined,
           });
           await deletePhotoArtifacts(item.client_submission_id);
+          if (photoGroupId && photoGroupId !== item.client_submission_id) await deletePhotoArtifacts(photoGroupId);
           await deleteQueueEntry(item.id);
           sent++;
         } catch (error) {
