@@ -10,6 +10,7 @@ import {
   deletePhotoArtifacts,
   readPhotoArtifacts,
   storePhotoArtifacts,
+  storeQueueEntryWithPhotoArtifacts,
 } from "@/lib/offline-photo-store";
 import { stagePhotoFingerprint, uploadPhotoArtifact } from "@/lib/photo-sync";
 
@@ -134,13 +135,18 @@ export function useOfflineQueue() {
       payload: { ...payload, client_submission_id },
     };
 
-    await putQueueEntry(entry);
     if (photoArtifacts.length > 0) {
-      await storePhotoArtifacts(client_submission_id, photoArtifacts);
-    } else if (photoGroupId && photoGroupId !== client_submission_id) {
-      entry.payload = { ...entry.payload, offline_photo_group_id: photoGroupId };
+      // Metadata + blobs share one IndexedDB transaction. A crash cannot leave
+      // a visible queued report without the photos required to send it.
+      await storeQueueEntryWithPhotoArtifacts(entry, photoArtifacts);
+    } else {
       await putQueueEntry(entry);
+      if (photoGroupId && photoGroupId !== client_submission_id) {
+        entry.payload = { ...entry.payload, offline_photo_group_id: photoGroupId };
+        await putQueueEntry(entry);
+      }
     }
+
     await refreshQueue();
     return entry.id;
   }, [refreshQueue]);
