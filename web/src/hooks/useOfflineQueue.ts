@@ -9,7 +9,6 @@ import type { PhotoArtifact } from "@/lib/photo-artifact";
 import {
   deletePhotoArtifacts,
   readPhotoArtifacts,
-  storePhotoArtifacts,
   storeQueueEntryWithPhotoArtifacts,
 } from "@/lib/offline-photo-store";
 import { stagePhotoFingerprint, uploadPhotoArtifact } from "@/lib/photo-sync";
