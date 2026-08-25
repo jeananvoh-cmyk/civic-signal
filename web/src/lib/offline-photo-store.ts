@@ -10,8 +10,20 @@ export interface StoredPhotoArtifact {
   createdAt: string;
 }
 
+export interface OfflineQueueEntryLike {
+  id: string;
+  client_submission_id: string;
+  queued_at: string;
+  updated_at: string;
+  status: string;
+  attempts: number;
+  last_error?: string;
+  payload: Record<string, unknown>;
+}
+
 const DB_NAME = "signa-ci-offline";
 const STORE = "photos";
+const REPORT_STORE = "reports";
 const DB_VERSION = 3;
 
 function openPhotoDb(): Promise<IDBDatabase> {
@@ -19,8 +31,8 @@ function openPhotoDb(): Promise<IDBDatabase> {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
-      if (!db.objectStoreNames.contains("reports")) {
-        const reports = db.createObjectStore("reports", { keyPath: "id" });
+      if (!db.objectStoreNames.contains(REPORT_STORE)) {
+        const reports = db.createObjectStore(REPORT_STORE, { keyPath: "id" });
         reports.createIndex("status", "status", { unique: false });
         reports.createIndex("queued_at", "queued_at", { unique: false });
       }
@@ -47,6 +59,47 @@ function openPhotoDb(): Promise<IDBDatabase> {
   });
 }
 
+function toStoredPhotoArtifact(submissionId: string, artifact: PhotoArtifact, createdAt: string): StoredPhotoArtifact {
+  return {
+    key: `${submissionId}:${artifact.id}`,
+    submissionId,
+    id: artifact.id,
+    blob: artifact.blob,
+    sha256: artifact.sha256,
+    storagePath: artifact.storagePath,
+    createdAt,
+  };
+}
+
+/**
+ * Persist the report queue entry and all photo artifacts in one IndexedDB
+ * transaction. This prevents a queued report from becoming visible without
+ * its photos (or vice versa) after a crash/reload between two writes.
+ */
+export async function storeQueueEntryWithPhotoArtifacts(
+  entry: OfflineQueueEntryLike,
+  artifacts: PhotoArtifact[],
+): Promise<void> {
+  if (typeof indexedDB === "undefined") throw new Error("IndexedDB indisponible");
+  const db = await openPhotoDb();
+
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction([REPORT_STORE, STORE], "readwrite");
+    tx.objectStore(REPORT_STORE).put(entry);
+
+    const photoStore = tx.objectStore(STORE);
+    const createdAt = new Date().toISOString();
+    for (const artifact of artifacts) {
+      // EXIF GPS is intentionally not persisted in IndexedDB.
+      photoStore.put(toStoredPhotoArtifact(entry.client_submission_id, artifact, createdAt));
+    }
+
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error ?? new Error("Sauvegarde offline impossible"));
+    tx.onabort = () => reject(tx.error ?? new Error("Sauvegarde offline interrompue"));
+  });
+}
+
 export async function storePhotoArtifacts(
   submissionId: string,
   artifacts: PhotoArtifact[],
@@ -58,18 +111,7 @@ export async function storePhotoArtifacts(
     const store = tx.objectStore(STORE);
     const createdAt = new Date().toISOString();
     for (const artifact of artifacts) {
-      // EXIF GPS is intentionally not persisted in IndexedDB. The photo blob,
-      // hash and deterministic Storage path are sufficient for offline retry.
-      const record: StoredPhotoArtifact = {
-        key: `${submissionId}:${artifact.id}`,
-        submissionId,
-        id: artifact.id,
-        blob: artifact.blob,
-        sha256: artifact.sha256,
-        storagePath: artifact.storagePath,
-        createdAt,
-      };
-      store.put(record);
+      store.put(toStoredPhotoArtifact(submissionId, artifact, createdAt));
     }
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error ?? new Error("Stockage des photos impossible"));
