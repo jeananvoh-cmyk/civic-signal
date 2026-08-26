@@ -40,7 +40,6 @@ function openPhotoDb(): Promise<IDBDatabase> {
         const photos = db.createObjectStore(STORE, { keyPath: "key" });
         photos.createIndex("submissionId", "submissionId", { unique: false });
       } else if (request.transaction) {
-        // Remove EXIF GPS that may have been persisted by DB_VERSION 2.
         const store = request.transaction.objectStore(STORE);
         store.openCursor().onsuccess = (event) => {
           const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
@@ -71,11 +70,7 @@ function toStoredPhotoArtifact(submissionId: string, artifact: PhotoArtifact, cr
   };
 }
 
-/**
- * Persist the report queue entry and all photo artifacts in one IndexedDB
- * transaction. This prevents a queued report from becoming visible without
- * its photos (or vice versa) after a crash/reload between two writes.
- */
+/** Persist the queue entry and its photo artifacts atomically. */
 export async function storeQueueEntryWithPhotoArtifacts(
   entry: OfflineQueueEntryLike,
   artifacts: PhotoArtifact[],
@@ -86,33 +81,25 @@ export async function storeQueueEntryWithPhotoArtifacts(
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction([REPORT_STORE, STORE], "readwrite");
     tx.objectStore(REPORT_STORE).put(entry);
-
     const photoStore = tx.objectStore(STORE);
     const createdAt = new Date().toISOString();
     for (const artifact of artifacts) {
-      // EXIF GPS is intentionally not persisted in IndexedDB.
       photoStore.put(toStoredPhotoArtifact(entry.client_submission_id, artifact, createdAt));
     }
-
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error ?? new Error("Sauvegarde offline impossible"));
     tx.onabort = () => reject(tx.error ?? new Error("Sauvegarde offline interrompue"));
   });
 }
 
-export async function storePhotoArtifacts(
-  submissionId: string,
-  artifacts: PhotoArtifact[],
-): Promise<void> {
+export async function storePhotoArtifacts(submissionId: string, artifacts: PhotoArtifact[]): Promise<void> {
   if (typeof indexedDB === "undefined" || artifacts.length === 0) return;
   const db = await openPhotoDb();
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(STORE, "readwrite");
     const store = tx.objectStore(STORE);
     const createdAt = new Date().toISOString();
-    for (const artifact of artifacts) {
-      store.put(toStoredPhotoArtifact(submissionId, artifact, createdAt));
-    }
+    for (const artifact of artifacts) store.put(toStoredPhotoArtifact(submissionId, artifact, createdAt));
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error ?? new Error("Stockage des photos impossible"));
     tx.onabort = () => reject(tx.error ?? new Error("Stockage des photos interrompu"));
@@ -134,7 +121,6 @@ export async function deletePhotoArtifacts(submissionId: string): Promise<void> 
   const db = await openPhotoDb();
   const records = await readPhotoArtifacts(submissionId);
   if (records.length === 0) return;
-
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(STORE, "readwrite");
     const store = tx.objectStore(STORE);
