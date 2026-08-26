@@ -498,19 +498,16 @@ const ReportPage = () => {
     setGpsRetrying(false);
 
     if (!bestPos) {
-      // Option A — essayer la position mémorisée (< 2h)
+      // Option A — essayer la commune mémorisée (< 2h) comme indice UX
       try {
-        const raw = localStorage.getItem("signa_last_gps_v2");
+        const raw = localStorage.getItem("signa_last_commune");
         if (raw) {
-          const stored = JSON.parse(raw) as { lat: number; lng: number; accuracy: number; commune: Commune; timestamp: number };
+          const stored = JSON.parse(raw) as { communeNom: string; timestamp: number };
           const ageMin = (Date.now() - stored.timestamp) / 60000;
-          if (ageMin < 120 && stored.lat && stored.lng && stored.commune) {
-            setLatitude(stored.lat);
-            setLongitude(stored.lng);
-            setGpsAccuracy(stored.accuracy);
-            setGpsWeakSignal(stored.accuracy > 300);
-            setDetectedCommune(stored.commune);
-            setCommune(stored.commune.nom);
+          const found = COMMUNES.find((c) => c.nom === stored.communeNom);
+          if (ageMin < 120 && found) {
+            setDetectedCommune(found);
+            setCommune(found.nom);
             setOutsidePilotZone(false);
             setStoredGpsAgeMin(Math.round(ageMin));
             setGpsLoading(false);
@@ -541,10 +538,10 @@ const ReportPage = () => {
       setCommune(result.commune.nom);
       setOutsidePilotZone(false);
       setStoredGpsAgeMin(null); // position fraîche
-      // Sauvegarder pour le fallback "position mémorisée"
+      // Sauvegarder uniquement le nom de commune (zéro coordonnée brute en localStorage)
       try {
-        localStorage.setItem("signa_last_gps_v2", JSON.stringify({
-          lat, lng: lon, accuracy, commune: result.commune, timestamp: Date.now(),
+        localStorage.setItem("signa_last_commune", JSON.stringify({
+          communeNom: result.commune.nom, timestamp: Date.now(),
         }));
       } catch { /* silent */ }
       if (showError) {
@@ -801,7 +798,10 @@ const ReportPage = () => {
       const padaInfo = padaAddress?.formattedAddress ? ` [PADA : ${padaAddress.formattedAddress}]` : "";
       const fullFinalDesc = `${fullDesc}${padaInfo}`.slice(0, 700);
 
+      const client_submission_id = crypto.randomUUID();
+
       const reportPayload = {
+        client_submission_id,
         user_id: user.id,
         service_type: selectedType.serviceType,
         report_category: selectedType.reportCategory,
@@ -828,8 +828,8 @@ const ReportPage = () => {
       // -- Offline: save to queue and exit ----------------------------------
       if (!isOnline) {
         localStorage.removeItem(DRAFT_KEY);
-        enqueue(reportPayload);
-        toast.success("Sauvegardé. Sera envoyé à la reconnexion.", {
+        await enqueue(reportPayload);
+        toast.success("Signalement enregistré hors-ligne. Il sera envoyé automatiquement dès le retour du réseau.", {
           duration: 6000,
         });
         setSubmitting(false);

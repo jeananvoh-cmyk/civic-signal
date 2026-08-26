@@ -83,7 +83,7 @@ export function useOfflineQueue() {
 
   const enqueue = useCallback(async (payload: Record<string, unknown>) => {
     const now = new Date().toISOString();
-    const client_submission_id = crypto.randomUUID();
+    const client_submission_id = (payload.client_submission_id as string) || crypto.randomUUID();
     const entry: QueuedReport = {
       id: `offline_${client_submission_id}`,
       client_submission_id,

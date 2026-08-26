@@ -22,10 +22,10 @@ const MAX_OUTPUT_PX = 1920;
 const JPEG_QUALITY_HIGH = 0.90;
 const JPEG_QUALITY_LOW  = 0.82;
 
-// ── Calcul d'empreinte SHA-256 (Anti-Recyclage / Anti-Google Images) ──────────
-export async function computeImageHash(file: File): Promise<string> {
+// ── Calcul d'empreinte SHA-256 sur le Blob propre final ──────────────────────
+export async function computeBlobHash(blob: Blob): Promise<string> {
   try {
-    const buffer = await file.arrayBuffer();
+    const buffer = await blob.arrayBuffer();
     const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -34,7 +34,7 @@ export async function computeImageHash(file: File): Promise<string> {
   }
 }
 
-// ── Compression canvas adaptative ─────────────────────────────────────────────
+// ── Compression canvas adaptative (Nettoyage EXIF garanti) ────────────────────
 async function compressImage(file: File): Promise<Blob> {
   const quality = file.size > 1 * 1024 * 1024 ? JPEG_QUALITY_LOW : JPEG_QUALITY_HIGH;
 
@@ -61,7 +61,7 @@ async function compressImage(file: File): Promise<Blob> {
       canvas.height = height;
       const ctx = canvas.getContext("2d");
       if (!ctx) {
-        reject(new Error("Canvas non disponible"));
+        reject(new Error("Canvas de traitement non disponible"));
         return;
       }
       ctx.drawImage(img, 0, 0, width, height);
@@ -69,7 +69,7 @@ async function compressImage(file: File): Promise<Blob> {
       canvas.toBlob(
         (blob) => {
           if (blob) resolve(blob);
-          else reject(new Error("Compression échouée"));
+          else reject(new Error("La compression et le nettoyage de l'image ont échoué"));
         },
         "image/jpeg",
         quality,
@@ -78,14 +78,14 @@ async function compressImage(file: File): Promise<Blob> {
 
     img.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      reject(new Error("Format non supporté"));
+      reject(new Error("Format d'image non supporté ou fichier corrompu"));
     };
 
     img.src = objectUrl;
   });
 }
 
-// ── Extraction GPS EXIF ───────────────────────────────────────────────────────
+// ── Extraction GPS EXIF (En mémoire vive uniquement) ──────────────────────────
 async function extractExifGps(file: File): Promise<{ lat: number; lng: number } | null> {
   try {
     const gps = await exifr.gps(file);
@@ -99,31 +99,19 @@ async function extractExifGps(file: File): Promise<{ lat: number; lng: number } 
   return null;
 }
 
-// ── Upload d'un fichier avec fallback si compression échoue ───────────────────
-async function uploadFile(file: File, userId: string, index: number): Promise<string> {
-  let blob: Blob;
-  let contentType = "image/jpeg";
-  let ext = "jpg";
+// ── Upload d'un fichier nettoyé (Zéro fuite d'EXIF possible) ───────────────────
+async function uploadSanitizedFile(file: File, userId: string, index: number): Promise<{ path: string; hash: string }> {
+  // Le passage par canvas garantit la suppression intégrale des métadonnées EXIF
+  const blob = await compressImage(file);
+  const hash = await computeBlobHash(blob);
 
-  try {
-    blob = await compressImage(file);
-  } catch {
-    // HEIC ou format canvas non supporté → upload original
-    blob = file;
-    const ALLOWED_TYPES = new Set(["image/jpeg","image/png","image/webp","image/heic","image/heif","image/gif"])
-    contentType = ALLOWED_TYPES.has(file.type) ? file.type : "application/octet-stream";
-    const ALLOWED_EXTS = new Set(["jpg","jpeg","png","webp","heic","heif","gif"])
-    const rawExt = file.name.split(".").pop()?.toLowerCase() ?? ""
-    ext = ALLOWED_EXTS.has(rawExt) ? rawExt : "bin";
-  }
-
-  const path = `${userId}/${Date.now()}_${index}.${ext}`;
+  const path = `${userId}/${Date.now()}_${index}.jpg`;
   const { error } = await supabase.storage
     .from("report-photos")
-    .upload(path, blob, { upsert: true, contentType });
+    .upload(path, blob, { upsert: true, contentType: "image/jpeg" });
 
   if (error) throw error;
-  return path;
+  return { path, hash };
 }
 
 // ── Sous-composant : vignette d'une photo uploadée ────────────────────────────
@@ -187,19 +175,16 @@ const PhotoUpload = ({
         throw new Error(`"${file.name}" n'est pas une image valide`);
       }
 
-      const [exifGps, photoHash, path] = await Promise.all([
-        extractExifGps(file),
-        computeImageHash(file),
-        uploadFile(file, user.id, i),
-      ]);
+      const exifGps = await extractExifGps(file);
+      const { path } = await uploadSanitizedFile(file, user.id, i);
 
       if (exifGps && onGpsFromPhoto && !exifExtracted) {
         exifExtracted = true;
         onGpsFromPhoto(exifGps.lat, exifGps.lng);
         setGpsSource("photo");
-        toast.success("📸 Position GPS exacte extraite de la photo !", {
-          description: `${exifGps.lat.toFixed(5)}, ${exifGps.lng.toFixed(5)} · Localisation du lieu réel`,
-          duration: 6000,
+        toast.success("📸 Position GPS extraite pour le signalement", {
+          description: "Les coordonnées serviront à localiser le signalement et les métadonnées EXIF ont été nettoyées de la photo.",
+          duration: 5000,
         });
       }
 
