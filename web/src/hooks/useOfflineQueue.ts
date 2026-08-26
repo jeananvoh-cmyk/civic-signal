@@ -1,17 +1,21 @@
 /**
  * Offline submission queue for reports.
- * Uses IndexedDB instead of localStorage so report payloads/photos are not
- * copied into the plain-text web storage namespace. Entries have explicit
- * lifecycle states and a server-side idempotency key.
+ * Uses IndexedDB so report metadata and photo blobs survive reloads/reconnects.
  */
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
+import type { PhotoArtifact } from "@/lib/photo-artifact";
+import {
+  deletePhotoArtifacts,
+  readPhotoArtifacts,
+  storeQueueEntryWithPhotoArtifacts,
+} from "@/lib/offline-photo-store";
+import { stagePhotoFingerprint, uploadPhotoArtifact } from "@/lib/photo-sync";
 
 const DB_NAME = "signa-ci-offline";
-const DB_VERSION = 1;
+const DB_VERSION = 3;
 const STORE = "reports";
-
 type QueueStatus = "pending" | "uploading" | "sent" | "failed";
 
 export interface QueuedReport {
@@ -23,7 +27,6 @@ export interface QueuedReport {
   attempts: number;
   last_error?: string;
   payload: Record<string, unknown>;
-  photo_base64?: string;
 }
 
 function openDb(): Promise<IDBDatabase> {
@@ -35,6 +38,23 @@ function openDb(): Promise<IDBDatabase> {
         const store = db.createObjectStore(STORE, { keyPath: "id" });
         store.createIndex("status", "status", { unique: false });
         store.createIndex("queued_at", "queued_at", { unique: false });
+      }
+      if (!db.objectStoreNames.contains("photos")) {
+        const photos = db.createObjectStore("photos", { keyPath: "key" });
+        photos.createIndex("submissionId", "submissionId", { unique: false });
+      } else if (request.transaction) {
+        // Remove EXIF GPS that may have been persisted by DB_VERSION 2.
+        const photos = request.transaction.objectStore("photos");
+        photos.openCursor().onsuccess = (event) => {
+          const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
+          if (!cursor) return;
+          const value = cursor.value as Record<string, unknown>;
+          if ("exifGps" in value) {
+            delete value.exifGps;
+            cursor.update(value);
+          }
+          cursor.continue();
+        };
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -70,6 +90,22 @@ async function deleteQueueEntry(id: string): Promise<void> {
   });
 }
 
+function getPayloadString(payload: Record<string, unknown>, key: string): string | null {
+  const value = payload[key];
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+async function isDuplicateSubmission(error: unknown, clientSubmissionId: string): Promise<boolean> {
+  const { data, error: lookupError } = await supabase
+    .from("reports")
+    .select("id, client_submission_id")
+    .eq("client_submission_id", clientSubmissionId)
+    .maybeSingle();
+
+  if (lookupError) throw lookupError;
+  return Boolean(data?.client_submission_id === clientSubmissionId);
+}
+
 export function useOfflineQueue() {
   const { isOnline } = useNetworkStatus();
   const [queue, setQueue] = useState<QueuedReport[]>([]);
@@ -81,9 +117,13 @@ export function useOfflineQueue() {
 
   useEffect(() => { void refreshQueue(); }, [refreshQueue]);
 
-  const enqueue = useCallback(async (payload: Record<string, unknown>) => {
+  const enqueue = useCallback(async (
+    payload: Record<string, unknown>,
+    photoArtifacts: PhotoArtifact[] = [],
+  ) => {
     const now = new Date().toISOString();
-    const client_submission_id = crypto.randomUUID();
+    const client_submission_id = getPayloadString(payload, "client_submission_id") ?? crypto.randomUUID();
+    const photoGroupId = getPayloadString(payload, "offline_photo_group_id");
     const entry: QueuedReport = {
       id: `offline_${client_submission_id}`,
       client_submission_id,
@@ -93,7 +133,19 @@ export function useOfflineQueue() {
       attempts: 0,
       payload: { ...payload, client_submission_id },
     };
-    await putQueueEntry(entry);
+
+    if (photoArtifacts.length > 0) {
+      // Metadata + blobs share one IndexedDB transaction. A crash cannot leave
+      // a visible queued report without the photos required to send it.
+      await storeQueueEntryWithPhotoArtifacts(entry, photoArtifacts);
+    } else {
+      await putQueueEntry(entry);
+      if (photoGroupId && photoGroupId !== client_submission_id) {
+        entry.payload = { ...entry.payload, offline_photo_group_id: photoGroupId };
+        await putQueueEntry(entry);
+      }
+    }
+
     await refreshQueue();
     return entry.id;
   }, [refreshQueue]);
@@ -104,25 +156,93 @@ export function useOfflineQueue() {
     if (!q.length) return 0;
     setFlushing(true);
     let sent = 0;
+
     try {
       for (const item of q) {
-        if (item.status === "sent") { await deleteQueueEntry(item.id); sent++; continue; }
-        const uploading: QueuedReport = { ...item, status: "uploading", attempts: item.attempts + 1, updated_at: new Date().toISOString() };
+        if (item.status === "sent") {
+          const photoGroupId = getPayloadString(item.payload, "offline_photo_group_id") ?? item.client_submission_id;
+          await deletePhotoArtifacts(item.client_submission_id);
+          if (photoGroupId !== item.client_submission_id) await deletePhotoArtifacts(photoGroupId);
+          await deleteQueueEntry(item.id);
+          sent++;
+          continue;
+        }
+
+        const uploading: QueuedReport = {
+          ...item,
+          status: "uploading",
+          attempts: item.attempts + 1,
+          updated_at: new Date().toISOString(),
+        };
         await putQueueEntry(uploading);
+
         try {
-          const { error } = await supabase.from("reports").insert(uploading.payload as any);
-          if (error && !String(error.code).includes("23505")) throw error;
-          await putQueueEntry({ ...uploading, status: "sent", updated_at: new Date().toISOString(), last_error: undefined });
-          await deleteQueueEntry(uploading.id);
+          const photoGroupId = getPayloadString(item.payload, "offline_photo_group_id");
+          const storedArtifacts = [
+            ...(await readPhotoArtifacts(item.client_submission_id)),
+            ...(photoGroupId && photoGroupId !== item.client_submission_id
+              ? await readPhotoArtifacts(photoGroupId)
+              : []),
+          ];
+          const uploadedPaths: string[] = [];
+          const userId = getPayloadString(item.payload, "user_id");
+
+          if (storedArtifacts.length > 0 && !userId) {
+            throw new Error("Utilisateur requis pour synchroniser les photos du signalement");
+          }
+
+          for (const stored of storedArtifacts) {
+            const artifact: PhotoArtifact = {
+              id: stored.id,
+              blob: stored.blob,
+              sha256: stored.sha256,
+              exifGps: null,
+              storagePath: stored.storagePath,
+            };
+
+            const storagePath = await uploadPhotoArtifact(artifact, userId!);
+            await stagePhotoFingerprint(storagePath, userId!, artifact.sha256);
+            uploadedPaths.push(storagePath);
+          }
+
+          const payload: Record<string, unknown> = {
+            ...item.payload,
+            photo_url: uploadedPaths[0] ?? null,
+            photo_urls: uploadedPaths.length > 0 ? uploadedPaths : null,
+          };
+          delete payload.offline_photo_group_id;
+
+          const { error } = await supabase.from("reports").insert(payload as any);
+          if (error) {
+            if (!(String(error.code) === "23505" && await isDuplicateSubmission(error, item.client_submission_id))) {
+              throw error;
+            }
+          }
+
+          await putQueueEntry({
+            ...uploading,
+            status: "sent",
+            updated_at: new Date().toISOString(),
+            last_error: undefined,
+          });
+          await deletePhotoArtifacts(item.client_submission_id);
+          if (photoGroupId && photoGroupId !== item.client_submission_id) await deletePhotoArtifacts(photoGroupId);
+          await deleteQueueEntry(item.id);
           sent++;
         } catch (error) {
-          await putQueueEntry({ ...uploading, status: "failed", updated_at: new Date().toISOString(), last_error: error instanceof Error ? error.message : "Échec d'envoi" });
+          await putQueueEntry({
+            ...uploading,
+            status: "failed",
+            updated_at: new Date().toISOString(),
+            last_error: error instanceof Error ? error.message : "Échec d'envoi",
+          });
         }
       }
     } finally {
       setFlushing(false);
       await refreshQueue();
     }
+
     return sent;
   }, [flushing, refreshQueue]);
 
