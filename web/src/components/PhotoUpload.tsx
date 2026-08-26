@@ -10,6 +10,7 @@ import { useSignedUrl } from "@/hooks/useSignedUrl";
 import * as exifr from "exifr";
 import { MAX_PHOTOS } from "@/lib/constants";
 import { createPhotoArtifact, type PhotoArtifact } from "@/lib/photo-artifact";
+import { getPhotoStoragePath } from "@/lib/photo-storage";
 
 interface PhotoUploadProps {
   onPhotosChanged: (urls: string[]) => void;
@@ -110,10 +111,13 @@ interface UploadedPhoto {
   blob: Blob;
 }
 
-async function uploadFile(file: File, userId: string, index: number): Promise<UploadedPhoto> {
+async function uploadFile(
+  file: File,
+  userId: string,
+  exifGps: { lat: number; lng: number } | null,
+): Promise<UploadedPhoto & { artifact: PhotoArtifact }> {
   let blob: Blob;
   let contentType = "image/jpeg";
-  let ext = "jpg";
 
   try {
     blob = await compressImage(file);
@@ -122,18 +126,18 @@ async function uploadFile(file: File, userId: string, index: number): Promise<Up
     blob = file;
     const ALLOWED_TYPES = new Set(["image/jpeg","image/png","image/webp","image/heic","image/heif","image/gif"])
     contentType = ALLOWED_TYPES.has(file.type) ? file.type : "application/octet-stream";
-    const ALLOWED_EXTS = new Set(["jpg","jpeg","png","webp","heic","heif","gif"])
-    const rawExt = file.name.split(".").pop()?.toLowerCase() ?? ""
-    ext = ALLOWED_EXTS.has(rawExt) ? rawExt : "bin";
   }
 
-  const path = `${userId}/${Date.now()}_${index}.${ext}`;
+  const artifact = await createPhotoArtifact(blob, exifGps);
+  const path = getPhotoStoragePath(userId, artifact.id, blob);
+  artifact.storagePath = path;
+
   const { error } = await supabase.storage
     .from("report-photos")
     .upload(path, blob, { upsert: true, contentType });
 
   if (error) throw error;
-  return { path, blob };
+  return { path, blob, artifact };
 }
 
 // ── Sous-composant : vignette d'une photo uploadée ────────────────────────────
@@ -202,9 +206,9 @@ const PhotoUpload = ({
       }
 
       const exifGps = await extractExifGps(file);
-      let uploaded: UploadedPhoto;
+      let uploaded: UploadedPhoto & { artifact: PhotoArtifact };
       if (isOnline) {
-        uploaded = await uploadFile(file, user.id, i);
+        uploaded = await uploadFile(file, user.id, exifGps);
       } else {
         let blob: Blob;
         try {
@@ -212,7 +216,9 @@ const PhotoUpload = ({
         } catch {
           blob = file;
         }
-        uploaded = { path: "", blob };
+        const artifact = await createPhotoArtifact(blob, exifGps);
+        artifact.storagePath = getPhotoStoragePath(user.id, artifact.id, blob);
+        uploaded = { path: "", blob, artifact };
       }
 
       if (exifGps && onGpsFromPhoto && !exifExtracted) {
@@ -225,10 +231,8 @@ const PhotoUpload = ({
         });
       }
 
-      // Hash the exact final Blob that was uploaded to Storage, or queued for upload.
-      const artifact = await createPhotoArtifact(uploaded.blob, exifGps);
-      if (uploaded.path) artifact.storagePath = uploaded.path;
-      return { path: uploaded.path, artifact };
+      // The artifact ID is the canonical identity for the photo in both online and offline paths.
+      return { path: uploaded.path, artifact: uploaded.artifact };
     });
 
     const results = await Promise.allSettled(uploadPromises);
