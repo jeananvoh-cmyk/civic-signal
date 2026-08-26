@@ -102,7 +102,7 @@ async function isDuplicateSubmission(error: unknown, clientSubmissionId: string)
     .eq("client_submission_id", clientSubmissionId)
     .maybeSingle();
 
-  if (lookupError) return false;
+  if (lookupError) throw lookupError;
   return Boolean(data?.client_submission_id === clientSubmissionId);
 }
 
