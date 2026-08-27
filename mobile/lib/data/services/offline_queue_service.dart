@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PendingReportItem {
@@ -34,15 +34,16 @@ class PendingReportItem {
 
 class OfflineQueueService {
   static const String _storageKey = 'signa_offline_pending_reports';
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   static Future<List<PendingReportItem>> getPendingReports() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getStringList(_storageKey) ?? [];
-      return raw.map((str) {
-        final decoded = jsonDecode(str) as Map<String, dynamic>;
-        return PendingReportItem.fromJson(decoded);
-      }).toList();
+      final raw = await _secureStorage.read(key: _storageKey);
+      if (raw == null || raw.isEmpty) return [];
+      final decodedList = jsonDecode(raw) as List<dynamic>;
+      return decodedList
+          .map((item) => PendingReportItem.fromJson(Map<String, dynamic>.from(item as Map)))
+          .toList();
     } catch (e) {
       debugPrint('Error getting offline queue: $e');
       return [];
@@ -51,7 +52,6 @@ class OfflineQueueService {
 
   static Future<void> enqueueReport(Map<String, dynamic> data, {String? localPhotoPath}) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       final list = await getPendingReports();
       final item = PendingReportItem(
         localId: 'offline_${DateTime.now().millisecondsSinceEpoch}_${data['commune'] ?? 'abj'}',
@@ -60,8 +60,10 @@ class OfflineQueueService {
         createdAt: DateTime.now(),
       );
       list.add(item);
-      final rawList = list.map((i) => jsonEncode(i.toJson())).toList();
-      await prefs.setStringList(_storageKey, rawList);
+      await _secureStorage.write(
+        key: _storageKey,
+        value: jsonEncode(list.map((i) => i.toJson()).toList()),
+      );
     } catch (e) {
       debugPrint('Error enqueuing offline report: $e');
     }
@@ -69,11 +71,12 @@ class OfflineQueueService {
 
   static Future<void> removePendingReport(String localId) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       final list = await getPendingReports();
       list.removeWhere((i) => i.localId == localId);
-      final rawList = list.map((i) => jsonEncode(i.toJson())).toList();
-      await prefs.setStringList(_storageKey, rawList);
+      await _secureStorage.write(
+        key: _storageKey,
+        value: jsonEncode(list.map((i) => i.toJson()).toList()),
+      );
     } catch (e) {
       debugPrint('Error removing offline report: $e');
     }
@@ -88,20 +91,21 @@ class OfflineQueueService {
       try {
         final payload = Map<String, dynamic>.from(item.data);
 
-        // Si une photo locale existe, tenter de l'uploader
         if (item.localPhotoPath != null && item.localPhotoPath!.isNotEmpty) {
           final file = File(item.localPhotoPath!);
           if (await file.exists()) {
-            final fileName = 'report_${DateTime.now().millisecondsSinceEpoch}.jpg';
+            final userId = Supabase.instance.client.auth.currentUser?.id;
+            if (userId == null) {
+              throw StateError('Utilisateur non authentifié pour l’upload hors ligne.');
+            }
+            final fileName = 'offline_${DateTime.now().millisecondsSinceEpoch}.jpg';
+            final storagePath = '$userId/$fileName';
             final uploadRes = await Supabase.instance.client.storage
                 .from('report-photos')
-                .upload(fileName, file);
+                .upload(storagePath, file);
             if (uploadRes.isNotEmpty) {
-              final publicUrl = Supabase.instance.client.storage
-                  .from('report-photos')
-                  .getPublicUrl(fileName);
-              payload['photo_url'] = publicUrl;
-              payload['photo_urls'] = [publicUrl];
+              payload['photo_url'] = storagePath;
+              payload['photo_urls'] = [storagePath];
             }
           }
         }
