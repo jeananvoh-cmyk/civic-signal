@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, BarChart3, Plus, Landmark, User, Download } from "lucide-react";
+import { Home, BarChart3, Plus, Landmark, User, Download, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,30 +66,22 @@ export default function BottomNav() {
         <div className="relative grid grid-cols-5 items-center h-[4.5rem] px-1">
           <NavTab to="/" icon={Home} label="Accueil" active={location.pathname === "/"} />
 
-          {canInstall ? (
-            <Link
-              to="/installer"
-              aria-label="Installer l'application"
-              className="flex flex-col items-center justify-center gap-1 h-full px-2"
-            >
-              <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-warning/12 border border-warning/20">
-                <Download className="h-4 w-4 text-warning" />
-                <span className="absolute -top-0.5 -right-0.5 inline-flex rounded-full h-2 w-2 bg-warning" />
-              </div>
-              <span className="text-[10px] font-medium text-warning leading-none">Installer</span>
-            </Link>
-          ) : (
-            <NavTab to="/tableau-de-bord" icon={BarChart3} label="Tableau" active={location.pathname === "/tableau-de-bord"} />
-          )}
+          <NavTab
+            to="/verification"
+            icon={CheckCircle2}
+            label="Vérifier"
+            active={location.pathname === "/verification"}
+            badge={pendingVerif > 0 ? pendingVerif : undefined}
+          />
 
-          {/* FAB central */}
+          {/* FAB central surélevé avec gradient vibrant */}
           <div className="flex items-center justify-center">
             <Link
               to="/signaler"
-              className="flex items-center justify-center h-[52px] w-[52px] rounded-[18px] bg-primary shadow-[0_4px_16px_hsl(var(--primary)/0.45)] active:scale-[0.96] transition-transform duration-150 -mt-4"
+              className="flex items-center justify-center h-[54px] w-[54px] rounded-[20px] bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 text-white shadow-[0_6px_24px_rgba(13,148,136,0.45)] active:scale-[0.94] transition-all duration-200 -mt-5 border border-white/20"
               aria-label="Signaler un problème"
             >
-              <Plus className="h-6 w-6 text-white stroke-[2.5]" />
+              <Plus className="h-7 w-7 text-white stroke-[2.5]" />
             </Link>
           </div>
 
@@ -100,7 +92,7 @@ export default function BottomNav() {
             icon={User}
             label="Compte"
             active={location.pathname === "/profil"}
-            badge={totalBadge > 0 ? totalBadge : undefined}
+            badge={unread > 0 ? unread : undefined}
           />
         </div>
       </nav>
