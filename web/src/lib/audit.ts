@@ -24,14 +24,18 @@ interface AuditEntry {
 }
 
 export const logAudit = async (entry: AuditEntry) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-  await supabase.from("audit_logs").insert({
-    admin_id: user.id,
-    action: entry.action,
-    target_type: entry.target_type,
-    target_id: entry.target_id ?? null,
-    details: entry.details ?? {},
-  } as any);
+    await supabase.from("audit_logs").insert({
+      admin_id: user.id,
+      action: entry.action,
+      target_type: entry.target_type,
+      target_id: entry.target_id ?? null,
+      details: entry.details ?? {},
+    } as any);
+  } catch (err) {
+    console.warn("Client-side audit log notice:", err);
+  }
 };

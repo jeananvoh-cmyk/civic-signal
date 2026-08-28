@@ -227,20 +227,13 @@ const AdminUsersPage = () => {
           first_name: createFirstName,
           last_name: createLastName,
           role: createRole || undefined,
+          organization_name: createRole === "partner" ? createPartnerOrgName.trim() : undefined,
+          partner_type: createRole === "partner" ? createPartnerType : undefined,
+          commune: createRole === "partner" && createPartnerType === "mairie" ? createPartnerCommune : undefined,
         },
       });
       if (res.error) throw new Error(res.error.message);
       if (res.data?.error) throw new Error(res.data.error);
-
-      if (createRole === "partner") {
-        const { error: partnerError } = await supabase.from("partner_profiles").insert({
-          user_id: res.data.user_id,
-          organization_name: createPartnerOrgName.trim(),
-          partner_type: createPartnerType,
-          commune: createPartnerType === "mairie" ? createPartnerCommune : null,
-        });
-        if (partnerError) throw new Error("Compte créé mais profil partenaire non enregistré : " + partnerError.message);
-      }
 
       return res.data;
     },

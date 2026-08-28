@@ -132,8 +132,8 @@ const PrivacyPolicyPage = () => {
             <Section
               id="donnees"
               icon={Database}
-              title="2. Données Collectées & Finalités (Art. 28)"
-              summary="En clair : Nous ne collectons que ce qui est strictement nécessaire au dépannage"
+              title="2. Données Collectées, Traitement OCR & Finalités (Art. 28)"
+              summary="En clair : Nous ne collectons que ce qui est strictement nécessaire au dépannage urbain"
             >
               <p>SIGNA.ci applique le principe de minimisation et ne recueille que les données utiles aux signalements urbains :</p>
               
@@ -144,8 +144,18 @@ const PrivacyPolicyPage = () => {
                 </div>
                 <div className="p-4 rounded-2xl bg-muted/50 border border-border">
                   <span className="font-bold text-foreground text-xs block mb-1">📍 Données de Signalement</span>
-                  <span className="text-xs text-muted-foreground">Commune, quartier, coordonnées GPS de l'incident, photographies de l'infrastructure endommagée.</span>
+                  <span className="text-xs text-muted-foreground">Commune, quartier, numéro de porte PADA, coordonnées GPS de l'incident, photographies des équipements.</span>
                 </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-muted/50 border border-border my-3 space-y-1.5">
+                <span className="font-bold text-foreground text-xs flex items-center gap-1.5">
+                  <FileText className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  📷 Photographies & Relevés de Compteurs (Traitement OCR)
+                </span>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Lorsque vous importez une photo de compteur ou d'équipement (CIE/SODECI), un traitement de reconnaissance optique de caractères (OCR) est effectué localement ou de manière sécurisée pour extraire uniquement l'index numérique du compteur ou la référence d'équipement. Les informations nominatives figurant éventuellement sur les factures papier sont automatiquement purgées avant tout enregistrement.
+                </p>
               </div>
 
               <p className="font-bold text-foreground mt-2">Finalités exclusives des traitements :</p>
@@ -164,15 +174,15 @@ const PrivacyPolicyPage = () => {
             <Section
               id="anonymisation"
               icon={Globe}
-              title="3. Protection de la Vie Privée & Floutage Systématique GPS"
+              title="3. Protection de la Vie Privée & Floutage Systématique GPS (~150m)"
               summary="En clair : Vos coordonnées exactes de domicile sont protégées sur la carte publique"
             >
               <p>
-                Afin de préserver la vie privée des citoyens et l'anonymat de leur lieu de résidence :
+                Afin de préserver la vie privée des citoyens et l'anonymat de leur lieu de résidence (Loi n° 2013-450) :
               </p>
               <ul className="list-disc list-inside space-y-2 pl-2">
-                <li><strong>Floutage GPS Public</strong> : Sur la cartographie publique et les flux ouverts, les coordonnées géographiques sont automatiquement tronquées à 3 décimales (rayon d'incertitude protecteur d'environ 110 mètres).</li>
-                <li><strong>Non-Divulgation de l'Identité</strong> : L'identifiant utilisateur (<code>user_id</code>), l'adresse email et le numéro de téléphone ne sont jamais accessibles au public ni aux tiers non habilités.</li>
+                <li><strong>Floutage GPS Public (~150 mètres)</strong> : Sur la cartographie publique et les flux d'alertes citoyennes, les coordonnées géographiques exactes sont tronquées et soumises à un décalage d'incertitude déterministe d'environ 150 mètres. Seul le quartier général est visible.</li>
+                <li><strong>Non-Divulgation de l'Identité</strong> : L'identifiant utilisateur (<code>user_id</code>), l'adresse email et le numéro de téléphone ne sont jamais affichés publiquement ni accessibles aux tiers non habilités.</li>
                 <li><strong>Accès Opérateur Restreint</strong> : Seules les équipes d'intervention agréées (CIE, SODECI, agents communaux mandatés) disposent des coordonnées précises pour localiser le poteau ou la canalisation endommagée.</li>
               </ul>
             </Section>
@@ -181,16 +191,16 @@ const PrivacyPolicyPage = () => {
             <Section
               id="conservation"
               icon={Lock}
-              title="4. Durée de Conservation & Sécurité des Données"
-              summary="En clair : Chiffrement intégral HTTPS/TLS et suppression sur simple demande"
+              title="4. Durée de Conservation & Anonymisation Irréversible des Comptes"
+              summary="En clair : Chiffrement intégral HTTPS/TLS et suppression ou anonymisation propre"
             >
               <p>
                 Conformément à l'Article 41 de la Loi n° 2013-450, des mesures de sécurité techniques et organisationnelles renforcées garantissent la confidentialité de vos données :
               </p>
-              <ul className="list-disc list-inside space-y-1.5 pl-2">
+              <ul className="list-disc list-inside space-y-2 pl-2">
                 <li><strong>Chiffrement TLS / HTTPS</strong> de l'ensemble des flux de données en transit.</li>
                 <li><strong>Authentification Sécurisée</strong> et chiffrement des identifiants en base de données.</li>
-                <li><strong>Durée de conservation</strong> : Les données du profil sont conservées tant que le compte demeure actif. En cas de fermeture de compte ou de demande de suppression, les données identifiables sont définitivement effacées sous <strong>30 jours</strong>. Seuls les signalements restent archivés sous forme rigoureusement anonyme.</li>
+                <li><strong>Anonymisation Irréversible à la suppression du compte</strong> : Lors de la suppression de votre compte, l'ensemble de vos données personnelles (nom, email, téléphone, jetons de notification, numéros de compteur) est immédiatement et définitivement effacé de nos bases. Vos signalements publics d'intérêt général sont conservés à des fins d'historique de quartier sous une forme totalement anonymisée (<code>user_id = NULL</code>), rendant toute réidentification impossible.</li>
               </ul>
             </Section>
 

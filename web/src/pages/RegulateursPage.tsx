@@ -49,6 +49,25 @@ const RegulateursPage = () => {
   const { data: allReports = [], isLoading } = useQuery<AuditReport[]>({
     queryKey: ["audit-regulators-reports", timeRangeDays],
     queryFn: async () => {
+      // Try public RPC first to avoid RLS block
+      const { data: rpcData, error: rpcError } = await supabase.rpc("get_public_reports");
+      if (!rpcError && rpcData) {
+        return rpcData.map((r: any) => ({
+          id: r.id,
+          service_type: r.service_type,
+          report_category: r.report_category,
+          commune: r.commune,
+          quartier: r.quartier,
+          status: r.status,
+          urgency: r.urgency,
+          impacted_people: 1,
+          verifications: r.verifications ?? 0,
+          created_at: r.created_at,
+          resolved_at: r.resolved_at ?? null,
+          operator_reference: r.operator_reference,
+        })) as AuditReport[];
+      }
+
       const minDate = new Date(Date.now() - timeRangeDays * 24 * 3600000).toISOString();
       const { data, error } = await supabase
         .from("reports")

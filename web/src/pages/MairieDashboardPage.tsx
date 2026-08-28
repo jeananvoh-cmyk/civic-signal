@@ -98,14 +98,63 @@ const MairieDashboardPage = () => {
     description: `Plateforme de pilotage et d'attribution des travaux d'infrastructure, voirie et éclairage pour les agents techniques de la Mairie de ${selectedCommune}.`,
   });
 
+  // Partner profile for municipal agent
+  const { data: partnerProfile } = useQuery({
+    queryKey: ["mairie-partner-profile", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from("partner_profiles")
+        .select("organization_name, partner_type, commune")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Lock selectedCommune if municipal partner has an assigned commune
+  const activeCommune = partnerProfile?.partner_type === "mairie" && partnerProfile.commune
+    ? partnerProfile.commune
+    : selectedCommune;
+
   // Charger les signalements de la commune (Infrastructure, Voirie, Salubrité, Lampadaires)
   const { data: rawReports = [], isLoading } = useQuery<InfraReport[]>({
-    queryKey: ["mairie-reports", selectedCommune],
+    queryKey: ["mairie-reports", activeCommune, user?.id],
     queryFn: async () => {
+      // Try partner-scoped RPC first if logged in
+      if (user && partnerProfile) {
+        const { data: rpcData, error: rpcError } = await supabase.rpc("get_partner_reports");
+        if (!rpcError && rpcData && rpcData.length > 0) {
+          return rpcData.map((r: any) => ({
+            id: r.id,
+            ticket_code: r.ticket_code,
+            service_type: r.service_type,
+            report_category: r.report_category,
+            description: r.description,
+            commune: r.commune,
+            quartier: r.quartier,
+            status: r.status,
+            urgency: r.urgency,
+            verifications: r.support_count ?? 0,
+            impacted_people: r.impacted_people ?? 1,
+            created_at: r.created_at,
+            resolved_at: r.resolved_at ?? null,
+            photo_url: r.photo_url || null,
+            photo_urls: r.photo_urls || null,
+            operator_reference: r.operator_reference,
+            estimated_resolution_time: r.estimated_resolution_time,
+            operator_last_note: r.operator_last_note,
+            assigned_team: r.assigned_team || null,
+          })) as InfraReport[];
+        }
+      }
+
+      // Fallback query by commune
       const { data, error } = await supabase
         .from("reports")
         .select("*")
-        .eq("commune", selectedCommune)
+        .eq("commune", activeCommune)
         .order("created_at", { ascending: false })
         .limit(300);
 

@@ -25,6 +25,12 @@ export class ErrorBoundary extends Component<Props, State> {
   private handleUpdate = async () => {
     try {
       sessionStorage.clear();
+      if ("serviceWorker" in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          await reg.unregister();
+        }
+      }
       if ("caches" in window) {
         const cacheNames = await caches.keys();
         await Promise.all(cacheNames.map((name) => caches.delete(name)));
@@ -32,7 +38,7 @@ export class ErrorBoundary extends Component<Props, State> {
     } catch {
       // Ignorer
     }
-    window.location.reload();
+    window.location.href = window.location.origin + "/?reload=" + Date.now();
   };
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {

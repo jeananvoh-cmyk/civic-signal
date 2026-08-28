@@ -15,7 +15,6 @@ import BottomNav from "@/components/BottomNav";
 import OnboardingSlides from "@/components/OnboardingSlides";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
-import { runAutoClosureCheck } from "@/lib/auto-closure";
 import { App as CapApp } from "@capacitor/app";
 import { StatusBar, Style } from "@capacitor/status-bar";
 
@@ -112,8 +111,6 @@ document.documentElement.classList.remove("theme-ivoire");
 
 const App = () => {
   useEffect(() => {
-    runAutoClosureCheck();
-
     // Native Android Status Bar Styling
     try {
       StatusBar.setStyle({ style: Style.Dark }).catch(() => {});

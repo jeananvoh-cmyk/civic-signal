@@ -53,11 +53,15 @@ export function usePushSubscription() {
 
   const getVapidKey = useCallback(async (): Promise<string | null> => {
     try {
-      // Try cache first
+      // Try environment variable first
+      const envKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+      if (envKey) return envKey;
+
+      // Try cache next
       const cached = localStorage.getItem(VAPID_PUBLIC_KEY_STORAGE);
       if (cached) return cached;
 
-      // Fetch from edge function
+      // Fetch from edge function as fallback
       const { data, error } = await supabase.functions.invoke("send-push", {
         body: { action: "get-vapid-key" },
       });
@@ -116,7 +120,7 @@ export function usePushSubscription() {
           await supabase
             .from("profiles")
             .update({ notifications_enabled: true })
-            .eq("id", user.id);
+            .eq("user_id", user.id);
         } catch (e) {
           console.warn("Could not sync notifications_enabled to profile:", e);
         }
@@ -134,7 +138,7 @@ export function usePushSubscription() {
           await supabase
             .from("profiles")
             .update({ notifications_enabled: true })
-            .eq("id", user.id);
+            .eq("user_id", user.id);
         } catch (_) {}
       }
       localStorage.setItem("push_notifications_enabled", "true");

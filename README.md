@@ -7,7 +7,7 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 [![CI Pipeline](https://img.shields.io/badge/CI-GitHub%20Actions-brightgreen.svg)](.github/workflows/ci.yml)
 [![Web / PWA](https://img.shields.io/badge/Web-React%2018%20%7C%20Vite-61dafb.svg)](web/)
-[![Mobile](https://img.shields.io/badge/Mobile-Flutter%20%7C%20Capacitor-02569B.svg)](mobile/)
+[![Mobile](https://img.shields.io/badge/Mobile-Capacitor%208%20(Android%20%7C%20iOS)-02569B.svg)](web/)
 [![Backend](https://img.shields.io/badge/Backend-Supabase%20%7C%20PostgreSQL-3ECF8E.svg)](supabase/)
 [![Open311 Standard](https://img.shields.io/badge/Standard-Open311%20Compliant-orange.svg)](docs/)
 
@@ -57,8 +57,7 @@ Le projet est conçu avec une architecture monorepo modulaire garantissant haute
 | Couche | Technologies Clés |
 | :--- | :--- |
 | **Frontend Web & PWA** | React 18, Vite, TypeScript, Tailwind CSS, Radix UI, Leaflet, Lucide Icons |
-| **Mobile Hybride** | Capacitor 8 (Android & iOS) |
-| **Mobile Natif** | Flutter 3.x, Dart, Riverpod, FlutterMap, Geolocator |
+| **Mobile Natif / Hybride** | Capacitor 8 (Android & iOS) |
 | **Backend & Base de Données** | Supabase, PostgreSQL 15, PostGIS, Row Level Security (RLS) |
 | **Normes Civiques** | Open311 GeoReport v2, Cadastre PADA Côte d'Ivoire |
 
@@ -85,14 +84,6 @@ Pour lancer les tests :
 ```bash
 npm test        # Suite Vitest (71 tests passants)
 npm run lint    # Analyse ESLint
-```
-
-### 3. Lancer la Version Mobile Flutter (`mobile/`)
-```bash
-cd ../mobile
-flutter pub get
-flutter test
-flutter run
 ```
 
 ---

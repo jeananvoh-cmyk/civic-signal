@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, password, first_name, last_name, role } = await req.json();
+    const { email, password, first_name, last_name, role, organization_name, partner_type, commune } = await req.json();
 
     if (!email || !password) {
       return new Response(JSON.stringify({ error: "Email et mot de passe requis" }), {
@@ -83,11 +83,20 @@ Deno.serve(async (req) => {
     }
 
     // Assign role if specified
-    if (role && (role === "admin" || role === "moderator")) {
+    if (role && (role === "admin" || role === "moderator" || role === "partner")) {
       await adminClient.from("user_roles").insert({
         user_id: newUser.user.id,
         role,
       });
+
+      if (role === "partner" && organization_name && partner_type) {
+        await adminClient.from("partner_profiles").insert({
+          user_id: newUser.user.id,
+          organization_name: organization_name.trim(),
+          partner_type,
+          commune: partner_type === "mairie" ? commune : null,
+        });
+      }
     }
 
     return new Response(JSON.stringify({ user_id: newUser.user.id }), {

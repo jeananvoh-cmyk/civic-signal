@@ -1,4 +1,4 @@
-name: CI Pipeline (Web & Flutter)
+name: CI Pipeline (Web & Capacitor)
 
 on:
   push:
@@ -40,34 +40,3 @@ jobs:
       - name: Validate Capacitor Android sync
         run: npx cap sync android
 
-  flutter-ci:
-    name: Mobile Native (Flutter & Dart)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: mobile
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-          cache: true
-
-      - name: Install Flutter dependencies
-        run: flutter pub get
-
-      - name: Analyze Dart Code
-        run: flutter analyze
-
-      - name: Run Flutter Unit Tests
-        run: flutter test

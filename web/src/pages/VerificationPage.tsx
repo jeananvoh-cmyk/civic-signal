@@ -93,36 +93,26 @@ const VerificationPage = () => {
   }, [user]);
 
   const handleConfirmStillOngoing = async (report: MyReport) => {
-    cardOpenedAt.current[report.id] = Date.now();
+    const lastReminder = report.last_reminder_at ? new Date(report.last_reminder_at).getTime() : 0;
+    const now = Date.now();
+    if (now - lastReminder < 60 * 60 * 1000) {
+      toast.info("Vous avez déjà relancé ce signalement récemment.");
+      return;
+    }
+
     setConfirming(report.id);
+    cardOpenedAt.current[report.id] = Date.now();
     try {
-      const { data: currentReport, error: fetchErr } = await supabase
-        .from("reports")
-        .select("reminder_count, last_reminder_at")
-        .eq("id", report.id)
-        .single();
-
-      if (fetchErr) throw fetchErr;
-
-      if (currentReport?.last_reminder_at) {
-        const elapsed = Date.now() - new Date(currentReport.last_reminder_at).getTime();
-        if (elapsed < 3_600_000) {
-          const minsLeft = Math.ceil((3_600_000 - elapsed) / 60_000);
-          toast.error(`Veuillez patienter encore ${minsLeft} minute(s) avant de relancer.`);
-          return;
-        }
-      }
-
       const newReminderAt = new Date().toISOString();
-      const { error } = await supabase
-        .from("reports")
-        .update({
-          reminder_count: (currentReport?.reminder_count || 0) + 1,
-          last_reminder_at: newReminderAt,
-        })
-        .eq("id", report.id);
-
-      if (error) throw error;
+      const { error } = await supabase.rpc("confirm_report_still_ongoing", { p_report_id: report.id });
+      if (error) {
+        // Fallback in case RPC is not yet applied
+        const { error: updateError } = await supabase
+          .from("reports")
+          .update({ last_reminder_at: newReminderAt })
+          .eq("id", report.id);
+        if (updateError) throw updateError;
+      }
 
       setReports(prev => prev.map(r =>
         r.id === report.id ? { ...r, last_reminder_at: newReminderAt } : r
@@ -195,17 +185,6 @@ const VerificationPage = () => {
     if (!deleteTarget || !deleteReason.trim()) return;
     setDeleting(deleteTarget.id);
     try {
-      const { error: logError } = await supabase.from("report_deletions").insert({
-        report_id: deleteTarget.id,
-        user_id: user!.id,
-        reason: deleteReason.trim(),
-        service_type: deleteTarget.service_type,
-        commune: deleteTarget.commune,
-        quartier: deleteTarget.quartier,
-        description: deleteTarget.description,
-      });
-      if (logError) throw logError;
-
       const { error } = await supabase.from("reports").delete().eq("id", deleteTarget.id).eq("user_id", user!.id);
       if (error) throw error;
       
