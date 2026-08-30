@@ -71,12 +71,20 @@ const CommuneDetailPage = () => {
   });
   const logo = COMMUNE_LOGOS[decodedName] || COMMUNE_LOGOS[communeInfo?.nom || ""];
 
+  const [communeStat, setCommuneStat] = useState<{
+    electricite_actifs: number;
+    electricite_total: number;
+    eau_actifs: number;
+    eau_total: number;
+  } | null>(null);
+
   useEffect(() => {
     const fetchData = async () => {
-      const [quartierRes, durationRes, impactRes] = await Promise.all([
+      const [quartierRes, durationRes, impactRes, serviceRes] = await Promise.all([
         supabase.rpc("get_commune_quartier_stats", { p_commune: decodedName }),
         supabase.rpc("get_commune_duration_stats"),
         supabase.rpc("get_commune_impact_stats" as any, { p_commune: decodedName }),
+        supabase.rpc("get_commune_service_stats"),
       ]);
       if (!quartierRes.error && quartierRes.data) {
         setStats(quartierRes.data as unknown as QuartierStat[]);
@@ -91,15 +99,28 @@ const CommuneDetailPage = () => {
       if (!impactRes.error && impactRes.data) {
         setImpactStats(impactRes.data as unknown as ImpactStats);
       }
+      if (!serviceRes.error && Array.isArray(serviceRes.data)) {
+        const found = (serviceRes.data as any[]).find(
+          (c) => (c.commune || "").toLowerCase().trim() === decodedName.toLowerCase().trim()
+        );
+        if (found) {
+          setCommuneStat({
+            electricite_actifs: Number(found.electricite_actifs || 0),
+            electricite_total: Number(found.electricite_total || 0),
+            eau_actifs: Number(found.eau_actifs || 0),
+            eau_total: Number(found.eau_total || 0),
+          });
+        }
+      }
       setLoading(false);
     };
     fetchData();
   }, [decodedName]);
 
-  const totalElecActifs = stats.reduce((s, q) => s + q.electricite_actifs, 0);
-  const totalEauActifs = stats.reduce((s, q) => s + q.eau_actifs, 0);
-  const totalElecTotal = stats.reduce((s, q) => s + q.electricite_total, 0);
-  const totalEauTotal = stats.reduce((s, q) => s + q.eau_total, 0);
+  const totalElecActifs = communeStat ? communeStat.electricite_actifs : stats.reduce((s, q) => s + q.electricite_actifs, 0);
+  const totalEauActifs = communeStat ? communeStat.eau_actifs : stats.reduce((s, q) => s + q.eau_actifs, 0);
+  const totalElecTotal = communeStat ? communeStat.electricite_total : stats.reduce((s, q) => s + q.electricite_total, 0);
+  const totalEauTotal = communeStat ? communeStat.eau_total : stats.reduce((s, q) => s + q.eau_total, 0);
 
   const elecDuration = durations.find((d) => d.service_type === "electricity");
   const waterDuration = durations.find((d) => d.service_type === "water");

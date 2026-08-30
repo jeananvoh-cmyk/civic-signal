@@ -379,15 +379,15 @@ const Index = () => {
               </Link>
 
               <Link
-                to="/verification"
+                to="/carte"
                 className="group flex items-center gap-3.5 rounded-2xl border-2 border-sky-300 bg-sky-50/90 hover:bg-sky-100 text-sky-950 dark:border-sky-800 dark:bg-sky-950/40 dark:hover:bg-sky-900/60 dark:text-sky-200 px-8 py-4 font-bold text-base sm:text-lg shadow-sm backdrop-blur-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/20 text-sky-600 dark:text-sky-400 font-extrabold text-xl">
-                  🤝
+                  🗺️
                 </div>
                 <div className="flex flex-col text-left leading-tight">
-                  <span className="text-base font-extrabold tracking-wide">Confirmer un constat</span>
-                  <span className="text-[11px] font-medium text-sky-700 dark:text-sky-300">Vérifier &amp; corroborer dans mon quartier</span>
+                  <span className="text-base font-extrabold tracking-wide">Explorer la Carte en direct</span>
+                  <span className="text-[11px] font-medium text-sky-700 dark:text-sky-300">Coupures &amp; état des 14 communes</span>
                 </div>
                 <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
               </Link>

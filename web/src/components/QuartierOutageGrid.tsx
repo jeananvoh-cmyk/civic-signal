@@ -80,21 +80,22 @@ const QuartierOutageGrid = ({ communeName, stats, loading, couleur }: QuartierOu
     // Agréger les statistiques réelles
     for (const s of stats) {
       const raw = (s.quartier || "").trim();
-      if (!raw || raw === "__other" || raw === "other" || raw.toLowerCase() === "autre") continue;
       const canonical = normalizeQuartier(raw, communeName);
-      if (!canonical || canonical === "Secteur non précisé") continue;
+      const targetQuartier = (canonical && canonical !== "Secteur non précisé")
+        ? canonical
+        : `${communeName} (Centre / Secteur général)`;
 
-      let entry = consolidatedMap.get(canonical);
+      let entry = consolidatedMap.get(targetQuartier);
       if (!entry) {
         entry = {
-          quartier: canonical,
+          quartier: targetQuartier,
           elecActifs: 0,
           eauActifs: 0,
           elecTotal: 0,
           eauTotal: 0,
           source: "user",
         };
-        consolidatedMap.set(canonical, entry);
+        consolidatedMap.set(targetQuartier, entry);
       }
 
       entry.elecActifs += s.electricite_actifs || 0;
