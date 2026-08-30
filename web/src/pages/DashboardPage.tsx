@@ -331,9 +331,11 @@ const DashboardPage = () => {
           const rawName = (q.quartier || "").trim();
           if (!rawName || rawName === "__other" || rawName === "other" || rawName.toLowerCase() === "autre") return;
           const canonical = normalizeQuartier(rawName, commune);
-          if (!canonical || canonical === "Secteur non précisé") return;
+          const targetQuartier = (canonical && canonical !== "Secteur non précisé")
+            ? canonical
+            : `${commune} (Centre / Secteur général)`;
 
-          const key = `${commune}|${canonical}`;
+          const key = `${commune}|${targetQuartier}`;
           const existing = quartierAggMap.get(key);
 
           const elecActifs = q.electricite_actifs || 0;

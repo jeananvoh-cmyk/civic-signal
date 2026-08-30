@@ -3,7 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useGoBack } from "@/hooks/useGoBack";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Zap, Droplets, MapPin, Clock, TrendingUp, TrendingDown, Minus, Wrench, CheckCircle2, Landmark } from "lucide-react";
+import { ArrowLeft, ArrowRight, Zap, Droplets, MapPin, Clock, TrendingUp, TrendingDown, Minus, Wrench, CheckCircle2, Landmark, AlertTriangle, ShieldCheck } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { fr } from "date-fns/locale";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
 import CommuneAlertButton from "@/components/CommuneAlertButton";
@@ -77,14 +79,22 @@ const CommuneDetailPage = () => {
     eau_actifs: number;
     eau_total: number;
   } | null>(null);
+  const [communeReports, setCommuneReports] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
-      const [quartierRes, durationRes, impactRes, serviceRes] = await Promise.all([
+      const [quartierRes, durationRes, impactRes, serviceRes, reportsRes] = await Promise.all([
         supabase.rpc("get_commune_quartier_stats", { p_commune: decodedName }),
         supabase.rpc("get_commune_duration_stats"),
         supabase.rpc("get_commune_impact_stats" as any, { p_commune: decodedName }),
         supabase.rpc("get_commune_service_stats"),
+        supabase
+          .from("reports")
+          .select("id, ticket_code, service_type, report_category, description, location, commune, quartier, status, urgency, created_at, start_time, verifications")
+          .ilike("commune", decodedName)
+          .eq("validated", true)
+          .order("created_at", { ascending: false })
+          .limit(20),
       ]);
       if (!quartierRes.error && quartierRes.data) {
         setStats(quartierRes.data as unknown as QuartierStat[]);
@@ -111,6 +121,9 @@ const CommuneDetailPage = () => {
             eau_total: Number(found.eau_total || 0),
           });
         }
+      }
+      if (!reportsRes.error && Array.isArray(reportsRes.data)) {
+        setCommuneReports(reportsRes.data);
       }
       setLoading(false);
     };
@@ -346,6 +359,116 @@ const CommuneDetailPage = () => {
           loading={loading}
           couleur={couleur}
         />
+
+        {/* Live Incident Reports Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mt-10 mb-8"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="font-display text-xl font-bold text-foreground flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                Signalements &amp; Pannes à {decodedName}
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Dossiers citoyens enregistrés et géolocalisés en temps réel
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate(`/signaler?commune=${encodeURIComponent(decodedName)}`)}
+              className="gap-1.5 rounded-xl text-xs font-bold border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20"
+            >
+              + Signaler à {decodedName}
+            </Button>
+          </div>
+
+          {communeReports.length === 0 ? (
+            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-8 text-center">
+              <ShieldCheck className="h-10 w-10 text-emerald-500 mx-auto mb-2" />
+              <h3 className="font-bold text-base text-foreground">Réseau stable à {decodedName}</h3>
+              <p className="text-xs text-muted-foreground max-w-md mx-auto mt-1">
+                Aucun incident actif n'a été signalé par les habitants dans cette commune au cours des dernières heures.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {communeReports.map((r) => {
+                const isElec = r.service_type === "electricity";
+                const isInfra = r.report_category === "infrastructure" || r.service_type === "mairie";
+                const isActive = r.status === "active" || r.status === "open" || r.status === "in_progress";
+                const timeAgo = formatDistanceToNow(new Date(r.start_time || r.created_at), {
+                  addSuffix: true,
+                  locale: fr,
+                });
+
+                return (
+                  <div
+                    key={r.id}
+                    onClick={() => navigate(`/signalement/${r.id}`)}
+                    className="group flex flex-col justify-between rounded-2xl border border-border bg-card p-4 shadow-sm hover:border-primary/40 hover:bg-accent/20 transition-all cursor-pointer"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-1.5">
+                          {isInfra ? (
+                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-500/15 text-orange-600 text-xs font-bold">
+                              🏛️
+                            </span>
+                          ) : isElec ? (
+                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 text-xs font-bold">
+                              ⚡
+                            </span>
+                          ) : (
+                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/15 text-sky-600 text-xs font-bold">
+                              💧
+                            </span>
+                          )}
+                          <span className="text-xs font-bold text-foreground">
+                            {isInfra ? "Voirie / Mairie" : isElec ? "Électricité (CIE)" : "Eau (SODECI)"}
+                          </span>
+                        </div>
+
+                        <span
+                          className={cn(
+                            "rounded-full px-2.5 py-0.5 text-[11px] font-extrabold",
+                            isActive
+                              ? "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"
+                              : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                          )}
+                        >
+                          {isActive ? "🔴 En cours" : "✅ Résolu"}
+                        </span>
+                      </div>
+
+                      <p className="text-sm font-bold text-foreground">
+                        {r.quartier ? `${r.quartier}` : r.location || decodedName}
+                      </p>
+                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                        {r.description || "Aucune description fournie"}
+                      </p>
+                    </div>
+
+                    <div className="mt-3.5 pt-2.5 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>Débuté {timeAgo}</span>
+                      {r.verifications > 0 ? (
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                          ✓ {r.verifications} confirmation{r.verifications > 1 ? "s" : ""}
+                        </span>
+                      ) : (
+                        <span className="text-amber-600 dark:text-amber-400 font-medium">⏳ En attente de voisins</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </motion.div>
       </main>
     </div>
   );
