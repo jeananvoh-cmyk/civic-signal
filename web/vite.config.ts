@@ -28,6 +28,9 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          if (id.includes("pada-door-numbers.json") || id.includes("data/pada")) {
+            return "data-pada-cadastre";
+          }
           if (id.includes("node_modules")) {
             if (id.includes("leaflet")) return "vendor-maps";
             if (id.includes("recharts")) return "vendor-charts";
