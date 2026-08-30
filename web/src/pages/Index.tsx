@@ -258,17 +258,6 @@ const Index = () => {
 
         <div className="container relative z-10 py-12 sm:py-20">
           <div className="max-w-4xl mx-auto text-center flex flex-col items-center">
-            
-            {/* Badge de Confiance Officiel */}
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300"
-            >
-              <ShieldCheck className="h-4 w-4 text-emerald-500" />
-              <span>Observatoire Citoyen &amp; Collecte Participative en Côte d'Ivoire</span>
-            </motion.div>
-
             {/* Titre Principal H1 */}
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
