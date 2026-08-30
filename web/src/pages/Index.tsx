@@ -3,104 +3,117 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
-  Zap, Shield, Users, ArrowRight, BarChart3, MapPin,
-  Radio, LogIn, UserPlus, History, Info, Heart,
-  ChevronDown, CheckCircle2, TrendingUp, Droplets, Wrench, Navigation,
-  ExternalLink, MessageCircle, Mail, Map as MapIcon
+  Zap, Users, ArrowRight, MapPin,
+  CheckCircle2, Droplets, Wrench, Navigation,
+  Lightbulb, Waves, Construction, ShieldCheck, ChevronRight
 } from "lucide-react";
-import { usePWAInstall } from "@/hooks/usePWAInstall";
-import { SOCIAL_LINKS } from "@/lib/social-links";
-import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { COMMUNES } from "@/lib/communes";
+import { COMMUNE_LOGOS } from "@/lib/commune-logos";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import waterIcon from "@/assets/water-icon-sm.webp";
-import electricityIcon from "@/assets/electricity-icon-sm.webp";
-import { caniveauIcon, voirieIcon, lampadaireIcon } from "@/lib/infra-icons";
 import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
 
 const ROTATING_WORDS = [
-  { text: "coupures d'électricité", color: "text-amber-500 dark:text-amber-400" },
-  { text: "coupures d'eau",         color: "text-sky-500 dark:text-sky-400" },
-  { text: "lampadaires cassés",     color: "text-yellow-600 dark:text-yellow-400" },
-  { text: "caniveaux bouchés",      color: "text-teal-600 dark:text-teal-400" },
-  { text: "nids de poules",         color: "text-slate-800 dark:text-slate-200" },
+  { text: "coupures d'électricité (CIE)", color: "text-amber-500 dark:text-amber-400" },
+  { text: "coupures d'eau (SODECI)",         color: "text-sky-500 dark:text-sky-400" },
+  { text: "lampadaires éteints (Mairie)",     color: "text-yellow-600 dark:text-yellow-400" },
+  { text: "caniveaux bouchés (Mairie)",      color: "text-teal-600 dark:text-teal-400" },
+  { text: "nids de poules & voirie",         color: "text-slate-700 dark:text-slate-200" },
 ];
 
-const PROBLEM_TYPES = [
-  {
-    type: "water_outage",
-    iconImg: waterIcon,
-    label: "Coupures d'eau",
-    desc: "SODECI · Fuites & robinets secs",
-    border: "border-sky-500/20 dark:border-sky-400/30",
-    grad: "from-sky-500/10 to-cyan-500/5 dark:from-sky-500/15 dark:to-cyan-500/5",
-    text: "text-sky-600 dark:text-sky-300",
-    glow: "hover:shadow-sky-500/20",
-  },
+const POLE_RESEAUX = [
   {
     type: "electricity_outage",
-    iconImg: electricityIcon,
+    Icon: Zap,
     label: "Coupures d'électricité",
-    desc: "CIE · Pannes & transformateurs",
-    border: "border-yellow-500/20 dark:border-yellow-400/30",
-    grad: "from-yellow-500/10 to-amber-500/5 dark:from-yellow-500/15 dark:to-amber-500/5",
-    text: "text-amber-600 dark:text-yellow-300",
-    glow: "hover:shadow-yellow-500/20",
+    operator: "CIE · Réseau National",
+    desc: "Pannes de secteur, câbles tombés, transformateurs",
+    border: "border-amber-500/20 hover:border-amber-500/50",
+    bg: "bg-amber-500/5 hover:bg-amber-500/10",
+    iconBg: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+    textColor: "text-amber-600 dark:text-amber-400",
   },
   {
+    type: "water_outage",
+    Icon: Droplets,
+    label: "Coupures d'eau potable",
+    operator: "SODECI · Réseau Distribution",
+    desc: "Baisse de pression, robinets secs, fuites de conduites",
+    border: "border-sky-500/20 hover:border-sky-500/50",
+    bg: "bg-sky-500/5 hover:bg-sky-500/10",
+    iconBg: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+    textColor: "text-sky-600 dark:text-sky-400",
+  },
+];
+
+const POLE_MAIRIE = [
+  {
     type: "street_light",
-    iconImg: lampadaireIcon,
-    label: "Lampadaires cassés",
-    desc: "CIE Éclairage · Candélabres & ampoules",
-    border: "border-orange-500/20 dark:border-orange-400/30",
-    grad: "from-orange-500/10 to-yellow-500/5 dark:from-orange-500/15 dark:to-yellow-500/5",
-    text: "text-orange-600 dark:text-orange-300",
-    glow: "hover:shadow-orange-500/20",
+    Icon: Lightbulb,
+    label: "Éclairage Public & Lampadaires",
+    operator: "Services Municipaux · CIE",
+    desc: "Candélabres éteints, ampoules grillées, zones sombres",
+    border: "border-orange-500/20 hover:border-orange-500/50",
+    bg: "bg-orange-500/5 hover:bg-orange-500/10",
+    iconBg: "bg-orange-500/15 text-orange-600 dark:text-orange-400",
+    textColor: "text-orange-600 dark:text-orange-400",
   },
   {
     type: "drain_blocked",
-    iconImg: caniveauIcon,
-    label: "Caniveaux bouchés",
-    desc: "Eaux usées & assainissement",
-    border: "border-teal-500/20 dark:border-teal-400/30",
-    grad: "from-teal-500/10 to-green-500/5 dark:from-teal-500/15 dark:to-green-500/5",
-    text: "text-teal-600 dark:text-teal-300",
-    glow: "hover:shadow-teal-500/20",
+    Icon: Waves,
+    label: "Caniveaux & Assainissement",
+    operator: "Mairie & ONAD",
+    desc: "Caniveaux obstrués, eaux stagnantes, risques d'inondation",
+    border: "border-teal-500/20 hover:border-teal-500/50",
+    bg: "bg-teal-500/5 hover:bg-teal-500/10",
+    iconBg: "bg-teal-500/15 text-teal-600 dark:text-teal-400",
+    textColor: "text-teal-600 dark:text-teal-400",
   },
   {
     type: "pothole",
-    iconImg: voirieIcon,
-    label: "Nids de poules & Voirie",
-    desc: "Chaussée dégradée & obstacles",
-    border: "border-slate-300 dark:border-slate-400/30",
-    grad: "from-slate-500/10 to-gray-500/5 dark:from-slate-500/15 dark:to-gray-500/5",
-    text: "text-slate-700 dark:text-slate-300",
-    glow: "hover:shadow-slate-500/20",
+    Icon: Construction,
+    label: "Voirie & Chaussée dégradée",
+    operator: "Services Techniques Mairie",
+    desc: "Nids de poules, chaussée défoncée, obstacles dangereux",
+    border: "border-slate-400/20 hover:border-slate-400/50",
+    bg: "bg-slate-500/5 hover:bg-slate-500/10",
+    iconBg: "bg-slate-500/15 text-slate-700 dark:text-slate-300",
+    textColor: "text-slate-700 dark:text-slate-300",
   },
 ];
 
 const STEPS = [
   {
-    step: "01", emoji: "📢", title: "Documentez la coupure",
+    step: "01",
+    emoji: "📢",
+    title: "Documentez l'incident",
     headline: "Précis & en 30 secondes",
-    desc: "Signalez votre coupure d'eau (SODECI), d'électricité (CIE) ou dégradation de voirie (Mairie) avec géolocalisation automatique et photo.",
-    color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/25",
+    desc: "Signalez une coupure CIE/SODECI ou une panne municipale avec géolocalisation et photo.",
+    color: "text-emerald-600 dark:text-emerald-400",
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/25",
   },
   {
-    step: "02", emoji: "🤝", title: "Confirmez ensemble",
+    step: "02",
+    emoji: "🤝",
+    title: "Confirmez ensemble",
     headline: "Solidarité de quartier",
-    desc: "Les voisins confirment la coupure en 1 clic pour prouver l'ampleur de la panne et éliminer les faux signalements.",
-    color: "text-sky-600 dark:text-sky-400", bg: "bg-sky-500/10", border: "border-sky-500/25",
+    desc: "Les voisins confirment la coupure en 1 clic pour attester l'ampleur et éliminer les faux signalements.",
+    color: "text-sky-600 dark:text-sky-400",
+    bg: "bg-sky-500/10",
+    border: "border-sky-500/25",
   },
   {
-    step: "03", emoji: "🛠️", title: "Suivez le rétablissement",
+    step: "03",
+    emoji: "🛠️",
+    title: "Suivez le rétablissement",
     headline: "Transparence & Réparation",
-    desc: "Le dossier est transmis directement aux opérateurs (CIE, SODECI) ou à votre Mairie pour suivre la réparation jusqu'à la fin.",
-    color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/25",
+    desc: "Suivez la transmission aux équipes techniques et la résolution jusqu'au rétablissement complet.",
+    color: "text-amber-600 dark:text-amber-400",
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/25",
   },
 ];
 
@@ -125,53 +138,6 @@ interface NearbyReport {
   created_at: string;
   verifications: number;
 }
-
-// ── Section COMMENT ÇA MARCHE (Épurée en 3 étapes directes) ──
-const HowItWorksSection = React.memo(() => (
-  <section className="border-y border-border bg-card/40 py-20">
-    <div className="container">
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="mb-14 text-center"
-      >
-        <span className="inline-block rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-extrabold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">
-          SIGNALER · SUIVRE · RÉPARER
-        </span>
-        <h2 className="mt-4 font-display text-3xl font-extrabold text-foreground md:text-4xl">
-          Comment fonctionne SIGNA.ci ?
-        </h2>
-        <p className="mx-auto mt-3 max-w-md text-sm sm:text-base text-muted-foreground">
-          3 étapes simples pour faire entendre la voix de votre quartier et accélérer les réparations.
-        </p>
-      </motion.div>
-
-      <div className="grid gap-8 md:grid-cols-3">
-        {STEPS.map((step, i) => (
-          <motion.div
-            key={step.step}
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.12, duration: 0.5 }}
-            className="relative flex flex-col items-center text-center p-6 rounded-2xl border border-border/70 bg-card shadow-sm hover:shadow-md transition-all"
-          >
-            <div className={`relative mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border ${step.border} ${step.bg} text-3xl`}>
-              {step.emoji}
-              <span className={`absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background text-[10px] font-black tabular-nums ${step.color}`}>
-                {step.step}
-              </span>
-            </div>
-            <h3 className="font-display text-lg font-bold text-foreground">{step.title}</h3>
-            <p className={`mt-0.5 text-xs font-bold uppercase tracking-wider ${step.color}`}>{step.headline}</p>
-            <p className="mt-3 text-xs sm:text-sm leading-relaxed text-muted-foreground">{step.desc}</p>
-          </motion.div>
-        ))}
-      </div>
-    </div>
-  </section>
-));
 
 function useLiveData() {
   const [liveCount, setLiveCount] = useState<number | null>(null);
@@ -205,41 +171,30 @@ function useLiveData() {
   return { liveCount, liveActive };
 }
 
-interface MyActiveReport {
-  id: string;
-  service_type: string;
-  report_category: string;
-  description: string;
-  commune: string;
-  quartier: string;
-  created_at: string;
-  verifications: number;
-}
-
 const RotatingWord = React.memo(() => {
   const [wordIndex, setWordIndex] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => setWordIndex((i) => (i + 1) % ROTATING_WORDS.length), 2800);
+    const id = setInterval(() => setWordIndex((i) => (i + 1) % ROTATING_WORDS.length), 3000);
     return () => clearInterval(id);
   }, []);
   const w = ROTATING_WORDS[wordIndex];
   return (
-    <>
+    <span className="inline-block relative min-w-[280px]">
       <span aria-live="polite" aria-atomic="true" className="sr-only">{w.text}</span>
       <AnimatePresence mode="wait">
         <motion.span
           key={wordIndex}
-          initial={{ opacity: 0, y: 24, filter: "blur(4px)" }}
-          animate={{ opacity: 1, y: 0,  filter: "blur(0px)" }}
-          exit={{   opacity: 0, y: -24, filter: "blur(4px)" }}
-          transition={{ duration: 0.45, ease: "easeInOut" }}
-          className={w.color}
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -15 }}
+          transition={{ duration: 0.35, ease: "easeInOut" }}
+          className={cn("inline-block font-extrabold", w.color)}
           aria-hidden="true"
         >
           {w.text}
         </motion.span>
       </AnimatePresence>
-    </>
+    </span>
   );
 });
 
@@ -250,25 +205,12 @@ const Index = () => {
   const [landingStats, setLandingStats] = useState<LandingStats | null>(null);
   const [nearbyReports, setNearbyReports] = useState<NearbyReport[]>([]);
   const [nearbyLoading, setNearbyLoading] = useState(false);
-  const [myActiveReports, setMyActiveReports] = useState<MyActiveReport[]>([]);
 
   useEffect(() => {
     supabase.rpc("get_landing_stats" as any).then(({ data: stats }) => {
       if (stats) setLandingStats(stats as LandingStats);
     });
   }, []);
-
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("reports")
-      .select("id, service_type, report_category, description, commune, quartier, created_at, verifications")
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .order("created_at", { ascending: false })
-      .limit(3)
-      .then(({ data }) => { if (data) setMyActiveReports(data as MyActiveReport[]); });
-  }, [user]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -280,7 +222,7 @@ const Index = () => {
         const { data } = await supabase.rpc("get_landing_nearby_reports" as any, {
           p_lat: latitude,
           p_lon: longitude,
-          p_rayon_m: 2500,
+          p_rayon_m: 3500,
           p_limit: 4,
         });
         if (cancelled) return;
@@ -298,96 +240,89 @@ const Index = () => {
       <Header />
 
       {/* ══════════════════════════════════════════════════════════════
-          1. HERO — L'essentiel en 3 secondes
+          1. HERO — Clarté & Action Immédiate en 3 Secondes
       ══════════════════════════════════════════════════════════════ */}
-      <section className="relative flex min-h-[88vh] items-start sm:items-center overflow-hidden">
+      <section className="relative flex min-h-[75vh] items-center overflow-hidden border-b border-border/40">
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-emerald-50/30 to-sky-50/20 dark:from-[#030d1a] dark:via-[#071929] dark:to-[#0a2236]" />
           <div
-            className="absolute inset-0 opacity-[0.05] dark:opacity-[0.09]"
+            className="absolute inset-0 opacity-[0.04] dark:opacity-[0.08]"
             style={{
               backgroundImage: "radial-gradient(circle, #0284c7 1.2px, transparent 1.2px)",
-              backgroundSize: "36px 36px",
+              backgroundSize: "32px 32px",
             }}
           />
-          <div className="pointer-events-none absolute -top-20 left-1/4 h-[520px] w-[520px] rounded-full bg-sky-500/10 dark:bg-sky-500/18 blur-[130px]" />
-          <div className="pointer-events-none absolute bottom-0 right-0 h-[420px] w-[420px] rounded-full bg-emerald-400/10 dark:bg-teal-400/14 blur-[110px]" />
+          <div className="pointer-events-none absolute -top-20 left-1/4 h-[450px] w-[450px] rounded-full bg-sky-500/10 dark:bg-sky-500/18 blur-[120px]" />
+          <div className="pointer-events-none absolute bottom-0 right-0 h-[380px] w-[380px] rounded-full bg-emerald-400/10 dark:bg-teal-400/14 blur-[100px]" />
         </div>
 
-        <div className="container relative z-10 pt-12 pb-20 sm:py-28">
-          <div className="max-w-5xl mx-auto text-center flex flex-col items-center">
-
-            {/* Titre H1 Majestueux et Centré avec mots rotatifs */}
-            <div className="overflow-hidden w-full">
-              <motion.h1
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.65 }}
-                className="font-display font-extrabold tracking-tight leading-[1.08] text-slate-950 dark:text-white text-4xl sm:text-6xl md:text-7xl lg:text-[5.2rem]"
-              >
-                <span className="block">
-                  Signalez les
-                </span>
-                <span className="block min-h-[1.2em] mt-1 sm:mt-2">
-                  <RotatingWord />
-                </span>
-              </motion.h1>
-            </div>
-
-            {/* Description claire et centrée (Adaptée Web & Mobile) */}
-            <motion.p
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="mt-6 sm:mt-8 max-w-3xl text-base sm:text-xl leading-relaxed text-slate-600 dark:text-white/75 font-normal"
-            >
-              <span>
-                Plateforme citoyenne et participative en Côte d'Ivoire. Signalez, géolocalisez et suivez en temps réel les <strong>coupures d'électricité (CIE)</strong>, les <strong>coupures d'eau (SODECI)</strong> et les <strong>dégradations de voirie (Mairie)</strong> pour accélérer les réparations ensemble.
-              </span>
-            </motion.p>
-
-            {/* Mention d'accès public & libre en toute transparence */}
+        <div className="container relative z-10 py-12 sm:py-20">
+          <div className="max-w-4xl mx-auto text-center flex flex-col items-center">
+            
+            {/* Badge de Confiance Officiel */}
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="mt-4 flex items-center justify-center gap-2 text-xs sm:text-sm font-medium text-muted-foreground"
+              className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300"
             >
-              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-              <span>Plateforme civique 100% ouverte — Consultation libre sans inscription obligatoire</span>
+              <ShieldCheck className="h-4 w-4 text-emerald-500" />
+              <span>Observatoire Citoyen &amp; Collecte Participative en Côte d'Ivoire</span>
             </motion.div>
 
-            {/* 2 Boutons d'Action Principaux Uniformisés et Centrés */}
+            {/* Titre Principal H1 */}
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="font-display font-extrabold tracking-tight leading-[1.12] text-slate-950 dark:text-white text-3xl sm:text-5xl md:text-6xl"
+            >
+              <span className="block">Signalez &amp; suivez les</span>
+              <span className="block min-h-[1.3em] mt-1.5 text-2xl sm:text-4xl md:text-5xl">
+                <RotatingWord />
+              </span>
+            </motion.h1>
+
+            {/* Description claire et centrée */}
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.15 }}
+              className="mt-4 sm:mt-6 max-w-2xl text-sm sm:text-lg leading-relaxed text-muted-foreground font-normal"
+            >
+              Documentez les pannes d'électricité (<strong>CIE</strong>), d'eau (<strong>SODECI</strong>) et les dégradations de voirie (<strong>Mairies</strong>) en 30 secondes pour accélérer les réparations dans votre quartier.
+            </motion.p>
+
+            {/* 2 Boutons d'Action Principaux */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="mt-8 sm:mt-10 flex flex-wrap items-center justify-center gap-4 w-full"
+              transition={{ duration: 0.5, delay: 0.25 }}
+              className="mt-8 flex flex-wrap items-center justify-center gap-4 w-full"
             >
               <Link
                 to="/signaler"
-                className="group flex items-center gap-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 font-extrabold text-base sm:text-lg shadow-[0_8px_32px_rgba(5,150,105,0.35)] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                className="group flex items-center gap-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white px-7 py-3.5 font-extrabold text-base shadow-[0_6px_24px_rgba(5,150,105,0.3)] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 text-xl backdrop-blur-sm">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-lg">
                   📢
                 </div>
                 <div className="flex flex-col text-left leading-tight">
                   <span className="text-base font-extrabold tracking-wide">Documenter un incident</span>
-                  <span className="text-[11px] font-medium text-white/80">CIE · SODECI · Voirie communale</span>
+                  <span className="text-[11px] font-medium text-white/80">CIE · SODECI · Mairie</span>
                 </div>
                 <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
               </Link>
 
               <Link
                 to="/carte"
-                className="group flex items-center gap-3.5 rounded-2xl border-2 border-sky-300 bg-sky-50/90 hover:bg-sky-100 text-sky-950 dark:border-sky-800 dark:bg-sky-950/40 dark:hover:bg-sky-900/60 dark:text-sky-200 px-8 py-4 font-bold text-base sm:text-lg shadow-sm backdrop-blur-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                className="group flex items-center gap-3 rounded-2xl border-2 border-sky-300 bg-sky-50/90 hover:bg-sky-100 text-sky-950 dark:border-sky-800 dark:bg-sky-950/40 dark:hover:bg-sky-900/60 dark:text-sky-200 px-7 py-3.5 font-bold text-base shadow-sm backdrop-blur-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/20 text-sky-600 dark:text-sky-400 font-extrabold text-xl">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/20 text-sky-600 dark:text-sky-400 font-extrabold text-lg">
                   🗺️
                 </div>
                 <div className="flex flex-col text-left leading-tight">
                   <span className="text-base font-extrabold tracking-wide">Explorer la Carte en direct</span>
-                  <span className="text-[11px] font-medium text-sky-700 dark:text-sky-300">Coupures &amp; état des 14 communes</span>
+                  <span className="text-[11px] font-medium text-sky-700 dark:text-sky-300">Coupures des 14 communes</span>
                 </div>
                 <ArrowRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
               </Link>
@@ -397,7 +332,144 @@ const Index = () => {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════
-          2. STATS & IMPACT — 4 chiffres clés
+          2. SÉLECTEUR RAPIDE DE COMMUNE (Navigation Directe 1 Clic)
+      ══════════════════════════════════════════════════════════════ */}
+      <section className="border-b border-border bg-card/60 py-5">
+        <div className="container">
+          <div className="flex items-center justify-between gap-4 mb-3">
+            <p className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-primary" />
+              Consulter par commune :
+            </p>
+            <Link to="/tableau-de-bord" className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
+              Tableau comparatif complet →
+            </Link>
+          </div>
+          
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            {COMMUNES.map((c) => {
+              const logo = COMMUNE_LOGOS[c.nom];
+              return (
+                <Link
+                  key={c.nom}
+                  to={`/commune/${encodeURIComponent(c.nom)}`}
+                  className="group flex shrink-0 items-center gap-2 rounded-full border border-border/80 bg-background px-3.5 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-all hover:border-primary hover:bg-primary/5 hover:scale-105 active:scale-95"
+                >
+                  <div
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full overflow-hidden border border-border/40"
+                    style={{ backgroundColor: logo ? "#fff" : c.couleur }}
+                  >
+                    {logo ? (
+                      <img src={logo} alt="" className="h-full w-full object-contain p-0.5" />
+                    ) : (
+                      <span className="text-[9px] text-white font-black">{c.nom[0]}</span>
+                    )}
+                  </div>
+                  <span>{c.nom}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════
+          3. PÔLES DE SIGNALEMENT EN 2 SECTEURS CLAIRS (Réseaux vs Mairie)
+      ══════════════════════════════════════════════════════════════ */}
+      <section className="container py-14">
+        <div className="mb-10 text-center">
+          <span className="inline-block rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-extrabold uppercase tracking-widest text-primary">
+            SIGNALER UN DYSFONCTIONNEMENT
+          </span>
+          <h2 className="mt-3 font-display text-2xl sm:text-3xl font-extrabold text-foreground">
+            Que souhaitez-vous signaler aujourd'hui ?
+          </h2>
+          <p className="mx-auto mt-2 max-w-xl text-xs sm:text-sm text-muted-foreground">
+            Sélectionnez votre situation pour déclencher une alerte géolocalisée et mobiliser les services compétents.
+          </p>
+        </div>
+
+        <div className="space-y-8 max-w-5xl mx-auto">
+          
+          {/* PÔLE 1 : RÉSEAUX DOMESTIQUES CIE & SODECI */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 text-xs font-black">
+                ⚡
+              </span>
+              <h3 className="font-display text-base font-bold text-foreground uppercase tracking-wide">
+                Pôle 1 : Coupures Réseaux Domestiques (Foyers &amp; Entreprises)
+              </h3>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {POLE_RESEAUX.map((item) => (
+                <Link
+                  key={item.type}
+                  to={`/signaler?type=${item.type}`}
+                  className={cn(
+                    "group flex items-start gap-4 rounded-2xl border p-5 transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99]",
+                    item.border,
+                    item.bg
+                  )}
+                >
+                  <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl", item.iconBg)}>
+                    <item.Icon className="h-6 w-6" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className={cn("font-bold text-base", item.textColor)}>{item.label}</p>
+                      <ArrowRight className={cn("h-4 w-4 transition-transform group-hover:translate-x-1", item.textColor)} />
+                    </div>
+                    <p className="text-xs font-semibold text-muted-foreground mt-0.5">{item.operator}</p>
+                    <p className="text-xs text-muted-foreground/80 mt-1 leading-relaxed">{item.desc}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* PÔLE 2 : VOIRIE & CADRE DE VIE MUNICIPAL (MAIRIE) */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-black">
+                🏛️
+              </span>
+              <h3 className="font-display text-base font-bold text-foreground uppercase tracking-wide">
+                Pôle 2 : Voirie &amp; Salubrité Municipale (Services Techniques Mairie)
+              </h3>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              {POLE_MAIRIE.map((item) => (
+                <Link
+                  key={item.type}
+                  to={`/signaler?type=${item.type}`}
+                  className={cn(
+                    "group flex flex-col justify-between rounded-2xl border p-5 transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99]",
+                    item.border,
+                    item.bg
+                  )}
+                >
+                  <div>
+                    <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl mb-3", item.iconBg)}>
+                      <item.Icon className="h-5 w-5" />
+                    </div>
+                    <p className={cn("font-bold text-sm sm:text-base", item.textColor)}>{item.label}</p>
+                    <p className="text-[11px] font-semibold text-muted-foreground mt-0.5">{item.operator}</p>
+                    <p className="text-xs text-muted-foreground/80 mt-1 leading-relaxed">{item.desc}</p>
+                  </div>
+                  <div className={cn("inline-flex items-center gap-1 text-xs font-bold mt-4", item.textColor)}>
+                    Signaler à la Mairie <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════
+          4. STATS & IMPACT — 4 Chiffres Clés en Direct
       ══════════════════════════════════════════════════════════════ */}
       <section className="py-12 border-y border-border bg-slate-100/70 dark:bg-[#071524]">
         <div className="container">
@@ -405,31 +477,31 @@ const Index = () => {
             {[
               {
                 value: "14",
-                label: "Communes & Villes couvertes",
+                label: "Communes & Villes",
                 Icon: MapPin,
                 live: false,
-                color: "text-slate-900 dark:text-white"
+                color: "text-slate-900 dark:text-white",
               },
               {
                 value: landingStats ? fmtNum(landingStats.total_reports) : "…",
                 label: "Signalements citoyens",
                 Icon: Users,
                 live: false,
-                color: "text-slate-900 dark:text-white"
+                color: "text-slate-900 dark:text-white",
               },
               {
                 value: landingStats ? fmtNum(landingStats.resolved_reports) : "…",
                 label: "Incidents résolus",
                 Icon: CheckCircle2,
                 live: false,
-                color: "text-emerald-600 dark:text-emerald-400"
+                color: "text-emerald-600 dark:text-emerald-400",
               },
               {
                 value: liveCount !== null ? String(liveCount) : "…",
                 label: "Coupures actives",
                 Icon: Zap,
                 live: true,
-                color: "text-amber-600 dark:text-amber-400"
+                color: "text-amber-600 dark:text-amber-400",
               },
             ].map((stat, i) => (
               <motion.div
@@ -457,64 +529,7 @@ const Index = () => {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════
-          3. COMMENT FONCTIONNE SIGNA.CI — 3 étapes limpides
-      ══════════════════════════════════════════════════════════════ */}
-      <HowItWorksSection />
-
-      {/* ══════════════════════════════════════════════════════════════
-          4. QUE SOUHAITEZ-VOUS SIGNALER ? — 5 catégories en 1 clic
-      ══════════════════════════════════════════════════════════════ */}
-      <section className="container py-20">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mb-12 text-center"
-        >
-          <span className="inline-block rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-extrabold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">
-            CIE · SODECI · MAIRIES & SERVICES MUNICIPAUX
-          </span>
-          <h2 className="mt-4 font-display text-3xl font-extrabold text-foreground md:text-4xl">
-            Que souhaitez-vous signaler ?
-          </h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm sm:text-base text-muted-foreground">
-            Des coupures de réseaux (CIE, SODECI) aux pannes de voirie gérées par votre Mairie (éclairage public, caniveaux, chaussée) : sélectionnez votre situation pour lancer l'alerte.
-          </p>
-        </motion.div>
-
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-          {PROBLEM_TYPES.map((pt, i) => (
-            <motion.div
-              key={pt.type}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.06 }}
-            >
-              <Link
-                to={`/signaler?type=${pt.type}`}
-                className={cn(
-                  `group flex flex-col items-center justify-between h-full gap-3 p-5 rounded-2xl border ${pt.border} bg-gradient-to-br ${pt.grad} text-center transition-all duration-200 hover:scale-[1.03] hover:shadow-xl ${pt.glow} active:scale-[0.97]`
-                )}
-              >
-                <img src={pt.iconImg} alt="" className="h-12 w-12 shrink-0" />
-                <div>
-                  <p className={cn("font-bold text-sm sm:text-base", pt.text)}>{pt.label}</p>
-                  <p className="mt-1 text-[11px] text-muted-foreground leading-tight">{pt.desc}</p>
-                </div>
-                <div className={cn(
-                  `inline-flex items-center gap-1 text-xs font-bold ${pt.text} mt-1`
-                )}>
-                  Signaler <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
-                </div>
-              </Link>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════════════
-          5. ACTIVITÉ LOCALE RÉCENTE (Si signalements proches)
+          5. ACTIVITÉ LOCALE RÉCENTE (Signalements vérifiés proches)
       ══════════════════════════════════════════════════════════════ */}
       {nearbyReports.length > 0 && (
         <section className="container py-14">
@@ -567,43 +582,43 @@ const Index = () => {
       )}
 
       {/* ══════════════════════════════════════════════════════════════
-          6. BANNIÈRE CITOYENNE UNIQUE (Alerte & Entraide)
+          6. COMMENT FONCTIONNE SIGNA.CI (3 Étapes Linéaires Épurées)
       ══════════════════════════════════════════════════════════════ */}
-      <section className="container py-14">
-        <div className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/40 via-card to-card p-8 sm:p-12 text-center">
-          <div className="max-w-2xl mx-auto space-y-4">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-              🇨🇮 CivicTech Côte d'Ivoire
+      <section className="border-t border-border bg-card/40 py-16">
+        <div className="container">
+          <div className="mb-12 text-center">
+            <span className="inline-block rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-extrabold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">
+              SIGNALER · SUIVRE · RÉPARER
             </span>
-            <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-foreground">
-              Faites entendre la voix de votre commune
+            <h2 className="mt-3 font-display text-2xl sm:text-3xl font-extrabold text-foreground">
+              Comment fonctionne SIGNA.ci ?
             </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              SIGNA.ci est une initiative citoyenne et gratuite. En signalant une coupure ou en corroborant un incident, vous aidez directement vos voisins et fournissez des données objectives pour accélérer les réparations.
+            <p className="mx-auto mt-2 max-w-md text-xs sm:text-sm text-muted-foreground">
+              3 étapes simples pour faire entendre la voix de votre quartier et accélérer les réparations.
             </p>
-            <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
-              <Link
-                to="/signaler"
-                className="rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 text-sm font-bold shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]"
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
+            {STEPS.map((step, i) => (
+              <motion.div
+                key={step.step}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1, duration: 0.4 }}
+                className="relative flex flex-col items-center text-center p-6 rounded-2xl border border-border/70 bg-card shadow-sm hover:shadow-md transition-all"
               >
-                📢 Faire un signalement
-              </Link>
-              <Link
-                to="/verification"
-                className="rounded-xl border border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20 text-sky-700 dark:text-sky-300 px-6 py-3 text-sm font-bold shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
-              >
-                ✅ Vérifier & Aider
-              </Link>
-              <a
-                href={SOCIAL_LINKS.whatsapp}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-xl border border-[#25D366]/40 bg-card hover:bg-[#25D366]/10 px-6 py-3 text-sm font-bold text-foreground transition-all inline-flex items-center gap-2 hover:border-[#25D366]"
-              >
-                <WhatsAppIcon className="h-5 w-5 shrink-0" />
-                <span>WhatsApp Assistance</span>
-              </a>
-            </div>
+                <div className={`relative mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border ${step.border} ${step.bg} text-2xl`}>
+                  {step.emoji}
+                  <span className={`absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-background text-[9px] font-black tabular-nums ${step.color}`}>
+                    {step.step}
+                  </span>
+                </div>
+                <h3 className="font-display text-base font-bold text-foreground">{step.title}</h3>
+                <p className={`mt-0.5 text-[11px] font-bold uppercase tracking-wider ${step.color}`}>{step.headline}</p>
+                <p className="mt-2.5 text-xs sm:text-sm leading-relaxed text-muted-foreground">{step.desc}</p>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
