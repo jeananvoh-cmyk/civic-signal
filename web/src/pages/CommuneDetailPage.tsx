@@ -10,10 +10,11 @@ import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
 import CommuneAlertButton from "@/components/CommuneAlertButton";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNES } from "@/lib/communes";
 import { COMMUNE_LOGOS } from "@/lib/commune-logos";
-import { getQuartiers } from "@/lib/quartiers";
+import { getQuartiers, extractQuartierFromReport } from "@/lib/quartiers";
 import QuartierOutageGrid from "@/components/QuartierOutageGrid";
 
 interface QuartierStat {
@@ -26,29 +27,26 @@ interface QuartierStat {
   eau_total: number;
 }
 
-interface ImpactStats {
-  total_reports: number;
-  resolved_reports: number;
-  infra_reports: number;
-  reports_last_7: number;
-  reports_prev_7: number;
-}
-
 interface DurationStat {
   commune: string;
-  couleur: string;
-  avg_duration_minutes: number;
-  total_resolved: number;
-  total_active: number;
-  longest_duration_minutes: number;
   service_type: string;
+  avg_duration_minutes: number;
+  longest_duration_minutes: number;
+  total_resolved: number;
+}
+
+interface ImpactStats {
+  res_rate: number;
+  infra_reports: number;
+  reports_last_7: number;
+  delta: number;
 }
 
 function formatMinutes(mins: number): string {
-  if (mins < 1) return "—";
-  if (mins < 60) return `${Math.round(mins)}min`;
+  if (!mins || mins <= 0) return "—";
   const h = Math.floor(mins / 60);
-  const m = Math.round(mins % 60);
+  const m = mins % 60;
+  if (h === 0) return `${m}min`;
   if (h < 24) return `${h}h${m > 0 ? m + "min" : ""}`;
   const d = Math.floor(h / 24);
   return `${d}j ${h % 24}h`;
@@ -83,26 +81,91 @@ const CommuneDetailPage = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const [quartierRes, durationRes, impactRes, serviceRes, reportsRes] = await Promise.all([
+      const cNorm = decodedName.toLowerCase().trim();
+      const [quartierRes, durationRes, impactRes, serviceRes, publicReportsRes, infraReportsRes] = await Promise.all([
         supabase.rpc("get_commune_quartier_stats", { p_commune: decodedName }),
         supabase.rpc("get_commune_duration_stats"),
         supabase.rpc("get_commune_impact_stats" as any, { p_commune: decodedName }),
         supabase.rpc("get_commune_service_stats"),
-        supabase
-          .from("reports")
-          .select("id, ticket_code, service_type, report_category, description, location, commune, quartier, status, urgency, created_at, start_time, verifications")
-          .ilike("commune", decodedName)
-          .eq("validated", true)
-          .order("created_at", { ascending: false })
-          .limit(20),
+        supabase.rpc("get_public_reports" as any),
+        supabase.rpc("get_public_infrastructure_reports" as any, { p_commune: decodedName }),
       ]);
-      if (!quartierRes.error && quartierRes.data) {
-        setStats(quartierRes.data as unknown as QuartierStat[]);
+
+      // 1. Filtrer les signalements publics appartenant à cette commune
+      const matchedReports: any[] = [];
+      if (publicReportsRes.data && Array.isArray(publicReportsRes.data)) {
+        publicReportsRes.data.forEach((r: any) => {
+          const rCommune = (r.commune || "").toLowerCase().trim();
+          const rLoc = (r.location || "").toLowerCase();
+          const rDesc = (r.description || "").toLowerCase();
+          if (rCommune === cNorm || rLoc.includes(cNorm) || rDesc.includes(cNorm)) {
+            matchedReports.push({
+              ...r,
+              commune: decodedName,
+              resolvedQuartier: extractQuartierFromReport(r, decodedName),
+            });
+          }
+        });
       }
+
+      if (infraReportsRes.data && Array.isArray(infraReportsRes.data)) {
+        infraReportsRes.data.forEach((r: any) => {
+          matchedReports.push({
+            ...r,
+            commune: decodedName,
+            resolvedQuartier: extractQuartierFromReport(r, decodedName),
+          });
+        });
+      }
+
+      // Dédupliquer et trier par date décroissante
+      const uniqueReports = Array.from(new Map(matchedReports.map((r) => [r.id, r])).values());
+      uniqueReports.sort((a, b) => new Date(b.start_time || b.created_at).getTime() - new Date(a.start_time || a.created_at).getTime());
+      setCommuneReports(uniqueReports);
+
+      // 2. Traitement des statistiques de quartiers
+      let qStats: QuartierStat[] = [];
+      if (!quartierRes.error && Array.isArray(quartierRes.data) && quartierRes.data.length > 0) {
+        qStats = quartierRes.data as unknown as QuartierStat[];
+      }
+
+      // Si get_commune_quartier_stats a filtré des signalements sans micro-quartier,
+      // on synthétise automatiquement les entrées manquantes depuis uniqueReports
+      const activeOutages = uniqueReports.filter((r) => r.status === "active" || r.status === "open" || r.status === "in_progress");
+      if (activeOutages.length > 0) {
+        const qMap = new Map<string, QuartierStat>();
+        qStats.forEach((qs) => qMap.set(qs.quartier, { ...qs }));
+
+        activeOutages.forEach((r) => {
+          const qName = r.resolvedQuartier || `${decodedName} (Centre / Secteur général)`;
+          const existing = qMap.get(qName);
+          const isElec = r.service_type === "electricity";
+          const isWater = r.service_type === "water";
+
+          if (existing) {
+            if (isElec && existing.electricite_actifs === 0) existing.electricite_actifs += 1;
+            if (isWater && existing.eau_actifs === 0) existing.eau_actifs += 1;
+          } else {
+            qMap.set(qName, {
+              quartier: qName,
+              electricite_actifs: isElec ? 1 : 0,
+              electricite_resolus: 0,
+              electricite_total: isElec ? 1 : 0,
+              eau_actifs: isWater ? 1 : 0,
+              eau_resolus: 0,
+              eau_total: isWater ? 1 : 0,
+            });
+          }
+        });
+        qStats = Array.from(qMap.values());
+      }
+
+      setStats(qStats);
+
       if (!durationRes.error && durationRes.data) {
         setDurations(
           (durationRes.data as unknown as DurationStat[]).filter(
-            (d) => d.commune.toLowerCase() === decodedName.toLowerCase()
+            (d) => d.commune.toLowerCase() === cNorm
           )
         );
       }
@@ -111,7 +174,7 @@ const CommuneDetailPage = () => {
       }
       if (!serviceRes.error && Array.isArray(serviceRes.data)) {
         const found = (serviceRes.data as any[]).find(
-          (c) => (c.commune || "").toLowerCase().trim() === decodedName.toLowerCase().trim()
+          (c) => (c.commune || "").toLowerCase().trim() === cNorm
         );
         if (found) {
           setCommuneStat({
@@ -121,9 +184,6 @@ const CommuneDetailPage = () => {
             eau_total: Number(found.eau_total || 0),
           });
         }
-      }
-      if (!reportsRes.error && Array.isArray(reportsRes.data)) {
-        setCommuneReports(reportsRes.data);
       }
       setLoading(false);
     };
@@ -445,11 +505,17 @@ const CommuneDetailPage = () => {
                         </span>
                       </div>
 
-                      <p className="text-sm font-bold text-foreground">
-                        {r.quartier ? `${r.quartier}` : r.location || decodedName}
+                      <p className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                        <MapPin className="h-4 w-4 text-primary shrink-0" />
+                        <span>{r.resolvedQuartier || r.quartier || decodedName}</span>
                       </p>
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                        {r.description || "Aucune description fournie"}
+                      {r.location && (
+                        <p className="text-xs text-muted-foreground font-medium mt-1 line-clamp-1">
+                          📍 {r.location}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground/90 line-clamp-2 mt-1.5 bg-muted/40 p-2 rounded-lg">
+                        {r.description || "Coupure de courant signalée par les résidents."}
                       </p>
                     </div>
 

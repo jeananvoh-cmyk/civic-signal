@@ -439,3 +439,47 @@ export function normalizeQuartier(raw: string, commune?: string): string {
 
   return trimmed;
 }
+
+/**
+ * Extrait le quartier le plus précis pour un signalement donné
+ * en analysant le champ quartier, la localisation PADA et la description.
+ */
+export function extractQuartierFromReport(
+  r: { quartier?: string | null; location?: string | null; description?: string | null; commune?: string | null },
+  fallbackCommune?: string
+): string {
+  const targetCommune = r.commune || fallbackCommune || "";
+
+  // 1. Si un quartier valide est déjà renseigné
+  if (r.quartier && r.quartier.trim()) {
+    const raw = r.quartier.trim();
+    if (raw !== "__other" && raw.toLowerCase() !== "autre" && raw.toLowerCase() !== "non spécifié") {
+      const norm = normalizeQuartier(raw, targetCommune);
+      if (norm && norm !== "Secteur non précisé") return norm;
+    }
+  }
+
+  // 2. Recherche textuelle dans location et description
+  const textToScan = `${r.location || ""} ${r.description || ""}`.toLowerCase();
+  if (targetCommune) {
+    const list = getQuartiers(targetCommune);
+    for (const q of list) {
+      const qLower = q.toLowerCase();
+      if (qLower.length >= 4 && textToScan.includes(qLower)) {
+        return q;
+      }
+    }
+  }
+
+  // 3. Extraction de parenthèses (ex: "Abobo (Plateau Dokui)" -> "Plateau Dokui")
+  const parenMatch = (r.location || "").match(/\(([^)]+)\)/);
+  if (parenMatch && parenMatch[1]) {
+    const inside = parenMatch[1].trim();
+    const norm = normalizeQuartier(inside, targetCommune);
+    if (norm && norm !== "Secteur non précisé") return norm;
+    return inside;
+  }
+
+  return targetCommune ? `${targetCommune} (Centre / Secteur général)` : "Secteur non précisé";
+}
+
