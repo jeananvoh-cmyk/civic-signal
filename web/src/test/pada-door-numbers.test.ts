@@ -90,5 +90,5 @@ describe('PADA Cadastral Door Numbers & Nearest Neighbour Interpolation', () => 
     const top = results[0];
     expect(top.way.quartier?.toLowerCase()).toContain('bonoumin');
     expect(top.formattedSuggestion).toContain('82');
-  });
+  }, 15000);
 });

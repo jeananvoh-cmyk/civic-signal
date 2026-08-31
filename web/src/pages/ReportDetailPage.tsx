@@ -115,6 +115,8 @@ const ReportDetailPage = () => {
   const [notFound, setNotFound] = useState(false);
   const [corroborating, setCorroborating] = useState(false);
   const [corroborated, setCorroborated] = useState(false);
+  const [resolving, setResolving] = useState(false);
+  const [reopening, setReopening] = useState(false);
 
   const isElecMeta = report?.service_type === "electricity";
   const isInfraMeta = report?.report_category === "infrastructure";
@@ -179,56 +181,128 @@ const ReportDetailPage = () => {
 
   useEffect(() => {
     if (!id) return;
-    supabase
-      .from("reports")
-      .select("id, user_id, ticket_code, pada_commune_code, pada_street_name, pada_formatted_address, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, validated, validated_at, forwarded_to_operator_at, photo_url, photo_urls, verifications, repair_verifications, impacted_people, babies, pregnant, elderly, operator_name, operator_reference, estimated_resolution_time, operator_last_note")
-      .eq("id", id)
-      .eq("validated", true)
-      .single()
-      .then(({ data, error }) => {
-        if (error || !data) setNotFound(true);
-        else {
-          setReport(data as ReportDetail);
-          if (isResolveAction && data.status !== "resolved") {
-            toast.info("⚡ Confirmez si le service est rétabli en cliquant sur 'Oui, rétabli !'", { duration: 6000 });
-          }
-          // Charger l'historique des statuts
-          supabase
-            .from("report_status_history")
-            .select("id, old_status, new_status, operator_name, operator_reference, public_note, estimated_resolution_time, created_at")
-            .eq("report_id", id)
-            .order("created_at", { ascending: true })
-            .then(({ data: histData }) => {
-              if (histData) setStatusHistory(histData);
-            });
 
-          // Vérifier si l'utilisateur a déjà soutenu / corroboré
-          if (user) {
-            if (data.report_category === "infrastructure") {
-              supabase
-                .from("report_support_votes")
-                .select("id")
-                .eq("report_id", id)
-                .eq("user_id", user.id)
-                .maybeSingle()
-                .then(({ data: voteData }) => {
-                  if (voteData) setCorroborated(true);
-                });
-            } else {
-              supabase
-                .from("corroborations")
-                .select("id")
-                .eq("report_id", id)
-                .eq("user_id", user.id)
-                .maybeSingle()
-                .then(({ data: corrData }) => {
-                  if (corrData) setCorroborated(true);
-                });
-            }
+    const processReportData = (data: any) => {
+      const formattedReport: ReportDetail = {
+        id: data.id,
+        user_id: data.user_id || "",
+        ticket_code: data.ticket_code,
+        pada_commune_code: data.pada_commune_code,
+        pada_street_name: data.pada_street_name,
+        pada_formatted_address: data.pada_formatted_address,
+        service_type: data.service_type || "electricity",
+        report_category: data.report_category || "outage",
+        description: data.description || "",
+        commune: data.commune || "",
+        quartier: data.quartier || "",
+        status: data.status || "active",
+        urgency: data.urgency || "medium",
+        created_at: data.created_at,
+        start_time: data.start_time || data.created_at,
+        resolved_at: data.resolved_at,
+        validated: data.validated !== false,
+        validated_at: data.validated_at,
+        forwarded_to_operator_at: data.forwarded_to_operator_at,
+        photo_url: data.photo_url,
+        photo_urls: data.photo_urls,
+        verifications: Number(data.verifications || 0),
+        repair_verifications: data.repair_verifications ? Number(data.repair_verifications) : null,
+        impacted_people: Number(data.impacted_people || 1),
+        babies: Number(data.babies || 0),
+        pregnant: Number(data.pregnant || 0),
+        elderly: Number(data.elderly || 0),
+        operator_name: data.operator_name,
+        operator_reference: data.operator_reference,
+        estimated_resolution_time: data.estimated_resolution_time,
+        operator_last_note: data.operator_last_note,
+      };
+
+      setReport(formattedReport);
+      setNotFound(false);
+
+      if (isResolveAction && formattedReport.status !== "resolved") {
+        toast.info("⚡ Confirmez si le service est rétabli en cliquant sur 'Oui, rétabli !'", { duration: 6000 });
+      }
+
+      // Charger l'historique des statuts
+      supabase
+        .from("report_status_history")
+        .select("id, old_status, new_status, operator_name, operator_reference, public_note, estimated_resolution_time, created_at")
+        .eq("report_id", id)
+        .order("created_at", { ascending: true })
+        .then(({ data: histData }) => {
+          if (histData) setStatusHistory(histData);
+        });
+
+      // Vérifier si l'utilisateur a déjà soutenu / corroboré
+      if (user) {
+        if (formattedReport.report_category === "infrastructure") {
+          supabase
+            .from("report_support_votes")
+            .select("id")
+            .eq("report_id", id)
+            .eq("user_id", user.id)
+            .maybeSingle()
+            .then(({ data: voteData }) => {
+              if (voteData) setCorroborated(true);
+            });
+        } else {
+          supabase
+            .from("corroborations")
+            .select("id")
+            .eq("report_id", id)
+            .eq("user_id", user.id)
+            .maybeSingle()
+            .then(({ data: corrData }) => {
+              if (corrData) setCorroborated(true);
+            });
+        }
+      }
+    };
+
+    const fetchReport = async () => {
+      // 1. Essayer la fonction RPC publique par ID
+      try {
+        const { data: rpcData } = await (supabase as any).rpc("get_public_report_by_id", {
+          p_report_id: id,
+        });
+        if (rpcData && Array.isArray(rpcData) && rpcData.length > 0) {
+          processReportData(rpcData[0]);
+          setLoading(false);
+          return;
+        }
+      } catch (e) {}
+
+      // 2. Essayer get_public_reports
+      try {
+        const { data: pubData } = await (supabase as any).rpc("get_public_reports");
+        if (pubData && Array.isArray(pubData)) {
+          const found = pubData.find((r: any) => r.id === id);
+          if (found) {
+            processReportData(found);
+            setLoading(false);
+            return;
           }
         }
-        setLoading(false);
-      });
+      } catch (e) {}
+
+      // 3. Fallback direct via table reports
+      const { data, error } = await supabase
+        .from("reports")
+        .select("id, user_id, ticket_code, pada_commune_code, pada_street_name, pada_formatted_address, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, validated, validated_at, forwarded_to_operator_at, photo_url, photo_urls, verifications, repair_verifications, impacted_people, babies, pregnant, elderly, operator_name, operator_reference, estimated_resolution_time, operator_last_note")
+        .eq("id", id)
+        .eq("validated", true)
+        .single();
+
+      if (error || !data) {
+        setNotFound(true);
+      } else {
+        processReportData(data);
+      }
+      setLoading(false);
+    };
+
+    fetchReport();
   }, [id, user, isResolveAction]);
 
   if (loading) {
@@ -289,9 +363,6 @@ const ReportDetailPage = () => {
   const shareText = isInfra
     ? `🚧 INFRASTRUCTURE — ${report.quartier ? `${report.quartier}, ` : ""}${report.commune}\n\n${report.description}\n\n✊ Soutenez cette demande sur SIGNA-CI :`
     : `${isElec ? "⚡" : "💧"} ALERTE COUPURE — ${report.quartier ? `${report.quartier}, ` : ""}${report.commune}\n\nCoupure ${isElec ? "d'électricité" : "d'eau"} en cours. Toujours sans intervention.\n📢 Rejoignez-nous sur SIGNA-CI pour faire pression sur ${isElec ? "CIE" : "SODECI"}.\nPlus on est nombreux, plus vite ils interviennent !`;
-
-  const [resolving, setResolving] = useState(false);
-  const [reopening, setReopening] = useState(false);
 
   const handleReopen = async () => {
     if (!user) { toast.error("Connectez-vous pour signaler que le problème persiste"); return; }
