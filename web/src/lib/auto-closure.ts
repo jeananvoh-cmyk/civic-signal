@@ -1,19 +1,28 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Service d'auto-clôture des incidents de coupure après 24h.
- * Si un incident de type coupure (eau/électricité) n'a reçu aucune mise à jour depuis 24h,
- * il passe automatiquement en statut 'auto_closed' (Présumé résolu par délai).
+ * Service d'auto-clôture des incidents de coupure obsolètes (>7 jours).
+ * Si un incident de type coupure (eau/électricité) n'a reçu aucune confirmation ou mise à jour après 7 jours,
+ * il passe automatiquement en statut 'resolved' (Présumé rétabli par délai).
  */
-export async function runAutoClosureCheck(): Promise<{ closedCount: number }> {
+export async function runAutoClosureCheck(daysCutoff: number = 7): Promise<{ closedCount: number }> {
   try {
-    const cutoffDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    // 1. Tenter via la fonction RPC sécurisée
+    const { data: rpcCount, error: rpcError } = await (supabase as any).rpc("auto_close_stale_outage_reports", {
+      p_days: daysCutoff,
+    });
 
-    // 1. Récupérer les signalements de coupures actifs créés il y a +24h
+    if (!rpcError && typeof rpcCount === "number") {
+      return { closedCount: rpcCount };
+    }
+
+    // 2. Fallback direct via table reports si RPC non dispo
+    const cutoffDate = new Date(Date.now() - daysCutoff * 24 * 60 * 60 * 1000).toISOString();
     const { data: eligibleReports, error } = await supabase
       .from("reports")
       .select("id, commune, service_type, created_at, user_id")
       .eq("status", "active")
+      .eq("report_category", "outage")
       .lte("created_at", cutoffDate);
 
     if (error || !eligibleReports || eligibleReports.length === 0) {
@@ -22,10 +31,13 @@ export async function runAutoClosureCheck(): Promise<{ closedCount: number }> {
 
     const reportIdsToClose = eligibleReports.map((r) => r.id);
 
-    // 2. Mettre à jour les statuts en 'auto_closed'
     const { error: updateError } = await supabase
       .from("reports")
-      .update({ status: "auto_closed" } as any)
+      .update({
+        status: "resolved",
+        resolved_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as any)
       .in("id", reportIdsToClose);
 
     if (updateError) {

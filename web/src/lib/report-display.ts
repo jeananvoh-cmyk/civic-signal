@@ -68,13 +68,18 @@ export function extractInfraLabel(description: string): string | null {
 /**
  * Returns a clean description for display:
  * - strips the leading `[TypeLabel]` bracket
- * - strips the trailing `[X personne(s) dont ...]` bracket (impacted people metadata)
+ * - strips the `[PADA : ...]` bracket anywhere in the string (privacy protection)
+ * - strips the `[Compteur : ...]` bracket anywhere in the string
+ * - strips the `[X personne(s)...]` bracket anywhere in the string
  */
 export function cleanDescription(description: string): string {
   if (!description) return "";
   return description
-    .replace(/^\[[^\]]+\]\s*/, "")        // remove [TypeLabel] prefix
-    .replace(/\s*\[\d+[^\]]*\]\s*$/, "")  // remove [X personne(s)...] suffix
+    .replace(/^\[[^\]]+\]\s*/, "") // remove [TypeLabel] prefix
+    .replace(/\s*\[PADA\s*:[^\]]*\]/gi, "") // remove [PADA : ...] bracket
+    .replace(/\s*\[Compteur\s*:[^\]]*\]/gi, "") // remove [Compteur : ...] bracket
+    .replace(/\s*\[\d+\s*personne[^\]]*\]/gi, "") // remove [X personne(s)...] bracket
+    .replace(/\s*\[\d+[^\]]*\]/g, "") // remove trailing numeric bracket metadata
     .trim();
 }
 

@@ -15,6 +15,7 @@ import BottomNav from "@/components/BottomNav";
 import OnboardingSlides from "@/components/OnboardingSlides";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ScrollToTopButton from "@/components/ScrollToTopButton";
+import { runAutoClosureCheck } from "@/lib/auto-closure";
 
 import { App as CapApp } from "@capacitor/app";
 import { StatusBar, Style } from "@capacitor/status-bar";
@@ -151,6 +152,9 @@ const App = () => {
         console.error("Deep link auth error:", err);
       }
     });
+
+    // Auto-clôture des coupures obsolètes (+7 jours sans activité)
+    runAutoClosureCheck(7).catch(() => {});
 
     return () => {
       backListener.then((l) => l.remove()).catch(() => {});

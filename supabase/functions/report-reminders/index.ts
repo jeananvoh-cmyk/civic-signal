@@ -12,8 +12,44 @@ Deno.serve(async (req) => {
       const ageMs=now-new Date(report.created_at).getTime(),ageHours=ageMs/3600000,ageDays=ageHours/24,lastReminderMs=report.last_reminder_at?now-new Date(report.last_reminder_at).getTime():Infinity,lastReminderMinutes=lastReminderMs/60000;
       const isInfra=report.report_category==="infrastructure",isElec=report.service_type==="electricity"; const serviceLabel=isInfra?(isElec?"💡 Infra. CIE":"🚿 Infra. SODECI"):(isElec?"⚡ Électricité":"💧 Eau"),operatorName=isElec?"CIE":"SODECI",categoryLabel=isInfra?"problème":"coupure",verifyVerb=isInfra?"Confirmez si le problème persiste ou a été résolu":"Le service est-il rétabli ?",detailUrl=`${APP_URL}/signalement/${report.id}`,verificationUrl=`${APP_URL}/verification`,ageDisplay=ageHours<24?`${Math.floor(ageHours)}h`:`${Math.floor(ageDays)}j`,createdDateFr=new Date(report.created_at).toLocaleDateString("fr-FR",{day:"numeric",month:"long"});
       if(ageDays>=3&&!report.j3_author_notified){const {data:profile}=await supabase.from("profiles").select("phone, first_name").eq("user_id",report.user_id).maybeSingle();const phone=profile?.phone?.replace(/\D/g,"")||null;const hasPhone=!!(phone&&phone.length>=8);await supabase.from("notifications").insert({user_id:report.user_id,report_id:report.id,title:"⏰ J+3 — Votre signalement est-il toujours d'actualité ?",message:`${serviceLabel} — ${report.commune}, ${report.quartier} · Votre signalement du ${createdDateFr} n'a pas encore été pris en charge. La ${categoryLabel} est-elle toujours en cours ? Confirmez ou marquez comme résolu → ${verificationUrl}`});notificationsInserted++;j3Sent++;await supabase.from("reports").update({j3_author_notified:true,whatsapp_reminder_needed_at:hasPhone?new Date().toISOString():null,last_reminder_at:new Date().toISOString(),reminder_count:report.reminder_count+1}).eq("id",report.id);continue;}
-      if(ageDays>=7&&!report.j7_author_notified){const {data:profile}=await supabase.from("profiles").select("phone, first_name").eq("user_id",report.user_id).maybeSingle();const phone=profile?.phone?.replace(/\D/g,"")||null;const hasPhone=!!(phone&&phone.length>=8);await supabase.from("notifications").insert({user_id:report.user_id,report_id:report.id,title:"🔔 J+7 — Votre signalement sans réponse depuis une semaine",message:`${serviceLabel} — ${report.commune}, ${report.quartier} · Une semaine s'est écoulée sans prise en charge. Partagez votre signalement pour mobiliser votre quartier, ou marquez-le comme résolu si la situation s'est améliorée → ${verificationUrl}`});notificationsInserted++;j7Sent++;await supabase.from("reports").update({j7_author_notified:true,whatsapp_reminder_needed_at:hasPhone?new Date().toISOString():null,last_reminder_at:new Date().toISOString(),reminder_count:report.reminder_count+1}).eq("id",report.id);continue;}
-      if(ageDays>=14&&report.status!=="chronic"){await supabase.from("reports").update({status:"chronic",urgency:"critical",last_reminder_at:new Date().toISOString(),reminder_count:report.reminder_count+1}).eq("id",report.id);expired14d++;await supabase.from("notifications").insert({user_id:report.user_id,report_id:report.id,title:"🔴 Problème chronique — 14 jours sans intervention",message:`${serviceLabel} — ${report.commune}, ${report.quartier} · Ce ${categoryLabel} dure depuis 14 jours sans intervention de ${operatorName}. Il est désormais classé "Problème chronique" et reste visible publiquement. → ${detailUrl}`});notificationsInserted++;const {data:adminRoles}=await supabase.from("user_roles").select("user_id").in("role",["admin","moderator"]);if(adminRoles?.length){const ids=adminRoles.map((r:any)=>r.user_id).filter((u:string)=>u!==report.user_id);if(ids.length){await supabase.from("notifications").insert(ids.map((u:string)=>({user_id:u,report_id:report.id,title:"🚨 Escalade J+14 — Intervention requise",message:`${serviceLabel} — ${report.commune}, ${report.quartier}\n📅 14 jours sans intervention\n⚠️ Opérateur responsable : ${operatorName}\n→ ${detailUrl}`})));notificationsInserted+=ids.length;}}const {data:neighbors}=await supabase.from("reports").select("user_id").eq("quartier",report.quartier).eq("service_type",report.service_type).eq("report_category",report.report_category).in("status",["active","chronic"]).neq("id",report.id).neq("user_id",report.user_id);if(neighbors?.length){const ids=[...new Set(neighbors.map((n:any)=>n.user_id))];await supabase.from("notifications").insert(ids.map((u)=>({user_id:u,report_id:report.id,title:"⚠️ Problème chronique dans votre quartier",message:`${serviceLabel} — ${report.quartier}, ${report.commune} · Un ${categoryLabel} dure depuis 14 jours sans intervention de ${operatorName}. Partagez-le pour amplifier la pression collective. → ${detailUrl}`})));notificationsInserted+=ids.length;}continue;}
+      if(ageDays>=7){
+        if(!isInfra){
+          await supabase.from("reports").update({
+            status:"resolved",
+            resolved_at:new Date().toISOString(),
+            operator_last_note:"Clôture automatique : Coupure présumée rétablie après 7 jours sans confirmation.",
+            last_reminder_at:new Date().toISOString(),
+            reminder_count:report.reminder_count+1
+          }).eq("id",report.id);
+          archived++;
+          await supabase.from("notifications").insert({
+            user_id:report.user_id,
+            report_id:report.id,
+            title:"✅ Clôture automatique — Coupure présumée rétablie",
+            message:`${serviceLabel} — ${report.commune}, ${report.quartier} · Votre signalement de coupure a été clôturé automatiquement après 7 jours. Si la coupure persiste toujours, réouvrez-le en 1 clic → ${detailUrl}`
+          });
+          notificationsInserted++;
+          continue;
+        } else if(!report.j7_author_notified){
+          const {data:profile}=await supabase.from("profiles").select("phone, first_name").eq("user_id",report.user_id).maybeSingle();
+          const phone=profile?.phone?.replace(/\D/g,"")||null;
+          const hasPhone=!!(phone&&phone.length>=8);
+          await supabase.from("notifications").insert({
+            user_id:report.user_id,
+            report_id:report.id,
+            title:"🔔 J+7 — Signalement de voirie sans réponse",
+            message:`${serviceLabel} — ${report.commune}, ${report.quartier} · Une semaine s'est écoulée. Partagez votre signalement pour mobiliser votre quartier → ${verificationUrl}`
+          });
+          notificationsInserted++;j7Sent++;
+          await supabase.from("reports").update({
+            j7_author_notified:true,
+            whatsapp_reminder_needed_at:hasPhone?new Date().toISOString():null,
+            last_reminder_at:new Date().toISOString(),
+            reminder_count:report.reminder_count+1
+          }).eq("id",report.id);
+          continue;
+        }
+      }
       if(report.status==="chronic") continue;
       let shouldRemind=false,reminderTitle="",reminderMessage="";
       if(ageHours>=24&&lastReminderMinutes>=55){const {count}=await supabase.from("reports").select("id",{count:"exact",head:true}).eq("status","active").eq("quartier",report.quartier).eq("service_type",report.service_type).eq("report_category",report.report_category);if((count||0)>=10){await supabase.from("reports").update({urgency:"critical",last_reminder_at:new Date().toISOString(),reminder_count:report.reminder_count+1}).eq("id",report.id);escalated++;reminderTitle=isInfra?`🔴 Infra. ${operatorName} — ${ageDisplay} sans intervention`:`🔴 Coupure critique — ${ageDisplay} sans rétablissement`;reminderMessage=`${serviceLabel} — ${report.commune}, ${report.quartier} · ${count} signalements dans la zone. Urgence escaladée. ${verifyVerb} → ${detailUrl}`;}else{await supabase.from("reports").update({last_reminder_at:new Date().toISOString(),reminder_count:report.reminder_count+1}).eq("id",report.id);reminderTitle=isInfra?`🔴 ${ageDisplay} — problème ${operatorName} toujours présent ?`:`🔴 ${ageDisplay} de coupure — service rétabli ?`;reminderMessage=`${serviceLabel} — ${report.commune}, ${report.quartier} · Le ${categoryLabel} dure depuis ${ageDisplay}. ${verifyVerb} → ${detailUrl}`;}shouldRemind=true;}

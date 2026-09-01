@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { COMMUNES } from "@/lib/communes";
 import { COMMUNE_LOGOS } from "@/lib/commune-logos";
 import { getQuartiers, extractQuartierFromReport } from "@/lib/quartiers";
+import { cleanDescription } from "@/lib/report-display";
 import QuartierOutageGrid from "@/components/QuartierOutageGrid";
 
 interface QuartierStat {
@@ -509,13 +510,14 @@ const CommuneDetailPage = () => {
                         <MapPin className="h-4 w-4 text-primary shrink-0" />
                         <span>{r.resolvedQuartier || r.quartier || decodedName}</span>
                       </p>
-                      {r.location && (
+                      {/* L'adresse de voirie précise n'est affichée publiquement que pour les infrastructures publiques (ex: nids de poule, lampadaires) */}
+                      {isInfra && r.location && (
                         <p className="text-xs text-muted-foreground font-medium mt-1 line-clamp-1">
                           📍 {r.location}
                         </p>
                       )}
                       <p className="text-xs text-muted-foreground/90 line-clamp-2 mt-1.5 bg-muted/40 p-2 rounded-lg">
-                        {r.description || "Coupure de courant signalée par les résidents."}
+                        {cleanDescription(r.description) || (isInfra ? "Incident d'infrastructure signalé." : "Coupure de réseau signalée par les résidents.")}
                       </p>
                     </div>
 

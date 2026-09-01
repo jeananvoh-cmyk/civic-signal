@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { COMMUNE_COLORS } from "@/lib/communes";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useRelayConfig } from "@/hooks/useRelayConfig";
+import { useUserRole } from "@/hooks/useUserRole";
 import { extractInfraLabel, cleanDescription } from "@/lib/report-display";
 import { getDisplayTicketCode, formatPadaAddress } from "@/lib/pada";
 
@@ -329,6 +330,7 @@ const ReportDetailPage = () => {
     );
   }
 
+  const { isAdmin, isModerator } = useUserRole();
   const color = COMMUNE_COLORS[report.commune] || "#888";
   const isElec = report.service_type === "electricity";
   const isResolved = report.status === "resolved";
@@ -336,17 +338,21 @@ const ReportDetailPage = () => {
   const hasVulnerable = report.babies > 0 || report.pregnant > 0 || report.elderly > 0;
   const isAuthor = user?.id === report.user_id;
   const canCorroborate = user && !isAuthor && !isResolved;
+  const canViewFullDomesticPada = isInfra || isAuthor || isAdmin || isModerator;
 
   // Négligé : actif depuis >7j sans aucune corroboration
   const ageDays = Math.floor(
     (Date.now() - new Date(report.created_at).getTime()) / 86400000
   );
   const isChronic = report.status === "chronic";
-  const isNeglected = !isResolved && ageDays >= 7 && report.verifications === 0;
+  const isNeglected =
+    report.status === "active" &&
+    ageDays >= 7 &&
+    report.verifications === 0;
 
-  // Durée de résolution lisible
-  const resolutionDuration = (() => {
-    if (!isResolved || !report.resolved_at) return null;
+  // Calcul durée de résolution si résolu
+  const resolvedDuration = (() => {
+    if (!report.resolved_at) return null;
     const from = new Date(report.start_time || report.created_at);
     const to = new Date(report.resolved_at);
     const diffH = Math.round((to.getTime() - from.getTime()) / 3600000);
@@ -361,7 +367,7 @@ const ReportDetailPage = () => {
     : "Je confirme cette coupure";
   const corroboratedLabel = isInfra ? "Soutien enregistré ✓" : "Confirmation enregistrée ✓";
   const shareText = isInfra
-    ? `🚧 INFRASTRUCTURE — ${report.quartier ? `${report.quartier}, ` : ""}${report.commune}\n\n${report.description}\n\n✊ Soutenez cette demande sur SIGNA-CI :`
+    ? `🚧 INFRASTRUCTURE — ${report.quartier ? `${report.quartier}, ` : ""}${report.commune}\n\n${cleanDescription(report.description)}\n\n✊ Soutenez cette demande sur SIGNA-CI :`
     : `${isElec ? "⚡" : "💧"} ALERTE COUPURE — ${report.quartier ? `${report.quartier}, ` : ""}${report.commune}\n\nCoupure ${isElec ? "d'électricité" : "d'eau"} en cours. Toujours sans intervention.\n📢 Rejoignez-nous sur SIGNA-CI pour faire pression sur ${isElec ? "CIE" : "SODECI"}.\nPlus on est nombreux, plus vite ils interviennent !`;
 
   const handleReopen = async () => {
@@ -690,20 +696,27 @@ const ReportDetailPage = () => {
                     </Button>
                   </div>
 
-                  {/* Adresse PADA */}
-                  <div className="flex items-start gap-2 pt-0.5">
-                    <Landmark className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                    <div className="min-w-0">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground">Adressage PADA (MCLU) : </span>
-                      <span className="text-foreground font-semibold">
-                        {report.pada_formatted_address || formatPadaAddress({
-                          commune: report.commune,
-                          quartier: report.quartier,
-                          streetName: report.pada_street_name || report.quartier,
-                        })}
-                      </span>
+                  {/* Adresse PADA : visible publiquement pour les infrastructures (voirie, lampadaires), ou réservée à l'auteur & équipes techniques pour les coupures privées */}
+                  {canViewFullDomesticPada && (
+                    <div className="flex items-start gap-2 pt-0.5">
+                      <Landmark className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground">Adressage PADA (MCLU) : </span>
+                        <span className="text-foreground font-semibold">
+                          {report.pada_formatted_address || formatPadaAddress({
+                            commune: report.commune,
+                            quartier: report.quartier,
+                            streetName: report.pada_street_name || report.quartier,
+                          })}
+                        </span>
+                        {!isInfra && isAuthor && (
+                          <span className="text-[10px] text-muted-foreground block italic mt-0.5">
+                            (Adresse confidentielle — transmise uniquement aux équipes techniques)
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Description */}
@@ -755,7 +768,7 @@ const ReportDetailPage = () => {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-sm text-foreground leading-relaxed">{isInfra ? cleanDescription(report.description) : report.description}</p>
+                    <p className="text-sm text-foreground leading-relaxed">{cleanDescription(report.description) || "Aucune description fournie."}</p>
                   )}
                 </div>
 

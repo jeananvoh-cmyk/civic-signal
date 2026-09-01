@@ -795,7 +795,8 @@ const ReportPage = () => {
           ? customQuartier.trim()
           : canonicalQuartier;
 
-      const padaInfo = padaAddress?.formattedAddress ? ` [PADA : ${padaAddress.formattedAddress}]` : "";
+      // PADA public info : uniquement pour la voirie/infrastructure publique, pas dans la description textuelle des coupures privées
+      const padaInfo = isInfra && padaAddress?.formattedAddress ? ` [PADA : ${padaAddress.formattedAddress}]` : "";
       const fullFinalDesc = `${fullDesc}${padaInfo}`.slice(0, 700);
 
       const client_submission_id = crypto.randomUUID();
@@ -806,7 +807,11 @@ const ReportPage = () => {
         service_type: selectedType.serviceType,
         report_category: selectedType.reportCategory,
         description: fullFinalDesc,
-        location: padaAddress?.formattedAddress ? `${commune} - ${padaAddress.formattedAddress}` : commune,
+        location: isInfra && padaAddress?.formattedAddress
+          ? `${commune} - ${padaAddress.formattedAddress}`
+          : effectiveQuartierName
+          ? `${commune} - ${effectiveQuartierName}`
+          : commune,
         commune,
         quartier: effectiveQuartierName,
         latitude,
