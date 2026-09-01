@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { COMMUNES } from "@/lib/communes";
 import { COMMUNE_LOGOS } from "@/lib/commune-logos";
 import { getQuartiers, extractQuartierFromReport } from "@/lib/quartiers";
-import { cleanDescription } from "@/lib/report-display";
+import { cleanDescription, formatDurationMinutes } from "@/lib/report-display";
 import QuartierOutageGrid from "@/components/QuartierOutageGrid";
 
 interface QuartierStat {
@@ -29,7 +29,6 @@ interface QuartierStat {
 }
 
 interface DurationStat {
-  commune: string;
   service_type: string;
   avg_duration_minutes: number;
   longest_duration_minutes: number;
@@ -37,20 +36,12 @@ interface DurationStat {
 }
 
 interface ImpactStats {
+  total_reports: number;
+  resolved_reports: number;
   res_rate: number;
   infra_reports: number;
   reports_last_7: number;
   delta: number;
-}
-
-function formatMinutes(mins: number): string {
-  if (!mins || mins <= 0) return "—";
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  if (h === 0) return `${m}min`;
-  if (h < 24) return `${h}h${m > 0 ? m + "min" : ""}`;
-  const d = Math.floor(h / 24);
-  return `${d}j ${h % 24}h`;
 }
 
 const CommuneDetailPage = () => {
@@ -373,14 +364,14 @@ const CommuneDetailPage = () => {
                   </div>
                   {elecDuration && elecDuration.total_resolved > 0 ? (
                     <div className="space-y-1">
-                      <div className="flex items-baseline gap-1.5">
+                      <div className="flex items-baseline gap-1.5 flex-wrap">
                         <p className="font-display text-xl font-extrabold text-amber-500">
-                          {formatMinutes(elecDuration.avg_duration_minutes)}
+                          {formatDurationMinutes(elecDuration.avg_duration_minutes)}
                         </p>
-                        <span className="text-[11px] text-muted-foreground">moyenne</span>
+                        <span className="text-[11px] text-muted-foreground font-medium">moyenne</span>
                       </div>
                       <p className="text-[11px] text-muted-foreground truncate">
-                        Max : {formatMinutes(elecDuration.longest_duration_minutes)} · {elecDuration.total_resolved} résolu{elecDuration.total_resolved > 1 ? "s" : ""}
+                        Max : {formatDurationMinutes(elecDuration.longest_duration_minutes)} · {elecDuration.total_resolved} résolu{elecDuration.total_resolved > 1 ? "s" : ""}
                       </p>
                     </div>
                   ) : (
@@ -394,14 +385,14 @@ const CommuneDetailPage = () => {
                   </div>
                   {waterDuration && waterDuration.total_resolved > 0 ? (
                     <div className="space-y-1">
-                      <div className="flex items-baseline gap-1.5">
+                      <div className="flex items-baseline gap-1.5 flex-wrap">
                         <p className="font-display text-xl font-extrabold text-blue-500">
-                          {formatMinutes(waterDuration.avg_duration_minutes)}
+                          {formatDurationMinutes(waterDuration.avg_duration_minutes)}
                         </p>
-                        <span className="text-[11px] text-muted-foreground">moyenne</span>
+                        <span className="text-[11px] text-muted-foreground font-medium">moyenne</span>
                       </div>
                       <p className="text-[11px] text-muted-foreground truncate">
-                        Max : {formatMinutes(waterDuration.longest_duration_minutes)} · {waterDuration.total_resolved} résolu{waterDuration.total_resolved > 1 ? "s" : ""}
+                        Max : {formatDurationMinutes(waterDuration.longest_duration_minutes)} · {waterDuration.total_resolved} résolu{waterDuration.total_resolved > 1 ? "s" : ""}
                       </p>
                     </div>
                   ) : (

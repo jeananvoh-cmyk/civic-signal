@@ -146,3 +146,21 @@ export function isInfraLabel(label: string | null): boolean {
     ].some(k => l.includes(k))
   );
 }
+
+/**
+ * Formate proprement une durée en minutes pour l'affichage (ex: "3 min", "1h 15min", "2j 4h").
+ * Arrondit les fractions décimales pour éviter des valeurs comme "2.623316666666667min".
+ */
+export function formatDurationMinutes(mins: number | null | undefined): string {
+  if (mins === null || mins === undefined || isNaN(mins) || mins <= 0) return "—";
+  const roundedMins = Math.round(mins);
+  if (roundedMins < 1) return "< 1 min";
+  if (roundedMins < 60) return `${roundedMins} min`;
+  const h = Math.floor(roundedMins / 60);
+  const m = roundedMins % 60;
+  if (h < 24) return `${h}h${m > 0 ? ` ${m}min` : ""}`;
+  const d = Math.floor(h / 24);
+  const remH = h % 24;
+  return `${d}j${remH > 0 ? ` ${remH}h` : ""}`;
+}
+

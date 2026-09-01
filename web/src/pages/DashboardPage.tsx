@@ -24,7 +24,7 @@ import { calculatePriority, type PriorityResult } from "@/lib/priority-score";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNES, COMMUNE_COLORS } from "@/lib/communes";
 import { COMMUNE_LOGOS } from "@/lib/commune-logos";
-import { extractInfraLabel, infraEmoji, infraOperator, cleanDescription } from "@/lib/report-display";
+import { extractInfraLabel, infraEmoji, infraOperator, cleanDescription, formatDurationMinutes } from "@/lib/report-display";
 import { normalizeQuartier } from "@/lib/quartiers";
 import electricityIcon from "@/assets/electricity-icon.png";
 import waterIcon from "@/assets/water-icon.png";
@@ -81,15 +81,7 @@ interface PriorityReport {
   start_time: string;
 }
 
-function formatMinutes(mins: number): string {
-  if (mins < 1) return "—";
-  if (mins < 60) return `${Math.round(mins)}min`;
-  const h = Math.floor(mins / 60);
-  const m = Math.round(mins % 60);
-  if (h < 24) return `${h}h${m > 0 ? m + "min" : ""}`;
-  const d = Math.floor(h / 24);
-  return `${d}j ${h % 24}h`;
-}
+const formatMinutes = formatDurationMinutes;
 
 // Skeleton card for loading state
 const SkeletonCard = () => (
