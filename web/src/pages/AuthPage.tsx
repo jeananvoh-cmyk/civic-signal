@@ -129,9 +129,12 @@ const AuthPage = () => {
   const handleGoogle = async () => {
     setGoogleLoading(true);
     try {
+      const isNative = typeof (window as any)?.Capacitor !== "undefined" && (window as any)?.Capacitor?.isNativePlatform?.();
+      const redirectUrl = isNative ? "ci.signa.app://auth/callback" : window.location.origin;
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: window.location.origin },
+        options: { redirectTo: redirectUrl },
       });
       if (error) throw error;
       // La redirection est gérée par Supabase
@@ -151,9 +154,12 @@ const AuthPage = () => {
     }
     setLoading(true);
     try {
+      const isNative = typeof (window as any)?.Capacitor !== "undefined" && (window as any)?.Capacitor?.isNativePlatform?.();
+      const redirectUrl = isNative ? "ci.signa.app://auth/callback" : window.location.origin;
+
       const { error } = await supabase.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: window.location.origin },
+        options: { emailRedirectTo: redirectUrl },
       });
       if (error) throw error;
       setMagicSent(true);

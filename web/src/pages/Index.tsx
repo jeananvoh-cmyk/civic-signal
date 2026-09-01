@@ -367,14 +367,14 @@ const Index = () => {
       ══════════════════════════════════════════════════════════════ */}
       <section className="container py-14">
         <div className="mb-10 text-center">
-          <span className="inline-block rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-extrabold uppercase tracking-widest text-primary">
-            SIGNALER UN DYSFONCTIONNEMENT
+          <span className="inline-block rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-extrabold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+            CIE · SODECI · MAIRIES &amp; SERVICES MUNICIPAUX
           </span>
           <h2 className="mt-3 font-display text-2xl sm:text-3xl font-extrabold text-foreground">
             Que souhaitez-vous signaler aujourd'hui ?
           </h2>
-          <p className="mx-auto mt-2 max-w-xl text-xs sm:text-sm text-muted-foreground">
-            Sélectionnez votre situation pour déclencher une alerte géolocalisée et mobiliser les services compétents.
+          <p className="mx-auto mt-2 max-w-2xl text-xs sm:text-sm text-muted-foreground leading-relaxed">
+            Des coupures de réseaux (CIE, SODECI) aux pannes de voirie gérées par votre Mairie (éclairage public, caniveaux, chaussée) : sélectionnez votre situation pour lancer l'alerte.
           </p>
         </div>
 

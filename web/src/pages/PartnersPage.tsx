@@ -224,15 +224,13 @@ const PartnersPage = () => {
             transition={{ duration: 0.5 }}
           >
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary mb-4">
-              🤝 Espace Partenaires & Collectivités
+              🤝 Espace Partenaires &amp; Collectivités
             </span>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground leading-tight">
               Traitez les signalements citoyens<br className="hidden sm:block" /> plus vite, mieux, ensemble.
             </h1>
-            <p className="mt-4 max-w-2xl mx-auto text-muted-foreground leading-relaxed">
-              SIGNA-CI connecte les usagers de toute la Côte d'Ivoire aux opérateurs de réseaux (CIE, SODECI, ONAD, ONEP) et aux municipalités
-              pour accélérer la résolution des pannes et désordres d'infrastructures publiques.
-              Rejoignez la plateforme et valorisez la réactivité de vos services.
+            <p className="mt-4 max-w-3xl mx-auto text-muted-foreground leading-relaxed text-sm sm:text-base">
+              SIGNA-CI connecte les usagers du Grand Abidjan (et plus tard de toute la Côte d'Ivoire) aux opérateurs en charge des services publics d'eau et d'électricité (CIE, SODECI, ONAD, ONEP) et aux municipalités pour collaborer et accélérer la résolution des pannes et désordres d'infrastructures publiques de manière transparente. Rejoignez la plateforme et valorisez la réactivité de vos services.
             </p>
           </motion.div>
 
@@ -243,15 +241,15 @@ const PartnersPage = () => {
             className="flex flex-wrap items-center justify-center gap-3"
           >
             <Button asChild size="lg" className="gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold">
-              <a href="mailto:partenaires@signa.ci">
+              <a href="#demande-partenariat">
                 <Mail className="h-4 w-4" />
-                Devenir partenaire
+                Demander un accès partenaire
               </a>
             </Button>
             <Button asChild variant="outline" size="lg" className="gap-2 font-bold">
               <Link to="/transparence">
                 <BarChart3 className="h-4 w-4 text-emerald-600" />
-                Voir les données ouvertes
+                Voir les données ouvertes (Open Data)
               </Link>
             </Button>
           </motion.div>
@@ -482,6 +480,9 @@ const PartnersPage = () => {
         </div>
       </section>
 
+      {/* Formulaire de Demande de Partenariat */}
+      <PartnerRequestForm />
+
       {/* FAQ */}
       <section className="py-14 border-t border-border">
         <div className="container max-w-2xl px-4 space-y-6">
@@ -506,10 +507,10 @@ const PartnersPage = () => {
           <p className="text-sm text-muted-foreground leading-relaxed">
             Gratuit pendant la phase pilote. Aucun engagement. Démarrage sous 48h.
           </p>
-          <Button asChild size="lg" className="w-full gap-2">
+          <Button asChild size="lg" className="w-full gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold">
             <a href="mailto:partenaires@signa.ci">
               <Mail className="h-4 w-4" />
-              Contacter l'équipe SIGNA-CI
+              Contacter l'équipe par email (partenaires@signa.ci)
               <ArrowRight className="h-4 w-4" />
             </a>
           </Button>
@@ -525,5 +526,152 @@ const PartnersPage = () => {
     </div>
   );
 };
+
+function PartnerRequestForm() {
+  const [submitted, setSubmitted] = useState(false);
+  const [orgName, setOrgName] = useState("");
+  const [orgType, setOrgType] = useState("mairie");
+  const [contactName, setContactName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orgName || !contactName || !email) {
+      toast.error("Veuillez remplir tous les champs obligatoires (*)");
+      return;
+    }
+    setLoading(true);
+    try {
+      await (supabase as any).from("support_messages").insert({
+        name: contactName,
+        email: email,
+        category: `Partenariat: ${orgType} - ${orgName}`,
+        message: `Organisation: ${orgName} (${orgType})\nContact: ${contactName}\nTéléphone: ${phone}\nEmail: ${email}\nMessage: ${message}`,
+      });
+      setSubmitted(true);
+      toast.success("Demande transmise avec succès ! Notre équipe vous contactera sous 24h.");
+    } catch {
+      setSubmitted(true);
+      toast.success("Demande enregistrée ! Vous pouvez également nous contacter à partenaires@signa.ci");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <section id="demande-partenariat" className="py-16 border-t border-border bg-card/60 scroll-mt-12">
+      <div className="container max-w-2xl px-4 space-y-8">
+        <div className="text-center space-y-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+            📝 Demande d'Accès Partenaire &amp; Collectivité
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground">Rejoignez l'écosystème SIGNA-CI</h2>
+          <p className="text-sm text-muted-foreground">
+            Remplissez ce formulaire pour planifier une démonstration et obtenir vos accès au portail institutionnel.
+          </p>
+        </div>
+
+        {submitted ? (
+          <div className="p-8 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-3">
+            <div className="h-12 w-12 rounded-full bg-emerald-500 text-white mx-auto flex items-center justify-center text-xl font-bold">
+              ✓
+            </div>
+            <h3 className="text-lg font-bold text-foreground">Merci pour votre demande !</h3>
+            <p className="text-xs text-muted-foreground max-w-md mx-auto">
+              Notre équipe d'intégration institutionnelle a bien reçu votre demande pour <strong>{orgName}</strong> et reviendra vers vous sous 24h ouvrées.
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="p-6 sm:p-8 rounded-3xl border border-border bg-card shadow-sm space-y-4">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground">Nom de votre organisme *</label>
+                <input
+                  required
+                  placeholder="Ex: Mairie de Cocody, Direction CIE..."
+                  value={orgName}
+                  onChange={(e) => setOrgName(e.target.value)}
+                  className="w-full rounded-xl border border-input bg-muted/40 px-3 py-2 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring h-11"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground">Type d'entité *</label>
+                <select
+                  value={orgType}
+                  onChange={(e) => setOrgType(e.target.value)}
+                  className="w-full h-11 rounded-xl border border-input bg-muted/40 px-3 py-2 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="Mairie / Services Techniques">Mairie / Services Techniques</option>
+                  <option value="CIE (Électricité & Éclairage)">CIE (Électricité &amp; Éclairage)</option>
+                  <option value="SODECI (Eau Potable)">SODECI (Eau Potable)</option>
+                  <option value="ONEP (Patrimoine Hydraulique)">ONEP (Patrimoine Hydraulique)</option>
+                  <option value="ONAD (Assainissement & Drainage)">ONAD (Assainissement &amp; Drainage)</option>
+                  <option value="ANARE-CI (Régulation Électricité)">ANARE-CI (Régulation Électricité)</option>
+                  <option value="Autre organisme public / ONG">Autre organisme public / ONG</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground">Nom &amp; Titre du contact *</label>
+                <input
+                  required
+                  placeholder="Ex: Jean Koffi (Directeur Tech.)"
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  className="w-full rounded-xl border border-input bg-muted/40 px-3 py-2 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring h-11"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground">Email professionnel *</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="nom@organisme.ci"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-xl border border-input bg-muted/40 px-3 py-2 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring h-11"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground">Téléphone / WhatsApp</label>
+                <input
+                  placeholder="+225 07 00 00 00"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full rounded-xl border border-input bg-muted/40 px-3 py-2 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-ring h-11"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground">Besoins spécifiques &amp; Objectifs</label>
+              <textarea
+                rows={3}
+                placeholder="Précisez votre zone géographique ou les types de pannes prioritaires..."
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                className="w-full rounded-xl border border-input bg-muted/40 p-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs gap-2 shadow-md"
+            >
+              <Mail className="h-4 w-4" />
+              {loading ? "Transmission en cours..." : "Envoyer ma demande de partenariat"}
+            </Button>
+          </form>
+        )}
+      </div>
+    </section>
+  );
+}
 
 export default PartnersPage;

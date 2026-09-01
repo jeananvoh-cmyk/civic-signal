@@ -12,20 +12,19 @@ export default function Footer() {
         {/* 🧭 Grille Structurée des Liens (4 Colonnes Thématiques Épurées) */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-10">
           
-          {/* Colonne 1 : Identité & Mission & Contact Direct (md:col-span-4) */}
+          {/* Colonne 1 : Identité & Contact Direct (md:col-span-4) */}
           <div className="space-y-4 md:col-span-4">
-            <Link to="/" className="inline-block" title="SIGNA.ci — Plateforme Civique">
-              <SignaLogo size="md" variant="white" />
-            </Link>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-black tracking-widest text-emerald-400 uppercase">
-              SIGNALER · SUIVRE · RÉPARER
+            <div className="flex flex-wrap items-center gap-3">
+              <Link to="/" className="inline-block transition-transform hover:scale-105" title="SIGNA.ci — Plateforme Civique">
+                <SignaLogo size="md" variant="white" />
+              </Link>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-black tracking-widest text-emerald-400 uppercase">
+                SIGNALER · SUIVRE · RÉPARER
+              </div>
             </div>
-            <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
-              Plateforme citoyenne libre d'intérêt général. Documentez et suivez les pannes d'électricité (CIE), d'eau (SODECI) et de voirie communale à Abidjan.
-            </p>
 
             {/* Liens de contact directs et discrets */}
-            <div className="pt-1 flex flex-wrap items-center gap-2">
+            <div className="pt-2 flex flex-wrap items-center gap-2">
               <a
                 href={SOCIAL_LINKS.whatsapp}
                 target="_blank"
@@ -50,13 +49,6 @@ export default function Footer() {
                 <span>Guide &amp; FAQ</span>
               </Link>
             </div>
-
-            <div>
-              <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-900/60 border border-slate-800/80 text-[11px] text-slate-400">
-                <MapPin className="h-3 w-3 text-emerald-400 shrink-0" />
-                <span>14 communes du Grand Abidjan</span>
-              </span>
-            </div>
           </div>
 
           {/* Colonne 2 : Parcours Citoyen (md:col-span-3) */}
@@ -66,9 +58,10 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2.5 text-xs text-slate-400">
               <li><Link to="/signaler" className="hover:text-emerald-400 transition-colors">Signaler une panne ou coupure</Link></li>
-              <li><Link to="/carte" className="hover:text-emerald-400 transition-colors">Carte interactive des pannes</Link></li>
+              <li><Link to="/carte" className="hover:text-emerald-400 transition-colors">Carte interactive des coupures</Link></li>
+              <li><Link to="/infrastructures?vue=carte" className="hover:text-emerald-400 transition-colors">Carte des infrastructures &amp; voiries</Link></li>
               <li><Link to="/suivi" className="hover:text-emerald-400 transition-colors">Suivre un ticket de signalement</Link></li>
-              <li><Link to="/verification" className="hover:text-emerald-400 transition-colors">Confirmer un constat de quartier</Link></li>
+              <li><Link to="/verification" className="hover:text-emerald-400 transition-colors">Mes signalements &amp; rétablissement</Link></li>
               <li><Link to="/affiches" className="hover:text-emerald-400 transition-colors">Affiches QR Code de quartier</Link></li>
               <li><Link to="/compteur" className="hover:text-emerald-400 transition-colors">Simulateur Compteur &amp; Autonomie</Link></li>
             </ul>
@@ -82,7 +75,12 @@ export default function Footer() {
             <ul className="space-y-2.5 text-xs text-slate-400">
               <li><Link to="/tableau-de-bord" className="hover:text-emerald-400 transition-colors">Tableau de bord &amp; Météo réseaux</Link></li>
               <li><Link to="/infrastructures" className="hover:text-emerald-400 transition-colors">Voirie, Caniveaux &amp; Salubrité</Link></li>
-              <li><Link to="/mairie" className="hover:text-emerald-400 transition-colors">Portail Mairies (Services Techniques)</Link></li>
+              <li>
+                <Link to="/mairie" className="hover:text-emerald-400 transition-colors inline-flex items-center gap-1">
+                  <span>Portail Mairies (Services Techniques)</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold">Accès pro</span>
+                </Link>
+              </li>
               <li><Link to="/regulateurs" className="hover:text-emerald-400 transition-colors">Baromètre Régulateurs (ANARE &amp; ONEP)</Link></li>
               <li><Link to="/transparence" className="hover:text-emerald-400 transition-colors font-semibold text-emerald-400">Transparence Open Data (Open311)</Link></li>
             </ul>

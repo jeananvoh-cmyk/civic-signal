@@ -132,8 +132,15 @@ export default function PostersPage() {
     setTimeout(() => setCopied(false), 2500);
   };
 
+  const POPULAR_QUARTIERS_BY_COMMUNE_WITH_ALL = useMemo(() => {
+    const list = POPULAR_QUARTIERS_BY_COMMUNE[selectedCommune] || [];
+    return [`Toute la commune de ${selectedCommune} (Affiche générale)`, ...list];
+  }, [selectedCommune]);
+
   const handleShareWhatsApp = () => {
-    const text = `📢 *Voisins de ${finalQuartier} (${selectedCommune})* :\n\nPour signaler et faire réparer rapidement nos coupures d'eau, de courant ou les pannes de voirie auprès de la Mairie, de la CIE et de la SODECI, documentons-les directement sur SIGNA.ci :\n👉 ${targetUrl}\n\n_Gratuit, sans inscription et utile pour tout le quartier !_`;
+    const isGeneral = finalQuartier.includes("Toute la commune");
+    const loc = isGeneral ? `Mairie de ${selectedCommune}` : `${finalQuartier} (${selectedCommune})`;
+    const text = `📢 *ALERTE CITOYENNE & INFRASTRUCTURES — ${loc}*\n\nChers voisins et riverains, documentons ensemble nos pannes d'électricité (CIE), d'eau (SODECI) et dégradations de voirie auprès de la Mairie pour accélérer les interventions !\n\n👉 *Flashez l'affiche ou signalez en 30s ici :*\n${targetUrl}\n\n_100% Gratuit · Sans téléchargement obligatoire._`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
   };
 
@@ -211,10 +218,10 @@ export default function PostersPage() {
                 </Select>
               </div>
 
-              {/* 2. Sélecteur Quartier */}
+              {/* 2. Sélecteur Quartier / Commune */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-foreground block">
-                  2. Quartier / Cité / Résidence
+                  2. Quartier / Cité / Échelle
                 </label>
                 <Select
                   value={selectedQuartier}
@@ -227,7 +234,7 @@ export default function PostersPage() {
                     <SelectValue placeholder="Quartier suggéré" />
                   </SelectTrigger>
                   <SelectContent className="max-h-72">
-                    {(POPULAR_QUARTIERS_BY_COMMUNE[selectedCommune] || []).map((q) => (
+                    {POPULAR_QUARTIERS_BY_COMMUNE_WITH_ALL.map((q) => (
                       <SelectItem key={q} value={q} className="text-xs">
                         {q}
                       </SelectItem>
@@ -237,7 +244,7 @@ export default function PostersPage() {
 
                 <div className="pt-1">
                   <span className="text-[11px] text-muted-foreground block mb-1">
-                    Ou nom exact de votre cité / rue :
+                    Ou nom exact de votre cité / rue (optionnel) :
                   </span>
                   <Input
                     placeholder="Ex: Cité Verte Bat A, Rue des Jardins, Cité SIR..."
@@ -298,7 +305,7 @@ export default function PostersPage() {
                   <div className="h-5 w-5 rounded-full flex items-center justify-center">
                     <WhatsAppIcon className="h-4 w-4" />
                   </div>
-                  Partager dans le Groupe WhatsApp des Voisins
+                  Partager l'affiche et le QR Code sur WhatsApp
                 </Button>
 
                 <Button
@@ -365,7 +372,7 @@ export default function PostersPage() {
                   </div>
 
                   <div className="text-right">
-                    <SignaLogo size="sm" />
+                    <SignaLogo size="sm" variant="dark" />
                     <span className="text-[9px] font-bold text-emerald-700 block mt-0.5 tracking-wider uppercase">
                       Plateforme Citoyenne
                     </span>
@@ -376,7 +383,7 @@ export default function PostersPage() {
                 <div className="text-center space-y-3 py-2">
                   <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900 text-white text-xs font-black uppercase tracking-widest">
                     <MapPin className="h-3.5 w-3.5 text-[#FF8200]" />
-                    QUARTIER : {finalQuartier}
+                    {finalQuartier.includes("Toute la commune") ? `COMMUNE DE ${selectedCommune.toUpperCase()}` : `QUARTIER : ${finalQuartier.toUpperCase()}`}
                   </div>
 
                   <h1 className="text-3xl sm:text-4xl font-black text-slate-950 tracking-tight leading-tight">

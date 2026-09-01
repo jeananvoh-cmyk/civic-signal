@@ -23,6 +23,7 @@ export const SignaLogo = ({ className, size = "md", showSlogan = false, variant 
   };
 
   const isWhite = variant === "white";
+  const isDark = variant === "dark";
 
   return (
     <div className={cn("inline-flex items-center gap-2.5 select-none", className)}>
@@ -88,7 +89,7 @@ export const SignaLogo = ({ className, size = "md", showSlogan = false, variant 
       <span
         className={cn(
           "font-display font-black tracking-tight flex items-baseline gap-0.5 leading-none",
-          isWhite ? "text-white" : "text-slate-900 dark:text-white",
+          isWhite ? "text-white" : isDark ? "text-slate-950" : "text-slate-900 dark:text-white",
           textSizes[size]
         )}
       >

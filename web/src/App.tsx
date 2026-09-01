@@ -14,6 +14,7 @@ import OfflineBar from "@/components/OfflineBar";
 import BottomNav from "@/components/BottomNav";
 import OnboardingSlides from "@/components/OnboardingSlides";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import ScrollToTopButton from "@/components/ScrollToTopButton";
 
 import { App as CapApp } from "@capacitor/app";
 import { StatusBar, Style } from "@capacitor/status-bar";
@@ -128,8 +129,32 @@ const App = () => {
       }
     });
 
+    // Native Android / Mobile Deep Linking for OAuth (Google / Magic Link)
+    const appUrlListener = CapApp.addListener("appUrlOpen", async ({ url }) => {
+      try {
+        if (url && (url.includes("access_token") || url.includes("refresh_token") || url.includes("code="))) {
+          const cleanUrl = url.replace("ci.signa.app://", "https://signa.ci/");
+          const urlObj = new URL(cleanUrl);
+          const hashParams = new URLSearchParams(urlObj.hash.replace(/^#/, ""));
+          const accessToken = hashParams.get("access_token") || urlObj.searchParams.get("access_token");
+          const refreshToken = hashParams.get("refresh_token") || urlObj.searchParams.get("refresh_token");
+
+          if (accessToken && refreshToken) {
+            await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            window.location.href = "/";
+          }
+        }
+      } catch (err) {
+        console.error("Deep link auth error:", err);
+      }
+    });
+
     return () => {
       backListener.then((l) => l.remove()).catch(() => {});
+      appUrlListener.then((l) => l.remove()).catch(() => {});
     };
   }, []);
 
@@ -146,6 +171,7 @@ const App = () => {
                 <ProfileCompletionNotifier />
                 <PWAInstallBanner />
                 <OnboardingSlides />
+                <ScrollToTopButton />
                 <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
                   <Routes>
                     <Route path="/" element={<Index />} />
