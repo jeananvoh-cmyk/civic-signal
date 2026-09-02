@@ -240,10 +240,6 @@ const AboutPage = () => {
                   <p className="text-xs text-muted-foreground">Couverture territoriale intégrale et suivi localisé</p>
                 </div>
               </div>
-
-              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full self-start sm:self-auto">
-                100% des communes équipées de logos officiels
-              </span>
             </div>
 
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
@@ -254,12 +250,15 @@ const AboutPage = () => {
                   className="group flex flex-col items-center text-center p-4 rounded-2xl border border-border bg-background/50 hover:border-emerald-500/50 hover:bg-emerald-500/5 hover:-translate-y-1 transition-all"
                 >
                   <div
-                    className="flex h-14 w-14 items-center justify-center rounded-2xl overflow-hidden border border-border bg-white shadow-sm mb-3 group-hover:scale-105 transition-transform"
+                    className="flex h-14 w-14 items-center justify-center rounded-2xl overflow-hidden border border-border shadow-sm mb-3 group-hover:scale-105 transition-transform"
+                    style={{ backgroundColor: COMMUNE_LOGOS[c.nom] ? "#ffffff" : c.couleur }}
                   >
                     {COMMUNE_LOGOS[c.nom] ? (
                       <img src={COMMUNE_LOGOS[c.nom]} alt={c.nom} className="h-full w-full object-contain p-1" />
                     ) : (
-                      <span className="text-primary font-bold text-base">{c.nom[0]}</span>
+                      <span className="text-white font-black text-sm tracking-wider drop-shadow-sm">
+                        {c.nom.slice(0, 3).toUpperCase()}
+                      </span>
                     )}
                   </div>
                   <p className="font-bold text-foreground text-xs truncate max-w-full">{c.nom}</p>

@@ -13,13 +13,13 @@ import yopougonLogo from "@/assets/logos/yopougon.png";
 import abidjanDistrictLogo from "@/assets/logos/abidjan_district.png";
 
 /**
- * Map commune name → official logo import.
- * All 14 communes of Grand Abidjan have their official municipal logo or official District emblem.
+ * Map commune name → official municipal logo import.
+ * Only verified official municipal logos are mapped here.
+ * Communes without an official logo file fall back to their official municipal color badge.
  */
 export const COMMUNE_LOGOS: Record<string, string> = {
   "Abobo": aboboLogo,
   "Adjamé": adjameLogo,
-  "Anyama": abidjanDistrictLogo,
   "Attécoubé": attecoubeLogo,
   "Bingerville": bingervilleLogo,
   "Cocody": cocodyLogo,
@@ -28,7 +28,5 @@ export const COMMUNE_LOGOS: Record<string, string> = {
   "Marcory": marcoryLogo,
   "Plateau": plateauLogo,
   "Port-Bouët": portBouetLogo,
-  "Songon": abidjanDistrictLogo,
-  "Treichville": abidjanDistrictLogo,
   "Yopougon": yopougonLogo,
 };
