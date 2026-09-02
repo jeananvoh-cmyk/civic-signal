@@ -230,8 +230,8 @@ const App = () => {
                     <Route path="/partner/dashboard" element={<ProtectedRoute><PartnerDashboardPage /></ProtectedRoute>} />
                     <Route path="/partenaires" element={<PartnersPage />} />
                     <Route path="/partenaire" element={<RegulateursPage />} />
-                    <Route path="/mairie" element={<MairieDashboardPage />} />
-                    <Route path="/mairie/:communeName" element={<MairieDashboardPage />} />
+                    <Route path="/mairie" element={<ProtectedRoute><MairieDashboardPage /></ProtectedRoute>} />
+                    <Route path="/mairie/:communeName" element={<ProtectedRoute><MairieDashboardPage /></ProtectedRoute>} />
                     <Route path="/regulateurs" element={<RegulateursPage />} />
                     <Route path="/affiches" element={<PostersPage />} />
                     <Route path="/posters" element={<PostersPage />} />
