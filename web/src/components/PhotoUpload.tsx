@@ -292,9 +292,9 @@ const PhotoUpload = ({
             )}
 
             {uploading && (
-              <div className="aspect-square rounded-xl border border-border flex flex-col items-center justify-center gap-1 bg-muted/30">
+              <div className="aspect-square rounded-xl border border-border flex flex-col items-center justify-center gap-1.5 bg-muted/30 p-2">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                <span className="text-[10px] text-muted-foreground font-medium">Chargement…</span>
+                <span className="text-[10px] text-primary font-semibold animate-pulse text-center leading-tight">Optimisation & envoi…</span>
               </div>
             )}
           </div>
