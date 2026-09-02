@@ -1,0 +1,76 @@
+name: Security Audit & SAST / SCA
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    # Scan de sécurité hebdomadaire chaque lundi à 04h00 UTC
+    - cron: '0 4 * * 1'
+
+jobs:
+  semgrep-sast:
+    name: Semgrep SAST (OWASP Top 10)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep SAST Scan
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/owasp-top-ten
+            p/javascript
+            p/typescript
+            p/react
+        env:
+          SEMGREP_RULES: p/owasp-top-ten p/security-audit
+
+  trivy-sca:
+    name: Trivy Dependency & Vulnerability Scanner
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+          format: 'table'
+
+  node-security-lint:
+    name: ESLint Security & NPM Audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit NPM Dependencies
+        run: npm audit --audit-level=high
+
+      - name: Run ESLint Security Rules
+        run: npm run lint
+
+      - name: Run Vitest Security & Integrity Tests
+        run: npm run test
