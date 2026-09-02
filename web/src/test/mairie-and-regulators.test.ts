@@ -7,7 +7,8 @@ describe("Mairie Dashboard & Regulators Audit Metrics", () => {
     expect(COMMUNES.length).toBeGreaterThanOrEqual(14);
     const verifiedCommunesWithLogos = [
       "Cocody", "Yopougon", "Abobo", "Marcory", "Plateau", 
-      "Koumassi", "Port-Bouët", "Attécoubé", "Adjamé", "Bingerville", "Grand-Bassam"
+      "Koumassi", "Port-Bouët", "Attécoubé", "Adjamé", "Bingerville", 
+      "Grand-Bassam", "Anyama", "Songon", "Treichville"
     ];
     
     COMMUNES.forEach((c) => {
