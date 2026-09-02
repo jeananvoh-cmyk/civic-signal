@@ -27,7 +27,7 @@ function normalize(text: string): string {
 
 /** Extrait un nombre depuis une chaîne (ex: "50.0kWh" → 50) */
 function extractNumber(s: string): number | null {
-  const m = s.replace(/\s/g, "").match(/[\d]+([.,][\d]+)?/);
+  const m = s.replace(/\s/g, "").match(/\d+(?:[.,]\d+)?/);
   if (!m) return null;
   return parseFloat(m[0].replace(",", "."));
 }
@@ -35,7 +35,7 @@ function extractNumber(s: string): number | null {
 /** Essaie de parser une date depuis différents formats */
 function parseDate(s: string): Date | null {
   // "15/04/2026 14:32" ou "15-04-2026 14h32" ou "15/04/2026"
-  const m = s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:[T\s](\d{1,2})[:h](\d{2}))?/);
+  const m = s.match(/^(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})(?:[T\s](\d{1,2})[:h](\d{2}))?$/);
   if (!m) return null;
   const [, d, mo, y, h = "0", min = "0"] = m;
   const dt = new Date(+y, +mo - 1, +d, +h, +min);
@@ -188,9 +188,9 @@ export function parseCieSms(raw: string): ParsedRecharge {
   // ── Date ──────────────────────────────────────────────────────────
   // "2025-08-29 20:21:24" | "15/04/2026 14:32"
   const datePatterns = [
-    /(\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}(?::\d{2})?)/,        // ISO
-    /(?:date|le|du)\s*[:\-]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}(?:\s+\d{1,2}[h:]\d{2})?)/i,
-    /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/,
+    /\b(\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}(?::\d{2})?)\b/,        // ISO
+    /(?:date|le|du)\s*[:\-]?\s*(\d{1,2}[/\-]\d{1,2}[/\-]\d{4}(?:\s+\d{1,2}[h:]\d{2})?)/i,
+    /\b(\d{1,2}[/\-]\d{1,2}[/\-]\d{4})\b/,
   ];
   for (const p of datePatterns) {
     const m = raw.match(p);
