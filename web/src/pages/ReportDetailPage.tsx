@@ -24,6 +24,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { useRelayConfig } from "@/hooks/useRelayConfig";
 import { useUserRole } from "@/hooks/useUserRole";
 import { extractInfraLabel, cleanDescription } from "@/lib/report-display";
+import { getInfraIllustration } from "@/lib/infra-icons";
 import { getDisplayTicketCode, formatPadaAddress } from "@/lib/pada";
 
 interface ReportDetail {
@@ -784,13 +785,14 @@ const ReportDetailPage = () => {
                   )}
                 </div>
 
-                {/* Galerie photos */}
+                {/* Galerie photos ou illustration représentative */}
                 <PhotoGallery
                   photos={
                     (report.photo_urls && report.photo_urls.length > 0)
                       ? report.photo_urls
                       : report.photo_url ? [report.photo_url] : []
                   }
+                  fallbackImage={getInfraIllustration(report.service_type, report.description)}
                   thumbHeight="h-56"
                 />
 

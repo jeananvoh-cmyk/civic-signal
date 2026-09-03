@@ -32,12 +32,16 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 // Image plein écran dans le lightbox
-function LightboxImage({ path }: { path: string }) {
+function LightboxImage({ path, fallbackImage }: { path: string; fallbackImage?: string }) {
   const url = useSignedUrl(path);
-  return url ? (
+  const [hasError, setHasError] = useState(false);
+  const displaySrc = (!hasError && url) ? url : fallbackImage;
+
+  return displaySrc ? (
     <img
-      src={url}
+      src={displaySrc}
       alt="Photo agrandie du signalement"
+      onError={() => setHasError(true)}
       className="w-full max-h-[82vh] object-contain rounded-xl"
     />
   ) : null;
@@ -58,8 +62,9 @@ function ReportThumbnail({
   onOpen?: () => void;
 }) {
   const signedUrl = useSignedUrl(path ?? null);
-  const displayUrl = signedUrl || fallbackImage;
-  const isRealPhoto = Boolean(signedUrl);
+  const [hasError, setHasError] = useState(false);
+  const displayUrl = (!hasError && signedUrl) ? signedUrl : fallbackImage;
+  const isRealPhoto = !hasError && Boolean(signedUrl);
 
   if (!displayUrl) return null;
 
@@ -75,13 +80,14 @@ function ReportThumbnail({
         "group relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 rounded-xl overflow-hidden border-2 border-border/80 bg-muted shadow-xs transition-all duration-200",
         isRealPhoto
           ? "hover:border-emerald-500/60 hover:shadow-md cursor-pointer"
-          : "opacity-90 hover:opacity-100"
+          : "opacity-95 hover:opacity-100"
       )}
       title={isRealPhoto ? "Cliquer pour agrandir la photo" : "Illustration indicative"}
     >
       <img
         src={displayUrl}
         alt={alt}
+        onError={() => setHasError(true)}
         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
         loading="lazy"
       />
@@ -175,7 +181,7 @@ export default function InfrastructurePage() {
   const [hoveredReportId, setHoveredReportId] = useState<string | null>(null);
   const [statusHistory, setStatusHistory] = useState<StatusHistoryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
-  const [lightboxPhotos, setLightboxPhotos] = useState<{ photos: string[]; index: number } | null>(null);
+  const [lightboxPhotos, setLightboxPhotos] = useState<{ photos: string[]; index: number; fallbackImage?: string } | null>(null);
 
   // Filters state
   const [operatorFilter, setOperatorFilter] = useState<OperatorFilter>(
@@ -965,34 +971,15 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                       const detailPhotos = selectedReport.photo_urls && selectedReport.photo_urls.length > 0
                         ? selectedReport.photo_urls
                         : (selectedReport.photo_url ? [selectedReport.photo_url] : []);
+                      const illustration = getInfraIllustration(selectedReport.service_type, selectedReport.description);
                       
-                      if (detailPhotos.length > 0) {
-                        return (
-                          <div className="pt-1">
-                            <PhotoGallery
-                              photos={detailPhotos}
-                              thumbHeight="h-44"
-                            />
-                          </div>
-                        );
-                      }
-
                       return (
-                        <div className="relative rounded-2xl overflow-hidden border border-border/80 bg-muted/20 h-44 flex items-center justify-center group shadow-2xs">
-                          <img
-                            src={getInfraIllustration(selectedReport.service_type, selectedReport.description)}
-                            alt={extractInfraLabel(selectedReport.description) || "Illustration catégorie"}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        <div className="pt-1">
+                          <PhotoGallery
+                            photos={detailPhotos}
+                            fallbackImage={illustration}
+                            thumbHeight="h-44"
                           />
-                          <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/85 via-black/40 to-transparent p-3 flex items-center justify-between text-white text-xs">
-                            <span className="font-semibold flex items-center gap-1.5 drop-shadow-sm">
-                              <Camera className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                              Illustration représentative
-                            </span>
-                            <span className="text-[10px] text-white/80 bg-black/50 px-2 py-0.5 rounded-md backdrop-blur-xs">
-                              Photo citoyenne non fournie
-                            </span>
-                          </div>
                         </div>
                       );
                     })()}
@@ -1250,7 +1237,11 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                       count={photos.length}
                       fallbackImage={illustration}
                       alt={cleanDescription(r.description)}
-                      onOpen={() => photos.length > 0 && setLightboxPhotos({ photos, index: 0 })}
+                      onOpen={() => setLightboxPhotos({
+                        photos: photos.length > 0 ? photos : [illustration],
+                        index: 0,
+                        fallbackImage: illustration,
+                      })}
                     />
                   </div>
                 );
@@ -1404,7 +1395,10 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                   <XIcon className="h-5 w-5" />
                 </button>
 
-                <LightboxImage path={lightboxPhotos.photos[lightboxPhotos.index]} />
+                <LightboxImage
+                  path={lightboxPhotos.photos[lightboxPhotos.index]}
+                  fallbackImage={lightboxPhotos.fallbackImage}
+                />
 
                 {lightboxPhotos.photos.length > 1 && (
                   <div className="absolute inset-x-0 bottom-4 flex items-center justify-center gap-4">

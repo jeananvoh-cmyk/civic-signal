@@ -9,23 +9,29 @@ function GalleryThumb({
   path,
   alt,
   className,
+  fallbackImage,
   onClick,
 }: {
   path: string;
   alt: string;
   className?: string;
+  fallbackImage?: string;
   onClick: () => void;
 }) {
   const url = useSignedUrl(path);
+  const [hasError, setHasError] = useState(false);
+  const displaySrc = (!hasError && url) ? url : fallbackImage;
+
   return (
     <div
       className={`relative cursor-pointer group overflow-hidden bg-muted/40 ${className ?? ""}`}
       onClick={onClick}
     >
-      {url ? (
+      {displaySrc ? (
         <img
-          src={url}
+          src={displaySrc}
           alt={alt}
+          onError={() => setHasError(true)}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"
         />
@@ -43,12 +49,16 @@ function GalleryThumb({
 }
 
 // ── Image plein écran dans le lightbox ───────────────────────────────────────
-function LightboxImage({ path }: { path: string }) {
+function LightboxImage({ path, fallbackImage }: { path: string; fallbackImage?: string }) {
   const url = useSignedUrl(path);
-  return url ? (
+  const [hasError, setHasError] = useState(false);
+  const displaySrc = (!hasError && url) ? url : fallbackImage;
+
+  return displaySrc ? (
     <img
-      src={url}
+      src={displaySrc}
       alt="Photo du signalement"
+      onError={() => setHasError(true)}
       className="w-full max-h-[85vh] object-contain"
     />
   ) : null;
@@ -58,6 +68,8 @@ function LightboxImage({ path }: { path: string }) {
 interface PhotoGalleryProps {
   /** Chemins de stockage Supabase (max 3) */
   photos: string[];
+  /** Image de secours indicative si la photo est indisponible */
+  fallbackImage?: string;
   /** Classe CSS appliquée au conteneur de la grille */
   className?: string;
   /** Hauteur des vignettes (Tailwind), défaut "h-48" */
@@ -72,46 +84,51 @@ interface PhotoGalleryProps {
  */
 const PhotoGallery = ({
   photos,
+  fallbackImage,
   className = "",
   thumbHeight = "h-48",
   reportDate,
 }: PhotoGalleryProps) => {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  if (photos.length === 0) return null;
+  if (photos.length === 0 && !fallbackImage) return null;
+
+  const validPhotos = photos.length > 0 ? photos : (fallbackImage ? [fallbackImage] : []);
 
   const open = (i: number) => setLightboxIndex(i);
   const close = () => setLightboxIndex(null);
   const prev = () =>
     setLightboxIndex((i) =>
-      i !== null ? (i - 1 + photos.length) % photos.length : 0
+      i !== null ? (i - 1 + validPhotos.length) % validPhotos.length : 0
     );
   const next = () =>
     setLightboxIndex((i) =>
-      i !== null ? (i + 1) % photos.length : 0
+      i !== null ? (i + 1) % validPhotos.length : 0
     );
 
   // ── Mise en page grille ────────────────────────────────────────────────────
   const renderGrid = () => {
-    if (photos.length === 1) {
+    if (validPhotos.length === 1) {
       return (
         <GalleryThumb
-          path={photos[0]}
+          path={validPhotos[0]}
           alt="Photo 1"
+          fallbackImage={fallbackImage}
           className={`rounded-xl ${thumbHeight}`}
           onClick={() => open(0)}
         />
       );
     }
 
-    if (photos.length === 2) {
+    if (validPhotos.length === 2) {
       return (
         <div className="grid grid-cols-2 gap-1">
-          {photos.map((p, i) => (
+          {validPhotos.map((p, i) => (
             <GalleryThumb
-              key={p}
+              key={p + i}
               path={p}
               alt={`Photo ${i + 1}`}
+              fallbackImage={fallbackImage}
               className={`rounded-xl ${thumbHeight}`}
               onClick={() => open(i)}
             />
@@ -124,20 +141,23 @@ const PhotoGallery = ({
     return (
       <div className="grid grid-cols-2 gap-1">
         <GalleryThumb
-          path={photos[0]}
+          path={validPhotos[0]}
           alt="Photo 1"
+          fallbackImage={fallbackImage}
           className={`col-span-2 rounded-t-xl ${thumbHeight}`}
           onClick={() => open(0)}
         />
         <GalleryThumb
-          path={photos[1]}
+          path={validPhotos[1]}
           alt="Photo 2"
+          fallbackImage={fallbackImage}
           className={`rounded-bl-xl ${thumbHeight}`}
           onClick={() => open(1)}
         />
         <GalleryThumb
-          path={photos[2]}
+          path={validPhotos[2]}
           alt="Photo 3"
+          fallbackImage={fallbackImage}
           className={`rounded-br-xl ${thumbHeight}`}
           onClick={() => open(2)}
         />
@@ -162,7 +182,7 @@ const PhotoGallery = ({
           </button>
 
           {/* Navigation prev/next */}
-          {photos.length > 1 && (
+          {validPhotos.length > 1 && (
             <>
               <button
                 onClick={prev}
@@ -183,16 +203,16 @@ const PhotoGallery = ({
 
           {/* Image courante */}
           {lightboxIndex !== null && (
-            <LightboxImage path={photos[lightboxIndex]} />
+            <LightboxImage path={validPhotos[lightboxIndex]} fallbackImage={fallbackImage} />
           )}
 
           {/* Indicateurs de position */}
-          {photos.length > 1 && lightboxIndex !== null && (
+          {validPhotos.length > 1 && lightboxIndex !== null && (
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5" role="group" aria-label="Sélection de photo">
-              {photos.map((_, i) => (
+              {validPhotos.map((_, i) => (
                 <button
                   key={i}
-                  aria-label={`Photo ${i + 1} sur ${photos.length}`}
+                  aria-label={`Photo ${i + 1} sur ${validPhotos.length}`}
                   aria-current={i === lightboxIndex ? "true" : undefined}
                   onClick={() => setLightboxIndex(i)}
                   className={cn(
@@ -205,13 +225,13 @@ const PhotoGallery = ({
           )}
 
           {/* Compteur */}
-          {photos.length > 1 && lightboxIndex !== null && (
+          {validPhotos.length > 1 && lightboxIndex !== null && (
             <div
               className="absolute top-3 left-3 bg-black/60 text-white text-xs rounded-full px-2.5 py-1 tabular-nums"
               aria-live="polite"
               aria-atomic="true"
             >
-              {lightboxIndex + 1} / {photos.length}
+              {lightboxIndex + 1} / {validPhotos.length}
             </div>
           )}
 
@@ -219,7 +239,7 @@ const PhotoGallery = ({
           {reportDate && lightboxIndex !== null && (
             <div className={cn(
               "absolute left-3 bg-black/60 text-white text-xs rounded-full px-3 py-1.5",
-              photos.length > 1 ? "bottom-9" : "bottom-3"
+              validPhotos.length > 1 ? "bottom-9" : "bottom-3"
             )}>
               Signalé le{" "}
               {new Date(reportDate).toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
