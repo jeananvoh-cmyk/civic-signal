@@ -47,69 +47,163 @@ function LightboxImage({ path, fallbackImage }: { path: string; fallbackImage?: 
   ) : null;
 }
 
-// Vignette photo agrandie avec résolution de signature Supabase et prévisualisation au clic
-function ReportThumbnail({
-  path,
-  alt = "Photo",
-  count = 1,
-  fallbackImage,
-  onOpen,
+// ── CARTE CITOYENNE ÉPURÉE AVEC BANNIÈRE PHOTO HAUTE DÉFINITION DIRECTEMENT VISIBLE ──
+function InfraFeedCard({
+  report,
+  isSelected,
+  isSupported,
+  onSelect,
+  onSupport,
+  onOpenLightbox,
 }: {
-  path?: string | null;
-  alt?: string;
-  count?: number;
-  fallbackImage?: string;
-  onOpen?: () => void;
+  report: InfraReport;
+  isSelected: boolean;
+  isSupported: boolean;
+  onSelect: () => void;
+  onSupport: (e: React.MouseEvent) => void;
+  onOpenLightbox: (photos: string[], fallbackImage: string) => void;
 }) {
-  const signedUrl = useSignedUrl(path ?? null);
+  const isResolved = report.status === "resolved";
+  const photos = report.photo_urls && report.photo_urls.length > 0 ? report.photo_urls : (report.photo_url ? [report.photo_url] : []);
+  const illustration = getInfraIllustration(report.service_type, report.description);
+  const signedUrl = useSignedUrl(photos.length > 0 ? photos[0] : null);
   const [hasError, setHasError] = useState(false);
-  const displayUrl = (!hasError && signedUrl) ? signedUrl : fallbackImage;
-  const isRealPhoto = !hasError && Boolean(signedUrl);
+  const displayUrl = (!hasError && signedUrl) ? signedUrl : illustration;
 
-  if (!displayUrl) return null;
+  const isCie = INFRA_CIE.some((kw) => report.service_type?.toLowerCase().includes(kw) || report.description?.toLowerCase().includes(kw));
+  const isSodeci = INFRA_SODECI.some((kw) => report.service_type?.toLowerCase().includes(kw) || report.description?.toLowerCase().includes(kw));
+
+  const opLabel = isCie ? "CIE · Électricité" : isSodeci ? "SODECI · Eau" : "Mairie · Voirie";
+  const opIcon = isCie ? "💡" : isSodeci ? "💧" : "🚧";
 
   return (
-    <div
-      onClick={(e) => {
-        if (isRealPhoto && onOpen) {
-          e.stopPropagation();
-          onOpen();
-        }
-      }}
+    <article
+      onClick={onSelect}
       className={cn(
-        "group relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 rounded-xl overflow-hidden border-2 border-border/80 bg-muted shadow-xs transition-all duration-200",
-        isRealPhoto
-          ? "hover:border-emerald-500/60 hover:shadow-md cursor-pointer"
-          : "opacity-95 hover:opacity-100"
+        "group relative rounded-2xl border bg-card overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col",
+        isSelected
+          ? "border-emerald-600 ring-2 ring-emerald-500/20 shadow-emerald-500/10"
+          : "border-border/80 hover:border-emerald-500/40"
       )}
-      title={isRealPhoto ? "Cliquer pour agrandir la photo" : "Illustration indicative"}
     >
-      <img
-        src={displayUrl}
-        alt={alt}
-        onError={() => setHasError(true)}
-        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-        loading="lazy"
-      />
-      {isRealPhoto ? (
-        <>
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-            <div className="bg-black/60 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-sm">
-              <Maximize2 className="h-3.5 w-3.5" />
-            </div>
+      {/* ── BANNIÈRE PHOTO HAUTE DÉFINITION DIRECTEMENT VISIBLE ── */}
+      <div className="relative w-full h-44 sm:h-48 overflow-hidden bg-muted/40">
+        <img
+          src={displayUrl}
+          alt={cleanDescription(report.description)}
+          onError={() => setHasError(true)}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+        />
+
+        {/* Gradient sombre pour lisibilité des badges */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/60 pointer-events-none" />
+
+        {/* Top Header Overlay: Opérateur & Statut */}
+        <div className="absolute top-2.5 inset-x-2.5 flex items-center justify-between gap-2">
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-black/70 text-white backdrop-blur-md border border-white/15 shadow-sm">
+            <span>{opIcon}</span>
+            <span className="truncate max-w-[140px]">{opLabel}</span>
+          </span>
+
+          <span
+            className={cn(
+              "px-2.5 py-1 rounded-full text-[11px] font-extrabold shadow-sm backdrop-blur-md flex items-center gap-1",
+              isResolved
+                ? "bg-emerald-600 text-white"
+                : "bg-amber-500 text-slate-950 font-black"
+            )}
+          >
+            {isResolved ? (
+              <>
+                <CheckCircle2 className="h-3 w-3" />
+                <span>Réparé</span>
+              </>
+            ) : (
+              <>
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-950 animate-pulse" />
+                <span>En cours</span>
+              </>
+            )}
+          </span>
+        </div>
+
+        {/* Bottom Header Overlay: Localisation & Bouton Agrandir */}
+        <div className="absolute bottom-2.5 inset-x-2.5 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 text-white text-[11px] font-semibold backdrop-blur-md border border-white/10 truncate max-w-[70%]">
+            <MapPin className="h-3 w-3 text-emerald-400 shrink-0" />
+            <span className="truncate">{report.commune} · {report.quartier || "Abidjan"}</span>
           </div>
-          {count > 1 && (
-            <span className="absolute bottom-1 right-1 bg-black/75 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-xs backdrop-blur-xs">
-              +{count - 1}
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenLightbox(photos.length > 0 ? photos : [illustration], illustration);
+            }}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/75 hover:bg-black text-white text-[11px] font-bold backdrop-blur-md border border-white/20 transition-all active:scale-95 shadow-sm shrink-0"
+            title="Agrandir en plein écran"
+          >
+            <Maximize2 className="h-3 w-3" />
+            <span>{photos.length > 1 ? `+${photos.length}` : "Zoom"}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── CORPS DU SIGNALEMENT ── */}
+      <div className="p-3.5 sm:p-4 space-y-2 flex-1 flex flex-col justify-between">
+        <div className="space-y-1">
+          <div className="flex items-start justify-between gap-2">
+            <h4 className="text-sm font-bold text-foreground leading-snug group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors line-clamp-1">
+              {extractInfraLabel(report.description) || "Signalement infrastructure"}
+            </h4>
+            {report.ticket_code && (
+              <span className="font-mono text-[10px] font-bold text-muted-foreground bg-muted/70 px-1.5 py-0.5 rounded shrink-0">
+                #{report.ticket_code}
+              </span>
+            )}
+          </div>
+
+          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+            {cleanDescription(report.description) || "Dégradation d'infrastructure signalée."}
+          </p>
+        </div>
+
+        {/* ── PIED DE CARTE INTERACTIF & HARMONISÉ ── */}
+        <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-border/50 text-xs">
+          <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+            <Clock className="h-3.5 w-3.5 text-muted-foreground/70" />
+            {formatDistanceToNow(new Date(report.created_at), { addSuffix: true, locale: fr })}
+          </span>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={onSupport}
+              className={cn(
+                "inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-2xs",
+                isSupported
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  : "bg-emerald-50 hover:bg-emerald-100/80 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60 border border-emerald-300/80 dark:border-emerald-700/60"
+              )}
+              title="Soutenir ce signalement pour accélérer sa résolution"
+            >
+              <ThumbsUp className={cn("h-3.5 w-3.5 stroke-[2.5]", isSupported ? "fill-white/20" : "")} />
+              <span>{isSupported ? "Soutenu" : "Soutenir"}</span>
+              <span className={cn(
+                "min-w-[18px] text-center px-1.5 py-0.2 rounded-full text-[10px] font-black leading-none",
+                isSupported ? "bg-white/25 text-white" : "bg-emerald-600/15 text-emerald-800 dark:text-emerald-200"
+              )}>
+                {report.support_count || 0}
+              </span>
+            </button>
+
+            <span className="inline-flex items-center gap-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 group-hover:translate-x-0.5 transition-transform">
+              <span>Détails</span>
+              <ChevronRight className="h-3.5 w-3.5" />
             </span>
-          )}
-        </>
-      ) : (
-        <span className="absolute bottom-0 inset-x-0 bg-black/60 backdrop-blur-2xs text-white text-[8px] font-bold text-center py-0.5 tracking-tight">
-          Illustration
-        </span>
-      )}
-    </div>
+          </div>
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -841,6 +935,34 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
               </select>
             </div>
 
+            {/* Mobile Tab Switcher (Liste / Carte) — Net, ergonomique et sans superposition */}
+            <div className="lg:hidden flex items-center p-1 bg-muted/80 rounded-xl border border-border/70 gap-1">
+              <button
+                onClick={() => setMobileTab("list")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all",
+                  mobileTab === "list"
+                    ? "bg-card text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <List className="h-3.5 w-3.5 text-emerald-600" />
+                <span>Liste ({filteredReports.length})</span>
+              </button>
+              <button
+                onClick={() => setMobileTab("map")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all",
+                  mobileTab === "map"
+                    ? "bg-card text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <MapIcon className="h-3.5 w-3.5 text-emerald-600" />
+                <span>Carte</span>
+              </button>
+            </div>
+
             {/* Sub-bar: Count & Sort */}
             <div className="flex items-center justify-between pt-1 text-[11px] text-muted-foreground">
               <span className="font-semibold">
@@ -1142,110 +1264,25 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                 </Button>
               </div>
             ) : (
-              /* ── LISTE ÉPURÉE DES PANNES STYLE FIXMYSTREET ── */
-              filteredReports.map((r) => {
-                const isSelected = selectedReport?.id === r.id;
-                const isResolved = r.status === "resolved";
-                const photos = r.photo_urls && r.photo_urls.length > 0 ? r.photo_urls : (r.photo_url ? [r.photo_url] : []);
-                const illustration = getInfraIllustration(r.service_type, r.description);
-
-                return (
-                  <div
+              /* ── LISTE ÉPURÉE DES PANNES STYLE CIVIC HERO FEED ── */
+              <div className="p-3 sm:p-4 space-y-3.5">
+                {filteredReports.map((r) => (
+                  <InfraFeedCard
                     key={r.id}
-                    onClick={() => handleSelectReport(r)}
-                    onMouseEnter={() => setHoveredReportId(r.id)}
-                    onMouseLeave={() => setHoveredReportId(null)}
-                    className={cn(
-                      "p-3.5 sm:p-4 transition-all cursor-pointer hover:bg-muted/50 flex gap-3 sm:gap-3.5 items-start",
-                      isSelected ? "bg-emerald-500/5 border-l-4 border-emerald-600" : ""
-                    )}
-                  >
-                    {/* Category Illustration / Icon */}
-                    <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl overflow-hidden border border-border/80 bg-muted/40 shadow-xs">
-                      <img
-                        src={illustration}
-                        alt=""
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                      />
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch">
-                      <div>
-                        <div className="flex items-center justify-between gap-1.5">
-                          <h4 className="text-xs sm:text-sm font-bold text-foreground truncate">
-                            {extractInfraLabel(r.description) || "Signalement infrastructure"}
-                          </h4>
-                          <span className={cn(
-                            "shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-md",
-                            isResolved ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
-                          )}>
-                            {isResolved ? "✓ Réparé" : "En cours"}
-                          </span>
-                        </div>
-
-                        <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">
-                          {cleanDescription(r.description) || "Dégradation signalée"}
-                        </p>
-                      </div>
-
-                      {/* Footer harmonisé et bien aligné */}
-                      <div className="flex items-center justify-between gap-2 mt-2.5 pt-1.5 border-t border-border/40 text-[10px] sm:text-[11px] text-muted-foreground">
-                        <div className="flex items-center gap-1.5 truncate">
-                          <MapPin className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
-                          <span className="font-semibold text-foreground truncate">
-                            {r.commune} · {r.quartier || "Abidjan"}
-                          </span>
-                          <span className="hidden md:inline text-muted-foreground/60">·</span>
-                          <span className="hidden md:inline text-[10px] text-muted-foreground">
-                            {formatDistanceToNow(new Date(r.created_at), { addSuffix: true, locale: fr })}
-                          </span>
-                        </div>
-
-                        {/* Bouton de soutien interactif harmonisé & aligné */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSupport(r.id, e);
-                          }}
-                          className={cn(
-                            "inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 shrink-0 shadow-2xs",
-                            supported.has(r.id)
-                              ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                              : "bg-emerald-50 hover:bg-emerald-100/80 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60 border border-emerald-300/80 dark:border-emerald-700/60"
-                          )}
-                          title="Soutenir ce signalement pour accélérer la réparation"
-                        >
-                          <ThumbsUp className={cn("h-3.5 w-3.5 stroke-[2.5]", supported.has(r.id) ? "fill-white/20" : "")} />
-                          <span>{supported.has(r.id) ? "Soutenu" : "Soutenir"}</span>
-                          <span className={cn(
-                            "min-w-[18px] text-center px-1.5 py-0.5 rounded-full text-[10px] font-black leading-none",
-                            supported.has(r.id)
-                              ? "bg-white/25 text-white"
-                              : "bg-emerald-600/15 text-emerald-800 dark:text-emerald-200"
-                          )}>
-                            {r.support_count || 0}
-                          </span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Thumbnail photo bien agrandie et cliquable OU illustration représentative */}
-                    <ReportThumbnail
-                      path={photos.length > 0 ? photos[0] : null}
-                      count={photos.length}
-                      fallbackImage={illustration}
-                      alt={cleanDescription(r.description)}
-                      onOpen={() => setLightboxPhotos({
-                        photos: photos.length > 0 ? photos : [illustration],
-                        index: 0,
-                        fallbackImage: illustration,
-                      })}
-                    />
-                  </div>
-                );
-              })
+                    report={r}
+                    isSelected={selectedReport?.id === r.id}
+                    isSupported={supported.has(r.id)}
+                    onSelect={() => handleSelectReport(r)}
+                    onSupport={(e) => {
+                      e.stopPropagation();
+                      handleSupport(r.id, e);
+                    }}
+                    onOpenLightbox={(photos, fallbackImage) => {
+                      setLightboxPhotos({ photos, index: 0, fallbackImage });
+                    }}
+                  />
+                ))}
+              </div>
             )}
           </div>
         </div>
@@ -1273,7 +1310,18 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
             <Compass className="h-5 w-5 text-emerald-600" />
           </button>
 
-          {/* Floating Live Legend */}
+          {/* Mobile Back-to-List Pill (En haut à gauche sur mobile pour ne jamais gêner la BottomNav) */}
+          <div className="lg:hidden absolute top-4 left-4 z-[400]">
+            <button
+              onClick={() => setMobileTab("list")}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-card/95 text-foreground font-bold text-xs shadow-lg backdrop-blur-md border border-border active:scale-95 transition-all"
+            >
+              <List className="h-4 w-4 text-emerald-600" />
+              <span>Voir la Liste ({filteredReports.length})</span>
+            </button>
+          </div>
+
+          {/* Floating Live Legend (Desktop / Tablet) */}
           <div className="hidden sm:flex absolute top-4 left-4 z-[400] items-center gap-3 px-3.5 py-2 rounded-2xl bg-card/90 backdrop-blur-md border border-border/80 shadow-lg text-xs font-semibold">
             <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300">
               <span className="h-2.5 w-2.5 rounded-full bg-amber-500 inline-block"></span> 💡 CIE
@@ -1291,28 +1339,6 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════
-            BOUTON FLOTTANT TACTILE MOBILE : [📋 Liste] ⇄ [🗺️ Carte]
-            ═══════════════════════════════════════════════════════════════ */}
-        <div className="lg:hidden absolute bottom-20 left-1/2 -translate-x-1/2 z-[500]">
-          <button
-            onClick={() => setMobileTab(mobileTab === "list" ? "map" : "list")}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-950/95 text-white dark:bg-white/95 dark:text-slate-950 font-black text-xs shadow-2xl backdrop-blur-md border border-white/20 dark:border-black/20 active:scale-95 transition-all"
-          >
-            {mobileTab === "list" ? (
-              <>
-                <MapIcon className="h-4 w-4 text-emerald-400" />
-                <span>Afficher la Carte</span>
-              </>
-            ) : (
-              <>
-                <List className="h-4 w-4 text-emerald-400" />
-                <span>Afficher la Liste ({filteredReports.length})</span>
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* ═══════════════════════════════════════════════════════════════
             BOTTOM-SHEET TACTILE MOBILE QUAND UN MARQUEUR EST CLIQUÉ
             ═══════════════════════════════════════════════════════════════ */}
         <AnimatePresence>
@@ -1322,7 +1348,7 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="lg:hidden absolute bottom-20 left-3 right-3 z-[450] bg-card/98 backdrop-blur-xl rounded-2xl border border-border shadow-2xl p-3.5 space-y-3"
+              className="lg:hidden absolute bottom-24 left-3 right-3 z-[450] bg-card/98 backdrop-blur-xl rounded-2xl border border-border shadow-2xl p-3.5 space-y-3"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -1381,15 +1407,15 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
           )}
         </AnimatePresence>
 
-        {/* Lightbox photo plein écran au clic */}
+        {/* Lightbox photo plein écran au clic avec isolation totale contre la carte Leaflet */}
         {lightboxPhotos && (
           <Dialog open={!!lightboxPhotos} onOpenChange={(open) => !open && setLightboxPhotos(null)}>
-            <DialogContent className="max-w-3xl p-3 bg-black/95 border-none text-white overflow-hidden sm:rounded-2xl">
+            <DialogContent className="z-[99999] max-w-4xl p-2 sm:p-4 bg-black/98 border border-white/10 text-white overflow-hidden sm:rounded-2xl shadow-2xl">
               <DialogTitle className="sr-only">Aperçu photo du signalement</DialogTitle>
-              <div className="relative flex flex-col items-center justify-center min-h-[320px]">
+              <div className="relative flex flex-col items-center justify-center min-h-[340px] max-h-[82vh]">
                 <button
                   onClick={() => setLightboxPhotos(null)}
-                  className="absolute top-2 right-2 z-50 bg-white/15 hover:bg-white/25 text-white rounded-full p-2 transition-colors cursor-pointer"
+                  className="absolute top-2 right-2 z-50 bg-white/20 hover:bg-white/35 text-white rounded-full p-2.5 transition-colors cursor-pointer shadow-lg active:scale-95"
                   title="Fermer"
                 >
                   <XIcon className="h-5 w-5" />
@@ -1401,11 +1427,11 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                 />
 
                 {lightboxPhotos.photos.length > 1 && (
-                  <div className="absolute inset-x-0 bottom-4 flex items-center justify-center gap-4">
+                  <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-4 z-50">
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="bg-black/60 hover:bg-black/80 text-white rounded-full h-8 w-8 p-0"
+                      className="bg-black/70 hover:bg-black/90 text-white rounded-full h-9 w-9 p-0 border border-white/20 shadow-md"
                       onClick={(e) => {
                         e.stopPropagation();
                         setLightboxPhotos((prev) => prev ? {
@@ -1414,15 +1440,15 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                         } : null);
                       }}
                     >
-                      <ChevronLeft className="h-4 w-4" />
+                      <ChevronLeft className="h-5 w-5" />
                     </Button>
-                    <span className="text-xs font-mono bg-black/60 px-3 py-1 rounded-full text-white">
+                    <span className="text-xs font-mono font-bold bg-black/70 px-3 py-1 rounded-full text-white border border-white/20 shadow-md">
                       {lightboxPhotos.index + 1} / {lightboxPhotos.photos.length}
                     </span>
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="bg-black/60 hover:bg-black/80 text-white rounded-full h-8 w-8 p-0"
+                      className="bg-black/70 hover:bg-black/90 text-white rounded-full h-9 w-9 p-0 border border-white/20 shadow-md"
                       onClick={(e) => {
                         e.stopPropagation();
                         setLightboxPhotos((prev) => prev ? {
@@ -1431,7 +1457,7 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                         } : null);
                       }}
                     >
-                      <ChevronRight className="h-4 w-4" />
+                      <ChevronRight className="h-5 w-5" />
                     </Button>
                   </div>
                 )}
