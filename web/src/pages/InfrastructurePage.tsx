@@ -68,10 +68,11 @@ function InfraFeedCard({
   const illustration = getInfraIllustration(report.service_type, report.description);
   const signedUrl = useSignedUrl(photos.length > 0 ? photos[0] : null);
   const [hasError, setHasError] = useState(false);
-  const displayUrl = (!hasError && signedUrl) ? signedUrl : illustration;
-
-  const isCie = INFRA_CIE.some((kw) => report.service_type?.toLowerCase().includes(kw) || report.description?.toLowerCase().includes(kw));
-  const isSodeci = INFRA_SODECI.some((kw) => report.service_type?.toLowerCase().includes(kw) || report.description?.toLowerCase().includes(kw));
+  const label = extractInfraLabel(report.description);
+  const descLower = (report.description || "").toLowerCase();
+  const stLower = (report.service_type || "").toLowerCase();
+  const isCie = Boolean((label && INFRA_CIE.has(label)) || stLower === "electricity" || stLower === "cie" || descLower.includes("lampadaire") || descLower.includes("poteau") || descLower.includes("éclairage") || descLower.includes("eclairage") || descLower.includes("électricité"));
+  const isSodeci = Boolean((label && INFRA_SODECI.has(label)) || stLower === "water" || stLower === "sodeci" || descLower.includes("fuite") || descLower.includes("canalisation") || descLower.includes("égout") || descLower.includes("egout") || descLower.includes("eau"));
 
   const opLabel = isCie ? "CIE · Électricité" : isSodeci ? "SODECI · Eau" : "Mairie · Voirie";
   const opIcon = isCie ? "💡" : isSodeci ? "💧" : "🚧";

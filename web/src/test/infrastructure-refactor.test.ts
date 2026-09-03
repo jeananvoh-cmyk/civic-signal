@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { getDisplayTicketCode } from "../lib/pada";
 import { extractInfraLabel, cleanDescription } from "../lib/report-display";
+import { getInfraIllustration } from "../lib/infra-icons";
 
 describe("Infrastructure & Zero-Redundancy Refactor Verification", () => {
 
@@ -112,6 +113,17 @@ describe("Infrastructure & Zero-Redundancy Refactor Verification", () => {
 
       expect(activeReports.length).toBe(2);
       expect(resolvedReports.length).toBe(1);
+    });
+  });
+
+  describe("4. Category Illustration Engine", () => {
+    it("should match appropriate illustrations for all infra categories without throwing", () => {
+      expect(getInfraIllustration("electricity", "Lampadaire éteint")).toContain("lampadaire");
+      expect(getInfraIllustration("electricity", "Poteau électrique penché")).toContain("poteau-electrique");
+      expect(getInfraIllustration("water", "Fuite d'eau au carrefour")).toContain("fuite-eau");
+      expect(getInfraIllustration("water", "Canalisation publique cassée")).toContain("canalisation");
+      expect(getInfraIllustration("mairie", "Voirie dégradée et nid de poule")).toContain("voirie");
+      expect(getInfraIllustration("mairie", "Caniveau bouché")).toContain("caniveau");
     });
   });
 });
