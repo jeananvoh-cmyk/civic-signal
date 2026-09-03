@@ -19,11 +19,18 @@ function GalleryThumb({
   const url = useSignedUrl(path);
   return (
     <div
-      className={`relative cursor-pointer group overflow-hidden ${className ?? ""}`}
+      className={`relative cursor-pointer group overflow-hidden bg-muted/40 ${className ?? ""}`}
       onClick={onClick}
     >
-      {url && (
-        <img src={url} alt={alt} className="w-full h-full object-cover" />
+      {url ? (
+        <img
+          src={url}
+          alt={alt}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          loading="lazy"
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center bg-muted/30 text-muted-foreground animate-pulse" />
       )}
       {/* Subtle 1px image outline — black in light mode, white in dark */}
       <div className="absolute inset-0 rounded-[inherit] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.10)] dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)] pointer-events-none" />

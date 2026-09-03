@@ -5,6 +5,8 @@
   "scripts": {
     "build": "cd web && npm run build",
     "install": "cd web && npm install",
-    "dev": "cd web && npm run dev"
+    "dev": "cd web && npm run dev",
+    "dev:civicdata": "cd ../civicdata-ci && npm run dev",
+    "build:civicdata": "cd ../civicdata-ci && npm run build"
   }
 }

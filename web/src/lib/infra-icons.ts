@@ -48,6 +48,50 @@ export const INFRA_CATEGORY_ICONS = {
   mairie: voirieIcon,
 } as const;
 
+/**
+ * Renvoie l'image d'illustration officielle correspondant au type de panne/infrastructure
+ */
+export function getInfraIllustration(serviceType?: string, description?: string): string {
+  const desc = (description || "").toLowerCase();
+  const sType = (serviceType || "").toLowerCase();
+
+  // 1. Détection fine par mots-clés dans la description
+  if (desc.includes("lampadaire") || desc.includes("éclairage") || desc.includes("eclairage")) {
+    return lampadaireIcon;
+  }
+  if (desc.includes("poteau") || desc.includes("pylone") || desc.includes("pylône") || desc.includes("câble") || desc.includes("cable")) {
+    return poteauElectriqueIcon;
+  }
+  if (desc.includes("danger") || desc.includes("étincelle") || desc.includes("court-circuit") || desc.includes("transformateur")) {
+    return cieHazardIcon;
+  }
+  if (desc.includes("fuite") || desc.includes("tuyau") || desc.includes("geyser") || desc.includes("inondation")) {
+    return fuiteEauIcon;
+  }
+  if (desc.includes("canalisation") || desc.includes("conduite")) {
+    return canalisationIcon;
+  }
+  if (desc.includes("caniveau") || desc.includes("drainage") || desc.includes("bouché") || desc.includes("bouche d'égout")) {
+    return caniveauIcon;
+  }
+  if (desc.includes("nid de poule") || desc.includes("nids-de-poule") || desc.includes("chaussée") || desc.includes("chaussee") || desc.includes("bitume") || desc.includes("route")) {
+    return voirieIcon;
+  }
+  if (desc.includes("trottoir") || desc.includes("pavé") || desc.includes("dalle")) {
+    return trottoirIcon;
+  }
+  if (desc.includes("ordure") || desc.includes("déchet") || desc.includes("dechet") || desc.includes("dépôt") || desc.includes("depot") || desc.includes("salubrité") || desc.includes("salubrite") || desc.includes("poubelle")) {
+    return depotOrduresIcon;
+  }
+
+  // 2. Repli par type de service
+  if (sType === "electricity") return lampadaireIcon;
+  if (sType === "water") return fuiteEauIcon;
+  if (sType === "voirie" || sType === "mairie" || sType === "infrastructure") return voirieIcon;
+
+  return mairieAutreIcon;
+}
+
 export {
   electriciteIcon,
   eauIcon,

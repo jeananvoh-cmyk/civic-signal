@@ -23,6 +23,7 @@ import { formatDistanceToNow, format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { extractInfraLabel, infraEmoji, cleanDescription, INFRA_CIE, INFRA_SODECI } from "@/lib/report-display";
+import { getInfraIllustration } from "@/lib/infra-icons";
 import { getDisplayTicketCode, formatPadaAddress } from "@/lib/pada";
 import { COMMUNES, COMMUNE_COLORS } from "@/lib/communes";
 import { cn } from "@/lib/utils";
@@ -47,40 +48,59 @@ function ReportThumbnail({
   path,
   alt = "Photo",
   count = 1,
+  fallbackImage,
   onOpen,
 }: {
   path?: string | null;
   alt?: string;
   count?: number;
+  fallbackImage?: string;
   onOpen?: () => void;
 }) {
-  const url = useSignedUrl(path ?? null);
-  if (!url) return null;
+  const signedUrl = useSignedUrl(path ?? null);
+  const displayUrl = signedUrl || fallbackImage;
+  const isRealPhoto = Boolean(signedUrl);
+
+  if (!displayUrl) return null;
+
   return (
     <div
       onClick={(e) => {
-        if (onOpen) {
+        if (isRealPhoto && onOpen) {
           e.stopPropagation();
           onOpen();
         }
       }}
-      className="group relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 rounded-xl overflow-hidden border-2 border-border/80 bg-muted shadow-xs transition-all duration-200 hover:border-emerald-500/60 hover:shadow-md cursor-pointer"
-      title="Cliquer pour agrandir la photo"
+      className={cn(
+        "group relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 rounded-xl overflow-hidden border-2 border-border/80 bg-muted shadow-xs transition-all duration-200",
+        isRealPhoto
+          ? "hover:border-emerald-500/60 hover:shadow-md cursor-pointer"
+          : "opacity-90 hover:opacity-100"
+      )}
+      title={isRealPhoto ? "Cliquer pour agrandir la photo" : "Illustration indicative"}
     >
       <img
-        src={url}
+        src={displayUrl}
         alt={alt}
         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
         loading="lazy"
       />
-      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-        <div className="bg-black/60 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-sm">
-          <Maximize2 className="h-3.5 w-3.5" />
-        </div>
-      </div>
-      {count > 1 && (
-        <span className="absolute bottom-1 right-1 bg-black/75 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-xs backdrop-blur-xs">
-          +{count - 1}
+      {isRealPhoto ? (
+        <>
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+            <div className="bg-black/60 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-sm">
+              <Maximize2 className="h-3.5 w-3.5" />
+            </div>
+          </div>
+          {count > 1 && (
+            <span className="absolute bottom-1 right-1 bg-black/75 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-xs backdrop-blur-xs">
+              +{count - 1}
+            </span>
+          )}
+        </>
+      ) : (
+        <span className="absolute bottom-0 inset-x-0 bg-black/60 backdrop-blur-2xs text-white text-[8px] font-bold text-center py-0.5 tracking-tight">
+          Illustration
         </span>
       )}
     </div>
@@ -870,13 +890,17 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                   <div className="p-4 space-y-3.5">
                     {/* Catégorie & Statut réel */}
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">
-                          {selectedReport.service_type === "electricity" ? "💡" : selectedReport.service_type === "water" ? "💧" : "🚧"}
-                        </span>
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-10 w-10 shrink-0 rounded-xl overflow-hidden border border-border/80 bg-muted shadow-2xs">
+                          <img
+                            src={getInfraIllustration(selectedReport.service_type, selectedReport.description)}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
                         <div>
                           <h2 className="text-sm font-extrabold text-foreground leading-tight">
-                            {extractInfraLabel(selectedReport.description)}
+                            {extractInfraLabel(selectedReport.description) || "Signalement infrastructure"}
                           </h2>
                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
                             <MapPin className="h-3 w-3 text-emerald-600 shrink-0" />
@@ -936,19 +960,42 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                       </p>
                     </div>
 
-                    {/* Photos réelles depuis Supabase Storage */}
-                    {(selectedReport.photo_url || (selectedReport.photo_urls && selectedReport.photo_urls.length > 0)) && (
-                      <div className="pt-1">
-                        <PhotoGallery
-                          photos={
-                            selectedReport.photo_urls && selectedReport.photo_urls.length > 0
-                              ? selectedReport.photo_urls
-                              : [selectedReport.photo_url!]
-                          }
-                          thumbHeight="h-44"
-                        />
-                      </div>
-                    )}
+                    {/* Photos réelles depuis Supabase Storage OU illustration officielle de catégorie */}
+                    {(() => {
+                      const detailPhotos = selectedReport.photo_urls && selectedReport.photo_urls.length > 0
+                        ? selectedReport.photo_urls
+                        : (selectedReport.photo_url ? [selectedReport.photo_url] : []);
+                      
+                      if (detailPhotos.length > 0) {
+                        return (
+                          <div className="pt-1">
+                            <PhotoGallery
+                              photos={detailPhotos}
+                              thumbHeight="h-44"
+                            />
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="relative rounded-2xl overflow-hidden border border-border/80 bg-muted/20 h-44 flex items-center justify-center group shadow-2xs">
+                          <img
+                            src={getInfraIllustration(selectedReport.service_type, selectedReport.description)}
+                            alt={extractInfraLabel(selectedReport.description) || "Illustration catégorie"}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                          <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/85 via-black/40 to-transparent p-3 flex items-center justify-between text-white text-xs">
+                            <span className="font-semibold flex items-center gap-1.5 drop-shadow-sm">
+                              <Camera className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                              Illustration représentative
+                            </span>
+                            <span className="text-[10px] text-white/80 bg-black/50 px-2 py-0.5 rounded-md backdrop-blur-xs">
+                              Photo citoyenne non fournie
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* Métadonnées réelles de la base */}
                     <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/60 text-[11px] text-muted-foreground">
@@ -1112,8 +1159,8 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
               filteredReports.map((r) => {
                 const isSelected = selectedReport?.id === r.id;
                 const isResolved = r.status === "resolved";
-                const iconEmoji = r.service_type === "electricity" ? "💡" : r.service_type === "water" ? "💧" : "🚧";
                 const photos = r.photo_urls && r.photo_urls.length > 0 ? r.photo_urls : (r.photo_url ? [r.photo_url] : []);
+                const illustration = getInfraIllustration(r.service_type, r.description);
 
                 return (
                   <div
@@ -1126,18 +1173,14 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                       isSelected ? "bg-emerald-500/5 border-l-4 border-emerald-600" : ""
                     )}
                   >
-                    {/* Category Icon */}
-                    <div className={cn(
-                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg shadow-xs font-bold",
-                      isResolved
-                        ? "bg-emerald-500/10 text-emerald-600"
-                        : r.service_type === "electricity"
-                        ? "bg-amber-500/10 text-amber-600"
-                        : r.service_type === "water"
-                        ? "bg-blue-500/10 text-blue-600"
-                        : "bg-emerald-500/10 text-emerald-600"
-                    )}>
-                      {iconEmoji}
+                    {/* Category Illustration / Icon */}
+                    <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl overflow-hidden border border-border/80 bg-muted/40 shadow-xs">
+                      <img
+                        src={illustration}
+                        alt=""
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
                     </div>
 
                     {/* Content */}
@@ -1201,15 +1244,14 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                       </div>
                     </div>
 
-                    {/* Thumbnail photo bien agrandie et cliquable */}
-                    {photos.length > 0 && (
-                      <ReportThumbnail
-                        path={photos[0]}
-                        count={photos.length}
-                        alt={cleanDescription(r.description)}
-                        onOpen={() => setLightboxPhotos({ photos, index: 0 })}
-                      />
-                    )}
+                    {/* Thumbnail photo bien agrandie et cliquable OU illustration représentative */}
+                    <ReportThumbnail
+                      path={photos.length > 0 ? photos[0] : null}
+                      count={photos.length}
+                      fallbackImage={illustration}
+                      alt={cleanDescription(r.description)}
+                      onOpen={() => photos.length > 0 && setLightboxPhotos({ photos, index: 0 })}
+                    />
                   </div>
                 );
               })
@@ -1292,16 +1334,20 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
               className="lg:hidden absolute bottom-20 left-3 right-3 z-[450] bg-card/98 backdrop-blur-xl rounded-2xl border border-border shadow-2xl p-3.5 space-y-3"
             >
               <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">
-                    {selectedReport.service_type === "electricity" ? "💡" : selectedReport.service_type === "water" ? "💧" : "🚧"}
-                  </span>
-                  <div>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="h-10 w-10 shrink-0 rounded-xl overflow-hidden border border-border/80 bg-muted">
+                    <img
+                      src={getInfraIllustration(selectedReport.service_type, selectedReport.description)}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0">
                     <h4 className="text-xs font-bold text-foreground truncate max-w-[200px]">
-                      {extractInfraLabel(selectedReport.description)}
+                      {extractInfraLabel(selectedReport.description) || "Signalement infrastructure"}
                     </h4>
-                    <p className="text-[10px] text-muted-foreground">
-                      {selectedReport.commune} · {selectedReport.quartier}
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      {selectedReport.commune} · {selectedReport.quartier || "Abidjan"}
                     </p>
                   </div>
                 </div>

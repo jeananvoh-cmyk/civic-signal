@@ -24,7 +24,37 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { COMMUNES } from "@/lib/communes";
 import { COMMUNE_LOGOS } from "@/lib/commune-logos";
+import { getInfraIllustration } from "@/lib/infra-icons";
+import { useSignedUrl } from "@/hooks/useSignedUrl";
 import { usePageMeta } from "@/hooks/usePageMeta";
+
+// Photo avec résolution de signature Supabase ou illustration
+function MairieReportPhoto({
+  photoPath,
+  serviceType,
+  description,
+}: {
+  photoPath?: string | null;
+  serviceType: string;
+  description: string;
+}) {
+  const signedUrl = useSignedUrl(photoPath ?? null);
+  const illustration = getInfraIllustration(serviceType, description);
+
+  return (
+    <div className="rounded-2xl overflow-hidden h-32 w-full border border-border bg-muted/30 relative group shadow-2xs">
+      <img
+        src={signedUrl || illustration}
+        alt="Preuve terrain ou illustration"
+        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+        loading="lazy"
+      />
+      <div className="absolute inset-x-0 bottom-0 bg-black/60 backdrop-blur-2xs text-white text-[9px] font-bold px-2.5 py-0.5 flex items-center justify-between">
+        <span>{signedUrl ? "Photo constat terrain" : "Illustration indicative"}</span>
+      </div>
+    </div>
+  );
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -585,17 +615,12 @@ const MairieDashboardPage = () => {
                       </p>
                     </div>
 
-                    {/* Photo si présente */}
-                    {report.photo_url && (
-                      <div className="rounded-2xl overflow-hidden h-32 w-full border border-border bg-muted/30">
-                        <img
-                          src={report.photo_url}
-                          alt="Preuve terrain"
-                          className="h-full w-full object-cover"
-                          loading="lazy"
-                        />
-                      </div>
-                    )}
+                    {/* Photo ou illustration indicative */}
+                    <MairieReportPhoto
+                      photoPath={report.photo_urls && report.photo_urls.length > 0 ? report.photo_urls[0] : report.photo_url}
+                      serviceType={report.service_type}
+                      description={report.description}
+                    />
 
                     {/* Détails Techniques & Équipe Assignée */}
                     <div className="p-3 rounded-2xl bg-muted/40 border border-border space-y-1.5 text-xs">
