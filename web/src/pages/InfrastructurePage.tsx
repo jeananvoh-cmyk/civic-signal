@@ -68,6 +68,7 @@ function InfraFeedCard({
   const illustration = getInfraIllustration(report.service_type, report.description);
   const signedUrl = useSignedUrl(photos.length > 0 ? photos[0] : null);
   const [hasError, setHasError] = useState(false);
+  const displayUrl = (!hasError && signedUrl) ? signedUrl : illustration;
   const label = extractInfraLabel(report.description);
   const descLower = (report.description || "").toLowerCase();
   const stLower = (report.service_type || "").toLowerCase();
