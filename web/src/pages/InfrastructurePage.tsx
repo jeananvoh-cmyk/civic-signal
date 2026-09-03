@@ -877,137 +877,151 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
           mobileTab === "map" ? "hidden lg:flex" : "flex"
         )}>
           
-          {/* BARRE DE RECHERCHE ET FILTRES RAPIDES */}
-          <div className="p-3 border-b border-border/60 bg-card/60 space-y-2.5 shrink-0">
-            {/* Search Input */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Rechercher une rue, un quartier (ex: Bonoumin, 2 Plateaux)..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-9 pl-9 pr-8 rounded-xl bg-muted/60 border border-border/60 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-emerald-500 font-medium"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <XIcon className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Dropdown Filters Toolbar */}
-            <div className="grid grid-cols-3 gap-1.5 text-xs">
-              {/* Statut */}
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-                className="h-8 px-2 rounded-lg bg-background border border-border/80 text-[11px] font-semibold text-foreground focus:outline-none"
-              >
-                <option value="all">Statut : Tous</option>
-                <option value="active">🔴 En attente (Actifs)</option>
-                <option value="resolved">✅ Réparés</option>
-              </select>
-
-              {/* Opérateur */}
-              <select
-                value={operatorFilter}
-                onChange={(e) => setOperatorFilter(e.target.value as OperatorFilter)}
-                className="h-8 px-2 rounded-lg bg-background border border-border/80 text-[11px] font-semibold text-foreground focus:outline-none"
-              >
-                <option value="all">Réseau : Tous</option>
-                <option value="cie">💡 CIE (Électricité)</option>
-                <option value="sodeci">💧 SODECI (Eau)</option>
-                <option value="mairie">🚧 Mairie (Voirie)</option>
-              </select>
-
-              {/* Commune */}
-              <select
-                value={communeFilter}
-                onChange={(e) => setCommuneFilter(e.target.value)}
-                className="h-8 px-2 rounded-lg bg-background border border-border/80 text-[11px] font-semibold text-foreground focus:outline-none"
-              >
-                <option value="all">Commune : Toutes</option>
-                {COMMUNES.map((c) => (
-                  <option key={c.nom} value={c.nom}>{c.nom}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Mobile Tab Switcher (Liste / Carte) — Net, ergonomique et sans superposition */}
-            <div className="lg:hidden flex items-center p-1 bg-muted/80 rounded-xl border border-border/70 gap-1">
+          {selectedReport ? (
+            /* ── BARRE SUPÉRIEURE FIXE EN MODE DÉTAIL (Toujours visible au scroll) ── */
+            <div className="p-3 px-4 border-b border-border/80 bg-card shadow-xs shrink-0 flex items-center justify-between gap-2 z-20">
               <button
-                onClick={() => setMobileTab("list")}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all",
-                  mobileTab === "list"
-                    ? "bg-card text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
+                onClick={() => setSelectedReport(null)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60 border border-emerald-300/80 dark:border-emerald-700/60 transition-all active:scale-95 shadow-2xs"
               >
-                <List className="h-3.5 w-3.5 text-emerald-600" />
-                <span>Liste ({filteredReports.length})</span>
+                <ArrowLeft className="h-4 w-4" />
+                <span>Retour à la liste ({filteredReports.length})</span>
               </button>
-              <button
-                onClick={() => setMobileTab("map")}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all",
-                  mobileTab === "map"
-                    ? "bg-card text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <MapIcon className="h-3.5 w-3.5 text-emerald-600" />
-                <span>Carte</span>
-              </button>
-            </div>
 
-            {/* Sub-bar: Count & Sort */}
-            <div className="flex items-center justify-between pt-1 text-[11px] text-muted-foreground">
-              <span className="font-semibold">
-                {filteredReports.length} signalement{filteredReports.length > 1 ? "s" : ""} trouvé{filteredReports.length > 1 ? "s" : ""}
-              </span>
-              <div className="flex items-center gap-1">
-                <span>Trier :</span>
-                <button
-                  onClick={() => setSortBy(sortBy === "newest" ? "supported" : "newest")}
-                  className="font-bold text-foreground hover:text-emerald-600 underline"
+              <div className="flex items-center gap-1.5">
+                <Button
+                  asChild
+                  size="sm"
+                  variant="outline"
+                  className="text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 border-emerald-300 dark:border-emerald-700 gap-1.5 h-8 px-2.5 rounded-xl"
                 >
-                  {sortBy === "newest" ? "Plus récents" : "Plus soutenus"}
+                  <Link to={`/signalement/${selectedReport.id}`} state={{ initialReport: selectedReport }}>
+                    <span>Fiche officielle</span>
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+
+                <button
+                  onClick={() => setSelectedReport(null)}
+                  className="h-8 w-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  title="Fermer la vue détaillée"
+                >
+                  <XIcon className="h-4 w-4" />
                 </button>
               </div>
             </div>
-          </div>
+          ) : (
+            /* ── BARRE DE RECHERCHE ET FILTRES RAPIDES (Affiché uniquement en mode liste) ── */
+            <div className="p-3 border-b border-border/60 bg-card/60 space-y-2.5 shrink-0">
+              {/* Search Input */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Rechercher une rue, un quartier (ex: Bonoumin, 2 Plateaux)..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-9 pl-9 pr-8 rounded-xl bg-muted/60 border border-border/60 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-emerald-500 font-medium"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <XIcon className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Dropdown Filters Toolbar */}
+              <div className="grid grid-cols-3 gap-1.5 text-xs">
+                {/* Statut */}
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                  className="h-8 px-2 rounded-lg bg-background border border-border/80 text-[11px] font-semibold text-foreground focus:outline-none"
+                >
+                  <option value="all">Statut : Tous</option>
+                  <option value="active">🔴 En attente (Actifs)</option>
+                  <option value="resolved">✅ Réparés</option>
+                </select>
+
+                {/* Opérateur */}
+                <select
+                  value={operatorFilter}
+                  onChange={(e) => setOperatorFilter(e.target.value as OperatorFilter)}
+                  className="h-8 px-2 rounded-lg bg-background border border-border/80 text-[11px] font-semibold text-foreground focus:outline-none"
+                >
+                  <option value="all">Réseau : Tous</option>
+                  <option value="cie">💡 CIE (Électricité)</option>
+                  <option value="sodeci">💧 SODECI (Eau)</option>
+                  <option value="mairie">🚧 Mairie (Voirie)</option>
+                </select>
+
+                {/* Commune */}
+                <select
+                  value={communeFilter}
+                  onChange={(e) => setCommuneFilter(e.target.value)}
+                  className="h-8 px-2 rounded-lg bg-background border border-border/80 text-[11px] font-semibold text-foreground focus:outline-none"
+                >
+                  <option value="all">Commune : Toutes</option>
+                  {COMMUNES.map((c) => (
+                    <option key={c.nom} value={c.nom}>{c.nom}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Mobile Tab Switcher (Liste / Carte) — Net, ergonomique et sans superposition */}
+              <div className="lg:hidden flex items-center p-1 bg-muted/80 rounded-xl border border-border/70 gap-1">
+                <button
+                  onClick={() => setMobileTab("list")}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all",
+                    mobileTab === "list"
+                      ? "bg-card text-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <List className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>Liste ({filteredReports.length})</span>
+                </button>
+                <button
+                  onClick={() => setMobileTab("map")}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all",
+                    mobileTab === "map"
+                      ? "bg-card text-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <MapIcon className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>Carte</span>
+                </button>
+              </div>
+
+              {/* Sub-bar: Count & Sort */}
+              <div className="flex items-center justify-between pt-1 text-[11px] text-muted-foreground">
+                <span className="font-semibold">
+                  {filteredReports.length} signalement{filteredReports.length > 1 ? "s" : ""} trouvé{filteredReports.length > 1 ? "s" : ""}
+                </span>
+                <div className="flex items-center gap-1">
+                  <span>Trier :</span>
+                  <button
+                    onClick={() => setSortBy(sortBy === "newest" ? "supported" : "newest")}
+                    className="font-bold text-foreground hover:text-emerald-600 underline"
+                  >
+                    {sortBy === "newest" ? "Plus récents" : "Plus soutenus"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* LISTE OU FICHE DÉTAILLÉE MASTER-DETAIL */}
           <div className="flex-1 overflow-y-auto divide-y divide-border/40 pb-32 lg:pb-6">
             {selectedReport ? (
               /* ── VUE FICHE OFFICIELLE STRICTE (Conforme 100% à la Base de Données) ── */
               <div className="p-4 space-y-4">
-                <div className="flex items-center justify-between gap-2">
-                  <button
-                    onClick={() => setSelectedReport(null)}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 hover:text-emerald-500 transition-colors"
-                  >
-                    <ArrowLeft className="h-3.5 w-3.5" />
-                    <span>Retour à la liste</span>
-                  </button>
-
-                  <Button
-                    asChild
-                    size="sm"
-                    variant="ghost"
-                    className="text-xs font-bold text-muted-foreground hover:text-foreground gap-1 h-7 px-2"
-                  >
-                    <Link to={`/signalement/${selectedReport.id}`}>
-                      <span>Fiche officielle</span>
-                      <ExternalLink className="h-3 w-3" />
-                    </Link>
-                  </Button>
-                </div>
 
                 {/* Header Fiche & Informations Réelles */}
                 <div className="rounded-2xl border border-border bg-card shadow-xs overflow-hidden">
@@ -1229,6 +1243,18 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                     </div>
                   </div>
                 )}
+
+                {/* ── BOUTON RETOUR BAS DE FICHE (Confort utilisateur) ── */}
+                <div className="pt-2 pb-6">
+                  <Button
+                    onClick={() => setSelectedReport(null)}
+                    variant="outline"
+                    className="w-full h-11 rounded-2xl font-bold text-xs gap-2 border-border hover:bg-muted text-foreground active:scale-[0.99] shadow-2xs"
+                  >
+                    <ArrowLeft className="h-4 w-4 text-emerald-600" />
+                    <span>Retourner à la liste des signalements ({filteredReports.length})</span>
+                  </Button>
+                </div>
               </div>
             ) : loading ? (
               /* Skeletons */

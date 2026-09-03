@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation, Link } from "react-router-dom";
 import { useGoBack } from "@/hooks/useGoBack";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -106,14 +106,55 @@ const TimelineStep = ({
 const ReportDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const isResolveAction = searchParams.get("action") === "resolve";
   const goBack = useGoBack("/tableau-de-bord");
   const { user } = useAuth();
   const { data: thresholdStr } = useRelayConfig("corroboration_threshold", "3");
   const corroborationThreshold = parseInt(thresholdStr ?? "3", 10);
-  const [report, setReport] = useState<ReportDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+
+  const initialReportData = location.state?.initialReport;
+  const [report, setReport] = useState<ReportDetail | null>(() => {
+    if (initialReportData && (initialReportData.id === id || !id)) {
+      return {
+        id: initialReportData.id,
+        user_id: initialReportData.user_id || "",
+        ticket_code: initialReportData.ticket_code,
+        pada_commune_code: initialReportData.pada_commune_code,
+        pada_street_name: initialReportData.pada_street_name,
+        pada_formatted_address: initialReportData.pada_formatted_address,
+        service_type: initialReportData.service_type || "electricity",
+        report_category: initialReportData.report_category || "infrastructure",
+        description: initialReportData.description || "",
+        commune: initialReportData.commune || "",
+        quartier: initialReportData.quartier || "",
+        status: initialReportData.status || "active",
+        urgency: initialReportData.urgency || "medium",
+        created_at: initialReportData.created_at || new Date().toISOString(),
+        start_time: initialReportData.start_time || initialReportData.created_at || new Date().toISOString(),
+        resolved_at: initialReportData.resolved_at,
+        validated: initialReportData.validated !== false,
+        validated_at: initialReportData.validated_at,
+        forwarded_to_operator_at: initialReportData.forwarded_to_operator_at,
+        photo_url: initialReportData.photo_url,
+        photo_urls: initialReportData.photo_urls,
+        verifications: Number(initialReportData.verifications || initialReportData.support_count || 0),
+        repair_verifications: initialReportData.repair_verifications ? Number(initialReportData.repair_verifications) : null,
+        impacted_people: Number(initialReportData.impacted_people || 1),
+        babies: Number(initialReportData.babies || 0),
+        pregnant: Number(initialReportData.pregnant || 0),
+        elderly: Number(initialReportData.elderly || 0),
+        operator_name: initialReportData.operator_name,
+        operator_reference: initialReportData.operator_reference,
+        estimated_resolution_time: initialReportData.estimated_resolution_time,
+        operator_last_note: initialReportData.operator_last_note,
+      };
+    }
+    return null;
+  });
+
+  const [loading, setLoading] = useState(!initialReportData || initialReportData.id !== id);
   const [notFound, setNotFound] = useState(false);
   const [corroborating, setCorroborating] = useState(false);
   const [corroborated, setCorroborated] = useState(false);
@@ -275,7 +316,23 @@ const ReportDetailPage = () => {
         }
       } catch (e) {}
 
-      // 2. Essayer get_public_reports
+      // 2. Essayer get_public_infrastructure_reports
+      try {
+        const { data: infraData } = await (supabase as any).rpc("get_public_infrastructure_reports", {
+          p_limit: 150,
+          p_offset: 0,
+        });
+        if (infraData && Array.isArray(infraData)) {
+          const found = infraData.find((r: any) => r.id === id);
+          if (found) {
+            processReportData(found);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // 3. Essayer get_public_reports
       try {
         const { data: pubData } = await (supabase as any).rpc("get_public_reports");
         if (pubData && Array.isArray(pubData)) {
@@ -288,18 +345,23 @@ const ReportDetailPage = () => {
         }
       } catch (e) {}
 
-      // 3. Fallback direct via table reports
-      const { data, error } = await supabase
-        .from("reports")
-        .select("id, user_id, ticket_code, pada_commune_code, pada_street_name, pada_formatted_address, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, validated, validated_at, forwarded_to_operator_at, photo_url, photo_urls, verifications, repair_verifications, impacted_people, babies, pregnant, elderly, operator_name, operator_reference, estimated_resolution_time, operator_last_note")
-        .eq("id", id)
-        .eq("validated", true)
-        .single();
+      // 4. Fallback direct via table reports (tous statuts)
+      try {
+        const { data } = await supabase
+          .from("reports")
+          .select("id, user_id, ticket_code, pada_commune_code, pada_street_name, pada_formatted_address, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, validated, validated_at, forwarded_to_operator_at, photo_url, photo_urls, verifications, repair_verifications, impacted_people, babies, pregnant, elderly, operator_name, operator_reference, estimated_resolution_time, operator_last_note")
+          .eq("id", id)
+          .maybeSingle();
 
-      if (error || !data) {
+        if (data) {
+          processReportData(data);
+          setLoading(false);
+          return;
+        }
+      } catch (e) {}
+
+      if (!initialReportData) {
         setNotFound(true);
-      } else {
-        processReportData(data);
       }
       setLoading(false);
     };
