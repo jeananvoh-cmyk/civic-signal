@@ -509,7 +509,7 @@ const MapPage = () => {
                     />
                   </span>
                   <h1 className="text-base sm:text-lg font-black tracking-tight text-foreground">
-                    Météo des Coupures d'Énergie
+                    Carte des Coupures en Direct
                   </h1>
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
