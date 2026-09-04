@@ -1,12 +1,18 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Zap, Droplets, Landmark, AlertTriangle, Flame, RefreshCw, CheckCircle2 } from "lucide-react";
+import {
+  Zap, Droplets, Landmark, AlertTriangle, Flame, RefreshCw,
+  CheckCircle2, MapPin, Search, ArrowLeft, Compass, ExternalLink,
+  Shield, List, Map as MapIcon, X as XIcon, Plus, ChevronRight,
+  Clock, Users, Radio, Info
+} from "lucide-react";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { COMMUNES, COMMUNE_COLORS } from "@/lib/communes";
-import { INFRA_CATEGORY_ICONS } from "@/lib/infra-icons";
+import { COMMUNES, COMMUNE_COLORS, Commune } from "@/lib/communes";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -27,52 +33,6 @@ interface ActiveReport {
   status?: string;
 }
 
-/** Escape HTML special chars to prevent XSS in Leaflet popup strings */
-function escHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-
-/** Format elapsed time from a start date to now */
-function formatElapsed(startIso: string | null, createdIso: string): string {
-  const ref = startIso ?? createdIso;
-  if (!ref) return "";
-  const diffMs = Date.now() - new Date(ref).getTime();
-  if (diffMs < 0) return "";
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 2) return "< 2 min";
-  if (mins < 60) return `${mins} min`;
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  if (h < 24) return `${h}h${m > 0 ? m + "min" : ""}`;
-  const d = Math.floor(h / 24);
-  const rh = h % 24;
-  return `${d}j${rh > 0 ? " " + rh + "h" : ""}`;
-}
-
-/** Duration pill HTML for heatmap dot popups — with alert coloring */
-function durationPillHtml(report: ActiveReport): string {
-  const ref = report.start_time ?? report.created_at;
-  if (!ref) return "";
-  const diffMs = Date.now() - new Date(ref).getTime();
-  if (diffMs < 0) return "";
-  const hours = diffMs / 3600000;
-  const elapsed = formatElapsed(report.start_time, report.created_at);
-  if (!elapsed) return "";
-
-  const level = alertLevel(hours);
-  if (level === "critical") {
-    return `<div style="margin-top:5px;display:inline-block;padding:2px 9px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:999px;font-size:10px;color:#dc2626;font-weight:700;">🔴 ${elapsed}</div>`;
-  }
-  if (level === "warning") {
-    return `<div style="margin-top:5px;display:inline-block;padding:2px 9px;background:#fff7ed;border:1.5px solid #fed7aa;border-radius:999px;font-size:10px;color:#ea580c;font-weight:700;">🟠 ${elapsed}</div>`;
-  }
-  const isElec = report.service_type === "electricity";
-  const bg = isElec ? "#fffbeb" : "#eff6ff";
-  const border = isElec ? "#fde68a" : "#bfdbfe";
-  const color = isElec ? "#92400e" : "#1e40af";
-  return `<div style="margin-top:5px;display:inline-block;padding:2px 9px;background:${bg};border:1px solid ${border};border-radius:999px;font-size:10px;color:${color};font-weight:600;">⏱ ${elapsed}</div>`;
-}
-
 interface CommuneServiceStat {
   commune: string;
   couleur: string;
@@ -91,24 +51,6 @@ interface CommuneServiceStat {
   mairie_verified: number;
 }
 
-interface InfraStats {
-  commune: string;
-  couleur: string;
-  population: number;
-  elec_infra_actifs: number;
-  elec_infra_resolus: number;
-  elec_infra_total: number;
-  elec_infra_verified: number;
-  eau_infra_actifs: number;
-  eau_infra_resolus: number;
-  eau_infra_total: number;
-  eau_infra_verified: number;
-  mairie_infra_actifs: number;
-  mairie_infra_resolus: number;
-  mairie_infra_total: number;
-  mairie_infra_verified: number;
-}
-
 interface DurationStat {
   commune: string;
   service_type: string;
@@ -125,67 +67,37 @@ interface ActiveDurationStat {
   active_count: number;
 }
 
-/** Format hours into human-readable string */
 function formatHours(h: number): string {
-  if (h < 1) return `${Math.round(h * 60)}min`;
+  if (h < 1) return `${Math.max(1, Math.round(h * 60))} min`;
   if (h < 24) {
     const hh = Math.floor(h);
     const mm = Math.round((h - hh) * 60);
-    return `${hh}h${mm > 0 ? mm + "m" : ""}`;
+    return `${hh}h${mm > 0 ? ` ${mm}m` : ""}`;
   }
   const d = Math.floor(h / 24);
   const rh = Math.round(h % 24);
-  return `${d}j${rh > 0 ? " " + rh + "h" : ""}`;
+  return `${d}j${rh > 0 ? ` ${rh}h` : ""}`;
 }
 
-/** Alert level based on hours (null = normal, "warning" = 10h+, "critical" = 24h+) */
-function alertLevel(h: number): "normal" | "warning" | "critical" {
-  if (h >= 24) return "critical";
-  if (h >= 10) return "warning";
-  return "normal";
+function formatElapsed(startIso: string | null, createdIso: string): string {
+  const ref = startIso ?? createdIso;
+  if (!ref) return "";
+  const diffMs = Date.now() - new Date(ref).getTime();
+  if (diffMs < 0) return "";
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 2) return "< 2 min";
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h < 24) return `${h}h${m > 0 ? `${m}m` : ""}`;
+  const d = Math.floor(h / 24);
+  const rh = h % 24;
+  return `${d}j${rh > 0 ? ` ${rh}h` : ""}`;
 }
 
-/** Confirmation status block shared by coupure and infra popups */
-function buildConfirmHtml(verified: number, actifs: number, mode: "outage" | "infra"): string {
-  if (actifs === 0) return '';
-  const pct = Math.round((verified / actifs) * 100);
-  if (verified > 0) {
-    const verb = mode === "outage" ? "confirmé" : "soutenu";
-    const detail = mode === "outage"
-      ? `${verified} sur ${actifs} signalement${actifs > 1 ? 's' : ''} vérifié${verified > 1 ? 's' : ''} par les voisins`
-      : `soutenu${verified > 1 ? 's' : ''} pour réparation`;
-    return `<div style="margin-top:6px;padding:5px 10px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center"><span style="font-size:13px;color:#16a34a;font-weight:700">✓ ${verified} ${verb}${verified > 1 ? 's' : ''} (${pct}%)</span><br/><span style="font-size:10px;color:#15803d">${detail}</span></div>`;
-  }
-  return `<div style="margin-top:6px;padding:5px 10px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;text-align:center"><span style="font-size:11px;color:#92400e">⏳ En attente de confirmation des voisins</span></div>`;
-}
-
-/** Standard popup container with commune header, counts, extra sections, and CTA link */
-function buildPopupHtml(communeColor: string, communeName: string, typeLabel: string, total: number, actifs: number, resolus: number, extraHtml: string, minWidth = 180): string {
-  return `<div style="min-width:${minWidth}px;text-align:center"><strong style="color:${communeColor};font-size:14px">${communeName}</strong><br/><span style="font-size:11px;color:#666">${typeLabel}</span><br/><span style="font-size:22px;font-weight:bold">${total}</span> <span style="font-size:11px;color:#666">signalement${total > 1 ? 's' : ''}</span><br/><span style="font-size:12px">🔴 ${actifs} actif${actifs > 1 ? 's' : ''} · ✅ ${resolus} résolu${resolus > 1 ? 's' : ''}</span>${extraHtml}<div style="margin-top:10px"><a href="/commune/${encodeURIComponent(communeName)}" style="display:inline-block;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;text-decoration:none;font-size:12px;font-weight:700;padding:7px 16px;border-radius:8px;box-shadow:0 2px 6px rgba(14,165,233,0.3);">Voir les signalements →</a></div></div>`;
-}
-
-/** Badge HTML for active outage duration in commune popup */
-function activeDurationBadgeHtml(h: number, serviceType: string): string {
-  const level = alertLevel(h);
-  const label = formatHours(h);
-  const isElec = serviceType === "electricity";
-  const emoji = isElec ? "⚡" : "💧";
-
-  if (level === "critical") {
-    return `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:999px;font-size:10px;font-weight:700;color:#dc2626;">🔴 ${emoji} ${label}</span>`;
-  }
-  if (level === "warning") {
-    return `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;background:#fff7ed;border:1.5px solid #fed7aa;border-radius:999px;font-size:10px;font-weight:700;color:#ea580c;">🟠 ${emoji} ${label}</span>`;
-  }
-  return `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:999px;font-size:10px;font-weight:600;color:#16a34a;">🟢 ${emoji} ${label}</span>`;
-}
-
-type MapMode = "coupures" | "infrastructures";
 type CoupureFilter = "all" | "electricity" | "water";
-type InfraFilter = "all" | "cie" | "sodeci" | "mairie";
 type PeriodFilter = "all" | "today" | "7d" | "30d";
 
-/** Compute centroid of a GeoJSON feature (Polygon / MultiPolygon) */
 const computeCentroid = (feature: any): [number, number] | null => {
   try {
     const coords: number[][] = [];
@@ -202,838 +114,925 @@ const computeCentroid = (feature: any): [number, number] | null => {
 };
 
 const MapPage = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const initialCoupureFilter = (searchParams.get("service") as CoupureFilter) || "all";
 
-  const [mode] = useState<MapMode>("coupures");
   const [coupureFilter, setCoupureFilter] = useState<CoupureFilter>(initialCoupureFilter);
-  const [infraFilter, setInfraFilter] = useState<InfraFilter>("all");
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("all");
-  const [focusedCommune, setFocusedCommune] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (searchParams.get("mode") === "infrastructures") {
-      navigate("/infrastructures", { replace: true });
-    }
-  }, [searchParams, navigate]);
+  const [focusedCommune, setFocusedCommune] = useState<string | null>(searchParams.get("commune") || null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [mobileTab, setMobileTab] = useState<"list" | "map">("list");
+  const [mobileBottomSheetOpen, setMobileBottomSheetOpen] = useState(false);
 
   const [stats, setStats] = useState<CommuneServiceStat[]>([]);
-  const [infraStats, setInfraStats] = useState<InfraStats[]>([]);
   const [durationStats, setDurationStats] = useState<DurationStat[]>([]);
   const [activeDurations, setActiveDurations] = useState<ActiveDurationStat[]>([]);
   const [boundaries, setBoundaries] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [activeReports, setActiveReports] = useState<ActiveReport[]>([]);
-  const heatmapLayerGroup = useRef<L.LayerGroup | null>(null);
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstance = useRef<L.Map | null>(null);
-
   const [lastUpdated, setLastUpdated] = useState<string>("");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstance = useRef<L.Map | null>(null);
+  const geojsonLayerRef = useRef<L.GeoJSON | null>(null);
+  const markersLayerRef = useRef<L.LayerGroup | null>(null);
+  const heatmapLayerRef = useRef<L.LayerGroup | null>(null);
+
+  // Synchroniser le paramètre d'URL service
+  useEffect(() => {
+    const serviceParam = searchParams.get("service");
+    if (serviceParam === "electricity" || serviceParam === "water" || serviceParam === "all") {
+      setCoupureFilter(serviceParam as CoupureFilter);
+    }
+  }, [searchParams]);
+
   const fetchAll = async () => {
     setIsRefreshing(true);
-    const [sRes, iRes, geoRes, dRes, adRes] = await Promise.all([
-      supabase.rpc("get_commune_service_stats"),
-      supabase.rpc("get_commune_infrastructure_stats" as any),
-      fetch("/data/communes-boundaries.geojson").then(r => r.json()).catch(() => null),
-      supabase.rpc("get_commune_duration_stats"),
-      supabase.rpc("get_commune_active_durations" as any),
-    ]);
+    try {
+      const [sRes, geoRes, dRes, adRes, rRes] = await Promise.all([
+        supabase.rpc("get_commune_service_stats"),
+        fetch("/data/communes-boundaries.geojson").then((r) => r.json()).catch(() => null),
+        supabase.rpc("get_commune_duration_stats"),
+        supabase.rpc("get_commune_active_durations" as any),
+        supabase.rpc("get_public_reports"),
+      ]);
 
-    const infraList = (!iRes.error && iRes.data) ? (iRes.data as unknown as InfraStats[]) : [];
-    const infraMap = new Map(infraList.map((i) => [i.commune.toLowerCase().trim(), i]));
-
-    if (!adRes.error && adRes.data) setActiveDurations(adRes.data as unknown as ActiveDurationStat[]);
-    if (!iRes.error && iRes.data) setInfraStats(infraList);
-    if (!dRes.error && dRes.data) setDurationStats(dRes.data as unknown as DurationStat[]);
-
-    if (!sRes.error && sRes.data) {
-      const rawStats = sRes.data as unknown as CommuneServiceStat[];
-      const activeDurMap = new Map<string, number>();
-      if (adRes?.data && Array.isArray(adRes.data)) {
-        (adRes.data as any[]).forEach((d) => {
-          const key = `${d.commune?.toLowerCase().trim()}_${d.service_type}`;
-          activeDurMap.set(key, Number(d.active_count || 0));
-        });
+      if (!adRes.error && adRes.data) setActiveDurations(adRes.data as unknown as ActiveDurationStat[]);
+      if (!dRes.error && dRes.data) setDurationStats(dRes.data as unknown as DurationStat[]);
+      if (!rRes.error && Array.isArray(rRes.data)) {
+        setActiveReports(
+          rRes.data.map((r: any) => ({
+            id: r.id,
+            latitude: Number(r.latitude),
+            longitude: Number(r.longitude),
+            service_type: r.service_type || "electricity",
+            report_category: r.report_category,
+            description: r.description,
+            photo_url: r.photo_url,
+            photo_urls: r.photo_urls,
+            verifications: Number(r.verifications || 0),
+            commune: r.commune || "",
+            quartier: r.quartier,
+            created_at: r.created_at,
+            start_time: r.start_time,
+            status: r.status,
+          }))
+        );
       }
 
-      // Reconcilie strictement les coupures domestiques en excluant les lampadaires/voirie
-      const sanitizedStats = rawStats.map((st) => {
-        const cKey = st.commune.toLowerCase().trim();
-        const elecKey = `${cKey}_electricity`;
-        const eauKey = `${cKey}_water`;
+      if (!sRes.error && sRes.data) {
+        setStats(sRes.data as unknown as CommuneServiceStat[]);
+      }
 
-        const elecActifs = activeDurMap.has(elecKey)
-          ? activeDurMap.get(elecKey)!
-          : Math.max(0, st.electricite_actifs - (infraMap.get(cKey)?.elec_infra_actifs || 0));
-
-        const eauActifs = activeDurMap.has(eauKey)
-          ? activeDurMap.get(eauKey)!
-          : Math.max(0, st.eau_actifs - (infraMap.get(cKey)?.eau_infra_actifs || 0));
-
-        return {
-          ...st,
-          electricite_actifs: elecActifs,
-          eau_actifs: eauActifs,
-        };
-      });
-
-      setStats(sanitizedStats);
+      if (geoRes) setBoundaries(geoRes);
+      setLastUpdated(new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }));
+    } catch (err) {
+      console.error("Error fetching map data:", err);
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
     }
-
-    if (geoRes) setBoundaries(geoRes);
-    setLastUpdated(new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
-    setLoading(false);
-    setIsRefreshing(false);
   };
 
   useEffect(() => {
     fetchAll();
   }, []);
 
-  // Init map
+  // Calcul des totaux réels
+  const totals = useMemo(() => {
+    const elecActifs = stats.reduce((acc, c) => acc + (c.electricite_actifs || 0), 0);
+    const eauActifs = stats.reduce((acc, c) => acc + (c.eau_actifs || 0), 0);
+    const elecVerified = stats.reduce((acc, c) => acc + (c.electricite_verified || 0), 0);
+    const eauVerified = stats.reduce((acc, c) => acc + (c.eau_verified || 0), 0);
+    const totalElec = stats.reduce((acc, c) => acc + (c.electricite_total || 0), 0);
+    const totalEau = stats.reduce((acc, c) => acc + (c.eau_total || 0), 0);
+
+    let actifs = elecActifs + eauActifs;
+    let verified = elecVerified + eauVerified;
+    let total = totalElec + totalEau;
+
+    if (coupureFilter === "electricity") {
+      actifs = elecActifs;
+      verified = elecVerified;
+      total = totalElec;
+    } else if (coupureFilter === "water") {
+      actifs = eauActifs;
+      verified = eauVerified;
+      total = totalEau;
+    }
+
+    return {
+      actifs,
+      verified,
+      total,
+      elec: elecActifs,
+      eau: eauActifs,
+      hasOutages: actifs > 0,
+    };
+  }, [stats, coupureFilter]);
+
+  // Filtrage et tri des communes
+  const filteredCommunes = useMemo(() => {
+    let list = COMMUNES.map((c) => {
+      const st = stats.find((s) => s.commune.toLowerCase().trim() === c.nom.toLowerCase().trim());
+      const elecActifs = st?.electricite_actifs || 0;
+      const eauActifs = st?.eau_actifs || 0;
+      const elecVerified = st?.electricite_verified || 0;
+      const eauVerified = st?.eau_verified || 0;
+      const elecDuration = activeDurations.find(
+        (d) => d.commune.toLowerCase().trim() === c.nom.toLowerCase().trim() && d.service_type === "electricity"
+      );
+      const eauDuration = activeDurations.find(
+        (d) => d.commune.toLowerCase().trim() === c.nom.toLowerCase().trim() && d.service_type === "water"
+      );
+
+      let actifs = elecActifs + eauActifs;
+      let verified = elecVerified + eauVerified;
+      if (coupureFilter === "electricity") {
+        actifs = elecActifs;
+        verified = elecVerified;
+      } else if (coupureFilter === "water") {
+        actifs = eauActifs;
+        verified = eauVerified;
+      }
+
+      const longestHours = Math.max(elecDuration?.longest_hours || 0, eauDuration?.longest_hours || 0);
+
+      return {
+        ...c,
+        stat: st,
+        elecActifs,
+        eauActifs,
+        actifs,
+        verified,
+        longestHours,
+      };
+    });
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter((c) => c.nom.toLowerCase().includes(q));
+    }
+
+    // Trier : Communes avec pannes actives en premier, puis ordre alphabétique
+    return list.sort((a, b) => {
+      if (b.actifs !== a.actifs) return b.actifs - a.actifs;
+      return a.nom.localeCompare(b.nom);
+    });
+  }, [stats, activeDurations, coupureFilter, searchQuery]);
+
+  // Rapports actifs pour la commune sélectionnée
+  const focusedCommuneReports = useMemo(() => {
+    if (!focusedCommune) return [];
+    return activeReports.filter((r) => {
+      const matchCommune = r.commune.toLowerCase().trim() === focusedCommune.toLowerCase().trim();
+      if (!matchCommune) return false;
+      if (coupureFilter === "electricity") return r.service_type === "electricity";
+      if (coupureFilter === "water") return r.service_type === "water";
+      return true;
+    });
+  }, [activeReports, focusedCommune, coupureFilter]);
+
+  // Initialisation de la carte Leaflet
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return;
-    const map = L.map(mapRef.current).setView([5.36, -4.01], 12);
+
+    const map = L.map(mapRef.current, {
+      center: [5.36, -4.01],
+      zoom: 12,
+      zoomControl: false,
+    });
+
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+      maxZoom: 18,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map);
+
+    markersLayerRef.current = L.layerGroup().addTo(map);
+    heatmapLayerRef.current = L.layerGroup().addTo(map);
+
     mapInstance.current = map;
-    return () => { map.remove(); mapInstance.current = null; };
-  }, []);
-
-  // Fetch active reports for heat-map & incident dots (respects period + commune focus)
-  useEffect(() => {
-    if (!showHeatmap) {
-      setActiveReports([]);
-      return;
-    }
-
-    let isSubscribed = true;
-
-    const fetchAllActive = async () => {
-      try {
-        const list: ActiveReport[] = [];
-
-        // 1. Fetch public outage reports via RPC (bypasses RLS)
-        try {
-          const { data: pubData } = await (supabase as any).rpc("get_public_reports");
-          if (pubData && Array.isArray(pubData)) {
-            pubData.forEach((item: any) => {
-              const lat = item.latitude || item.latitude_approx;
-              const lon = item.longitude || item.longitude_approx;
-              if (lat && lon && (item.report_category === "outage" || !item.report_category)) {
-                list.push({
-                  id: item.id,
-                  latitude: Number(lat),
-                  longitude: Number(lon),
-                  service_type: item.service_type || "electricity",
-                  report_category: "outage",
-                  description: item.description,
-                  photo_url: item.photo_url,
-                  photo_urls: item.photo_urls,
-                  verifications: Number(item.verifications || item.repair_verifications || 0),
-                  commune: item.commune,
-                  quartier: item.quartier,
-                  created_at: item.created_at,
-                  start_time: item.start_time,
-                  status: item.status || "active",
-                });
-              }
-            });
-          }
-        } catch (e) {
-          console.warn("Public reports RPC note:", e);
-        }
-
-        // 2. Direct query fallback for authenticated users (strictly outage category)
-        try {
-          let directQuery = supabase
-            .from("reports")
-            .select("id, latitude, longitude, service_type, report_category, description, photo_url, photo_urls, verifications, commune, quartier, created_at, start_time, status")
-            .in("status", ["active", "chronic", "in_progress", "open", "verified"])
-            .or("report_category.eq.outage,report_category.is.null")
-            .not("latitude", "is", null)
-            .not("longitude", "is", null)
-            .limit(300);
-
-          if (focusedCommune) {
-            directQuery = directQuery.eq("commune", focusedCommune);
-          }
-
-          const { data: directData } = await directQuery;
-          if (directData && Array.isArray(directData)) {
-            directData.forEach((item: any) => {
-              if (item.latitude && item.longitude && (item.report_category === "outage" || !item.report_category)) {
-                list.push({
-                  id: item.id,
-                  latitude: Number(item.latitude),
-                  longitude: Number(item.longitude),
-                  service_type: item.service_type || "electricity",
-                  report_category: "outage",
-                  description: item.description,
-                  photo_url: item.photo_url,
-                  photo_urls: item.photo_urls,
-                  verifications: Number(item.verifications || 0),
-                  commune: item.commune,
-                  quartier: item.quartier,
-                  created_at: item.created_at,
-                  start_time: item.start_time,
-                  status: item.status,
-                });
-              }
-            });
-          }
-        } catch (e) {
-          console.warn("Direct query note:", e);
-        }
-
-        // Dédoublonnage par ID
-        const byId = new Map<string, ActiveReport>();
-        list.forEach((r) => byId.set(r.id, r));
-        let finalReports = Array.from(byId.values());
-
-        // Filtre de période
-        if (periodFilter !== "all") {
-          const now = new Date();
-          if (periodFilter === "today") now.setHours(0, 0, 0, 0);
-          else if (periodFilter === "7d") now.setDate(now.getDate() - 7);
-          else if (periodFilter === "30d") now.setDate(now.getDate() - 30);
-          finalReports = finalReports.filter((r) => new Date(r.created_at) >= now);
-        }
-
-        // Filtre de commune
-        if (focusedCommune) {
-          finalReports = finalReports.filter((r) => r.commune?.toLowerCase() === focusedCommune.toLowerCase());
-        }
-
-        if (isSubscribed) {
-          setActiveReports(finalReports);
-        }
-      } catch (err) {
-        console.error("Failed to load active reports for map:", err);
-      }
-    };
-
-    fetchAllActive();
 
     return () => {
-      isSubscribed = false;
+      map.remove();
+      mapInstance.current = null;
     };
-  }, [showHeatmap, periodFilter, focusedCommune]);
+  }, []);
 
-  // Pan + zoom to focused commune
-  useEffect(() => {
-    if (!mapInstance.current || !focusedCommune) return;
-    const commune = COMMUNES.find((c) => c.nom === focusedCommune);
-    if (commune) {
-      mapInstance.current.flyTo([commune.centerLat, commune.centerLon], 14, { duration: 1 });
+  // Centrage sur la commune sélectionnée
+  const handleSelectCommune = (communeNom: string) => {
+    const c = COMMUNES.find((item) => item.nom.toLowerCase() === communeNom.toLowerCase());
+    if (!c) return;
+
+    setFocusedCommune(c.nom);
+    setMobileBottomSheetOpen(true);
+
+    if (mapInstance.current) {
+      mapInstance.current.flyTo([c.centerLat, c.centerLon], 13.5, { duration: 1 });
     }
-  }, [focusedCommune]);
+  };
 
-  // Render / clear heat-map layer
+  const handleResetCommune = () => {
+    setFocusedCommune(null);
+    setMobileBottomSheetOpen(false);
+    if (mapInstance.current) {
+      mapInstance.current.flyTo([5.36, -4.01], 12, { duration: 1 });
+    }
+  };
+
+  const handleLocateMe = () => {
+    if (!navigator.geolocation || !mapInstance.current) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        mapInstance.current?.flyTo([latitude, longitude], 14, { duration: 1.2 });
+      },
+      () => {},
+      { enableHighAccuracy: true }
+    );
+  };
+
+  // Rendu des polygones GeoJSON et des marqueurs sur Leaflet
   useEffect(() => {
-    if (!mapInstance.current) return;
     const map = mapInstance.current;
+    if (!map) return;
 
-    // Remove existing heat-map layer
-    if (heatmapLayerGroup.current) {
-      heatmapLayerGroup.current.clearLayers();
-      map.removeLayer(heatmapLayerGroup.current);
-      heatmapLayerGroup.current = null;
+    // 1. Mise à jour des contours GeoJSON
+    if (geojsonLayerRef.current) {
+      map.removeLayer(geojsonLayerRef.current);
+      geojsonLayerRef.current = null;
     }
 
-    if (!showHeatmap || activeReports.length === 0) return;
+    if (boundaries) {
+      const geoLayer = L.geoJSON(boundaries, {
+        style: (feature) => {
+          const name = feature?.properties?.name || "";
+          const isSelected = focusedCommune?.toLowerCase() === name.toLowerCase();
+          const color = COMMUNE_COLORS[name] || "#10B981";
 
-    const group = L.layerGroup().addTo(map);
-    heatmapLayerGroup.current = group;
+          return {
+            color: isSelected ? "#000" : color,
+            weight: isSelected ? 3.5 : 1.5,
+            opacity: isSelected ? 1 : 0.8,
+            fillColor: color,
+            fillOpacity: isSelected ? 0.28 : 0.1,
+            dashArray: isSelected ? undefined : "4",
+          };
+        },
+        onEachFeature: (feature, layer) => {
+          const name = feature?.properties?.name;
+          if (!name) return;
 
-    // Tiny fuzz (~150m) to protect exact user positions
-    const fuzz = () => (Math.random() - 0.5) * 0.003;
+          layer.on({
+            click: () => handleSelectCommune(name),
+            mouseover: () => {
+              layer.setStyle({ fillOpacity: 0.35, weight: 2.5 });
+            },
+            mouseout: () => {
+              const isSelected = focusedCommune?.toLowerCase() === name.toLowerCase();
+              layer.setStyle({
+                fillOpacity: isSelected ? 0.28 : 0.1,
+                weight: isSelected ? 3.5 : 1.5,
+              });
+            },
+          });
+        },
+      }).addTo(map);
 
-    // Group nearby dots (simple spatial cluster: ~300m grid)
-    const GRID = 0.003; // ~300m
-    const clusterMap = new Map<string, ActiveReport[]>();
-    activeReports.forEach((r) => {
-      const gx = Math.round(r.latitude / GRID);
-      const gy = Math.round(r.longitude / GRID);
-      const key = `${r.service_type}_${gx}_${gy}`;
-      if (!clusterMap.has(key)) clusterMap.set(key, []);
-      clusterMap.get(key)!.push(r);
-    });
-
-    clusterMap.forEach((cluster) => {
-      const r0 = cluster[0];
-      const isElec = r0.service_type === "electricity";
-      const isEau = r0.service_type === "water";
-      const isInfra = r0.report_category === "infrastructure" || r0.service_type === "mairie" || r0.service_type === "voirie";
-
-      let iconEmoji = isElec ? "⚡" : isEau ? "💧" : "🏗️";
-      let baseColor = isElec ? "#f59e0b" : isEau ? "#3b82f6" : "#10b981";
-
-      const desc = (r0.description || "").toLowerCase();
-      if (isInfra) {
-        if (desc.includes("lampadaire") || desc.includes("éclairage") || desc.includes("poteau")) {
-          iconEmoji = "💡";
-          baseColor = "#eab308";
-        } else if (desc.includes("caniveau") || desc.includes("inondation") || desc.includes("drain")) {
-          iconEmoji = "🕳️";
-          baseColor = "#0d9488";
-        } else if (desc.includes("nid de poule") || desc.includes("route") || desc.includes("chaussée") || desc.includes("voirie")) {
-          iconEmoji = "🚧";
-          baseColor = "#ea580c";
-        } else if (desc.includes("ordure") || desc.includes("poubelle") || desc.includes("décharge")) {
-          iconEmoji = "🗑️";
-          baseColor = "#10b981";
-        }
-      }
-
-      // Oldest start in cluster
-      const oldestMs = Math.min(...cluster.map((r) => new Date(r.start_time ?? r.created_at).getTime()));
-      const hoursOldest = (Date.now() - oldestMs) / 3600000;
-      const level = alertLevel(hoursOldest);
-
-      // Chronic if any report in cluster is chronic
-      const isChronic = cluster.some((r: any) => r.status === "chronic");
-
-      // Color override for alert level and chronic
-      const fillColor = isChronic
-        ? "#7c3aed"
-        : level === "critical"
-        ? "#dc2626"
-        : level === "warning"
-        ? "#ea580c"
-        : baseColor;
-      const borderColor = isChronic
-        ? "#ddd6fe"
-        : level === "critical"
-        ? "#fca5a5"
-        : level === "warning"
-        ? "#fed7aa"
-        : "#fff";
-      const borderWeight = isChronic ? 3 : level !== "normal" ? 2.5 : 1.5;
-
-      const totalVerifs = cluster.reduce((s, r) => s + r.verifications, 0);
-      const radius = Math.min(7 + Math.min(totalVerifs * 2, 16) + (cluster.length > 1 ? 4 : 0), 28);
-
-      // Centroid of cluster
-      const lat = cluster.reduce((s, r) => s + r.latitude, 0) / cluster.length + fuzz();
-      const lon = cluster.reduce((s, r) => s + r.longitude, 0) / cluster.length + fuzz();
-
-      const countBadge = cluster.length > 1
-        ? `<span style="display:inline-block;background:#1e293b;color:#fff;border-radius:999px;font-size:9px;font-weight:700;padding:1px 6px;margin-left:3px">${cluster.length}</span>`
-        : "";
-
-      const chronicBadge = isChronic
-        ? `<span style="display:inline-block;background:#7c3aed;color:#fff;border-radius:999px;font-size:9px;font-weight:700;padding:1px 6px;margin-top:2px">🔴 Chronique +14j</span>`
-        : "";
-
-      const photo = r0.photo_url || (r0.photo_urls && r0.photo_urls[0]);
-      const photoHtml = photo
-        ? `<div style="margin-top:6px;margin-bottom:6px;"><img src="${escHtml(photo)}" style="width:100%;max-height:80px;object-fit:cover;border-radius:6px;" /></div>`
-        : "";
-
-      const descHtml = r0.description
-        ? `<div style="font-size:11px;color:#475569;margin-top:4px;max-height:48px;overflow:hidden;text-overflow:ellipsis;">"${escHtml(r0.description.slice(0, 90))}${r0.description.length > 90 ? '...' : ''}"</div>`
-        : "";
-
-      L.circleMarker([lat, lon], {
-        radius,
-        fillColor,
-        color: borderColor,
-        weight: borderWeight,
-        opacity: 1,
-        fillOpacity: isChronic ? 0.9 : level !== "normal" ? 0.85 : 0.75,
-      })
-        .addTo(group)
-        .bindPopup(
-          `<div style="text-align:center;min-width:160px;max-width:220px;">
-            <span style="font-size:18px">${iconEmoji}</span>${countBadge}<br/>
-            <strong style="color:${fillColor};font-size:13px;">${escHtml(r0.commune)}${r0.quartier ? ` · ${escHtml(r0.quartier)}` : ''}</strong><br/>
-            ${photoHtml}
-            ${descHtml}
-            <span style="font-size:11px;color:#666">${totalVerifs} confirmation${totalVerifs !== 1 ? "s" : ""}${cluster.length > 1 ? ` · ${cluster.length} signalements` : ""}</span>
-            ${chronicBadge}
-            ${durationPillHtml({ ...r0, start_time: new Date(oldestMs).toISOString() })}
-            <div style="margin-top:8px;">
-              <a href="/signalement/${r0.id}" style="display:inline-block;padding:3px 10px;background:#0d9488;color:#fff;border-radius:6px;text-decoration:none;font-size:10px;font-weight:bold;">Voir le signalement →</a>
-            </div>
-          </div>`
-        );
-    });
-  }, [showHeatmap, activeReports]);
-
-  // Update markers
-  useEffect(() => {
-    if (!mapInstance.current || loading) return;
-    const map = mapInstance.current;
-    map.eachLayer((layer) => { if (!(layer instanceof L.TileLayer)) map.removeLayer(layer); });
-
-    // Draw commune boundaries from GeoJSON
-    if (boundaries && boundaries.features) {
-      boundaries.features.forEach((feature: any) => {
-        const name = feature.properties?.name;
-        const communeColor = COMMUNE_COLORS[name] || COMMUNE_COLORS[
-          Object.keys(COMMUNE_COLORS).find(k => k.toLowerCase() === name?.toLowerCase()) || ""
-        ] || "#888";
-
-        L.geoJSON(feature, {
-          style: {
-            color: communeColor,
-            fillColor: communeColor,
-            fillOpacity: 0.12,
-            weight: 2.5,
-            opacity: 0.8,
-            dashArray: undefined,
-          },
-        }).addTo(map).bindPopup(`<strong>${escHtml(name ?? '')}</strong><br/>${(COMMUNES.find(c => c.nom.toLowerCase() === name?.toLowerCase())?.population || 0) / 1000 | 0}k habitants`);
-      });
-    } else {
-      // Fallback to circles if GeoJSON unavailable
-      COMMUNES.forEach((c) => {
-        L.circle([c.centerLat, c.centerLon], {
-          radius: c.rayonM, color: c.couleur, fillColor: c.couleur, fillOpacity: 0.10, weight: 2,
-        }).addTo(map).bindPopup(`<strong>${c.nom}</strong><br/>${(c.population / 1000).toFixed(0)}k habitants`);
-      });
+      geojsonLayerRef.current = geoLayer;
     }
 
-    // Build centroid lookup from GeoJSON boundaries
-    const centroids: Record<string, [number, number]> = {};
-    if (boundaries?.features) {
-      boundaries.features.forEach((f: any) => {
-        const name = f.properties?.name;
-        if (!name) return;
-        const centroid = computeCentroid(f);
-        if (centroid) {
-          // Match by case-insensitive name
-          const matched = COMMUNES.find(c => c.nom.toLowerCase() === name.toLowerCase());
-          if (matched) centroids[matched.nom] = centroid;
-        }
-      });
+    // 2. Mise à jour des marqueurs
+    if (markersLayerRef.current) {
+      markersLayerRef.current.clearLayers();
     }
 
-    /** Get marker position: centroid from GeoJSON if available, else static center */
-    const getMarkerPos = (c: typeof COMMUNES[0]): [number, number] =>
-      centroids[c.nom] || [c.centerLat, c.centerLon];
-
-    // Add markers
     COMMUNES.forEach((c) => {
-      if (mode === "coupures") {
-        renderCoupureMarker(map, c, getMarkerPos(c));
+      const st = stats.find((s) => s.commune.toLowerCase().trim() === c.nom.toLowerCase().trim());
+      const elecActifs = st?.electricite_actifs || 0;
+      const eauActifs = st?.eau_actifs || 0;
+      const verified = (st?.electricite_verified || 0) + (st?.eau_verified || 0);
+
+      let actifs = elecActifs + eauActifs;
+      if (coupureFilter === "electricity") actifs = elecActifs;
+      if (coupureFilter === "water") actifs = eauActifs;
+
+      const isSelected = focusedCommune?.toLowerCase() === c.nom.toLowerCase();
+      const hasOutage = actifs > 0;
+      const hasVerified = verified > 0;
+
+      let markerHtml = "";
+
+      if (hasOutage) {
+        if (coupureFilter === "all" && elecActifs > 0 && eauActifs > 0) {
+          // Double badge ⚡ & 💧
+          markerHtml = `
+            <div style="position:relative;display:flex;align-items:center;cursor:pointer;transform:${isSelected ? 'scale(1.15)' : 'scale(1)'};transition:transform .2s;">
+              <div style="background:#f59e0b;color:white;padding:4px 7px;border-radius:12px 0 0 12px;font-size:11px;font-weight:900;display:flex;align-items:center;gap:2px;border:2px solid white;border-right:1px solid rgba(255,255,255,0.4);box-shadow:0 3px 10px rgba(0,0,0,.35);">
+                <span>⚡</span>${elecActifs}
+              </div>
+              <div style="background:#3b82f6;color:white;padding:4px 7px;border-radius:0 12px 12px 0;font-size:11px;font-weight:900;display:flex;align-items:center;gap:2px;border:2px solid white;border-left:none;box-shadow:0 3px 10px rgba(0,0,0,.35);">
+                <span>💧</span>${eauActifs}
+              </div>
+              ${hasVerified ? `<span style="position:absolute;top:-6px;right:-6px;background:#16a34a;color:white;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;border:2px solid white;">✓</span>` : ''}
+            </div>
+          `;
+        } else {
+          // Simple badge avec nombre
+          const emoji = (coupureFilter === "electricity" || elecActifs > 0) ? "⚡" : "💧";
+          const bg = (coupureFilter === "electricity" || elecActifs > 0) ? "#f59e0b" : "#3b82f6";
+
+          markerHtml = `
+            <div style="position:relative;background:${bg};color:white;min-width:38px;height:38px;border-radius:999px;padding:0 8px;display:flex;align-items:center;justify-content:center;gap:2px;font-size:12px;font-weight:900;border:2.5px solid white;box-shadow:0 4px 12px rgba(0,0,0,.4);cursor:pointer;transform:${isSelected ? 'scale(1.2)' : 'scale(1)'};transition:transform .2s;">
+              <span>${emoji}</span>
+              <span>${actifs}</span>
+              ${hasVerified ? `<span style="position:absolute;top:-5px;right:-5px;background:#16a34a;color:white;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;border:2px solid white;">✓</span>` : ''}
+            </div>
+          `;
+        }
       } else {
-        renderInfraMarker(map, c, getMarkerPos(c));
+        // Discrète pastille verte normale
+        markerHtml = `
+          <div style="background:#10b981;color:white;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,.25);cursor:pointer;opacity:0.85;transform:${isSelected ? 'scale(1.2)' : 'scale(1)'};transition:transform .2s;" title="${c.nom} : Réseau Stable">
+            ✓
+          </div>
+        `;
       }
+
+      const icon = L.divIcon({
+        className: "custom-commune-marker",
+        html: markerHtml,
+        iconSize: [40, 40],
+        iconAnchor: [20, 20],
+      });
+
+      const marker = L.marker([c.centerLat, c.centerLon], { icon });
+      marker.on("click", () => handleSelectCommune(c.nom));
+      markersLayerRef.current?.addLayer(marker);
     });
-  }, [stats, infraStats, durationStats, activeDurations, loading, mode, coupureFilter, infraFilter, boundaries]);
-
-  const renderCoupureMarker = (map: L.Map, c: typeof COMMUNES[0], pos: [number, number]) => {
-    const s = stats.find((st) => st.commune.toLowerCase() === c.nom.toLowerCase());
-    let actifs = 0, resolus = 0, total = 0, verified = 0;
-    if (s) {
-      if (coupureFilter === "electricity") {
-        actifs = s.electricite_actifs; resolus = s.electricite_resolus; total = s.electricite_total; verified = s.electricite_verified;
-      } else if (coupureFilter === "water") {
-        actifs = s.eau_actifs; resolus = s.eau_resolus; total = s.eau_total; verified = s.eau_verified;
-      } else {
-        actifs = s.electricite_actifs + s.eau_actifs;
-        resolus = s.electricite_resolus + s.eau_resolus;
-        total = s.electricite_total + s.eau_total;
-        verified = s.electricite_verified + s.eau_verified;
-      }
-    }
-
-    const hasVerified = verified > 0;
-    const verifiedPercent = actifs > 0 ? Math.round((verified / actifs) * 100) : 0;
-    const markerSize = actifs > 0 ? 52 : 36;
-    let markerHtml = '';
-
-    if (coupureFilter === "all" && s && (s.electricite_actifs > 0 || s.eau_actifs > 0)) {
-      markerHtml = `<div style="position:relative;display:flex;align-items:center;gap:2px;">
-        <div style="background:#f59e0b;color:white;width:${markerSize / 2 + 2}px;height:${markerSize}px;border-radius:${markerSize / 2}px 0 0 ${markerSize / 2}px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:${hasVerified ? '2px solid #22c55e' : '2px solid white'};border-right:1px solid rgba(255,255,255,0.3);font-size:11px;font-weight:bold;box-shadow:${hasVerified ? '0 0 10px rgba(34,197,94,0.5)' : '0 2px 8px rgba(0,0,0,.3)'};"><span style="font-size:10px">⚡</span>${s.electricite_actifs}</div>
-        <div style="background:#3b82f6;color:white;width:${markerSize / 2 + 2}px;height:${markerSize}px;border-radius:0 ${markerSize / 2}px ${markerSize / 2}px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;border:${hasVerified ? '2px solid #22c55e' : '2px solid white'};border-left:none;font-size:11px;font-weight:bold;box-shadow:${hasVerified ? '0 0 10px rgba(34,197,94,0.5)' : '0 2px 8px rgba(0,0,0,.3)'};"><span style="font-size:10px">💧</span>${s.eau_actifs}</div>
-        ${hasVerified ? `<span style="position:absolute;top:-6px;right:-6px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.3);">✓</span>` : ''}
-      </div>`;
-    } else {
-      const emoji = coupureFilter === "electricity" ? "⚡" : coupureFilter === "water" ? "💧" : "";
-      const bg = coupureFilter === "electricity" ? "#f59e0b" : coupureFilter === "water" ? "#3b82f6" : c.couleur;
-      markerHtml = `<div style="position:relative;background:${bg};color:white;width:${markerSize}px;height:${markerSize}px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:${hasVerified ? '3px solid #22c55e' : '3px solid white'};box-shadow:${hasVerified ? '0 0 12px rgba(34,197,94,0.6), 0 2px 10px rgba(0,0,0,.35)' : '0 2px 10px rgba(0,0,0,.35)'};font-size:${actifs > 0 ? 15 : 13}px;font-weight:bold;">${emoji}${actifs > 0 ? actifs : '·'}${hasVerified ? `<span style="position:absolute;top:-6px;right:-6px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.3);">✓</span>` : ''}</div>`;
-    }
-
-    const isSplit = coupureFilter === "all" && s && (s.electricite_actifs > 0 || s.eau_actifs > 0);
-    const icon = L.divIcon({
-      className: "",
-      html: markerHtml,
-      iconSize: [isSplit ? markerSize + 6 : markerSize, markerSize],
-      iconAnchor: [isSplit ? (markerSize + 6) / 2 : markerSize / 2, markerSize / 2],
-    });
-
-    const serviceLabel = coupureFilter === "electricity" ? "Électricité" : coupureFilter === "water" ? "Eau" : "Eau & Électricité";
-
-    // Confirmation status HTML
-    let confirmHtml = '';
-    if (actifs > 0) {
-      if (hasVerified) {
-        confirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #bbf7d0;border-radius:8px;text-align:center"><span style="font-size:13px;color:#16a34a;font-weight:700">✓ ${verified} confirmé${verified > 1 ? 's' : ''} (${verifiedPercent}%)</span><br/><span style="font-size:10px;color:#15803d">${verified} sur ${actifs} signalement${actifs > 1 ? 's' : ''} vérifié${verified > 1 ? 's' : ''} par les voisins</span></div>`;
-      } else {
-        confirmHtml = `<div style="margin-top:6px;padding:5px 10px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;text-align:center"><span style="font-size:11px;color:#92400e">⏳ En attente de confirmation des voisins</span></div>`;
-      }
-    }
-
-    const breakdownHtml = coupureFilter === "all" && s
-      ? `<div style="margin-top:6px;display:flex;gap:4px;justify-content:center">
-          <div style="flex:1;padding:4px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;text-align:center"><span style="font-size:12px">⚡</span><br/><span style="font-size:13px;font-weight:bold;color:#d97706">${s.electricite_actifs}</span>${s.electricite_verified > 0 ? `<br/><span style="font-size:9px;color:#16a34a">✓ ${s.electricite_verified}</span>` : ''}</div>
-          <div style="flex:1;padding:4px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;text-align:center"><span style="font-size:12px">💧</span><br/><span style="font-size:13px;font-weight:bold;color:#2563eb">${s.eau_actifs}</span>${s.eau_verified > 0 ? `<br/><span style="font-size:9px;color:#16a34a">✓ ${s.eau_verified}</span>` : ''}</div>
-        </div>` : '';
-
-    // Active duration stats for this commune (coupure en cours depuis...)
-    const communeName = c.nom.toLowerCase();
-    const elecActive = activeDurations.find(d => d.commune.toLowerCase() === communeName && d.service_type === 'electricity');
-    const eauActive  = activeDurations.find(d => d.commune.toLowerCase() === communeName && d.service_type === 'water');
-    const showElecActive = coupureFilter !== "water" && elecActive && elecActive.longest_hours > 0;
-    const showEauActive  = coupureFilter !== "electricity" && eauActive && eauActive.longest_hours > 0;
-
-    // Build duration section: active outage duration with alert badges
-    const activeBadges = [
-      showElecActive ? activeDurationBadgeHtml(elecActive!.longest_hours, 'electricity') : '',
-      showEauActive  ? activeDurationBadgeHtml(eauActive!.longest_hours,  'water')       : '',
-    ].filter(Boolean).join(' ');
-
-    const durationHtml = activeBadges
-      ? `<div style="margin-top:6px;padding:4px 8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;text-align:center">
-          <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">En cours depuis</div>
-          <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap">${activeBadges}</div>
-        </div>`
-      : '';
-
-    L.marker(pos, { icon })
-      .addTo(map)
-      .bindPopup(buildPopupHtml(c.couleur, c.nom, `${serviceLabel} — Coupures`, total, actifs, resolus, `${breakdownHtml}${buildConfirmHtml(verified, actifs, "outage")}${durationHtml}`));
-  };
-
-  const renderInfraMarker = (map: L.Map, c: typeof COMMUNES[0], pos: [number, number]) => {
-    const s = infraStats.find((st) => st.commune.toLowerCase() === c.nom.toLowerCase());
-    let actifs = 0, resolus = 0, total = 0, verified = 0;
-    if (s) {
-      if (infraFilter === "cie") {
-        actifs = s.elec_infra_actifs; resolus = s.elec_infra_resolus; total = s.elec_infra_total; verified = s.elec_infra_verified;
-      } else if (infraFilter === "sodeci") {
-        actifs = s.eau_infra_actifs; resolus = s.eau_infra_resolus; total = s.eau_infra_total; verified = s.eau_infra_verified;
-      } else if (infraFilter === "mairie") {
-        actifs = s.mairie_infra_actifs; resolus = s.mairie_infra_resolus; total = s.mairie_infra_total; verified = s.mairie_infra_verified;
-      } else {
-        actifs = s.elec_infra_actifs + s.eau_infra_actifs + s.mairie_infra_actifs;
-        resolus = s.elec_infra_resolus + s.eau_infra_resolus + s.mairie_infra_resolus;
-        total = s.elec_infra_total + s.eau_infra_total + s.mairie_infra_total;
-        verified = s.elec_infra_verified + s.eau_infra_verified + s.mairie_infra_verified;
-      }
-    }
-
-    const hasVerified = verified > 0;
-    const markerSize = actifs > 0 ? 52 : 36;
-
-    if (infraFilter === "all" && s && (s.elec_infra_actifs > 0 || s.eau_infra_actifs > 0 || s.mairie_infra_actifs > 0)) {
-      // Triple split marker with icons
-      const segW = Math.round(markerSize / 3) + 2;
-      const imgSize = 16;
-      const markerHtml = `<div style="position:relative;display:flex;align-items:center;gap:1px;">
-        <div style="background:#f59e0b;color:white;width:${segW}px;height:${markerSize}px;border-radius:${markerSize / 2}px 0 0 ${markerSize / 2}px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid white;border-right:none;font-size:10px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.3);"><img src="${INFRA_CATEGORY_ICONS.cie}" style="width:${imgSize}px;height:${imgSize}px;object-fit:contain;border-radius:2px;" />${s.elec_infra_actifs}</div>
-        <div style="background:#3b82f6;color:white;width:${segW}px;height:${markerSize}px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-top:2px solid white;border-bottom:2px solid white;font-size:10px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.3);"><img src="${INFRA_CATEGORY_ICONS.sodeci}" style="width:${imgSize}px;height:${imgSize}px;object-fit:contain;border-radius:2px;" />${s.eau_infra_actifs}</div>
-        <div style="background:#10b981;color:white;width:${segW}px;height:${markerSize}px;border-radius:0 ${markerSize / 2}px ${markerSize / 2}px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid white;border-left:none;font-size:10px;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,.3);"><img src="${INFRA_CATEGORY_ICONS.mairie}" style="width:${imgSize}px;height:${imgSize}px;object-fit:contain;border-radius:2px;" />${s.mairie_infra_actifs}</div>
-        ${hasVerified ? `<span style="position:absolute;top:-6px;right:-6px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;border:2px solid white;">✓</span>` : ''}
-      </div>`;
-
-      const icon = L.divIcon({ className: "", html: markerHtml, iconSize: [segW * 3 + 4, markerSize], iconAnchor: [(segW * 3 + 4) / 2, markerSize / 2] });
-
-      const imgS = 20;
-      const breakdownHtml = `<div style="margin-top:6px;display:flex;gap:4px;justify-content:center">
-        <div style="flex:1;padding:4px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;text-align:center"><img src="${INFRA_CATEGORY_ICONS.cie}" style="width:${imgS}px;height:${imgS}px;object-fit:contain;margin:0 auto 2px;" /><br/><span style="font-size:10px;color:#92400e">CIE</span><br/><span style="font-size:13px;font-weight:bold;color:#d97706">${s.elec_infra_actifs}</span></div>
-        <div style="flex:1;padding:4px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;text-align:center"><img src="${INFRA_CATEGORY_ICONS.sodeci}" style="width:${imgS}px;height:${imgS}px;object-fit:contain;margin:0 auto 2px;" /><br/><span style="font-size:10px;color:#1e40af">SODECI</span><br/><span style="font-size:13px;font-weight:bold;color:#2563eb">${s.eau_infra_actifs}</span></div>
-        <div style="flex:1;padding:4px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;text-align:center"><img src="${INFRA_CATEGORY_ICONS.mairie}" style="width:${imgS}px;height:${imgS}px;object-fit:contain;margin:0 auto 2px;" /><br/><span style="font-size:10px;color:#065f46">Mairie</span><br/><span style="font-size:13px;font-weight:bold;color:#059669">${s.mairie_infra_actifs}</span></div>
-      </div>`;
-
-      L.marker(pos, { icon })
-        .addTo(map)
-        .bindPopup(buildPopupHtml(c.couleur, c.nom, "Infrastructures", total, actifs, resolus, `${breakdownHtml}${buildConfirmHtml(verified, actifs, "infra")}`, 200));
-    } else {
-      const infraIcon = infraFilter === "cie" ? INFRA_CATEGORY_ICONS.cie : infraFilter === "sodeci" ? INFRA_CATEGORY_ICONS.sodeci : infraFilter === "mairie" ? INFRA_CATEGORY_ICONS.mairie : "";
-      const bg = infraFilter === "cie" ? "#f59e0b" : infraFilter === "sodeci" ? "#3b82f6" : infraFilter === "mairie" ? "#10b981" : "#6b7280";
-      const iconImg = infraIcon ? `<img src="${infraIcon}" style="width:20px;height:20px;object-fit:contain;border-radius:3px;" />` : "🔧";
-      const markerHtml = `<div style="position:relative;background:${bg};color:white;width:${markerSize}px;height:${markerSize}px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,.35);font-size:${actifs > 0 ? 13 : 11}px;font-weight:bold;gap:1px;">${iconImg}<span>${actifs > 0 ? actifs : '·'}</span>${hasVerified ? `<span style="position:absolute;top:-6px;right:-6px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;border:2px solid white;">✓</span>` : ''}</div>`;
-      const icon = L.divIcon({ className: "", html: markerHtml, iconSize: [markerSize, markerSize], iconAnchor: [markerSize / 2, markerSize / 2] });
-      const label = infraFilter === "cie" ? "Infra. CIE" : infraFilter === "sodeci" ? "Infra. SODECI" : infraFilter === "mairie" ? "Infra. Mairie" : "Toutes infrastructures";
-      L.marker(pos, { icon })
-        .addTo(map)
-        .bindPopup(buildPopupHtml(c.couleur, c.nom, label, total, actifs, resolus, buildConfirmHtml(verified, actifs, "infra")));
-    }
-  };
-
-  // Compute totals for display
-  const getCoupureTotals = () => {
-    const e = stats.reduce((a, c) => a + c.electricite_actifs, 0);
-    const w = stats.reduce((a, c) => a + c.eau_actifs, 0);
-    const ev = stats.reduce((a, c) => a + c.electricite_verified, 0);
-    const wv = stats.reduce((a, c) => a + c.eau_verified, 0);
-    if (coupureFilter === "electricity") return { actifs: e, verified: ev, total: stats.reduce((a, c) => a + c.electricite_total, 0), elec: e, eau: w };
-    if (coupureFilter === "water") return { actifs: w, verified: wv, total: stats.reduce((a, c) => a + c.eau_total, 0), elec: e, eau: w };
-    return { actifs: e + w, verified: ev + wv, total: stats.reduce((a, c) => a + c.electricite_total + c.eau_total, 0), elec: e, eau: w };
-  };
-
-  const getInfraTotals = () => {
-    const cie = infraStats.reduce((a, c) => a + c.elec_infra_actifs, 0);
-    const sod = infraStats.reduce((a, c) => a + c.eau_infra_actifs, 0);
-    const mai = infraStats.reduce((a, c) => a + c.mairie_infra_actifs, 0);
-    if (infraFilter === "cie") return { actifs: cie, total: infraStats.reduce((a, c) => a + c.elec_infra_total, 0), cie, sod, mai };
-    if (infraFilter === "sodeci") return { actifs: sod, total: infraStats.reduce((a, c) => a + c.eau_infra_total, 0), cie, sod, mai };
-    if (infraFilter === "mairie") return { actifs: mai, total: infraStats.reduce((a, c) => a + c.mairie_infra_total, 0), cie, sod, mai };
-    return { actifs: cie + sod + mai, total: infraStats.reduce((a, c) => a + c.elec_infra_total + c.eau_infra_total + c.mairie_infra_total, 0), cie, sod, mai };
-  };
-
-  const ct = getCoupureTotals();
-  const it = getInfraTotals();
-  const currentActifs = mode === "coupures" ? ct.actifs : it.actifs;
+  }, [boundaries, stats, coupureFilter, focusedCommune]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex flex-col h-screen bg-background overflow-hidden">
       <Header />
-      <main className="container py-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-4 flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              Coupures d'eau & d'électricité — en temps réel
-            </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">14 communes du Grand Abidjan disponibles</p>
-            <p className="mt-1 text-muted-foreground">
-              {loading ? "Chargement..." : (
-                <>
-                  <strong className={currentActifs > 0 ? "text-destructive" : "text-success"}>
-                    {currentActifs} coupure{currentActifs > 1 ? "s" : ""} active{currentActifs > 1 ? "s" : ""}
-                  </strong> en ce moment
-                  {coupureFilter === "all" && (
-                    <span className="ml-2 inline-flex items-center gap-2 text-sm">
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">⚡ {ct.elec}</span>
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">💧 {ct.eau}</span>
-                    </span>
-                  )}
-                </>
-              )}
-            </p>
-            {!loading && ct.verified > 0 && (
-              <p className="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-success">
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-success/10 text-xs">✓</span>
-                {ct.verified} confirmé{ct.verified > 1 ? 's' : ''} par la communauté
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => fetchAll()}
-              disabled={isRefreshing}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-semibold text-foreground hover:bg-muted transition-colors shadow-sm"
-              title="Rafraîchir les données de la carte"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 text-primary ${isRefreshing ? "animate-spin" : ""}`} />
-              <span>{isRefreshing ? "Synchro..." : "Actualiser"}</span>
-            </button>
-            <ShareButton
-              title="Carte SIGNA-CI"
-              text={`${currentActifs} signalements actifs sur les 14 communes du Grand Abidjan 📊`}
-            />
-          </div>
-        </motion.div>
 
-        {/* Contextual Banner — Zéro Redondance */}
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/80 bg-card p-3.5 shadow-xs">
-          <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-base text-amber-600 dark:text-amber-400 font-bold">
-              ⚡💧
-            </span>
-            <div>
-              <p className="text-xs sm:text-sm font-bold text-foreground">Météo des coupures de réseau dans les foyers</p>
-              <p className="text-[11px] sm:text-xs text-muted-foreground">Suivi en temps réel des pannes d'électricité (CIE) et d'eau (SODECI) à Abidjan.</p>
-            </div>
-          </div>
-          <Link
-            to="/infrastructures"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-600/30 bg-emerald-500/10 hover:bg-emerald-500/20 px-3.5 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 transition-colors shadow-xs"
-          >
-            <span>💡 Voirie, Caniveaux &amp; Lampadaires ➔</span>
-          </Link>
-        </div>
-
-        {/* Heat-map toggle */}
-        <button
-          onClick={() => setShowHeatmap((v) => !v)}
-          aria-pressed={showHeatmap}
-          className={`mb-4 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-            showHeatmap
-              ? "bg-orange-500 text-white border-orange-500 shadow-md"
-              : "bg-card text-muted-foreground border-border hover:bg-accent"
+      <main className="flex-1 min-h-0 relative flex flex-col lg:flex-row overflow-hidden">
+        {/* ═══════════════════════════════════════════════════════════════
+            VOLET GAUCHE (38%) : DASHBOARD CITOYEN & FEED DES COUPURES
+            ═══════════════════════════════════════════════════════════════ */}
+        <div
+          className={`w-full lg:w-[40%] xl:w-[36%] flex flex-col h-full min-h-0 bg-background border-r border-border/80 z-10 transition-all ${
+            mobileTab === "map" ? "hidden lg:flex" : "flex"
           }`}
         >
-          <Flame className="h-4 w-4" />
-          {showHeatmap ? "Heat-map ON" : "Heat-map signalements"}
-        </button>
-
-        {/* Filtre période — heatmap only */}
-        <AnimatePresence>
-          {showHeatmap && (
-            <motion.div
-              initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-              animate={{ opacity: 1, height: "auto", marginBottom: 12 }}
-              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              <div className="flex flex-wrap gap-2 items-center">
-                <span className="text-xs font-semibold text-orange-500 uppercase tracking-wide mr-1 flex items-center gap-1">
-                  <Flame className="h-3 w-3" /> Période heat-map :
-                </span>
-                {([
-                  { key: "all" as PeriodFilter,   label: "Tout" },
-                  { key: "today" as PeriodFilter,  label: "Aujourd'hui" },
-                  { key: "7d" as PeriodFilter,     label: "7 jours" },
-                  { key: "30d" as PeriodFilter,    label: "30 jours" },
-                ]).map((p) => (
-                  <button
-                    key={p.key}
-                    onClick={() => setPeriodFilter(p.key)}
-                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                      periodFilter === p.key
-                        ? "bg-orange-500 text-white"
-                        : "bg-secondary text-secondary-foreground hover:bg-accent"
-                    }`}
-                  >
-                    {p.label}
-                  </button>
-                ))}
+          {/* ── EN-TÊTE FIXE DU VOLET GAUCHE AVEC HERO CTA ── */}
+          <div className="p-3.5 sm:p-4 border-b border-border/70 bg-card/70 backdrop-blur-md space-y-3 shrink-0">
+            {/* Title & Pulse Indicator */}
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span
+                      className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                        totals.hasOutages ? "bg-amber-400" : "bg-emerald-400"
+                      }`}
+                    />
+                    <span
+                      className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+                        totals.hasOutages ? "bg-amber-500" : "bg-emerald-500"
+                      }`}
+                    />
+                  </span>
+                  <h1 className="text-base sm:text-lg font-black tracking-tight text-foreground">
+                    Météo des Coupures d'Énergie
+                  </h1>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  14 communes du Grand Abidjan · Suivi temps réel
+                </p>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
-        {/* Filtre commune */}
-        <div className="mb-4 flex flex-wrap gap-2 items-center">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mr-1">Commune :</span>
-          <button
-            onClick={() => { setFocusedCommune(null); mapInstance.current?.setView([5.36, -4.01], 12); }}
-            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-              focusedCommune === null
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-secondary-foreground hover:bg-accent"
-            }`}
-          >
-            Toutes
-          </button>
-          {COMMUNES.map((c) => (
-            <button
-              key={c.nom}
-              onClick={() => setFocusedCommune(focusedCommune === c.nom ? null : c.nom)}
-              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold transition-colors border ${
-                focusedCommune === c.nom
-                  ? "text-white border-transparent"
-                  : "bg-secondary text-secondary-foreground border-transparent hover:bg-accent"
-              }`}
-              style={focusedCommune === c.nom ? { backgroundColor: c.couleur, borderColor: c.couleur } : {}}
-            >
-              {c.nom}
-            </button>
-          ))}
-        </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => fetchAll()}
+                  disabled={isRefreshing}
+                  className="h-8 px-2.5 rounded-xl border border-border bg-card text-xs font-semibold text-foreground hover:bg-muted transition-all active:scale-95 shadow-2xs flex items-center gap-1"
+                  title="Actualiser les données"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 text-primary ${isRefreshing ? "animate-spin" : ""}`} />
+                  <span className="hidden sm:inline">{isRefreshing ? "..." : "Actualiser"}</span>
+                </button>
+                <ShareButton
+                  title="Météo Coupures Abidjan"
+                  text={`${totals.actifs} coupure(s) active(s) sur le Grand Abidjan en ce moment 📊`}
+                />
+              </div>
+            </div>
 
-        {/* Sub-filters (Électricité & Eau) */}
-        <div className="mb-4 flex flex-wrap gap-2">
-          {([
-            { key: "all" as CoupureFilter, label: "Tous", icon: <span>⚡💧</span> },
-            { key: "electricity" as CoupureFilter, label: "Électricité (CIE)", icon: <Zap className="h-3.5 w-3.5" /> },
-            { key: "water" as CoupureFilter, label: "Eau (SODECI)", icon: <Droplets className="h-3.5 w-3.5" /> },
-          ]).map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setCoupureFilter(f.key)}
-              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
-                coupureFilter === f.key
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "bg-secondary text-secondary-foreground hover:bg-accent"
-              }`}
-            >
-              {f.icon} {f.label}
-            </button>
-          ))}
-        </div>
+            {/* ⚡ BOUTON D'ACTION PRIMAIRE HÉRO : SIGNALER UNE COUPURE ⚡ */}
+            <div className="flex items-center gap-2">
+              <Button
+                asChild
+                className="flex-1 h-10 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 active:scale-[0.98] gap-1.5"
+              >
+                <Link to="/?category=outage">
+                  <Zap className="h-4 w-4 fill-slate-950" />
+                  <span>Signaler une coupure en 30s</span>
+                </Link>
+              </Button>
 
-        {/* Commune active counts (compact) */}
-        <div className="mb-4 flex flex-wrap gap-1.5">
-          {COMMUNES.map((c) => {
-            let count = 0;
-            if (mode === "coupures") {
-              const s = stats.find((st) => st.commune.toLowerCase() === c.nom.toLowerCase());
-              if (s) count = coupureFilter === "electricity" ? s.electricite_actifs : coupureFilter === "water" ? s.eau_actifs : s.electricite_actifs + s.eau_actifs;
-            } else {
-              const s = infraStats.find((st) => st.commune.toLowerCase() === c.nom.toLowerCase());
-              if (s) count = infraFilter === "cie" ? s.elec_infra_actifs : infraFilter === "sodeci" ? s.eau_infra_actifs : infraFilter === "mairie" ? s.mairie_infra_actifs : s.elec_infra_actifs + s.eau_infra_actifs + s.mairie_infra_actifs;
-            }
-            if (count === 0) return null;
-            return (
-              <span key={c.nom} className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-white opacity-80" style={{ backgroundColor: c.couleur }}>
-                {c.nom} · {count}
-              </span>
-            );
-          })}
-        </div>
+              <Button
+                asChild
+                variant="outline"
+                className="h-10 px-3 rounded-xl border-border/80 text-xs font-bold text-muted-foreground hover:text-foreground gap-1.5"
+                title="Voir le fil des pannes d'infrastructure"
+              >
+                <Link to="/infrastructures">
+                  <span>Voirie &amp; Infra</span>
+                  <ExternalLink className="h-3 w-3" />
+                </Link>
+              </Button>
+            </div>
 
-        {/* Verification legend (coupures only) */}
-        {mode === "coupures" && (
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/80 bg-card p-3.5 text-xs text-muted-foreground shadow-xs">
-            <div className="flex flex-wrap items-center gap-4">
-              <span className="flex items-center gap-2">
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-emerald-500 bg-emerald-500/15 text-xs font-black text-emerald-600 dark:text-emerald-400">✓</span>
-                <span className="font-semibold text-foreground">Coupure confirmée par les voisins</span>
-                <span className="text-[11px] text-muted-foreground">(2+ corroborations citoyennes)</span>
-              </span>
-              <span className="hidden sm:inline text-border">|</span>
-              <span className="flex items-center gap-2">
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-amber-500 bg-amber-500/15 text-xs font-black text-amber-600 dark:text-amber-400">⏳</span>
-                <span className="font-semibold text-foreground">En attente</span>
-                <span className="text-[11px] text-muted-foreground">(en cours de vérification de quartier)</span>
-              </span>
+            {/* BARRE DE FILTRES UNIFIÉE : ÉNERGIE & RECHERCHE */}
+            <div className="space-y-2 pt-1">
+              {/* Sélecteur de service segmenté */}
+              <div className="grid grid-cols-3 gap-1 p-1 bg-muted/70 rounded-xl border border-border/60 text-xs font-bold">
+                <button
+                  onClick={() => setCoupureFilter("all")}
+                  className={`py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    coupureFilter === "all"
+                      ? "bg-card text-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <span>⚡💧 Tous</span>
+                  <span className="text-[10px] opacity-75 font-normal">({totals.elec + totals.eau})</span>
+                </button>
+
+                <button
+                  onClick={() => setCoupureFilter("electricity")}
+                  className={`py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    coupureFilter === "electricity"
+                      ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 font-extrabold shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Zap className="h-3 w-3 text-amber-500 fill-amber-500" />
+                  <span>CIE</span>
+                  <span className="text-[10px] opacity-75 font-normal">({totals.elec})</span>
+                </button>
+
+                <button
+                  onClick={() => setCoupureFilter("water")}
+                  className={`py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    coupureFilter === "water"
+                      ? "bg-blue-500/15 text-blue-700 dark:text-blue-400 font-extrabold shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Droplets className="h-3 w-3 text-blue-500 fill-blue-500" />
+                  <span>SODECI</span>
+                  <span className="text-[10px] opacity-75 font-normal">({totals.eau})</span>
+                </button>
+              </div>
+
+              {/* Champ de recherche compact avec auto-clear */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Filtrer une commune (ex: Cocody, Yopougon, Abobo)..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-8.5 pl-8.5 pr-8 rounded-xl bg-muted/50 border border-border/70 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-amber-500"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <XIcon className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Mobile Tab Switcher */}
+              <div className="lg:hidden flex items-center p-1 bg-muted/80 rounded-xl border border-border/70 gap-1">
+                <button
+                  onClick={() => setMobileTab("list")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${
+                    mobileTab === "list" ? "bg-card text-foreground shadow-xs" : "text-muted-foreground"
+                  }`}
+                >
+                  <List className="h-3.5 w-3.5 text-amber-500" />
+                  <span>Communes ({filteredCommunes.length})</span>
+                </button>
+                <button
+                  onClick={() => setMobileTab("map")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all ${
+                    mobileTab === "map" ? "bg-card text-foreground shadow-xs" : "text-muted-foreground"
+                  }`}
+                >
+                  <MapIcon className="h-3.5 w-3.5 text-amber-500" />
+                  <span>Carte</span>
+                </button>
+              </div>
             </div>
           </div>
-        )}
 
-        {mode === "infrastructures" && (
-          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card px-4 py-2.5 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <img src={INFRA_CATEGORY_ICONS.cie} className="h-5 w-5 object-contain rounded" alt="CIE" />
-              <span><strong className="text-foreground">CIE</strong> — Lampadaires, poteaux</span>
+          {/* ── ZONE DE CONTENU SCROLLABLE : MASTER-DETAIL OU LISTE DES COMMUNES ── */}
+          <div className="flex-1 overflow-y-auto divide-y divide-border/40 p-3 sm:p-4 space-y-3 pb-28 lg:pb-6">
+            {focusedCommune ? (
+              /* ── VUE FOCUS SUR UNE COMMUNE SÉLECTIONNÉE ── */
+              <div className="space-y-4">
+                {/* Sticky Back Header */}
+                <div className="flex items-center justify-between gap-2 pb-2">
+                  <button
+                    onClick={handleResetCommune}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-muted hover:bg-muted/80 text-foreground transition-all active:scale-95 shadow-2xs"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    <span>Toutes les 14 communes</span>
+                  </button>
+
+                  <Button
+                    asChild
+                    size="sm"
+                    variant="outline"
+                    className="h-8 rounded-xl text-xs font-bold gap-1 text-primary border-primary/30"
+                  >
+                    <Link to={`/commune/${encodeURIComponent(focusedCommune)}`}>
+                      <span>Fiche {focusedCommune}</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </Button>
+                </div>
+
+                {/* Commune Profile Card */}
+                {(() => {
+                  const targetCommune = filteredCommunes.find(
+                    (c) => c.nom.toLowerCase() === focusedCommune.toLowerCase()
+                  );
+                  if (!targetCommune) return null;
+
+                  return (
+                    <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs space-y-3">
+                      <div
+                        className="h-2 w-full"
+                        style={{ backgroundColor: targetCommune.couleur || "#10B981" }}
+                      />
+
+                      <div className="p-4 pt-1 space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <h2 className="text-lg font-black text-foreground">{targetCommune.nom}</h2>
+                            <p className="text-xs text-muted-foreground">
+                              {targetCommune.population.toLocaleString()} habitants
+                            </p>
+                          </div>
+
+                          <Badge
+                            className={`text-xs font-bold ${
+                              targetCommune.actifs > 0
+                                ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
+                                : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                            }`}
+                          >
+                            {targetCommune.actifs > 0
+                              ? `🔴 ${targetCommune.actifs} coupure${targetCommune.actifs > 1 ? "s" : ""} en cours`
+                              : "🟢 Réseau 100% stable"}
+                          </Badge>
+                        </div>
+
+                        {/* Breakdown Stats */}
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                            <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-bold">
+                              <Zap className="h-3.5 w-3.5" />
+                              <span>Électricité (CIE)</span>
+                            </div>
+                            <p className="text-base font-black text-foreground mt-1">
+                              {targetCommune.elecActifs} active{targetCommune.elecActifs > 1 ? "s" : ""}
+                            </p>
+                          </div>
+
+                          <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                            <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-400 font-bold">
+                              <Droplets className="h-3.5 w-3.5" />
+                              <span>Eau (SODECI)</span>
+                            </div>
+                            <p className="text-base font-black text-foreground mt-1">
+                              {targetCommune.eauActifs} active{targetCommune.eauActifs > 1 ? "s" : ""}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Bouton pour déclarer dans cette commune */}
+                        <Button
+                          asChild
+                          className="w-full h-9 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs gap-1.5 shadow-xs"
+                        >
+                          <Link to={`/?commune=${encodeURIComponent(targetCommune.nom)}&category=outage`}>
+                            <Plus className="h-3.5 w-3.5" />
+                            <span>Signaler une panne à {targetCommune.nom}</span>
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Liste des signalements individuels actifs de cette commune */}
+                <div className="space-y-2">
+                  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    Signalements en cours ({focusedCommuneReports.length})
+                  </h3>
+
+                  {focusedCommuneReports.length === 0 ? (
+                    <div className="p-6 rounded-2xl border border-dashed border-border/80 text-center text-xs text-muted-foreground">
+                      <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-2 opacity-80" />
+                      <p className="font-bold text-foreground">Aucune coupure active signalée</p>
+                      <p className="text-[11px] mt-0.5">Le réseau est stable dans ce secteur.</p>
+                    </div>
+                  ) : (
+                    focusedCommuneReports.map((r) => {
+                      const isElec = r.service_type === "electricity";
+                      const elapsed = formatElapsed(r.start_time, r.created_at);
+
+                      return (
+                        <div
+                          key={r.id}
+                          className="p-3.5 rounded-2xl border border-border bg-card shadow-2xs space-y-2 hover:border-amber-500/40 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                isElec
+                                  ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                                  : "bg-blue-500/15 text-blue-700 dark:text-blue-300"
+                              }`}
+                            >
+                              {isElec ? <Zap className="h-3 w-3" /> : <Droplets className="h-3 w-3" />}
+                              <span>{isElec ? "CIE · Électricité" : "SODECI · Eau"}</span>
+                            </span>
+
+                            {elapsed && (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground">
+                                <Clock className="h-3 w-3" />
+                                <span>{elapsed}</span>
+                              </span>
+                            )}
+                          </div>
+
+                          <p className="text-xs font-medium text-foreground leading-snug line-clamp-2">
+                            {r.description || "Coupure de réseau signalée"}
+                          </p>
+
+                          <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/50">
+                            <span className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3 text-emerald-600" />
+                              <span>{r.quartier || r.commune}</span>
+                            </span>
+
+                            <Link
+                              to={`/signalement/${r.id}`}
+                              className="text-primary font-bold hover:underline inline-flex items-center gap-0.5"
+                            >
+                              <span>Détails</span>
+                              <ChevronRight className="h-3 w-3" />
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* ── VUE GLOBALE DES 14 COMMUNES DU GRAND ABIDJAN ── */
+              <div className="space-y-3">
+                {/* Bannière de Synthèse Globale */}
+                <div
+                  className={`p-3.5 rounded-2xl border transition-all ${
+                    totals.hasOutages
+                      ? "bg-amber-500/10 border-amber-500/30 text-amber-950 dark:text-amber-100"
+                      : "bg-emerald-500/10 border-emerald-500/30 text-emerald-950 dark:text-emerald-100"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xl">{totals.hasOutages ? "⚠️" : "🛡️"}</span>
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-extrabold">
+                        {totals.hasOutages
+                          ? `${totals.actifs} coupure(s) en cours sur Abidjan`
+                          : "Réseau Abidjanais 100% Opérationnel"}
+                      </h3>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {totals.hasOutages
+                          ? `⚡ ${totals.elec} secteur(s) CIE · 💧 ${totals.eau} secteur(s) SODECI`
+                          : "Aucune panne majeure signalée sur les 14 communes."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Liste synthétique des 14 communes */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between px-1 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                    <span>Commune ({filteredCommunes.length})</span>
+                    <span>État du Réseau</span>
+                  </div>
+
+                  {filteredCommunes.map((c) => {
+                    const hasOutage = c.actifs > 0;
+
+                    return (
+                      <div
+                        key={c.nom}
+                        onClick={() => handleSelectCommune(c.nom)}
+                        className={`group p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 shadow-2xs hover:shadow-xs active:scale-[0.99] ${
+                          hasOutage
+                            ? "bg-card border-amber-500/40 hover:border-amber-500"
+                            : "bg-card/70 border-border/70 hover:border-emerald-500/50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          {/* Pastille de couleur de la commune */}
+                          <div
+                            className="h-8 w-8 shrink-0 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-2xs"
+                            style={{ backgroundColor: c.couleur }}
+                          >
+                            {c.nom.slice(0, 2).toUpperCase()}
+                          </div>
+
+                          <div className="min-w-0">
+                            <h4 className="text-xs font-bold text-foreground truncate group-hover:text-primary transition-colors">
+                              {c.nom}
+                            </h4>
+                            <p className="text-[10px] text-muted-foreground truncate">
+                              {c.population.toLocaleString()} hab.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {hasOutage ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-extrabold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                              <span>⚡💧</span>
+                              <span>{c.actifs}</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                              <span>✓ Stable</span>
+                            </span>
+                          )}
+
+                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Protection Vie Privée & Données GPS */}
+                <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-950/20 p-3 text-xs text-slate-700 dark:text-slate-300 flex items-start gap-2.5 mt-4">
+                  <Shield className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                  <p className="text-[11px] leading-relaxed">
+                    <strong>Protection &amp; Confidentialité GPS :</strong> Pour préserver la sécurité des foyers, les positions sont décalées d'environ 150m. Seuls les services agréés ont accès aux relevés précis.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            VOLET DROIT (62%) : CARTE INTERACTIVE PLEIN ÉCRAN LEAFLET
+            ═══════════════════════════════════════════════════════════════ */}
+        <div
+          className={`w-full lg:w-[60%] xl:w-[64%] h-full min-h-0 relative bg-slate-100 dark:bg-slate-900 transition-all ${
+            mobileTab === "list" ? "hidden lg:block" : "block"
+          }`}
+        >
+          {/* Canvas Leaflet */}
+          <div
+            ref={mapRef}
+            className="absolute inset-0 w-full h-full"
+            style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }}
+          />
+
+          {/* Floating Controls Top-Right : GPS & Reset View */}
+          <div className="absolute top-4 right-4 z-[400] flex flex-col gap-2">
+            <button
+              onClick={handleLocateMe}
+              className="h-10 w-10 rounded-xl bg-card border border-border/80 text-foreground flex items-center justify-center shadow-lg hover:bg-muted transition-all active:scale-95"
+              title="Me géolocaliser"
+            >
+              <Compass className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </button>
+
+            {focusedCommune && (
+              <button
+                onClick={handleResetCommune}
+                className="h-10 w-10 rounded-xl bg-card border border-border/80 text-foreground flex items-center justify-center shadow-lg hover:bg-muted transition-all active:scale-95"
+                title="Vue globale d'Abidjan"
+              >
+                <RefreshCw className="h-4 w-4 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+
+          {/* Mobile Back-to-List Pill */}
+          <div className="lg:hidden absolute top-4 left-4 z-[400]">
+            <button
+              onClick={() => setMobileTab("list")}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-card/95 text-foreground font-bold text-xs shadow-lg backdrop-blur-md border border-border active:scale-95 transition-all"
+            >
+              <List className="h-4 w-4 text-amber-500" />
+              <span>Voir les Communes ({filteredCommunes.length})</span>
+            </button>
+          </div>
+
+          {/* Live Legend (Desktop) */}
+          <div className="hidden sm:flex absolute bottom-4 left-4 z-[400] items-center gap-3 px-3.5 py-2 rounded-2xl bg-card/90 backdrop-blur-md border border-border/80 shadow-lg text-xs font-semibold">
+            <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300">
+              <span className="h-2.5 w-2.5 rounded-full bg-amber-500 inline-block" /> ⚡ CIE
             </span>
-            <span className="hidden sm:inline text-border">|</span>
-            <span className="flex items-center gap-1.5">
-              <img src={INFRA_CATEGORY_ICONS.sodeci} className="h-5 w-5 object-contain rounded" alt="SODECI" />
-              <span><strong className="text-foreground">SODECI</strong> — Fuites, canalisations</span>
+            <span className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
+              <span className="h-2.5 w-2.5 rounded-full bg-blue-500 inline-block" /> 💧 SODECI
             </span>
-            <span className="hidden sm:inline text-border">|</span>
-            <span className="flex items-center gap-1.5">
-              <img src={INFRA_CATEGORY_ICONS.mairie} className="h-5 w-5 object-contain rounded" alt="Mairie" />
-              <span><strong className="text-foreground">Mairie</strong> — Voirie, caniveaux</span>
+            <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 border-l border-border pl-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 inline-block" /> ✓ Réseau Stable
             </span>
           </div>
-        )}
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="overflow-hidden rounded-2xl border border-border shadow-card">
-          <div ref={mapRef} className="h-[520px] w-full" role="region" aria-label="Carte interactive des signalements" />
-        </motion.div>
+          {/* Mobile Bottom-Sheet quand une commune est sélectionnée sur la carte */}
+          <AnimatePresence>
+            {mobileTab === "map" && mobileBottomSheetOpen && focusedCommune && (
+              <motion.div
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="lg:hidden absolute bottom-24 left-3 right-3 z-[450] bg-card/98 backdrop-blur-xl rounded-2xl border border-border shadow-2xl p-3.5 space-y-3"
+              >
+                {(() => {
+                  const target = filteredCommunes.find(
+                    (c) => c.nom.toLowerCase() === focusedCommune.toLowerCase()
+                  );
+                  if (!target) return null;
 
-        {/* 🛡️ Bandeau de Sécurité & Confidentialité GPS */}
-        <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-950/20 p-3.5 text-xs text-slate-700 dark:text-slate-300 flex items-start sm:items-center gap-3">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">
-            🛡️
-          </div>
-          <p className="leading-relaxed text-[11px] sm:text-xs">
-            <strong>Protection de la Vie Privée & Données GPS :</strong> Pour préserver la sécurité des foyers, les positions sur cette carte publique sont légèrement décalées (~150 m). Seules les équipes techniques habilitées (CIE, SODECI, Mairies) accèdent à la localisation d'intervention. Aucune donnée n'est commercialisée.
-          </p>
+                  return (
+                    <>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h4 className="text-sm font-extrabold text-foreground">{target.nom}</h4>
+                          <p className="text-xs text-muted-foreground">
+                            {target.actifs > 0
+                              ? `🔴 ${target.actifs} coupure(s) en cours`
+                              : "🟢 Réseau 100% stable"}
+                          </p>
+                        </div>
+
+                        <button
+                          onClick={() => setMobileBottomSheetOpen(false)}
+                          className="p-1 text-muted-foreground hover:text-foreground"
+                        >
+                          <XIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={() => setMobileTab("list")}
+                          size="sm"
+                          className="flex-1 h-8.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs"
+                        >
+                          Voir les signalements ({target.actifs})
+                        </Button>
+                        <Button
+                          asChild
+                          size="sm"
+                          variant="outline"
+                          className="h-8.5 rounded-xl text-xs font-bold"
+                        >
+                          <Link to={`/commune/${encodeURIComponent(target.nom)}`}>
+                            Fiche
+                          </Link>
+                        </Button>
+                      </div>
+                    </>
+                  );
+                })()}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </main>
     </div>
