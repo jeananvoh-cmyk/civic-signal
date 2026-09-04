@@ -14,13 +14,10 @@ export default function Footer() {
           
           {/* Colonne 1 : Identité & Contact Direct (md:col-span-4) */}
           <div className="space-y-4 md:col-span-4">
-            <div className="flex flex-wrap items-center gap-3">
+            <div>
               <Link to="/" className="inline-block transition-transform hover:scale-105" title="SIGNA.ci — Plateforme Civique">
-                <SignaLogo size="md" variant="white" />
+                <SignaLogo size="md" variant="white" showSlogan={true} />
               </Link>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-black tracking-widest text-emerald-400 uppercase">
-                SIGNALER · SUIVRE · RÉPARER
-              </div>
             </div>
 
             {/* Liens de contact directs et discrets */}

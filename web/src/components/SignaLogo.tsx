@@ -85,17 +85,35 @@ export const SignaLogo = ({ className, size = "md", showSlogan = false, variant 
         </svg>
       </div>
 
-      {/* 🔤 Nom de marque horizontal SIGNA.ci (placé À CÔTÉ et non en bas) */}
-      <span
-        className={cn(
-          "font-display font-black tracking-tight flex items-baseline gap-0.5 leading-none",
-          isWhite ? "text-white" : isDark ? "text-slate-950" : "text-slate-900 dark:text-white",
-          textSizes[size]
+      {/* 🔤 Nom de marque + Slogan aligné directement sous la lettre S */}
+      <div className="flex flex-col justify-center">
+        <span
+          className={cn(
+            "font-display font-black tracking-tight flex items-baseline gap-0.5 leading-none",
+            isWhite ? "text-white" : isDark ? "text-slate-950" : "text-slate-900 dark:text-white",
+            textSizes[size]
+          )}
+        >
+          <span>SIGNA</span>
+          <span className="text-emerald-500 font-black">.ci</span>
+        </span>
+
+        {showSlogan && (
+          <span
+            className={cn(
+              "mt-1.5 inline-flex items-center rounded-full bg-emerald-500/10 border border-emerald-500/30 font-sans font-black tracking-wider uppercase w-fit",
+              isWhite ? "text-emerald-400" : isDark ? "text-emerald-700" : "text-emerald-600 dark:text-emerald-400",
+              size === "sm"
+                ? "text-[7.5px] px-1.5 py-0.5"
+                : size === "lg" || size === "xl"
+                ? "text-[11px] px-2.5 py-0.5"
+                : "text-[9px] px-2 py-0.5"
+            )}
+          >
+            SIGNALER · SUIVRE · RÉPARER
+          </span>
         )}
-      >
-        <span>SIGNA</span>
-        <span className="text-emerald-500 font-black">.ci</span>
-      </span>
+      </div>
     </div>
   );
 };
