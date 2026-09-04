@@ -278,8 +278,13 @@ const ReportPage = () => {
   const { isOnline } = useNetworkStatus();
   const { enqueue } = useOfflineQueue();
 
-  // Wizard — si step=2 dans l'URL (retour depuis auth après signalement anonyme), avancer directement
-  const [step, setStep] = useState<1 | 2>(() => searchParams.get("step") === "2" ? 2 : 1);
+  // Wizard 3 Étapes — si step dans l'URL (retour depuis auth après signalement anonyme), avancer directement
+  const [step, setStep] = useState<1 | 2 | 3>(() => {
+    const s = searchParams.get("step");
+    if (s === "2") return 2;
+    if (s === "3") return 3;
+    return 1;
+  });
 
   // Filtre de catégorie (ex: venant de "Publier une panne" sur la page infrastructure)
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<"all" | "infrastructure" | "outage">(() => {
@@ -657,18 +662,29 @@ const ReportPage = () => {
     if ("vibrate" in navigator) navigator.vibrate([20]);
   };
 
-  const handleLocationNext = async () => {
+  const handleLocationNext = () => {
     if (!commune || !resolvedQuartier) {
-      toast.error("Sélectionnez la commune et le quartier");
+      toast.error("Veuillez sélectionner la commune et le quartier");
       return;
     }
     if (latitude === null || longitude === null) {
       toast.error("Position GPS requise. Activez la géolocalisation.");
       return;
     }
+    setStep(2);
+  };
 
-    // Vérification doublons — similarReports est déjà pré-chargé par le useEffect
-    // (dès que quartier est sélectionné). On affiche le dialog si des résultats existent.
+  const handleTypeNext = () => {
+    if (!selectedType) {
+      toast.error("Veuillez choisir le type d'incident");
+      return;
+    }
+    if (selectedType.id === "other" && !customTypeDesc.trim()) {
+      toast.error("Veuillez préciser la nature de l'incident");
+      return;
+    }
+
+    // Vérification doublons dès le passage à l'étape 3
     if (selectedType?.reportCategory === "outage" && user && similarReports.length > 0) {
       setShowDuplicateDialog(true);
       return;
@@ -678,7 +694,7 @@ const ReportPage = () => {
     if (selectedType?.reportCategory === "infrastructure") {
       setShowPhoto(true);
     }
-    setStep(2);
+    setStep(3);
   };
 
   const handleCorroborateExisting = async (reportId: string) => {
@@ -698,7 +714,7 @@ const ReportPage = () => {
       } else if (msg.includes("Impossible de confirmer")) {
         toast.error("Ce signalement n'est plus actif.");
         setShowDuplicateDialog(false);
-        proceedToStep2();
+        proceedToStep3();
       } else {
         toast.error(msg);
       }
@@ -707,12 +723,12 @@ const ReportPage = () => {
     }
   };
 
-  const proceedToStep2 = () => {
+  const proceedToStep3 = () => {
     setShowDuplicateDialog(false);
     if (selectedType?.reportCategory === "infrastructure") {
       setShowPhoto(true);
     }
-    setStep(2);
+    setStep(3);
   };
 
   const handleSubmit = async () => {
@@ -914,30 +930,67 @@ const ReportPage = () => {
         <div className="space-y-4">
 
           {/* Indicateur de progression */}
+            {/* Stepper 3 Étapes */}
             <div className="mb-6 space-y-2.5">
-              <div className="flex items-center gap-2">
-                {([1, 2] as const).map((s) => (
-                  <div key={s} className="flex items-center gap-2 flex-1 last:flex-none">
-                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all ${
-                      step === s
-                        ? "bg-primary text-primary-foreground shadow-md"
-                        : step > s
-                        ? "bg-success text-success-foreground"
-                        : "bg-muted text-muted-foreground"
-                    }`}>
-                      {step > s ? "✓" : s}
+              <div className="flex items-center justify-between gap-1 sm:gap-2">
+                {[
+                  { s: 1, label: "Localisation", icon: "📍" },
+                  { s: 2, label: "Incident", icon: "⚡" },
+                  { s: 3, label: "Preuves & Envoi", icon: "📸" },
+                ].map(({ s, label }) => {
+                  const isCompleted =
+                    (s === 1 && Boolean(commune && resolvedQuartier && latitude)) ||
+                    (s === 2 && Boolean(selectedType));
+                  const isCurrent = step === s;
+                  const canClick =
+                    s === 1 ||
+                    (s === 2 && Boolean(commune && resolvedQuartier)) ||
+                    (s === 3 && Boolean(commune && resolvedQuartier && selectedType));
+
+                  return (
+                    <div
+                      key={s}
+                      onClick={() => { if (canClick) setStep(s as 1 | 2 | 3); }}
+                      className={cn(
+                        "flex items-center gap-2 flex-1 last:flex-none cursor-pointer select-none transition-all",
+                        !canClick && "cursor-not-allowed opacity-50"
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all shadow-xs",
+                          isCurrent
+                            ? "bg-primary text-primary-foreground ring-2 ring-primary/30 ring-offset-2 scale-105"
+                            : isCompleted
+                            ? "bg-emerald-600 text-white"
+                            : "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        {isCompleted && !isCurrent ? <CheckCircle2 className="h-4 w-4" /> : s}
+                      </div>
+                      <div className="hidden sm:block min-w-0">
+                        <p className={cn("text-xs font-bold truncate", isCurrent ? "text-foreground" : "text-muted-foreground")}>
+                          {label}
+                        </p>
+                      </div>
+                      {s < 3 && (
+                        <div
+                          className={cn(
+                            "flex-1 h-0.5 mx-1 transition-colors",
+                            step > s ? "bg-emerald-600" : "bg-muted"
+                          )}
+                        />
+                      )}
                     </div>
-                    <span className={`text-xs hidden sm:block ${step === s ? "text-foreground font-semibold" : "text-muted-foreground"}`}>
-                      {s === 1 ? "Type & Lieu" : "Finaliser"}
-                    </span>
-                    {s < 2 && <div className={`flex-1 h-0.5 ${step > s ? "bg-success" : "bg-muted"}`} />}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-              <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
                 <motion.div
                   className="h-full rounded-full bg-primary"
-                  animate={{ width: step === 1 ? "50%" : "100%" }}
+                  animate={{
+                    width: step === 1 ? "33%" : step === 2 ? "66%" : "100%",
+                  }}
                   transition={{ duration: 0.35, ease: "easeOut" }}
                 />
               </div>
@@ -959,473 +1012,472 @@ const ReportPage = () => {
         <AnimatePresence mode="wait">
 
           {/* ═══════════════════════════════════════════════
-              ÉTAPE 1 — Type + Localisation
+              ÉTAPE 1 — Localisation & Adressage PADA
           ═══════════════════════════════════════════════ */}
           {step === 1 && (
             <motion.div
               key="step1"
-              initial={{ opacity: 0, x: 30 }}
+              initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -30 }}
+              exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
               className="space-y-4"
             >
-              {/* ── Mode 1 : Sélection du type d'incident (Masqué dès qu'un choix est fait) ── */}
-              {!selectedType ? (
-                <div className="space-y-4">
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold">
-                      {activeCategoryFilter === "infrastructure"
-                        ? "Signaler une Panne d'Infrastructure & Voirie"
-                        : activeCategoryFilter === "outage"
-                        ? "Signaler une Coupure Réseau"
-                        : "Que souhaitez-vous signaler ?"}
-                    </h1>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {activeCategoryFilter === "infrastructure"
-                        ? "Sélectionnez le problème d'infrastructure ou de voirie dans votre rue :"
-                        : "Touchez un incident pour démarrer votre signalement citoyen"}
+              <div className="text-center">
+                <h1 className="text-2xl font-bold">1. Où se situe l'incident ?</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Position GPS précise et adressage officiel PADA pour guider les équipes d'intervention
+                </p>
+              </div>
+
+              {/* Bannière de localisation automatique */}
+              <div className="rounded-2xl border-2 border-emerald-500/30 bg-emerald-500/8 p-4 flex items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                      Localisation automatique détectée
                     </p>
-                  </div>
-
-                  {/* Bannière explicative Mode Infrastructure */}
-                  {activeCategoryFilter === "infrastructure" && (
-                    <div className="flex items-center justify-between p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30">
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-xl">🚧</span>
-                        <div>
-                          <p className="text-xs font-bold text-emerald-950 dark:text-emerald-200">
-                            Signalement d'Infrastructures Publiques
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            Les coupures privées à domicile sont masquées
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setActiveCategoryFilter("all")}
-                        className="text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:underline px-2.5 py-1 rounded-lg bg-emerald-500/15"
-                      >
-                        Afficher tout
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Grille des types — coupures réseau (Masquée en mode infrastructure) */}
-                  {activeCategoryFilter !== "infrastructure" && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Coupure de réseau (à domicile)</p>
-                      <div className="grid grid-cols-2 gap-3">
-                        {REPORT_TYPES.filter((t) => t.reportCategory === "outage").map((type) => (
-                          <motion.button
-                            key={type.id}
-                            type="button"
-                            whileTap={{ scale: 0.94 }}
-                            onClick={() => handleTypeSelect(type)}
-                            className="group flex flex-col items-center gap-2.5 rounded-2xl border-2 p-5 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary bg-card"
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.borderColor = type.color;
-                              e.currentTarget.style.backgroundColor = type.color + hoverAlpha;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.borderColor = "";
-                              e.currentTarget.style.backgroundColor = "";
-                            }}
-                          >
-                            {type.image
-                              ? <img src={type.image} alt={type.label} className="h-10 w-10 object-contain rounded-lg" />
-                              : <span className="text-4xl leading-none">{type.emoji}</span>
-                            }
-                            <span className="text-xs font-semibold leading-tight text-foreground">{type.label}</span>
-                            {type.description && (
-                              <span className="text-xs leading-tight text-muted-foreground">{type.description}</span>
-                            )}
-                          </motion.button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Section Problème d'infrastructure par Opérateur */}
-                  {activeCategoryFilter !== "outage" && (
-                    <div className="space-y-4 pt-1">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Signalement d'infrastructure par opérateur</p>
-
-                      {/* --- CIE --- */}
-                      <div className="space-y-2 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded-md text-[11px] font-black tracking-wider bg-amber-500 text-white shadow-xs">CIE</span>
-                          <span className="text-xs font-bold text-amber-900 dark:text-amber-200">Électricité & Éclairage Public</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {REPORT_TYPES.filter((t) => t.operator === "CIE").map((type) => (
-                            <motion.button
-                              key={type.id}
-                              type="button"
-                              whileTap={{ scale: 0.94 }}
-                              onClick={() => handleTypeSelect(type)}
-                              className="group flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary bg-card"
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.borderColor = type.color;
-                                e.currentTarget.style.backgroundColor = type.color + hoverAlpha;
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.borderColor = "";
-                                e.currentTarget.style.backgroundColor = "";
-                              }}
-                            >
-                              {type.image
-                                ? <img src={type.image} alt={type.label} className="h-8 w-8 object-contain rounded-md" />
-                                : <span className="text-2xl leading-none">{type.emoji}</span>
-                              }
-                              <span className="text-xs font-bold leading-tight text-foreground">{type.label}</span>
-                              {type.description && (
-                                <span className="text-[11px] leading-tight text-muted-foreground line-clamp-2">{type.description}</span>
-                              )}
-                            </motion.button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* --- SODECI --- */}
-                      <div className="space-y-2 rounded-xl border border-sky-500/20 bg-sky-500/5 p-3">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded-md text-[11px] font-black tracking-wider bg-sky-600 text-white shadow-xs">SODECI</span>
-                          <span className="text-xs font-bold text-sky-900 dark:text-sky-200">Eau Potable & Assainissement</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {REPORT_TYPES.filter((t) => t.operator === "SODECI").map((type) => (
-                            <motion.button
-                              key={type.id}
-                              type="button"
-                              whileTap={{ scale: 0.94 }}
-                              onClick={() => handleTypeSelect(type)}
-                              className="group flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary bg-card"
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.borderColor = type.color;
-                                e.currentTarget.style.backgroundColor = type.color + hoverAlpha;
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.borderColor = "";
-                                e.currentTarget.style.backgroundColor = "";
-                              }}
-                            >
-                              {type.image
-                                ? <img src={type.image} alt={type.label} className="h-8 w-8 object-contain rounded-md" />
-                                : <span className="text-2xl leading-none">{type.emoji}</span>
-                              }
-                              <span className="text-xs font-bold leading-tight text-foreground">{type.label}</span>
-                              {type.description && (
-                                <span className="text-[11px] leading-tight text-muted-foreground line-clamp-2">{type.description}</span>
-                              )}
-                            </motion.button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* --- MAIRIE --- */}
-                      <div className="space-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded-md text-[11px] font-black tracking-wider bg-emerald-600 text-white shadow-xs">MAIRIE</span>
-                          <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">Voirie & Salubrité Municipale</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {REPORT_TYPES.filter((t) => t.operator === "MAIRIE").map((type) => (
-                            <motion.button
-                              key={type.id}
-                              type="button"
-                              whileTap={{ scale: 0.94 }}
-                              onClick={() => handleTypeSelect(type)}
-                              className="group flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-center transition-all duration-150 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary bg-card"
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.borderColor = type.color;
-                                e.currentTarget.style.backgroundColor = type.color + hoverAlpha;
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.borderColor = "";
-                                e.currentTarget.style.backgroundColor = "";
-                              }}
-                            >
-                              {type.image
-                                ? <img src={type.image} alt={type.label} className="h-8 w-8 object-contain rounded-md" />
-                                : <span className="text-2xl leading-none">{type.emoji}</span>
-                              }
-                              <span className="text-xs font-bold leading-tight text-foreground">{type.label}</span>
-                              {type.description && (
-                                <span className="text-[11px] leading-tight text-muted-foreground line-clamp-2">{type.description}</span>
-                              )}
-                            </motion.button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                /* ── Mode 2 : Incident sélectionné (Carte compacte & Formulaire Localisation PADA immédiat) ── */
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="rounded-2xl border-2 p-4 bg-card shadow-sm flex items-center justify-between gap-3"
-                  style={{
-                    borderColor: selectedType.color,
-                    backgroundColor: selectedType.color + "0D",
-                  }}
-                >
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div
-                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-xs"
-                      style={{ backgroundColor: selectedType.color + "25" }}
-                    >
-                      {selectedType.image ? (
-                        <img src={selectedType.image} alt={selectedType.label} className="h-8 w-8 object-contain" />
-                      ) : (
-                        <span className="text-3xl leading-none">{selectedType.emoji}</span>
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider text-white shadow-xs"
-                          style={{ backgroundColor: selectedType.color }}
-                        >
-                          {selectedType.operator || (selectedType.reportCategory === "outage" ? "Coupure Foyer" : "Voirie")}
+                    <h4 className="text-base font-black text-foreground truncate">
+                      {detectedCommune ? (
+                        <>
+                          Vous êtes à <span className="text-emerald-600 dark:text-emerald-400">{detectedCommune.nom}</span>
+                        </>
+                      ) : gpsLoading ? (
+                        <span className="flex items-center gap-1.5 text-sm font-semibold">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Détection de votre commune…
                         </span>
-                        <h2 className="font-bold text-base text-foreground truncate">{selectedType.label}</h2>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                        {selectedType.description || "Incident sélectionné"}
-                      </p>
+                      ) : (
+                        <span>Position en cours de détection…</span>
+                      )}
+                    </h4>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => captureGPS(true)}
+                  disabled={gpsLoading}
+                  className="shrink-0 text-xs h-8 px-2.5 rounded-lg text-emerald-700 hover:bg-emerald-500/15 gap-1.5 font-semibold"
+                  title="Réactualiser votre position"
+                >
+                  <Navigation className={`h-3.5 w-3.5 ${gpsLoading ? "animate-spin" : ""}`} />
+                  <span>{gpsLoading ? "Détection…" : "Actualiser"}</span>
+                </Button>
+              </div>
+
+              {/* Fallback si GPS indisponible ou hors zone */}
+              {!gpsLoading && (!detectedCommune || outsidePilotZone) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="rounded-2xl border-2 border-amber-500/30 bg-amber-500/5 p-5 space-y-4 text-center"
+                >
+                  <div className="flex justify-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/15">
+                      <MapPin className="h-6 w-6 text-amber-500" />
                     </div>
                   </div>
-
+                  <h3 className="font-bold text-foreground text-sm">
+                    {outsidePilotZone
+                      ? "Position hors des 14 communes du Grand Abidjan"
+                      : "Position GPS non détectée"}
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {outsidePilotZone
+                      ? "SIGNA·CI couvre les 14 communes du Grand Abidjan. Choisissez directement votre commune ci-dessous :"
+                      : "Votre géolocalisation automatique n'a pas abouti. Vous pouvez sélectionner votre commune ci-dessous :"}
+                  </p>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setSelectedType(null)}
-                    className="shrink-0 h-9 text-xs font-bold hover:bg-muted/80 rounded-xl border-dashed border-2 transition-all hover:scale-105"
+                    onClick={() => captureGPS(true)}
+                    disabled={gpsLoading}
+                    className="mx-auto"
                   >
-                    Changer de type ↺
+                    <Navigation className="h-3.5 w-3.5 mr-1.5" />
+                    Réessayer la géolocalisation
                   </Button>
+
+                  {/* Choix manuel direct de secours */}
+                  <div className="pt-3 border-t border-amber-500/20 text-left space-y-3">
+                    <label className="text-xs font-bold text-foreground block">
+                      📍 Choisir ma commune :
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {COMMUNES.map((c) => (
+                        <button
+                          key={c.nom}
+                          type="button"
+                          onClick={() => handleManualCommuneSelect(c.nom)}
+                          className={`flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-semibold rounded-xl border transition-all text-center ${
+                            commune === c.nom
+                              ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                              : "border-border bg-card hover:bg-muted text-foreground"
+                          }`}
+                        >
+                          <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: c.couleur }} />
+                          <span>{c.nom}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </motion.div>
               )}
 
-              {/* Section localisation & Adressage PADA — visible après sélection du type */}
-              <AnimatePresence>
-                {selectedType && (
-                  <motion.div
-                    key="location-section"
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 8 }}
-                    transition={{ duration: 0.25 }}
-                    className="space-y-4 pt-1"
-                  >
-                    {/* En-tête Localisation & PADA */}
-                    <div className="flex items-center justify-between pb-1">
-                      <div>
-                        <h3 className="font-bold text-base text-foreground flex items-center gap-1.5">
-                          <span>Localisation & Adressage Officiel PADA</span>
-                        </h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Confirmez votre position pour orienter l'intervention technique
-                        </p>
-                      </div>
+              {/* Formulaire Quartier + PADA */}
+              {canReport && (
+                <div className="space-y-4 pt-1">
+                  {/* Sélecteur & Recherche de Quartier avec autocomplétion par frappe */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-bold text-foreground">Quartier *</label>
+                      <span className="text-xs text-muted-foreground">Sélectionnez ou tapez les premières lettres</span>
                     </div>
-
-                    {/* Champ libre si "Autre" */}
-                    {selectedType.id === "other" && (
-                      <div className="rounded-xl border border-border bg-card p-4 space-y-2">
-                        <label htmlFor="custom-type-desc" className="text-sm font-semibold block">Précisez le problème *</label>
+                    <QuartierSearch
+                      quartiers={getQuartiersForCommune(commune)}
+                      value={quartier}
+                      onChange={(q) => {
+                        setQuartier(q);
+                        setPadaAddress(null);
+                      }}
+                    />
+                    {quartier === "__other" && (
+                      <div className="pt-1.5 space-y-1">
+                        <label htmlFor="custom-quartier" className="text-xs font-medium text-muted-foreground">
+                          Précisez le nom de votre quartier *
+                        </label>
                         <Input
-                          id="custom-type-desc"
-                          placeholder="Ex: Arbre tombé, route inondée..."
-                          value={customTypeDesc}
-                          onChange={(e) => setCustomTypeDesc(e.target.value)}
-                          maxLength={80}
+                          id="custom-quartier"
+                          placeholder="Ex: Williamsville plateau, Attoban sud..."
+                          value={customQuartier}
+                          onChange={(e) => setCustomQuartier(e.target.value)}
+                          maxLength={100}
+                          className="h-11 rounded-xl"
                           autoFocus
                         />
                       </div>
                     )}
+                  </div>
 
-                    {/* Bannière de localisation automatique claire, transparente et rassurante */}
-                    <div className="rounded-2xl border-2 border-emerald-500/30 bg-emerald-500/8 p-4 flex items-center justify-between gap-3 shadow-xs">
-                      <div className="flex items-center gap-3.5 min-w-0">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
-                          <MapPin className="h-5 w-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-                            Localisation automatique détectée
-                          </p>
-                          <h4 className="text-base font-black text-foreground truncate">
-                            {detectedCommune ? (
-                              <>
-                                Vous êtes à <span className="text-emerald-600 dark:text-emerald-400">{detectedCommune.nom}</span>
-                              </>
-                            ) : gpsLoading ? (
-                              <span className="flex items-center gap-1.5 text-sm font-semibold">
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Détection de votre commune…
-                              </span>
-                            ) : (
-                              <span>Position en cours de détection…</span>
-                            )}
-                          </h4>
-                        </div>
-                      </div>
+                  {/* Voie / Rue Officielle PADA */}
+                  {resolvedQuartier && (
+                    <PadaAddressInput
+                      commune={commune}
+                      quartier={resolvedQuartier}
+                      value={padaAddress || undefined}
+                      onChange={setPadaAddress}
+                      accentColor={selectedType?.color || "#10B981"}
+                    />
+                  )}
 
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => captureGPS(true)}
-                        disabled={gpsLoading}
-                        className="shrink-0 text-xs h-8 px-2.5 rounded-lg text-emerald-700 hover:bg-emerald-500/15 gap-1.5 font-semibold"
-                        title="Réactualiser votre position"
-                      >
-                        <Navigation className={`h-3.5 w-3.5 ${gpsLoading ? "animate-spin" : ""}`} />
-                        <span>{gpsLoading ? "Détection…" : "Actualiser"}</span>
-                      </Button>
-                    </div>
+                  {/* Bouton de progression vers Étape 2 */}
+                  <Button
+                    type="button"
+                    className="w-full py-5 text-base font-bold rounded-xl shadow-md transition-all hover:opacity-90 mt-2 bg-primary text-primary-foreground"
+                    onClick={handleLocationNext}
+                    disabled={!commune || !resolvedQuartier || !latitude}
+                  >
+                    Continuer vers le type de problème →
+                  </Button>
+                </div>
+              )}
+            </motion.div>
+          )}
 
-                    {/* Fallback uniquement si GPS indisponible ou hors zone */}
-                    {!gpsLoading && (!detectedCommune || outsidePilotZone) && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="rounded-2xl border-2 border-amber-500/30 bg-amber-500/5 p-5 space-y-4 text-center"
-                      >
-                        <div className="flex justify-center">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/15">
-                            <MapPin className="h-6 w-6 text-amber-500" />
-                          </div>
-                        </div>
-                        <h3 className="font-bold text-foreground text-sm">
-                          {outsidePilotZone
-                            ? "Position hors des 14 communes du Grand Abidjan"
-                            : "Position GPS non détectée"}
-                        </h3>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                          {outsidePilotZone
-                            ? "SIGNA·CI couvre les 14 communes du Grand Abidjan. Choisissez directement votre commune ci-dessous pour continuer votre signalement."
-                            : "Votre géolocalisation automatique n'a pas abouti. Vous pouvez réessayer ou sélectionner votre commune ci-dessous :"}
-                        </p>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => captureGPS(true)}
-                          disabled={gpsLoading}
-                          className="mx-auto"
-                        >
-                          <Navigation className="h-3.5 w-3.5 mr-1.5" />
-                          Réessayer la géolocalisation
-                        </Button>
+          {/* ═══════════════════════════════════════════════
+              ÉTAPE 2 — Choix de l'incident & Opérateur
+          ═══════════════════════════════════════════════ */}
+          {step === 2 && (
+            <motion.div
+              key="step2"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-4"
+            >
+              {/* En-tête avec bouton retour vers étape 1 */}
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  Modifier le lieu
+                </button>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-700 dark:text-emerald-300 truncate max-w-[240px]">
+                  <MapPin className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{commune}, {resolvedQuartier}</span>
+                </div>
+              </div>
 
-                        {/* Choix manuel direct de secours */}
-                        <div className="pt-3 border-t border-amber-500/20 text-left space-y-3">
-                          <label className="text-xs font-bold text-foreground block">
-                            📍 Choisir ma commune :
-                          </label>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                            {COMMUNES.map((c) => (
-                              <button
-                                key={c.nom}
-                                type="button"
-                                onClick={() => handleManualCommuneSelect(c.nom)}
-                                className={`flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-semibold rounded-xl border transition-all text-center ${
-                                  commune === c.nom
-                                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                                    : "border-border bg-card hover:bg-muted text-foreground"
-                                }`}
-                              >
-                                <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: c.couleur }} />
-                                <span>{c.nom}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </motion.div>
+              <div className="text-center">
+                <h1 className="text-2xl font-bold">2. Quel est l'incident ?</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Touchez l'incident correspondant à votre constat sur le terrain
+                </p>
+              </div>
+
+              {/* Filtres par catégorie */}
+              <div className="flex items-center justify-center gap-1.5 flex-wrap pt-1">
+                {[
+                  { id: "all", label: "Tous" },
+                  { id: "outage", label: "⚡💧 Coupures foyer" },
+                  { id: "infrastructure", label: "🚧 Voirie & Équipements" },
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setActiveCategoryFilter(f.id as any)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-xl text-xs font-bold transition-all",
+                      activeCategoryFilter === f.id
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
                     )}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
 
-                    {/* Formulaire Quartier + PADA (Direct et fluide dès que la commune est détectée) */}
-                    {canReport && (
-                      <div className="space-y-4 pt-1">
-                        {/* Sélecteur & Recherche de Quartier avec autocomplétion par frappe */}
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <label className="text-sm font-bold text-foreground">Quartier *</label>
-                            <span className="text-xs text-muted-foreground">Sélectionnez ou tapez les premières lettres</span>
-                          </div>
-                          <QuartierSearch
-                            quartiers={getQuartiersForCommune(commune)}
-                            value={quartier}
-                            onChange={(q) => {
-                              setQuartier(q);
-                              setPadaAddress(null);
-                            }}
-                          />
-                          {quartier === "__other" && (
-                            <div className="pt-1.5 space-y-1">
-                              <label htmlFor="custom-quartier" className="text-xs font-medium text-muted-foreground">
-                                Précisez le nom de votre quartier *
-                              </label>
-                              <Input
-                                id="custom-quartier"
-                                placeholder="Ex: Williamsville plateau, Attoban sud..."
-                                value={customQuartier}
-                                onChange={(e) => setCustomQuartier(e.target.value)}
-                                maxLength={100}
-                                className="h-11 rounded-xl"
-                                autoFocus
-                              />
-                            </div>
+              {/* Grille des types — coupures réseau */}
+              {activeCategoryFilter !== "infrastructure" && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Coupures à domicile</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {REPORT_TYPES.filter((t) => t.reportCategory === "outage").map((type) => {
+                      const isSelected = selectedType?.id === type.id;
+                      return (
+                        <motion.button
+                          key={type.id}
+                          type="button"
+                          whileTap={{ scale: 0.96 }}
+                          onClick={() => handleTypeSelect(type)}
+                          className={cn(
+                            "group relative flex flex-col items-center gap-2.5 rounded-2xl border-2 p-4 text-center transition-all duration-150 hover:shadow-md focus:outline-none bg-card",
+                            isSelected
+                              ? "ring-2 ring-offset-1 shadow-md"
+                              : "border-border hover:border-primary/40"
                           )}
-                        </div>
-
-                        {/* Voie / Rue Officielle PADA */}
-                        {resolvedQuartier && (
-                          <PadaAddressInput
-                            commune={commune}
-                            quartier={resolvedQuartier}
-                            value={padaAddress || undefined}
-                            onChange={setPadaAddress}
-                            accentColor={selectedType.color}
-                          />
-                        )}
-
-                        {/* Bouton de progression */}
-                        <Button
-                          type="button"
-                          className="w-full py-5 text-base font-bold rounded-xl shadow-md transition-all hover:opacity-90 mt-2"
-                          style={{ backgroundColor: selectedType.color, color: "white" }}
-                          onClick={handleLocationNext}
-                          disabled={!commune || !resolvedQuartier || !latitude}
+                          style={{
+                            borderColor: isSelected ? type.color : undefined,
+                            backgroundColor: isSelected ? type.color + "15" : undefined,
+                          }}
                         >
-                          Continuer →
-                        </Button>
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                          {isSelected && (
+                            <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xs">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                            </span>
+                          )}
+                          {type.image
+                            ? <img src={type.image} alt={type.label} className="h-10 w-10 object-contain rounded-lg" />
+                            : <span className="text-4xl leading-none">{type.emoji}</span>
+                          }
+                          <span className="text-xs font-bold leading-tight text-foreground">{type.label}</span>
+                          {type.description && (
+                            <span className="text-[11px] leading-tight text-muted-foreground line-clamp-2">{type.description}</span>
+                          )}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
-              <div className="mt-2">
+              {/* Section Problème d'infrastructure par Opérateur */}
+              {activeCategoryFilter !== "outage" && (
+                <div className="space-y-4 pt-1">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Signalements d'infrastructures publiques</p>
+
+                  {/* --- CIE --- */}
+                  <div className="space-y-2 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-md text-[11px] font-black tracking-wider bg-amber-500 text-white shadow-xs">CIE</span>
+                      <span className="text-xs font-bold text-amber-900 dark:text-amber-200">Électricité & Éclairage Public</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {REPORT_TYPES.filter((t) => t.operator === "CIE").map((type) => {
+                        const isSelected = selectedType?.id === type.id;
+                        return (
+                          <motion.button
+                            key={type.id}
+                            type="button"
+                            whileTap={{ scale: 0.96 }}
+                            onClick={() => handleTypeSelect(type)}
+                            className={cn(
+                              "group relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-center transition-all duration-150 hover:shadow-md focus:outline-none bg-card",
+                              isSelected ? "ring-2 ring-offset-1 shadow-md" : "border-border"
+                            )}
+                            style={{
+                              borderColor: isSelected ? type.color : undefined,
+                              backgroundColor: isSelected ? type.color + "15" : undefined,
+                            }}
+                          >
+                            {isSelected && (
+                              <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xs">
+                                <CheckCircle2 className="h-3 w-3" />
+                              </span>
+                            )}
+                            {type.image
+                              ? <img src={type.image} alt={type.label} className="h-8 w-8 object-contain rounded-md" />
+                              : <span className="text-2xl leading-none">{type.emoji}</span>
+                            }
+                            <span className="text-xs font-bold leading-tight text-foreground">{type.label}</span>
+                            {type.description && (
+                              <span className="text-[11px] leading-tight text-muted-foreground line-clamp-2">{type.description}</span>
+                            )}
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* --- SODECI --- */}
+                  <div className="space-y-2 rounded-xl border border-sky-500/20 bg-sky-500/5 p-3">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-md text-[11px] font-black tracking-wider bg-sky-600 text-white shadow-xs">SODECI</span>
+                      <span className="text-xs font-bold text-sky-900 dark:text-sky-200">Eau Potable & Assainissement</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {REPORT_TYPES.filter((t) => t.operator === "SODECI").map((type) => {
+                        const isSelected = selectedType?.id === type.id;
+                        return (
+                          <motion.button
+                            key={type.id}
+                            type="button"
+                            whileTap={{ scale: 0.96 }}
+                            onClick={() => handleTypeSelect(type)}
+                            className={cn(
+                              "group relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-center transition-all duration-150 hover:shadow-md focus:outline-none bg-card",
+                              isSelected ? "ring-2 ring-offset-1 shadow-md" : "border-border"
+                            )}
+                            style={{
+                              borderColor: isSelected ? type.color : undefined,
+                              backgroundColor: isSelected ? type.color + "15" : undefined,
+                            }}
+                          >
+                            {isSelected && (
+                              <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xs">
+                                <CheckCircle2 className="h-3 w-3" />
+                              </span>
+                            )}
+                            {type.image
+                              ? <img src={type.image} alt={type.label} className="h-8 w-8 object-contain rounded-md" />
+                              : <span className="text-2xl leading-none">{type.emoji}</span>
+                            }
+                            <span className="text-xs font-bold leading-tight text-foreground">{type.label}</span>
+                            {type.description && (
+                              <span className="text-[11px] leading-tight text-muted-foreground line-clamp-2">{type.description}</span>
+                            )}
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* --- MAIRIE --- */}
+                  <div className="space-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-md text-[11px] font-black tracking-wider bg-emerald-600 text-white shadow-xs">MAIRIE</span>
+                      <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">Voirie & Salubrité Municipale</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {REPORT_TYPES.filter((t) => t.operator === "MAIRIE").map((type) => {
+                        const isSelected = selectedType?.id === type.id;
+                        return (
+                          <motion.button
+                            key={type.id}
+                            type="button"
+                            whileTap={{ scale: 0.96 }}
+                            onClick={() => handleTypeSelect(type)}
+                            className={cn(
+                              "group relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-center transition-all duration-150 hover:shadow-md focus:outline-none bg-card",
+                              isSelected ? "ring-2 ring-offset-1 shadow-md" : "border-border"
+                            )}
+                            style={{
+                              borderColor: isSelected ? type.color : undefined,
+                              backgroundColor: isSelected ? type.color + "15" : undefined,
+                            }}
+                          >
+                            {isSelected && (
+                              <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xs">
+                                <CheckCircle2 className="h-3 w-3" />
+                              </span>
+                            )}
+                            {type.image
+                              ? <img src={type.image} alt={type.label} className="h-8 w-8 object-contain rounded-md" />
+                              : <span className="text-2xl leading-none">{type.emoji}</span>
+                            }
+                            <span className="text-xs font-bold leading-tight text-foreground">{type.label}</span>
+                            {type.description && (
+                              <span className="text-[11px] leading-tight text-muted-foreground line-clamp-2">{type.description}</span>
+                            )}
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Champ libre si "Autre" */}
+              {selectedType?.id === "other" && (
+                <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+                  <label htmlFor="custom-type-desc" className="text-sm font-semibold block">Précisez le problème *</label>
+                  <Input
+                    id="custom-type-desc"
+                    placeholder="Ex: Arbre tombé, route inondée..."
+                    value={customTypeDesc}
+                    onChange={(e) => setCustomTypeDesc(e.target.value)}
+                    maxLength={80}
+                    autoFocus
+                  />
+                </div>
+              )}
+
+              {/* Bouton de progression vers Étape 3 */}
+              <div className="pt-2 flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="py-5 px-4 font-semibold rounded-xl"
+                  onClick={() => setStep(1)}
+                >
+                  ← Précédent
+                </Button>
+                <Button
+                  type="button"
+                  className="flex-1 py-5 text-base font-bold rounded-xl shadow-md transition-all hover:opacity-90"
+                  style={{
+                    backgroundColor: selectedType ? selectedType.color : undefined,
+                    color: "white",
+                  }}
+                  onClick={handleTypeNext}
+                  disabled={!selectedType}
+                >
+                  Continuer vers les preuves →
+                </Button>
               </div>
             </motion.div>
           )}
 
           {/* ═══════════════════════════════════════════════
-              ÉTAPE 2 — Confirmation + envoi
+              ÉTAPE 3 — Preuves & Finalisation
           ═══════════════════════════════════════════════ */}
-          {step === 2 && selectedType && (
+          {step === 3 && selectedType && (
             <motion.div
-              key="step2"
-              initial={{ opacity: 0, x: 30 }}
+              key="step3"
+              initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -30 }}
+              exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
               className="space-y-4 pb-32 md:pb-0"
             >
@@ -1433,13 +1485,13 @@ const ReportPage = () => {
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => setStep(1)}
-                  aria-label="Retour à l'étape précédente"
+                  onClick={() => setStep(2)}
+                  aria-label="Retour au choix de l'incident"
                   className="rounded-full p-2 hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <ArrowLeft className="h-4 w-4" aria-hidden="true" />
                 </button>
-                <h1 className="font-bold text-xl">Finaliser l'alerte</h1>
+                <h1 className="font-bold text-xl">3. Preuves & Finalisation</h1>
               </div>
 
               {/* Carte récapitulative */}
@@ -1825,12 +1877,12 @@ const ReportPage = () => {
                       className="w-full py-5 text-base font-bold"
                       style={{ backgroundColor: selectedCommuneData?.couleur || selectedType.color, color: "white" }}
                     >
-                      <Link to={`/auth?tab=signup&redirect=${encodeURIComponent(`/signaler?type=${selectedType.id}&step=2`)}`}>
+                      <Link to={`/auth?tab=signup&redirect=${encodeURIComponent(`/signaler?type=${selectedType.id}&step=3`)}`}>
                         <UserPlus className="mr-2 h-5 w-5" /> Créer mon compte gratuitement
                       </Link>
                     </Button>
                     <Button asChild variant="outline" className="w-full py-5 text-base font-bold">
-                      <Link to={`/auth?tab=login&redirect=${encodeURIComponent(`/signaler?type=${selectedType.id}&step=2`)}`}>
+                      <Link to={`/auth?tab=login&redirect=${encodeURIComponent(`/signaler?type=${selectedType.id}&step=3`)}`}>
                         <LogIn className="mr-2 h-5 w-5" /> J'ai déjà un compte
                       </Link>
                     </Button>
@@ -1960,7 +2012,7 @@ const ReportPage = () => {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={proceedToStep2}
+                onClick={proceedToStep3}
               >
                 Non, c'est un nouveau problème — créer un signalement
               </Button>

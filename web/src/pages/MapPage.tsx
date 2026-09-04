@@ -604,18 +604,19 @@ const MapPage = () => {
 
               {/* Champ de recherche compact avec auto-clear */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none z-10" />
                 <input
                   type="text"
-                  placeholder="Filtrer une commune (ex: Cocody, Yopougon, Abobo)..."
+                  placeholder="Rechercher une commune (ex: Cocody, Yopougon...)"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-8.5 pl-8.5 pr-8 rounded-xl bg-muted/50 border border-border/70 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  className="w-full h-9 pl-10 pr-8 rounded-xl bg-card border border-border/80 text-xs text-foreground placeholder:text-muted-foreground/80 focus:outline-none focus:ring-1.5 focus:ring-amber-500/80 shadow-2xs transition-all"
                 />
                 {searchQuery && (
                   <button
+                    type="button"
                     onClick={() => setSearchQuery("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
                   >
                     <XIcon className="h-3.5 w-3.5" />
                   </button>
@@ -817,7 +818,7 @@ const MapPage = () => {
             ) : (
               /* ── VUE GLOBALE DES 14 COMMUNES DU GRAND ABIDJAN ── */
               <div className="space-y-3">
-                {/* Bannière de Synthèse Globale */}
+                {/* Bannière de Synthèse Globale (Option A Civique) */}
                 <div
                   className={`p-3.5 rounded-2xl border transition-all ${
                     totals.hasOutages
@@ -826,17 +827,17 @@ const MapPage = () => {
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="text-xl">{totals.hasOutages ? "⚠️" : "🛡️"}</span>
+                    <span className="text-xl">{totals.hasOutages ? "⚠️" : "🟢"}</span>
                     <div>
                       <h3 className="text-xs sm:text-sm font-extrabold">
                         {totals.hasOutages
                           ? `${totals.actifs} coupure(s) en cours sur Abidjan`
-                          : "Réseau Abidjanais 100% Opérationnel"}
+                          : "Aucune coupure active signalée"}
                       </h3>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         {totals.hasOutages
                           ? `⚡ ${totals.elec} secteur(s) CIE · 💧 ${totals.eau} secteur(s) SODECI`
-                          : "Aucune panne majeure signalée sur les 14 communes."}
+                          : "0 incident rapporté par les citoyens ces dernières heures."}
                       </p>
                     </div>
                   </div>

@@ -1242,7 +1242,7 @@ const ProfilePage = () => {
                         <h3 className="font-semibold text-sm text-foreground">Type de profil</h3>
                       </div>
                       <div className="p-5">
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <button type="button" onClick={() => update("user_type", "household")} className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all ${profile.user_type === "household" ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-background hover:border-primary/40"}`}>
                             {profile.user_type === "household" && <div className="absolute top-2 right-2 h-4 w-4 rounded-full bg-primary flex items-center justify-center"><CheckCircle2 className="h-3 w-3 text-white" /></div>}
                             <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${profile.user_type === "household" ? "bg-primary/15" : "bg-muted"}`}><Home className={`h-5 w-5 ${profile.user_type === "household" ? "text-primary" : "text-muted-foreground"}`} /></div>
@@ -1253,7 +1253,32 @@ const ProfilePage = () => {
                             <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${profile.user_type === "business" ? "bg-primary/15" : "bg-muted"}`}><Building2 className={`h-5 w-5 ${profile.user_type === "business" ? "text-primary" : "text-muted-foreground"}`} /></div>
                             <div className="text-center"><p className={`text-sm font-semibold ${profile.user_type === "business" ? "text-primary" : "text-foreground"}`}>Entreprise</p><p className="text-xs text-muted-foreground">Commerce / Structure</p></div>
                           </button>
+                          <button type="button" onClick={() => update("user_type", "ambassadeur")} className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all ${profile.user_type === "ambassadeur" ? "border-amber-500 bg-amber-500/10 shadow-sm" : "border-border bg-background hover:border-amber-500/40"}`}>
+                            {profile.user_type === "ambassadeur" && <div className="absolute top-2 right-2 h-4 w-4 rounded-full bg-amber-500 flex items-center justify-center"><CheckCircle2 className="h-3 w-3 text-slate-950" /></div>}
+                            <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${profile.user_type === "ambassadeur" ? "bg-amber-500/20" : "bg-muted"}`}><ShieldCheck className={`h-5 w-5 ${profile.user_type === "ambassadeur" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`} /></div>
+                            <div className="text-center"><p className={`text-sm font-semibold ${profile.user_type === "ambassadeur" ? "text-amber-700 dark:text-amber-300" : "text-foreground"}`}>Ambassadeur</p><p className="text-xs text-muted-foreground">Syndic / Leader quartier</p></div>
+                          </button>
                         </div>
+
+                        {profile.user_type === "ambassadeur" && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mt-4 rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-4 space-y-2"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-slate-950 font-black text-xs">
+                                ⭐
+                              </span>
+                              <p className="text-xs font-bold uppercase tracking-wide text-amber-800 dark:text-amber-300">
+                                Rôle : Vérificateur Citoyen de Quartier
+                              </p>
+                            </div>
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                              En tant qu'Ambassadeur (syndic d'immeuble, délégué de jeunesse ou responsable associatif), vous pouvez certifier les signalements d'eau, d'électricité et de voirie directement sur le terrain. Vos vérifications apposent le sceau officiel <strong>« Certifié par l'Ambassadeur »</strong>.
+                            </p>
+                          </motion.div>
+                        )}
                       </div>
                     </div>
                   </div>

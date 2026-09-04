@@ -28,8 +28,15 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes("pada-door-numbers.json") || id.includes("data/pada")) {
-            return "data-pada-cadastre";
+          if (id.includes("data/pada/doors") || id.includes("data/pada/communes")) {
+            const match = id.match(/pada[/\\](?:doors|communes)[/\\]([^/\\]+)\.json/);
+            if (match) {
+              return `data-pada-${match[1]}`;
+            }
+            return "data-pada-core";
+          }
+          if (id.includes("data/pada")) {
+            return "data-pada-core";
           }
           if (id.includes("node_modules")) {
             if (id.includes("leaflet")) return "vendor-maps";

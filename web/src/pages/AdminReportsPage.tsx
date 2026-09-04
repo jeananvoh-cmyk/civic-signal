@@ -2,12 +2,13 @@ import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
-import { CheckCircle, XCircle, MapPin, Zap, Droplets, Clock, Eye, Landmark, Download, Square, CheckSquare, Trash2, MessageCircle, PhoneCall, AlertOctagon, Bell, ExternalLink, CheckCheck, Wrench, ShieldAlert, Send, Ticket, Building2, Copy, Search, Filter, SlidersHorizontal, RefreshCw, Activity, X } from "lucide-react";
+import { CheckCircle, XCircle, MapPin, Zap, Droplets, Clock, Eye, Landmark, Download, Square, CheckSquare, Trash2, MessageCircle, PhoneCall, AlertOctagon, Bell, ExternalLink, CheckCheck, Wrench, ShieldAlert, Send, Ticket, Building2, Copy, Search, Filter, SlidersHorizontal, RefreshCw, Activity, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -833,6 +834,98 @@ const AdminReportsPage = () => {
   const countValidatedActiveTotal = validatedReports.filter((r: any) => r.status === "active").length;
   const countValidatedResolved = validatedReports.filter((r: any) => r.status === "resolved").length;
 
+  // Liste courante pour navigation précédent / suivant dans le tiroir d'inspection
+  const currentList = activeTab === "pending"
+    ? pendingReports
+    : activeTab === "validated"
+    ? filteredValidatedReports
+    : activeTab === "neglected"
+    ? neglectedReports
+    : [];
+
+  const currentReportIndex = currentList.findIndex((r: any) => r.id === selectedReport?.id);
+  const hasPrevReport = currentReportIndex > 0;
+  const hasNextReport = currentReportIndex >= 0 && currentReportIndex < currentList.length - 1;
+
+  const [batchActionLoading, setBatchActionLoading] = useState(false);
+
+  const handleBatchResolve = async () => {
+    if (selectedIds.size === 0) return;
+    const count = selectedIds.size;
+    if (!confirm(`Marquer comme résolus les ${count} signalement(s) sélectionné(s) ?`)) return;
+    setBatchActionLoading(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const { error } = await supabase
+        .from("reports")
+        .update({
+          status: "resolved",
+          resolved_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .in("id", ids);
+      if (error) throw error;
+      toast.success(`${count} signalement(s) marqués comme résolus !`);
+      setSelectedIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ["admin-reports-validated"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-overview-totals"] });
+    } catch (err: any) {
+      toast.error(err.message || "Erreur lors de la résolution groupée");
+    } finally {
+      setBatchActionLoading(false);
+    }
+  };
+
+  const handleBatchForward = async () => {
+    if (selectedIds.size === 0) return;
+    const count = selectedIds.size;
+    if (!confirm(`Marquer "Transmis à l'opérateur" pour les ${count} signalement(s) sélectionné(s) ?`)) return;
+    setBatchActionLoading(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const { error } = await supabase
+        .from("reports")
+        .update({
+          forwarded_to_operator_at: new Date().toISOString(),
+          forwarded_to_operator_by: user?.id,
+          updated_at: new Date().toISOString(),
+        } as any)
+        .in("id", ids);
+      if (error) throw error;
+      toast.success(`${count} signalement(s) marqués comme transmis !`);
+      setSelectedIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ["admin-reports-validated"] });
+    } catch (err: any) {
+      toast.error(err.message || "Erreur lors de la transmission groupée");
+    } finally {
+      setBatchActionLoading(false);
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedIds.size === 0) return;
+    const count = selectedIds.size;
+    if (!confirm(`Supprimer définitivement les ${count} signalement(s) sélectionné(s) ? Cette action est irréversible.`)) return;
+    setBatchActionLoading(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const { error } = await supabase
+        .from("reports")
+        .delete()
+        .in("id", ids);
+      if (error) throw error;
+      toast.success(`${count} signalement(s) supprimés avec succès !`);
+      setSelectedIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ["admin-reports-validated"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-reports-pending"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-overview-totals"] });
+    } catch (err: any) {
+      toast.error(err.message || "Erreur lors de la suppression groupée");
+    } finally {
+      setBatchActionLoading(false);
+    }
+  };
+
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
@@ -1502,19 +1595,50 @@ const AdminReportsPage = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Detail dialog */}
-        <Dialog open={!!selectedReport} onOpenChange={() => setSelectedReport(null)}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                {selectedReport?.service_type === "electricity" ? (
-                  <Zap className="h-5 w-5 text-electricity" />
-                ) : (
-                  <Droplets className="h-5 w-5 text-water" />
+        {/* Tiroir d'inspection latérale (Slide-over Drawer / Split-View ergonomique) */}
+        <Sheet open={!!selectedReport} onOpenChange={(open) => !open && setSelectedReport(null)}>
+          <SheetContent side="right" className="w-full sm:max-w-lg md:max-w-xl overflow-y-auto p-5 sm:p-6 space-y-4">
+            <SheetHeader className="border-b border-border/60 pb-3">
+              <div className="flex items-center justify-between gap-2 pr-6">
+                <SheetTitle className="flex items-center gap-2 text-base font-bold">
+                  {selectedReport?.service_type === "electricity" ? (
+                    <Zap className="h-5 w-5 text-amber-500" />
+                  ) : (
+                    <Droplets className="h-5 w-5 text-blue-500" />
+                  )}
+                  <span>Fiche Signalement</span>
+                </SheetTitle>
+
+                {/* Contrôles Précédent / Suivant */}
+                {currentReportIndex >= 0 && currentList.length > 1 && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-[11px] font-mono font-bold text-muted-foreground mr-1">
+                      {currentReportIndex + 1} / {currentList.length}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={!hasPrevReport}
+                      onClick={() => hasPrevReport && setSelectedReport(currentList[currentReportIndex - 1])}
+                      className="h-7 w-7 p-0"
+                      title="Signalement précédent"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={!hasNextReport}
+                      onClick={() => hasNextReport && setSelectedReport(currentList[currentReportIndex + 1])}
+                      className="h-7 w-7 p-0"
+                      title="Signalement suivant"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 )}
-                Détails du signalement
-              </DialogTitle>
-            </DialogHeader>
+              </div>
+            </SheetHeader>
             {selectedReport && (
               <div className="space-y-4">
                 {/* 🎫 Référence Ticket & Adressage PADA */}
@@ -1718,9 +1842,70 @@ const AdminReportsPage = () => {
                 )}
               </div>
             )}
-          </DialogContent>
-      </Dialog>
-    </div>
+          </SheetContent>
+        </Sheet>
+
+        {/* ── BARRE D'ACTIONS GROUPÉES FLOTTANTE ── */}
+        {selectedIds.size > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.95 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-foreground text-background shadow-2xl border border-border/40 backdrop-blur-lg"
+          >
+            <div className="flex items-center gap-2 pr-3 border-r border-background/20 text-xs font-bold shrink-0">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground font-black text-xs">
+                {selectedIds.size}
+              </span>
+              <span className="hidden sm:inline">sélectionné(s)</span>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                size="sm"
+                disabled={batchActionLoading}
+                onClick={handleBatchResolve}
+                className="h-8 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+              >
+                <CheckCircle className="h-3.5 w-3.5" />
+                <span>Résolus</span>
+              </Button>
+
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={batchActionLoading}
+                onClick={handleBatchForward}
+                className="h-8 text-xs font-bold border-amber-500/40 text-amber-300 hover:bg-amber-500/20 bg-transparent gap-1.5"
+              >
+                <Building2 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Transmis</span> Opérateur
+              </Button>
+
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={batchActionLoading}
+                onClick={handleBatchDelete}
+                className="h-8 text-xs font-bold gap-1.5"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>Supprimer</span>
+              </Button>
+
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setSelectedIds(new Set())}
+                className="h-8 text-xs text-background/80 hover:text-background hover:bg-background/10 px-2"
+                title="Désélectionner tout"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </div>
   );
 };
 

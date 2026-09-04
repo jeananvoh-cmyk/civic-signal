@@ -696,3 +696,314 @@ export async function exportRegulatorPDF(
   doc.save(`rapport_regulation_${regulator.toLowerCase()}_${format(new Date(), "yyyy-MM-dd")}.pdf`);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════════
+   RAPPORT MENSUEL OFFICIEL POUR LES MAIRES & SERVICES TECHNIQUES
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+export interface MayorReportItem {
+  id: string;
+  ticket_code?: string | null;
+  service_type: string;
+  report_category?: string | null;
+  description: string;
+  commune: string;
+  quartier?: string | null;
+  status: string;
+  urgency: string;
+  verifications?: number;
+  impacted_people?: number;
+  created_at: string;
+  resolved_at?: string | null;
+  operator_reference?: string | null;
+  assigned_team?: string | null;
+  operator_last_note?: string | null;
+}
+
+export interface MayorMonthlyReportOptions {
+  commune: string;
+  monthDate?: Date;
+  reports: MayorReportItem[];
+}
+
+export async function exportMayorMonthlyReportPDF({
+  commune,
+  monthDate = new Date(),
+  reports,
+}: MayorMonthlyReportOptions) {
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
+
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 14;
+  const contentW = pageW - margin * 2;
+  let y = 0;
+
+  const MUNICIPAL_GREEN: [number, number, number] = [16, 185, 129];
+  const HEADER_DARK: [number, number, number] = [15, 23, 42];
+  const CARD_BG: [number, number, number] = [248, 250, 252];
+  const BORDER_COLOR: [number, number, number] = [226, 232, 240];
+
+  const monthName = format(monthDate, "MMMM yyyy", { locale: fr });
+  const periodStr = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+  const nowStr = format(new Date(), "d MMMM yyyy 'à' HH:mm", { locale: fr });
+
+  // 1. Bandeau tricolore national ivoirien (Orange, Blanc, Vert)
+  doc.setFillColor(245, 130, 32); // Orange
+  doc.rect(0, 0, pageW / 3, 3, "F");
+  doc.setFillColor(255, 255, 255); // Blanc
+  doc.rect(pageW / 3, 0, pageW / 3, 3, "F");
+  doc.setFillColor(0, 158, 73); // Vert
+  doc.rect((pageW / 3) * 2, 0, pageW / 3, 3, "F");
+
+  y = 11;
+
+  // 2. En-tête institutionnel
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(...HEADER_DARK);
+  doc.text("RÉPUBLIQUE DE CÔTE D'IVOIRE", margin, y);
+  doc.text("DISTRICT AUTONOME D'ABIDJAN", pageW - margin, y, { align: "right" });
+  y += 4;
+
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(7);
+  doc.setTextColor(100, 116, 139);
+  doc.text("Union – Discipline – Travail", margin, y);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...MUNICIPAL_GREEN);
+  doc.text(`MAIRIE DE ${commune.toUpperCase()}`, pageW - margin, y, { align: "right" });
+  y += 5;
+
+  doc.setDrawColor(...BORDER_COLOR);
+  doc.setLineWidth(0.4);
+  doc.line(margin, y, pageW - margin, y);
+  y += 6;
+
+  // 3. Titre officiel du document
+  doc.setFillColor(...MUNICIPAL_GREEN);
+  doc.roundedRect(margin, y, contentW, 16, 2, 2, "F");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(255, 255, 255);
+  doc.text("BULLETIN MENSUEL D'INTERVENTION SUR LES INFRASTRUCTURES URBAINES", margin + contentW / 2, y + 6.5, { align: "center" });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.text(`Période : ${periodStr} · Rapport officiel d'aide à la décision municipale & de salubrité`, margin + contentW / 2, y + 12, { align: "center" });
+  y += 21;
+
+  // 4. Calculs des métriques communales
+  const total = reports.length;
+  const resolved = reports.filter((r) => r.status === "resolved").length;
+  const processing = reports.filter((r) => r.status === "processing").length;
+  const active = reports.filter((r) => r.status === "active").length;
+  const critical = reports.filter((r) => r.urgency === "critical" || r.urgency === "high").length;
+
+  const priseEnChargeRate = total > 0 ? Math.round(((resolved + processing) / total) * 100) : 0;
+  const resolutionRate = total > 0 ? Math.round((resolved / total) * 100) : 0;
+
+  const resolvedReports = reports.filter((r) => r.resolved_at);
+  let avgResolutionDays = "–";
+  if (resolvedReports.length > 0) {
+    const totalMs = resolvedReports.reduce((acc, r) => acc + (new Date(r.resolved_at!).getTime() - new Date(r.created_at).getTime()), 0);
+    const avgDays = (totalMs / resolvedReports.length) / (1000 * 3600 * 24);
+    avgResolutionDays = `${avgDays.toFixed(1)} j`;
+  }
+
+  // 5. Blocs KPI Synthèse Exécutive (4 cartes)
+  const cardW = (contentW - 9) / 4;
+  const cardH = 15;
+  const kpis = [
+    { label: "Signalements Reçus", val: total.toString(), color: HEADER_DARK },
+    { label: "Pris en Charge", val: `${priseEnChargeRate}%`, color: [37, 99, 235] as [number, number, number] },
+    { label: "Taux de Résolution", val: `${resolutionRate}%`, color: MUNICIPAL_GREEN },
+    { label: "Délai Moyen Clôture", val: avgResolutionDays, color: [217, 119, 6] as [number, number, number] },
+  ];
+
+  kpis.forEach((kpi, idx) => {
+    const kx = margin + idx * (cardW + 3);
+    doc.setFillColor(...CARD_BG);
+    doc.setDrawColor(...BORDER_COLOR);
+    doc.roundedRect(kx, y, cardW, cardH, 1.5, 1.5, "FD");
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(kpi.label, kx + cardW / 2, y + 5, { align: "center" });
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(...kpi.color);
+    doc.text(kpi.val, kx + cardW / 2, y + 11.5, { align: "center" });
+  });
+
+  y += cardH + 7;
+
+  // 6. Tableau de répartition par secteur d'intervention
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9.5);
+  doc.setTextColor(...HEADER_DARK);
+  doc.text("1. Répartition par Secteur & Compétence Municipale", margin, y);
+  y += 4;
+
+  const categories = [
+    { name: "Voirie & Chaussée (Nids-de-poule, affaissements)", match: (r: MayorReportItem) => (r.service_type === "infrastructure" || (r.report_category || "").toLowerCase().includes("voirie")), authority: "Mairie / AGEROUTE" },
+    { name: "Éclairage Public (Lampadaires en panne, câbles)", match: (r: MayorReportItem) => (r.report_category || "").toLowerCase().includes("lampadaire"), authority: "Mairie / CIE Éclairage" },
+    { name: "Assainissement & Salubrité (Caniveaux, décharges)", match: (r: MayorReportItem) => ((r.report_category || "").toLowerCase().includes("caniveau") || (r.report_category || "").toLowerCase().includes("salubrite") || (r.report_category || "").toLowerCase().includes("ordures")), authority: "Mairie / ANAGED" },
+    { name: "Réseau Électrique Basse/Haute Tension", match: (r: MayorReportItem) => r.service_type === "electricity", authority: "CIE (Concessionnaire)" },
+    { name: "Réseau d'Eau Potable & Fuites Publiques", match: (r: MayorReportItem) => r.service_type === "water", authority: "SODECI (Concessionnaire)" },
+  ];
+
+  const catRows = categories.map((cat) => {
+    const list = reports.filter(cat.match);
+    const catTot = list.length;
+    const catRes = list.filter((r) => r.status === "resolved").length;
+    const catRate = catTot > 0 ? `${Math.round((catRes / catTot) * 100)}%` : "–";
+    return [cat.name, cat.authority, catTot.toString(), catRes.toString(), catRate];
+  });
+
+  autoTable(doc, {
+    startY: y,
+    margin: { left: margin, right: margin },
+    head: [["Domaine d'Intervention", "Organisme Responsable", "Incidents", "Résolus", "Taux Clôture"]],
+    body: catRows,
+    headStyles: { fillColor: HEADER_DARK, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7.5 },
+    bodyStyles: { fontSize: 7.5, textColor: HEADER_DARK },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    theme: "grid",
+  });
+
+  y = (doc as any).lastAutoTable.finalY + 7;
+
+  // 7. Top Quartiers Prioritaires
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9.5);
+  doc.setTextColor(...HEADER_DARK);
+  doc.text("2. Quartiers Prioritaires Nécessitant une Intervention", margin, y);
+  y += 4;
+
+  const quartierCount: Record<string, { total: number; unresolved: number }> = {};
+  reports.forEach((r) => {
+    const q = r.quartier?.trim() || "Centre / Non spécifié";
+    if (!quartierCount[q]) quartierCount[q] = { total: 0, unresolved: 0 };
+    quartierCount[q].total += 1;
+    if (r.status !== "resolved") quartierCount[q].unresolved += 1;
+  });
+
+  const sortedQuartiers = Object.entries(quartierCount)
+    .sort((a, b) => b[1].unresolved - a[1].unresolved)
+    .slice(0, 5);
+
+  const quartierRows = sortedQuartiers.map(([name, data]) => [
+    name,
+    data.total.toString(),
+    data.unresolved.toString(),
+    data.unresolved > 3 ? "🔴 Priorité Immédiate" : data.unresolved > 0 ? "🟡 En attente d'équipe" : "🟢 Aucune anomalie active",
+  ]);
+
+  autoTable(doc, {
+    startY: y,
+    margin: { left: margin, right: margin },
+    head: [["Quartier", "Total Signalements", "Incidents en Cours", "Niveau de Vigilance Municipale"]],
+    body: quartierRows.length > 0 ? quartierRows : [["Tous quartiers", "0", "0", "🟢 Situation stable"]],
+    headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7.5 },
+    bodyStyles: { fontSize: 7.5, textColor: HEADER_DARK },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    theme: "grid",
+  });
+
+  // 8. PAGE 2 : Registre détaillé des chantiers & Visa Officiel
+  doc.addPage();
+  y = 12;
+
+  // Bandeau Page 2
+  doc.setFillColor(245, 130, 32);
+  doc.rect(0, 0, pageW / 3, 3, "F");
+  doc.setFillColor(255, 255, 255);
+  doc.rect(pageW / 3, 0, pageW / 3, 3, "F");
+  doc.setFillColor(0, 158, 73);
+  doc.rect((pageW / 3) * 2, 0, pageW / 3, 3, "F");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(...HEADER_DARK);
+  doc.text(`3. Registre Détaillé des Chantiers & Signalements — Mairie de ${commune}`, margin, y);
+  y += 5;
+
+  const priorityReports = reports
+    .slice(0, 15)
+    .map((r) => [
+      r.ticket_code || `SIG-${r.id.slice(0, 6).toUpperCase()}`,
+      r.quartier || "–",
+      r.report_category || r.service_type,
+      r.description.length > 38 ? r.description.slice(0, 38) + "..." : r.description,
+      r.urgency === "critical" ? "🔴 Haute" : r.urgency === "high" ? "🟠 Moyenne" : "🟡 Normale",
+      r.status === "resolved" ? "✅ Résolu" : r.status === "processing" ? "🔄 En cours" : "⏳ Non traité",
+      new Date(r.created_at).toLocaleDateString("fr-FR"),
+    ]);
+
+  autoTable(doc, {
+    startY: y,
+    margin: { left: margin, right: margin },
+    head: [["N° Ticket", "Quartier", "Catégorie", "Description du problème", "Urgence", "Statut", "Date"]],
+    body: priorityReports.length > 0 ? priorityReports : [["–", "–", "–", "Aucun incident enregistré", "–", "–", "–"]],
+    headStyles: { fillColor: HEADER_DARK, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7 },
+    bodyStyles: { fontSize: 6.8, textColor: HEADER_DARK },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    theme: "grid",
+  });
+
+  y = (doc as any).lastAutoTable.finalY + 10;
+
+  // 9. Zone de Visa & Signature Municipale
+  if (y > pageH - 50) {
+    doc.addPage();
+    y = 20;
+  }
+
+  doc.setDrawColor(...BORDER_COLOR);
+  doc.setFillColor(...CARD_BG);
+  doc.roundedRect(margin, y, contentW, 36, 2, 2, "FD");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(...HEADER_DARK);
+  doc.text("VISA & TRANSMISSION DE LA DIRECTION DES SERVICES TECHNIQUES", margin + 4, y + 6);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(71, 85, 105);
+  doc.text(`Rapport généré le ${nowStr} pour instruction par le Conseil Municipal et transmission aux concessionnaires.`, margin + 4, y + 12);
+  doc.text("Conforme aux normes d'interopérabilité Open311 et au suivi des doléances citoyennes.", margin + 4, y + 17);
+
+  doc.setFont("helvetica", "bold");
+  doc.text(`Pour le Maire de ${commune} et par ordre :`, margin + 4, y + 26);
+  doc.setFont("helvetica", "italic");
+  doc.setTextColor(100, 116, 139);
+  doc.text("Le Directeur des Services Techniques Municipaux", margin + 4, y + 31);
+
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...HEADER_DARK);
+  doc.text("Cachet officiel & Enregistrement :", pageW - margin - 55, y + 26);
+
+  // 10. Pieds de page sur chaque page
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(148, 163, 184);
+    doc.text(`SIGNA.ci — Plateforme Citoyenne Officielle · Mairie de ${commune} (${periodStr})`, margin, pageH - 6);
+    doc.text(`Page ${i} sur ${totalPages}`, pageW - margin, pageH - 6, { align: "right" });
+  }
+
+  const filename = `Rapport_Mensuel_Mairie_${commune.replace(/[^a-zA-Z0-9]/g, "_")}_${format(monthDate, "yyyy-MM")}.pdf`;
+  doc.save(filename);
+}
+
+

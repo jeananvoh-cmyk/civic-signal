@@ -15,6 +15,21 @@ import songonData from './communes/songon.json';
 import treichvilleData from './communes/treichville.json';
 import yopougonData from './communes/yopougon.json';
 
+// Split door datasets per commune (divided from monolithic dataset)
+import aboboDoors from './doors/abobo.json';
+import adjameDoors from './doors/adjame.json';
+import anyamaDoors from './doors/anyama.json';
+import attecoubeDoors from './doors/attecoube.json';
+import bingervilleDoors from './doors/bingerville.json';
+import cocodyDoors from './doors/cocody.json';
+import koumassiDoors from './doors/koumassi.json';
+import marcoryDoors from './doors/marcory.json';
+import plateauDoors from './doors/plateau.json';
+import portBouetDoors from './doors/port-bouet.json';
+import songonDoors from './doors/songon.json';
+import treichvilleDoors from './doors/treichville.json';
+import yopougonDoors from './doors/yopougon.json';
+
 export const PADA_COMMUNES_REGISTRY: Record<string, PadaWay[]> = {
   'Abobo': aboboData as PadaWay[],
   'Adjamé': adjameData as PadaWay[],
@@ -29,6 +44,22 @@ export const PADA_COMMUNES_REGISTRY: Record<string, PadaWay[]> = {
   'Songon': songonData as PadaWay[],
   'Treichville': treichvilleData as PadaWay[],
   'Yopougon': yopougonData as PadaWay[],
+};
+
+export const PADA_COMMUNE_DOORS_REGISTRY: Record<string, PadaDoorNumber[]> = {
+  'Abobo': aboboDoors as PadaDoorNumber[],
+  'Adjamé': adjameDoors as PadaDoorNumber[],
+  'Anyama': anyamaDoors as PadaDoorNumber[],
+  'Attécoubé': attecoubeDoors as PadaDoorNumber[],
+  'Bingerville': bingervilleDoors as PadaDoorNumber[],
+  'Cocody': cocodyDoors as PadaDoorNumber[],
+  'Koumassi': koumassiDoors as PadaDoorNumber[],
+  'Marcory': marcoryDoors as PadaDoorNumber[],
+  'Plateau': plateauDoors as PadaDoorNumber[],
+  'Port-Bouët': portBouetDoors as PadaDoorNumber[],
+  'Songon': songonDoors as PadaDoorNumber[],
+  'Treichville': treichvilleDoors as PadaDoorNumber[],
+  'Yopougon': yopougonDoors as PadaDoorNumber[],
 };
 
 /**
@@ -50,9 +81,6 @@ export function getTotalOfficialWaysCount(): number {
   return count;
 }
 
-// Import door numbers dataset
-import doorNumbersData from './pada-door-numbers.json';
-
 export interface PadaDoorNumber {
   id_numero: string;
   numero: number;
@@ -65,7 +93,22 @@ export interface PadaDoorNumber {
   adresse_complete: string;
 }
 
-export const PADA_DOOR_NUMBERS: PadaDoorNumber[] = doorNumbersData as PadaDoorNumber[];
+// Flat list for global queries and vitest compatibility
+export const PADA_DOOR_NUMBERS: PadaDoorNumber[] = [
+  ...aboboDoors,
+  ...adjameDoors,
+  ...anyamaDoors,
+  ...attecoubeDoors,
+  ...bingervilleDoors,
+  ...cocodyDoors,
+  ...koumassiDoors,
+  ...marcoryDoors,
+  ...plateauDoors,
+  ...portBouetDoors,
+  ...songonDoors,
+  ...treichvilleDoors,
+  ...yopougonDoors,
+] as PadaDoorNumber[];
 
 function cleanWayName(name: string): string {
   return (name || '').toLowerCase()
@@ -115,7 +158,7 @@ PADA_DOOR_NUMBERS.forEach(door => {
  */
 export function getDoorNumbersByCommune(commune: string): PadaDoorNumber[] {
   const norm = normalizeCommuneName(commune).toLowerCase();
-  return DOORS_BY_COMMUNE.get(norm) || [];
+  return DOORS_BY_COMMUNE.get(norm) || PADA_COMMUNE_DOORS_REGISTRY[normalizeCommuneName(commune)] || [];
 }
 
 /**
@@ -169,4 +212,3 @@ export function normalizeCommuneName(commune: string): string {
   if (c.includes('anyama')) return 'Anyama';
   return commune;
 }
-

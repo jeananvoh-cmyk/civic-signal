@@ -6,7 +6,7 @@ import {
   ArrowLeft, Zap, Droplets, MapPin, Calendar, CheckCircle2,
   Clock, Users, AlertTriangle, ExternalLink, Loader2, Shield, ThumbsUp,
   LogIn, UserPlus, Wrench, PartyPopper, Radio, AlertOctagon,
-  Ticket, Landmark, Copy, Check, Pencil, X, Save
+  Ticket, Landmark, Copy, Check, Pencil, X, Save, ShieldCheck
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -179,9 +179,22 @@ const ReportDetailPage = () => {
   });
 
   const [statusHistory, setStatusHistory] = useState<any[]>([]);
+  const [currentUserType, setCurrentUserType] = useState<string | null>(null);
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [editDescValue, setEditDescValue] = useState("");
   const [isSavingDesc, setIsSavingDesc] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("user_type")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.user_type) setCurrentUserType(data.user_type);
+      });
+  }, [user]);
 
   const handleStartEditDesc = () => {
     if (!report) return;
@@ -845,6 +858,12 @@ const ReportDetailPage = () => {
                       <Shield className="h-3 w-3 mr-1" /> Validé
                     </Badge>
                   )}
+                  {(report.verifications >= 2 || (corroborated && currentUserType === "ambassadeur")) && (
+                    <Badge variant="outline" className="bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40 font-bold gap-1 shadow-2xs">
+                      <ShieldCheck className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                      ⭐ Certifié par l'Ambassadeur de quartier
+                    </Badge>
+                  )}
                 </div>
 
                 {/* Galerie photos ou illustration représentative */}
@@ -939,8 +958,50 @@ const ReportDetailPage = () => {
           {/* ════ DROITE : Suivi, Actions, Corroboration & Commentaires (col-span-5) ════ */}
           <div className="lg:col-span-5 space-y-4">
 
-            {/* ── Bouton corroborer — utilisateur connecté non-auteur ── */}
-            {canCorroborate && (
+            {/* ── Action Ambassadeur de Quartier / Vérificateur Citoyen ── */}
+            {canCorroborate && currentUserType === "ambassadeur" && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="rounded-2xl border-2 border-amber-500/50 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-card shadow-sm p-4 space-y-3"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500 text-slate-950 font-black text-xs shrink-0 shadow-2xs">
+                    ⭐
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-amber-800 dark:text-amber-300">
+                      Vérification Terrain Ambassadeur
+                    </p>
+                    <p className="text-[11px] text-muted-foreground leading-tight">
+                      Votre constat certifie officiellement cette panne auprès des autorités
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleCorroborate}
+                  disabled={corroborating || corroborated}
+                  className="w-full gap-2 py-5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-sm"
+                >
+                  {corroborating ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="h-4 w-4" />
+                  )}
+                  {corroborated
+                    ? "Panne Certifiée sur le Terrain ✓"
+                    : "🛡️ Certifier ce signalement sur le terrain"}
+                </Button>
+                <p className="text-center text-[11px] text-muted-foreground">
+                  Appose le badge officiel « Certifié par l'Ambassadeur » sur la fiche
+                </p>
+              </motion.div>
+            )}
+
+            {/* ── Bouton corroborer classique — citoyen connecté non-ambassadeur non-auteur ── */}
+            {canCorroborate && currentUserType !== "ambassadeur" && (
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}

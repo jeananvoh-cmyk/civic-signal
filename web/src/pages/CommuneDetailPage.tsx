@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useGoBack } from "@/hooks/useGoBack";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Zap, Droplets, MapPin, Clock, TrendingUp, TrendingDown, Minus, Wrench, CheckCircle2, Landmark, AlertTriangle, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, Zap, Droplets, MapPin, Clock, TrendingUp, TrendingDown, Minus, Wrench, CheckCircle2, Landmark, AlertTriangle, ShieldCheck, FileText, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import Header from "@/components/Header";
@@ -12,6 +12,8 @@ import CommuneAlertButton from "@/components/CommuneAlertButton";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { exportMayorMonthlyReportPDF, type MayorReportItem } from "@/lib/export-pdf";
 import { COMMUNES } from "@/lib/communes";
 import { COMMUNE_LOGOS } from "@/lib/commune-logos";
 import { getQuartiers, extractQuartierFromReport } from "@/lib/quartiers";
@@ -70,6 +72,41 @@ const CommuneDetailPage = () => {
     eau_total: number;
   } | null>(null);
   const [communeReports, setCommuneReports] = useState<any[]>([]);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+
+  const handleExportMayorPDF = async () => {
+    if (communeReports.length === 0) {
+      toast.error(`Aucun signalement enregistré pour ${decodedName} à inclure dans le rapport.`);
+      return;
+    }
+    setIsExportingPdf(true);
+    try {
+      const items: MayorReportItem[] = communeReports.map((r) => ({
+        id: r.id,
+        service_type: r.service_type || "infrastructure",
+        description: r.description,
+        location: r.location,
+        quartier: r.resolvedQuartier || r.quartier,
+        status: r.status,
+        created_at: r.start_time || r.created_at,
+        resolved_at: r.resolved_at || (r.status === "resolved" ? r.updated_at : null),
+        upvotes_count: r.upvotes_count || r.confirmations_count || r.verifications || 0,
+      }));
+
+      const monthLabel = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" }).format(new Date());
+      await exportMayorMonthlyReportPDF({
+        commune: decodedName,
+        reports: items,
+        monthLabel: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1),
+      });
+      toast.success(`Rapport officiel du Maire téléchargé pour ${decodedName} !`);
+    } catch (err: any) {
+      console.error("Mayor PDF export error:", err);
+      toast.error("Erreur lors de la génération du rapport PDF");
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -245,6 +282,20 @@ const CommuneDetailPage = () => {
                   >
                     <Landmark className="h-3.5 w-3.5 text-emerald-500" />
                     Services Techniques Mairie
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleExportMayorPDF}
+                    disabled={isExportingPdf}
+                    className="h-8 gap-1.5 rounded-full text-xs font-semibold border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 shadow-2xs"
+                  >
+                    {isExportingPdf ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-600" />
+                    ) : (
+                      <FileText className="h-3.5 w-3.5 text-amber-600" />
+                    )}
+                    {isExportingPdf ? "Génération..." : "Rapport Mensuel Maire (PDF)"}
                   </Button>
                 </div>
             </div>

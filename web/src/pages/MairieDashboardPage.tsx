@@ -7,8 +7,9 @@ import {
   CheckCircle2, Clock, AlertTriangle, UserCheck, FileText,
   Filter, Search, ArrowRight, Printer, Share2, Shield,
   TrendingUp, Users, ChevronRight, CheckCircle, ExternalLink,
-  Sparkles, Phone, Calendar, Download
+  Sparkles, Phone, Calendar, Download, Loader2
 } from "lucide-react";
+import { exportMayorMonthlyReportPDF, type MayorReportItem } from "@/lib/export-pdf";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -142,6 +143,29 @@ const MairieDashboardPage = () => {
     },
     enabled: !!user,
   });
+
+  // Contrôle d'accès : Rôles autorisés (Admin ou Partenaire Mairie)
+  const { data: isAdmin = false, isLoading: adminLoading } = useQuery({
+    queryKey: ["is-admin-role", user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      return data === true;
+    },
+    enabled: !!user,
+  });
+
+  const { data: isPartner = false, isLoading: partnerRoleLoading } = useQuery({
+    queryKey: ["is-partner-role", user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "partner" });
+      return data === true;
+    },
+    enabled: !!user,
+  });
+
+  const isAuthorized = isAdmin || (isPartner && (partnerProfile?.partner_type === "mairie" || partnerProfile?.partner_type === "other" || !partnerProfile?.partner_type));
 
   // Lock selectedCommune if municipal partner has an assigned commune
   const activeCommune = partnerProfile?.partner_type === "mairie" && partnerProfile.commune
@@ -382,6 +406,92 @@ const MairieDashboardPage = () => {
     toast.success(`Export Excel/CSV de la Mairie de ${selectedCommune} téléchargé !`);
   };
 
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+
+  const handleExportMayorPDF = async () => {
+    if (municipalReports.length === 0) {
+      toast.error(`Aucun dossier enregistré pour la Mairie de ${selectedCommune}.`);
+      return;
+    }
+    setIsExportingPdf(true);
+    try {
+      const items: MayorReportItem[] = municipalReports.map((r) => ({
+        id: r.id,
+        service_type: r.service_type || "infrastructure",
+        description: r.description,
+        location: r.commune,
+        quartier: r.quartier,
+        status: r.status,
+        created_at: r.created_at,
+        resolved_at: r.resolved_at,
+        upvotes_count: r.verifications || r.impacted_people || 0,
+      }));
+
+      const monthLabel = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" }).format(new Date());
+      await exportMayorMonthlyReportPDF({
+        commune: selectedCommune,
+        reports: items,
+        monthLabel: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1),
+      });
+      toast.success(`Rapport officiel du Maire téléchargé pour ${selectedCommune} !`);
+    } catch (err: any) {
+      console.error("Mayor PDF export error:", err);
+      toast.error("Erreur lors de la génération du rapport PDF");
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
+  if (adminLoading || partnerRoleLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col justify-between">
+        <Header />
+        <main className="container max-w-2xl px-4 py-16 text-center space-y-6 flex-1 flex flex-col justify-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 shadow-sm">
+            <Shield className="h-10 w-10" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="font-display text-2xl font-bold text-foreground">
+              Espace Réservé aux Services Techniques Municipaux
+            </h1>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Ce tableau de bord technique est strictement réservé aux agents accrédités de la Direction des Services Techniques (DST) de la Mairie de {selectedCommune} et aux administrateurs SIGNA.ci.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-6 text-left space-y-4 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Vous représentez une mairie ou une collectivité locale ?
+            </p>
+            <p className="text-xs text-foreground leading-relaxed">
+              Contactez l'équipe SIGNA.ci pour obtenir une accréditation officielle, attribuer des comptes techniques à vos chefs de brigade de voirie et recevoir directement les signalements citoyens.
+            </p>
+            <div className="pt-2 flex flex-col sm:flex-row gap-3">
+              <Button asChild className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-10">
+                <Link to="/partenaires">
+                  <Landmark className="mr-1.5 h-4 w-4" /> Demander un accès Partenaire
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="flex-1 text-xs font-semibold h-10">
+                <Link to={`/commune/${encodeURIComponent(selectedCommune)}`}>
+                  Consulter la vue citoyenne
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   const activeCommuneObj = COMMUNES.find((c) => c.nom === selectedCommune);
   const logoUrl = COMMUNE_LOGOS[selectedCommune];
 
@@ -438,6 +548,21 @@ const MairieDashboardPage = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleExportMayorPDF}
+              disabled={isExportingPdf}
+              className="h-11 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold gap-2 shadow-sm"
+            >
+              {isExportingPdf ? (
+                <Loader2 className="h-4 w-4 animate-spin text-white" />
+              ) : (
+                <FileText className="h-4 w-4 text-white" />
+              )}
+              {isExportingPdf ? "Génération..." : "Rapport Mensuel Maire (PDF)"}
+            </Button>
 
             <Button
               variant="outline"

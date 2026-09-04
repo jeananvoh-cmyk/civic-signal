@@ -1,7 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Clock, Power, Zap, Droplets, Loader2, PartyPopper, AlertTriangle, ThumbsUp, Trash2, Wrench } from "lucide-react";
+import {
+  CheckCircle2, Clock, Power, Zap, Droplets, Loader2, PartyPopper, AlertTriangle,
+  ThumbsUp, Trash2, Wrench, ArrowRight, ArrowLeft, ZoomIn, Eye, Sparkles, Filter,
+  ShieldCheck, Check, Layers, Copy, MapPin
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,11 +16,12 @@ import NeighborCorroboration from "@/components/NeighborCorroboration";
 import CorroborationStatus from "@/components/CorroborationStatus";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { COMMUNE_COLORS } from "@/lib/communes";
+import { COMMUNE_COLORS, COMMUNES } from "@/lib/communes";
 import { cn } from "@/lib/utils";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { RESOLUTION } from "@/lib/content";
 import { toast } from "sonner";
+import confetti from "canvas-confetti";
 
 interface MyReport {
   id: string;
@@ -31,6 +36,25 @@ interface MyReport {
   start_time: string;
   verifications: number;
   last_reminder_at: string | null;
+}
+
+interface TriageReport {
+  id: string;
+  service_type: string;
+  report_category: string;
+  description: string;
+  commune: string;
+  quartier: string;
+  status: string;
+  urgency: string;
+  created_at: string;
+  start_time?: string;
+  verifications: number;
+  photo_urls?: string[];
+  street_name?: string;
+  door_number?: string;
+  address_notes?: string;
+  user_id?: string;
 }
 
 const NoActiveReportsSVG = () => (
@@ -91,6 +115,127 @@ const VerificationPage = () => {
   useEffect(() => {
     fetchMyActiveReports();
   }, [user]);
+
+  // Mode actif : "triage" (Mode Triage Éclair) ou "mes_alertes"
+  const [activeTab, setActiveTab] = useState<"triage" | "mes_alertes">(() => {
+    return searchParams.get("tab") === "mes_alertes" ? "mes_alertes" : "triage";
+  });
+
+  // États du Mode Triage Éclair
+  const [triageReports, setTriageReports] = useState<TriageReport[]>([]);
+  const [triageIndex, setTriageIndex] = useState(0);
+  const [triageLoading, setTriageLoading] = useState(true);
+  const [triageCommuneFilter, setTriageCommuneFilter] = useState<string>("all");
+  const [sessionVerifiedCount, setSessionVerifiedCount] = useState(0);
+  const [zoomPhotoUrl, setZoomPhotoUrl] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const fetchTriageReports = useCallback(async () => {
+    setTriageLoading(true);
+    try {
+      let query = supabase
+        .from("reports")
+        .select("id, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, verifications, photo_urls, street_name, door_number, address_notes, user_id")
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(80);
+
+      if (user) {
+        query = query.neq("user_id", user.id);
+      }
+      if (triageCommuneFilter !== "all") {
+        query = query.eq("commune", triageCommuneFilter);
+      }
+
+      const { data, error } = await query;
+      if (!error && data) {
+        setTriageReports(data as TriageReport[]);
+        setTriageIndex(0);
+      }
+    } catch {
+      /* silent */
+    } finally {
+      setTriageLoading(false);
+    }
+  }, [user, triageCommuneFilter]);
+
+  useEffect(() => {
+    if (activeTab === "triage") {
+      fetchTriageReports();
+    }
+  }, [activeTab, fetchTriageReports]);
+
+  const handleValidateCurrent = useCallback(async () => {
+    const cur = triageReports[triageIndex];
+    if (!cur || actionLoading) return;
+    if (!user) {
+      toast.error("Connectez-vous pour certifier les signalements du quartier.");
+      return;
+    }
+    setActionLoading(true);
+    if ("vibrate" in navigator) navigator.vibrate([25]);
+
+    try {
+      const { error } = await supabase.rpc("corroborate_report", { p_report_id: cur.id });
+      if (error) {
+        if (error.message?.includes("déjà confirmé")) {
+          toast.info("Vous avez déjà certifié ce signalement.");
+        } else {
+          throw error;
+        }
+      } else {
+        toast.success("✅ Signalement validé et certifié !", {
+          description: `Impact renforcé pour ${cur.commune}, quartier ${cur.quartier}`,
+        });
+      }
+
+      const nextCount = sessionVerifiedCount + 1;
+      setSessionVerifiedCount(nextCount);
+      if (nextCount % 5 === 0) {
+        confetti({ particleCount: 75, spread: 65, origin: { y: 0.6 } });
+      }
+
+      setTriageIndex((prev) => prev + 1);
+    } catch (err: any) {
+      toast.error(err.message || "Erreur de validation");
+    } finally {
+      setActionLoading(false);
+    }
+  }, [triageReports, triageIndex, actionLoading, user, sessionVerifiedCount]);
+
+  const handleSkipCurrent = useCallback(() => {
+    if (actionLoading) return;
+    if ("vibrate" in navigator) navigator.vibrate([15]);
+    toast.info("⏭️ Signalement passé");
+    setTriageIndex((prev) => prev + 1);
+  }, [actionLoading]);
+
+  const handleDuplicateCurrent = useCallback(() => {
+    if (actionLoading) return;
+    if ("vibrate" in navigator) navigator.vibrate([20]);
+    toast.warning("⚠️ Noté comme doublon potentiel");
+    setTriageIndex((prev) => prev + 1);
+  }, [actionLoading]);
+
+  // Raccourcis physiques sur PC : [ → ] Valider, [ ← ] Passer, [ D ] Doublon
+  useEffect(() => {
+    if (activeTab !== "triage") return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement)?.tagName)) return;
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        handleValidateCurrent();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        handleSkipCurrent();
+      } else if (e.key === "d" || e.key === "D") {
+        e.preventDefault();
+        handleDuplicateCurrent();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeTab, handleValidateCurrent, handleSkipCurrent, handleDuplicateCurrent]);
 
   const handleConfirmStillOngoing = async (report: MyReport) => {
     const lastReminder = report.last_reminder_at ? new Date(report.last_reminder_at).getTime() : 0;
@@ -299,15 +444,304 @@ const VerificationPage = () => {
           </>
         ) : (
           <>
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-success/10">
-                <CheckCircle2 className="h-8 w-8 text-success" />
+            {/* Sélecteur d'onglets principal : Mode Triage Éclair vs Mes Alertes */}
+            <div className="flex items-center justify-center mb-8">
+              <div className="flex items-center p-1.5 rounded-2xl bg-muted/80 border border-border shadow-xs max-w-md w-full">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("triage")}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all",
+                    activeTab === "triage"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Zap className="h-4 w-4 text-amber-500" />
+                  <span>Mode Triage Éclair</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                    Pro
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("mes_alertes")}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all",
+                    activeTab === "mes_alertes"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <span>Mes Alertes {reports.length > 0 ? `(${reports.length})` : ""}</span>
+                </button>
               </div>
-              <h1 className="font-display text-2xl font-bold text-foreground">Mes alertes actives</h1>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Informez vos voisins dès que la situation change
-              </p>
-            </motion.div>
+            </div>
+
+            {/* ═══════════════════════════════════════════════════════════════
+                MODE TRIAGE ÉCLAIR (VÉRIFICATEURS & MODÉRATEURS)
+            ═══════════════════════════════════════════════════════════════ */}
+            {activeTab === "triage" && (
+              <div className="space-y-6 max-w-2xl mx-auto">
+                {/* En-tête Triage avec Compteur de Gamification */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/60">
+                  <div>
+                    <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+                      <span>⚡ Mode Triage Éclair</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-semibold">
+                        Terrain & Modération
+                      </span>
+                    </h1>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Raccourcis clavier : <strong>[ → ]</strong> Valider · <strong>[ ← ]</strong> Passer · <strong>[ D ]</strong> Doublon
+                    </p>
+                  </div>
+
+                  {/* Badge Gamification Session */}
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-900 dark:text-amber-200 text-xs font-bold shrink-0 shadow-2xs">
+                    <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                    <span>🎯 {sessionVerifiedCount} certifiés cette session</span>
+                  </div>
+                </div>
+
+                {/* Filtre par commune */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-none text-xs">
+                  <span className="text-[11px] font-semibold text-muted-foreground shrink-0 mr-1">Zone :</span>
+                  <button
+                    type="button"
+                    onClick={() => setTriageCommuneFilter("all")}
+                    className={cn(
+                      "px-3 py-1.5 rounded-xl font-bold shrink-0 transition-all",
+                      triageCommuneFilter === "all"
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "bg-muted/70 text-muted-foreground hover:bg-muted"
+                    )}
+                  >
+                    Tout Abidjan
+                  </button>
+                  {COMMUNES.map((c) => (
+                    <button
+                      key={c.nom}
+                      type="button"
+                      onClick={() => setTriageCommuneFilter(c.nom)}
+                      className={cn(
+                        "px-2.5 py-1.5 rounded-xl font-semibold shrink-0 transition-all flex items-center gap-1.5",
+                        triageCommuneFilter === c.nom
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "bg-muted/70 text-muted-foreground hover:bg-muted"
+                      )}
+                    >
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: c.couleur }} />
+                      <span>{c.nom}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Contenu principal du triage */}
+                {triageLoading ? (
+                  <div className="flex flex-col items-center justify-center gap-3 py-20 rounded-3xl border border-dashed border-border bg-card/50">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-sm font-semibold text-muted-foreground">Recherche des signalements à certifier…</p>
+                  </div>
+                ) : triageReports.length === 0 || triageIndex >= triageReports.length ? (
+                  /* Fin de la file / Rien à trier */
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="rounded-3xl border-2 border-emerald-500/20 bg-emerald-500/5 p-8 text-center space-y-4 shadow-sm"
+                  >
+                    <div className="flex justify-center">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-300">
+                        <PartyPopper className="h-8 w-8" />
+                      </div>
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-black text-foreground">File de triage terminée !</h2>
+                      <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
+                        Tous les signalements pour cette zone ont été vérifiés. Merci pour votre engagement civique !
+                      </p>
+                    </div>
+                    <div className="inline-block px-4 py-2 rounded-xl bg-card border border-border text-xs font-bold text-foreground">
+                      🎉 {sessionVerifiedCount} signalement{sessionVerifiedCount > 1 ? "s" : ""} certifié{sessionVerifiedCount > 1 ? "s" : ""} dans cette session
+                    </div>
+                    <div className="pt-2">
+                      <Button
+                        type="button"
+                        onClick={fetchTriageReports}
+                        className="font-bold bg-primary text-primary-foreground rounded-xl px-6 py-2.5"
+                      >
+                        Recharger la file ↺
+                      </Button>
+                    </div>
+                  </motion.div>
+                ) : (
+                  /* Carte de modération en cours */
+                  (() => {
+                    const cur = triageReports[triageIndex];
+                    const color = COMMUNE_COLORS[cur.commune] || "#10B981";
+                    const isElec = cur.service_type === "electricity";
+                    const isInfra = cur.report_category === "infrastructure";
+                    const hasPhoto = cur.photo_urls && cur.photo_urls.length > 0;
+                    const primaryPhoto = hasPhoto ? cur.photo_urls![0] : null;
+
+                    return (
+                      <motion.div
+                        key={cur.id}
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -16 }}
+                        transition={{ duration: 0.2 }}
+                        className="rounded-3xl border-2 border-border bg-card overflow-hidden shadow-md"
+                      >
+                        {/* Barre d'en-tête de la carte */}
+                        <div
+                          className="flex items-center justify-between px-4 py-3 text-white"
+                          style={{ backgroundColor: color }}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/20">
+                              {isInfra ? <Wrench className="h-4 w-4" /> : isElec ? <Zap className="h-4 w-4" /> : <Droplets className="h-4 w-4" />}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-xs font-black uppercase tracking-wider">
+                                {isInfra ? "Voirie / Mairie" : isElec ? "CIE · Électricité" : "SODECI · Eau Potable"}
+                              </p>
+                              <p className="text-sm font-bold truncate">{cur.commune}</p>
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <span className="text-[11px] px-2 py-0.5 rounded-md bg-black/20 font-medium">
+                              {triageIndex + 1} / {triageReports.length}
+                            </span>
+                            <p className="text-[10px] text-white/80 mt-0.5">{getTimeAgo(cur.created_at)}</p>
+                          </div>
+                        </div>
+
+                        {/* Photo tactile avec bouton loupe */}
+                        {hasPhoto ? (
+                          <div
+                            onClick={() => setZoomPhotoUrl(primaryPhoto)}
+                            className="relative group cursor-zoom-in bg-muted/30 overflow-hidden max-h-72 flex items-center justify-center"
+                          >
+                            <img
+                              src={primaryPhoto!}
+                              alt="Preuve terrain"
+                              className="w-full h-72 object-cover transition-transform duration-200 group-hover:scale-102"
+                            />
+                            <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/70 text-white text-xs font-bold backdrop-blur-xs shadow-md">
+                              <ZoomIn className="h-3.5 w-3.5" />
+                              <span>Agrandir HD</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-6 text-center bg-muted/10 border-b border-border/50">
+                            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
+                              <span>📷</span> Déclaration citoyenne sans photo
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Détails du signalement */}
+                        <div className="p-5 space-y-4">
+                          {/* Emplacement & PADA */}
+                          <div>
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                              <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+                              <span>{cur.commune}, quartier {cur.quartier}</span>
+                            </div>
+                            {cur.street_name && (
+                              <p className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold mt-1 pl-5">
+                                🏠 Voie PADA : {cur.street_name} {cur.door_number ? `· Porte n° ${cur.door_number}` : ""}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Description */}
+                          <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/60">
+                            <p className="text-xs text-muted-foreground font-semibold mb-1">Description citoyenne :</p>
+                            <p className="text-sm text-foreground font-medium italic">"{cur.description}"</p>
+                          </div>
+
+                          {/* Statut corroborations & urgence */}
+                          <div className="flex items-center justify-between text-xs pt-1 border-t border-border/50">
+                            <CorroborationStatus verifications={cur.verifications} reportCategory={cur.report_category} compact />
+                            {cur.urgency === "critical" && (
+                              <span className="px-2 py-0.5 rounded-md bg-destructive/15 text-destructive font-black text-[10px]">
+                                🔥 URGENCE ÉLEVÉE
+                              </span>
+                            )}
+                          </div>
+
+                          {/* ── Boutons d'Action Tactiles Géants ── */}
+                          <div className="grid grid-cols-3 gap-2.5 pt-2">
+                            {/* Passer / Flou */}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handleSkipCurrent}
+                              disabled={actionLoading}
+                              className="py-6 flex flex-col items-center justify-center gap-1 rounded-2xl border-2 hover:bg-muted text-muted-foreground hover:text-foreground"
+                            >
+                              <ArrowLeft className="h-5 w-5" />
+                              <span className="text-xs font-bold">Passer [←]</span>
+                            </Button>
+
+                            {/* Doublon */}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handleDuplicateCurrent}
+                              disabled={actionLoading}
+                              className="py-6 flex flex-col items-center justify-center gap-1 rounded-2xl border-2 border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-300 hover:bg-amber-500/15"
+                            >
+                              <Copy className="h-5 w-5" />
+                              <span className="text-xs font-bold">Doublon [D]</span>
+                            </Button>
+
+                            {/* Valider & Certifier */}
+                            <Button
+                              type="button"
+                              onClick={handleValidateCurrent}
+                              disabled={actionLoading}
+                              className="py-6 flex flex-col items-center justify-center gap-1 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md"
+                            >
+                              {actionLoading ? (
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                              ) : (
+                                <Check className="h-5 w-5" />
+                              )}
+                              <span className="text-xs font-bold">Valider [→]</span>
+                            </Button>
+                          </div>
+
+                          {/* Astuce Raccourcis Clavier sur Desktop */}
+                          <p className="text-[11px] text-center text-muted-foreground hidden sm:block">
+                            💡 Raccourcis clavier : <strong>Flèche droite [→]</strong> pour valider · <strong>Flèche gauche [←]</strong> pour passer · <strong>Touche [D]</strong> pour doublon
+                          </p>
+                        </div>
+                      </motion.div>
+                    );
+                  })()
+                )}
+              </div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════════
+                ONGLET : MES ALERTES ACTIVES
+            ═══════════════════════════════════════════════════════════════ */}
+            {activeTab === "mes_alertes" && (
+              <>
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 text-center">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-success/10">
+                    <CheckCircle2 className="h-8 w-8 text-success" />
+                  </div>
+                  <h1 className="font-display text-2xl font-bold text-foreground">Mes alertes actives</h1>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Informez vos voisins dès que la situation change
+                  </p>
+                </motion.div>
 
         {loading ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16">
@@ -602,6 +1036,37 @@ const VerificationPage = () => {
             </div>
           </DialogContent>
         </Dialog>
+      </>
+    )}
+
+            {/* Modal de Zoom Photo HD */}
+            <Dialog open={Boolean(zoomPhotoUrl)} onOpenChange={(open) => !open && setZoomPhotoUrl(null)}>
+              <DialogContent className="max-w-3xl p-3 bg-black/95 border-border/20 text-white">
+                <DialogHeader className="sr-only">
+                  <DialogTitle>Photo du signalement agrandie</DialogTitle>
+                </DialogHeader>
+                <div className="relative flex items-center justify-center min-h-[300px] max-h-[80vh] overflow-hidden rounded-2xl">
+                  {zoomPhotoUrl && (
+                    <img
+                      src={zoomPhotoUrl}
+                      alt="Agrandissement HD"
+                      className="max-h-[75vh] w-auto object-contain rounded-xl"
+                    />
+                  )}
+                </div>
+                <div className="pt-2 flex justify-between items-center text-xs text-white/70">
+                  <span>Preuve photo capturée sur le terrain</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setZoomPhotoUrl(null)}
+                    className="text-xs text-white border-white/20 hover:bg-white/10"
+                  >
+                    Fermer [Échap]
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </>
         )}
       </main>

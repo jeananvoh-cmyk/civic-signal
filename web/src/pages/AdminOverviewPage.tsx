@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   FileText, Users, AlertTriangle, CheckCircle2, Clock, Eye, Megaphone,
   Zap, Droplets, Shield, Trash2, BarChart3, ArrowRight, Heart, MailCheck, Building2, Landmark, Activity, AlertOctagon, SlidersHorizontal, Minus, Plus,
+  Radio, MapPin, Sparkles,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -305,6 +306,34 @@ const AdminOverviewPage = () => {
     },
   });
 
+  // Pulse Réseau Abidjan (Concentrations de pannes actives sur les dernières 24h par commune)
+  const { data: communePulse = [] } = useQuery({
+    queryKey: ["admin-overview-commune-pulse"],
+    queryFn: async () => {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data, error } = await supabase
+        .from("reports")
+        .select("commune, service_type, report_category, status, created_at")
+        .eq("status", "active")
+        .gte("created_at", since);
+      if (error) throw error;
+      const counts: Record<string, { total: number; elec: number; water: number; infra: number }> = {};
+      (data || []).forEach((r) => {
+        if (!counts[r.commune]) {
+          counts[r.commune] = { total: 0, elec: 0, water: 0, infra: 0 };
+        }
+        counts[r.commune].total += 1;
+        if (r.service_type === "electricity") counts[r.commune].elec += 1;
+        else if (r.service_type === "water") counts[r.commune].water += 1;
+        else counts[r.commune].infra += 1;
+      });
+      return Object.entries(counts)
+        .map(([commune, stats]) => ({ commune, ...stats }))
+        .sort((a, b) => b.total - a.total);
+    },
+    refetchInterval: 30000,
+  });
+
   const stats = totalStats || {
     total: 0,
     active: 0,
@@ -319,7 +348,7 @@ const AdminOverviewPage = () => {
     <div className="p-6 max-w-5xl mx-auto">
 
       {/* ── En-tête ── */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl gradient-hero">
@@ -346,6 +375,71 @@ const AdminOverviewPage = () => {
             <Zap className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             <span>{autoResolveStaleMutation.isPending ? "Auto-clôture en cours..." : "Auto-clôturer les coupures expirées (+48h)"}</span>
           </Button>
+        </div>
+      </motion.div>
+
+      {/* ── 🚨 BARRE D'ALERTE : Pulse Réseau Abidjan (Surveillance 24h) ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.04 }}
+        className="mb-6 rounded-2xl border border-border bg-card p-4 shadow-sm"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/60">
+          <div className="flex items-center gap-2.5">
+            <span className="relative flex h-3 w-3">
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${communePulse.length > 0 ? "bg-amber-400" : "bg-emerald-400"}`} />
+              <span className={`relative inline-flex rounded-full h-3 w-3 ${communePulse.length > 0 ? "bg-amber-500" : "bg-emerald-500"}`} />
+            </span>
+            <span className="text-xs font-black uppercase tracking-wider text-foreground">
+              Pulse Réseau Abidjan · 24h Récentes
+            </span>
+            <Badge variant="outline" className="text-[10px] font-mono font-bold">
+              {communePulse.reduce((acc, c) => acc + c.total, 0)} pannes actives
+            </Badge>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/carte")}
+              className="h-7 text-[11px] font-bold gap-1 text-muted-foreground hover:text-foreground"
+            >
+              <MapPin className="h-3.5 w-3.5 text-primary" />
+              <span>Ouvrir la Carte Tactique</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Détails par commune en pic */}
+        <div className="pt-3">
+          {communePulse.length === 0 ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              <span>Situation stable : Aucun pic anormal de coupures détecté sur le Grand Abidjan sur les dernières 24h.</span>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground font-medium">Zones chaudes :</span>
+              {communePulse.slice(0, 5).map((cp) => (
+                <button
+                  key={cp.commune}
+                  type="button"
+                  onClick={() => navigate(`/admin/signalements?commune=${encodeURIComponent(cp.commune)}&status=active`)}
+                  className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-bold text-foreground transition-all hover:scale-105"
+                >
+                  <span>📍 {cp.commune}</span>
+                  <span className="flex items-center gap-1 font-mono text-[11px] text-amber-700 dark:text-amber-300">
+                    {cp.elec > 0 && <span title={`${cp.elec} coupure(s) élec`}>⚡{cp.elec}</span>}
+                    {cp.water > 0 && <span title={`${cp.water} coupure(s) eau`}>💧{cp.water}</span>}
+                    {cp.infra > 0 && <span title={`${cp.infra} voirie`}>🏗️{cp.infra}</span>}
+                  </span>
+                  <ArrowRight className="h-3 w-3 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </motion.div>
 
