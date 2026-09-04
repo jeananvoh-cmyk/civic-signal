@@ -50,8 +50,8 @@ export default function Footer() {
 
           {/* Colonne 2 : Parcours Citoyen (md:col-span-3) */}
           <div className="md:col-span-3">
-            <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3 flex items-center gap-1.5">
-              <span>📢</span> Services Citoyens
+            <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">
+              Services Citoyens
             </h4>
             <ul className="space-y-2.5 text-xs text-slate-400">
               <li><Link to="/signaler" className="hover:text-emerald-400 transition-colors">Signaler une panne ou coupure</Link></li>
@@ -66,8 +66,8 @@ export default function Footer() {
 
           {/* Colonne 3 : Mairies & Transparence (md:col-span-3) */}
           <div className="md:col-span-3">
-            <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3 flex items-center gap-1.5">
-              <span>🏛️</span> Mairies &amp; Données
+            <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">
+              Mairies &amp; Données
             </h4>
             <ul className="space-y-2.5 text-xs text-slate-400">
               <li><Link to="/tableau-de-bord" className="hover:text-emerald-400 transition-colors">Tableau de bord &amp; Météo réseaux</Link></li>
@@ -85,8 +85,8 @@ export default function Footer() {
 
           {/* Colonne 4 : Écosystème & Légal (md:col-span-2) */}
           <div className="md:col-span-2">
-            <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3 flex items-center gap-1.5">
-              <span>⚖️</span> Cadre Légal
+            <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">
+              Cadre Légal
             </h4>
             <ul className="space-y-2.5 text-xs text-slate-400">
               <li><Link to="/a-propos" className="hover:text-emerald-400 transition-colors">À propos de SIGNA.ci</Link></li>
