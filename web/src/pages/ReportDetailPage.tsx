@@ -6,7 +6,7 @@ import {
   ArrowLeft, Zap, Droplets, MapPin, Calendar, CheckCircle2,
   Clock, Users, AlertTriangle, ExternalLink, Loader2, Shield, ThumbsUp,
   LogIn, UserPlus, Wrench, PartyPopper, Radio, AlertOctagon,
-  Ticket, Landmark, Copy, Check, Pencil, X, Save, ShieldCheck
+  Ticket, Landmark, Copy, Check, Pencil, X, Save, ShieldCheck, Camera, FileCheck2
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ import DurationBadge from "@/components/DurationBadge";
 import ShareButton from "@/components/ShareButton";
 import ReportComments from "@/components/ReportComments";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
+import { RepairDeclarationDialog } from "@/components/RepairDeclarationDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNE_COLORS } from "@/lib/communes";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -59,6 +60,11 @@ interface ReportDetail {
   operator_reference?: string | null;
   estimated_resolution_time?: string | null;
   operator_last_note?: string | null;
+  repair_photos?: string[] | null;
+  repair_note?: string | null;
+  repair_declared_at?: string | null;
+  repair_status?: string | null;
+  resolved_with_transfer?: boolean | null;
 }
 
 const SERVICE_LABELS: Record<string, string> = {
@@ -149,6 +155,11 @@ const ReportDetailPage = () => {
         operator_reference: initialReportData.operator_reference,
         estimated_resolution_time: initialReportData.estimated_resolution_time,
         operator_last_note: initialReportData.operator_last_note,
+        repair_photos: initialReportData.repair_photos,
+        repair_note: initialReportData.repair_note,
+        repair_declared_at: initialReportData.repair_declared_at,
+        repair_status: initialReportData.repair_status || "none",
+        resolved_with_transfer: initialReportData.resolved_with_transfer,
       };
     }
     return null;
@@ -160,6 +171,7 @@ const ReportDetailPage = () => {
   const [corroborated, setCorroborated] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [reopening, setReopening] = useState(false);
+  const [isRepairDialogOpen, setIsRepairDialogOpen] = useState(false);
 
   const isElecMeta = report?.service_type === "electricity";
   const isInfraMeta = report?.report_category === "infrastructure";
@@ -271,6 +283,11 @@ const ReportDetailPage = () => {
         operator_reference: data.operator_reference,
         estimated_resolution_time: data.estimated_resolution_time,
         operator_last_note: data.operator_last_note,
+        repair_photos: data.repair_photos,
+        repair_note: data.repair_note,
+        repair_declared_at: data.repair_declared_at,
+        repair_status: data.repair_status || "none",
+        resolved_with_transfer: data.resolved_with_transfer,
       };
 
       setReport(formattedReport);
@@ -362,7 +379,7 @@ const ReportDetailPage = () => {
       try {
         const { data } = await supabase
           .from("reports")
-          .select("id, user_id, ticket_code, pada_commune_code, pada_street_name, pada_formatted_address, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, validated, validated_at, forwarded_to_operator_at, photo_url, photo_urls, verifications, repair_verifications, impacted_people, babies, pregnant, elderly, operator_name, operator_reference, estimated_resolution_time, operator_last_note")
+          .select("id, user_id, ticket_code, pada_commune_code, pada_street_name, pada_formatted_address, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, validated, validated_at, forwarded_to_operator_at, photo_url, photo_urls, verifications, repair_verifications, impacted_people, babies, pregnant, elderly, operator_name, operator_reference, estimated_resolution_time, operator_last_note, repair_photos, repair_note, repair_declared_at, repair_status, resolved_with_transfer")
           .eq("id", id)
           .maybeSingle();
 
@@ -564,6 +581,21 @@ const ReportDetailPage = () => {
                             : <>Merci aux <strong>{report.verifications} voisin{report.verifications > 1 ? "s" : ""}</strong> qui ont confirmé cette coupure.</>}
                         </p>
                       )}
+                      {report.resolved_with_transfer !== null && report.resolved_with_transfer !== undefined && (
+                        <div className="mt-2">
+                          {report.resolved_with_transfer ? (
+                            <Badge variant="outline" className="bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30 text-[11px] font-semibold gap-1.5 py-1 px-2.5">
+                              <FileCheck2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                              <span>Pris en charge suite au transfert technique SIGNA.ci</span>
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/30 text-[11px] font-semibold gap-1.5 py-1 px-2.5">
+                              <ShieldCheck className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+                              <span>Résolu sans transfert préalable (Constat terrain citoyen)</span>
+                            </Badge>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="mt-3 pt-3 border-t border-success/20 flex flex-wrap items-center justify-between gap-2">
@@ -608,6 +640,70 @@ const ReportDetailPage = () => {
               )}
             </AnimatePresence>
 
+            {/* ── Comparatif Avant / Après Travaux (si photos de preuve enregistrées) ── */}
+            {isResolved && report.repair_photos && report.repair_photos.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl border-2 border-emerald-500/30 bg-emerald-500/5 p-4 space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileCheck2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                      Comparatif Travaux : Avant / Après Réparation
+                    </span>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] border-emerald-500/40 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10">
+                    Preuve validée ✓
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  {/* Avant */}
+                  <div className="rounded-xl border border-border bg-card overflow-hidden">
+                    <div className="bg-destructive/10 px-3 py-1.5 border-b border-destructive/20 text-[11px] font-bold text-destructive flex items-center justify-between">
+                      <span>1. Avant (Signalement initial)</span>
+                      <span className="text-[10px] text-muted-foreground">{new Date(report.created_at).toLocaleDateString("fr-FR")}</span>
+                    </div>
+                    <div className="p-2">
+                      <PhotoGallery
+                        photos={
+                          (report.photo_urls && report.photo_urls.length > 0)
+                            ? report.photo_urls
+                            : report.photo_url ? [report.photo_url] : []
+                        }
+                        fallbackImage={getInfraIllustration(report.service_type, report.description)}
+                        thumbHeight="h-36"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Après */}
+                  <div className="rounded-xl border border-border bg-card overflow-hidden">
+                    <div className="bg-emerald-500/10 px-3 py-1.5 border-b border-emerald-500/20 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center justify-between">
+                      <span>2. Après (Réparation constatée)</span>
+                      {report.repair_declared_at && (
+                        <span className="text-[10px] text-muted-foreground">{new Date(report.repair_declared_at).toLocaleDateString("fr-FR")}</span>
+                      )}
+                    </div>
+                    <div className="p-2">
+                      <PhotoGallery
+                        photos={report.repair_photos}
+                        thumbHeight="h-36"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {report.repair_note && (
+                  <p className="text-xs italic text-muted-foreground bg-card/60 p-2.5 rounded-xl border border-border">
+                    « {report.repair_note} »
+                  </p>
+                )}
+              </motion.div>
+            )}
+
             {/* ── Bannière ACTIF — rappel live ── */}
             {!isResolved && (
               <div className="space-y-2.5">
@@ -624,7 +720,90 @@ const ReportDetailPage = () => {
                   </p>
                 </motion.div>
 
-                {/* ── Relance / Confirmation directe de retour de service ── */}
+                {/* ── Bannière examen preuve de réparation en cours ── */}
+                {report.repair_status === "pending_review" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-2xl border-2 border-amber-500/40 bg-amber-500/10 p-4 space-y-3"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                        <Camera className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-bold text-xs sm:text-sm text-amber-900 dark:text-amber-200">
+                            Déclaration de réparation citoyenne en cours d'examen
+                          </p>
+                          <Badge variant="outline" className="text-[10px] bg-amber-500/20 border-amber-500/40 text-amber-800 dark:text-amber-300 font-bold">
+                            En modération
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-amber-800/90 dark:text-amber-300/90 mt-1">
+                          Un citoyen a transmis {report.repair_photos?.length || 1} photo(s) attestant que ce problème a été réparé. Nos modérateurs et équipes techniques vérifient actuellement la conformité de la preuve avant clôture définitive.
+                        </p>
+                        {report.repair_note && (
+                          <p className="text-xs italic text-amber-900 dark:text-amber-200 bg-background/60 p-2.5 rounded-lg mt-2 border border-amber-500/20">
+                            « {report.repair_note} »
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {report.repair_photos && report.repair_photos.length > 0 && (
+                      <div className="pt-1">
+                        <p className="text-[11px] font-bold text-amber-800 dark:text-amber-300 mb-1.5 uppercase tracking-wide">
+                          Photos de preuve transmises :
+                        </p>
+                        <div className="flex gap-2 overflow-x-auto pb-1">
+                          {report.repair_photos.map((photo, i) => (
+                            <a key={i} href={photo} target="_blank" rel="noopener noreferrer" className="relative group shrink-0">
+                              <img src={photo} alt={`Preuve ${i + 1}`} className="h-20 w-20 object-cover rounded-lg border border-amber-500/30 shadow-xs" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+
+                {/* ── Bouton / Carte de Déclaration de Réparation Citoyenne avec Photo ── */}
+                {report.repair_status !== "pending_review" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-card p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs"
+                  >
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <Camera className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        Vous constatez que le problème a été réparé ?
+                      </p>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        Prenez une photo comme preuve. Après vérification par nos modérateurs, l'incident sera officiellement clos.
+                      </p>
+                    </div>
+
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        if (!user) {
+                          toast.error("Veuillez vous connecter pour soumettre une preuve de réparation");
+                          navigate(`/auth?redirect=/signalement/${report.id}&action=login`);
+                          return;
+                        }
+                        setIsRepairDialogOpen(true);
+                      }}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 h-8 w-full sm:w-auto shrink-0 shadow-sm"
+                    >
+                      <Camera className="h-3.5 w-3.5" />
+                      Déclarer avec photo
+                    </Button>
+                  </motion.div>
+                )}
+
+                {/* ── Relance / Confirmation directe de retour de service (outages élec/eau) ── */}
                 {!isInfra && (
                   <motion.div
                     initial={{ opacity: 0, y: -6 }}
@@ -1217,6 +1396,29 @@ const ReportDetailPage = () => {
 
           </div>
         </div>
+
+        {/* ── Dialogue de Déclaration de Réparation Citoyenne ── */}
+        <RepairDeclarationDialog
+          open={isRepairDialogOpen}
+          onOpenChange={setIsRepairDialogOpen}
+          reportId={report.id}
+          commune={report.commune}
+          quartier={report.quartier}
+          category={report.report_category}
+          onSuccess={(res) => {
+            setReport((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    repair_photos: res.repair_photos,
+                    repair_note: res.repair_note,
+                    repair_status: res.repair_status,
+                    repair_declared_at: new Date().toISOString(),
+                  }
+                : prev
+            );
+          }}
+        />
       </main>
     </div>
   );

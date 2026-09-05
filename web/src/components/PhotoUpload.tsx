@@ -35,7 +35,7 @@ export async function computeBlobHash(blob: Blob): Promise<string> {
 }
 
 // ── Compression canvas adaptative (Nettoyage EXIF garanti) ────────────────────
-async function compressImage(file: File): Promise<Blob> {
+export async function compressImage(file: File): Promise<Blob> {
   const quality = file.size > 1 * 1024 * 1024 ? JPEG_QUALITY_LOW : JPEG_QUALITY_HIGH;
 
   return new Promise((resolve, reject) => {

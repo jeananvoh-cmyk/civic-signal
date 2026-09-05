@@ -461,7 +461,7 @@ const PartnersPage = () => {
           <h2 className="text-2xl font-bold text-foreground text-center">Comment rejoindre la plateforme ?</h2>
           <div className="space-y-4">
             {[
-              { step: "1", title: "Contactez-nous", desc: "Envoyez-nous un email à partenaires@signa.ci avec le nom de votre organisation et votre rôle." },
+              { step: "1", title: "Contactez-nous", desc: "Envoyez-nous un email à contact@signa.ci avec le nom de votre organisation et votre rôle." },
               { step: "2", title: "Démonstration personnalisée", desc: "Nous vous présentons le tableau de bord partenaire adapté à votre cas d'usage (opérateur réseau ou mairie)." },
               { step: "3", title: "Création de votre espace", desc: "Un compte partenaire est créé pour votre équipe. Formation incluse, intégration en moins de 48h." },
               { step: "4", title: "Go live", desc: "Vous recevez les signalements en temps réel et pouvez répondre publiquement aux citoyens depuis votre espace." },
@@ -508,9 +508,9 @@ const PartnersPage = () => {
             Gratuit pendant la phase pilote. Aucun engagement. Démarrage sous 48h.
           </p>
           <Button asChild size="lg" className="w-full gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold">
-            <a href="mailto:partenaires@signa.ci">
+            <a href="mailto:contact@signa.ci">
               <Mail className="h-4 w-4" />
-              Contacter l'équipe par email (partenaires@signa.ci)
+              Contacter l'équipe par email (contact@signa.ci)
               <ArrowRight className="h-4 w-4" />
             </a>
           </Button>
@@ -555,7 +555,7 @@ function PartnerRequestForm() {
       toast.success("Demande transmise avec succès ! Notre équipe vous contactera sous 24h.");
     } catch {
       setSubmitted(true);
-      toast.success("Demande enregistrée ! Vous pouvez également nous contacter à partenaires@signa.ci");
+      toast.success("Demande enregistrée ! Vous pouvez également nous contacter à contact@signa.ci");
     } finally {
       setLoading(false);
     }

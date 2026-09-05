@@ -832,7 +832,7 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
           <!-- Footer Institutionnel -->
           <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e2e8f0; text-align: center; font-size: 11px; color: #64748b; line-height: 1.6; font-family: sans-serif;">
             <div style="font-weight: 800; color: #0f172a; font-size: 12px; margin-bottom: 4px;">🤝 SIGNA-CI · Plateforme d'Alliance Citoyenne pour des Quartiers Sains & Sécurisés</div>
-            <div>📍 District Autonome d'Abidjan, République de Côte d'Ivoire · 🌐 <a href="https://signa.ci" style="color: #0284c7; text-decoration: none; font-weight: 700;">https://signa.ci</a> · ✉️ <a href="mailto:partenaires@signa.ci" style="color: #0284c7; text-decoration: none; font-weight: 600;">partenaires@signa.ci</a></div>
+            <div>📍 District Autonome d'Abidjan, République de Côte d'Ivoire · 🌐 <a href="https://signa.ci" style="color: #0284c7; text-decoration: none; font-weight: 700;">https://signa.ci</a> · ✉️ <a href="mailto:contact@signa.ci" style="color: #0284c7; text-decoration: none; font-weight: 600;">contact@signa.ci</a></div>
           </div>
 
         </div>

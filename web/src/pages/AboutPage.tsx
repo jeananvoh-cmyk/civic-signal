@@ -152,53 +152,6 @@ const AboutPage = () => {
 
           </div>
 
-          {/* 🌟 L'Histoire Authentique de SIGNA.ci (Vibe Coding & Engagement Civique) */}
-          <section className="rounded-3xl border border-border bg-gradient-to-r from-amber-500/10 via-card to-card p-6 sm:p-10 shadow-sm mb-12">
-            <div className="max-w-4xl mx-auto space-y-6">
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-3 w-3 rounded-full bg-amber-500 animate-pulse" />
-                <span className="text-xs font-black uppercase tracking-widest text-amber-700 dark:text-amber-400">
-                  L'Histoire derrière la plateforme · Fondateur &amp; Vibe Coding
-                </span>
-              </div>
-
-              <h2 className="font-display text-2xl sm:text-3xl font-black text-foreground tracking-tight">
-                « Tout a commencé par une nuit étouffante sur la dalle de mon immeuble à Abidjan… »
-              </h2>
-
-              <div className="space-y-4 text-sm sm:text-base text-muted-foreground leading-relaxed">
-                <p>
-                  Fin février 2026. Après une longue garde de nuit, je rentre chez moi. Coupure générale d'électricité dans tout le quartier. La chaleur est accablante, le service client est injoignable et personne ne sait quand le courant reviendra. Cette nuit-là, comme des centaines de familles abidjanaises, mes voisins et moi avons dû monter dormir à la belle étoile sur la dalle de l'immeuble pour trouver un peu d'air frais.
-                </p>
-                <p>
-                  Là-haut, dans le noir, une évidence s'est imposée : <em>Continuer à se plaindre passivement dans son salon, ou fabriquer la solution nous-mêmes ?</em>
-                </p>
-                <p>
-                  Bien qu'ingénieur en réseaux et télécommunications et fort d'un engagement communautaire passionné (formé à l'école des bâtisseurs de l'<strong>AIESEC</strong>), je n'avais jamais écrit une seule ligne de code d'application web de ma vie, et pas 99 millions de FCFA en poche pour rémunérer une agence. C'est là que le <strong>Vibe Coding</strong> et les intelligences artificielles de pointe ont changé la donne.
-                </p>
-                <p>
-                  Nuit après nuit, ligne après ligne, <strong>SIGNA.ci</strong> est né : une plateforme civique indépendante, pensée pour et par les Ivoiriens, capable de cartographier chaque panne, d'attribuer des adresses précises grâce au cadastre PADA et de déposer des rapports officiels certifiés sur le bureau des Maires et des directeurs techniques.
-                </p>
-              </div>
-
-              <div className="pt-4 border-t border-border flex flex-wrap items-center justify-between gap-4 text-xs">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-2xl bg-amber-500/20 text-amber-700 dark:text-amber-300 font-black flex items-center justify-center text-sm shadow-2xs">
-                    JA
-                  </div>
-                  <div>
-                    <p className="font-bold text-foreground">Jean Anvoh</p>
-                    <p className="text-muted-foreground text-[11px]">Initiateur &amp; Vibe Coder · SIGNA.ci</p>
-                  </div>
-                </div>
-
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-background border border-border text-foreground font-semibold">
-                  <span>🇨🇮 Fièrement conçu pour le Grand Abidjan</span>
-                </div>
-              </div>
-            </div>
-          </section>
-
           {/* 🛡️ Le Réseau des Ambassadeurs de Quartier */}
           <section className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-sm mb-12">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">

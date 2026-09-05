@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle2, Clock, Power, Zap, Droplets, Loader2, PartyPopper, AlertTriangle,
   ThumbsUp, Trash2, Wrench, ArrowRight, ArrowLeft, ZoomIn, Eye, Sparkles, Filter,
-  ShieldCheck, Check, Layers, Copy, MapPin
+  ShieldCheck, Check, Layers, Copy, MapPin, Camera
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,11 @@ interface MyReport {
   start_time: string;
   verifications: number;
   last_reminder_at: string | null;
+  repair_photos?: string[] | null;
+  repair_note?: string | null;
+  repair_declared_at?: string | null;
+  repair_status?: string | null;
+  resolved_with_transfer?: boolean | null;
 }
 
 interface TriageReport {
@@ -55,6 +60,11 @@ interface TriageReport {
   door_number?: string;
   address_notes?: string;
   user_id?: string;
+  repair_photos?: string[] | null;
+  repair_note?: string | null;
+  repair_declared_at?: string | null;
+  repair_status?: string | null;
+  resolved_with_transfer?: boolean | null;
 }
 
 const NoActiveReportsSVG = () => (
@@ -88,6 +98,7 @@ const VerificationPage = () => {
   const [resolveTime, setResolveTime] = useState("");
   const [resolving, setResolving] = useState(false);
   const [justResolved, setJustResolved] = useState<string | null>(null);
+  const [resolvedWithTransfer, setResolvedWithTransfer] = useState(true);
 
   // Confirm still ongoing
   const [confirming, setConfirming] = useState<string | null>(null);
@@ -104,11 +115,11 @@ const VerificationPage = () => {
     if (!user) return;
     const { data, error } = await supabase
       .from("reports")
-      .select("id, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, verifications, last_reminder_at")
+      .select("id, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, verifications, last_reminder_at, repair_photos, repair_note, repair_declared_at, repair_status, resolved_with_transfer")
       .eq("user_id", user.id)
       .eq("status", "active")
       .order("created_at", { ascending: false });
-    if (!error && data) setReports(data);
+    if (!error && data) setReports(data as MyReport[]);
     setLoading(false);
   };
 
@@ -135,7 +146,7 @@ const VerificationPage = () => {
     try {
       let query = supabase
         .from("reports")
-        .select("id, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, verifications, photo_urls, street_name, door_number, address_notes, user_id")
+        .select("id, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, verifications, photo_urls, street_name, door_number, address_notes, user_id, repair_photos, repair_note, repair_declared_at, repair_status, resolved_with_transfer")
         .eq("status", "active")
         .order("created_at", { ascending: false })
         .limit(80);
@@ -284,6 +295,7 @@ const VerificationPage = () => {
     const pad = (n: number) => n.toString().padStart(2, "0");
     cardOpenedAt.current[report.id] = Date.now();
     setResolveTime(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`);
+    setResolvedWithTransfer(report.resolved_with_transfer !== false);
     setResolveTarget(report);
   };
 
@@ -294,11 +306,25 @@ const VerificationPage = () => {
     setResolving(true);
     try {
       const resolvedAt = isInfra ? new Date().toISOString() : new Date(resolveTime).toISOString();
-      const { error } = await supabase.rpc("resolve_report", {
-        p_report_id: resolveTarget.id,
-        p_resolved_at: resolvedAt,
-      });
-      if (error) throw error;
+      if (resolveTarget.repair_status === "pending_review") {
+        const { error: rpcErr } = await (supabase as any).rpc("moderate_repair_declaration", {
+          p_report_id: resolveTarget.id,
+          p_decision: "approved",
+          p_resolved_with_transfer: resolvedWithTransfer,
+          p_moderator_note: "Validé lors de la vérification terrain",
+        });
+        if (rpcErr) throw rpcErr;
+      } else {
+        const { error } = await supabase.rpc("resolve_report", {
+          p_report_id: resolveTarget.id,
+          p_resolved_at: resolvedAt,
+        });
+        if (error) throw error;
+        await supabase
+          .from("reports")
+          .update({ resolved_with_transfer: resolvedWithTransfer })
+          .eq("id", resolveTarget.id);
+      }
       const resolvedId = resolveTarget.id;
       track("verification_resolved", {
         report_id: resolvedId,
@@ -664,6 +690,41 @@ const VerificationPage = () => {
                             <p className="text-sm text-foreground font-medium italic">"{cur.description}"</p>
                           </div>
 
+                          {/* Preuve de réparation citoyenne transmise */}
+                          {cur.repair_status === "pending_review" && (
+                            <div className="p-3.5 rounded-2xl border-2 border-amber-500/40 bg-amber-500/10 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <Camera className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                  <span className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                                    Preuve de réparation citoyenne transmise
+                                  </span>
+                                </div>
+                                <span className="text-[10px] bg-amber-500/20 text-amber-800 dark:text-amber-300 font-bold px-1.5 py-0.5 rounded">
+                                  À valider
+                                </span>
+                              </div>
+                              {cur.repair_note && (
+                                <p className="text-xs italic text-amber-900 dark:text-amber-200 bg-background/50 p-2 rounded-lg border border-amber-500/20">
+                                  « {cur.repair_note} »
+                                </p>
+                              )}
+                              {cur.repair_photos && cur.repair_photos.length > 0 && (
+                                <div className="flex gap-2 overflow-x-auto pt-1">
+                                  {cur.repair_photos.map((p, idx) => (
+                                    <img
+                                      key={idx}
+                                      src={p}
+                                      alt="Preuve après réparation"
+                                      onClick={() => setZoomPhotoUrl(p)}
+                                      className="h-16 w-16 object-cover rounded-xl border border-amber-500/30 cursor-pointer hover:opacity-90"
+                                    />
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
                           {/* Statut corroborations & urgence */}
                           <div className="flex items-center justify-between text-xs pt-1 border-t border-border/50">
                             <CorroborationStatus verifications={cur.verifications} reportCategory={cur.report_category} compact />
@@ -925,6 +986,41 @@ const VerificationPage = () => {
                       />
                     </div>
                   )}
+
+                  {/* Qualification de la résolution pour les rapports aux opérateurs et mairies */}
+                  <div className="space-y-2 text-left pt-1">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Origine de la résolution (Rapports statistiques)
+                    </Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setResolvedWithTransfer(true)}
+                        className={cn(
+                          "p-2.5 rounded-xl border text-xs text-left transition-all",
+                          resolvedWithTransfer
+                            ? "border-emerald-500 bg-emerald-500/15 text-emerald-900 dark:text-emerald-200 font-bold ring-2 ring-emerald-500/30"
+                            : "border-border bg-muted/40 text-muted-foreground hover:bg-muted"
+                        )}
+                      >
+                        <p className="flex items-center gap-1 font-bold">✅ Avec transfert</p>
+                        <p className="text-[10px] font-normal opacity-80 mt-0.5 leading-tight">Transmis aux services partenaires SIGNA</p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setResolvedWithTransfer(false)}
+                        className={cn(
+                          "p-2.5 rounded-xl border text-xs text-left transition-all",
+                          !resolvedWithTransfer
+                            ? "border-blue-500 bg-blue-500/15 text-blue-900 dark:text-blue-200 font-bold ring-2 ring-blue-500/30"
+                            : "border-border bg-muted/40 text-muted-foreground hover:bg-muted"
+                        )}
+                      >
+                        <p className="flex items-center gap-1 font-bold">ℹ️ Sans transfert</p>
+                        <p className="text-[10px] font-normal opacity-80 mt-0.5 leading-tight">Constat terrain / Maintenance spontanée</p>
+                      </button>
+                    </div>
+                  </div>
 
                   <Button
                     className="w-full bg-success text-success-foreground hover:bg-success/90 py-6 text-base font-bold"

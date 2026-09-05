@@ -5,8 +5,7 @@ import {
   BarChart3, CheckCircle2, Clock, Users, TrendingUp,
   Zap, Droplets, MapPin, Loader2, Shield, AlertTriangle,
   ArrowRight, Search, Activity, Sparkles, Filter, Download,
-  FileText, Database, ExternalLink, Server, HardDrive,
-  MessageSquare, Printer, Heart,
+  FileText, Database, ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -801,126 +800,6 @@ const TransparencyPage = () => {
               </div>
 
             </div>
-
-            {/* 💰 MODULE DE TRANSPARENCE FINANCIÈRE & COÛTS D'EXPLOITATION */}
-            <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.22 }}
-              className="rounded-3xl border border-border bg-card shadow-xl overflow-hidden"
-            >
-              <div className="bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-transparent p-6 sm:p-8 border-b border-border/70 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[11px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-                      Gestion Intègre · 0 FCFA de Subvention Publique
-                    </span>
-                  </div>
-                  <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground mt-1">
-                    Transparence Financière &amp; Coûts Réels
-                  </h2>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-2xl leading-relaxed">
-                    Pour garantir notre indépendance totale vis-à-vis des opérateurs et des partis politiques, SIGNA.ci est financé exclusivement par les dons citoyens et la société civile. Voici où va chaque franc CFA.
-                  </p>
-                </div>
-
-                {/* Statut de Financement Mensuel */}
-                <div className="shrink-0 bg-background/90 backdrop-blur-md px-6 py-4 rounded-2xl border border-border shadow-sm text-right">
-                  <div className="text-xs text-muted-foreground uppercase font-semibold">Budget mensuel couvert</div>
-                  <div className="text-3xl font-black text-emerald-500 mt-0.5">65 %</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5 font-medium">97 500 / 150 000 FCFA</div>
-                </div>
-              </div>
-
-              <div className="p-6 sm:p-8 space-y-6">
-                {/* Jauge globale */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs font-semibold">
-                    <span className="text-muted-foreground">Progression des dons ce mois-ci</span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">Reste 52 500 FCFA pour boucler le mois</span>
-                  </div>
-                  <div className="h-3 w-full rounded-full bg-muted overflow-hidden">
-                    <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-700 w-[65%]" />
-                  </div>
-                </div>
-
-                {/* 4 Piliers de Dépenses Réelles */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
-                  <div className="p-4 rounded-2xl bg-muted/40 border border-border space-y-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                        <Server className="h-4 w-4" />
-                      </div>
-                      <span className="text-xs font-bold text-foreground">Serveurs &amp; BD</span>
-                    </div>
-                    <div className="text-xl font-black text-foreground">45 000 <span className="text-xs font-semibold text-muted-foreground">FCFA</span></div>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Cluster PostgreSQL sécurisé, fonctions Edge et synchronisation temps réel des pannes.
-                    </p>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-muted/40 border border-border space-y-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                        <HardDrive className="h-4 w-4" />
-                      </div>
-                      <span className="text-xs font-bold text-foreground">Stockage Preuves</span>
-                    </div>
-                    <div className="text-xl font-black text-foreground">25 000 <span className="text-xs font-semibold text-muted-foreground">FCFA</span></div>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Stockage Cloud S3 pour les photos géolocalisées et archivage des empreintes SHA-256.
-                    </p>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-muted/40 border border-border space-y-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                        <MessageSquare className="h-4 w-4" />
-                      </div>
-                      <span className="text-xs font-bold text-foreground">SMS &amp; Alertes</span>
-                    </div>
-                    <div className="text-xl font-black text-foreground">35 000 <span className="text-xs font-semibold text-muted-foreground">FCFA</span></div>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Passerelle SMS &amp; WhatsApp pour notifier les résidents en cas de retour du courant ou d'eau.
-                    </p>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-muted/40 border border-border space-y-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                        <Printer className="h-4 w-4" />
-                      </div>
-                      <span className="text-xs font-bold text-foreground">Affiches &amp; PADA</span>
-                    </div>
-                    <div className="text-xl font-black text-foreground">45 000 <span className="text-xs font-semibold text-muted-foreground">FCFA</span></div>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Impression des stickers QR Code d'immeubles et kits pour les ambassadeurs de quartier.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Appel au don et auditabilité */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-border/80">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-full bg-rose-500/10 text-rose-500 shrink-0">
-                      <Heart className="h-5 w-5 fill-rose-500" />
-                    </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Chaque donateur reçoit un reçu numérique et peut auditer l'utilisation des fonds sur notre registre public.
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => navigate("/faire-un-don")}
-                    className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md hover:scale-105 transition-all"
-                  >
-                    <Heart className="h-4 w-4 fill-white" />
-                    Participer au maintien du service (Dès 500 F)
-                  </button>
-                </div>
-              </div>
-            </motion.div>
 
             {/* 🚪 PORTAILS CIBLÉS EN 3 COLONNES (FixMyStreet Style) */}
             <motion.div

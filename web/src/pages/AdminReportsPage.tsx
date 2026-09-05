@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
-import { CheckCircle, XCircle, MapPin, Zap, Droplets, Clock, Eye, Landmark, Download, Square, CheckSquare, Trash2, MessageCircle, PhoneCall, AlertOctagon, Bell, ExternalLink, CheckCheck, Wrench, ShieldAlert, Send, Ticket, Building2, Copy, Search, Filter, SlidersHorizontal, RefreshCw, Activity, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle, XCircle, MapPin, Zap, Droplets, Clock, Eye, Landmark, Download, Square, CheckSquare, Trash2, MessageCircle, PhoneCall, AlertOctagon, Bell, ExternalLink, CheckCheck, Wrench, ShieldAlert, Send, Ticket, Building2, Copy, Search, Filter, SlidersHorizontal, RefreshCw, Activity, X, ChevronLeft, ChevronRight, Camera, FileCheck2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -515,18 +515,69 @@ const AdminReportsPage = () => {
   });
 
   const resolveMutation = useMutation({
-    mutationFn: async (reportId: string) => {
+    mutationFn: async (arg: string | { reportId: string; resolvedWithTransfer?: boolean }) => {
+      const reportId = typeof arg === "string" ? arg : arg.reportId;
+      const resolvedWithTransfer = typeof arg === "string" ? undefined : arg.resolvedWithTransfer;
+
       const { error } = await supabase.rpc("admin_resolve_report", { p_report_id: reportId });
       if (error) throw error;
+
+      if (resolvedWithTransfer !== undefined) {
+        await supabase
+          .from("reports")
+          .update({ resolved_with_transfer: resolvedWithTransfer })
+          .eq("id", reportId);
+      }
+      return reportId;
     },
-    onSuccess: (_, reportId) => {
+    onSuccess: (reportId) => {
       logAudit({
         action: "report_resolved",
         target_type: "report",
         target_id: reportId,
       });
       queryClient.invalidateQueries({ queryKey: ["admin-reports-validated"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-escalades"] });
       toast.success("Signalement marqué comme résolu.");
+      setSelectedReport(null);
+    },
+    onError: (err: any) => toast.error(getUserFriendlyError(err)),
+  });
+
+  const moderateProofMutation = useMutation({
+    mutationFn: async ({
+      reportId,
+      decision,
+      resolvedWithTransfer,
+      note,
+    }: {
+      reportId: string;
+      decision: "approved" | "rejected";
+      resolvedWithTransfer?: boolean;
+      note?: string;
+    }) => {
+      const { error } = await (supabase as any).rpc("moderate_repair_declaration", {
+        p_report_id: reportId,
+        p_decision: decision,
+        p_resolved_with_transfer: resolvedWithTransfer ?? false,
+        p_moderator_note: note || (decision === "approved" ? "Validé par modérateur" : "Preuve non concluante"),
+      });
+      if (error) throw error;
+      return { reportId, decision };
+    },
+    onSuccess: ({ reportId, decision }) => {
+      logAudit({
+        action: decision === "approved" ? "repair_proof_approved" : "repair_proof_rejected",
+        target_type: "report",
+        target_id: reportId,
+      });
+      queryClient.invalidateQueries({ queryKey: ["admin-reports-validated"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-reports-pending"] });
+      toast.success(
+        decision === "approved"
+          ? "✅ Preuve de réparation validée ! Signalement clos."
+          : "❌ Preuve de réparation rejetée. Le signalement reste actif."
+      );
       setSelectedReport(null);
     },
     onError: (err: any) => toast.error(getUserFriendlyError(err)),
@@ -710,6 +761,20 @@ const AdminReportsPage = () => {
                     🟠 Actif (⏱ {durationLabel})
                   </Badge>
                 )}
+
+                {/* Badge Preuve Citoyenne */}
+                {report.repair_status === "pending_review" && (
+                  <Badge variant="outline" className="bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/50 text-[10px] px-1.5 py-0 font-bold animate-pulse">
+                    📸 Preuve citoyenne
+                  </Badge>
+                )}
+
+                {/* Badge Qualification Clôture */}
+                {report.status === "resolved" && report.resolved_with_transfer !== null && report.resolved_with_transfer !== undefined && (
+                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${report.resolved_with_transfer ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/40" : "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/30"}`}>
+                    {report.resolved_with_transfer ? "Transfert SIGNA" : "Sans transfert"}
+                  </Badge>
+                )}
               </div>
 
               <p className="text-xs text-muted-foreground truncate mt-1">
@@ -798,6 +863,7 @@ const AdminReportsPage = () => {
     if (statusFilter === "resolved" && r.status !== "resolved") return false;
     if (statusFilter === "chronic" && r.status !== "chronic") return false;
     if (statusFilter === "critical" && (r.urgency !== "critical" || r.status !== "active")) return false;
+    if (statusFilter === "pending_proof" && r.repair_status !== "pending_review") return false;
 
     // Service
     if (serviceFilter === "electricity" && (r.service_type !== "electricity" || r.report_category === "infrastructure")) return false;
@@ -833,6 +899,7 @@ const AdminReportsPage = () => {
   ).length;
   const countValidatedActiveTotal = validatedReports.filter((r: any) => r.status === "active").length;
   const countValidatedResolved = validatedReports.filter((r: any) => r.status === "resolved").length;
+  const countPendingRepairProof = validatedReports.filter((r: any) => r.repair_status === "pending_review").length;
 
   // Liste courante pour navigation précédent / suivant dans le tiroir d'inspection
   const currentList = activeTab === "pending"
@@ -1118,6 +1185,14 @@ const AdminReportsPage = () => {
                   onClick={() => setStatusFilter("critical")}
                 >
                   🔴 Critiques
+                </Button>
+                <Button
+                  size="sm"
+                  variant={statusFilter === "pending_proof" ? "default" : "outline"}
+                  className={`h-7 text-xs px-2.5 ${statusFilter === "pending_proof" ? "bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold shadow-xs" : "text-amber-800 dark:text-amber-300 border-amber-500/40"}`}
+                  onClick={() => setStatusFilter("pending_proof")}
+                >
+                  📸 Preuves citoyennes ({countPendingRepairProof})
                 </Button>
               </div>
 
@@ -1738,9 +1813,125 @@ const AdminReportsPage = () => {
                 </div>
                 {/* Corroboration status in admin detail */}
                 <CorroborationStatus verifications={selectedReport.verifications} />
+
+                {/* Preuve citoyenne de réparation en attente de modération */}
+                {selectedReport.repair_status === "pending_review" && (
+                  <div className="rounded-2xl border-2 border-amber-500/50 bg-amber-500/10 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Camera className="h-4 w-4 text-amber-600" />
+                        <span className="text-xs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200">
+                          Preuve de réparation citoyenne à statuer
+                        </span>
+                      </div>
+                      <Badge className="bg-amber-500 text-slate-950 font-bold text-[10px]">
+                        À modérer
+                      </Badge>
+                    </div>
+
+                    {selectedReport.repair_note && (
+                      <p className="text-xs italic text-amber-900 dark:text-amber-200 bg-background/70 p-2.5 rounded-xl border border-amber-500/20">
+                        « {selectedReport.repair_note} »
+                      </p>
+                    )}
+
+                    {selectedReport.repair_photos && selectedReport.repair_photos.length > 0 && (
+                      <div>
+                        <p className="text-[11px] font-bold text-muted-foreground uppercase mb-1">
+                          Photos après travaux transmises :
+                        </p>
+                        <PhotoGallery photos={selectedReport.repair_photos} thumbHeight="h-36" />
+                      </div>
+                    )}
+
+                    <div className="pt-2 border-t border-amber-500/20 space-y-2">
+                      <p className="text-xs font-bold text-foreground">Validation de la réparation & clôture de l'incident :</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <Button
+                          size="sm"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 h-9"
+                          disabled={moderateProofMutation.isPending}
+                          onClick={() =>
+                            moderateProofMutation.mutate({
+                              reportId: selectedReport.id,
+                              decision: "approved",
+                              resolvedWithTransfer: true,
+                              note: "Réparation validée suite au transfert technique SIGNA.ci",
+                            })
+                          }
+                        >
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          <span>Valider (Avec transfert SIGNA)</span>
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-emerald-600/40 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40 font-bold text-xs gap-1.5 h-9"
+                          disabled={moderateProofMutation.isPending}
+                          onClick={() =>
+                            moderateProofMutation.mutate({
+                              reportId: selectedReport.id,
+                              decision: "approved",
+                              resolvedWithTransfer: false,
+                              note: "Réparation validée sans transfert préalable (Constat spontané)",
+                            })
+                          }
+                        >
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          <span>Valider (Sans transfert / Spontané)</span>
+                        </Button>
+                      </div>
+
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="w-full text-xs font-bold gap-1.5 h-8 mt-1"
+                        disabled={moderateProofMutation.isPending}
+                        onClick={() => {
+                          const reason = prompt("Précisez le motif du rejet de la preuve :");
+                          if (reason !== null) {
+                            moderateProofMutation.mutate({
+                              reportId: selectedReport.id,
+                              decision: "rejected",
+                              note: reason.trim() || "Preuve non concluante",
+                            });
+                          }
+                        }}
+                      >
+                        <XCircle className="h-3.5 w-3.5" />
+                        <span>Rejeter la preuve citoyenne (Maintenir actif)</span>
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Comparatif photos si résolu avec preuve citoyenne */}
+                {selectedReport.status === "resolved" && selectedReport.repair_photos && selectedReport.repair_photos.length > 0 && (
+                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                        <FileCheck2 className="h-4 w-4 text-emerald-600" />
+                        <span>Photos de réparation validées (Après travaux)</span>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-600">
+                        {selectedReport.resolved_with_transfer ? "Transfert SIGNA.ci" : "Sans transfert"}
+                      </Badge>
+                    </div>
+                    <PhotoGallery photos={selectedReport.repair_photos} thumbHeight="h-36" />
+                    {selectedReport.repair_note && (
+                      <p className="text-xs italic text-muted-foreground">« {selectedReport.repair_note} »</p>
+                    )}
+                  </div>
+                )}
+
                 {((selectedReport.photo_urls && selectedReport.photo_urls.length > 0) || selectedReport.photo_url) && (
                   <div>
-                    <p className="text-muted-foreground text-sm mb-1">Photo(s) jointe(s)</p>
+                    <p className="text-muted-foreground text-sm mb-1">
+                      {selectedReport.repair_photos && selectedReport.repair_photos.length > 0
+                        ? "Photo(s) initiale(s) (Avant travaux)"
+                        : "Photo(s) jointe(s)"}
+                    </p>
                     <PhotoGallery
                       photos={
                         (selectedReport.photo_urls && selectedReport.photo_urls.length > 0)
@@ -1811,14 +2002,32 @@ const AdminReportsPage = () => {
                         Transmis à l'opérateur le {new Date((selectedReport as any).forwarded_to_operator_at).toLocaleDateString("fr-FR")}
                       </div>
                     )}
-                    <Button
-                      className="w-full bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90 text-white"
-                      onClick={() => resolveMutation.mutate(selectedReport.id)}
-                      disabled={resolveMutation.isPending}
-                    >
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Marquer comme résolu
-                    </Button>
+
+                    {/* Options de clôture avec qualification pour reporting */}
+                    <div className="space-y-1.5 pt-1">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Marquer comme résolu & qualifier pour reporting :
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <Button
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5"
+                          onClick={() => resolveMutation.mutate({ reportId: selectedReport.id, resolvedWithTransfer: true })}
+                          disabled={resolveMutation.isPending}
+                        >
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          <span>Avec transfert SIGNA</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="border-border text-foreground hover:bg-muted font-bold text-xs gap-1.5"
+                          onClick={() => resolveMutation.mutate({ reportId: selectedReport.id, resolvedWithTransfer: false })}
+                          disabled={resolveMutation.isPending}
+                        >
+                          <CheckCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span>Sans transfert préalable</span>
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 )}
                 {/* Bouton supprimer pour les signalements infrastructure */}

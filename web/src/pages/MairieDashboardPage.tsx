@@ -7,7 +7,8 @@ import {
   CheckCircle2, Clock, AlertTriangle, UserCheck, FileText,
   Filter, Search, ArrowRight, Printer, Share2, Shield,
   TrendingUp, Users, ChevronRight, CheckCircle, ExternalLink,
-  Sparkles, Phone, Calendar, Download, Loader2
+  Sparkles, Phone, Calendar, Download, Loader2, Camera, ShieldCheck,
+  Zap, Droplets
 } from "lucide-react";
 import { exportMayorMonthlyReportPDF, type MayorReportItem } from "@/lib/export-pdf";
 import { Badge } from "@/components/ui/badge";
@@ -79,6 +80,11 @@ interface InfraReport {
   estimated_resolution_time?: string | null;
   operator_last_note?: string | null;
   assigned_team?: string | null;
+  repair_photos?: string[] | null;
+  repair_note?: string | null;
+  repair_declared_at?: string | null;
+  repair_status?: string | null;
+  resolved_with_transfer?: boolean | null;
 }
 
 const MUNICIPAL_TEAMS = [
@@ -87,6 +93,29 @@ const MUNICIPAL_TEAMS = [
   "Équipe Curage & Caniveaux (Hydraulique)",
   "Régie Salubrité & Déchets Urbains",
   "Service Urbanisme & Sécurité Publique",
+];
+
+const CIE_TEAMS = [
+  "Intervention Haute/Moyenne Tension (Postes & Réseau)",
+  "Équipe Dépannage Basse Tension (Quartier)",
+  "Brigade Poteaux & Câbles Décrochés",
+  "Maintenance Éclairage Public & Lampadaires",
+  "Service Comptage & Raccordement",
+];
+
+const SODECI_TEAMS = [
+  "Brigade Réparation Fuites & Canalisations",
+  "Intervention Usine & Surpresseur (Basse Pression)",
+  "Équipe Vannes & Distribution Quartier",
+  "Remplacement Compteurs & Branchements",
+  "Service Qualité Eau & Salubrité Réseau",
+];
+
+const VOIRIE_TEAMS = [
+  "Brigade Terrassement & Enrobé à Chaud",
+  "Équipe Curage Caniveaux & Collecteurs",
+  "Signalisation Verticale & Feux Tricolores",
+  "Intervention Ouvrages d'Art & Chaussée",
 ];
 
 const CATEGORY_MAP: Record<string, { label: string; icon: React.ElementType; color: string }> = {
@@ -123,13 +152,10 @@ const MairieDashboardPage = () => {
   const [actionWorkOrder, setActionWorkOrder] = useState("");
   const [actionNote, setActionNote] = useState("");
   const [actionEtaDays, setActionEtaDays] = useState("2");
+  const [actionResolvedWithTransfer, setActionResolvedWithTransfer] = useState(true);
+  const [actionRepairDecision, setActionRepairDecision] = useState<"approve" | "reject">("approve");
 
-  usePageMeta({
-    title: `Espace Services Techniques Mairie de ${selectedCommune} — SIGNA.ci`,
-    description: `Plateforme de pilotage et d'attribution des travaux d'infrastructure, voirie et éclairage pour les agents techniques de la Mairie de ${selectedCommune}.`,
-  });
-
-  // Partner profile for municipal agent
+  // Partner profile for municipal agent or operator partner (CIE, SODECI, Voirie)
   const { data: partnerProfile } = useQuery({
     queryKey: ["mairie-partner-profile", user?.id],
     queryFn: async () => {
@@ -144,7 +170,27 @@ const MairieDashboardPage = () => {
     enabled: !!user,
   });
 
-  // Contrôle d'accès : Rôles autorisés (Admin ou Partenaire Mairie)
+  const partnerType = partnerProfile?.partner_type || "mairie";
+  const partnerOrgName = partnerProfile?.organization_name;
+
+  // Titre et équipes adaptées
+  const pageTitle = partnerOrgName
+    ? `Espace Services Techniques · ${partnerOrgName}`
+    : `Espace Services Techniques · Mairie de ${selectedCommune}`;
+
+  usePageMeta({
+    title: `${pageTitle} — SIGNA.ci`,
+    description: `Console d'intervention et de suivi pour les partenaires techniques conventionnés (Mairies, CIE, SODECI, Voirie) sur SIGNA.ci.`,
+  });
+
+  const availableTeams = useMemo(() => {
+    if (partnerType === "cie") return CIE_TEAMS;
+    if (partnerType === "sodeci") return SODECI_TEAMS;
+    if (partnerType === "other") return VOIRIE_TEAMS;
+    return MUNICIPAL_TEAMS;
+  }, [partnerType]);
+
+  // Contrôle d'accès : Rôles autorisés (Admin ou Partenaire quel que soit le type)
   const { data: isAdmin = false, isLoading: adminLoading } = useQuery({
     queryKey: ["is-admin-role", user?.id],
     queryFn: async () => {
@@ -165,18 +211,18 @@ const MairieDashboardPage = () => {
     enabled: !!user,
   });
 
-  const isAuthorized = isAdmin || (isPartner && (partnerProfile?.partner_type === "mairie" || partnerProfile?.partner_type === "other" || !partnerProfile?.partner_type));
+  const isAuthorized = isAdmin || isPartner;
 
   // Lock selectedCommune if municipal partner has an assigned commune
   const activeCommune = partnerProfile?.partner_type === "mairie" && partnerProfile.commune
     ? partnerProfile.commune
     : selectedCommune;
 
-  // Charger les signalements de la commune (Infrastructure, Voirie, Salubrité, Lampadaires)
+  // Charger les signalements attribués ou de la commune
   const { data: rawReports = [], isLoading } = useQuery<InfraReport[]>({
-    queryKey: ["mairie-reports", activeCommune, user?.id],
+    queryKey: ["mairie-reports", activeCommune, partnerType, user?.id],
     queryFn: async () => {
-      // Try partner-scoped RPC first if logged in
+      // 1. Essayer le RPC partenaire si connecté
       if (user && partnerProfile) {
         const { data: rpcData, error: rpcError } = await supabase.rpc("get_partner_reports");
         if (!rpcError && rpcData && rpcData.length > 0) {
@@ -200,32 +246,51 @@ const MairieDashboardPage = () => {
             estimated_resolution_time: r.estimated_resolution_time,
             operator_last_note: r.operator_last_note,
             assigned_team: r.assigned_team || null,
+            repair_photos: r.repair_photos || null,
+            repair_note: r.repair_note || null,
+            repair_declared_at: r.repair_declared_at || null,
+            repair_status: r.repair_status || "none",
+            resolved_with_transfer: r.resolved_with_transfer ?? null,
           })) as InfraReport[];
         }
       }
 
-      // Fallback query by commune
-      const { data, error } = await supabase
+      // 2. Requête par commune ou par type d'opérateur
+      let query = supabase
         .from("reports")
         .select("*")
-        .eq("commune", activeCommune)
         .order("created_at", { ascending: false })
         .limit(300);
 
+      if (partnerType === "cie") {
+        query = query.eq("service_type", "electricity");
+      } else if (partnerType === "sodeci") {
+        query = query.eq("service_type", "water");
+      } else if (activeCommune) {
+        query = query.eq("commune", activeCommune);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as InfraReport[];
     },
   });
 
-  // Filtrer par type d'infrastructure municipale
+  // Filtrer selon le périmètre de l'opérateur technique
   const municipalReports = useMemo(() => {
+    if (partnerType === "cie") {
+      return rawReports.filter((r) => r.service_type === "electricity");
+    }
+    if (partnerType === "sodeci") {
+      return rawReports.filter((r) => r.service_type === "water");
+    }
     return rawReports.filter((r) => {
       const cat = r.report_category?.toLowerCase() || "";
       const sType = r.service_type?.toLowerCase() || "";
       const isInfra = sType === "infrastructure" || cat.includes("voirie") || cat.includes("lampadaire") || cat.includes("caniveau") || cat.includes("salubrite") || cat.includes("poteau");
       return isInfra || (sType !== "electricity" && sType !== "water");
     });
-  }, [rawReports]);
+  }, [rawReports, partnerType]);
 
   // Statistiques communales
   const stats = useMemo(() => {
@@ -252,17 +317,22 @@ const MairieDashboardPage = () => {
         quartierCounts[r.quartier] = (quartierCounts[r.quartier] || 0) + 1;
       }
     });
+    const pendingProof = municipalReports.filter((r) => r.repair_status === "pending_review").length;
     const topQuartiers = Object.entries(quartierCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 4);
 
-    return { total, active, processing, resolved, resolutionRate, avgHours, topQuartiers };
+    return { total, active, processing, pendingProof, resolved, resolutionRate, avgHours, topQuartiers };
   }, [municipalReports]);
 
   // Filtrage combiné (recherche, onglet, catégorie)
   const filteredReports = useMemo(() => {
     return municipalReports.filter((r) => {
-      if (selectedStatusTab !== "all" && r.status !== selectedStatusTab) return false;
+      if (selectedStatusTab === "pending_proof") {
+        if (r.repair_status !== "pending_review") return false;
+      } else if (selectedStatusTab !== "all" && r.status !== selectedStatusTab) {
+        return false;
+      }
       if (selectedCategoryFilter !== "all" && r.report_category !== selectedCategoryFilter) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -276,7 +346,7 @@ const MairieDashboardPage = () => {
     });
   }, [municipalReports, selectedStatusTab, selectedCategoryFilter, searchQuery]);
 
-  // Mutation : mise à jour par l'agent communal
+  // Mutation : mise à jour par l'agent technique ou partenaire
   const updateMutation = useMutation({
     mutationFn: async ({
       reportId,
@@ -285,6 +355,8 @@ const MairieDashboardPage = () => {
       workOrder,
       note,
       etaDays,
+      resolvedWithTransfer,
+      decision,
     }: {
       reportId: string;
       status: string;
@@ -292,7 +364,22 @@ const MairieDashboardPage = () => {
       workOrder?: string;
       note?: string;
       etaDays?: number;
+      resolvedWithTransfer?: boolean;
+      decision?: "approve" | "reject";
     }) => {
+      const isPendingProof = actionDialog?.report.repair_status === "pending_review";
+
+      // Si c'est une modération de preuve citoyenne
+      if (isPendingProof && decision) {
+        const { error: modError } = await (supabase as any).rpc("moderate_repair_declaration", {
+          p_report_id: reportId,
+          p_decision: decision,
+          p_resolved_with_transfer: resolvedWithTransfer ?? true,
+          p_moderator_note: note || null,
+        });
+        if (!modError) return;
+      }
+
       const etaDate = etaDays ? new Date(Date.now() + etaDays * 24 * 3600000).toISOString() : null;
       const fullNote = [
         team ? `[Équipe: ${team}]` : "",
@@ -300,11 +387,13 @@ const MairieDashboardPage = () => {
         note || "",
       ].filter(Boolean).join(" ");
 
+      const opName = partnerOrgName || `Mairie de ${selectedCommune} (Services Techniques)`;
+
       const { error } = await supabase.rpc("operator_update_ticket", {
         p_report_id: reportId,
         p_ticket_code: null,
         p_status: status,
-        p_operator_name: `Mairie de ${selectedCommune} (Services Techniques)`,
+        p_operator_name: opName,
         p_operator_reference: workOrder || null,
         p_public_note: fullNote || null,
         p_estimated_resolution: etaDate,
@@ -312,14 +401,18 @@ const MairieDashboardPage = () => {
 
       if (error) {
         // Fallback standard si RPC indisponible
+        const updatePayload: any = {
+          status,
+          operator_reference: workOrder || null,
+          operator_last_note: fullNote || null,
+          resolved_at: status === "resolved" ? new Date().toISOString() : null,
+        };
+        if (status === "resolved") {
+          updatePayload.resolved_with_transfer = resolvedWithTransfer ?? true;
+        }
         const { error: fallbackErr } = await supabase
           .from("reports")
-          .update({
-            status,
-            operator_reference: workOrder || null,
-            operator_last_note: fullNote || null,
-            resolved_at: status === "resolved" ? new Date().toISOString() : null,
-          })
+          .update(updatePayload)
           .eq("id", reportId);
         if (fallbackErr) throw fallbackErr;
       }
@@ -504,7 +597,17 @@ const MairieDashboardPage = () => {
         <div className="rounded-3xl border border-border bg-gradient-to-r from-emerald-500/15 via-card to-card p-6 sm:p-8 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-center gap-5">
             <div className="flex h-20 w-20 items-center justify-center rounded-3xl overflow-hidden border-2 border-border bg-white shadow-md shrink-0">
-              {logoUrl ? (
+              {partnerType === "cie" ? (
+                <div className="flex flex-col items-center justify-center h-full w-full bg-amber-500/10 text-amber-600 font-black text-sm">
+                  <Zap className="h-8 w-8 text-amber-500 mb-0.5" />
+                  CIE
+                </div>
+              ) : partnerType === "sodeci" ? (
+                <div className="flex flex-col items-center justify-center h-full w-full bg-blue-500/10 text-blue-600 font-black text-sm">
+                  <Droplets className="h-8 w-8 text-blue-500 mb-0.5" />
+                  SODECI
+                </div>
+              ) : logoUrl ? (
                 <img src={logoUrl} alt={selectedCommune} className="h-full w-full object-contain p-1.5" />
               ) : (
                 <Building2 className="h-10 w-10 text-primary" />
@@ -514,19 +617,27 @@ const MairieDashboardPage = () => {
               <div className="flex items-center gap-2">
                 <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="text-[11px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-                  Espace Services Techniques &amp; Voirie
+                  {partnerType === "cie"
+                    ? "Réseau Électrique · Espace Partenaire CIE"
+                    : partnerType === "sodeci"
+                    ? "Réseau Eau Potable · Espace Partenaire SODECI"
+                    : "Services Techniques & Voirie"}
                 </span>
               </div>
               <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold text-foreground tracking-tight mt-1">
-                Mairie de {selectedCommune}
+                {partnerOrgName || `Mairie de ${selectedCommune}`}
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                Pilotage des interventions urbaines · Grand Abidjan · {(activeCommuneObj?.population ? (activeCommuneObj.population / 1000).toFixed(0) + "k habitants" : "District d'Abidjan")}
+                {partnerType === "cie"
+                  ? "Prise en charge des pannes réseau, câbles et éclairage · Côte d'Ivoire"
+                  : partnerType === "sodeci"
+                  ? "Prise en charge des fuites, canalisations et coupures · Grand Abidjan"
+                  : `Pilotage des interventions urbaines · Grand Abidjan · ${activeCommuneObj?.population ? (activeCommuneObj.population / 1000).toFixed(0) + "k habitants" : "District d'Abidjan"}`}
               </p>
             </div>
           </div>
 
-          {/* Sélecteur de Commune */}
+          {/* Sélecteur de Commune / Partenaire */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
             <div className="bg-background/90 backdrop-blur-md rounded-2xl border border-border p-1 shadow-sm">
               <Select
@@ -584,6 +695,26 @@ const MairieDashboardPage = () => {
               Imprimer le Registre
             </Button>
           </div>
+        </div>
+
+        {/* Bandeau Cadre Conventionnel & Partenariat Technique Multi-Opérateurs */}
+        <div className="rounded-3xl border border-emerald-500/25 bg-emerald-500/5 p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs shadow-xs">
+          <div className="flex items-center gap-3.5">
+            <div className="h-11 w-11 rounded-2xl bg-emerald-500/15 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+              <ShieldCheck className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="font-bold text-foreground text-sm">
+                Console des Équipes Techniques Partenaires (Mairies, CIE, SODECI, Voirie)
+              </p>
+              <p className="text-muted-foreground mt-0.5 leading-relaxed">
+                Espace réservé aux services techniques conventionnés avec SIGNA.ci pour la prise en charge directe, l'attribution des Ordres de Travaux (OT), le suivi des chantiers et la clôture des incidents citoyens sans barrière informatique.
+              </p>
+            </div>
+          </div>
+          <Badge variant="outline" className="border-emerald-500/40 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 font-bold text-xs py-1 px-3 shrink-0">
+            Partenariat Actif · Guichet Direct
+          </Badge>
         </div>
 
         {/* 4 KPIs Clés des Services Techniques */}
@@ -658,7 +789,7 @@ const MairieDashboardPage = () => {
           </div>
 
           <Tabs value={selectedStatusTab} onValueChange={setSelectedStatusTab}>
-            <TabsList className="h-11 rounded-2xl bg-muted/60 p-1">
+            <TabsList className="h-11 rounded-2xl bg-muted/60 p-1 flex-wrap">
               <TabsTrigger value="all" className="rounded-xl text-xs font-bold">
                 Tous les dossiers ({municipalReports.length})
               </TabsTrigger>
@@ -667,6 +798,10 @@ const MairieDashboardPage = () => {
               </TabsTrigger>
               <TabsTrigger value="processing" className="rounded-xl text-xs font-bold text-amber-600">
                 En cours ({stats.processing})
+              </TabsTrigger>
+              <TabsTrigger value="pending_proof" className="rounded-xl text-xs font-bold text-amber-700 dark:text-amber-300 gap-1.5">
+                <Camera className="h-3.5 w-3.5" />
+                Preuves citoyennes ({stats.pendingProof})
               </TabsTrigger>
               <TabsTrigger value="resolved" className="rounded-xl text-xs font-bold text-emerald-600">
                 Résolus ({stats.resolved})
@@ -768,9 +903,36 @@ const MairieDashboardPage = () => {
                     </div>
                   </div>
 
-                  {/* Boutons d'Action Rapide de la Mairie */}
-                  <div className="pt-2 flex items-center gap-2">
-                    {!isProcessing && !isResolved && (
+                  {/* Alerte Preuve Citoyenne soumise */}
+                  {report.repair_status === "pending_review" && (
+                    <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-1.5 text-xs text-amber-900 dark:text-amber-200">
+                      <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                        <Camera className="h-4 w-4" />
+                        Preuve de fin de travaux soumise par un citoyen
+                      </div>
+                      {report.repair_note && (
+                        <p className="text-[11px] italic line-clamp-2">« {report.repair_note} »</p>
+                      )}
+                      <p className="text-[10px] text-muted-foreground">
+                        En attente de certification par vos services.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Boutons d'Action Rapide de la Mairie / Partenaire */}
+                  <div className="pt-2 flex flex-col gap-2">
+                    {report.repair_status === "pending_review" && !isResolved && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleOpenAction(report, "resolved")}
+                        className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-emerald-600 hover:from-amber-600 hover:to-emerald-700 text-white font-bold text-xs gap-1.5 shadow-sm"
+                      >
+                        <Camera className="h-3.5 w-3.5" />
+                        Examiner la Preuve Citoyenne &amp; Clôturer
+                      </Button>
+                    )}
+
+                    {!isProcessing && !isResolved && report.repair_status !== "pending_review" && (
                       <Button
                         size="sm"
                         onClick={() => handleOpenAction(report, "processing")}
@@ -781,7 +943,7 @@ const MairieDashboardPage = () => {
                       </Button>
                     )}
 
-                    {isProcessing && (
+                    {isProcessing && report.repair_status !== "pending_review" && (
                       <Button
                         size="sm"
                         onClick={() => handleOpenAction(report, "resolved")}
@@ -794,7 +956,12 @@ const MairieDashboardPage = () => {
 
                     {isResolved && (
                       <div className="w-full py-2 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-center text-xs font-bold flex items-center justify-center gap-1.5">
-                        <CheckCircle2 className="h-4 w-4" /> Dossier clôturé par la Mairie
+                        <CheckCircle2 className="h-4 w-4" /> 
+                        {report.resolved_with_transfer === true 
+                          ? "Clôturé suite au relais SIGNA.ci" 
+                          : report.resolved_with_transfer === false 
+                          ? "Clôturé (Intervention spontanée)" 
+                          : "Dossier clôturé par l'équipe technique"}
                       </div>
                     )}
                   </div>
@@ -806,34 +973,122 @@ const MairieDashboardPage = () => {
 
         {/* Modal d'Assignation & Clôture */}
         <Dialog open={!!actionDialog} onOpenChange={(open) => !open && setActionDialog(null)}>
-          <DialogContent className="rounded-3xl max-w-lg p-6 space-y-4">
+          <DialogContent className="rounded-3xl max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
                 {actionDialog?.newStatus === "resolved" ? (
                   <>
                     <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                    Validation de Fin de Travaux · Mairie de {selectedCommune}
+                    Validation &amp; Clôture · {partnerOrgName || `Mairie de ${selectedCommune}`}
                   </>
                 ) : (
                   <>
                     <Wrench className="h-5 w-5 text-amber-500" />
-                    Attribution d'Équipe Technique Municipale
+                    Attribution d'Équipe Technique
                   </>
                 )}
               </DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4 text-xs">
+              {/* Section Preuve Citoyenne si présente */}
+              {actionDialog?.report.repair_status === "pending_review" && (
+                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/8 p-3.5 space-y-2.5">
+                  <div className="flex items-center gap-2 font-bold text-amber-800 dark:text-amber-300">
+                    <Camera className="h-4 w-4" />
+                    <span>Preuve photo transmise par le citoyen :</span>
+                  </div>
+                  {actionDialog.report.repair_note && (
+                    <p className="text-xs text-foreground bg-background/60 p-2.5 rounded-xl border border-border italic">
+                      « {actionDialog.report.repair_note} »
+                    </p>
+                  )}
+                  {actionDialog.report.repair_photos && actionDialog.report.repair_photos.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {actionDialog.report.repair_photos.map((ph, idx) => (
+                        <div key={idx} className="h-24 w-24 rounded-xl overflow-hidden border border-border shrink-0">
+                          <img src={ph} alt="Preuve citoyenne" className="h-full w-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="pt-1">
+                    <label className="font-bold text-foreground block mb-1.5">
+                      Décision sur la preuve citoyenne :
+                    </label>
+                    <div className="flex gap-3">
+                      <label className="flex items-center gap-2 cursor-pointer font-semibold">
+                        <input
+                          type="radio"
+                          name="repair_decision"
+                          checked={actionRepairDecision === "approve"}
+                          onChange={() => setActionRepairDecision("approve")}
+                          className="text-emerald-600"
+                        />
+                        <span>Approuver &amp; Clôturer</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer font-semibold text-destructive">
+                        <input
+                          type="radio"
+                          name="repair_decision"
+                          checked={actionRepairDecision === "reject"}
+                          onChange={() => setActionRepairDecision("reject")}
+                          className="text-destructive"
+                        />
+                        <span>Rejeter la preuve</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Qualification de la résolution pour le reporting partenaire */}
+              {actionDialog?.newStatus === "resolved" && actionRepairDecision === "approve" && (
+                <div className="rounded-2xl border border-border/80 bg-muted/30 p-3.5 space-y-2">
+                  <label className="font-bold text-foreground block">
+                    Qualification pour le rapport d'impact :
+                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-start gap-2.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="resolved_transfer"
+                        checked={actionResolvedWithTransfer === true}
+                        onChange={() => setActionResolvedWithTransfer(true)}
+                        className="mt-0.5 text-primary"
+                      />
+                      <div>
+                        <p className="font-semibold text-foreground">Résolu suite à la transmission SIGNA.ci</p>
+                        <p className="text-[11px] text-muted-foreground">L'intervention a été déclenchée grâce au relais du ticket vers votre service.</p>
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-2.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="resolved_transfer"
+                        checked={actionResolvedWithTransfer === false}
+                        onChange={() => setActionResolvedWithTransfer(false)}
+                        className="mt-0.5 text-primary"
+                      />
+                      <div>
+                        <p className="font-semibold text-foreground">Résolution spontanée / Maintenance externe</p>
+                        <p className="text-[11px] text-muted-foreground">Le problème a été réglé sans transmission préalable directe par la plateforme.</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="font-bold text-foreground block mb-1.5">
-                  Équipe Municipale Responsable
+                  Équipe Responsable
                 </label>
                 <Select value={actionTeam} onValueChange={setActionTeam}>
                   <SelectTrigger className="h-10 rounded-xl bg-muted/40">
                     <SelectValue placeholder="Sélectionner une équipe" />
                   </SelectTrigger>
                   <SelectContent>
-                    {MUNICIPAL_TEAMS.map((t) => (
+                    {availableTeams.map((t) => (
                       <SelectItem key={t} value={t} className="text-xs">
                         {t}
                       </SelectItem>
@@ -844,12 +1099,12 @@ const MairieDashboardPage = () => {
 
               <div>
                 <label className="font-bold text-foreground block mb-1.5">
-                  N° d'Ordre de Travail (OT Mairie)
+                  N° d'Ordre de Travail (OT Opérateur / Mairie)
                 </label>
                 <Input
                   value={actionWorkOrder}
                   onChange={(e) => setActionWorkOrder(e.target.value)}
-                  placeholder="Ex: OT-COC-2026-0842"
+                  placeholder="Ex: OT-2026-0842"
                   className="h-10 rounded-xl font-mono text-xs bg-muted/40"
                 />
               </div>
@@ -864,10 +1119,10 @@ const MairieDashboardPage = () => {
                       <SelectValue placeholder="Délai d'intervention" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">24 heures (Urgence voirie)</SelectItem>
+                      <SelectItem value="1">24 heures (Urgence voirie / panne)</SelectItem>
                       <SelectItem value="2">48 heures (Intervention rapide)</SelectItem>
-                      <SelectItem value="3">72 heures (Standard municipal)</SelectItem>
-                      <SelectItem value="7">1 semaine (Gros œuvre / terrassement)</SelectItem>
+                      <SelectItem value="3">72 heures (Standard technique)</SelectItem>
+                      <SelectItem value="7">1 semaine (Gros œuvre / chantier lourd)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -875,12 +1130,12 @@ const MairieDashboardPage = () => {
 
               <div>
                 <label className="font-bold text-foreground block mb-1.5">
-                  Note publique ou rapport d'intervention
+                  Note technique ou rapport d'intervention
                 </label>
                 <Textarea
                   value={actionNote}
                   onChange={(e) => setActionNote(e.target.value)}
-                  placeholder="Ex: Nids-de-poule rebouchés à l'enrobé à chaud par la Brigade Nord. Circulation rétablie."
+                  placeholder="Ex: Réparation effectuée avec succès. Contrôle de conformité validé sur le terrain."
                   className="rounded-xl text-xs bg-muted/40 min-h-[90px]"
                 />
               </div>
@@ -897,15 +1152,33 @@ const MairieDashboardPage = () => {
               </Button>
               <Button
                 size="sm"
-                onClick={handleConfirmAction}
+                onClick={() => {
+                  if (!actionDialog) return;
+                  updateMutation.mutate({
+                    reportId: actionDialog.report.id,
+                    status: actionRepairDecision === "reject" ? actionDialog.report.status : actionDialog.newStatus,
+                    team: actionTeam,
+                    workOrder: actionWorkOrder.trim(),
+                    note: actionNote.trim(),
+                    etaDays: parseInt(actionEtaDays, 10) || 2,
+                    resolvedWithTransfer: actionResolvedWithTransfer,
+                    decision: actionRepairDecision,
+                  });
+                }}
                 disabled={updateMutation.isPending}
                 className={`rounded-xl text-xs font-bold ${
-                  actionDialog?.newStatus === "resolved"
+                  actionRepairDecision === "reject"
+                    ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    : actionDialog?.newStatus === "resolved"
                     ? "bg-emerald-600 hover:bg-emerald-700 text-white"
                     : "bg-amber-500 hover:bg-amber-600 text-black"
                 }`}
               >
-                {updateMutation.isPending ? "Enregistrement..." : "Confirmer & Enregistrer"}
+                {updateMutation.isPending 
+                  ? "Enregistrement..." 
+                  : actionRepairDecision === "reject" 
+                  ? "Rejeter la preuve" 
+                  : "Confirmer & Enregistrer"}
               </Button>
             </DialogFooter>
           </DialogContent>

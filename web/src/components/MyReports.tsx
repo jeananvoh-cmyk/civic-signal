@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Zap, Droplets, Trash2, CheckCircle2, Clock, Loader2, AlertTriangle, Users, Wrench } from "lucide-react";
+import { Zap, Droplets, Trash2, CheckCircle2, Clock, Loader2, AlertTriangle, Users, Wrench, Camera } from "lucide-react";
 import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { getUserFriendlyError } from "@/lib/error-utils";
 import { COMMUNE_COLORS } from "@/lib/communes";
 import { useUserRole } from "@/hooks/useUserRole";
+import { RepairDeclarationDialog } from "@/components/RepairDeclarationDialog";
 
 interface Report {
   id: string;
@@ -41,6 +42,7 @@ const MyReports = ({ profileComplete = false }: { profileComplete?: boolean }) =
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [resolveTarget, setResolveTarget] = useState<Report | null>(null);
+  const [repairTarget, setRepairTarget] = useState<Report | null>(null);
   const [resolveTime, setResolveTime] = useState("");
   const [resolving, setResolving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -270,24 +272,73 @@ const MyReports = ({ profileComplete = false }: { profileComplete?: boolean }) =
                   : `Le service est de retour à ${resolveTarget?.commune} !`}
               </p>
             </div>
-            <div className="space-y-2">
-              <Label>Heure de rétablissement</Label>
+
+            {resolveTarget?.report_category === "infrastructure" && (
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 space-y-2 text-left">
+                <p className="text-xs font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
+                  <Camera className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  Avez-vous une photo de la réparation ?
+                </p>
+                <p className="text-[11px] text-muted-foreground leading-tight">
+                  Joindre une photo permet à nos équipes et modérateurs de vérifier la conformité des travaux avant clôture officielle.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="w-full text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shadow-sm"
+                  onClick={() => {
+                    const target = resolveTarget;
+                    setResolveTarget(null);
+                    setRepairTarget(target);
+                  }}
+                >
+                  <Camera className="h-3.5 w-3.5" />
+                  Joindre une photo de preuve (Recommandé)
+                </Button>
+              </div>
+            )}
+
+            <div className="space-y-2 text-left">
+              <Label className="text-xs">
+                {resolveTarget?.report_category === "infrastructure"
+                  ? "Date & Heure du constat de réparation"
+                  : "Heure de rétablissement"}
+              </Label>
               <Input
                 type="datetime-local"
                 value={resolveTime}
                 onChange={(e) => setResolveTime(e.target.value)}
+                className="text-xs"
               />
             </div>
+
             <Button
-              className="w-full"
+              className="w-full text-xs"
+              variant={resolveTarget?.report_category === "infrastructure" ? "outline" : "default"}
               onClick={handleResolve}
               disabled={resolving || !resolveTime}
             >
-              {resolving ? "Envoi..." : "✅ Confirmer le rétablissement"}
+              {resolving ? "Envoi..." : resolveTarget?.report_category === "infrastructure" ? "Clôturer sans photo" : "✅ Confirmer le rétablissement"}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Repair Declaration with Photo Dialog */}
+      {repairTarget && (
+        <RepairDeclarationDialog
+          open={!!repairTarget}
+          onOpenChange={(open) => !open && setRepairTarget(null)}
+          reportId={repairTarget.id}
+          commune={repairTarget.commune}
+          quartier={repairTarget.quartier}
+          category={repairTarget.report_category}
+          onSuccess={() => {
+            setRepairTarget(null);
+            fetchReports();
+          }}
+        />
+      )}
       {/* Delete confirmation dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteReason(""); } }}>
         <DialogContent className="max-w-sm">
