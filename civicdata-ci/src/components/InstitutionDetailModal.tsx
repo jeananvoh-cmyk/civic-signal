@@ -24,7 +24,8 @@ import {
   Briefcase,
   Award,
   Sparkles,
-  FolderOpen
+  FolderOpen,
+  Info
 } from 'lucide-react';
 import { OfficialDocRequestModal } from './OfficialDocRequestModal';
 import { findCaidpRI } from '../data/caidpRiData';
