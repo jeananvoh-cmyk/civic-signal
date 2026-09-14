@@ -21,7 +21,7 @@ import { supabase, isSupabaseConfigured } from './supabase';
 
 const STORAGE_KEYS = {
   PROJECTS: 'civicdata_projects_v2026_clean_v3',
-  INSTITUTIONS: 'civicdata_institutions_v10',
+  INSTITUTIONS: 'civicdata_institutions_v12',
   PROOFS: 'civicdata_proofs_v12',
   ARTICLES: 'civicdata_articles_v10',
   SETTINGS: 'civicdata_settings_v7',
