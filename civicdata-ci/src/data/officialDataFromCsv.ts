@@ -3049,7 +3049,7 @@ export const ALL_COMMUNES_DATA: Institution[] = [
     "political_party": "RHDP",
     "mandature": "2023-2028",
     "mission_summary": "Administration municipale, état civil, voirie, gestion des écoles primaires, centres de santé de proximité et développement local de la Commune de Bouake.",
-    "website": "https://mairiebouake.ci",
+    "website": "https://www.mairiedebouake.ci/",
     "facebook_url": "https://www.facebook.com/MairiedeBouake",
     "leader_bio": "M. / Mme KONE AMADOU (geographe), élu(e) à la tête de la Mairie de Bouake pour la mandature 2023-2028 sous la bannière RHDP, assume la direction de l'exécutif municipal et la représentation de la commune conformément aux lois régissant la décentralisation en République de Côte d'Ivoire.",
     "leader_education": [

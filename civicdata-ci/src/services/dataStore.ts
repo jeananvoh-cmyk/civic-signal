@@ -21,7 +21,8 @@ import { supabase, isSupabaseConfigured } from './supabase';
 
 const STORAGE_KEYS = {
   PROJECTS: 'civicdata_projects_v2026_clean_v3',
-  INSTITUTIONS: 'civicdata_institutions_v13',
+  INSTITUTIONS: 'civicdata_institutions_v14',
+  INSTITUTION_OVERRIDES: 'civicdata_institutions_overrides_v1',
   PROOFS: 'civicdata_proofs_v12',
   ARTICLES: 'civicdata_articles_v10',
   SETTINGS: 'civicdata_settings_v7',
@@ -480,6 +481,20 @@ class DataStore {
           this.institutions = parsed;
         }
       }
+
+      // Always apply custom admin overrides (websites, facebook, contacts) on top of base data
+      const storedOverrides = localStorage.getItem(STORAGE_KEYS.INSTITUTION_OVERRIDES);
+      if (storedOverrides) {
+        const overridesMap = JSON.parse(storedOverrides);
+        if (overridesMap && typeof overridesMap === 'object') {
+          this.institutions = this.institutions.map(inst => {
+            if (overridesMap[inst.id]) {
+              return { ...inst, ...overridesMap[inst.id] };
+            }
+            return inst;
+          });
+        }
+      }
     } catch (e) {
       console.warn("Could not read institutions from localStorage", e);
     }
@@ -618,6 +633,33 @@ class DataStore {
         if (!docsError && Array.isArray(remoteDocs) && remoteDocs.length > 0) {
           this.documents = remoteDocs;
           this.saveDocuments();
+          this.notify();
+        }
+      } catch (err) {
+        // Table not present yet, silent fallback
+      }
+
+      // Sync institution updates / websites from Supabase if table exists
+      try {
+        const { data: remoteInsts, error: instError } = await supabase
+          .from('institutions')
+          .select('id, website, facebook_url, contact_email, contact_phone, leader_name');
+        if (!instError && Array.isArray(remoteInsts) && remoteInsts.length > 0) {
+          const remoteMap = new Map(remoteInsts.map((ri: any) => [ri.id, ri]));
+          this.institutions = this.institutions.map(inst => {
+            const remote = remoteMap.get(inst.id);
+            if (remote) {
+              return {
+                ...inst,
+                website: remote.website !== undefined && remote.website !== '' ? remote.website : inst.website,
+                facebook_url: remote.facebook_url !== undefined && remote.facebook_url !== '' ? remote.facebook_url : inst.facebook_url,
+                contact_email: remote.contact_email !== undefined && remote.contact_email !== '' ? remote.contact_email : inst.contact_email,
+                contact_phone: remote.contact_phone !== undefined && remote.contact_phone !== '' ? remote.contact_phone : inst.contact_phone,
+              };
+            }
+            return inst;
+          });
+          this.saveInstitutions();
           this.notify();
         }
       } catch (err) {
@@ -1038,6 +1080,42 @@ class DataStore {
       this.institutions.unshift(updatedInst);
     }
     this.saveInstitutions();
+
+    // Persist override so it survives future app versions or reloads
+    try {
+      const storedOverrides = localStorage.getItem(STORAGE_KEYS.INSTITUTION_OVERRIDES);
+      const overridesMap = storedOverrides ? JSON.parse(storedOverrides) : {};
+      overridesMap[updatedInst.id] = {
+        website: updatedInst.website,
+        facebook_url: updatedInst.facebook_url,
+        contact_email: updatedInst.contact_email,
+        contact_phone: updatedInst.contact_phone,
+        leader_name: updatedInst.leader_name,
+        leader_photo_url: updatedInst.leader_photo_url,
+        political_party: updatedInst.political_party,
+      };
+      localStorage.setItem(STORAGE_KEYS.INSTITUTION_OVERRIDES, JSON.stringify(overridesMap));
+    } catch (e) {
+      console.warn("Could not save institution override", e);
+    }
+
+    if (isSupabaseConfigured()) {
+      safeSupabaseExec(
+        supabase.from('institutions').upsert({
+          id: updatedInst.id,
+          name: updatedInst.name,
+          type: updatedInst.type,
+          website: updatedInst.website,
+          facebook_url: updatedInst.facebook_url,
+          contact_email: updatedInst.contact_email,
+          contact_phone: updatedInst.contact_phone,
+          leader_name: updatedInst.leader_name,
+          updated_at: new Date().toISOString()
+        }),
+        'Sync updated institution to Supabase'
+      );
+    }
+
     this.notify();
   }
 

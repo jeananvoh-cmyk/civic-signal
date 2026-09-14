@@ -547,6 +547,57 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
     showToast('Livre Blanc & Dossier Stratégique téléchargé !');
   };
 
+  // ==========================================
+  // QUICK WEBSITE & SOCIAL MEDIA MODAL STATE
+  // ==========================================
+  const [isQuickWebModalOpen, setIsQuickWebModalOpen] = useState(false);
+  const [quickWebInst, setQuickWebInst] = useState<Institution | null>(null);
+  const [quickWebForm, setQuickWebForm] = useState({
+    website: '',
+    facebook_url: '',
+    contact_phone: '',
+    contact_email: '',
+  });
+
+  const handleOpenQuickWebEdit = (inst: Institution) => {
+    setQuickWebInst(inst);
+    setQuickWebForm({
+      website: inst.website || '',
+      facebook_url: inst.facebook_url || '',
+      contact_phone: inst.contact_phone || inst.info_officer_phone || '',
+      contact_email: inst.contact_email || inst.info_officer_email || '',
+    });
+    setIsQuickWebModalOpen(true);
+  };
+
+  const handleSaveQuickWeb = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickWebInst) return;
+
+    let cleanWebsite = quickWebForm.website.trim();
+    if (cleanWebsite && !cleanWebsite.startsWith('http://') && !cleanWebsite.startsWith('https://')) {
+      cleanWebsite = `https://${cleanWebsite}`;
+    }
+
+    let cleanFacebook = quickWebForm.facebook_url.trim();
+    if (cleanFacebook && !cleanFacebook.startsWith('http://') && !cleanFacebook.startsWith('https://')) {
+      cleanFacebook = `https://${cleanFacebook}`;
+    }
+
+    const updated: Institution = {
+      ...quickWebInst,
+      website: cleanWebsite,
+      facebook_url: cleanFacebook,
+      contact_phone: quickWebForm.contact_phone.trim(),
+      contact_email: quickWebForm.contact_email.trim(),
+    };
+
+    dataStore.updateInstitution(updated);
+    showToast(`Portail web de "${updated.name}" enregistré et publié ! Immédiatement visible pour les citoyens.`);
+    setIsQuickWebModalOpen(false);
+    setQuickWebInst(null);
+  };
+
   const handleOpenEditInst = (inst: Institution) => {
     setEditingInst(inst);
     setInstForm({
@@ -1353,11 +1404,23 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   {/* Actions */}
                   <div className="pt-3 mt-3 border-t border-slate-200/60 flex items-center gap-2">
                     <button
+                      onClick={() => handleOpenQuickWebEdit(inst)}
+                      className={`py-2 px-2.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs ${
+                        inst.website 
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' 
+                          : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                      }`}
+                      title={inst.website ? `Modifier le site web (${inst.website})` : 'Ajouter un site web officiel'}
+                    >
+                      <Globe className="w-3.5 h-3.5" />
+                      <span>{inst.website ? 'Site Web' : '+ Site'}</span>
+                    </button>
+                    <button
                       onClick={() => handleOpenEditInst(inst)}
                       className="flex-1 py-2 px-3 bg-white hover:bg-brand-blue hover:text-white border border-slate-200 hover:border-brand-blue rounded-xl text-xs font-bold text-slate-700 transition-all flex items-center justify-center gap-1.5 shadow-2xs"
                     >
                       <Edit className="w-3.5 h-3.5" />
-                      <span>{hasPhoto ? 'Modifier Responsable / Photo' : '+ Ajouter la Photo & Infos'}</span>
+                      <span>{hasPhoto ? 'Modifier Fiche' : '+ Fiche Complète'}</span>
                     </button>
                     <button
                       onClick={() => handleDeleteInstitution(inst.id, inst.name)}
@@ -2675,6 +2738,17 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
 
               <div className="flex items-center gap-2 flex-wrap">
                 <button
+                  onClick={() => {
+                    const firstTarget = filteredProspects.find(p => !p.website) || filteredProspects[0] || allInstitutions[0];
+                    if (firstTarget) handleOpenQuickWebEdit(firstTarget);
+                  }}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition-colors"
+                  title="Ajouter ou modifier l'adresse web d'une collectivité"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Renseigner un site web</span>
+                </button>
+                <button
                   onClick={handleExportProspectsCsv}
                   className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer"
                 >
@@ -2789,30 +2863,40 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                             <div className="text-[10px] text-slate-400">{inst.leader_title}</div>
                           </td>
                           <td className="py-3 px-4">
-                            {hasRealWeb ? (
-                              <a
-                                href={inst.website}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold hover:bg-emerald-100 transition-colors"
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {hasRealWeb ? (
+                                <a
+                                  href={inst.website}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold hover:bg-emerald-100 transition-colors"
+                                  title="Ouvrir le site officiel"
+                                >
+                                  <Globe className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>{cleanDomain}</span>
+                                  <ExternalLink className="w-3 h-3 text-emerald-500" />
+                                </a>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold">
+                                  <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
+                                  <span>Aucun site web</span>
+                                </span>
+                              )}
+                              <button
+                                onClick={() => handleOpenQuickWebEdit(inst)}
+                                className="p-1 rounded-md text-slate-400 hover:text-sky-700 hover:bg-sky-50 transition-colors cursor-pointer"
+                                title="Modifier ou renseigner l'adresse web"
                               >
-                                <Globe className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>{cleanDomain}</span>
-                                <ExternalLink className="w-3 h-3 text-emerald-500" />
-                              </a>
-                            ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold">
-                                <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
-                                <span>Aucun site web</span>
-                              </span>
-                            )}
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </td>
                           <td className="py-3 px-4">
                             {inst.facebook_url ? (
                               <a 
                                 href={inst.facebook_url} 
                                 target="_blank" 
-                                rel="noopener noreferrer"
+                                rel="noopener noreferrer" 
                                 className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline font-bold"
                               >
                                 <span>Facebook</span>
@@ -2826,12 +2910,27 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                             {inst.total_budget_fcfa ? formatFCFA(inst.total_budget_fcfa) : '—'}
                           </td>
                           <td className="py-3 px-4 text-center">
-                            <button
-                              onClick={() => handleOpenEditInst(inst)}
-                              className="px-2.5 py-1 bg-white hover:bg-sky-50 text-sky-700 border border-sky-200 rounded-lg text-[11px] font-bold shadow-2xs transition-all cursor-pointer"
-                            >
-                              Gérer la fiche
-                            </button>
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                onClick={() => handleOpenQuickWebEdit(inst)}
+                                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer flex items-center gap-1 shadow-2xs ${
+                                  hasRealWeb
+                                    ? 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600'
+                                }`}
+                                title="Renseigner ou corriger le site web officiel"
+                              >
+                                <Globe className="w-3 h-3" />
+                                <span>{hasRealWeb ? 'Modifier site' : '+ Ajouter site'}</span>
+                              </button>
+                              <button
+                                onClick={() => handleOpenEditInst(inst)}
+                                className="px-2.5 py-1 bg-white hover:bg-sky-50 text-sky-700 border border-sky-200 rounded-lg text-[11px] font-bold shadow-2xs transition-all cursor-pointer"
+                                title="Modifier toute la fiche (responsable, budget, photo)"
+                              >
+                                Fiche
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -3629,6 +3728,167 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: QUICK WEBSITE & CONTACT DETAILS */}
+      {/* ========================================================================= */}
+      {isQuickWebModalOpen && quickWebInst && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-navy-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-xl shadow-2xl p-6 sm:p-7 space-y-5 border border-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <span className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-700 font-bold">
+                  <Globe className="w-5 h-5 text-emerald-600" />
+                </span>
+                <div>
+                  <h4 className="text-lg font-black text-navy-900">
+                    Portail Web & Coordonnées Officielles
+                  </h4>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Ajoutez ou modifiez le site web officiel avec publication immédiate sur la plateforme.
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => { setIsQuickWebModalOpen(false); setQuickWebInst(null); }} 
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Collectivité Selector & Summary */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+                  Collectivité Territoriale Cible :
+                </span>
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider w-fit ${
+                  quickWebInst.type === 'REGION' ? 'bg-purple-100 text-purple-800' : 'bg-sky-100 text-sky-800'
+                }`}>
+                  {quickWebInst.type === 'REGION' ? 'Conseil Régional' : 'Mairie'} • {quickWebInst.region || 'Côte d\'Ivoire'}
+                </span>
+              </div>
+              
+              <select
+                value={quickWebInst.id}
+                onChange={(e) => {
+                  const target = allInstitutions.find(i => i.id === e.target.value);
+                  if (target) handleOpenQuickWebEdit(target);
+                }}
+                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+              >
+                {allInstitutions
+                  .slice()
+                  .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+                  .map(inst => (
+                    <option key={inst.id} value={inst.id}>
+                      {inst.type === 'REGION' ? '[Région]' : '[Mairie]'} {inst.name} {inst.website ? '✓ (Site renseigné)' : '⚠ (Sans site)'}
+                    </option>
+                  ))}
+              </select>
+
+              {quickWebInst.leader_name && (
+                <div className="text-[11px] text-slate-600 flex items-center gap-1.5 font-medium pt-1">
+                  <User className="w-3.5 h-3.5 text-slate-400" />
+                  <span>{quickWebInst.leader_title || 'Responsable'} : <strong>{quickWebInst.leader_name}</strong></span>
+                </div>
+              )}
+            </div>
+
+            <form onSubmit={handleSaveQuickWeb} className="space-y-4">
+              {/* Site Web Officiel */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                  Site Web Officiel de la Collectivité *
+                </label>
+                <div className="relative">
+                  <Globe className="w-4 h-4 text-emerald-600 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={quickWebForm.website}
+                    onChange={(e) => setQuickWebForm(prev => ({ ...prev, website: e.target.value }))}
+                    placeholder="https://www.mairiedebouake.ci/ ou mairiedebouake.ci"
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  Le préfixe <code className="text-emerald-700 font-bold">https://</code> sera automatiquement ajouté s'il n'est pas saisi.
+                </p>
+              </div>
+
+              {/* Page Facebook Officielle */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                  Page Facebook Officielle
+                </label>
+                <input
+                  type="text"
+                  value={quickWebForm.facebook_url}
+                  onChange={(e) => setQuickWebForm(prev => ({ ...prev, facebook_url: e.target.value }))}
+                  placeholder="https://www.facebook.com/mairiedebouake"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"
+                />
+              </div>
+
+              {/* Contact direct */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700">
+                    Téléphone Officiel
+                  </label>
+                  <input
+                    type="text"
+                    value={quickWebForm.contact_phone}
+                    onChange={(e) => setQuickWebForm(prev => ({ ...prev, contact_phone: e.target.value }))}
+                    placeholder="+225 27 XX XX XX XX"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-slate-400"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700">
+                    Email Officiel
+                  </label>
+                  <input
+                    type="email"
+                    value={quickWebForm.contact_email}
+                    onChange={(e) => setQuickWebForm(prev => ({ ...prev, contact_email: e.target.value }))}
+                    placeholder="contact@mairie.ci"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-slate-400"
+                  />
+                </div>
+              </div>
+
+              {/* Notice publication instantanée */}
+              <div className="p-3.5 bg-emerald-50/80 border border-emerald-200 rounded-2xl flex items-start gap-2.5 text-xs text-emerald-900 font-medium">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Publication instantanée :</strong> dès l'enregistrement, le lien officiel et ces coordonnées sont immédiatement actifs et visibles pour tous les citoyens (Annuaire, Cartographie, Observatoire et Fiche de la collectivité).
+                </span>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => { setIsQuickWebModalOpen(false); setQuickWebInst(null); }}
+                  className="px-4 py-2.5 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-600 transition-colors cursor-pointer"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-md flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Enregistrer & Publier immédiatement</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
