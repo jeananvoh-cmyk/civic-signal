@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatFCFA, formatAmountInWords, formatCompactFCFA, getProjectEntityInfo, getStatusConfig, getProjectTier, getProjectTierBadge } from '../formatters';
+import { formatFCFA, formatAmountInWords, formatCompactFCFA, getProjectEntityInfo, getStatusConfig, getProjectTier, getProjectTierBadge, getInstitutionLeaderGender } from '../formatters';
 
 describe('Formatters Unit Tests', () => {
   it('formats FCFA amounts with space separators', () => {
@@ -82,4 +82,72 @@ describe('Formatters Unit Tests', () => {
     expect(stateBadge.label).toBe("Investissement de l'État");
     expect(stateBadge.icon).toBe('🇨🇮');
   });
+
+  it('determines leader gender accurately according to Loi n°2019-870 and CEI results', () => {
+    // 1. Regional councils (2 female presidents in Côte d'Ivoire)
+    const cavally: any = {
+      id: 'inst-reg-conseil-regional-du-cavally',
+      name: 'Conseil Régional du Cavally',
+      type: 'REGION',
+      leader_name: 'OULOTO ANNE DESIREE'
+    };
+    const moronou: any = {
+      id: 'inst-reg-conseil-regional-du-moronou',
+      name: 'Conseil Régional du Moronou',
+      type: 'REGION',
+      leader_name: 'AKA AMANAN VERONIQUE'
+    };
+    const agneby: any = {
+      id: 'inst-reg-conseil-regional-de-l-agneby-tiassa',
+      name: "Conseil Régional de l'Agneby-Tiassa",
+      type: 'REGION',
+      leader_name: "DIMBA N'GOU PIERRE"
+    };
+
+    expect(getInstitutionLeaderGender(cavally)).toBe('F');
+    expect(getInstitutionLeaderGender(moronou)).toBe('F');
+    expect(getInstitutionLeaderGender(agneby)).toBe('M');
+
+    // 2. Communes (25 female mayors out of 201)
+    const abobo: any = {
+      id: 'inst-com-abobo',
+      name: 'Mairie de Abobo',
+      type: 'MAIRIE',
+      leader_name: 'KAMISSOKO KANDIA'
+    };
+    const gohitafla: any = {
+      id: 'inst-com-gohitafla',
+      name: 'Mairie de Gohitafla',
+      type: 'MAIRIE',
+      leader_name: 'ZAMBLE NAYA NAOMI JARVIS'
+    };
+    const cocody: any = {
+      id: 'inst-com-cocody',
+      name: 'Mairie de Cocody',
+      type: 'MAIRIE',
+      leader_name: 'YACE JEAN-MARC'
+    };
+    const yopougon: any = {
+      id: 'inst-com-yopougon',
+      name: 'Mairie de Yopougon',
+      type: 'MAIRIE',
+      leader_name: 'BICTOGO ADAMA'
+    };
+
+    expect(getInstitutionLeaderGender(abobo)).toBe('F');
+    expect(getInstitutionLeaderGender(gohitafla)).toBe('F');
+    expect(getInstitutionLeaderGender(cocody)).toBe('M');
+    expect(getInstitutionLeaderGender(yopougon)).toBe('M');
+
+    // 3. Explicit leader_gender attribute override
+    const customInst: any = {
+      id: 'custom-1',
+      name: 'Entité test',
+      type: 'MAIRIE',
+      leader_name: 'DOE JANE',
+      leader_gender: 'F'
+    };
+    expect(getInstitutionLeaderGender(customInst)).toBe('F');
+  });
 });
+

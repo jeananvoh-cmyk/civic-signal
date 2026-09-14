@@ -1,4 +1,5 @@
 // Formatting utilities for Ivorian Civic Tech platform
+import { Institution } from '../types';
 
 /**
  * Format an amount in FCFA with proper spacing (e.g., 40 000 000 FCFA)
@@ -484,4 +485,78 @@ export function calculateContractualElapsedPercentage(startDateStr?: string, dur
     totalDays,
     formattedTargetDate
   };
+}
+
+/**
+ * Normalized gender lookup for institutional leaders (Presidents of Regional Councils, Mayors, Ministers)
+ * Grounded in Loi n°2019-870 and official CEI election results.
+ */
+const FEMALE_REGION_LEADER_KEYWORDS = [
+  'OULOTO', // Anne Désirée Ouloto (Cavally)
+  'AKA AMANAN', // Véronique Aka (Moronou)
+];
+
+const FEMALE_COMMUNE_IDS = new Set([
+  'inst-com-abobo', // KAMISSOKO KANDIA
+  'inst-com-adzope', 'inst-com-adzoppe', // ATSE BAH FLORENCE SOSTERNE EPSE ACHI
+  'inst-com-anoumaba', // ASSOUMOU YAH BEATRICE
+  'inst-com-anyama', // BAMBA FATIMA
+  'inst-com-arrah', // KOUAME BADOU HARLETTE
+  'inst-com-bako', // KONE MABANA DITE JOSEPHINE EPSE FANY
+  'inst-com-bodokro', // ATSE AKISSI ALICE
+  'inst-com-boundiali', // KONE MARIATOU
+  'inst-com-djibrosso', // DIOMANDE SALIMATA
+  'inst-com-duekoue', // FLANIZARA TOURE
+  'inst-com-gbeleban', // OUATTARA AISSIATA
+  'inst-com-gohitafla', // ZAMBLE NAYA NAOMI JARVIS
+  'inst-com-grand-zattry', // SERI HORTENSE EMMA
+  'inst-com-gueyo', // BONI TANO N'GUESSAN NOELLE MARIE
+  'inst-com-guiberoua', // ZEZE SOUASSOU NICOLE PRINCESSE GOHOUROU
+  'inst-com-guitry', // KOKO PATRICIA SYLVIE EPSE YAO
+  'inst-com-logouale', // OUEHI FEH BIAYO GISELE EPSE KOFFI
+  'inst-com-mayo', // BAFLAN LAURE EPSE DONWAHI
+  'inst-com-odienne', // TOURE NASSENEBA
+  'inst-com-rubino', // KOUASSI MARIE VIRGINIE
+  'inst-com-san-pedro', // KEITA EPSE CISSE NAKARIDJA
+  'inst-com-satama-sokoro', // FOFANA ALIMATA EPSE COULIBALY
+  'inst-com-seguela', // BAMBA MAFERIMA FOUETE EPSE M'BAHIA
+  'inst-com-seguelon', // KONE MATOGOMA
+  'inst-com-tiemelekro' // KOUADIO KENDRICHE TANIA SAMIRA EMMANUELLA
+]);
+
+const FEMALE_MAYOR_NAME_KEYWORDS = [
+  'KAMISSOKO KANDIA', 'FLORENCE SOSTERNE', 'YAH BEATRICE', 'BAMBA FATIMA',
+  'BADOU HARLETTE', 'JOSEPHINE EPSE FANY', 'AKISSI ALICE', 'KONE MARIATOU',
+  'DIOMANDE SALIMATA', 'FLANIZARA TOURE', 'OUATTARA AISSIATA', 'NAYA NAOMI',
+  'HORTENSE EMMA', 'NOELLE MARIE', 'PRINCESSE GOHOUROU', 'PATRICIA SYLVIE',
+  'FEH BIAYO GISELE', 'LAURE EPSE DONWAHI', 'TOURE NASSENEBA', 'MARIE VIRGINIE',
+  'NAKARIDJA', 'ALIMATA EPSE COULIBALY', 'MAFERIMA FOUETE', 'KONE MATOGOMA',
+  'SAMIRA EMMANUELLA'
+];
+
+export function getInstitutionLeaderGender(inst: Institution): 'M' | 'F' {
+  if (inst.leader_gender) {
+    return inst.leader_gender;
+  }
+
+  const leaderUpper = (inst.leader_name || '').toUpperCase();
+
+  if (inst.type === 'REGION' || inst.type === 'DISTRICT') {
+    if (FEMALE_REGION_LEADER_KEYWORDS.some(kw => leaderUpper.includes(kw))) {
+      return 'F';
+    }
+    return 'M';
+  }
+
+  if (inst.type === 'MAIRIE') {
+    if (FEMALE_COMMUNE_IDS.has(inst.id)) {
+      return 'F';
+    }
+    if (FEMALE_MAYOR_NAME_KEYWORDS.some(kw => leaderUpper.includes(kw))) {
+      return 'F';
+    }
+    return 'M';
+  }
+
+  return 'M';
 }

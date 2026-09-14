@@ -34,6 +34,7 @@ export interface Institution {
   tax_quota_note?: string;
   // Premier Responsable & Présence Numérique
   leader_name?: string;
+  leader_gender?: 'M' | 'F';
   leader_title?: string;
   leader_photo_url?: string;
   leader_bio?: string;

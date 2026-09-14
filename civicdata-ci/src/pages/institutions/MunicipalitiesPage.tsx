@@ -2,7 +2,7 @@ import { normalizeSearchText } from '../../utils/searchHelpers';
 import React, { useState } from 'react';
 import { ArrowLeft, Search, Building2, ChevronDown, ArrowRight, FileText, ArrowRightLeft, Globe, ExternalLink, Info, Eye, EyeOff } from 'lucide-react';
 import { Institution, BudgetProject } from '../../types';
-import { formatFCFA, formatAmountInWords } from '../../utils/formatters';
+import { formatFCFA, formatAmountInWords, getInstitutionLeaderGender } from '../../utils/formatters';
 import { OfficialDocRequestModal } from '../../components/OfficialDocRequestModal';
 import { CommuneComparatorModal } from '../../components/CommuneComparatorModal';
 import { InstitutionDetailModal } from '../../components/InstitutionDetailModal';
@@ -24,6 +24,7 @@ export const MunicipalitiesPage: React.FC<MunicipalitiesPageProps> = ({
   const [selectedDistrictFilter, setSelectedDistrictFilter] = useState('ALL');
   const [selectedRegionFilter, setSelectedRegionFilter] = useState('ALL');
   const [selectedLetterFilter, setSelectedLetterFilter] = useState('ALL');
+  const [selectedGender, setSelectedGender] = useState<'ALL' | 'M' | 'F'>('ALL');
   const [sortBy, setSortBy] = useState<'NAME_ASC' | 'NAME_DESC' | 'BUDGET_DESC' | 'BUDGET_ASC'>('NAME_ASC');
   const [page, setPage] = useState(1);
   const [revealedParties, setRevealedParties] = useState<Record<string, boolean>>({});
@@ -57,6 +58,14 @@ export const MunicipalitiesPage: React.FC<MunicipalitiesPageProps> = ({
       .trim();
   };
 
+  // Dynamic Parity Stats for Mairies / Communes
+  const allMairies = institutions.filter(i => i.type === 'MAIRIE');
+  const totalMairiesCount = allMairies.length;
+  const femaleMairiesCount = allMairies.filter(m => getInstitutionLeaderGender(m) === 'F').length;
+  const maleMairiesCount = totalMairiesCount - femaleMairiesCount;
+  const femaleMairiesPct = totalMairiesCount > 0 ? Math.round((femaleMairiesCount / totalMairiesCount) * 100) : 0;
+  const maleMairiesPct = totalMairiesCount > 0 ? 100 - femaleMairiesPct : 0;
+
   // Unique Districts
   const uniqueDistricts = Array.from(
     new Set(institutions.filter(i => i.type === 'MAIRIE' && i.district).map(i => i.district))
@@ -71,14 +80,16 @@ export const MunicipalitiesPage: React.FC<MunicipalitiesPageProps> = ({
     )
   ).filter(Boolean).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
 
-  // Letters count for A-Z bar
+  // Letters count for A-Z bar (respecting gender filter)
   const availableLettersCount: Record<string, number> = {};
-  institutions.filter(i => i.type === 'MAIRIE').forEach(i => {
-    const first = getCleanCommuneName(i.name).charAt(0).toUpperCase();
-    if (first >= 'A' && first <= 'Z') {
-      availableLettersCount[first] = (availableLettersCount[first] || 0) + 1;
-    }
-  });
+  allMairies
+    .filter(i => selectedGender === 'ALL' || getInstitutionLeaderGender(i) === selectedGender)
+    .forEach(i => {
+      const first = getCleanCommuneName(i.name).charAt(0).toUpperCase();
+      if (first >= 'A' && first <= 'Z') {
+        availableLettersCount[first] = (availableLettersCount[first] || 0) + 1;
+      }
+    });
 
   // Filtered Mairies
   const filteredMairies = institutions.filter(i => {
@@ -86,6 +97,8 @@ export const MunicipalitiesPage: React.FC<MunicipalitiesPageProps> = ({
 
     const cleanName = getCleanCommuneName(i.name);
     const firstLetter = cleanName.charAt(0).toUpperCase();
+
+    const matchesGender = selectedGender === 'ALL' || getInstitutionLeaderGender(i) === selectedGender;
 
     const matchesSearch = !searchQuery.trim() || 
       normalize(i.name).includes(normalize(searchQuery)) ||
@@ -103,7 +116,7 @@ export const MunicipalitiesPage: React.FC<MunicipalitiesPageProps> = ({
     const matchesLetter = selectedLetterFilter === 'ALL' || 
       firstLetter === selectedLetterFilter;
 
-    return matchesSearch && matchesDistrict && matchesReg && matchesLetter;
+    return matchesSearch && matchesDistrict && matchesReg && matchesLetter && matchesGender;
   });
 
   // Sorted Mairies
@@ -241,6 +254,59 @@ export const MunicipalitiesPage: React.FC<MunicipalitiesPageProps> = ({
             </div>
           </div>
 
+        </div>
+
+        {/* Filtre paritaire républicain (Segmented Control tactile) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white p-2 sm:p-2.5 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-xl w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedGender('ALL');
+                setPage(1);
+              }}
+              className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer ${
+                selectedGender === 'ALL'
+                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200/70'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+              }`}
+            >
+              Tous <span className="ml-1 text-[11px] font-semibold text-slate-500">{totalMairiesCount}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedGender('F');
+                setPage(1);
+              }}
+              className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer ${
+                selectedGender === 'F'
+                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200/70'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+              }`}
+            >
+              Femmes <span className="ml-1 text-[11px] font-semibold text-emerald-800 bg-emerald-100/80 px-1.5 py-0.5 rounded-md">{femaleMairiesCount} • {femaleMairiesPct}%</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedGender('M');
+                setPage(1);
+              }}
+              className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer ${
+                selectedGender === 'M'
+                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200/70'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+              }`}
+            >
+              Hommes <span className="ml-1 text-[11px] font-semibold text-blue-800 bg-blue-100/80 px-1.5 py-0.5 rounded-md">{maleMairiesCount} • {maleMairiesPct}%</span>
+            </button>
+          </div>
+
+          <div className="text-[11px] font-medium text-slate-500 px-2 sm:px-1 flex items-center justify-between sm:justify-end gap-2">
+            <span>Observatoire parité exécutif</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">Loi n°2019-870</span>
+          </div>
         </div>
 
         {/* Alphabetical Quick-Filter Bar (A to Z) */}
