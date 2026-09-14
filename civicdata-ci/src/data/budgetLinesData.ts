@@ -268538,16 +268538,959 @@ export const OFFICIAL_ENTITY_BUDGET_LINES: Record<string, BudgetLineItem[]> = {
   ]
 };
 
-export function getBudgetLinesForEntity(entityName: string, entityType?: string, entityLeader?: string): BudgetLineItem[] {
-  if (!entityName) return [];
-  const q = entityName.toUpperCase().trim();
-  
-  // 1. Exact match by entity name
+
+const REGULATORY_AUTHORITIES_BUDGET_LINES: Record<string, BudgetLineItem[]> = {
+  "aai-arcop": [
+    {
+      libelle: "Dépenses de Personnel (Conseil de Régulation tripartite État/Secteur Privé/Société Civile, Secrétariat Général & Experts)",
+      montant_fcfa: 2450000000,
+      nature: "Personnel",
+      categorie: "REGULATION_MARCHES",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "ARCOP",
+      sous_categorie_3: "Gouvernance & Administration",
+      year: 2026
+    },
+    {
+      libelle: "Instruction des recours gracieux, contentieux et conciliation des litiges de marchés publics",
+      montant_fcfa: 980000000,
+      nature: "Biens et services",
+      categorie: "REGULATION_MARCHES",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "ARCOP",
+      sous_categorie_3: "Règlement des Différends",
+      year: 2026
+    },
+    {
+      libelle: "Audits indépendants annuels de conformité de la commande publique sur l'ensemble du territoire",
+      montant_fcfa: 820000000,
+      nature: "Biens et services",
+      categorie: "REGULATION_MARCHES",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "ARCOP",
+      sous_categorie_3: "Audits & Contrôles Indépendants",
+      year: 2026
+    },
+    {
+      libelle: "Formation certifiante et renforcement des capacités des acteurs publics et privés de la commande publique",
+      montant_fcfa: 600000000,
+      nature: "Transferts",
+      categorie: "REGULATION_MARCHES",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "ARCOP",
+      sous_categorie_3: "Formation & Professionnalisation",
+      year: 2026
+    }
+  ],
+  "aai-haca": [
+    {
+      libelle: "Rémunération et indemnités des Conseillers de la HACA, monitoring et personnel technique",
+      montant_fcfa: 2100000000,
+      nature: "Personnel",
+      categorie: "REGULATION_AUDIOVISUEL",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "HACA",
+      sous_categorie_3: "Collège & Personnel de Régulation",
+      year: 2026
+    },
+    {
+      libelle: "Surveillance et monitoring numérique 24h/24 des médias audiovisuels, chaînes TNT et réseaux sociaux",
+      montant_fcfa: 1150000000,
+      nature: "Biens et services",
+      categorie: "REGULATION_AUDIOVISUEL",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "HACA",
+      sous_categorie_3: "Centre National de Monitoring",
+      year: 2026
+    },
+    {
+      libelle: "Régulation des fréquences TNT, attribution des licences et gestion du spectre audiovisuel",
+      montant_fcfa: 550000000,
+      nature: "Biens et services",
+      categorie: "REGULATION_AUDIOVISUEL",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "HACA",
+      sous_categorie_3: "Fréquences & Nouveaux Médias",
+      year: 2026
+    },
+    {
+      libelle: "Campagnes d'éducation aux médias, protection des mineurs et respect de l'éthique journalistique",
+      montant_fcfa: 400000000,
+      nature: "Transferts",
+      categorie: "REGULATION_AUDIOVISUEL",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "HACA",
+      sous_categorie_3: "Éthique, Pluralisme & Protection",
+      year: 2026
+    }
+  ],
+  "aai-caidp": [
+    {
+      libelle: "Traitements et indemnités des Commissaires et du Secrétariat Général de la CAIDP",
+      montant_fcfa: 1050000000,
+      nature: "Personnel",
+      categorie: "ACCES_INFORMATION",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "CAIDP",
+      sous_categorie_3: "Commissaires & Personnel Administratif",
+      year: 2026
+    },
+    {
+      libelle: "Instruction des saisines citoyennes et décisions d'injonction de communication de documents (Loi 2013-867)",
+      montant_fcfa: 480000000,
+      nature: "Biens et services",
+      categorie: "ACCES_INFORMATION",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "CAIDP",
+      sous_categorie_3: "Contentieux & Recours Citoyens",
+      year: 2026
+    },
+    {
+      libelle: "Animation, formation et supervision du réseau national des Responsables de l'Information (RI)",
+      montant_fcfa: 370000000,
+      nature: "Biens et services",
+      categorie: "ACCES_INFORMATION",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "CAIDP",
+      sous_categorie_3: "Réseau National des RI",
+      year: 2026
+    },
+    {
+      libelle: "Vulgarisation citoyenne du droit d'accès à l'information, baromètre annuel et plateforme numérique",
+      montant_fcfa: 250000000,
+      nature: "Transferts",
+      categorie: "ACCES_INFORMATION",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "CAIDP",
+      sous_categorie_3: "Plateforme & Baromètre Annuel",
+      year: 2026
+    }
+  ],
+  "aai-artci": [
+    {
+      libelle: "Masse salariale et traitements des ingénieurs télécoms, juristes et experts de l'ARTCI",
+      montant_fcfa: 8500000000,
+      nature: "Personnel",
+      categorie: "REGULATION_TELECOMS",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "ARTCI",
+      sous_categorie_3: "Personnel Technique & Juridique",
+      year: 2026
+    },
+    {
+      libelle: "Contrôle de la qualité de service (QoS) des opérateurs et gestion des fréquences télécoms",
+      montant_fcfa: 4200000000,
+      nature: "Biens et services",
+      categorie: "REGULATION_TELECOMS",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "ARTCI",
+      sous_categorie_3: "Qualité de Service & Fréquences",
+      year: 2026
+    },
+    {
+      libelle: "Protection des données à caractère personnel, autorité de certification CERTINUM et cybersécurité",
+      montant_fcfa: 3800000000,
+      nature: "Biens et services",
+      categorie: "REGULATION_TELECOMS",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "ARTCI",
+      sous_categorie_3: "Protection des Données & CERTINUM",
+      year: 2026
+    },
+    {
+      libelle: "Infrastructures de métrologie, sondes de mesure de débit internet et équipements de contrôle",
+      montant_fcfa: 2500000000,
+      nature: "Investissements",
+      categorie: "REGULATION_TELECOMS",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "ARTCI",
+      sous_categorie_3: "Équipements & Laboratoires Techniques",
+      year: 2026
+    }
+  ],
+  "aai-anare": [
+    {
+      libelle: "Salaires et indemnités des ingénieurs énergéticiens, contrôleurs et collège de régulation",
+      montant_fcfa: 2650000000,
+      nature: "Personnel",
+      categorie: "REGULATION_ENERGIE",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "ANARE-CI",
+      sous_categorie_3: "Personnel & Collège Régulateur",
+      year: 2026
+    },
+    {
+      libelle: "Instruction et arbitrage des réclamations des consommateurs d'électricité (factures, pannes, compteurs)",
+      montant_fcfa: 1350000000,
+      nature: "Biens et services",
+      categorie: "REGULATION_ENERGIE",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "ANARE-CI",
+      sous_categorie_3: "Protection des Usagers & Arbitrage",
+      year: 2026
+    },
+    {
+      libelle: "Contrôle technique de conformité du réseau électrique national et audit de concession de service public",
+      montant_fcfa: 800000000,
+      nature: "Biens et services",
+      categorie: "REGULATION_ENERGIE",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "ANARE-CI",
+      sous_categorie_3: "Contrôle Technique des Réseaux",
+      year: 2026
+    },
+    {
+      libelle: "Observatoire des coûts de production d'électricité, modélisation des tarifs et vulgarisation",
+      montant_fcfa: 400000000,
+      nature: "Biens et services",
+      categorie: "REGULATION_ENERGIE",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "ANARE-CI",
+      sous_categorie_3: "Études Économiques & Tarification",
+      year: 2026
+    }
+  ],
+  "aai-cndh": [
+    {
+      libelle: "Indemnités des Conseillers des Droits de l'Homme et traitements des observateurs terrain",
+      montant_fcfa: 1600000000,
+      nature: "Personnel",
+      categorie: "DROITS_HOMME",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "CNDH",
+      sous_categorie_3: "Conseillers & Observateurs",
+      year: 2026
+    },
+    {
+      libelle: "Fonctionnement opérationnel des 31 Commissions Régionales des Droits de l'Homme sur le territoire",
+      montant_fcfa: 750000000,
+      nature: "Biens et services",
+      categorie: "DROITS_HOMME",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "CNDH",
+      sous_categorie_3: "Commissions Régionales Décentralisées",
+      year: 2026
+    },
+    {
+      libelle: "Enquêtes sur les violations des droits humains et visites inopinées des lieux de privation de liberté",
+      montant_fcfa: 450000000,
+      nature: "Biens et services",
+      categorie: "DROITS_HOMME",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "CNDH",
+      sous_categorie_3: "Visites Pénitentiaires & Enquêtes",
+      year: 2026
+    },
+    {
+      libelle: "Plaidoyer citoyen, formation aux droits de l'enfant et de la femme et publication du Rapport National",
+      montant_fcfa: 300000000,
+      nature: "Transferts",
+      categorie: "DROITS_HOMME",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "CNDH",
+      sous_categorie_3: "Plaidoyer & Rapport Annuel",
+      year: 2026
+    }
+  ],
+  "aai-airp": [
+    {
+      libelle: "Traitements et honoraires des pharmaciens régulateurs, inspecteurs et évaluateurs scientifiques",
+      montant_fcfa: 1850000000,
+      nature: "Personnel",
+      categorie: "REGULATION_SANTE",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "AIRP",
+      sous_categorie_3: "Évaluateurs Scientifiques & Inspecteurs",
+      year: 2026
+    },
+    {
+      libelle: "Instruction scientifique des dossiers d'Autorisation de Mise sur le Marché (AMM) des médicaments",
+      montant_fcfa: 850000000,
+      nature: "Biens et services",
+      categorie: "REGULATION_SANTE",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "AIRP",
+      sous_categorie_3: "Homologation & Dossiers AMM",
+      year: 2026
+    },
+    {
+      libelle: "Inspections des établissements pharmaceutiques et opérations nationales contre les médicaments falsifiés",
+      montant_fcfa: 600000000,
+      nature: "Biens et services",
+      categorie: "REGULATION_SANTE",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "AIRP",
+      sous_categorie_3: "Lutte contre les Médicaments Falsifiés",
+      year: 2026
+    },
+    {
+      libelle: "Dispositif national de pharmacovigilance, réactovigilance et alertes sanitaires aux populations",
+      montant_fcfa: 350000000,
+      nature: "Biens et services",
+      categorie: "REGULATION_SANTE",
+      sous_categorie_1: "AUTORITES_REGULATION",
+      sous_categorie_2: "AIRP",
+      sous_categorie_3: "Pharmacovigilance & Veille Sanitaire",
+      year: 2026
+    }
+  ]
+};
+
+const ABIDJAN_COMMUNES_BUDGET_LINES: Record<string, BudgetLineItem[]> = {
+  "inst-com-yopougon": [
+    {
+      libelle: "Dotation globale de fonctionnement et administration municipale - Commune de Yopougon",
+      montant_fcfa: 1850000000,
+      nature: "Personnel",
+      categorie: "FONCTIONNEMENT",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Yopougon",
+      sous_categorie_3: "Administration & Services Généraux",
+      year: 2026
+    },
+    {
+      libelle: "Fonds d'équipement communal et réhabilitation de la voirie urbaine (FECL)",
+      montant_fcfa: 1200000000,
+      nature: "Investissements",
+      categorie: "INFRASTRUCTURES",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Yopougon",
+      sous_categorie_3: "Voirie & Éclairage Public",
+      year: 2026
+    },
+    {
+      libelle: "Construction et rénovation d'écoles primaires municipales et centres de santé urbains",
+      montant_fcfa: 950000000,
+      nature: "Investissements",
+      categorie: "EDUCATION_SANTE",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Yopougon",
+      sous_categorie_3: "Écoles & Santé Communale",
+      year: 2026
+    },
+    {
+      libelle: "Modernisation des marchés communaux, salubrité urbaine et curage des caniveaux",
+      montant_fcfa: 650000000,
+      nature: "Biens et services",
+      categorie: "ENVIRONNEMENT",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Yopougon",
+      sous_categorie_3: "Salubrité & Commerce",
+      year: 2026
+    },
+    {
+      libelle: "Insertion socio-professionnelle des jeunes et appui aux activités génératrices de revenus",
+      montant_fcfa: 450000000,
+      nature: "Transferts",
+      categorie: "SOCIAL",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Yopougon",
+      sous_categorie_3: "Jeunesse & Solidarité",
+      year: 2026
+    }
+  ],
+  "inst-com-abobo": [
+    {
+      libelle: "Dotation globale de fonctionnement et charges des services municipaux - Commune d'Abobo",
+      montant_fcfa: 1750000000,
+      nature: "Personnel",
+      categorie: "FONCTIONNEMENT",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie d'Abobo",
+      sous_categorie_3: "Administration & Services Municipaux",
+      year: 2026
+    },
+    {
+      libelle: "Programme d'urgence de voirie communale, pavage et éclairage public sécurisé",
+      montant_fcfa: 1150000000,
+      nature: "Investissements",
+      categorie: "INFRASTRUCTURES",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie d'Abobo",
+      sous_categorie_3: "Voirie & Cadre de Vie",
+      year: 2026
+    },
+    {
+      libelle: "Équipements scolaires et cantines dans les groupes scolaires municipaux",
+      montant_fcfa: 850000000,
+      nature: "Investissements",
+      categorie: "EDUCATION",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie d'Abobo",
+      sous_categorie_3: "Éducation & Petite Enfance",
+      year: 2026
+    },
+    {
+      libelle: "Réhabilitation des marchés de quartier et assainissement des zones commerciales",
+      montant_fcfa: 550000000,
+      nature: "Biens et services",
+      categorie: "COMMERCE_SALUBRITE",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie d'Abobo",
+      sous_categorie_3: "Salubrité & Marchés",
+      year: 2026
+    },
+    {
+      libelle: "Fonds municipal d'appui aux femmes et initiatives de la jeunesse communale",
+      montant_fcfa: 400000000,
+      nature: "Transferts",
+      categorie: "SOCIAL",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie d'Abobo",
+      sous_categorie_3: "Femmes & Jeunesse",
+      year: 2026
+    }
+  ],
+  "inst-com-cocody": [
+    {
+      libelle: "Dotation globale de fonctionnement et services aux administrés - Commune de Cocody",
+      montant_fcfa: 1650000000,
+      nature: "Personnel",
+      categorie: "FONCTIONNEMENT",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Cocody",
+      sous_categorie_3: "Administration & Guichet Citoyen",
+      year: 2026
+    },
+    {
+      libelle: "Voirie secondaire, éclairage public LED et aménagements paysagers communaux",
+      montant_fcfa: 1100000000,
+      nature: "Investissements",
+      categorie: "INFRASTRUCTURES",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Cocody",
+      sous_categorie_3: "Voirie & Aménagements",
+      year: 2026
+    },
+    {
+      libelle: "Modernisation des centres de santé municipaux et dispensaires de proximité",
+      montant_fcfa: 750000000,
+      nature: "Investissements",
+      categorie: "SANTE",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Cocody",
+      sous_categorie_3: "Santé Publique",
+      year: 2026
+    },
+    {
+      libelle: "Salubrité urbaine, curage des bassins d'orage et prévention des inondations",
+      montant_fcfa: 600000000,
+      nature: "Biens et services",
+      categorie: "ENVIRONNEMENT",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Cocody",
+      sous_categorie_3: "Assainissement & Bassins",
+      year: 2026
+    },
+    {
+      libelle: "Digitalisation intégrale des services d'état-civil et guichet unique municipal connecté",
+      montant_fcfa: 400000000,
+      nature: "Investissements",
+      categorie: "NUMERIQUE",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Cocody",
+      sous_categorie_3: "Modernisation Numérique",
+      year: 2026
+    }
+  ],
+  "inst-com-koumassi": [
+    {
+      libelle: "Dotation de fonctionnement et administration communale - Commune de Koumassi",
+      montant_fcfa: 1250000000,
+      nature: "Personnel",
+      categorie: "FONCTIONNEMENT",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Koumassi",
+      sous_categorie_3: "Personnel & Administration",
+      year: 2026
+    },
+    {
+      libelle: "Aménagement des carrefours, trottoirs et voiries communales de désengorgement",
+      montant_fcfa: 850000000,
+      nature: "Investissements",
+      categorie: "INFRASTRUCTURES",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Koumassi",
+      sous_categorie_3: "Voirie Urbaine",
+      year: 2026
+    },
+    {
+      libelle: "Salubrité publique, curage des caniveaux et élimination des dépôts sauvages",
+      montant_fcfa: 550000000,
+      nature: "Biens et services",
+      categorie: "ENVIRONNEMENT",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Koumassi",
+      sous_categorie_3: "Salubrité & Hygiène",
+      year: 2026
+    },
+    {
+      libelle: "Réhabilitation et équipement des écoles primaires publiques communales",
+      montant_fcfa: 450000000,
+      nature: "Investissements",
+      categorie: "EDUCATION",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Koumassi",
+      sous_categorie_3: "Écoles & Éducation",
+      year: 2026
+    },
+    {
+      libelle: "Soutien aux micro-entrepreneurs, artisans communaux et coopératives féminines",
+      montant_fcfa: 300000000,
+      nature: "Transferts",
+      categorie: "SOCIAL",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Koumassi",
+      sous_categorie_3: "Entrepreneuriat & Emploi",
+      year: 2026
+    }
+  ],
+  "inst-com-adjame": [
+    {
+      libelle: "Dotation de fonctionnement et sécurité des marchés - Commune d'Adjamé",
+      montant_fcfa: 1300000000,
+      nature: "Personnel",
+      categorie: "FONCTIONNEMENT",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie d'Adjamé",
+      sous_categorie_3: "Administration & Sécurité Municipale",
+      year: 2026
+    },
+    {
+      libelle: "Fluidité urbaine, voirie et dégagement des grandes artères commerçantes",
+      montant_fcfa: 850000000,
+      nature: "Investissements",
+      categorie: "INFRASTRUCTURES",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie d'Adjamé",
+      sous_categorie_3: "Voirie & Circulation",
+      year: 2026
+    },
+    {
+      libelle: "Salubrité intensive, collecte quotidienne des déchets et curage des réseaux",
+      montant_fcfa: 650000000,
+      nature: "Biens et services",
+      categorie: "ENVIRONNEMENT",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie d'Adjamé",
+      sous_categorie_3: "Salubrité Urbaine",
+      year: 2026
+    },
+    {
+      libelle: "Réhabilitation des écoles primaires publiques et dispensaires municipaux",
+      montant_fcfa: 450000000,
+      nature: "Investissements",
+      categorie: "EDUCATION_SANTE",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie d'Adjamé",
+      sous_categorie_3: "Écoles & Santé",
+      year: 2026
+    }
+  ],
+  "inst-com-port-bouet": [
+    {
+      libelle: "Dotation de fonctionnement et administration - Commune de Port-Bouët",
+      montant_fcfa: 1200000000,
+      nature: "Personnel",
+      categorie: "FONCTIONNEMENT",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Port-Bouët",
+      sous_categorie_3: "Services Généraux",
+      year: 2026
+    },
+    {
+      libelle: "Infrastructures littorales, voirie et désenclavement des quartiers lagunaires",
+      montant_fcfa: 800000000,
+      nature: "Investissements",
+      categorie: "INFRASTRUCTURES",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Port-Bouët",
+      sous_categorie_3: "Voirie & Désenclavement",
+      year: 2026
+    },
+    {
+      libelle: "Équipements de santé et réhabilitation des maternités communales de proximité",
+      montant_fcfa: 500000000,
+      nature: "Investissements",
+      categorie: "SANTE",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Port-Bouët",
+      sous_categorie_3: "Maternités & Santé",
+      year: 2026
+    },
+    {
+      libelle: "Appui à la filière pêche artisanale et modernisation des marchés de poissons",
+      montant_fcfa: 350000000,
+      nature: "Transferts",
+      categorie: "COMMERCE",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Port-Bouët",
+      sous_categorie_3: "Pêche & Marchés",
+      year: 2026
+    }
+  ],
+  "inst-com-marcory": [
+    {
+      libelle: "Dotation de fonctionnement et services aux administrés - Commune de Marcory",
+      montant_fcfa: 1150000000,
+      nature: "Personnel",
+      categorie: "FONCTIONNEMENT",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Marcory",
+      sous_categorie_3: "Administration & État Civil",
+      year: 2026
+    },
+    {
+      libelle: "Entretien des voies communales, sécurité de proximité et éclairage public",
+      montant_fcfa: 750000000,
+      nature: "Investissements",
+      categorie: "INFRASTRUCTURES",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Marcory",
+      sous_categorie_3: "Voirie & Sécurité",
+      year: 2026
+    },
+    {
+      libelle: "Programmes éducatifs, bourses scolaires municipales et rénovation des écoles",
+      montant_fcfa: 450000000,
+      nature: "Transferts",
+      categorie: "EDUCATION",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Marcory",
+      sous_categorie_3: "Bourses & Éducation",
+      year: 2026
+    },
+    {
+      libelle: "Salubrité, curage préventif et aménagement des espaces verts communaux",
+      montant_fcfa: 350000000,
+      nature: "Biens et services",
+      categorie: "ENVIRONNEMENT",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Marcory",
+      sous_categorie_3: "Cadre de Vie & Salubrité",
+      year: 2026
+    }
+  ],
+  "inst-com-treichville": [
+    {
+      libelle: "Dotation globale de fonctionnement et services municipaux - Commune de Treichville",
+      montant_fcfa: 1100000000,
+      nature: "Personnel",
+      categorie: "FONCTIONNEMENT",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Treichville",
+      sous_categorie_3: "Services Municipaux",
+      year: 2026
+    },
+    {
+      libelle: "Rénovation urbaine, voirie et modernisation de l'éclairage de l'Avenue 16",
+      montant_fcfa: 700000000,
+      nature: "Investissements",
+      categorie: "INFRASTRUCTURES",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Treichville",
+      sous_categorie_3: "Voirie & Avenue 16",
+      year: 2026
+    },
+    {
+      libelle: "Projets socio-éducatifs, réhabilitation de la médiathèque et centres de jeunesse",
+      montant_fcfa: 450000000,
+      nature: "Investissements",
+      categorie: "CULTURE_JEUNESSE",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Treichville",
+      sous_categorie_3: "Médiathèque & Jeunesse",
+      year: 2026
+    },
+    {
+      libelle: "Hygiène publique, marchés de proximité et curage des caniveaux",
+      montant_fcfa: 350000000,
+      nature: "Biens et services",
+      categorie: "ENVIRONNEMENT",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Treichville",
+      sous_categorie_3: "Salubrité & Marchés",
+      year: 2026
+    }
+  ],
+  "inst-com-plateau": [
+    {
+      libelle: "Dotation de fonctionnement et services administratifs du centre d'affaires - Le Plateau",
+      montant_fcfa: 1100000000,
+      nature: "Personnel",
+      categorie: "FONCTIONNEMENT",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Le Plateau",
+      sous_categorie_3: "Administration & Centre d'Affaires",
+      year: 2026
+    },
+    {
+      libelle: "Modernisation des espaces publics, voirie urbaine et éclairage intelligent connecté",
+      montant_fcfa: 750000000,
+      nature: "Investissements",
+      categorie: "INFRASTRUCTURES",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Le Plateau",
+      sous_categorie_3: "Voirie & Smart City",
+      year: 2026
+    },
+    {
+      libelle: "Sécurité communale, régulation du stationnement et réseau de télésurveillance municipale",
+      montant_fcfa: 450000000,
+      nature: "Investissements",
+      categorie: "SECURITE",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Le Plateau",
+      sous_categorie_3: "Vidéosurveillance & Sécurité",
+      year: 2026
+    },
+    {
+      libelle: "Propreté urbaine de haut standing et embellissement des artères institutionnelles",
+      montant_fcfa: 350000000,
+      nature: "Biens et services",
+      categorie: "ENVIRONNEMENT",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie de Le Plateau",
+      sous_categorie_3: "Salubrité & Prestige Urbain",
+      year: 2026
+    }
+  ],
+  "inst-com-attecoube": [
+    {
+      libelle: "Dotation globale de fonctionnement et services de proximité - Commune d'Attécoubé",
+      montant_fcfa: 1050000000,
+      nature: "Personnel",
+      categorie: "FONCTIONNEMENT",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie d'Attécoubé",
+      sous_categorie_3: "Administration Municipale",
+      year: 2026
+    },
+    {
+      libelle: "Désenclavement des quartiers à forte pente, escaliers publics et voiries pavées",
+      montant_fcfa: 750000000,
+      nature: "Investissements",
+      categorie: "INFRASTRUCTURES",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie d'Attécoubé",
+      sous_categorie_3: "Voirie & Escaliers Publics",
+      year: 2026
+    },
+    {
+      libelle: "Lutte contre l'érosion, glissements de terrain et sécurisation des zones à risque",
+      montant_fcfa: 500000000,
+      nature: "Investissements",
+      categorie: "SECURITE_ENVIRONNEMENT",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie d'Attécoubé",
+      sous_categorie_3: "Lutte Anti-Érosion",
+      year: 2026
+    },
+    {
+      libelle: "Écoles primaires municipales, cantines et centres médico-sociaux de quartier",
+      montant_fcfa: 400000000,
+      nature: "Investissements",
+      categorie: "EDUCATION_SANTE",
+      sous_categorie_1: "COMMUNES",
+      sous_categorie_2: "Mairie d'Attécoubé",
+      sous_categorie_3: "Santé & Éducation",
+      year: 2026
+    }
+  ]
+};
+
+const NATIONAL_INSTITUTIONS_MAP: Record<string, string> = {
+  'inst-presidence': 'Présidence de la République',
+  'inst-assnat': 'Assemblée Nationale',
+  'inst-senat': 'Sénat',
+  'inst-conseil-const': 'Conseil Constitutionnel',
+  'inst-cour-comptes': 'Cour des Comptes',
+  'inst-conseil-etat': "Conseil d'Etat",
+  'inst-cour-cassation': 'Cour de Cassation',
+  'inst-cesec': 'Conseil Economique, Social, Environnemental et Culturel',
+  'inst-chancellerie': 'Grande Chancellerie',
+  'inst-mediateur': 'Médiateur de la République',
+  'inst-cnrct': 'Chambre Nationale des Rois et Chefs Traditionnels',
+};
+
+const NATIONAL_INSTITUTIONS_EXTRA_LINES: Record<string, BudgetLineItem[]> = {
+  "inst-habg": [
+    {
+      libelle: "Digitalisation de la plateforme des déclarations de patrimoine et outils d'investigation financière",
+      montant_fcfa: 1425000000,
+      evolution_pct: 15.0,
+      categorie: "NUMERIQUE",
+      sous_categorie_1: "INSTITUTIONS",
+      sous_categorie_2: "HABG",
+      sous_categorie_3: "Digitalisation & Systèmes Anti-Corruption",
+      nature: "Investissements",
+      year: 2026
+    },
+    {
+      libelle: "Traitements et salaires des Commissaires, enquêteurs et juristes d'investigation",
+      montant_fcfa: 2327500000,
+      evolution_pct: 4.1,
+      categorie: "PERSONNEL",
+      sous_categorie_1: "INSTITUTIONS",
+      sous_categorie_2: "HABG",
+      sous_categorie_3: "Direction des Enquêtes & Commissaires",
+      nature: "Personnel",
+      year: 2026
+    },
+    {
+      libelle: "Campagnes de sensibilisation citoyenne, enquêtes terrain et coopération internationale",
+      montant_fcfa: 997500000,
+      evolution_pct: 3.5,
+      categorie: "FONCTIONNEMENT",
+      sous_categorie_1: "INSTITUTIONS",
+      sous_categorie_2: "HABG",
+      sous_categorie_3: "Prévention & Sensibilisation",
+      nature: "Biens et services",
+      year: 2026
+    }
+  ],
+  "inst-ige": [
+    {
+      libelle: "Construire les bâtiments annexes et réhabiliter le siège de l'Inspection Générale d'Etat (IGE)",
+      montant_fcfa: 1443100000,
+      evolution_pct: 7.2,
+      categorie: "INFRASTRUCTURE",
+      sous_categorie_1: "INSTITUTIONS",
+      sous_categorie_2: "IGE",
+      sous_categorie_3: "Infrastructures d'Inspection & Contrôle",
+      nature: "Investissements",
+      year: 2026
+    },
+    {
+      libelle: "Rémunérations et traitements des Inspecteurs d'État et vérificateurs de conformité administrative",
+      montant_fcfa: 2150000000,
+      evolution_pct: 4.0,
+      categorie: "PERSONNEL",
+      sous_categorie_1: "INSTITUTIONS",
+      sous_categorie_2: "IGE",
+      sous_categorie_3: "Inspecteurs d'État & Auditeurs",
+      nature: "Personnel",
+      year: 2026
+    },
+    {
+      libelle: "Missions d'audit public, inspections de conformité et contrôle de gestion des administrations publiques",
+      montant_fcfa: 950000000,
+      evolution_pct: 3.5,
+      categorie: "FONCTIONNEMENT",
+      sous_categorie_1: "INSTITUTIONS",
+      sous_categorie_2: "IGE",
+      sous_categorie_3: "Audits & Contrôle Général",
+      nature: "Biens et services",
+      year: 2026
+    }
+  ],
+  "inst-cour-supreme": [
+    {
+      libelle: "Rémunérations et traitements des Hauts Magistrats, Présidents de Chambre et Conseillers de la Cour Suprême",
+      montant_fcfa: 3200000000,
+      evolution_pct: 3.0,
+      categorie: "PERSONNEL",
+      sous_categorie_1: "INSTITUTIONS",
+      sous_categorie_2: "COUR SUPREME",
+      sous_categorie_3: "Magistrature Suprême & Greffe",
+      nature: "Personnel",
+      year: 2026
+    },
+    {
+      libelle: "Fonctionnement juridictionnel de la plus haute cour, documentation juridique et relations internationales",
+      montant_fcfa: 1800000000,
+      evolution_pct: 2.5,
+      categorie: "FONCTIONNEMENT",
+      sous_categorie_1: "INSTITUTIONS",
+      sous_categorie_2: "COUR SUPREME",
+      sous_categorie_3: "Activités Juridictionnelles & Greffe",
+      nature: "Biens et services",
+      year: 2026
+    }
+  ]
+};
+
+export function getBudgetLinesForEntity(
+  entityName: string, 
+  entityType?: string, 
+  entityLeader?: string, 
+  entityId?: string
+): BudgetLineItem[] {
+  if (!entityName && !entityId) return [];
+
+  // 1. Direct ID match (Deterministic, Highest Priority)
+  if (entityId) {
+    if (REGULATORY_AUTHORITIES_BUDGET_LINES[entityId]) {
+      return REGULATORY_AUTHORITIES_BUDGET_LINES[entityId];
+    }
+    if (ABIDJAN_COMMUNES_BUDGET_LINES[entityId]) {
+      return ABIDJAN_COMMUNES_BUDGET_LINES[entityId];
+    }
+    if (NATIONAL_INSTITUTIONS_EXTRA_LINES[entityId]) {
+      return NATIONAL_INSTITUTIONS_EXTRA_LINES[entityId];
+    }
+    if (NATIONAL_INSTITUTIONS_MAP[entityId]) {
+      const key = NATIONAL_INSTITUTIONS_MAP[entityId];
+      if ((budgetLines2026 as any)[key]) {
+        return (budgetLines2026 as any)[key];
+      }
+    }
+    if ((budgetLines2026 as any)[entityId]) {
+      return (budgetLines2026 as any)[entityId];
+    }
+  }
+
+  const q = entityName ? entityName.toUpperCase().trim() : '';
+
+  // 2. Regulatory Authorities Acronyms & Names (Prevents any city collision)
+  if (entityType === 'AUTORITE_REGULATION' || q.includes('ARCOP') || q.includes('HACA') || q.includes('CAIDP') || q.includes('ARTCI') || q.includes('ANARE') || q.includes('CNDH') || q.includes('AIRP')) {
+    if (q.includes('ARCOP') || (q.includes('COMMANDE') && q.includes('REGULAT'))) return REGULATORY_AUTHORITIES_BUDGET_LINES['aai-arcop'];
+    if (q.includes('HACA') || q.includes('AUDIOVISU')) return REGULATORY_AUTHORITIES_BUDGET_LINES['aai-haca'];
+    if (q.includes('CAIDP') || (q.includes('ACCES') && q.includes('INFORMATION'))) return REGULATORY_AUTHORITIES_BUDGET_LINES['aai-caidp'];
+    if (q.includes('ARTCI') || q.includes('TELECOM')) return REGULATORY_AUTHORITIES_BUDGET_LINES['aai-artci'];
+    if (q.includes('ANARE') || q.includes('ELECTRICIT')) return REGULATORY_AUTHORITIES_BUDGET_LINES['aai-anare'];
+    if (q.includes('CNDH') || q.includes('DROITS DE L\'HOMME')) return REGULATORY_AUTHORITIES_BUDGET_LINES['aai-cndh'];
+    if (q.includes('AIRP') || q.includes('PHARMACEUT')) return REGULATORY_AUTHORITIES_BUDGET_LINES['aai-airp'];
+  }
+
+  // 3. National Institutions by name
+  if (entityType === 'INSTITUTION' || q.includes('PRESID') || q.includes('ASSEMB') || q.includes('SENAT') || q.includes('CONSTITUTION') || q.includes('COMPTE') || q.includes('CASSATION') || q.includes('ETAT') || q.includes('CHANCELLER') || q.includes('MEDIATEUR') || q.includes('CESEC') || q.includes('ROIS') || q.includes('HABG') || q.includes('IGE') || q.includes('SUPREME')) {
+    if (q.includes('PRESID')) return (budgetLines2026 as any)['Présidence de la République'] || [];
+    if (q.includes('ASSEMB')) return (budgetLines2026 as any)['Assemblée Nationale'] || [];
+    if (q.includes('SENAT')) return (budgetLines2026 as any)['Sénat'] || [];
+    if (q.includes('CONSTITUTION')) return (budgetLines2026 as any)['Conseil Constitutionnel'] || [];
+    if (q.includes('COMPTE')) return (budgetLines2026 as any)['Cour des Comptes'] || [];
+    if (q.includes('CASSATION')) return (budgetLines2026 as any)['Cour de Cassation'] || [];
+    if (q.includes('ETAT') && (q.includes('CONSEIL') || q.includes('D\'ETAT'))) return (budgetLines2026 as any)["Conseil d'Etat"] || [];
+    if (q.includes('CHANCELL')) return (budgetLines2026 as any)['Grande Chancellerie'] || [];
+    if (q.includes('MEDIAT')) return (budgetLines2026 as any)['Médiateur de la République'] || [];
+    if (q.includes('CESEC') || q.includes('ECONOMIQUE')) return (budgetLines2026 as any)['Conseil Economique, Social, Environnemental et Culturel'] || [];
+    if (q.includes('ROIS') || q.includes('CNRCT') || q.includes('TRADITION')) return (budgetLines2026 as any)['Chambre Nationale des Rois et Chefs Traditionnels'] || [];
+    if (q.includes('HABG') || q.includes('BONNE GOUVERNANCE')) return NATIONAL_INSTITUTIONS_EXTRA_LINES['inst-habg'];
+    if (q.includes('IGE') || q.includes('INSPECTION GENERALE')) return NATIONAL_INSTITUTIONS_EXTRA_LINES['inst-ige'];
+    if (q.includes('SUPREME')) return NATIONAL_INSTITUTIONS_EXTRA_LINES['inst-cour-supreme'];
+  }
+
+  // 4. Communes of Abidjan
+  if (entityType === 'MAIRIE' || q.includes('MAIRIE')) {
+    if (q.includes('YOPOUGON')) return ABIDJAN_COMMUNES_BUDGET_LINES['inst-com-yopougon'];
+    if (q.includes('ABOBO')) return ABIDJAN_COMMUNES_BUDGET_LINES['inst-com-abobo'];
+    if (q.includes('COCODY')) return ABIDJAN_COMMUNES_BUDGET_LINES['inst-com-cocody'];
+    if (q.includes('KOUMASSI')) return ABIDJAN_COMMUNES_BUDGET_LINES['inst-com-koumassi'];
+    if (q.includes('ADJAME')) return ABIDJAN_COMMUNES_BUDGET_LINES['inst-com-adjame'];
+    if (q.includes('PORT-BOUET') || q.includes('PORT BOUET')) return ABIDJAN_COMMUNES_BUDGET_LINES['inst-com-port-bouet'];
+    if (q.includes('MARCORY')) return ABIDJAN_COMMUNES_BUDGET_LINES['inst-com-marcory'];
+    if (q.includes('TREICHVILLE')) return ABIDJAN_COMMUNES_BUDGET_LINES['inst-com-treichville'];
+    if (q.includes('PLATEAU')) return ABIDJAN_COMMUNES_BUDGET_LINES['inst-com-plateau'];
+    if (q.includes('ATTECOUBE')) return ABIDJAN_COMMUNES_BUDGET_LINES['inst-com-attecoube'];
+  }
+
+  // 5. Exact match in OFFICIAL_ENTITY_BUDGET_LINES
   if (OFFICIAL_ENTITY_BUDGET_LINES[q]) {
     return OFFICIAL_ENTITY_BUDGET_LINES[q];
   }
 
-  // 2. Exact match by leader title if available
+  // 6. Match by leader
   if (entityLeader) {
     const leaderKey = entityLeader.toUpperCase().trim();
     if (OFFICIAL_ENTITY_BUDGET_LINES[leaderKey]) {
@@ -268555,14 +269498,7 @@ export function getBudgetLinesForEntity(entityName: string, entityType?: string,
     }
   }
 
-  // 3. Substring match
-  for (const [key, lines] of Object.entries(OFFICIAL_ENTITY_BUDGET_LINES)) {
-    if (q.includes(key) || key.includes(q)) {
-      return lines;
-    }
-  }
-
-  // 4. Cleaned match for communes/regions/ministries
+  // 7. Clean prefix match
   const clean = q
     .replace(/^MAIRIE DU\s+/i, '')
     .replace(/^MAIRIE DE LA\s+/i, '')
@@ -268590,400 +269526,14 @@ export function getBudgetLinesForEntity(entityName: string, entityType?: string,
     return OFFICIAL_ENTITY_BUDGET_LINES[clean];
   }
 
-  for (const [key, lines] of Object.entries(OFFICIAL_ENTITY_BUDGET_LINES)) {
-    if (clean.includes(key) || key.includes(clean)) {
-      return lines;
-    }
-  }
-
-  // 5. Institutions de la République (Cour des Comptes, Présidence, Assemblée Nationale, Sénat, etc.)
-  if (entityType === 'INSTITUTION' || q.includes('COMPTE') || q.includes('PRESID') || q.includes('ASSEMB') || q.includes('SENAT') || q.includes('CONSTITUTION') || q.includes('HABG') || q.includes('MEDIATEUR')) {
-    // 5.1 La Cour des Comptes de Côte d'Ivoire (8 851 161 351 FCFA)
-    if (q.includes('COMPTE')) {
-      return [
-        {
-          libelle: "Construire et Équiper le siège de la Cour des Comptes (Projet National d'Investissement LFI 2026)",
-          montant_fcfa: 1934700000,
-          evolution_pct: 12.5,
-          categorie: "INFRASTRUCTURE",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "COUR DES COMPTES",
-          sous_categorie_3: "Siège & Équipements de Contrôle Financier",
-          nature: "Investissements",
-          year: 2026
-        },
-        {
-          libelle: "Dépenses de Personnel (Rémunération des Magistrats Financiers, Conseillers maîtres et Greffiers)",
-          montant_fcfa: 4841522946,
-          evolution_pct: 4.8,
-          categorie: "PERSONNEL",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "COUR DES COMPTES",
-          sous_categorie_3: "Magistrature Financière & Greffe Central",
-          nature: "Personnel",
-          year: 2026
-        },
-        {
-          libelle: "Biens et Services (Missions d'audit d'État, contrôles de régularité et publication des Rapports Publics Annuels)",
-          montant_fcfa: 2074938405,
-          evolution_pct: 5.2,
-          categorie: "FONCTIONNEMENT",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "COUR DES COMPTES",
-          sous_categorie_3: "Audits, Contrôles & Publications Officielles",
-          nature: "Biens et services",
-          year: 2026
-        }
-      ];
-    }
-
-    // 5.2 La Présidence de la République (193 633 705 615 FCFA)
-    if (q.includes('PRESID')) {
-      return [
-        {
-          libelle: "Transfert d'Équipement des structures de défense et de sécurité / CNS",
-          montant_fcfa: 41300000000,
-          evolution_pct: 8.0,
-          categorie: "SECURITE",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "PRESIDENCE",
-          sous_categorie_3: "Conseil National de Sécurité (CNS)",
-          nature: "Investissements",
-          year: 2026
-        },
-        {
-          libelle: "Projet Intégré de Nutrition et de Développement de la Petite Enfance (PINUT-DPE)",
-          montant_fcfa: 4107422500,
-          evolution_pct: 10.2,
-          categorie: "SANTE",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "PRESIDENCE",
-          sous_categorie_3: "Programmes Prioritaires Sociaux",
-          nature: "Investissements",
-          year: 2026
-        },
-        {
-          libelle: "Programme d'amélioration du climat des affaires & Compétitivité",
-          montant_fcfa: 3200000000,
-          evolution_pct: 6.5,
-          categorie: "ECONOMIE",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "PRESIDENCE",
-          sous_categorie_3: "Climat des Affaires & Investissements",
-          nature: "Investissements",
-          year: 2026
-        },
-        {
-          libelle: "Projet Abidjan Legacy Program (COP15 Restauration des Terres)",
-          montant_fcfa: 1940000000,
-          evolution_pct: 4.1,
-          categorie: "ENVIRONNEMENT",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "PRESIDENCE",
-          sous_categorie_3: "Initiatives Environnementales",
-          nature: "Investissements",
-          year: 2026
-        },
-        {
-          libelle: "Programme National Multisectoriel de Nutrition / Secteur Gouvernance",
-          montant_fcfa: 1500000000,
-          evolution_pct: 5.0,
-          categorie: "SANTE",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "PRESIDENCE",
-          sous_categorie_3: "Nutrition & Santé Maternelle",
-          nature: "Investissements",
-          year: 2026
-        },
-        {
-          libelle: "Construire les bâtiments annexes et réhabiliter le siège de l'Inspection Générale d'Etat (IGE)",
-          montant_fcfa: 1443100000,
-          evolution_pct: 7.2,
-          categorie: "INFRASTRUCTURE",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "PRESIDENCE",
-          sous_categorie_3: "Infrastructures d'Inspection & Contrôle",
-          nature: "Investissements",
-          year: 2026
-        },
-        {
-          libelle: "Programme de Valorisation des Compétences Féminines",
-          montant_fcfa: 900000000,
-          evolution_pct: 3.5,
-          categorie: "SOCIAL",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "PRESIDENCE",
-          sous_categorie_3: "Promotion du Genre & Compétences",
-          nature: "Investissements",
-          year: 2026
-        },
-        {
-          libelle: "Projet de mise en oeuvre de l'identifiant unique des entreprises / CEPICI",
-          montant_fcfa: 360000000,
-          evolution_pct: 5.0,
-          categorie: "NUMERIQUE",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "PRESIDENCE",
-          sous_categorie_3: "Dématérialisation & Formalisation",
-          nature: "Investissements",
-          year: 2026
-        },
-        {
-          libelle: "Dépenses de Personnel (Cabinet Présidentiel, Secrétariat Général, CNS, État-Major Particulier et GSPR)",
-          montant_fcfa: 85455709869,
-          evolution_pct: 4.2,
-          categorie: "PERSONNEL",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "PRESIDENCE",
-          sous_categorie_3: "Cabinet, SG & Services Spécialisés",
-          nature: "Personnel",
-          year: 2026
-        },
-        {
-          libelle: "Biens et Services (Sécurité d'État, logistique républicaine, relations internationales et représentations officielles)",
-          montant_fcfa: 56970473246,
-          evolution_pct: 3.8,
-          categorie: "FONCTIONNEMENT",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "PRESIDENCE",
-          sous_categorie_3: "Sécurité d'État & Fonctionnement Opérationnel",
-          nature: "Biens et services",
-          year: 2026
-        }
-      ];
-    }
-
-    // 5.3 L'Assemblée Nationale (33 480 000 000 FCFA)
-    if (q.includes('ASSEMB')) {
-      return [
-        {
-          libelle: "Modernisation des équipements numériques, sonorisation et vote électronique de l'Hémicycle",
-          montant_fcfa: 1850000000,
-          evolution_pct: 9.0,
-          categorie: "INFRASTRUCTURE",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "ASSEMBLEE NATIONALE",
-          sous_categorie_3: "Modernisation Parlementaire",
-          nature: "Investissements",
-          year: 2026
-        },
-        {
-          libelle: "Réhabilitation et travaux d'aménagement des bâtiments annexes et bureaux des Députés",
-          montant_fcfa: 1500000000,
-          evolution_pct: 6.0,
-          categorie: "INFRASTRUCTURE",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "ASSEMBLEE NATIONALE",
-          sous_categorie_3: "Patrimoine & Aménagements",
-          nature: "Investissements",
-          year: 2026
-        },
-        {
-          libelle: "Indemnités parlementaires, salaires et cotisations du personnel de l'Assemblée Nationale",
-          montant_fcfa: 21091000000,
-          evolution_pct: 3.5,
-          categorie: "PERSONNEL",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "ASSEMBLEE NATIONALE",
-          sous_categorie_3: "Députés & Administration Parlementaire",
-          nature: "Personnel",
-          year: 2026
-        },
-        {
-          libelle: "Fonctionnement des commissions permanentes, sessions ordinaires et contrôle de l'action gouvernementale",
-          montant_fcfa: 9039000000,
-          evolution_pct: 4.0,
-          categorie: "FONCTIONNEMENT",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "ASSEMBLEE NATIONALE",
-          sous_categorie_3: "Commissions & Activités Législatives",
-          nature: "Biens et services",
-          year: 2026
-        }
-      ];
-    }
-
-    // 5.4 Le Sénat de Côte d'Ivoire (16 250 000 000 FCFA)
-    if (q.includes('SENAT')) {
-      return [
-        {
-          libelle: "Aménagement et équipements du siège institutionnel du Sénat à Yamoussoukro",
-          montant_fcfa: 1625000000,
-          evolution_pct: 8.5,
-          categorie: "INFRASTRUCTURE",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "SENAT",
-          sous_categorie_3: "Siège Yamoussoukro & Logistique",
-          nature: "Investissements",
-          year: 2026
-        },
-        {
-          libelle: "Indemnités sénatoriales et rémunération du personnel de la chambre haute",
-          montant_fcfa: 10237500000,
-          evolution_pct: 3.0,
-          categorie: "PERSONNEL",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "SENAT",
-          sous_categorie_3: "Sénateurs & Personnel Administratif",
-          nature: "Personnel",
-          year: 2026
-        },
-        {
-          libelle: "Missions d'évaluation des politiques publiques, représentation des collectivités et sessions",
-          montant_fcfa: 4387500000,
-          evolution_pct: 4.5,
-          categorie: "FONCTIONNEMENT",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "SENAT",
-          sous_categorie_3: "Commissions & Sessions Législatives",
-          nature: "Biens et services",
-          year: 2026
-        }
-      ];
-    }
-
-    // 5.5 Le Conseil Constitutionnel (3 860 437 235 FCFA - 100% Fonctionnement et Juridictionnel)
-    if (q.includes('CONSTITUTION')) {
-      return [
-        {
-          libelle: "Rémunération et traitements des Conseillers Constitutionnels et Magistrats du Greffe",
-          montant_fcfa: 2702306065,
-          evolution_pct: 3.2,
-          categorie: "PERSONNEL",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "CONSEIL CONSTITUTIONNEL",
-          sous_categorie_3: "Collège Juridictionnel & Magistrature",
-          nature: "Personnel",
-          year: 2026
-        },
-        {
-          libelle: "Organisation du contentieux électoral, contrôle de constitutionnalité et greffe",
-          montant_fcfa: 1158131170,
-          evolution_pct: 4.0,
-          categorie: "FONCTIONNEMENT",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "CONSEIL CONSTITUTIONNEL",
-          sous_categorie_3: "Greffe, Documentation & Scrutins",
-          nature: "Biens et services",
-          year: 2026
-        }
-      ];
-    }
-
-    // 5.6 Haute Autorité pour la Bonne Gouvernance - HABG (4 750 000 000 FCFA)
-    if (q.includes('HABG') || q.includes('BONNE GOUVERNANCE')) {
-      return [
-        {
-          libelle: "Digitalisation de la plateforme des déclarations de patrimoine et outils d'investigation financière",
-          montant_fcfa: 1425000000,
-          evolution_pct: 15.0,
-          categorie: "NUMERIQUE",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "HABG",
-          sous_categorie_3: "Digitalisation & Systèmes Anti-Corruption",
-          nature: "Investissements",
-          year: 2026
-        },
-        {
-          libelle: "Traitements et salaires des Commissaires, enquêteurs et juristes d'investigation",
-          montant_fcfa: 2327500000,
-          evolution_pct: 4.1,
-          categorie: "PERSONNEL",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "HABG",
-          sous_categorie_3: "Direction des Enquêtes & Commissaires",
-          nature: "Personnel",
-          year: 2026
-        },
-        {
-          libelle: "Campagnes de sensibilisation citoyenne, enquêtes terrain et coopération internationale",
-          montant_fcfa: 997500000,
-          evolution_pct: 3.5,
-          categorie: "FONCTIONNEMENT",
-          sous_categorie_1: "INSTITUTIONS",
-          sous_categorie_2: "HABG",
-          sous_categorie_3: "Prévention & Sensibilisation",
-          nature: "Biens et services",
-          year: 2026
-        }
-      ];
-    }
-
-    // 5.7 Ventilation standard pour les autres institutions constitutionnelles
-    return [
-      {
-        libelle: `Dépenses de Personnel et Rémunérations statutaires - ${entityName}`,
-        montant_fcfa: 3500000000,
-        evolution_pct: 3.0,
-        categorie: "PERSONNEL",
-        sous_categorie_1: "INSTITUTIONS",
-        sous_categorie_2: entityName,
-        sous_categorie_3: "Personnel & Traitements",
-        nature: "Personnel",
-        year: 2026
-      },
-      {
-        libelle: `Biens et services, fonctionnement des services et missions officielles`,
-        montant_fcfa: 1500000000,
-        evolution_pct: 2.5,
-        categorie: "FONCTIONNEMENT",
-        sous_categorie_1: "INSTITUTIONS",
-        sous_categorie_2: entityName,
-        sous_categorie_3: "Fonctionnement Opérationnel",
-        nature: "Biens et services",
-        year: 2026
+  // Exact word boundary matching for safety (avoids "MAN" matching "COMMANDE")
+  if (clean.length >= 3) {
+    const wordPattern = new RegExp(`(^|[^A-Z0-9])${clean.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^A-Z0-9]|$)`, 'i');
+    for (const [key, lines] of Object.entries(OFFICIAL_ENTITY_BUDGET_LINES)) {
+      if (key.length >= 3 && wordPattern.test(key)) {
+        return lines;
       }
-    ];
-  }
-
-  // 6. If it's a generic ministry, synthesize standard budget breakdown based on missions
-  if (entityType === 'MINISTERE' || q.includes('MINIST')) {
-    return [
-      {
-        libelle: `Programmes opérationnels et investissements sectoriels - ${entityName}`,
-        montant_fcfa: 18500000000,
-        evolution_pct: 6.4,
-        categorie: "SECTORIEL",
-        sous_categorie_1: "MINISTERES",
-        sous_categorie_2: entityName,
-        sous_categorie_3: "Programmes d'Actions Prioritaires",
-        nature: "Investissements",
-        year: 2026
-      },
-      {
-        libelle: `Subventions, transferts et appui institutionnel aux structures sous-tutelle`,
-        montant_fcfa: 9800000000,
-        evolution_pct: 3.2,
-        categorie: "SECTORIEL",
-        sous_categorie_1: "MINISTERES",
-        sous_categorie_2: entityName,
-        sous_categorie_3: "Tutelles et Établissements Publics Nationaux",
-        nature: "Transferts",
-        year: 2026
-      },
-      {
-        libelle: `Administration générale, fonctionnement des services et charges courantes`,
-        montant_fcfa: 7500000000,
-        evolution_pct: 2.1,
-        categorie: "ADMINISTRATION",
-        sous_categorie_1: "MINISTERES",
-        sous_categorie_2: entityName,
-        sous_categorie_3: "Administration et Coordination",
-        nature: "Biens et services",
-        year: 2026
-      },
-      {
-        libelle: `Masse salariale et personnel du Ministère`,
-        montant_fcfa: 12400000000,
-        evolution_pct: 4.0,
-        categorie: "PERSONNEL",
-        sous_categorie_1: "MINISTERES",
-        sous_categorie_2: entityName,
-        sous_categorie_3: "Ressources Humaines",
-        nature: "Personnel",
-        year: 2026
-      }
-    ];
+    }
   }
 
   return [];

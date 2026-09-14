@@ -140,7 +140,8 @@ export const InstitutionDetailModal: React.FC<InstitutionDetailModalProps> = ({
           const lines = getBudgetLinesForEntity(
             institution.name, 
             institution.type, 
-            institution.leader_title || institution.leader_name
+            institution.leader_title || institution.leader_name,
+            institution.id
           );
           setEntityBudgetLines(lines);
           setIsLoadingLines(false);
@@ -384,11 +385,15 @@ export const InstitutionDetailModal: React.FC<InstitutionDetailModalProps> = ({
                   <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider ${
                     institution.type === 'MINISTERE' ? 'bg-sky-700 text-white shadow-2xs' :
                     institution.type === 'MAIRIE' ? 'bg-emerald-700 text-white' :
-                    institution.type === 'REGION' ? 'bg-indigo-700 text-white' : 'bg-brand-blue text-white'
+                    institution.type === 'REGION' ? 'bg-indigo-700 text-white' : 
+                    institution.type === 'AUTORITE_REGULATION' ? 'bg-amber-600 text-white shadow-2xs' :
+                    'bg-brand-blue text-white'
                   }`}>
                     {institution.type === 'MINISTERE' ? 'Gouvernement de Côte d\'Ivoire' : 
                      institution.type === 'MAIRIE' ? 'Collectivité Municipale' : 
-                     institution.type === 'REGION' ? 'Conseil Régional' : 'Institution de la République'}
+                     institution.type === 'REGION' ? 'Conseil Régional' : 
+                     institution.type === 'AUTORITE_REGULATION' ? 'Autorité de Régulation' :
+                     'Institution de la République'}
                   </span>
 
                   {institution.green_line_number && (
@@ -577,6 +582,9 @@ export const InstitutionDetailModal: React.FC<InstitutionDetailModalProps> = ({
                     <span className="text-sm sm:text-base font-black text-amber-300">
                       {formatFCFA(totalProjectsBudget > 0 ? totalProjectsBudget : institution.budget_investment_fcfa)}
                     </span>
+                    <span className="text-[10px] font-medium text-blue-100 block">
+                      ({formatAmountInWords(totalProjectsBudget > 0 ? totalProjectsBudget : institution.budget_investment_fcfa)})
+                    </span>
                   </div>
                 </div>
               </div>
@@ -757,12 +765,14 @@ export const InstitutionDetailModal: React.FC<InstitutionDetailModalProps> = ({
                     <span className="text-[10px] font-black uppercase tracking-wider text-sky-700 block">Dépenses de Fonctionnement</span>
                     <span className="text-lg font-black text-slate-900 block">{formatFCFA(institution.budget_functioning_fcfa)}</span>
                     <span className="text-xs font-bold text-sky-800 block">({functioningPct}% du budget total)</span>
+                    <span className="text-[10px] font-semibold text-sky-900 block">({formatAmountInWords(institution.budget_functioning_fcfa)})</span>
                   </div>
 
                   <div className="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 space-y-1">
                     <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block">Dépenses d'Investissement Public</span>
                     <span className="text-lg font-black text-slate-900 block">{formatFCFA(institution.budget_investment_fcfa)}</span>
                     <span className="text-xs font-bold text-emerald-800 block">({investmentPct}% du budget total)</span>
+                    <span className="text-[10px] font-semibold text-emerald-900 block">({formatAmountInWords(institution.budget_investment_fcfa)})</span>
                     {investmentBudget === 0 && (
                       <span className="text-[10px] text-slate-500 block pt-0.5 italic">
                         Crédits d'investissement portés par les ministères sectoriels
@@ -947,12 +957,32 @@ export const InstitutionDetailModal: React.FC<InstitutionDetailModalProps> = ({
                                   {line.nature || 'Fonctionnement'}
                                 </span>
                               </td>
-                              <td className="p-3 pr-4 text-right font-black text-slate-900">
-                                {formatFCFA(line.montant_fcfa)}
+                              <td className="p-3 pr-4 text-right font-black text-slate-900 whitespace-nowrap">
+                                <div>{formatFCFA(line.montant_fcfa)}</div>
+                                <div className="text-[10px] font-semibold text-brand-blue tracking-tight">
+                                  {formatAmountInWords(line.montant_fcfa)}
+                                </div>
                               </td>
                             </tr>
                           ))}
                         </tbody>
+                        {filteredLines.length > 0 && (
+                          <tfoot className="bg-slate-50/90 border-t-2 border-slate-200">
+                            <tr>
+                              <td colSpan={2} className="p-3 pl-4 font-black text-slate-900 text-xs uppercase">
+                                Total Lignes Budgétaires ({filteredLines.length})
+                              </td>
+                              <td className="p-3 pr-4 text-right font-black text-slate-900 whitespace-nowrap">
+                                <div className="text-sm text-slate-900">
+                                  {formatFCFA(filteredLines.reduce((acc, l) => acc + (l.montant_fcfa || 0), 0))}
+                                </div>
+                                <div className="text-[10px] font-bold text-brand-blue tracking-tight">
+                                  {formatAmountInWords(filteredLines.reduce((acc, l) => acc + (l.montant_fcfa || 0), 0))}
+                                </div>
+                              </td>
+                            </tr>
+                          </tfoot>
+                        )}
                       </table>
                     </div>
                   </div>
@@ -965,7 +995,7 @@ export const InstitutionDetailModal: React.FC<InstitutionDetailModalProps> = ({
                       Ventilation Officielle du Budget 2026 (Loi de Finances)
                     </h5>
                     <p className="text-xs text-slate-500 max-w-md mx-auto">
-                      Les montants officiels votés pour <strong>{institution.name}</strong> s'élèvent à <strong>{formatFCFA(institution.budget_functioning_fcfa)}</strong> ({functioningPct}%) en fonctionnement et <strong>{formatFCFA(institution.budget_investment_fcfa)}</strong> ({investmentPct}%) en investissements publics.
+                      Les montants officiels votés pour <strong>{institution.name}</strong> s'élèvent à <strong>{formatFCFA(institution.budget_functioning_fcfa)}</strong> ({formatAmountInWords(institution.budget_functioning_fcfa)} — {functioningPct}%) en fonctionnement et <strong>{formatFCFA(institution.budget_investment_fcfa)}</strong> ({formatAmountInWords(institution.budget_investment_fcfa)} — {investmentPct}%) en investissements publics.
                     </p>
                   </div>
                   <button
