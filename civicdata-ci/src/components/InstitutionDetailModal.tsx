@@ -25,7 +25,8 @@ import {
   Award,
   Sparkles,
   FolderOpen,
-  Info
+  Info,
+  Scale
 } from 'lucide-react';
 import { OfficialDocRequestModal } from './OfficialDocRequestModal';
 import { findCaidpRI } from '../data/caidpRiData';
@@ -741,56 +742,105 @@ export const InstitutionDetailModal: React.FC<InstitutionDetailModalProps> = ({
           {activeTab === 'FINANCES' && (
             <div className="space-y-5">
               
-              {/* Synthèse Graphique & Ventilation */}
-              <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Dotation Globale (Loi de Finances 2026)</span>
-                    <h3 className="text-xl sm:text-2xl font-black text-slate-900">
-                      {formatFCFA(institution.total_budget_fcfa)}
-                    </h3>
-                    <p className="text-xs text-brand-blue font-bold">
-                      {formatAmountInWords(institution.total_budget_fcfa)}
+              {/* Synthèse Graphique & Ventilation ou Alerte Transparence CAIDP */}
+              {(institution.total_budget_fcfa === 0 || institution.is_tax_quota_commune || institution.budget_not_published) ? (
+                <div className="bg-white rounded-2xl p-5 sm:p-6 border-2 border-amber-300 shadow-2xs space-y-4">
+                  <div className="flex items-start gap-3.5">
+                    <div className="p-3 bg-amber-100 text-amber-900 rounded-2xl flex-shrink-0">
+                      <Scale className="w-6 h-6" />
+                    </div>
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-200 text-amber-950 border border-amber-300">
+                          Budget Primitif Municipal Autonome
+                        </span>
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-blue-100 text-brand-blue border border-blue-200">
+                          Courriers CAIDP en cours de dépôt
+                        </span>
+                      </div>
+                      <h3 className="text-base sm:text-lg font-black text-slate-900">
+                        Transmission Officielle du Budget 2026 en attente
+                      </h3>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        Cette collectivité municipale fonctionne sous le régime de l'autonomie financière et fiscale : son budget est voté par son <strong>Conseil Municipal</strong> sur la base de ses recettes propres (quote-part d'impôts locaux DGI, foncier, patentes, taxes municipales).
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs">
+                    <div className="flex items-center gap-2 font-black text-slate-800 uppercase tracking-wider text-[11px]">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                      <span>Engagement de Rigueur & Crédibilité Citoyenne CivicData-CI</span>
+                    </div>
+                    <p className="text-slate-600 leading-relaxed font-medium">
+                      Conformément à notre charte de vérifiabilité, <strong>aucun chiffre estimé ou non certifié n'est publié sur cette plateforme</strong>. Des courriers officiels de demande d'accès aux documents administratifs (Loi n°2013-867 relative à la CAIDP) sont en cours de dépôt auprès des services de la Mairie pour obtenir la délibération certifiée du Budget Primitif 2026 approuvé par la tutelle (DGDD / Ministère de l'Intérieur).
+                    </p>
+                    <p className="text-slate-500 text-[11px]">
+                      Dès réception du document certifié officiel visé par le Trésor Public, l'ensemble des montants et lignes budgétaires sera intégré et le document original sera téléchargeable dans la section <em>Documents & Lois</em>.
                     </p>
                   </div>
 
-                  <div className="text-xs text-slate-500 font-medium">
-                    Exercice Budgétaire : <span className="font-bold text-slate-800">2026 (LFI)</span>
+                  <div className="pt-1 flex flex-wrap gap-2.5">
+                    <button
+                      onClick={() => setDocModalOpen(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black shadow-xs transition-all cursor-pointer"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-amber-300" />
+                      <span>Faire / Suivre la demande de document officiel (Loi CAIDP)</span>
+                    </button>
                   </div>
                 </div>
+              ) : (
+                <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Dotation Globale (Loi de Finances 2026)</span>
+                      <h3 className="text-xl sm:text-2xl font-black text-slate-900">
+                        {formatFCFA(institution.total_budget_fcfa)}
+                      </h3>
+                      <p className="text-xs text-brand-blue font-bold">
+                        {formatAmountInWords(institution.total_budget_fcfa)}
+                      </p>
+                    </div>
 
-                {/* Blocs Fonctionnement vs Investissement */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="p-3.5 bg-sky-50 rounded-xl border border-sky-200 space-y-1">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-sky-700 block">Dépenses de Fonctionnement</span>
-                    <span className="text-lg font-black text-slate-900 block">{formatFCFA(institution.budget_functioning_fcfa)}</span>
-                    <span className="text-xs font-bold text-sky-800 block">({functioningPct}% du budget total)</span>
-                    <span className="text-[10px] font-semibold text-sky-900 block">({formatAmountInWords(institution.budget_functioning_fcfa)})</span>
+                    <div className="text-xs text-slate-500 font-medium">
+                      Exercice Budgétaire : <span className="font-bold text-slate-800">2026 (LFI)</span>
+                    </div>
                   </div>
 
-                  <div className="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 space-y-1">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block">Dépenses d'Investissement Public</span>
-                    <span className="text-lg font-black text-slate-900 block">{formatFCFA(institution.budget_investment_fcfa)}</span>
-                    <span className="text-xs font-bold text-emerald-800 block">({investmentPct}% du budget total)</span>
-                    <span className="text-[10px] font-semibold text-emerald-900 block">({formatAmountInWords(institution.budget_investment_fcfa)})</span>
-                    {investmentBudget === 0 && (
-                      <span className="text-[10px] text-slate-500 block pt-0.5 italic">
-                        Crédits d'investissement portés par les ministères sectoriels
-                      </span>
+                  {/* Blocs Fonctionnement vs Investissement */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="p-3.5 bg-sky-50 rounded-xl border border-sky-200 space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-sky-700 block">Dépenses de Fonctionnement</span>
+                      <span className="text-lg font-black text-slate-900 block">{formatFCFA(institution.budget_functioning_fcfa)}</span>
+                      <span className="text-xs font-bold text-sky-800 block">({functioningPct}% du budget total)</span>
+                      <span className="text-[10px] font-semibold text-sky-900 block">({formatAmountInWords(institution.budget_functioning_fcfa)})</span>
+                    </div>
+
+                    <div className="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 block">Dépenses d'Investissement Public</span>
+                      <span className="text-lg font-black text-slate-900 block">{formatFCFA(institution.budget_investment_fcfa)}</span>
+                      <span className="text-xs font-bold text-emerald-800 block">({investmentPct}% du budget total)</span>
+                      <span className="text-[10px] font-semibold text-emerald-900 block">({formatAmountInWords(institution.budget_investment_fcfa)})</span>
+                      {investmentBudget === 0 && (
+                        <span className="text-[10px] text-slate-500 block pt-0.5 italic">
+                          Crédits d'investissement portés par les ministères sectoriels
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Jauge Bicolore */}
+                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden flex">
+                    {functioningPct > 0 && (
+                      <div className="bg-sky-600 h-full transition-all duration-500" style={{ width: `${functioningPct}%` }} title={`Fonctionnement: ${functioningPct}%`}></div>
+                    )}
+                    {investmentPct > 0 && (
+                      <div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${investmentPct}%` }} title={`Investissement: ${investmentPct}%`}></div>
                     )}
                   </div>
                 </div>
-
-                {/* Jauge Bicolore */}
-                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden flex">
-                  {functioningPct > 0 && (
-                    <div className="bg-sky-600 h-full transition-all duration-500" style={{ width: `${functioningPct}%` }} title={`Fonctionnement: ${functioningPct}%`}></div>
-                  )}
-                  {investmentPct > 0 && (
-                    <div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${investmentPct}%` }} title={`Investissement: ${investmentPct}%`}></div>
-                  )}
-                </div>
-              </div>
+              )}
 
               {/* ========================================================================= */}
               {/* FOCUS : LISTE OFFICIELLE DES DÉPENSES D'INVESTISSEMENT PUBLIC (LFI 2026) */}

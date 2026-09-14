@@ -259,6 +259,38 @@ export const INITIAL_PUBLIC_DOCUMENTS: PublicDocument[] = [
     tags: ["Décret", "RI", "Procédure", "CAIDP"]
   },
   {
+    id: 'doc-lfi-2026-officiel-dgbf',
+    title: "Loi n° 2025-998 du 24 décembre 2025 portant Budget de l'État pour l'année 2026 (LFI 2026)",
+    category: 'BUDGET_OFFICIEL',
+    institution_name: "Ministère des Finances et du Budget & Assemblée Nationale",
+    year: 2026,
+    description: "Texte officiel et intégral de la Loi de Finances Initiale 2026 (15 339,2 milliards FCFA) fixant l'ensemble des recettes, dotations, charges budgétaires et programmes de l'État ivoirien, votée par le Parlement et promulguée au Journal Officiel de la République de Côte d'Ivoire.",
+    file_url: "https://budget.gouv.ci/fileadmin/budget/fichiers/LFI_2026.pdf",
+    file_name: "Loi_de_Finances_2026_Cote_d_Ivoire_Officiel_DGBF.pdf",
+    file_size: "18.5 Mo",
+    file_format: "PDF",
+    published_at: "2025-12-24",
+    downloads_count: 0,
+    is_official: true,
+    tags: ["Loi de Finances 2026", "LFI", "Budget de l'État", "DGBF", "Journal Officiel", "Parlement"]
+  },
+  {
+    id: 'doc-dgbf-rapport-presentation-2026',
+    title: "Rapport de Présentation & Nomenclature Budgétaire par Programmes 2026 (DGBF)",
+    category: 'BUDGET_OFFICIEL',
+    institution_name: "Direction Générale du Budget et des Finances (DGBF)",
+    year: 2026,
+    description: "Document technique officiel de la DGBF détaillant la ventilation exhaustive des 35 ministères, des institutions de la République, des dépenses de personnel, biens et services, transferts et investissements publics (PIP).",
+    file_url: "https://budget.gouv.ci/fileadmin/budget/fichiers/Rapport_Presentation_Budget_2026.pdf",
+    file_name: "Rapport_Presentation_Nomenclature_Budget_2026_DGBF.pdf",
+    file_size: "12.2 Mo",
+    file_format: "PDF",
+    published_at: "2026-01-02",
+    downloads_count: 0,
+    is_official: true,
+    tags: ["DGBF", "Nomenclature", "Programmes", "LFI 2026", "Investissements Publics"]
+  },
+  {
     id: 'doc-budget-synthese-2026',
     title: "Synthèse Citoyenne & Chiffres Clés du Budget de l'État 2026",
     category: 'BUDGET_OFFICIEL',
