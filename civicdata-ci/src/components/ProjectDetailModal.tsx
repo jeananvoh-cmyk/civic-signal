@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BudgetProject, CitizenProof } from '../types';
-import { formatFCFA, formatAmountInWords, formatDateFR, getStatusConfig, getProjectEntityInfo, getProjectTypeActionInfo } from '../utils/formatters';
+import { formatFCFA, formatAmountInWords, formatDateFR, getStatusConfig, getProjectEntityInfo, getProjectTypeActionInfo, getProjectTier, getProjectTierBadge } from '../utils/formatters';
 import { 
   X, 
   MapPin, 
@@ -21,7 +21,8 @@ import {
   Play,
   Layers,
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  Landmark
 } from 'lucide-react';
 import { dataStore } from '../services/dataStore';
 
@@ -49,6 +50,8 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
   const verifiedProofs = proofs.filter(p => p.verification_status === 'APPROVED');
   const entityInfo = getProjectEntityInfo(project.commune_name, project.region_name, project.ministry_name);
   const actionInfo = getProjectTypeActionInfo(project.title, project.category, project.scope_level);
+  const tier = getProjectTier(project);
+  const tierBadge = getProjectTierBadge(tier);
   
   const hasSpecificNeighborhood = !!project.locality_village_neighborhood && 
     !project.title.toLowerCase().includes(project.locality_village_neighborhood.toLowerCase());
@@ -86,6 +89,10 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
         <div className="p-6 bg-white border-b border-slate-200 flex items-start justify-between gap-4 print:border-b-2 print:border-slate-900">
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-2">
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border ${tierBadge.badgeClass}`}>
+                <span>{tierBadge.icon}</span>
+                <span>{tierBadge.fullLabel}</span>
+              </span>
               <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${entityInfo.entityBadgeClass}`}>
                 <Building className="w-3.5 h-3.5" />
                 <span>{entityInfo.entityName}</span>
@@ -125,6 +132,30 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Project Hero Visual Cover */}
+        {project.image_url && (
+          <div className="relative aspect-video sm:aspect-21/9 w-full overflow-hidden bg-slate-950 flex-shrink-0">
+            <img 
+              src={project.image_url} 
+              alt={project.title} 
+              className="w-full h-full object-cover" 
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-black/30" />
+            <div className="absolute bottom-3 inset-x-4 flex items-center justify-between gap-2 text-white">
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black border backdrop-blur-md shadow-xs ${tierBadge.badgeClass}`}>
+                <span>{tierBadge.icon}</span>
+                <span>{tierBadge.fullLabel}</span>
+              </span>
+              {project.partner_or_donor && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-black/70 backdrop-blur-md text-xs font-bold text-amber-300 border border-white/20">
+                  <Landmark className="w-3.5 h-3.5" />
+                  <span>Bailleur : {project.partner_or_donor}</span>
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ========================================================================= */}
         {/* 2-TAB SWITCHER: DONNÉES & BUDGET vs CONSTATS & VIDÉOS TERRAIN             */}
@@ -247,6 +278,46 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
 
               </div>
 
+              {/* TAUX OFFICIEL DÉCLARÉ (LORSQUE COMMUNIQUÉ OFFICIELLEMENT) */}
+              {project.progress_percentage > 0 && (
+                <div className="bg-emerald-50/80 border-2 border-emerald-300 rounded-2xl p-5 space-y-2.5 shadow-2xs">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                      <div>
+                        <span className="text-xs font-black uppercase tracking-wider text-emerald-950 block">
+                          Taux d'Avancement Physique Officiel Déclaré
+                        </span>
+                        <span className="text-[11px] text-emerald-800 font-medium">
+                          Source : {project.official_progress_source || project.master_builder || entityInfo.entityName}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-black text-emerald-800">
+                      {project.progress_percentage}%
+                    </div>
+                  </div>
+
+                  <div className="w-full bg-emerald-200 h-2.5 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-emerald-600 rounded-full transition-all duration-500" 
+                      style={{ width: `${Math.min(100, project.progress_percentage)}%` }} 
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* METHODOLOGIE DU DOUBLE REGARD : OFFICIEL vs TERRAIN */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5 text-xs text-slate-600">
+                <div className="flex items-center gap-2 font-bold text-slate-800 text-[11px] uppercase tracking-wider">
+                  <ShieldCheck className="w-4 h-4 text-brand-blue" />
+                  <span>Méthodologie Civique CivicData-CI : « Double Regard »</span>
+                </div>
+                <p className="leading-relaxed">
+                  Le pourcentage affiché est la <strong>déclaration administrative officielle</strong> de l'autorité publique ou du bailleur de fonds. Sur le terrain, nos observateurs citoyens et riverains n'ont pas à deviner un pourcentage d'ingénierie : ils attestent de jalons factuels (présence du panneau légal, ouvriers et engins actifs, gros œuvre en cours, ou clôture du chantier).
+                </p>
+              </div>
+
               {/* ADMINISTRATIVE DETAILS & ATTRIBUTION */}
               <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -255,23 +326,45 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div className="flex items-start gap-2.5">
-                    <Briefcase className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
+                    <Building className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
                     <div>
-                      <span className="text-xs text-slate-500 block">Attribution & Marché</span>
+                      <span className="text-xs text-slate-500 block">Maîtrise d'Ouvrage</span>
                       <span className="font-semibold text-slate-900">
-                        {project.contractor_name && !project.contractor_name.includes('Bailleurs')
-                          ? project.contractor_name
-                          : "Marché public / Appel d'offres ouvert"}
+                        {project.master_builder || entityInfo.entityName}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex items-start gap-2.5">
-                    <Building className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm mt-0.5">{tierBadge.icon}</span>
                     <div>
-                      <span className="text-xs text-slate-500 block">Tutelle Administrative</span>
+                      <span className="text-xs text-slate-500 block">Niveau Territorial</span>
                       <span className="font-semibold text-slate-900">
-                        {project.ministry_name || entityInfo.entityName}
+                        {tierBadge.fullLabel}
+                      </span>
+                    </div>
+                  </div>
+
+                  {project.partner_or_donor && (
+                    <div className="flex items-start gap-2.5">
+                      <Landmark className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <span className="text-xs text-slate-500 block">Bailleurs de Fonds & Partenaires</span>
+                        <span className="font-semibold text-amber-900">
+                          {project.partner_or_donor}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-start gap-2.5">
+                    <Briefcase className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="text-xs text-slate-500 block">Entreprise Adjudicataire & Marché</span>
+                      <span className="font-semibold text-slate-900">
+                        {project.contractor_name && !project.contractor_name.includes('Bailleurs')
+                          ? project.contractor_name
+                          : "Marché public / Appel d'offres ouvert"}
                       </span>
                     </div>
                   </div>

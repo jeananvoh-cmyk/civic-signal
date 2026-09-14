@@ -20,7 +20,7 @@ import { sanitizeCsvCell } from '../utils/security';
 import { supabase, isSupabaseConfigured } from './supabase';
 
 const STORAGE_KEYS = {
-  PROJECTS: 'civicdata_projects_v2026_clean_v3',
+  PROJECTS: 'civicdata_projects_v2026_clean_v4',
   INSTITUTIONS: 'civicdata_institutions_v14',
   INSTITUTION_OVERRIDES: 'civicdata_institutions_overrides_v1',
   PROOFS: 'civicdata_proofs_v12',
@@ -79,6 +79,7 @@ export interface NewsletterSubscriber {
 
 export function isTangiblePhysicalProject(p: BudgetProject): boolean {
   if (!p) return false;
+  if (p.id?.startsWith('proj-bouake-') || p.id?.startsWith('proj-infra-')) return true;
   const text = `${p.title || ''} ${p.details || ''} ${p.sub_nature_expense || ''} ${p.category || ''}`.toLowerCase();
 
   // 1. Exclude ALL Salaries, Bonuses, Missions, Travel, Administration, IT master plans & Operating overhead

@@ -184,6 +184,86 @@ export function getProjectEntityInfo(commune_name?: string, region_name?: string
   };
 }
 
+export type ProjectTier = 'MUNICIPAL' | 'REGIONAL' | 'STATE';
+
+export function getProjectTier(project: {
+  id?: string;
+  project_tier?: 'MUNICIPAL' | 'REGIONAL' | 'STATE';
+  institution_name?: string;
+  commune_name?: string;
+  region_name?: string;
+  scope_level?: string;
+  ministry_name?: string;
+  master_builder?: string;
+}): ProjectTier {
+  if (project.project_tier) return project.project_tier;
+  
+  const master = (project.master_builder || '').toLowerCase();
+  if (master.includes('mairie')) return 'MUNICIPAL';
+  if (master.includes('conseil r')) return 'REGIONAL';
+
+  const id = project.id || '';
+  if (id.startsWith('proj-com-') || id.startsWith('proj-bouake-')) return 'MUNICIPAL';
+  if (id.startsWith('proj-reg-')) return 'REGIONAL';
+
+  const inst = (project.institution_name || '').toLowerCase();
+  const com = (project.commune_name || '').toLowerCase();
+  
+  if (inst.startsWith('mairie') || com.startsWith('mairie')) return 'MUNICIPAL';
+  if (inst.includes('conseil r') || com.startsWith('conseil r')) return 'REGIONAL';
+
+  if (project.scope_level === 'LOCAL') {
+    return 'MUNICIPAL';
+  }
+
+  return 'STATE';
+}
+
+export function getProjectTierBadge(tier: ProjectTier): {
+  label: string;
+  shortLabel: string;
+  icon: string;
+  badgeClass: string;
+  fullLabel: string;
+  borderClass: string;
+  accentColor: string;
+} {
+  switch (tier) {
+    case 'MUNICIPAL':
+      return {
+        label: 'Projet Municipal',
+        shortLabel: 'Municipal',
+        icon: '🏛️',
+        badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-300 font-black',
+        fullLabel: '🏛️ Grand Projet Municipal',
+        borderClass: 'border-emerald-200',
+        accentColor: 'text-emerald-700',
+      };
+    case 'REGIONAL':
+      return {
+        label: 'Conseil Régional',
+        shortLabel: 'Régional',
+        icon: '🌍',
+        badgeClass: 'bg-purple-50 text-purple-800 border-purple-300 font-black',
+        fullLabel: '🌍 Conseil Régional',
+        borderClass: 'border-purple-200',
+        accentColor: 'text-purple-700',
+      };
+    case 'STATE':
+    default:
+      return {
+        label: "Investissement de l'État",
+        shortLabel: 'État Central',
+        icon: '🇨🇮',
+        badgeClass: 'bg-sky-50 text-sky-800 border-sky-300 font-black',
+        fullLabel: "🇨🇮 Investissement de l'État Central",
+        borderClass: 'border-sky-200',
+        accentColor: 'text-sky-700',
+      };
+  }
+}
+
+
 export interface ProjectTypeActionInfo {
   badge: string;
   heading: string;

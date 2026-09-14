@@ -92,6 +92,11 @@ export interface BudgetProject {
   ministry_name?: string;
   program_name?: string;
   service_name?: string;
+  image_url?: string;
+  partner_or_donor?: string;
+  master_builder?: string;
+  project_tier?: 'MUNICIPAL' | 'REGIONAL' | 'STATE';
+  official_progress_source?: string;
 }
 
 export interface CitizenProof {
