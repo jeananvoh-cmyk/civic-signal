@@ -1,6 +1,6 @@
 import { matchesSmartSearch, normalizeSearchText } from '../utils/searchHelpers';
 import { AuthSecurityService } from '../services/authSecurity';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { BudgetProject, ProjectStatus, Institution, NewsArticle, SiteSettings, CitizenProof } from '../types';
 import { dataStore } from '../services/dataStore';
 import { formatFCFA, formatDateFR, getStatusConfig, formatAmountInWords, calculateContractualElapsedPercentage } from '../utils/formatters';
@@ -65,12 +65,17 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
     auth.role === 'MODERATOR' ? 'moderation' : 'caidp_manager'
   );
   
-  // Data from store
-  const allProjects = dataStore.getProjects();
-  const pendingProofs = dataStore.getPendingProofs();
-  const allInstitutions = dataStore.getInstitutions();
-  const allArticles = dataStore.getArticles();
-  const siteSettings = dataStore.getSettings();
+  // Data from store with automatic reactivity
+  const [storeTick, setStoreTick] = useState(0);
+  useEffect(() => {
+    return dataStore.subscribe(() => setStoreTick(t => t + 1));
+  }, []);
+
+  const allProjects = useMemo(() => dataStore.getProjects(), [storeTick]);
+  const pendingProofs = useMemo(() => dataStore.getPendingProofs(), [storeTick]);
+  const allInstitutions = useMemo(() => dataStore.getInstitutions(), [storeTick]);
+  const allArticles = useMemo(() => dataStore.getArticles(), [storeTick]);
+  const siteSettings = useMemo(() => dataStore.getSettings(), [storeTick]);
 
   // Notification Toast State
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -333,7 +338,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   // ==========================================
   const [instSearch, setInstSearch] = useState('');
   const [instTypeFilter, setInstTypeFilter] = useState<'ALL' | 'MAIRIE' | 'REGION' | 'INSTITUTION' | 'MINISTERE' | 'AUTORITE_REGULATION'>('ALL');
-  const [instStatusFilter, setInstStatusFilter] = useState<'ALL' | 'NO_PHOTO' | 'NO_WEBSITE' | 'NO_FACEBOOK' | 'NO_DIGITAL'>('ALL');
+  const [instStatusFilter, setInstStatusFilter] = useState<'ALL' | 'NO_PHOTO' | 'NO_WEBSITE' | 'WITH_WEBSITE' | 'NO_FACEBOOK' | 'NO_DIGITAL'>('ALL');
   const [instPage, setInstPage] = useState(1);
   const [instPageSize, setInstPageSize] = useState(12);
   const [isEditInstModalOpen, setIsEditInstModalOpen] = useState(false);
@@ -391,6 +396,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       // Status Filter
       if (instStatusFilter === 'NO_PHOTO' && hasPhoto(inst.leader_photo_url)) return false;
       if (instStatusFilter === 'NO_WEBSITE' && !isSyntheticWeb(inst.website)) return false;
+      if (instStatusFilter === 'WITH_WEBSITE' && isSyntheticWeb(inst.website)) return false;
       if (instStatusFilter === 'NO_FACEBOOK' && !isSyntheticFb(inst.facebook_url)) return false;
       if (instStatusFilter === 'NO_DIGITAL' && (!isSyntheticWeb(inst.website) || !isSyntheticFb(inst.facebook_url))) return false;
 
@@ -413,22 +419,57 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   );
 
   // ==========================================
-  // 3. DIGITAL PROSPECTS & WEBSITES STATE
+  // 3. DIGITAL PROSPECTS & WEBSITES AUDIT STATE
   // ==========================================
   const [prospectSearch, setProspectSearch] = useState('');
-  const [prospectTypeFilter, setProspectTypeFilter] = useState<'ALL' | 'MAIRIE' | 'REGION'>('ALL');
+  const [prospectTypeFilter, setProspectTypeFilter] = useState<'NO_WEB_ALL' | 'NO_WEB_MAIRIE' | 'NO_WEB_REGION' | 'WITH_WEB_ALL' | 'ALL'>('NO_WEB_ALL');
   const [prospectPage, setProspectPage] = useState(1);
   const prospectPageSize = 15;
 
-  const filteredProspects = useMemo(() => {
-    return allInstitutions.filter((inst) => {
-      // Must not have a verified website
-      const hasRealWeb = inst.website && inst.website.trim() !== '' && !inst.website.includes('mairie-mairie') && !inst.website.includes('example');
-      if (hasRealWeb) return false;
+  // Collectivités locales territoriales uniquement (Mairies & Conseils Régionaux)
+  const localInstitutions = useMemo(() => {
+    return allInstitutions.filter(i => i.type === 'MAIRIE' || i.type === 'REGION');
+  }, [allInstitutions]);
 
-      // Filter by type
-      if (prospectTypeFilter === 'MAIRIE' && inst.type !== 'MAIRIE') return false;
-      if (prospectTypeFilter === 'REGION' && inst.type !== 'REGION') return false;
+  const prospectStats = useMemo(() => {
+    const mairies = localInstitutions.filter(i => i.type === 'MAIRIE');
+    const regions = localInstitutions.filter(i => i.type === 'REGION');
+
+    const mairiesWithoutWeb = mairies.filter(i => isSyntheticWeb(i.website));
+    const mairiesWithWeb = mairies.filter(i => !isSyntheticWeb(i.website));
+
+    const regionsWithoutWeb = regions.filter(i => isSyntheticWeb(i.website));
+    const regionsWithWeb = regions.filter(i => !isSyntheticWeb(i.website));
+
+    const totalWithoutWeb = mairiesWithoutWeb.length + regionsWithoutWeb.length;
+    const totalWithWeb = mairiesWithWeb.length + regionsWithWeb.length;
+
+    return {
+      totalLocal: localInstitutions.length,
+      mairiesTotal: mairies.length,
+      mairiesWithoutWebCount: mairiesWithoutWeb.length,
+      mairiesWithWebCount: mairiesWithWeb.length,
+      mairiesWithoutWebPercent: Math.round((mairiesWithoutWeb.length / (mairies.length || 1)) * 100),
+      regionsTotal: regions.length,
+      regionsWithoutWebCount: regionsWithoutWeb.length,
+      regionsWithWebCount: regionsWithWeb.length,
+      regionsWithoutWebPercent: Math.round((regionsWithoutWeb.length / (regions.length || 1)) * 100),
+      totalWithoutWebCount: totalWithoutWeb,
+      totalWithWebCount: totalWithWeb,
+      totalWithoutWebPercent: Math.round((totalWithoutWeb / (localInstitutions.length || 1)) * 100),
+    };
+  }, [localInstitutions]);
+
+  const filteredProspects = useMemo(() => {
+    return localInstitutions.filter((inst) => {
+      const hasRealWeb = !isSyntheticWeb(inst.website);
+
+      // Filter by web status & type
+      if (prospectTypeFilter === 'NO_WEB_ALL' && hasRealWeb) return false;
+      if (prospectTypeFilter === 'NO_WEB_MAIRIE' && (inst.type !== 'MAIRIE' || hasRealWeb)) return false;
+      if (prospectTypeFilter === 'NO_WEB_REGION' && (inst.type !== 'REGION' || hasRealWeb)) return false;
+      if (prospectTypeFilter === 'WITH_WEB_ALL' && !hasRealWeb) return false;
+      // 'ALL' retains both
 
       if (!prospectSearch.trim()) return true;
       const q = prospectSearch.toLowerCase().trim();
@@ -436,10 +477,12 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
         inst.name.toLowerCase().includes(q) ||
         (inst.region && inst.region.toLowerCase().includes(q)) ||
         (inst.leader_name && inst.leader_name.toLowerCase().includes(q)) ||
-        (inst.district && inst.district.toLowerCase().includes(q))
+        (inst.district && inst.district.toLowerCase().includes(q)) ||
+        (inst.political_party && inst.political_party.toLowerCase().includes(q)) ||
+        (inst.website && inst.website.toLowerCase().includes(q))
       );
     });
-  }, [allInstitutions, prospectTypeFilter, prospectSearch]);
+  }, [localInstitutions, prospectTypeFilter, prospectSearch]);
 
   const totalProspectPages = Math.ceil(filteredProspects.length / prospectPageSize) || 1;
   const paginatedProspects = filteredProspects.slice(
@@ -448,28 +491,52 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   );
 
   const handleExportProspectsCsv = () => {
-    const prospects = allInstitutions.filter(i => isSyntheticWeb(i.website));
-    const headers = ['Type', 'Nom de la Collectivite', 'Region', 'District', 'Maire_ou_President', 'Budget_Total_FCFA', 'Telephone', 'Email', 'Page_Facebook'];
-    const rows = prospects.map(p => [
-      `"${p.type}"`,
-      `"${(p.name || '').replace(/"/g, '""')}"`,
-      `"${(p.region || '').replace(/"/g, '""')}"`,
-      `"${(p.district || '').replace(/"/g, '""')}"`,
-      `"${(p.leader_name || '').replace(/"/g, '""')}"`,
-      `"${p.total_budget_fcfa || 0}"`,
-      `"${(p.contact_phone || p.info_officer_phone || '').replace(/"/g, '""')}"`,
-      `"${(p.contact_email || p.info_officer_email || '').replace(/"/g, '""')}"`,
-      `"${(p.facebook_url || '').replace(/"/g, '""')}"`,
-    ]);
+    const listToExport = filteredProspects;
+    const headers = [
+      'Type',
+      'Nom_Collectivite',
+      'Region',
+      'District',
+      'Maire_ou_President',
+      'Parti_Politique',
+      'Statut_Web',
+      'URL_Site_Web',
+      'Page_Facebook',
+      'Telephone',
+      'Email',
+      'Budget_Total_FCFA'
+    ];
+    const rows = listToExport.map(p => {
+      const hasRealWeb = !isSyntheticWeb(p.website);
+      return [
+        `"${p.type}"`,
+        `"${(p.name || '').replace(/"/g, '""')}"`,
+        `"${(p.region || '').replace(/"/g, '""')}"`,
+        `"${(p.district || '').replace(/"/g, '""')}"`,
+        `"${(p.leader_name || '').replace(/"/g, '""')}"`,
+        `"${(p.political_party || '').replace(/"/g, '""')}"`,
+        `"${hasRealWeb ? 'AVEC_SITE_OFFICIEL' : 'SANS_SITE_WEB'}"`,
+        `"${(p.website || '').replace(/"/g, '""')}"`,
+        `"${(p.facebook_url || '').replace(/"/g, '""')}"`,
+        `"${(p.contact_phone || p.info_officer_phone || '').replace(/"/g, '""')}"`,
+        `"${(p.contact_email || p.info_officer_email || '').replace(/"/g, '""')}"`,
+        `"${p.total_budget_fcfa || 0}"`,
+      ];
+    });
     const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Collectivites_Cibles_Sans_Site_Web_CI_${new Date().toISOString().slice(0, 10)}.csv`;
+    const filterSuffix = prospectTypeFilter === 'NO_WEB_ALL' ? 'Toutes_Sans_Site'
+      : prospectTypeFilter === 'NO_WEB_MAIRIE' ? 'Mairies_Sans_Site'
+      : prospectTypeFilter === 'NO_WEB_REGION' ? 'Regions_Sans_Site'
+      : prospectTypeFilter === 'WITH_WEB_ALL' ? 'Collectivites_Avec_Site'
+      : 'Toutes_Collectivites';
+    a.download = `Audit_Web_${filterSuffix}_CI_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast('Export CSV des 216 collectivités téléchargé avec succès !');
+    showToast(`Export CSV de ${listToExport.length} collectivités téléchargé avec succès !`);
   };
 
   const handleDownloadWhitepaper = () => {
@@ -922,7 +989,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
             }`}
           >
             <Globe className="w-4 h-4 text-sky-500" />
-            <span>Offre Web Collectivités</span>
+            <span>Audit Web Collectivités</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+              adminTab === 'digital_opportunities'
+                ? 'bg-rose-500 text-white'
+                : 'bg-rose-100 text-rose-700'
+            }`}>
+              {prospectStats.totalWithoutWebCount} sans site
+            </span>
           </button>
 
           {/* SECTION 4: SYSTÈME (ADMIN SEULEMENT) */}
@@ -1152,6 +1226,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                 { id: 'ALL', label: 'Tous les statuts' },
                 { id: 'NO_PHOTO', label: `Photos manquantes (${instStats.withoutPhotoCount})` },
                 { id: 'NO_WEBSITE', label: `Sans site web officiel (${instStats.withoutWebCount})` },
+                { id: 'WITH_WEBSITE', label: `Avec site web officiel (${instStats.withWebCount})` },
                 { id: 'NO_FACEBOOK', label: `Sans page Facebook (${instStats.withoutFbCount})` },
                 { id: 'NO_DIGITAL', label: `Sans présence en ligne (${instStats.withoutDigitalCount})` },
               ].map(status => (
@@ -2298,57 +2373,107 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               <div className="space-y-2 max-w-3xl">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/20 text-sky-300 text-xs font-black uppercase tracking-wider border border-sky-400/30">
                   <Globe className="w-3.5 h-3.5" />
-                  <span>Transformation Numérique des Territoires CI</span>
+                  <span>Audit & Observatoire Web des Territoires CI</span>
                 </div>
                 <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-                  Programme Portails Web & E-Services Collectivités
+                  Portails Web Officiels des Mairies & Conseils Régionaux
                 </h3>
                 <p className="text-xs sm:text-sm text-sky-100/90 leading-relaxed font-normal">
-                  <strong>216 collectivités ivoiriennes (22 Régions et 194 Mairies)</strong> n'ont pas de site web officiel et dépendent de Facebook. 
-                  Voici le benchmark mondial, l'architecture MVP prête à déployer et le répertoire complet pour vos prises de contact et partenariats.
+                  Sur les <strong>{prospectStats.totalLocal} collectivités territoriales</strong> recensées ({prospectStats.mairiesTotal} Mairies et {prospectStats.regionsTotal} Conseils Régionaux), <strong>{prospectStats.totalWithoutWebCount} collectivités ({prospectStats.mairiesWithoutWebCount} Mairies et {prospectStats.regionsWithoutWebCount} Régions)</strong> ne disposent d'aucun portail web officiel vérifié. Seules <strong>{prospectStats.totalWithWebCount} collectivités</strong> ({prospectStats.mairiesWithWebCount} Mairies et {prospectStats.regionsWithWebCount} Régions) disposent d'un portail officiel en ligne.
                 </p>
               </div>
 
               <div className="flex flex-col sm:flex-row items-stretch gap-3 w-full lg:w-auto flex-shrink-0">
                 <button
-                  onClick={handleDownloadWhitepaper}
+                  onClick={handleExportProspectsCsv}
                   className="px-5 py-3 bg-white hover:bg-sky-50 text-navy-900 rounded-2xl text-xs font-black shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer group"
                 >
-                  <Download className="w-4 h-4 text-sky-600 group-hover:scale-110 transition-transform" />
-                  <span>Télécharger le Livre Blanc & MVP (.md)</span>
+                  <FileSpreadsheet className="w-4 h-4 text-sky-600 group-hover:scale-110 transition-transform" />
+                  <span>Exporter la sélection ({filteredProspects.length}) (.csv)</span>
                 </button>
                 <button
-                  onClick={handleExportProspectsCsv}
+                  onClick={handleDownloadWhitepaper}
                   className="px-5 py-3 bg-sky-600 hover:bg-sky-500 text-white rounded-2xl text-xs font-black shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer group"
                 >
-                  <FileSpreadsheet className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                  <span>Exporter les 216 Collectivités (.csv)</span>
+                  <Download className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                  <span>Livre Blanc & Stratégie MVP (.md)</span>
                 </button>
               </div>
             </div>
 
-            {/* Quick Metrics Bar */}
+            {/* Quick Metrics Bar - Interactive cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/10">
-              <div className="bg-white/5 backdrop-blur-xs p-3.5 rounded-xl border border-white/10">
-                <span className="text-[10px] text-sky-200 font-bold uppercase tracking-wider">Mairies sans site</span>
-                <div className="text-xl sm:text-2xl font-black mt-1 text-white">194 <span className="text-xs text-sky-300 font-normal">/ 201</span></div>
-                <span className="text-[10px] text-amber-300 font-semibold">96.5% captives de Facebook</span>
-              </div>
-              <div className="bg-white/5 backdrop-blur-xs p-3.5 rounded-xl border border-white/10">
-                <span className="text-[10px] text-sky-200 font-bold uppercase tracking-wider">Régions sans site</span>
-                <div className="text-xl sm:text-2xl font-black mt-1 text-white">22 <span className="text-xs text-sky-300 font-normal">/ 33</span></div>
-                <span className="text-[10px] text-amber-300 font-semibold">66.7% sans portail dédié</span>
-              </div>
-              <div className="bg-white/5 backdrop-blur-xs p-3.5 rounded-xl border border-white/10">
-                <span className="text-[10px] text-sky-200 font-bold uppercase tracking-wider">Budget d'Investissement Moyen</span>
-                <div className="text-xl sm:text-2xl font-black mt-1 text-white">450 M <span className="text-xs text-sky-300 font-normal">FCFA</span></div>
-                <span className="text-[10px] text-emerald-300 font-semibold">Capacité d'équipement avérée</span>
-              </div>
-              <div className="bg-white/5 backdrop-blur-xs p-3.5 rounded-xl border border-white/10">
-                <span className="text-[10px] text-sky-200 font-bold uppercase tracking-wider">Conformité Loi CAIDP</span>
-                <div className="text-xl sm:text-2xl font-black mt-1 text-white">Loi 2013-867</div>
-                <span className="text-[10px] text-sky-200 font-semibold">Obligation légale de publication</span>
-              </div>
+              <button
+                type="button"
+                onClick={() => { setProspectTypeFilter('NO_WEB_MAIRIE'); setProspectPage(1); }}
+                className={`text-left p-3.5 rounded-xl border transition-all cursor-pointer ${
+                  prospectTypeFilter === 'NO_WEB_MAIRIE'
+                    ? 'bg-rose-500/25 border-rose-400 ring-2 ring-rose-400'
+                    : 'bg-white/5 hover:bg-white/10 border-white/10'
+                }`}
+              >
+                <span className="text-[10px] text-sky-200 font-bold uppercase tracking-wider block">Mairies sans site web</span>
+                <div className="text-xl sm:text-2xl font-black mt-1 text-white">
+                  {prospectStats.mairiesWithoutWebCount} <span className="text-xs text-sky-300 font-normal">/ {prospectStats.mairiesTotal}</span>
+                </div>
+                <span className="text-[10px] text-rose-300 font-semibold block mt-0.5">
+                  {prospectStats.mairiesWithoutWebPercent}% non équipées ({prospectStats.mairiesWithWebCount} en ligne)
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setProspectTypeFilter('NO_WEB_REGION'); setProspectPage(1); }}
+                className={`text-left p-3.5 rounded-xl border transition-all cursor-pointer ${
+                  prospectTypeFilter === 'NO_WEB_REGION'
+                    ? 'bg-rose-500/25 border-rose-400 ring-2 ring-rose-400'
+                    : 'bg-white/5 hover:bg-white/10 border-white/10'
+                }`}
+              >
+                <span className="text-[10px] text-sky-200 font-bold uppercase tracking-wider block">Régions sans site web</span>
+                <div className="text-xl sm:text-2xl font-black mt-1 text-white">
+                  {prospectStats.regionsWithoutWebCount} <span className="text-xs text-sky-300 font-normal">/ {prospectStats.regionsTotal}</span>
+                </div>
+                <span className="text-[10px] text-rose-300 font-semibold block mt-0.5">
+                  {prospectStats.regionsWithoutWebPercent}% non équipées ({prospectStats.regionsWithWebCount} en ligne)
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setProspectTypeFilter('WITH_WEB_ALL'); setProspectPage(1); }}
+                className={`text-left p-3.5 rounded-xl border transition-all cursor-pointer ${
+                  prospectTypeFilter === 'WITH_WEB_ALL'
+                    ? 'bg-emerald-500/25 border-emerald-400 ring-2 ring-emerald-400'
+                    : 'bg-white/5 hover:bg-white/10 border-white/10'
+                }`}
+              >
+                <span className="text-[10px] text-sky-200 font-bold uppercase tracking-wider block">Collectivités connectées</span>
+                <div className="text-xl sm:text-2xl font-black mt-1 text-white">
+                  {prospectStats.totalWithWebCount} <span className="text-xs text-sky-300 font-normal">/ {prospectStats.totalLocal}</span>
+                </div>
+                <span className="text-[10px] text-emerald-300 font-semibold block mt-0.5">
+                  {100 - prospectStats.totalWithoutWebPercent}% avec portail vérifié
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setProspectTypeFilter('NO_WEB_ALL'); setProspectPage(1); }}
+                className={`text-left p-3.5 rounded-xl border transition-all cursor-pointer ${
+                  prospectTypeFilter === 'NO_WEB_ALL'
+                    ? 'bg-amber-500/25 border-amber-400 ring-2 ring-amber-400'
+                    : 'bg-white/5 hover:bg-white/10 border-white/10'
+                }`}
+              >
+                <span className="text-[10px] text-sky-200 font-bold uppercase tracking-wider block">Total sans site web</span>
+                <div className="text-xl sm:text-2xl font-black mt-1 text-white">
+                  {prospectStats.totalWithoutWebCount} <span className="text-xs text-sky-300 font-normal">cibles</span>
+                </div>
+                <span className="text-[10px] text-amber-300 font-semibold block mt-0.5">
+                  Conformité Loi CAIDP 2013-867
+                </span>
+              </button>
             </div>
           </div>
 
@@ -2540,11 +2665,11 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                     <FileSpreadsheet className="w-5 h-5 text-sky-700" />
                   </span>
                   <h3 className="text-xl font-extrabold text-navy-900">
-                    Répertoire de Prospection ({filteredProspects.length} collectivités sans site web)
+                    Répertoire & Audit Web des Collectivités ({filteredProspects.length} affichée{filteredProspects.length > 1 ? 's' : ''})
                   </h3>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  Recherchez par nom, région ou maire pour préparer vos courriers et rendez-vous institutionnels.
+                  Consultez l'existence d'un portail web officiel ou identifiez les collectivités territoriales sans site web.
                 </p>
               </div>
 
@@ -2554,20 +2679,20 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer"
                 >
                   <FileSpreadsheet className="w-4 h-4" />
-                  <span>Exporter cette liste (CSV)</span>
+                  <span>Exporter la liste ({filteredProspects.length}) (CSV)</span>
                 </button>
               </div>
             </div>
 
             {/* Filter Bar */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
               <div className="relative flex-1">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={prospectSearch}
                   onChange={(e) => { setProspectSearch(e.target.value); setProspectPage(1); }}
-                  placeholder="Rechercher une commune, région ou maire (ex: San Pedro, Korhogo, Daloa, Adjamé...)"
+                  placeholder="Rechercher une commune, région, maire, président (ex: San Pedro, Korhogo, Daloa, Adjamé...)"
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-hidden focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500 font-medium"
                 />
                 {prospectSearch && (
@@ -2582,16 +2707,18 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
 
               <div className="flex items-center gap-1.5 flex-wrap">
                 {[
-                  { id: 'ALL', label: `Toutes (${allInstitutions.filter(i => isSyntheticWeb(i.website)).length})` },
-                  { id: 'MAIRIE', label: `Mairies (194)` },
-                  { id: 'REGION', label: `Conseils Régionaux (22)` },
+                  { id: 'NO_WEB_ALL', label: `Toutes sans site (${prospectStats.totalWithoutWebCount})` },
+                  { id: 'NO_WEB_MAIRIE', label: `Mairies sans site (${prospectStats.mairiesWithoutWebCount})` },
+                  { id: 'NO_WEB_REGION', label: `Conseils Régionaux sans site (${prospectStats.regionsWithoutWebCount})` },
+                  { id: 'WITH_WEB_ALL', label: `Avec site officiel (${prospectStats.totalWithWebCount})` },
+                  { id: 'ALL', label: `Toutes (${prospectStats.totalLocal})` },
                 ].map(tab => (
                   <button
                     key={tab.id}
                     onClick={() => { setProspectTypeFilter(tab.id as any); setProspectPage(1); }}
                     className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       prospectTypeFilter === tab.id
-                        ? 'bg-sky-700 text-white shadow-xs'
+                        ? 'bg-slate-900 text-white shadow-xs'
                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     }`}
                   >
@@ -2607,59 +2734,109 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-extrabold uppercase tracking-wider text-[10px]">
                   <tr>
                     <th className="py-3 px-4">Collectivité</th>
-                    <th className="py-3 px-4">Pôle / Région</th>
+                    <th className="py-3 px-4">Région / District</th>
                     <th className="py-3 px-4">Maire / Président</th>
+                    <th className="py-3 px-4">Statut Site Web</th>
+                    <th className="py-3 px-4">Page Facebook</th>
                     <th className="py-3 px-4 text-right">Budget Alloué</th>
-                    <th className="py-3 px-4">Présence Sociale</th>
                     <th className="py-3 px-4 text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                  {paginatedProspects.map((inst) => (
-                    <tr key={inst.id} className="hover:bg-sky-50/40 transition-colors">
-                      <td className="py-3 px-4 font-bold text-navy-900">
-                        <div className="flex items-center gap-2">
-                          <span className="p-1 rounded-md bg-slate-100 text-slate-600 text-[10px]">
-                            {inst.type === 'REGION' ? 'Région' : 'Mairie'}
-                          </span>
-                          <span>{inst.name}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-slate-500">
-                        {inst.region || inst.district || 'Côte d\'Ivoire'}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="font-bold text-slate-900">{inst.leader_name || 'Élu désigné'}</span>
-                        <div className="text-[10px] text-slate-400">{inst.leader_title}</div>
-                      </td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-emerald-700">
-                        {formatFCFA(inst.total_budget_fcfa || 0)}
-                      </td>
-                      <td className="py-3 px-4">
-                        {inst.facebook_url ? (
-                          <a 
-                            href={inst.facebook_url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline font-bold"
-                          >
-                            <span>Facebook</span>
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
-                        ) : (
-                          <span className="text-[10px] text-slate-400 italic">Aucune</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <button
-                          onClick={() => handleOpenEditInst(inst)}
-                          className="px-2.5 py-1 bg-white hover:bg-sky-50 text-sky-700 border border-sky-200 rounded-lg text-[11px] font-bold shadow-2xs transition-all cursor-pointer"
-                        >
-                          Gérer la fiche
-                        </button>
+                  {paginatedProspects.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-slate-400 italic">
+                        Aucune collectivité trouvée pour ces critères de recherche.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    paginatedProspects.map((inst) => {
+                      const hasRealWeb = !isSyntheticWeb(inst.website);
+                      const cleanDomain = inst.website ? inst.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '') : '';
+
+                      return (
+                        <tr key={inst.id} className="hover:bg-sky-50/40 transition-colors">
+                          <td className="py-3 px-4 font-bold text-navy-900">
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                                inst.type === 'REGION' 
+                                  ? 'bg-purple-100 text-purple-800' 
+                                  : 'bg-sky-100 text-sky-800'
+                              }`}>
+                                {inst.type === 'REGION' ? 'Conseil Régional' : 'Mairie'}
+                              </span>
+                              <span>{inst.name}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-slate-500">
+                            <div>{inst.region || '—'}</div>
+                            {inst.district && <div className="text-[10px] text-slate-400">{inst.district}</div>}
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-slate-900">{inst.leader_name || 'Élu désigné'}</span>
+                              {inst.political_party && (
+                                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
+                                  inst.political_party === 'RHDP' ? 'bg-orange-100 text-orange-800' :
+                                  inst.political_party === 'PDCI-RDA' ? 'bg-emerald-100 text-emerald-800' :
+                                  inst.political_party === 'PPA-CI' ? 'bg-blue-100 text-blue-800' :
+                                  'bg-slate-100 text-slate-700'
+                                }`}>
+                                  {inst.political_party}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-slate-400">{inst.leader_title}</div>
+                          </td>
+                          <td className="py-3 px-4">
+                            {hasRealWeb ? (
+                              <a
+                                href={inst.website}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold hover:bg-emerald-100 transition-colors"
+                              >
+                                <Globe className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>{cleanDomain}</span>
+                                <ExternalLink className="w-3 h-3 text-emerald-500" />
+                              </a>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold">
+                                <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
+                                <span>Aucun site web</span>
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4">
+                            {inst.facebook_url ? (
+                              <a 
+                                href={inst.facebook_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline font-bold"
+                              >
+                                <span>Facebook</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 italic">Non répertoriée</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-right font-mono font-bold text-emerald-700">
+                            {inst.total_budget_fcfa ? formatFCFA(inst.total_budget_fcfa) : '—'}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <button
+                              onClick={() => handleOpenEditInst(inst)}
+                              className="px-2.5 py-1 bg-white hover:bg-sky-50 text-sky-700 border border-sky-200 rounded-lg text-[11px] font-bold shadow-2xs transition-all cursor-pointer"
+                            >
+                              Gérer la fiche
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
