@@ -6,3 +6,5 @@
 export { default as ProfilePage } from "@/pages/ProfilePage";
 export { default as HistoryPage } from "@/pages/HistoryPage";
 export { default as ProfileCompletionNotifier } from "@/components/ProfileCompletionNotifier";
+
+export * from "./types";

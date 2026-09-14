@@ -8,7 +8,7 @@ import {
   Filter, Search, ArrowRight, Printer, Share2, Shield,
   TrendingUp, Users, ChevronRight, CheckCircle, ExternalLink,
   Sparkles, Phone, Calendar, Download, Loader2, Camera, ShieldCheck,
-  Zap, Droplets
+  Zap, Droplets, HardHat, Layers, Eye
 } from "lucide-react";
 import { exportMayorMonthlyReportPDF, type MayorReportItem } from "@/lib/export-pdf";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,12 @@ import { COMMUNE_LOGOS } from "@/lib/commune-logos";
 import { getInfraIllustration } from "@/lib/infra-icons";
 import { useSignedUrl } from "@/hooks/useSignedUrl";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import {
+  FieldInterventionsTab,
+  ResolutionTimelineModal,
+  type FieldIntervention,
+  type WorkOrderActionPayload,
+} from "@/features/pro";
 
 // Photo avec résolution de signature Supabase ou illustration
 function MairieReportPhoto({
@@ -44,7 +50,7 @@ function MairieReportPhoto({
   const illustration = getInfraIllustration(serviceType, description);
 
   return (
-    <div className="rounded-2xl overflow-hidden h-32 w-full border border-border bg-muted/30 relative group shadow-2xs">
+    <div className="relative h-44 w-full overflow-hidden rounded-2xl bg-muted group border border-border">
       <img
         src={signedUrl || illustration}
         alt="Preuve terrain ou illustration"
@@ -85,6 +91,12 @@ interface InfraReport {
   repair_declared_at?: string | null;
   repair_status?: string | null;
   resolved_with_transfer?: boolean | null;
+  intervention_team?: string | null;
+  intervention_work_order?: string | null;
+  intervention_started_at?: string | null;
+  intervention_status?: string | null;
+  child_reports_count?: number;
+  parent_incident_id?: string | null;
 }
 
 const MUNICIPAL_TEAMS = [
@@ -145,8 +157,11 @@ const MairieDashboardPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("all");
   const [selectedStatusTab, setSelectedStatusTab] = useState<string>("all");
+  const [dashboardViewMode, setDashboardViewMode] = useState<"cards" | "interventions">("cards");
+  const [selectedTimelineIntervention, setSelectedTimelineIntervention] = useState<FieldIntervention | null>(null);
 
   // Modal d'assignation / mise à jour
+
   const [actionDialog, setActionDialog] = useState<{ report: InfraReport; newStatus: string } | null>(null);
   const [actionTeam, setActionTeam] = useState("");
   const [actionWorkOrder, setActionWorkOrder] = useState("");
@@ -251,6 +266,12 @@ const MairieDashboardPage = () => {
             repair_declared_at: r.repair_declared_at || null,
             repair_status: r.repair_status || "none",
             resolved_with_transfer: r.resolved_with_transfer ?? null,
+            intervention_team: r.intervention_team || null,
+            intervention_work_order: r.intervention_work_order || r.operator_reference || null,
+            intervention_started_at: r.intervention_started_at || null,
+            intervention_status: r.intervention_status || null,
+            child_reports_count: Number(r.child_reports_count || 0),
+            parent_incident_id: r.parent_incident_id || null,
           })) as InfraReport[];
         }
       }
@@ -291,6 +312,41 @@ const MairieDashboardPage = () => {
       return isInfra || (sType !== "electricity" && sType !== "water");
     });
   }, [rawReports, partnerType]);
+
+  // Interventions terrain consolidées pour la vue opérationnelle
+  const fieldInterventions = useMemo<FieldIntervention[]>(() => {
+    return municipalReports.map((r) => ({
+      reportId: r.id,
+      ticketCode: r.ticket_code,
+      serviceType: r.service_type,
+      reportCategory: r.report_category,
+      description: r.description,
+      commune: r.commune,
+      quartier: r.quartier,
+      status: r.status,
+      urgency: r.urgency,
+      createdAt: r.created_at,
+      resolvedAt: r.resolved_at,
+      interventionTeam: r.intervention_team || r.assigned_team,
+      interventionWorkOrder: r.intervention_work_order || r.operator_reference,
+      interventionStatus: (r.intervention_status as any) || (r.status === "processing" ? "in_progress" : r.status === "resolved" ? "completed" : "unassigned"),
+      interventionStartedAt: r.intervention_started_at,
+      operatorReference: r.operator_reference,
+      operatorName: partnerOrgName,
+      operatorLastNote: r.operator_last_note,
+      estimatedResolutionTime: r.estimated_resolution_time,
+      photoUrl: r.photo_url,
+      photoUrls: r.photo_urls,
+      repairPhotos: r.repair_photos,
+      repairNote: r.repair_note,
+      repairDeclaredAt: r.repair_declared_at,
+      repairStatus: r.repair_status,
+      resolvedWithTransfer: r.resolved_with_transfer,
+      childReportsCount: r.child_reports_count,
+      parentIncidentId: r.parent_incident_id,
+    }));
+  }, [municipalReports, partnerOrgName]);
+
 
   // Statistiques communales
   const stats = useMemo(() => {
@@ -397,7 +453,11 @@ const MairieDashboardPage = () => {
         p_operator_reference: workOrder || null,
         p_public_note: fullNote || null,
         p_estimated_resolution: etaDate,
-      });
+        p_intervention_team: team || null,
+        p_intervention_work_order: workOrder || null,
+        p_intervention_status: status === "resolved" ? "completed" : status === "processing" ? "in_progress" : "assigned",
+        p_resolved_with_transfer: resolvedWithTransfer ?? true,
+      } as any);
 
       if (error) {
         // Fallback standard si RPC indisponible
@@ -405,6 +465,9 @@ const MairieDashboardPage = () => {
           status,
           operator_reference: workOrder || null,
           operator_last_note: fullNote || null,
+          intervention_team: team || null,
+          intervention_work_order: workOrder || null,
+          intervention_status: status === "resolved" ? "completed" : status === "processing" ? "in_progress" : "assigned",
           resolved_at: status === "resolved" ? new Date().toISOString() : null,
         };
         if (status === "resolved") {
@@ -418,7 +481,7 @@ const MairieDashboardPage = () => {
       }
     },
     onSuccess: (_, { status }) => {
-      queryClient.invalidateQueries({ queryKey: ["mairie-reports", selectedCommune] });
+      queryClient.invalidateQueries({ queryKey: ["mairie-reports"] });
       const msg = status === "processing"
         ? "Chantier pris en charge par l'équipe municipale"
         : status === "resolved"
@@ -426,7 +489,9 @@ const MairieDashboardPage = () => {
         : "Fiche d'intervention mise à jour";
       toast.success(msg);
       setActionDialog(null);
+      setSelectedTimelineIntervention(null);
     },
+
     onError: (err: any) => {
       toast.error(err.message || "Erreur lors de la mise à jour");
     },
@@ -758,18 +823,56 @@ const MairieDashboardPage = () => {
           </Card>
         </div>
 
-        {/* Barre de Recherche, Filtres & Onglets */}
-        <div className="space-y-4">
-          <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Rechercher par quartier, description ou N° OT..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-11 rounded-2xl text-xs bg-card border-border"
-              />
-            </div>
+        {/* Sélecteur de Mode : Dossiers & Signalements vs Interventions Terrain */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/80 pb-3">
+          <div className="flex items-center gap-2">
+            <Button
+              variant={dashboardViewMode === "cards" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setDashboardViewMode("cards")}
+              className="text-xs font-bold gap-1.5 rounded-xl h-9"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              <span>Dossiers &amp; Signalements ({municipalReports.length})</span>
+            </Button>
+            <Button
+              variant={dashboardViewMode === "interventions" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setDashboardViewMode("interventions")}
+              className="text-xs font-bold gap-1.5 rounded-xl h-9 relative"
+            >
+              <HardHat className="h-3.5 w-3.5 text-amber-500" />
+              <span>Interventions Terrain &amp; Brigades (OT)</span>
+              {stats.processing > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-amber-500 text-[10px] text-slate-950 font-black">
+                  {stats.processing}
+                </span>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {dashboardViewMode === "interventions" ? (
+          <FieldInterventionsTab
+            interventions={fieldInterventions}
+            onSelectIntervention={setSelectedTimelineIntervention}
+            availableTeams={availableTeams}
+          />
+        ) : (
+          <>
+            {/* Barre de Recherche, Filtres & Onglets */}
+            <div className="space-y-4">
+              <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher par quartier, description ou N° OT..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 h-11 rounded-2xl text-xs bg-card border-border"
+                  />
+                </div>
+
 
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
               <span className="text-xs text-muted-foreground font-bold shrink-0">Catégorie :</span>
@@ -841,10 +944,18 @@ const MairieDashboardPage = () => {
                   <div className="space-y-3">
                     {/* Header Carte */}
                     <div className="flex items-center justify-between gap-2">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-extrabold border ${catInfo.color}`}>
-                        <CatIcon className="h-3.5 w-3.5" />
-                        {catInfo.label}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-extrabold border ${catInfo.color}`}>
+                          <CatIcon className="h-3.5 w-3.5" />
+                          {catInfo.label}
+                        </span>
+                        {report.child_reports_count && report.child_reports_count > 0 ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg">
+                            <Layers className="h-3 w-3" />
+                            {report.child_reports_count} regroupés
+                          </span>
+                        ) : null}
+                      </div>
 
                       <span
                         className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-lg ${
@@ -858,6 +969,7 @@ const MairieDashboardPage = () => {
                         {isResolved ? "Résolu" : isProcessing ? "En intervention" : "Nouveau"}
                       </span>
                     </div>
+
 
                     {/* Titre & Localisation */}
                     <div>
@@ -964,14 +1076,53 @@ const MairieDashboardPage = () => {
                           : "Dossier clôturé par l'équipe technique"}
                       </div>
                     )}
+
+                    {/* Bouton Timeline & Preuves Photo */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const matched = fieldInterventions.find((fi) => fi.reportId === report.id);
+                        if (matched) setSelectedTimelineIntervention(matched);
+                      }}
+                      className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary/10 font-bold text-xs gap-1.5"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      <span>Timeline &amp; Preuves Photo</span>
+                    </Button>
                   </div>
                 </motion.div>
               );
             })}
           </div>
         )}
+          </>
+        )}
+
+        {/* Modal de Timeline de Résolution & Preuve Photo */}
+        <ResolutionTimelineModal
+          open={!!selectedTimelineIntervention}
+          onOpenChange={(open) => {
+            if (!open) setSelectedTimelineIntervention(null);
+          }}
+          intervention={selectedTimelineIntervention}
+          availableTeams={availableTeams}
+          isSubmitting={updateMutation.isPending}
+          onConfirmAction={(payload) => {
+            updateMutation.mutate({
+              reportId: payload.reportId,
+              status: payload.status,
+              team: payload.interventionTeam,
+              workOrder: payload.interventionWorkOrder,
+              note: payload.note,
+              resolvedWithTransfer: payload.resolvedWithTransfer,
+              decision: payload.decision,
+            });
+          }}
+        />
 
         {/* Modal d'Assignation & Clôture */}
+
         <Dialog open={!!actionDialog} onOpenChange={(open) => !open && setActionDialog(null)}>
           <DialogContent className="rounded-3xl max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <DialogHeader>

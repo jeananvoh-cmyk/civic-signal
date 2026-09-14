@@ -95,6 +95,17 @@ export const ALL_LEGAL_DOCUMENTS: LegalDocItem[] = [
     applicableTypes: ['MAIRIE'],
   },
   {
+    id: 'mairie_repertoire_actes_tarifs_delais',
+    category: 'DELIBERATIONS',
+    categoryLabel: 'Actes & Tarifs Usagers',
+    title: 'Répertoire Officiel des Actes Administratifs, Tarifs Réglementaires & Délais de Délivrance aux Usagers',
+    description: 'Tableau officiel des taxes, droits et redevances communales approuvé par le Conseil Municipal (actes d\'état civil, certificats de résidence, légalisations, permis et autorisations) et charte des délais d\'instruction.',
+    easyExplanation: 'La liste intégrale des formalités et démarches délivrées au guichet de la mairie, leurs coûts timbrés légaux (pour prévenir le racket et les faux frais) et les délais garantis pour les retirer.',
+    legalBasis: 'Art. 4 Loi n° 2013-867 • Circulaire PM n°004/2014 & Code des Collectivités',
+    isPriorityForCivic: true,
+    applicableTypes: ['MAIRIE'],
+  },
+  {
     id: 'mairie_marches_publics_passes',
     category: 'PROCUREMENT',
     categoryLabel: 'Marchés Publics',
@@ -444,6 +455,18 @@ export const ALL_LEGAL_DOCUMENTS: LegalDocItem[] = [
     isPriorityForCivic: true,
     applicableTypes: ['MINISTERE'],
     officialPortalUrl: 'https://budget.gouv.ci',
+  },
+  {
+    id: 'ministere_catalogue_procedures_tarifs_delais',
+    category: 'DELIBERATIONS',
+    categoryLabel: 'Actes & Tarifs Usagers',
+    title: 'Catalogue des Actes, Procédures Administratives, Tarifs Réglementaires & Délais de Délivrance',
+    description: 'Répertoire exhaustif des démarches, actes administratifs, autorisations, agréments et licences délivrés aux usagers par le Ministère, avec les pièces justificatives exigibles, coûts fiscaux timbrés et délais maximaux d\'instruction.',
+    easyExplanation: 'Le catalogue officiel de toutes les démarches du Ministère : ce qu\'il faut fournir, le montant officiel à payer et le délai garanti pour recevoir le document.',
+    legalBasis: 'Art. 4 • Loi n° 2013-867 & Décret n° 2019-299 & Portail National Service Public CI',
+    isPriorityForCivic: true,
+    applicableTypes: ['MINISTERE'],
+    officialPortalUrl: 'https://servicepublic.gouv.ci',
   },
 
   // =========================================================================

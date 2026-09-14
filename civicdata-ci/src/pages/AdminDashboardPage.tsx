@@ -1,9 +1,9 @@
 import { matchesSmartSearch, normalizeSearchText } from '../utils/searchHelpers';
 import { AuthSecurityService } from '../services/authSecurity';
 import React, { useState, useMemo } from 'react';
-import { BudgetProject, ProjectStatus, Institution, NewsArticle, SiteSettings } from '../types';
+import { BudgetProject, ProjectStatus, Institution, NewsArticle, SiteSettings, CitizenProof } from '../types';
 import { dataStore } from '../services/dataStore';
-import { formatFCFA, formatDateFR, getStatusConfig, formatAmountInWords } from '../utils/formatters';
+import { formatFCFA, formatDateFR, getStatusConfig, formatAmountInWords, calculateContractualElapsedPercentage } from '../utils/formatters';
 import { SocialPostGenerator } from '../components/SocialPostGenerator';
 import { CaidpRiManager } from '../components/CaidpRiManager';
 import { ModeratorManager } from '../components/ModeratorManager';
@@ -48,7 +48,8 @@ import {
   Megaphone,
   Layers,
   LogOut,
-  BarChart3
+  BarChart3,
+  MessageCircle
 } from 'lucide-react';
 
 interface AdminDashboardPageProps {
@@ -91,6 +92,10 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   const [sortField, setSortField] = useState<keyof BudgetProject>('budget_amount_fcfa');
   const [sortAsc, setSortAsc] = useState(false);
 
+  // Quick inline edit state for progress percentage
+  const [quickEditProjectId, setQuickEditProjectId] = useState<string | null>(null);
+  const [quickEditValue, setQuickEditValue] = useState<number>(0);
+
   // Add / Edit Project Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<BudgetProject | null>(null);
@@ -105,6 +110,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
     contractor_name: '',
     locality_village_neighborhood: '',
     details: '',
+    start_date: '',
+    contractual_duration_months: 12,
   });
 
   // CSV Import State
@@ -169,6 +176,42 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
     showToast(status === 'APPROVED' ? 'Preuve citoyenne validée et publiée !' : 'Preuve rejetée.', 'info');
   };
 
+  const handleModerateWithWhatsApp = (proof: CitizenProof, status: 'APPROVED' | 'REJECTED') => {
+    dataStore.moderateProof(proof.id, status);
+    showToast(
+      status === 'APPROVED' 
+        ? 'Preuve validée et publiée ! Lien WhatsApp prêt pour notification.' 
+        : 'Preuve rejetée. Lien WhatsApp prêt pour notification.', 
+      'info'
+    );
+
+    if (proof.citizen_whatsapp) {
+      let phone = proof.citizen_whatsapp.replace(/\D/g, '');
+      if (phone.length === 10) {
+        phone = '225' + phone;
+      }
+
+      const trackingCode = proof.tracking_code || proof.id.slice(0, 8).toUpperCase();
+      const projectTitle = proof.project_title || 'Chantier public';
+
+      let message = '';
+      if (status === 'APPROVED') {
+        message = `Bonjour ${proof.citizen_name || 'cher citoyen'},\n\n` +
+          `✅ Votre constat citoyen [${trackingCode}] concernant le chantier "${projectTitle}" a été vérifié et VALIDÉ par l'équipe de modération de CivicData CI.\n\n` +
+          `Votre observation et vos photos sont désormais publiées sur l'Observatoire Citoyen des Projets Publics. Merci pour votre vigilance civique ! 🇨🇮\n\n` +
+          `🔗 Suivre sur CivicData CI : https://civicdata.ci/observatory`;
+      } else {
+        message = `Bonjour ${proof.citizen_name || 'cher citoyen'},\n\n` +
+          `ℹ️ Votre constat citoyen [${trackingCode}] concernant le chantier "${projectTitle}" n'a pas pu être validé en l'état par l'équipe de modération.\n\n` +
+          `Motif : Les éléments photographiques transmis ne permettent pas d'attester avec certitude de l'état d'avancement des travaux ou de la localisation.\n\n` +
+          `Vous pouvez déposer un nouveau constat avec une photo plus nette ou un repère visible sur : https://civicdata.ci/observatory\n\n` +
+          `Merci pour votre contribution citoyenne ! 🇨🇮`;
+      }
+
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+    }
+  };
+
   // Filter and sort for budget table
   const filteredTableProjects = useMemo(() => {
     return allProjects.filter(p => {
@@ -207,6 +250,19 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
     } else {
       setSortField(field);
     }
+  };
+
+  const handleQuickSaveProgress = (projectId: string, newRate: number) => {
+    const clampedRate = Math.min(100, Math.max(0, Math.round(newRate)));
+    const newStatus: ProjectStatus = clampedRate >= 100 ? 'COMPLETED' : clampedRate > 0 ? 'IN_PROGRESS' : 'NOT_STARTED';
+    
+    dataStore.updateProject(projectId, {
+      progress_percentage: clampedRate,
+      current_status: newStatus,
+    });
+    
+    setQuickEditProjectId(null);
+    showToast(`Avancement physique mis à jour : ${clampedRate}% (${newStatus === 'COMPLETED' ? 'Terminé' : newStatus === 'IN_PROGRESS' ? 'En cours' : 'Non démarré'})`);
   };
 
   const handleSaveProject = (e: React.FormEvent) => {
@@ -1322,6 +1378,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                     contractor_name: '',
                     locality_village_neighborhood: '',
                     details: '',
+                    start_date: '',
+                    contractual_duration_months: 12,
                   });
                   setIsAddModalOpen(true);
                 }}
@@ -1453,12 +1511,93 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                         <div>{formatFCFA(p.budget_amount_fcfa)}</div>
                         <div className="text-[10px] text-brand-blue font-bold">({formatAmountInWords(p.budget_amount_fcfa)})</div>
                       </td>
-                      <td className="p-3 text-center whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold border ${status.badgeClass}`}>
-                          <span>{status.icon}</span>
-                          <span>{p.progress_percentage}%</span>
-                        </span>
-                      </td>
+                      {quickEditProjectId === p.id ? (
+                        <td className="p-2 text-center whitespace-nowrap bg-blue-50/70 border-x-2 border-brand-blue/30 rounded-xl">
+                          <div className="flex flex-col items-center gap-1.5 p-1">
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                autoFocus
+                                value={quickEditValue}
+                                onChange={(e) => setQuickEditValue(Math.min(100, Math.max(0, Number(e.target.value))))}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleQuickSaveProgress(p.id, quickEditValue);
+                                  } else if (e.key === 'Escape') {
+                                    setQuickEditProjectId(null);
+                                  }
+                                }}
+                                className="w-16 text-center text-xs font-black p-1 bg-white border border-brand-blue rounded-lg shadow-2xs focus:outline-none"
+                              />
+                              <span className="text-xs font-bold text-slate-700">%</span>
+                              <button
+                                type="button"
+                                onClick={() => handleQuickSaveProgress(p.id, quickEditValue)}
+                                className="p-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg cursor-pointer"
+                                title="Valider"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setQuickEditProjectId(null)}
+                                className="p-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg cursor-pointer"
+                                title="Annuler"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {[0, 25, 50, 75, 100].map(val => (
+                                <button
+                                  key={val}
+                                  type="button"
+                                  onClick={() => {
+                                    setQuickEditValue(val);
+                                    handleQuickSaveProgress(p.id, val);
+                                  }}
+                                  className={`px-1.5 py-0.5 text-[10px] font-bold rounded cursor-pointer transition-colors ${
+                                    quickEditValue === val 
+                                      ? 'bg-brand-blue text-white' 
+                                      : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                                  }`}
+                                >
+                                  {val}%
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </td>
+                      ) : (
+                        <td className="p-3 text-center whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-1 group/rate">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setQuickEditProjectId(p.id);
+                                setQuickEditValue(p.progress_percentage || 0);
+                              }}
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold border transition-all cursor-pointer group-hover/rate:ring-2 group-hover/rate:ring-brand-blue/30 ${status.badgeClass}`}
+                              title="Cliquer pour modifier rapidement l'avancement physique"
+                            >
+                              <span>{status.icon}</span>
+                              <span>{p.progress_percentage}%</span>
+                              <Edit className="w-2.5 h-2.5 opacity-0 group-hover/rate:opacity-100 transition-opacity ml-0.5 text-slate-500" />
+                            </button>
+                          </div>
+                          {p.start_date && p.contractual_duration_months ? (() => {
+                            const elapsed = calculateContractualElapsedPercentage(p.start_date, p.contractual_duration_months);
+                            return (
+                              <div className="text-[9.5px] text-slate-400 mt-1 font-medium" title={`Démarrage : ${p.start_date}, Durée : ${p.contractual_duration_months} mois`}>
+                                Délai écoulé : <strong className={elapsed.isOverdue ? 'text-rose-600 font-bold' : 'text-slate-600'}>{elapsed.percent}%</strong>
+                                {elapsed.isOverdue && <span className="text-rose-600 font-bold ml-0.5">⚠️</span>}
+                              </div>
+                            );
+                          })() : null}
+                        </td>
+                      )}
                       <td className="p-3 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-1.5">
                           <button
@@ -1475,6 +1614,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                                 contractor_name: p.contractor_name || '',
                                 locality_village_neighborhood: p.locality_village_neighborhood || '',
                                 details: p.details || '',
+                                start_date: p.start_date || '',
+                                contractual_duration_months: p.contractual_duration_months || 12,
                               });
                               setIsAddModalOpen(true);
                             }}
@@ -1691,8 +1832,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {pendingProofs.map((proof) => (
-                  <div key={proof.id} className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden flex flex-col justify-between">
+                  <div key={proof.id} className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden flex flex-col justify-between shadow-xs">
                     <div>
+                      {/* Media Display: 1 or 2 photos / video */}
                       <div className="h-48 w-full bg-slate-900 relative overflow-hidden flex items-center justify-center">
                         {proof.media_type === 'VIDEO' && proof.video_url ? (
                           <video
@@ -1700,6 +1842,29 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                             controls
                             className="w-full h-full object-cover bg-black"
                           />
+                        ) : proof.secondary_image_url ? (
+                          <div className="w-full h-full grid grid-cols-2 gap-0.5">
+                            <div className="relative h-full overflow-hidden">
+                              <img 
+                                src={proof.image_url || (proof as any).photo_url} 
+                                alt="Photo chantier 1"
+                                className="w-full h-full object-cover" 
+                              />
+                              <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-black/70 text-white text-[9px] font-bold">
+                                1. Chantier
+                              </span>
+                            </div>
+                            <div className="relative h-full overflow-hidden">
+                              <img 
+                                src={proof.secondary_image_url} 
+                                alt="Photo repère / panneau 2"
+                                className="w-full h-full object-cover" 
+                              />
+                              <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-black/70 text-white text-[9px] font-bold">
+                                2. {proof.signboard_status === 'PRESENT' ? 'Panneau' : 'Repère'}
+                              </span>
+                            </div>
+                          </div>
                         ) : (
                           <img 
                             src={proof.image_url || (proof as any).photo_url} 
@@ -1707,46 +1872,123 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                             className="w-full h-full object-cover" 
                           />
                         )}
-                        <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-navy-900 text-white pointer-events-none">
+
+                        <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-navy-900 text-white pointer-events-none shadow-xs">
                           Signalé : {proof.citizen_status_claim}
                         </span>
-                        <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md text-[10px] font-bold bg-black/60 text-white flex items-center gap-1 pointer-events-none">
-                          {proof.media_type === 'VIDEO' ? <Video className="w-3 h-3 text-sky-400" /> : <Camera className="w-3 h-3 text-orange-400" />}
-                          <span>{proof.media_type === 'VIDEO' ? 'Vidéo' : 'Photo'}</span>
-                        </span>
+
+                        <div className="absolute top-2 right-2 flex items-center gap-1 pointer-events-none">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-black/60 text-white flex items-center gap-1 shadow-xs">
+                            {proof.media_type === 'VIDEO' ? <Video className="w-3 h-3 text-sky-400" /> : <Camera className="w-3 h-3 text-orange-400" />}
+                            <span>{proof.media_type === 'VIDEO' ? 'Vidéo' : proof.secondary_image_url ? '2 Photos' : '1 Photo'}</span>
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="p-4 space-y-2">
+                      <div className="p-4 space-y-2.5">
+                        {/* Tracking Code & Signboard Badges */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {proof.tracking_code && (
+                            <span className="font-mono text-[10px] font-black tracking-wider px-2 py-0.5 bg-slate-200 text-slate-800 rounded-md border border-slate-300">
+                              {proof.tracking_code}
+                            </span>
+                          )}
+                          {proof.signboard_status === 'PRESENT' ? (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              Panneau officiel visible
+                            </span>
+                          ) : proof.signboard_status === 'ABSENT' ? (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200">
+                              Aucun panneau sur place
+                            </span>
+                          ) : null}
+                        </div>
+
                         <div className="text-[11px] text-slate-400 font-medium">
                           {proof.created_at ? formatDateFR(proof.created_at) : 'Récemment'} par {proof.citizen_name || 'Citoyen vérificateur'}
                         </div>
+
                         <h4 className="font-black text-slate-900 text-sm leading-snug">
                           {proof.project_title || 'Projet d\'infrastructure'}
                         </h4>
+
                         <div className="text-xs font-bold text-brand-blue">
                            {proof.commune_name} ({proof.region_name})
                         </div>
+
                         <p className="text-xs text-slate-700 bg-white p-3 rounded-xl border border-slate-200 leading-relaxed italic">
                           "{proof.comment}"
                         </p>
+
+                        {/* Citizen WhatsApp Contact Badge */}
+                        {proof.citizen_whatsapp && (
+                          <div className="flex items-center gap-1.5 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-2.5 py-1.5 font-semibold">
+                            <MessageCircle className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                            <span>WhatsApp citoyen : <strong className="font-bold">{proof.citizen_whatsapp}</strong></span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    <div className="p-4 pt-0 flex items-center gap-2">
-                      <button
-                        onClick={() => handleModerate(proof.id, 'APPROVED')}
-                        className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow flex items-center justify-center gap-1.5 transition-colors"
-                      >
-                        <Check className="w-4 h-4" />
-                        <span>Valider & Publier</span>
-                      </button>
-                      <button
-                        onClick={() => handleModerate(proof.id, 'REJECTED')}
-                        className="py-2.5 px-3 bg-white hover:bg-red-50 text-red-600 border border-slate-200 rounded-xl text-xs font-bold transition-colors flex items-center gap-1"
-                      >
-                        <X className="w-4 h-4" />
-                        <span>Rejeter</span>
-                      </button>
+                    {/* Action Buttons */}
+                    <div className="p-4 pt-0 space-y-2">
+                      {proof.citizen_whatsapp ? (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleModerateWithWhatsApp(proof, 'APPROVED')}
+                              className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                              title="Valider la preuve et ouvrir WhatsApp avec le message pré-rempli"
+                            >
+                              <Check className="w-4 h-4" />
+                              <MessageCircle className="w-3.5 h-3.5" />
+                              <span>Valider & WhatsApp</span>
+                            </button>
+                            <button
+                              onClick={() => handleModerateWithWhatsApp(proof, 'REJECTED')}
+                              className="py-2.5 px-3 bg-white hover:bg-red-50 text-red-600 border border-slate-200 rounded-xl text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                              title="Rejeter et ouvrir WhatsApp avec le motif pré-rempli"
+                            >
+                              <X className="w-4 h-4" />
+                              <MessageCircle className="w-3.5 h-3.5" />
+                              <span>Refuser</span>
+                            </button>
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+                            <button
+                              type="button"
+                              onClick={() => handleModerate(proof.id, 'APPROVED')}
+                              className="hover:text-emerald-700 underline cursor-pointer"
+                            >
+                              Valider sans WhatsApp
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleModerate(proof.id, 'REJECTED')}
+                              className="hover:text-red-700 underline cursor-pointer"
+                            >
+                              Rejeter sans WhatsApp
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleModerate(proof.id, 'APPROVED')}
+                            className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <Check className="w-4 h-4" />
+                            <span>Valider & Publier</span>
+                          </button>
+                          <button
+                            onClick={() => handleModerate(proof.id, 'REJECTED')}
+                            className="py-2.5 px-3 bg-white hover:bg-red-50 text-red-600 border border-slate-200 rounded-xl text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                          >
+                            <X className="w-4 h-4" />
+                            <span>Rejeter</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -2854,6 +3096,55 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                     className="w-full p-2 border rounded-xl"
                   />
                 </div>
+              </div>
+
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Date de démarrage</label>
+                    <input
+                      type="date"
+                      value={projectForm.start_date}
+                      onChange={(e) => setProjectForm({ ...projectForm, start_date: e.target.value })}
+                      className="w-full p-2 border rounded-xl bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Délai contractuel (mois)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={projectForm.contractual_duration_months || ''}
+                      onChange={(e) => setProjectForm({ ...projectForm, contractual_duration_months: Number(e.target.value) })}
+                      placeholder="Ex: 24"
+                      className="w-full p-2 border rounded-xl bg-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Dynamic Auto-Calculation of Contractual Elapsed Time */}
+                {projectForm.start_date && projectForm.contractual_duration_months > 0 && (() => {
+                  const elapsed = calculateContractualElapsedPercentage(projectForm.start_date, projectForm.contractual_duration_months);
+                  return (
+                    <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="text-blue-950 font-bold block">
+                          Délai contractuel consommé (calculé en temps réel) :
+                        </span>
+                        <span className="text-[11px] text-blue-700">
+                          Livraison prévisionnelle : <strong>{elapsed.formattedTargetDate}</strong> ({elapsed.daysElapsed} jours écoulés sur {elapsed.totalDays})
+                        </span>
+                      </div>
+                      <span className={`text-sm font-black px-2.5 py-1 rounded-lg ${
+                        elapsed.isOverdue 
+                          ? 'bg-rose-100 text-rose-800 border border-rose-300' 
+                          : 'bg-brand-blue text-white'
+                      }`}>
+                        {elapsed.percent}% {elapsed.isOverdue ? '(Hors délai)' : ''}
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div>

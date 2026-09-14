@@ -5,7 +5,7 @@ import {
   Zap, Droplets, Landmark, AlertTriangle, Flame, RefreshCw,
   CheckCircle2, MapPin, Search, ArrowLeft, Compass, ExternalLink,
   Shield, List, Map as MapIcon, X as XIcon, Plus, ChevronRight,
-  Clock, Users, Radio, Info
+  Clock, Users, Radio, Info, Layers
 } from "lucide-react";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
@@ -31,6 +31,7 @@ interface ActiveReport {
   created_at: string;
   start_time: string | null;
   status?: string;
+  child_reports_count?: number;
 }
 
 interface CommuneServiceStat {
@@ -179,6 +180,7 @@ const MapPage = () => {
             created_at: r.created_at,
             start_time: r.start_time,
             status: r.status,
+            child_reports_count: Number(r.child_reports_count || 0),
           }))
         );
       }
@@ -772,16 +774,24 @@ const MapPage = () => {
                           className="p-3.5 rounded-2xl border border-border bg-card shadow-2xs space-y-2 hover:border-amber-500/40 transition-colors"
                         >
                           <div className="flex items-start justify-between gap-2">
-                            <span
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                isElec
-                                  ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
-                                  : "bg-blue-500/15 text-blue-700 dark:text-blue-300"
-                              }`}
-                            >
-                              {isElec ? <Zap className="h-3 w-3" /> : <Droplets className="h-3 w-3" />}
-                              <span>{isElec ? "CIE · Électricité" : "SODECI · Eau"}</span>
-                            </span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  isElec
+                                    ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                                    : "bg-blue-500/15 text-blue-700 dark:text-blue-300"
+                                }`}
+                              >
+                                {isElec ? <Zap className="h-3 w-3" /> : <Droplets className="h-3 w-3" />}
+                                <span>{isElec ? "CIE · Électricité" : "SODECI · Eau"}</span>
+                              </span>
+                              {Boolean(r.child_reports_count && r.child_reports_count > 0) && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
+                                  <Layers className="h-2.5 w-2.5" />
+                                  +{r.child_reports_count} regroupé{r.child_reports_count > 1 ? "s" : ""}
+                                </span>
+                              )}
+                            </div>
 
                             {elapsed && (
                               <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground">

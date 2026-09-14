@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Send, MapPin, Navigation, Loader2, Users, Baby, Heart, UserRound,
   ChevronDown, Plus, Minus, ArrowLeft, Camera, MessageSquare, Clock,
-  LogIn, UserPlus, AlertTriangle, CheckCircle2, ShieldAlert,
+  LogIn, UserPlus, AlertTriangle, CheckCircle2, ShieldAlert, Layers, Link2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -27,21 +27,10 @@ import { resolveCommune, type DetectionSource } from "@/lib/geolocation";
 import { getQuartiers, normalizeQuartier } from "@/lib/quartiers";
 import type { ServiceType } from "@/lib/data";
 import {
-  electriciteIcon,
-  eauIcon,
-  lampadaireIcon,
-  poteauElectriqueIcon,
-  cieHazardIcon,
-  cieAutreIcon,
-  canalisationIcon,
-  fuiteEauIcon,
-  sodeciAutreIcon,
-  voirieIcon,
-  caniveauIcon,
-  trottoirIcon,
-  depotOrduresIcon,
-  mairieAutreIcon,
-} from "@/lib/infra-icons";
+  REPORT_TYPES,
+  type ReportTypeId,
+  type ReportTypeConfig,
+} from "@/features/incidents";
 import QuartierSearch from "@/components/QuartierSearch";
 import OnboardingModal from "@/components/OnboardingModal";
 import { reportDetailsSchema } from "@/lib/report-schema";
@@ -50,218 +39,6 @@ import { useOfflineQueue } from "@/hooks/useOfflineQueue";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 import { cn } from "@/lib/utils";
 import { PadaAddressInput, type PadaAddressData } from "@/components/PadaAddressInput";
-
-// ─── Types de signalement ────────────────────────────────────────────────────
-
-type ReportTypeId =
-  | "electricity_outage"
-  | "water_outage"
-  // --- CIE (Électricité & Éclairage Public) ---
-  | "street_light"
-  | "cie_pole"
-  | "cie_hazard"
-  | "cie_other"
-  // --- SODECI (Eau Potable & Assainissement) ---
-  | "canalisation_sodeci"
-  | "water_leak"
-  | "sodeci_other"
-  // --- MAIRIE (Voirie & Salubrité) ---
-  | "pothole"
-  | "drain_blocked"
-  | "road_damage"
-  | "open_sewer"
-  | "market_waste"
-  | "illegal_dump"
-  | "other";
-
-interface ReportTypeConfig {
-  id: ReportTypeId;
-  emoji: string;
-  label: string;
-  description?: string;
-  image?: string;
-  color: string;
-  serviceType: ServiceType;
-  reportCategory: "outage" | "infrastructure";
-  operator?: "CIE" | "SODECI" | "MAIRIE";
-  defaultDesc: (commune: string) => string;
-}
-
-const REPORT_TYPES: ReportTypeConfig[] = [
-  // ─── Coupures de service ───────────────────────────────────────────
-  {
-    id: "electricity_outage",
-    emoji: "⚡",
-    label: "Coupure d'électricité",
-    description: "Interruption du courant chez vous ou dans la zone",
-    image: electriciteIcon,
-    color: "#F59E0B",
-    serviceType: "electricity",
-    reportCategory: "outage",
-    defaultDesc: (c) => `Coupure d'électricité à ${c}`,
-  },
-  {
-    id: "water_outage",
-    emoji: "💧",
-    label: "Coupure d'eau",
-    description: "Interruption de distribution d'eau potable",
-    image: eauIcon,
-    color: "#3B82F6",
-    serviceType: "water",
-    reportCategory: "outage",
-    defaultDesc: (c) => `Coupure d'eau à ${c}`,
-  },
-
-  // ─── CIE (Électricité & Éclairage Public) ──────────────────────────
-  {
-    id: "street_light",
-    emoji: "💡",
-    label: "Lampadaires & Éclairage public",
-    description: "Lampadaire cassé, éteint ou éclairage public hors service",
-    image: lampadaireIcon,
-    color: "#EAB308",
-    serviceType: "electricity",
-    reportCategory: "infrastructure",
-    operator: "CIE",
-    defaultDesc: (c) => `Lampadaire / Éclairage public hors service à ${c}`,
-  },
-  {
-    id: "cie_pole",
-    emoji: "🗼",
-    label: "Poteaux / Pylônes",
-    description: "Poteau penché, câble électrique à terre, pylône à risque",
-    image: poteauElectriqueIcon,
-    color: "#F59E0B",
-    serviceType: "electricity",
-    reportCategory: "infrastructure",
-    operator: "CIE",
-    defaultDesc: (c) => `Poteau / Pylône électrique dangereux à ${c}`,
-  },
-  {
-    id: "cie_hazard",
-    emoji: "⚠️",
-    label: "Branchements dangereux",
-    description: "Fils nus, étincelles, installation à risque élevé",
-    image: cieHazardIcon,
-    color: "#EF4444",
-    serviceType: "electricity",
-    reportCategory: "infrastructure",
-    operator: "CIE",
-    defaultDesc: (c) => `Branchement électrique dangereux à ${c}`,
-  },
-  {
-    id: "cie_other",
-    emoji: "🚧",
-    label: "Autres incidents CIE",
-    description: "Autre anomalie sur le réseau d'électricité",
-    image: cieAutreIcon,
-    color: "#F97316",
-    serviceType: "electricity",
-    reportCategory: "infrastructure",
-    operator: "CIE",
-    defaultDesc: (c) => `Incident réseau électrique CIE à ${c}`,
-  },
-
-  // ─── SODECI (Eau Potable & Assainissement) ────────────────────────
-  {
-    id: "canalisation_sodeci",
-    emoji: "🚰",
-    label: "Canalisation publique",
-    description: "Égout bouché, débordement de vos regards",
-    image: canalisationIcon,
-    color: "#0284C7",
-    serviceType: "water",
-    reportCategory: "infrastructure",
-    operator: "SODECI",
-    defaultDesc: (c) => `Canalisation publique / Égout bouché à ${c}`,
-  },
-  {
-    id: "water_leak",
-    emoji: "🚿",
-    label: "Fuite d'eau",
-    description: "Fuite d'eau à l'extérieur de votre maison",
-    image: fuiteEauIcon,
-    color: "#06B6D4",
-    serviceType: "water",
-    reportCategory: "infrastructure",
-    operator: "SODECI",
-    defaultDesc: (c) => `Fuite d'eau à l'extérieur de la maison à ${c}`,
-  },
-  {
-    id: "sodeci_other",
-    emoji: "💧",
-    label: "Autre incident SODECI",
-    description: "Incident sur le réseau d'eau potable",
-    image: sodeciAutreIcon,
-    color: "#3B82F6",
-    serviceType: "water",
-    reportCategory: "infrastructure",
-    operator: "SODECI",
-    defaultDesc: (c) => `Incident réseau d'eau potable SODECI à ${c}`,
-  },
-
-  // ─── MAIRIE (Voirie & Salubrité) ──────────────────────────────────
-  {
-    id: "pothole",
-    emoji: "🛣️",
-    label: "Nid de poule",
-    description: "Trou sur la chaussée, bitume dégradé",
-    image: voirieIcon,
-    color: "#10B981",
-    serviceType: "mairie" as any,
-    reportCategory: "infrastructure",
-    operator: "MAIRIE",
-    defaultDesc: (c) => `Nid de poule / route dégradée à ${c}`,
-  },
-  {
-    id: "drain_blocked",
-    emoji: "🚧",
-    label: "Caniveau bouché",
-    description: "Caniveau obstrué, eau stagnante sur la voie publique",
-    image: caniveauIcon,
-    color: "#10B981",
-    serviceType: "mairie" as any,
-    reportCategory: "infrastructure",
-    operator: "MAIRIE",
-    defaultDesc: (c) => `Caniveau bouché à ${c}`,
-  },
-  {
-    id: "road_damage",
-    emoji: "🛤️",
-    label: "Voirie & Trottoirs",
-    description: "Trottoir cassé, pavés abîmés, glissière endommagée",
-    image: trottoirIcon,
-    color: "#8B5CF6",
-    serviceType: "mairie" as any,
-    reportCategory: "infrastructure",
-    operator: "MAIRIE",
-    defaultDesc: (c) => `Voirie / trottoir dégradé à ${c}`,
-  },
-  {
-    id: "illegal_dump",
-    emoji: "🗑️",
-    label: "Dépôt sauvage & Ordures",
-    description: "Ordures ou déchets non ramassés sur le domaine public",
-    image: depotOrduresIcon,
-    color: "#10B981",
-    serviceType: "mairie" as any,
-    reportCategory: "infrastructure",
-    operator: "MAIRIE",
-    defaultDesc: (c) => `Dépôt sauvage d'ordures à ${c}`,
-  },
-  {
-    id: "other",
-    emoji: "🏗️",
-    label: "Autre (Mairie)",
-    description: "Autre anomalie relevant des services municipaux",
-    image: mairieAutreIcon,
-    color: "#6B7280",
-    serviceType: "mairie" as any,
-    reportCategory: "infrastructure",
-    operator: "MAIRIE",
-    defaultDesc: (c) => `Signalement voirie / mairie à ${c}`,
-  },
-];
 
 import { DAILY_REPORT_LIMIT as DAILY_LIMIT } from "@/lib/constants";
 
@@ -372,6 +149,8 @@ const ReportPage = () => {
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [checkingDuplicates, setCheckingDuplicates] = useState(false);
   const [corroborating, setCorroborating] = useState<string | null>(null);
+  const [parentIncidentId, setParentIncidentId] = useState<string | null>(null);
+  const [parentIncidentDetails, setParentIncidentDetails] = useState<SimilarReport | null>(null);
 
   // ─── Brouillon auto ─────────────────────────────────────────────────────────
   const DRAFT_KEY = "signa_report_draft";
@@ -723,7 +502,20 @@ const ReportPage = () => {
     }
   };
 
+  const handleAttachToExisting = (r: SimilarReport) => {
+    setParentIncidentId(r.id);
+    setParentIncidentDetails(r);
+    setShowDuplicateDialog(false);
+    if (selectedType?.reportCategory === "infrastructure") {
+      setShowPhoto(true);
+    }
+    setStep(3);
+    toast.info("Votre signalement sera rattaché à cet incident existant (vos photos et détails compléteront le dossier).");
+  };
+
   const proceedToStep3 = () => {
+    setParentIncidentId(null);
+    setParentIncidentDetails(null);
     setShowDuplicateDialog(false);
     if (selectedType?.reportCategory === "infrastructure") {
       setShowPhoto(true);
@@ -841,6 +633,7 @@ const ReportPage = () => {
         pregnant: isInfra ? 0 : pregnant,
         elderly: isInfra ? 0 : elderly,
         meter_number: meterNumber || null,
+        parent_incident_id: parentIncidentId || null,
         ...(selectedType.id === "electricity_outage" || selectedType.id === "water_outage"
           ? { contract_type: contractType || null }
           : {}),
@@ -1529,6 +1322,38 @@ const ReportPage = () => {
                 </div>
               </div>
 
+              {/* Bannière de rattachement à un incident existant */}
+              {parentIncidentId && parentIncidentDetails && (
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 flex items-start justify-between gap-3 text-sm">
+                  <div className="flex items-start gap-2.5">
+                    <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
+                      <Link2 className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground text-xs sm:text-sm">
+                        Rattaché à l'incident #{parentIncidentDetails.id.slice(0, 8).toUpperCase()}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Vos photos et votre témoignage viendront enrichir cet incident public sans créer de carte en doublon.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-muted-foreground hover:text-foreground shrink-0"
+                    onClick={() => {
+                      setParentIncidentId(null);
+                      setParentIncidentDetails(null);
+                      toast.info("Signalement détaché (il sera publié comme un incident indépendant)");
+                    }}
+                  >
+                    Détacher
+                  </Button>
+                </div>
+              )}
+
               {/* ── Détails ── */}
               <div className="space-y-3">
                 <p className="text-xs text-center text-muted-foreground">
@@ -1992,17 +1817,26 @@ const ReportPage = () => {
                       </div>
                     </div>
                     <CorroborationStatus verifications={r.verifications} compact />
-                    <Button
-                      className="w-full bg-warning text-warning-foreground hover:bg-warning/90 font-semibold"
-                      onClick={() => handleCorroborateExisting(r.id)}
-                      disabled={corroborating === r.id}
-                    >
-                      {corroborating === r.id ? (
-                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Confirmation…</>
-                      ) : (
-                        <><CheckCircle2 className="mr-2 h-4 w-4" /> Oui, je confirme cette coupure</>
-                      )}
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                      <Button
+                        className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs h-9"
+                        onClick={() => handleCorroborateExisting(r.id)}
+                        disabled={corroborating === r.id}
+                      >
+                        {corroborating === r.id ? (
+                          <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Confirmation…</>
+                        ) : (
+                          <><CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Confirmer en 1 clic</>
+                        )}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        className="flex-1 border border-primary/20 bg-primary/10 hover:bg-primary/20 text-primary font-semibold text-xs h-9"
+                        onClick={() => handleAttachToExisting(r)}
+                      >
+                        <Layers className="mr-1.5 h-3.5 w-3.5" /> Rattacher mes photos & précisions
+                      </Button>
+                    </div>
                   </div>
                 );
               })}
@@ -2014,7 +1848,7 @@ const ReportPage = () => {
                 className="w-full"
                 onClick={proceedToStep3}
               >
-                Non, c'est un nouveau problème — créer un signalement
+                Non, c'est un problème distinct — créer un incident séparé
               </Button>
             </div>
           </DialogContent>

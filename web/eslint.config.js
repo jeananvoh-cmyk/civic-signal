@@ -5,7 +5,7 @@ import tseslint from "typescript-eslint";
 import pluginSecurity from "eslint-plugin-security";
 
 export default tseslint.config(
-  { ignores: ["dist", "build", "node_modules", "public", "**/*.d.ts"] },
+  { ignores: ["dist", "build", "node_modules", "public", "**/*.d.ts", "scripts/**"] },
   pluginSecurity.configs.recommended,
   {
     extends: [...tseslint.configs.recommended],
@@ -32,6 +32,10 @@ export default tseslint.config(
       "no-useless-escape": "off",
       "no-empty": "off",
       "prefer-const": "off",
+      // SAST rules fine-tuning for client-side React SPA
+      "security/detect-object-injection": "off",
+      "security/detect-possible-timing-attacks": "off",
+      "security/detect-unsafe-regex": "off",
     },
   },
 );

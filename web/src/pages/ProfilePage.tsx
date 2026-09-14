@@ -41,49 +41,11 @@ import { useRightsContent } from "@/hooks/useRightsContent";
 import { getQuartiers } from "@/lib/quartiers";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
 import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
-
-interface ProfileData {
-  first_name: string;
-  last_name: string;
-  display_name: string;
-  phone: string;
-  commune: string;
-  quartier: string;
-  user_type: string;
-  bio: string;
-  notifications_enabled: boolean;
-  language: string;
-  theme: string;
-  electricity_client_id: string;
-  electricity_meter_ref: string;
-  electricity_meter_number: string;
-  water_client_id: string;
-  water_meter_ref: string;
-  water_meter_number: string;
-}
-
-interface HistoryReport {
-  id: string;
-  service_type: string;
-  report_category: string;
-  description: string;
-  commune: string;
-  quartier: string;
-  status: string;
-  urgency: string;
-  created_at: string;
-  resolved_at: string | null;
-  verifications: number;
-  start_time: string;
-}
-
-const DELETE_REASONS = [
-  "Je n'utilise plus l'application",
-  "Préoccupations liées à la confidentialité",
-  "Je crée un autre compte",
-  "L'application ne correspond pas à mes besoins",
-  "Autre raison",
-];
+import {
+  type ProfileData,
+  type HistoryReport,
+  DELETE_REASONS,
+} from "@/features/profile";
 
 const formatDuration = (start: string, end: string | null) => {
   if (!end) return null;

@@ -10,3 +10,8 @@ export { default as MairieDashboardPage } from "@/pages/MairieDashboardPage";
 export { default as PartnerDashboardPage } from "@/pages/PartnerDashboardPage";
 export { default as RegulateursPage } from "@/pages/RegulateursPage";
 export { default as PartnersPage } from "@/pages/PartnersPage";
+
+export * from "./relay/types";
+export * from "./relay/helpers";
+export * from "./interventions";
+

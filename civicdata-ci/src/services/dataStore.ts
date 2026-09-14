@@ -237,7 +237,7 @@ export const INITIAL_PUBLIC_DOCUMENTS: PublicDocument[] = [
     file_size: "1.2 Mo",
     file_format: "PDF",
     published_at: "2013-12-23",
-    downloads_count: 142,
+    downloads_count: 0,
     is_official: true,
     tags: ["Loi", "CAIDP", "Droit Citoyen", "Transparence", "Information Publique"]
   },
@@ -253,7 +253,7 @@ export const INITIAL_PUBLIC_DOCUMENTS: PublicDocument[] = [
     file_size: "850 Ko",
     file_format: "PDF",
     published_at: "2014-08-06",
-    downloads_count: 98,
+    downloads_count: 0,
     is_official: true,
     tags: ["Décret", "RI", "Procédure", "CAIDP"]
   },
@@ -269,7 +269,7 @@ export const INITIAL_PUBLIC_DOCUMENTS: PublicDocument[] = [
     file_size: "4.5 Mo",
     file_format: "PDF",
     published_at: "2026-01-05",
-    downloads_count: 315,
+    downloads_count: 0,
     is_official: true,
     tags: ["Loi de Finances 2026", "Budget Citoyen", "Finances Publiques"]
   },
@@ -285,7 +285,7 @@ export const INITIAL_PUBLIC_DOCUMENTS: PublicDocument[] = [
     file_size: "1.8 Mo",
     file_format: "PDF",
     published_at: "2012-12-13",
-    downloads_count: 185,
+    downloads_count: 0,
     is_official: true,
     tags: ["Collectivités", "Décentralisation", "Mairies", "Régions", "Loi"]
   },
@@ -301,7 +301,7 @@ export const INITIAL_PUBLIC_DOCUMENTS: PublicDocument[] = [
     file_size: "2.1 Mo",
     file_format: "PDF",
     published_at: "2026-02-15",
-    downloads_count: 230,
+    downloads_count: 0,
     is_official: true,
     tags: ["Livre Blanc", "Mairies", "Régions", "Audit", "Décentralisation"]
   },
@@ -317,7 +317,7 @@ export const INITIAL_PUBLIC_DOCUMENTS: PublicDocument[] = [
     file_size: "6.8 Mo",
     file_format: "PDF",
     published_at: "2025-11-20",
-    downloads_count: 489,
+    downloads_count: 0,
     is_official: true,
     tags: ["Cour des Comptes", "Audit", "Contrôle", "Gouvernance"]
   },
@@ -333,9 +333,89 @@ export const INITIAL_PUBLIC_DOCUMENTS: PublicDocument[] = [
     file_size: "3.7 Mo",
     file_format: "PDF",
     published_at: "2025-10-12",
-    downloads_count: 278,
+    downloads_count: 0,
     is_official: true,
     tags: ["Marchés Publics", "DGMP", "Appels d'offres", "Contrats"]
+  },
+  {
+    id: 'doc-pagof-budget-collectivite',
+    title: "Guide & Canevas de Présentation du Budget d'une Collectivité Territoriale",
+    category: 'GUIDE_CITOYEN',
+    institution_name: "PAGOF • Expertise France & OGP",
+    year: 2024,
+    description: "Guide méthodologique et canevas type de présentation simplifiée des budgets communaux et régionaux pour renforcer la transparence financière et la compréhension citoyenne.",
+    file_url: "https://pagof.fr/wp-content/uploads/2024/11/canevas-de-presentation-du-budget-dune-collectivite-territoriale.pdf",
+    file_name: "canevas-de-presentation-du-budget-dune-collectivite-territoriale.pdf",
+    file_size: "1.4 Mo",
+    file_format: "PDF",
+    published_at: "2024-11-15",
+    downloads_count: 0,
+    is_official: true,
+    tags: ["PAGOF", "Collectivités", "Budget Local", "Mairies", "Régions", "Open Government"]
+  },
+  {
+    id: 'doc-pagof-budget-citoyen',
+    title: "Comprendre le Budget Citoyen & la Sensibilisation au Processus Budgétaire",
+    category: 'GUIDE_CITOYEN',
+    institution_name: "PAGOF • Partenariat Gouvernement Ouvert",
+    year: 2024,
+    description: "Manuel didactique de vulgarisation expliquant pas à pas les recettes, les dépenses, les priorités d'investissement et le calendrier budgétaire pour le grand public.",
+    file_url: "https://pagof.fr/wp-content/uploads/2024/11/comprendre-le-budget-citoyen.pdf",
+    file_name: "comprendre-le-budget-citoyen.pdf",
+    file_size: "1.1 Mo",
+    file_format: "PDF",
+    published_at: "2024-11-15",
+    downloads_count: 0,
+    is_official: true,
+    tags: ["PAGOF", "Budget Citoyen", "Vulgarisation", "Participation Citoyenne", "Finances Publiques"]
+  },
+  {
+    id: 'doc-pagof-manuel-budget-participatif',
+    title: "Manuel du Budget Participatif en Afrique Francophone (Volumes I & II)",
+    category: 'GUIDE_CITOYEN',
+    institution_name: "PAGOF • Expertise France & CFI",
+    year: 2024,
+    description: "Guide pratique à destination des élus, services municipaux et comités citoyens pour concevoir, animer et évaluer des budgets participatifs locaux.",
+    file_url: "https://pagof.fr/wp-content/uploads/2024/11/vol-i-manuel-bp.pdf",
+    file_name: "vol-i-manuel-bp.pdf",
+    file_size: "2.8 Mo",
+    file_format: "PDF",
+    published_at: "2024-11-15",
+    downloads_count: 0,
+    is_official: true,
+    tags: ["PAGOF", "Budget Participatif", "Démocratie Locale", "Mairies", "Participation"]
+  },
+  {
+    id: 'doc-pagof-open-data-formation',
+    title: "Kit Méthodologique Open Data : Production, Traitement & Publication de Données Ouvertes",
+    category: 'ETUDE_TECHNIQUE',
+    institution_name: "PAGOF • Expertise France",
+    year: 2024,
+    description: "Ensemble des modules de référence pour structurer des jeux de données publics de qualité, normaliser les formats CSV/JSON et stimuler leur réutilisation civique.",
+    file_url: "https://pagof.fr/wp-content/uploads/2024/11/formation-donnees-ouvertes_module-1_fondamentaux.pdf",
+    file_name: "formation-donnees-ouvertes_module-1_fondamentaux.pdf",
+    file_size: "2.3 Mo",
+    file_format: "PDF",
+    published_at: "2024-11-15",
+    downloads_count: 0,
+    is_official: true,
+    tags: ["PAGOF", "Open Data", "Données Ouvertes", "Civic Tech", "Standards"]
+  },
+  {
+    id: 'doc-pagof-bonnes-pratiques-2023',
+    title: "Guide des Bonnes Pratiques et Expériences Réussies de Gouvernement Ouvert en Afrique",
+    category: 'RAPPORT_AUDIT',
+    institution_name: "PAGOF • Partenariat Gouvernement Ouvert",
+    year: 2023,
+    description: "Recueil des initiatives pionnières en matière de transparence budgétaire, lutte contre la corruption, accès à l'information et participation citoyenne en Afrique francophone.",
+    file_url: "https://pagof.fr/wp-content/uploads/2024/11/pagof_guidebonnespratiques_2023.pdf",
+    file_name: "pagof_guidebonnespratiques_2023.pdf",
+    file_size: "4.2 Mo",
+    file_format: "PDF",
+    published_at: "2023-12-01",
+    downloads_count: 0,
+    is_official: true,
+    tags: ["PAGOF", "Bonnes Pratiques", "OGP", "Afrique", "Transparence", "Gouvernance"]
   }
 ];
 
@@ -381,7 +461,9 @@ class DataStore {
       if (storedProjects) {
         const parsed = JSON.parse(storedProjects);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          this.projects = parsed.filter(isTangiblePhysicalProject);
+          const existingIds = new Set(parsed.map((p: any) => p.id));
+          const missingRaw = RAW_BUDGET_PROJECTS.filter(p => !existingIds.has(p.id)).filter(isTangiblePhysicalProject);
+          this.projects = [...missingRaw, ...parsed.filter(isTangiblePhysicalProject)];
         }
       }
     } catch (e) {
@@ -409,7 +491,9 @@ class DataStore {
       if (storedProofs) {
         const parsed = JSON.parse(storedProofs);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          this.proofs = parsed;
+          const existingIds = new Set(parsed.map((p: any) => p.id));
+          const missingDefaults = INITIAL_CITIZEN_PROOFS.filter(p => !existingIds.has(p.id));
+          this.proofs = [...parsed, ...missingDefaults];
         }
       }
     } catch (e) {
@@ -475,11 +559,25 @@ class DataStore {
     this.documents = [...INITIAL_PUBLIC_DOCUMENTS];
     try {
       const storedDocs = localStorage.getItem(STORAGE_KEYS.DOCUMENTS);
+      const isCleaned = localStorage.getItem('civicdata_real_downloads_reset_v1');
       if (storedDocs) {
-        const parsed = JSON.parse(storedDocs);
+        let parsed = JSON.parse(storedDocs);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          this.documents = parsed;
+          // One-time sanitization of old mock download counts in user's browser
+          if (!isCleaned) {
+            parsed = parsed.map((d: any) => ({
+              ...d,
+              downloads_count: 0,
+            }));
+            localStorage.setItem(STORAGE_KEYS.DOCUMENTS, JSON.stringify(parsed));
+            localStorage.setItem('civicdata_real_downloads_reset_v1', 'true');
+          }
+          const existingIds = new Set(parsed.map((d: any) => d.id));
+          const missingDefaults = INITIAL_PUBLIC_DOCUMENTS.filter(d => !existingIds.has(d.id));
+          this.documents = [...parsed, ...missingDefaults];
         }
+      } else {
+        localStorage.setItem('civicdata_real_downloads_reset_v1', 'true');
       }
     } catch (e) {
       console.warn("Could not read documents from localStorage", e);
@@ -580,10 +678,6 @@ class DataStore {
   }
 
   public getApprovedProofs(): CitizenProof[] {
-    const realApproved = this.proofs.filter(p => p.verification_status === 'APPROVED' && !p.is_demo);
-    if (realApproved.length > 0) {
-      return realApproved;
-    }
     return this.proofs.filter(p => p.verification_status === 'APPROVED');
   }
 
@@ -698,27 +792,80 @@ class DataStore {
   }
 
   // --- CITIZEN PROOF SUBMISSION & MODERATION ---
+  public generateTrackingCode(projectId: string, projectTitle?: string): string {
+    let code = 'PROJ';
+    const lowTitle = (projectTitle || '').toLowerCase();
+    const lowId = projectId.toLowerCase();
+
+    if (lowId.includes('seguela') || lowTitle.includes('séguéla') || lowTitle.includes('seguela')) {
+      code = 'SEGT';
+    } else if (lowTitle.includes('abidjan') || lowId.includes('abidjan')) {
+      code = 'ABID';
+    } else if (lowTitle.includes('bouak') || lowId.includes('bouak')) {
+      code = 'BOUA';
+    } else if (lowTitle.includes('yamoussoukro') || lowId.includes('yamoussoukro')) {
+      code = 'YAKR';
+    } else if (lowTitle.includes('korhogo') || lowId.includes('korhogo')) {
+      code = 'KORH';
+    } else if (lowTitle.includes('san-pedro') || lowTitle.includes('san pedro')) {
+      code = 'PEDR';
+    } else if (lowTitle.includes('goulia') || lowId.includes('goulia')) {
+      code = 'GOUL';
+    } else if (projectTitle) {
+      const cleanWords = projectTitle
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z]/g, ' ')
+        .trim()
+        .split(/\s+/)
+        .filter(w => w.length >= 3 && !['les', 'des', 'aux', 'axe', 'sur', 'pour', 'avec', 'dans', 'une', 'par'].includes(w.toLowerCase()));
+      if (cleanWords.length > 0) {
+        code = cleanWords[0].substring(0, 4).toUpperCase();
+      }
+    }
+
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const dateStr = `${yyyy}${mm}${dd}`;
+
+    const prefix = `CST-${code}-${dateStr}`;
+    const todaysCount = this.proofs.filter(p => p.tracking_code && p.tracking_code.startsWith(prefix)).length + 1;
+    const seqStr = String(todaysCount).padStart(3, '0');
+
+    return `${prefix}-${seqStr}`;
+  }
+
   public submitProof(proofData: {
     project_id: string;
     image_url: string;
+    secondary_image_url?: string;
     video_url?: string;
     media_type?: 'IMAGE' | 'VIDEO';
     citizen_status_claim: ProjectStatus;
     comment: string;
     locality_details?: string;
     citizen_name?: string;
+    citizen_whatsapp?: string;
+    signboard_status?: 'PRESENT' | 'ABSENT' | 'UNSPECIFIED';
   }): CitizenProof {
     const project = this.getProjectById(proofData.project_id);
+    const trackingCode = this.generateTrackingCode(proofData.project_id, project?.title);
+
     const newProof: CitizenProof = {
       id: `proof-${Date.now()}`,
+      tracking_code: trackingCode,
       project_id: proofData.project_id,
       project_title: project ? project.title : 'Projet d\'infrastructure locale',
       commune_name: project ? project.commune_name : 'Côte d\'Ivoire',
       region_name: project ? project.region_name : '',
       citizen_name: proofData.citizen_name || 'Citoyen Observateur',
       user_name: proofData.citizen_name || 'Citoyen Observateur',
+      citizen_whatsapp: proofData.citizen_whatsapp,
+      signboard_status: proofData.signboard_status || 'UNSPECIFIED',
       image_url: proofData.image_url,
       photo_url: proofData.image_url,
+      secondary_image_url: proofData.secondary_image_url,
       video_url: proofData.video_url,
       media_type: proofData.media_type || (proofData.video_url ? 'VIDEO' : 'IMAGE'),
       citizen_status_claim: proofData.citizen_status_claim,
@@ -726,6 +873,7 @@ class DataStore {
       locality_details: proofData.locality_details || (project ? project.locality_village_neighborhood : ''),
       verification_status: 'PENDING',
       confirmations_count: 1,
+      is_demo: false,
       created_at: new Date().toISOString(),
     };
 
@@ -738,12 +886,16 @@ class DataStore {
       safeSupabaseExec(
         supabase.from('citizen_proofs').insert([{
           id: newProof.id,
+          tracking_code: newProof.tracking_code,
           project_id: newProof.project_id,
           project_title: newProof.project_title,
           commune_name: newProof.commune_name,
           region_name: newProof.region_name,
           citizen_name: newProof.citizen_name,
+          citizen_whatsapp: newProof.citizen_whatsapp,
+          signboard_status: newProof.signboard_status,
           image_url: newProof.image_url,
+          secondary_image_url: newProof.secondary_image_url,
           video_url: newProof.video_url,
           media_type: newProof.media_type,
           citizen_status_claim: newProof.citizen_status_claim,
@@ -758,13 +910,43 @@ class DataStore {
     return newProof;
   }
 
-  public confirmProof(proofId: string) {
+  // --- ANTI-MULTI-CLICS & SECURED CONFIRMATIONS ---
+  public hasUserConfirmed(targetId: string): boolean {
+    try {
+      const stored = localStorage.getItem('civicdata_confirmed_targets');
+      if (!stored) return false;
+      const list: string[] = JSON.parse(stored);
+      return Array.isArray(list) && list.includes(targetId);
+    } catch {
+      return false;
+    }
+  }
+
+  public recordLocalConfirmation(targetId: string): void {
+    try {
+      const stored = localStorage.getItem('civicdata_confirmed_targets');
+      const list: string[] = stored ? JSON.parse(stored) : [];
+      if (!list.includes(targetId)) {
+        list.push(targetId);
+        localStorage.setItem('civicdata_confirmed_targets', JSON.stringify(list));
+      }
+    } catch {}
+  }
+
+  public confirmProof(proofId: string): { success: boolean; alreadyConfirmed?: boolean } {
+    if (this.hasUserConfirmed(proofId)) {
+      return { success: false, alreadyConfirmed: true };
+    }
+
     const idx = this.proofs.findIndex(p => p.id === proofId);
     if (idx !== -1) {
       this.proofs[idx].confirmations_count = (this.proofs[idx].confirmations_count || 1) + 1;
+      this.recordLocalConfirmation(proofId);
       this.saveProofs();
       this.notify();
+      return { success: true };
     }
+    return { success: false };
   }
 
   public moderateProof(proofId: string, status: 'APPROVED' | 'REJECTED', moderatorNotes?: string) {

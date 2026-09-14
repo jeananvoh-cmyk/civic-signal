@@ -321,33 +321,33 @@ export const OfficialDocRequestModal: React.FC<OfficialDocRequestModalProps> = (
     });
 
     const senderLines = [
-      `Demandeur : ${citizenName || '[Nom et Prénom]'}`,
+      citizenName || '[Nom et Prénom du demandeur]',
       userStatus !== 'CITOYEN' 
         ? `Qualité : ${userStatus === 'JOURNALISTE' ? 'Journaliste Professionnel' : userStatus === 'CHERCHEUR' ? 'Chercheur / Universitaire' : 'Organisation de la Société Civile (OSC)'}` 
         : null,
-      `Email : ${citizenEmail || '[Email de réception]'}`,
+      citizenEmail ? `Email : ${citizenEmail}` : null,
       citizenPhone?.trim() ? `Téléphone : ${citizenPhone.trim()}` : null,
       citizenAddress?.trim() ? `Résidence : ${citizenAddress.trim()}` : null,
     ].filter(Boolean).join('\n');
 
     const fullText = 
       `DEMANDE DE COMMUNICATION DE DOCUMENTS ADMINISTRATIFS\n` +
-      `Application de la Loi n°2013-867 du 23 décembre 2013\n` +
-      `Réf. demandeur : ${referenceNumber} — Fait le ${todayStr}\n\n` +
+      `En application de la Loi n° 2013-867 du 23 décembre 2013\n` +
+      `Fait le ${todayStr}\n\n` +
       `${senderLines}\n\n` +
-      `Destinataire : ${dynamicRecipientTitle.replace(/\n/g, ' - ')}\n` +
+      `À l'attention de :\n${dynamicRecipientTitle}\n` +
       (hasDirectEmail ? `Email : ${displayEmail}\n` : '') +
       `\n` +
       `Objet : ${documentSubject}\n\n` +
       `${dynamicSalutation},\n\n` +
-      `Dans le cadre des dispositions de la Loi n°2013-867 du 23 décembre 2013 relative à l'accès à l'information d'intérêt public en République de Côte d'Ivoire, j'ai l'honneur de solliciter la bienveillante communication des documents suivants relatifs à votre organisme :\n\n` +
+      `Dans le cadre des dispositions de la Loi n° 2013-867 du 23 décembre 2013 relative à l'accès à l'information d'intérêt public en République de Côte d'Ivoire, j'ai l'honneur de solliciter la bienveillante communication des pièces administratives suivantes concernant votre organisme :\n\n` +
       `${formattedDocumentList}\n\n` +
-      `Je vous remercie par avance de l'attention portée à cette démarche constructive et d'intérêt général, et vous saurais gré de bien vouloir mettre ces éléments à disposition par voie électronique à l'adresse indiquée ci-dessus ou de m'indiquer les modalités pratiques de leur consultation.\n\n` +
-      `Je reste à votre entière disposition pour tout renseignement facilitant le traitement de cette demande.\n\n` +
-      `Veuillez agréer, ${dynamicSalutation}, l'expression de mes salutations distinguées et respectueuses.\n\n` +
+      `Je vous remercie par avance de l'attention bienveillante portée à cette démarche constructive, et vous saurais gré de bien vouloir mettre ces éléments à disposition par voie électronique à l'adresse indiquée ci-dessus ou de m'indiquer les modalités pratiques de leur consultation.\n\n` +
+      `Je reste à votre entière disposition pour tout renseignement complémentaire facilitant le traitement de cette demande.\n\n` +
+      `Je vous prie d'agréer, ${dynamicSalutation}, l'assurance de mes salutations distinguées et respectueuses.\n\n` +
       `${citizenName || '[Nom du Demandeur]'}\n\n` +
       `---\n` +
-      `Document préparé via la plateforme civique SuiviBudget Côte d'Ivoire (suivibudget.ci) • Réf. : ${referenceNumber}`;
+      `Réf. de suivi citoyen : ${referenceNumber}`;
 
     navigator.clipboard.writeText(fullText);
     setIsCopied(true);
@@ -383,14 +383,12 @@ export const OfficialDocRequestModal: React.FC<OfficialDocRequestModalProps> = (
 
     const body = encodeURIComponent(
       `${dynamicSalutation},\n\n` +
-      `Dans le cadre de la démarche citoyenne d'accès aux documents publics garantie par la Loi n°2013-867 du 23 décembre 2013 en République de Côte d'Ivoire, j'ai l'honneur de solliciter respectueusement la communication des documents administratifs suivants relatifs à votre organisme :\n\n` +
+      `Dans le cadre de la démarche citoyenne d'accès aux documents administratifs prévue par la Loi n° 2013-867 du 23 décembre 2013 en République de Côte d'Ivoire, je me permets de vous solliciter pour la communication des pièces officielles suivantes concernant votre organisme :\n\n` +
       `${formattedDocumentList}\n\n` +
-      `Je vous remercie par avance pour l'attention bienveillante que vous porterez à cette démarche d'intérêt général et vous saurais gré de bien vouloir m'adresser ces éléments par voie électronique (en pièce jointe ou via un lien officiel de consultation) en réponse à ce courriel.\n\n` +
-      `Je reste à votre entière disposition pour tout renseignement facilitant le traitement de cette demande.\n\n` +
-      `Veuillez agréer, ${dynamicSalutation}, l'expression de mes salutations distinguées et respectueuses.\n\n` +
-      `${senderSignature}\n\n` +
-      `---\n` +
-      `Demande formulée via la plateforme civique SuiviBudget (suivibudget.ci) • Réf. : ${referenceNumber}`
+      `Je vous remercie vivement pour votre disponibilité et vous saurais gré de bien vouloir m'indiquer par retour de courriel les modalités de mise à disposition de ces éléments (en pièces jointes ou via un lien officiel de consultation).\n\n` +
+      `Restant à votre entière disposition pour toute précision utile,\n\n` +
+      `Je vous prie d'agréer, ${dynamicSalutation}, l'assurance de mes salutations distinguées et respectueuses.\n\n` +
+      `${senderSignature}`
     );
 
     window.location.href = `mailto:${recipientEmail}?subject=${subject}&body=${body}`;
@@ -891,7 +889,6 @@ export const OfficialDocRequestModal: React.FC<OfficialDocRequestModalProps> = (
                 {/* Letter Headers (Sender on Left & Recipient on Right) */}
                 <div className="grid grid-cols-2 gap-4 font-sans text-xs pt-1">
                   <div className="bg-slate-50 print:bg-transparent p-3 print:p-0 rounded-xl border border-slate-200 print:border-none space-y-0.5 text-[11px]">
-                    <span className="font-black text-slate-400 uppercase text-[9px] block mb-0.5">LE DEMANDEUR :</span>
                     <p className="font-bold text-slate-900 text-xs">{citizenName || '[Nom et Prénom du demandeur]'}</p>
                     {userStatus !== 'CITOYEN' && (
                       <p className="text-brand-blue font-semibold text-[10px]">
@@ -904,7 +901,6 @@ export const OfficialDocRequestModal: React.FC<OfficialDocRequestModalProps> = (
                   </div>
 
                   <div className="bg-blue-50/40 print:bg-transparent p-3 print:p-0 rounded-xl border border-blue-100 print:border-none space-y-0.5 text-right text-[11px]">
-                    <span className="font-black text-brand-blue uppercase text-[9px] block mb-0.5">DESTINATAIRE :</span>
                     <p className="font-bold text-slate-900 text-xs whitespace-pre-line leading-snug">
                       {dynamicRecipientTitle}
                     </p>

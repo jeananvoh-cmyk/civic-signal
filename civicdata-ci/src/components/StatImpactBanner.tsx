@@ -1,6 +1,5 @@
 import React from 'react';
 import { ImpactStats } from '../types';
-import { Building2, FileSpreadsheet, CheckCircle2, TrendingUp } from 'lucide-react';
 import { formatCompactFCFA } from '../utils/formatters';
 
 interface StatImpactBannerProps {
@@ -8,78 +7,70 @@ interface StatImpactBannerProps {
 }
 
 export const StatImpactBanner: React.FC<StatImpactBannerProps> = ({ stats }) => {
+  const verifiedCount = stats.verifiedProofsCount || 0;
+
   return (
-    <div className="relative -mt-7 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-20">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
-        {/* Card 1: Communes & Régions */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover border border-slate-100 transition-all flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Territoire</span>
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-navy-700 flex items-center justify-center">
-              <Building2 className="w-4 h-4" />
-            </div>
+        {/* Card 1: Territoires (234 Collectivités) */}
+        <div className="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between">
+          <div className="mb-4">
+            <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider">Territoires</span>
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-navy-900 font-sans tracking-tight">
-              {stats.totalCommunes}
+            <div className="text-3xl font-black text-slate-900 tracking-tight">
+              234
             </div>
-            <p className="text-xs text-slate-600 font-medium mt-0.5">
-              Communes & {stats.totalRegions} Régions
+            <p className="text-xs text-slate-600 font-semibold mt-1.5 leading-snug">
+              201 communes + 33 régions et districts
             </p>
           </div>
         </div>
 
-        {/* Card 2: Lignes Budgétaires */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover border border-slate-100 transition-all flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Lignes 2026</span>
-            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-              <FileSpreadsheet className="w-4 h-4" />
-            </div>
+        {/* Card 2: Lignes Budgétaires / Chantiers */}
+        <div className="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between">
+          <div className="mb-4">
+            <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider">Lignes Budgétaires</span>
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-navy-900 font-sans tracking-tight">
+            <div className="text-3xl font-black text-slate-900 tracking-tight">
               {stats.totalBudgetLines.toLocaleString('fr-FR')}
             </div>
-            <p className="text-xs text-slate-600 font-medium mt-0.5">
-              Lignes de dotations analysées
+            <p className="text-xs text-slate-600 font-semibold mt-1.5 leading-snug">
+              Dotations & programmes analysés
             </p>
           </div>
         </div>
 
         {/* Card 3: Montant Investissements */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover border border-slate-100 transition-all flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Investissements</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4" />
-            </div>
+        <div className="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between">
+          <div className="mb-4">
+            <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider">Investissements</span>
           </div>
           <div>
-            <div className="text-xl sm:text-2xl font-extrabold text-emerald-600 font-sans tracking-tight">
-              {formatCompactFCFA(stats.totalInvestmentsFcfa || 185000000000)}
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              {formatCompactFCFA(stats.totalInvestmentsFcfa || 175648952140)}
             </div>
-            <p className="text-xs text-slate-600 font-medium mt-0.5">
-              Budget voté Loi de Finances
+            <p className="text-xs text-slate-600 font-semibold mt-1.5 leading-snug">
+              Montant voté Loi de Finances
             </p>
           </div>
         </div>
 
-        {/* Card 4: Preuves Vérifiées */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover border border-slate-100 transition-all flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Contrôle Citoyen</span>
-            <div className="w-8 h-8 rounded-lg bg-terracotta-50 text-terracotta-600 flex items-center justify-center">
-              <CheckCircle2 className="w-4 h-4" />
-            </div>
+        {/* Card 4: Contrôle Citoyen Dynamique */}
+        <div className="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between">
+          <div className="mb-4">
+            <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider">Contrôle Citoyen</span>
           </div>
           <div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-terracotta-600 font-sans tracking-tight">
-              {stats.proofsVerificationRate}%
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              {verifiedCount > 0 ? `${verifiedCount} Constat${verifiedCount > 1 ? 's' : ''}` : '0 Constat'}
             </div>
-            <p className="text-xs text-slate-600 font-medium mt-0.5">
-              Taux de preuves vérifiées
+            <p className="text-xs text-slate-600 font-semibold mt-1.5 leading-snug">
+              {verifiedCount > 0 
+                ? `${verifiedCount} contribution${verifiedCount > 1 ? 's' : ''} certifiée${verifiedCount > 1 ? 's' : ''} sur le terrain` 
+                : 'Auditable avec preuves de terrain'}
             </p>
           </div>
         </div>

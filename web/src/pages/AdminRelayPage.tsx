@@ -17,99 +17,15 @@ import { toast } from "@/hooks/use-toast";
 import { format, isToday, isThisWeek, isThisMonth, isThisYear, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { findNearestCommune } from "@/lib/communes";
-import { extractInfraLabel, infraEmoji, cleanDescription, INFRA_CIE, INFRA_SODECI, isInfraLabel } from "@/lib/report-display";
+import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
 import { exportMunicipalPDF, exportConcessionnairePDF, exportRegulatorPDF } from "@/lib/export-pdf";
-
-/**
- * Rigorously distinguishes Infrastructure reports (lampadaire, fuite, caniveau, poteau) from Service Outages (coupures d'eau/électricité).
- */
-function checkIfInfra(category?: string | null, description?: string | null): boolean {
-  const desc = (description || "").trim();
-  const tag = desc ? extractInfraLabel(desc) : null;
-  
-  if (tag) {
-    const lowerTag = tag.toLowerCase();
-    // Explicit outage keywords override
-    if (lowerTag.includes("coupure") || lowerTag.includes("outage") || lowerTag.includes("interruption") || lowerTag.includes("panne d'électricité") || lowerTag.includes("panne d'eau")) {
-      return false;
-    }
-    if (INFRA_CIE.has(tag) || INFRA_SODECI.has(tag) || isInfraLabel(tag)) {
-      return true;
-    }
-  }
-
-  const cat = (category || "").toLowerCase();
-  if (cat === "outage" || cat.includes("outage") || cat.includes("coupure")) return false;
-  if (cat === "infrastructure" || cat.includes("infra") || cat.includes("eclairage") || cat.includes("voirie") || cat.includes("street_light") || cat.includes("water_leak")) return true;
-
-  return false;
-}
-
-interface RelayLog {
-  id: string;
-  report_id: string;
-  operator: "CIE" | "SODECI" | "MAIRIE" | "ONEP" | "ANARE";
-  email_to: string;
-  status: "pending" | "sent" | "error";
-  error_message: string | null;
-  created_at: string;
-  sent_at: string | null;
-  wa_sent_at: string | null;
-  cie_ticket_number: string | null;
-  cie_ticket_at: string | null;
-  report?: {
-    id: string;
-    created_at?: string | null;
-    commune: string;
-    location?: string | null;
-    quartier: string;
-    custom_quartier?: string | null;
-    address_text?: string | null;
-    landmark?: string | null;
-    description?: string | null;
-    category?: string | null;
-    service_type: string;
-    verifications: number;
-    urgency: string;
-    meter_number?: string | null;
-    contract_type?: string | null;
-    latitude?: number | null;
-    longitude?: number | null;
-    user_id?: string;
-    reporter_phone?: string | null;
-    profile_commune?: string | null;
-    profile_quartier?: string | null;
-  };
-}
-
-interface RelayGroup {
-  key: string;
-  operator: "CIE" | "SODECI" | "MAIRIE" | "ONEP" | "ANARE";
-  commune: string;
-  email_to: string;
-  relayIds: string[];
-  quartiers: Array<{
-    name: string;
-    verifications: number;
-    urgency: string;
-    count?: number;
-    addressText?: string | null;
-    landmark?: string | null;
-    description?: string | null;
-    category?: string | null;
-    serviceType?: string | null;
-    createdAt?: string | null;
-    lat?: number | null;
-    lng?: number | null;
-    reportId?: string | null;
-  }>;
-  totalConfirmations: number;
-  hasCritical: boolean;
-  meterNumbers: string[];
-  reporters: Array<{ phone: string | null; meterNumber: string | null; contractType: string | null; quartier: string }>;
-  waSentAt: string | null;
-  cieTicketNumber: string | null;
-}
+import {
+  checkIfInfra,
+  type RelayLog,
+  type RelayGroup,
+  type RelayOperator,
+  type RelayStatus,
+} from "@/features/pro";
 
 const KNOWN_COMMUNES = [
   "Abobo", "Adjamé", "Attécoubé", "Anyama", "Bingerville",

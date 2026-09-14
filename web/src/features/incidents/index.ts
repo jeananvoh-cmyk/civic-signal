@@ -10,3 +10,8 @@ export { default as VerificationPage } from "@/pages/VerificationPage";
 export { default as CorroborationStatus } from "@/components/CorroborationStatus";
 export { default as NeighborCorroboration } from "@/components/NeighborCorroboration";
 export { default as PhotoUpload } from "@/components/PhotoUpload";
+export { default as ChildReportsList } from "./ChildReportsList";
+
+export * from "./types";
+export * from "./constants";
+

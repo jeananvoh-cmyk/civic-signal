@@ -6,7 +6,8 @@ import {
   ArrowLeft, Zap, Droplets, MapPin, Calendar, CheckCircle2,
   Clock, Users, AlertTriangle, ExternalLink, Loader2, Shield, ThumbsUp,
   LogIn, UserPlus, Wrench, PartyPopper, Radio, AlertOctagon,
-  Ticket, Landmark, Copy, Check, Pencil, X, Save, ShieldCheck, Camera, FileCheck2
+  Ticket, Landmark, Copy, Check, Pencil, X, Save, ShieldCheck, Camera, FileCheck2,
+  Layers, HardHat
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -19,6 +20,7 @@ import ShareButton from "@/components/ShareButton";
 import ReportComments from "@/components/ReportComments";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { RepairDeclarationDialog } from "@/components/RepairDeclarationDialog";
+import { ChildReportsList, type ChildReportSummary } from "@/features/incidents";
 import { supabase } from "@/integrations/supabase/client";
 import { COMMUNE_COLORS } from "@/lib/communes";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -65,6 +67,13 @@ interface ReportDetail {
   repair_declared_at?: string | null;
   repair_status?: string | null;
   resolved_with_transfer?: boolean | null;
+  parent_incident_id?: string | null;
+  child_reports_count?: number;
+  is_incident_master?: boolean;
+  intervention_team?: string | null;
+  intervention_work_order?: string | null;
+  intervention_started_at?: string | null;
+  intervention_status?: string | null;
 }
 
 const SERVICE_LABELS: Record<string, string> = {
@@ -172,8 +181,10 @@ const ReportDetailPage = () => {
   const [resolving, setResolving] = useState(false);
   const [reopening, setReopening] = useState(false);
   const [isRepairDialogOpen, setIsRepairDialogOpen] = useState(false);
+  const [childReports, setChildReports] = useState<ChildReportSummary[]>([]);
 
   const isElecMeta = report?.service_type === "electricity";
+
   const isInfraMeta = report?.report_category === "infrastructure";
   const metaDesc = report
     ? isInfraMeta
@@ -288,10 +299,26 @@ const ReportDetailPage = () => {
         repair_declared_at: data.repair_declared_at,
         repair_status: data.repair_status || "none",
         resolved_with_transfer: data.resolved_with_transfer,
+        parent_incident_id: data.parent_incident_id || null,
+        child_reports_count: Number(data.child_reports_count || 0),
+        is_incident_master: data.is_incident_master !== false,
+        intervention_team: data.intervention_team || null,
+        intervention_work_order: data.intervention_work_order || null,
+        intervention_started_at: data.intervention_started_at || null,
+        intervention_status: data.intervention_status || null,
       };
 
       setReport(formattedReport);
       setNotFound(false);
+
+      // Charger les signalements enfants fédérés sous cet incident
+      (supabase as any)
+        .rpc("get_incident_child_reports", { p_parent_incident_id: id })
+        .then(({ data: childData, error: childErr }: any) => {
+          if (!childErr && childData && Array.isArray(childData)) {
+            setChildReports(childData as ChildReportSummary[]);
+          }
+        });
 
       if (isResolveAction && formattedReport.status !== "resolved") {
         toast.info("⚡ Confirmez si le service est rétabli en cliquant sur 'Oui, rétabli !'", { duration: 6000 });
@@ -306,6 +333,7 @@ const ReportDetailPage = () => {
         .then(({ data: histData }) => {
           if (histData) setStatusHistory(histData);
         });
+
 
       // Vérifier si l'utilisateur a déjà soutenu / corroboré
       if (user) {
@@ -379,9 +407,10 @@ const ReportDetailPage = () => {
       try {
         const { data } = await supabase
           .from("reports")
-          .select("id, user_id, ticket_code, pada_commune_code, pada_street_name, pada_formatted_address, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, validated, validated_at, forwarded_to_operator_at, photo_url, photo_urls, verifications, repair_verifications, impacted_people, babies, pregnant, elderly, operator_name, operator_reference, estimated_resolution_time, operator_last_note, repair_photos, repair_note, repair_declared_at, repair_status, resolved_with_transfer")
+          .select("id, user_id, ticket_code, pada_commune_code, pada_street_name, pada_formatted_address, service_type, report_category, description, commune, quartier, status, urgency, created_at, start_time, resolved_at, validated, validated_at, forwarded_to_operator_at, photo_url, photo_urls, verifications, repair_verifications, impacted_people, babies, pregnant, elderly, operator_name, operator_reference, estimated_resolution_time, operator_last_note, repair_photos, repair_note, repair_declared_at, repair_status, resolved_with_transfer, parent_incident_id, child_reports_count, is_incident_master, intervention_team, intervention_work_order, intervention_started_at, intervention_status")
           .eq("id", id)
           .maybeSingle();
+
 
         if (data) {
           processReportData(data);
@@ -547,8 +576,38 @@ const ReportDetailPage = () => {
           </button>
         </div>
 
+        {/* ── Bannière de rattachement à un Incident Majeur ── */}
+        {report && report.parent_incident_id && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-5 rounded-2xl border-2 border-primary/30 bg-primary/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+                <Layers className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm font-bold text-foreground">
+                  Signalement rattaché à un Incident Majeur Fédéré
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Votre signalement a été regroupé avec ceux de votre quartier pour concentrer l'intervention technique sur le même équipement.
+                </p>
+              </div>
+            </div>
+            <Button asChild size="sm" className="text-xs font-bold shrink-0 gap-1.5 self-end sm:self-auto">
+              <Link to={`/signalement/${report.parent_incident_id}`}>
+                <span>Voir l'incident maître</span>
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </motion.div>
+        )}
+
         {/* ── Responsive Desktop 2-Column Grid ── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
           
           {/* ════ GAUCHE : Détails du signalement & Médias (col-span-7) ════ */}
           <div className="lg:col-span-7 space-y-4">
@@ -972,9 +1031,32 @@ const ReportDetailPage = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Ordre de travail et brigade d'intervention municipale / opérateur */}
+                  {(report.intervention_work_order || report.intervention_team) && (
+                    <div className="flex items-center justify-between text-xs pt-2 border-t border-border/50">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <HardHat className="h-3.5 w-3.5 text-primary" />
+                        Ordre de Travail :
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {report.intervention_work_order && (
+                          <span className="font-mono font-bold text-primary">
+                            {report.intervention_work_order}
+                          </span>
+                        )}
+                        {report.intervention_team && (
+                          <span className="text-[11px] text-muted-foreground">
+                            ({report.intervention_team})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Description */}
+
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Description</span>
@@ -1096,7 +1178,21 @@ const ReportDetailPage = () => {
               </div>
             </motion.div>
 
+            {/* ── Signalements Citoyens Fédérés sous cet Incident Majeur ── */}
+            {childReports.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <ChildReportsList
+                  childrenReports={childReports}
+                  parentTicketCode={report.ticket_code}
+                />
+              </motion.div>
+            )}
+
             {/* Encart officiel Opérateur */}
+
             {(report.operator_name || report.operator_reference || report.operator_last_note) && (
               <motion.div
                 initial={{ opacity: 0, y: 12 }}

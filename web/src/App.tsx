@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
@@ -51,19 +51,19 @@ function lazyWithRetry<T extends React.ComponentType<any>>(
   });
 }
 
-// Pages publiques principales importées directement pour garantir 0 erreur de chargement
+// Pages publiques immédiates (First Contentful Paint optimisé)
 import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
-import ReportPage from "./pages/ReportPage";
-import DashboardPage from "./pages/DashboardPage";
-import MapPage from "./pages/MapPage";
-import InfrastructurePage from "./pages/InfrastructurePage";
-import ReportDetailPage from "./pages/ReportDetailPage";
-import TransparencyPage from "./pages/TransparencyPage";
-import SuiviPage from "./pages/SuiviPage";
-import CommuneDetailPage from "./pages/CommuneDetailPage";
 
-// Pages secondaires et administration chargées en différé avec reprise automatique
+// Pages chargées en différé avec reprise automatique transparente
+const ReportPage = lazyWithRetry(() => import("./pages/ReportPage"));
+const DashboardPage = lazyWithRetry(() => import("./pages/DashboardPage"));
+const MapPage = lazyWithRetry(() => import("./pages/MapPage"));
+const InfrastructurePage = lazyWithRetry(() => import("./pages/InfrastructurePage"));
+const ReportDetailPage = lazyWithRetry(() => import("./pages/ReportDetailPage"));
+const TransparencyPage = lazyWithRetry(() => import("./pages/TransparencyPage"));
+const SuiviPage = lazyWithRetry(() => import("./pages/SuiviPage"));
+const CommuneDetailPage = lazyWithRetry(() => import("./pages/CommuneDetailPage"));
 const VerificationPage = lazyWithRetry(() => import("./pages/VerificationPage"));
 const ProfilePage = lazyWithRetry(() => import("./pages/ProfilePage"));
 const AdminLayout = lazyWithRetry(() => import("@/components/AdminLayout"));
@@ -181,7 +181,9 @@ const App = () => {
                     <Route path="/" element={<Index />} />
                     <Route path="/auth" element={<AuthPage />} />
                     <Route path="/signaler" element={<ReportPage />} />
+                    <Route path="/signalement" element={<Navigate to="/signaler" replace />} />
                     <Route path="/tableau-de-bord" element={<DashboardPage />} />
+                    <Route path="/tableau-de-bord/citizen" element={<Navigate to="/tableau-de-bord" replace />} />
                     <Route path="/carte" element={<MapPage />} />
                     <Route path="/commune/:communeName" element={<CommuneDetailPage />} />
                     <Route path="/verification" element={<ProtectedRoute><VerificationPage /></ProtectedRoute>} />

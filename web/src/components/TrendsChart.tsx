@@ -401,7 +401,7 @@ const TrendsChart = ({ className = "" }: TrendsChartProps) => {
               <span>Activer la Simulation Abidjan</span>
             </button>
             <Link
-              to="/signalement"
+              to="/signaler"
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-primary/30 text-primary text-xs font-bold hover:bg-primary/10"
             >
               <PlusCircle className="h-3.5 w-3.5" />

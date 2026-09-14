@@ -6,8 +6,9 @@ import {
   Clock, CheckCircle2, Loader2, AlertTriangle, RefreshCw,
   TrendingUp, MessageSquare, Send, BarChart3, Ticket,
   Shield, Download, Filter, Search, ChevronRight,
-  Sparkles, CheckCircle, ExternalLink
+  Sparkles, CheckCircle, ExternalLink, Layers, HardHat, Camera,
 } from "lucide-react";
+import { ResolutionTimelineModal, type FieldIntervention } from "@/features/pro/interventions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +48,21 @@ interface Report {
   operator_reference?: string | null;
   estimated_resolution_time?: string | null;
   operator_last_note?: string | null;
+  photo_url?: string | null;
+  photo_urls?: string[] | null;
+  proof_photo_url?: string | null;
+  proof_notes?: string | null;
+  proof_submitted_at?: string | null;
+  proof_verified?: boolean | null;
+  proof_verified_by?: string | null;
+  proof_verified_at?: string | null;
+  proof_rejection_reason?: string | null;
+  child_reports_count?: number;
+  is_incident_master?: boolean;
+  intervention_team?: string | null;
+  intervention_work_order?: string | null;
+  intervention_started_at?: string | null;
+  intervention_status?: string | null;
 }
 
 interface OperatorTheme {
@@ -193,6 +209,7 @@ const PartnerDashboardPage = () => {
   const [actionEtaHours, setActionEtaHours] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [communeFilter, setCommuneFilter] = useState("all");
+  const [selectedTimelineIntervention, setSelectedTimelineIntervention] = useState<FieldIntervention | null>(null);
 
   // Vérifier le rôle partenaire
   const { data: isPartner, isLoading: roleLoading } = useQuery({
@@ -250,6 +267,21 @@ const PartnerDashboardPage = () => {
         operator_reference: r.operator_reference,
         estimated_resolution_time: r.estimated_resolution_time,
         operator_last_note: r.operator_last_note,
+        photo_url: r.photo_url ?? null,
+        photo_urls: r.photo_urls ?? null,
+        proof_photo_url: r.proof_photo_url ?? null,
+        proof_notes: r.proof_notes ?? null,
+        proof_submitted_at: r.proof_submitted_at ?? null,
+        proof_verified: r.proof_verified ?? null,
+        proof_verified_by: r.proof_verified_by ?? null,
+        proof_verified_at: r.proof_verified_at ?? null,
+        proof_rejection_reason: r.proof_rejection_reason ?? null,
+        child_reports_count: r.child_reports_count ?? 0,
+        is_incident_master: r.is_incident_master ?? true,
+        intervention_team: r.intervention_team ?? null,
+        intervention_work_order: r.intervention_work_order ?? null,
+        intervention_started_at: r.intervention_started_at ?? null,
+        intervention_status: r.intervention_status ?? "unassigned",
       })) as Report[];
     },
     enabled: !!user && isPartner === true && !!partnerProfile,
@@ -462,9 +494,20 @@ const PartnerDashboardPage = () => {
             <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-primary bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-lg">
               <Ticket className="h-3 w-3" /> {report.ticket_code || `SIG-${(report.commune || "CI").slice(0,3).toUpperCase()}-${report.id.slice(0,4).toUpperCase()}`}
             </span>
+            {Boolean(report.child_reports_count && report.child_reports_count > 0) && (
+              <Badge variant="outline" className="text-[11px] font-bold bg-primary/10 text-primary border-primary/30 flex items-center gap-1">
+                <Layers className="h-3 w-3" />
+                +{report.child_reports_count} signalement{report.child_reports_count > 1 ? "s" : ""} regroupé{report.child_reports_count > 1 ? "s" : ""}
+              </Badge>
+            )}
             {report.operator_reference && (
               <span className="inline-flex items-center text-[11px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-lg border border-border">
                 Réf: {report.operator_reference}
+              </span>
+            )}
+            {report.intervention_team && (
+              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-lg border border-border">
+                <HardHat className="h-3 w-3 text-amber-500" /> Équipe: {report.intervention_team}
               </span>
             )}
             {report.operator_last_note && (
@@ -520,6 +563,44 @@ const PartnerDashboardPage = () => {
                   <RefreshCw className="mr-1.5 h-3 w-3" /> Rouvrir le dossier
                 </Button>
               )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs font-semibold border-border text-foreground hover:bg-muted"
+                onClick={() => {
+                  setSelectedTimelineIntervention({
+                    id: report.id,
+                    ticket_code: report.ticket_code || null,
+                    service_type: report.service_type,
+                    report_category: report.report_category,
+                    commune: report.commune,
+                    quartier: report.quartier,
+                    description: report.description,
+                    status: report.status,
+                    urgency: report.urgency,
+                    created_at: report.created_at,
+                    resolved_at: report.resolved_at || null,
+                    operator_reference: report.operator_reference || null,
+                    operator_last_note: report.operator_last_note || null,
+                    photo_url: report.photo_url || null,
+                    photo_urls: report.photo_urls || null,
+                    proof_photo_url: report.proof_photo_url || null,
+                    proof_notes: report.proof_notes || null,
+                    proof_submitted_at: report.proof_submitted_at || null,
+                    proof_verified: report.proof_verified || null,
+                    proof_verified_by: report.proof_verified_by || null,
+                    proof_verified_at: report.proof_verified_at || null,
+                    proof_rejection_reason: report.proof_rejection_reason || null,
+                    child_reports_count: report.child_reports_count || 0,
+                    intervention_team: report.intervention_team || null,
+                    intervention_work_order: report.intervention_work_order || null,
+                    intervention_started_at: report.intervention_started_at || null,
+                    intervention_status: (report.intervention_status as any) || "unassigned",
+                  });
+                }}
+              >
+                <Camera className="mr-1.5 h-3.5 w-3.5 text-primary" /> Preuves & Timeline
+              </Button>
             </div>}
 
             <a
@@ -742,6 +823,37 @@ const PartnerDashboardPage = () => {
             </DialogContent>
           </Dialog>
         )}
+
+        {/* Modal Timeline & Preuves Photo de Résolution */}
+        <ResolutionTimelineModal
+          intervention={selectedTimelineIntervention}
+          open={!!selectedTimelineIntervention}
+          onClose={() => setSelectedTimelineIntervention(null)}
+          onUpdateStatus={async (payload) => {
+            if (!selectedTimelineIntervention) return;
+            try {
+              const { error } = await supabase.rpc("operator_update_ticket", {
+                p_report_id: payload.reportId,
+                p_status: payload.status || null,
+                p_operator_name: partnerProfile?.organization_name || currentTheme.fullName,
+                p_operator_reference: payload.workOrder || null,
+                p_public_note: payload.proofNotes || null,
+                p_intervention_team: payload.team || null,
+                p_intervention_work_order: payload.workOrder || null,
+                p_proof_notes: payload.proofNotes || null,
+                p_proof_photo_url: payload.proofPhotoUrl || null,
+                p_proof_verified: payload.proofVerified ?? null,
+                p_proof_rejection_reason: payload.rejectionReason || null,
+              });
+              if (error) throw error;
+              queryClient.invalidateQueries({ queryKey: ["partner-reports"] });
+              toast.success("Dossier d'intervention et preuves mis à jour avec succès");
+              setSelectedTimelineIntervention(null);
+            } catch (err: any) {
+              toast.error(err.message || "Erreur lors de la mise à jour");
+            }
+          }}
+        />
       </main>
       <Footer />
     </div>
