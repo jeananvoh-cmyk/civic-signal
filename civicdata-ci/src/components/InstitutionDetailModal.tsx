@@ -899,7 +899,7 @@ export const InstitutionDetailModal: React.FC<InstitutionDetailModalProps> = ({
                   <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs">
                     <div className="flex items-center gap-2 font-black text-slate-800 uppercase tracking-wider text-[11px]">
                       <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                      <span>Engagement de Rigueur & Crédibilité Citoyenne CivicData-CI</span>
+                      <span>Engagement de Rigueur & Crédibilité Citoyenne Suivi Budget CI</span>
                     </div>
                     <p className="text-slate-600 leading-relaxed font-medium">
                       Conformément à notre charte de vérifiabilité, <strong>aucun chiffre estimé ou non certifié n'est publié sur cette plateforme</strong>. Des courriers officiels de demande d'accès aux documents administratifs (Loi n°2013-867 relative à la CAIDP) sont en cours de dépôt auprès des services de la Mairie pour obtenir la délibération certifiée du Budget Primitif 2026 approuvé par la tutelle (DGDD / Ministère de l'Intérieur).

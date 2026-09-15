@@ -311,7 +311,7 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5 text-xs text-slate-600">
                 <div className="flex items-center gap-2 font-bold text-slate-800 text-[11px] uppercase tracking-wider">
                   <ShieldCheck className="w-4 h-4 text-brand-blue" />
-                  <span>Méthodologie Civique CivicData-CI : « Double Regard »</span>
+                  <span>Méthodologie Civique Suivi Budget CI : « Double Regard »</span>
                 </div>
                 <p className="leading-relaxed">
                   Le pourcentage affiché est la <strong>déclaration administrative officielle</strong> de l'autorité publique ou du bailleur de fonds. Sur le terrain, nos observateurs citoyens et riverains n'ont pas à deviner un pourcentage d'ingénierie : ils attestent de jalons factuels (présence du panneau légal, ouvriers et engins actifs, gros œuvre en cours, ou clôture du chantier).

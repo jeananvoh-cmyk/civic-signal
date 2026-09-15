@@ -1,4 +1,4 @@
-// Types for CivicData CI Platform
+// Types for Suivi Budget CI Platform
 
 export type ProjectStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
 

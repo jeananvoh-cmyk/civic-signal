@@ -202,14 +202,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       let message = '';
       if (status === 'APPROVED') {
         message = `Bonjour ${proof.citizen_name || 'cher citoyen'},\n\n` +
-          `✅ Votre constat citoyen [${trackingCode}] concernant le chantier "${projectTitle}" a été vérifié et VALIDÉ par l'équipe de modération de CivicData CI.\n\n` +
+          `✅ Votre constat citoyen [${trackingCode}] concernant le chantier "${projectTitle}" a été vérifié et VALIDÉ par l'équipe de modération de Suivi Budget CI.\n\n` +
           `Votre observation et vos photos sont désormais publiées sur l'Observatoire Citoyen des Projets Publics. Merci pour votre vigilance civique ! 🇨🇮\n\n` +
-          `🔗 Suivre sur CivicData CI : https://civicdata.ci/observatory`;
+          `🔗 Suivre sur Suivi Budget CI : https://suivibudget.ci/observatory`;
       } else {
         message = `Bonjour ${proof.citizen_name || 'cher citoyen'},\n\n` +
           `ℹ️ Votre constat citoyen [${trackingCode}] concernant le chantier "${projectTitle}" n'a pas pu être validé en l'état par l'équipe de modération.\n\n` +
           `Motif : Les éléments photographiques transmis ne permettent pas d'attester avec certitude de l'état d'avancement des travaux ou de la localisation.\n\n` +
-          `Vous pouvez déposer un nouveau constat avec une photo plus nette ou un repère visible sur : https://civicdata.ci/observatory\n\n` +
+          `Vous pouvez déposer un nouveau constat avec une photo plus nette ou un repère visible sur : https://suivibudget.ci/observatory\n\n` +
           `Merci pour votre contribution citoyenne ! 🇨🇮`;
       }
 
@@ -326,7 +326,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `civicdata_projets_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `suivibudget_projets_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -767,7 +767,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `civicdata_sauvegarde_complete_${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `suivibudget_sauvegarde_complete_${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
