@@ -655,7 +655,7 @@ export const InstitutionDetailModal: React.FC<InstitutionDetailModalProps> = ({
                         : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
                     }`}
                   >
-                    <span>🏛️ Grands Projets Municipaux</span>
+                    <span>Grands Projets Municipaux</span>
                     <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${selectedTier === 'MUNICIPAL' ? 'bg-white/20 text-white' : 'bg-emerald-200 text-emerald-900'}`}>
                       {municipalProjectsCount}
                     </span>
@@ -671,7 +671,7 @@ export const InstitutionDetailModal: React.FC<InstitutionDetailModalProps> = ({
                         : 'bg-sky-50 text-sky-800 hover:bg-sky-100 border border-sky-200'
                     }`}
                   >
-                    <span>🇨🇮 Investissements État Central</span>
+                    <span>Investissements État Central</span>
                     <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${selectedTier === 'STATE' ? 'bg-white/20 text-white' : 'bg-sky-200 text-sky-900'}`}>
                       {stateProjectsCount}
                     </span>
@@ -687,7 +687,7 @@ export const InstitutionDetailModal: React.FC<InstitutionDetailModalProps> = ({
                         : 'bg-purple-50 text-purple-800 hover:bg-purple-100 border border-purple-200'
                     }`}
                   >
-                    <span>🌍 Conseil Régional</span>
+                    <span>Conseil Régional</span>
                     <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${selectedTier === 'REGIONAL' ? 'bg-white/20 text-white' : 'bg-purple-200 text-purple-900'}`}>
                       {regionalProjectsCount}
                     </span>

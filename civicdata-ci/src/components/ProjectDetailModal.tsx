@@ -89,8 +89,7 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
         <div className="p-6 bg-white border-b border-slate-200 flex items-start justify-between gap-4 print:border-b-2 print:border-slate-900">
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-2">
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border ${tierBadge.badgeClass}`}>
-                <span>{tierBadge.icon}</span>
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-black border ${tierBadge.badgeClass}`}>
                 <span>{tierBadge.fullLabel}</span>
               </span>
               <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${entityInfo.entityBadgeClass}`}>

@@ -72,15 +72,15 @@ describe('Formatters Unit Tests', () => {
     // Badge styling and labels
     const muniBadge = getProjectTierBadge('MUNICIPAL');
     expect(muniBadge.label).toBe('Projet Municipal');
-    expect(muniBadge.icon).toBe('🏛️');
+    expect(muniBadge.icon).toBe('');
 
     const regBadge = getProjectTierBadge('REGIONAL');
     expect(regBadge.label).toBe('Conseil Régional');
-    expect(regBadge.icon).toBe('🌍');
+    expect(regBadge.icon).toBe('');
 
     const stateBadge = getProjectTierBadge('STATE');
     expect(stateBadge.label).toBe("Investissement de l'État");
-    expect(stateBadge.icon).toBe('🇨🇮');
+    expect(stateBadge.icon).toBe('');
   });
 
   it('determines leader gender accurately according to Loi n°2019-870 and CEI results', () => {

@@ -234,9 +234,9 @@ export function getProjectTierBadge(tier: ProjectTier): {
       return {
         label: 'Projet Municipal',
         shortLabel: 'Municipal',
-        icon: '🏛️',
+        icon: '',
         badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-300 font-black',
-        fullLabel: '🏛️ Grand Projet Municipal',
+        fullLabel: 'Grand Projet Municipal',
         borderClass: 'border-emerald-200',
         accentColor: 'text-emerald-700',
       };
@@ -244,9 +244,9 @@ export function getProjectTierBadge(tier: ProjectTier): {
       return {
         label: 'Conseil Régional',
         shortLabel: 'Régional',
-        icon: '🌍',
+        icon: '',
         badgeClass: 'bg-purple-50 text-purple-800 border-purple-300 font-black',
-        fullLabel: '🌍 Conseil Régional',
+        fullLabel: 'Conseil Régional',
         borderClass: 'border-purple-200',
         accentColor: 'text-purple-700',
       };
@@ -255,9 +255,9 @@ export function getProjectTierBadge(tier: ProjectTier): {
       return {
         label: "Investissement de l'État",
         shortLabel: 'État Central',
-        icon: '🇨🇮',
+        icon: '',
         badgeClass: 'bg-sky-50 text-sky-800 border-sky-300 font-black',
-        fullLabel: "🇨🇮 Investissement de l'État Central",
+        fullLabel: "Investissement de l'État Central",
         borderClass: 'border-sky-200',
         accentColor: 'text-sky-700',
       };

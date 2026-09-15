@@ -48,8 +48,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           
           {/* Top Badges over image */}
           <div className="absolute top-3 inset-x-3 flex items-center justify-between gap-1.5 pointer-events-none">
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-black border backdrop-blur-md shadow-xs ${tierBadge.badgeClass}`}>
-              <span>{tierBadge.icon}</span>
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-xl text-[11px] font-black border backdrop-blur-md shadow-xs ${tierBadge.badgeClass}`}>
               <span>{tierBadge.shortLabel}</span>
             </span>
 
@@ -84,8 +83,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           {/* Badges row if no cover photo */}
           {!project.image_url && (
             <div className="flex flex-wrap items-center justify-between gap-1.5 mb-3">
-              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-black border leading-tight ${tierBadge.badgeClass}`}>
-                <span>{tierBadge.icon}</span>
+              <span className={`inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-black border leading-tight ${tierBadge.badgeClass}`}>
                 <span>{tierBadge.label}</span>
               </span>
 
