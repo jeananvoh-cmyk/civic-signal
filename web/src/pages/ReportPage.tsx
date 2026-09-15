@@ -436,9 +436,21 @@ const ReportPage = () => {
   const canReport = detectedCommune !== null && !outsidePilotZone && latitude !== null;
 
   const handleTypeSelect = (type: ReportTypeConfig) => {
+    const isSame = selectedType?.id === type.id;
     setSelectedType(type);
     track("type_selected", { type_id: type.id, category: type.reportCategory, service: type.serviceType });
     if ("vibrate" in navigator) navigator.vibrate([20]);
+
+    if (isSame) {
+      handleTypeNext();
+    } else {
+      setTimeout(() => {
+        const ctaBtn = document.getElementById("step2-cta-button");
+        if (ctaBtn) {
+          ctaBtn.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      }, 120);
+    }
   };
 
   const handleLocationNext = () => {
@@ -719,7 +731,7 @@ const ReportPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container max-w-2xl mx-auto py-6 px-4">
+      <main className="container max-w-2xl mx-auto py-6 px-4 pb-28 sm:pb-36">
         <div className="space-y-4">
 
           {/* Indicateur de progression */}
@@ -824,23 +836,23 @@ const ReportPage = () => {
               </div>
 
               {/* Bannière de localisation automatique */}
-              <div className="rounded-2xl border-2 border-emerald-500/30 bg-emerald-500/8 p-4 flex items-center justify-between gap-3 shadow-xs">
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+              <div className="rounded-2xl border-2 border-emerald-500/30 bg-emerald-500/8 p-3.5 sm:p-4 flex items-center justify-between gap-2.5 sm:gap-3 shadow-xs">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
                     <MapPin className="h-5 w-5" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] sm:text-xs font-semibold text-emerald-800 dark:text-emerald-300 leading-tight">
                       Localisation automatique détectée
                     </p>
-                    <h4 className="text-base font-black text-foreground truncate">
+                    <h4 className="text-sm sm:text-base font-black text-foreground leading-snug break-words mt-0.5">
                       {detectedCommune ? (
                         <>
-                          Vous êtes à <span className="text-emerald-600 dark:text-emerald-400">{detectedCommune.nom}</span>
+                          Vous êtes à <span className="text-emerald-600 dark:text-emerald-400 font-black">{detectedCommune.nom}</span>
                         </>
                       ) : gpsLoading ? (
-                        <span className="flex items-center gap-1.5 text-sm font-semibold">
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Détection de votre commune…
+                        <span className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" /> Détection de votre commune…
                         </span>
                       ) : (
                         <span>Position en cours de détection…</span>
@@ -855,11 +867,12 @@ const ReportPage = () => {
                   size="sm"
                   onClick={() => captureGPS(true)}
                   disabled={gpsLoading}
-                  className="shrink-0 text-xs h-8 px-2.5 rounded-lg text-emerald-700 hover:bg-emerald-500/15 gap-1.5 font-semibold"
+                  className="shrink-0 text-xs h-8 px-2 sm:px-2.5 rounded-lg text-emerald-700 hover:bg-emerald-500/15 gap-1 font-semibold"
                   title="Réactualiser votre position"
                 >
                   <Navigation className={`h-3.5 w-3.5 ${gpsLoading ? "animate-spin" : ""}`} />
-                  <span>{gpsLoading ? "Détection…" : "Actualiser"}</span>
+                  <span className="hidden xs:inline sm:inline">{gpsLoading ? "Détection…" : "Actualiser"}</span>
+                  <span className="xs:hidden sm:hidden">{gpsLoading ? "…" : "Recharger"}</span>
                 </Button>
               </div>
 
@@ -908,14 +921,14 @@ const ReportPage = () => {
                           key={c.nom}
                           type="button"
                           onClick={() => handleManualCommuneSelect(c.nom)}
-                          className={`flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-semibold rounded-xl border transition-all text-center ${
+                          className={`flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 sm:py-2.5 text-[11px] sm:text-xs font-semibold rounded-xl border transition-all text-center leading-tight ${
                             commune === c.nom
                               ? "border-primary bg-primary text-primary-foreground shadow-sm"
                               : "border-border bg-card hover:bg-muted text-foreground"
                           }`}
                         >
                           <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: c.couleur }} />
-                          <span>{c.nom}</span>
+                          <span className="break-words">{c.nom}</span>
                         </button>
                       ))}
                     </div>
@@ -1247,6 +1260,7 @@ const ReportPage = () => {
                   ← Précédent
                 </Button>
                 <Button
+                  id="step2-cta-button"
                   type="button"
                   className="flex-1 py-5 text-base font-bold rounded-xl shadow-md transition-all hover:opacity-90"
                   style={{
@@ -1773,6 +1787,83 @@ const ReportPage = () => {
             </motion.div>
           )}
 
+        </AnimatePresence>
+
+        {/* ═══════════════════════════════════════════════
+            BARRE D'ACTION FLOTTANTE STICKY (Fixe en bas de l'écran)
+        ═══════════════════════════════════════════════ */}
+        <AnimatePresence>
+          {/* Étape 1 : Barre d'action sticky dès que le lieu est choisi */}
+          {step === 1 && canReport && commune && resolvedQuartier && (
+            <motion.div
+              key="sticky-step1"
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 80, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-xl border-t border-border shadow-[0_-8px_30px_rgb(0,0,0,0.15)] p-3 sm:p-4"
+            >
+              <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-wider">Lieu validé</p>
+                  <p className="text-xs sm:text-sm font-bold text-foreground truncate flex items-center gap-1">
+                    <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+                    {commune}, {resolvedQuartier}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="lg"
+                  onClick={handleLocationNext}
+                  className="py-3 px-4 sm:px-6 text-xs sm:text-base font-bold rounded-xl shadow-lg bg-primary text-primary-foreground hover:opacity-90 transition-all shrink-0"
+                >
+                  Continuer vers l'incident →
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Étape 2 : Barre d'action sticky dès qu'un incident est sélectionné */}
+          {step === 2 && selectedType && (
+            <motion.div
+              key="sticky-step2"
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 80, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-xl border-t border-border shadow-[0_-8px_30px_rgb(0,0,0,0.15)] p-3 sm:p-4"
+            >
+              <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1 flex items-center gap-2.5">
+                  <span
+                    className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl text-base sm:text-lg font-bold shadow-xs border"
+                    style={{ backgroundColor: selectedType.color + "20", borderColor: selectedType.color + "40" }}
+                  >
+                    {selectedType.image ? (
+                      <img src={selectedType.image} alt={selectedType.label} className="h-6 w-6 object-contain" />
+                    ) : (
+                      selectedType.emoji
+                    )}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-wider">Incident choisi</p>
+                    <p className="text-xs sm:text-sm font-bold text-foreground truncate">
+                      {selectedType.label}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  size="lg"
+                  onClick={handleTypeNext}
+                  style={{ backgroundColor: selectedType.color, color: "white" }}
+                  className="py-3 px-4 sm:px-6 text-xs sm:text-base font-bold rounded-xl shadow-lg hover:opacity-95 transition-all shrink-0 gap-1.5"
+                >
+                  Continuer vers les preuves →
+                </Button>
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
 
         {/* ═══════════════════════════════════════════════

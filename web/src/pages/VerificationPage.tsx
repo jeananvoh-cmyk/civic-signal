@@ -633,7 +633,7 @@ const VerificationPage = () => {
                               <p className="text-xs font-black uppercase tracking-wider">
                                 {isInfra ? "Voirie / Mairie" : isElec ? "CIE · Électricité" : "SODECI · Eau Potable"}
                               </p>
-                              <p className="text-sm font-bold truncate">{cur.commune}</p>
+                              <p className="text-sm font-bold leading-tight break-words">{cur.commune}</p>
                             </div>
                           </div>
 
