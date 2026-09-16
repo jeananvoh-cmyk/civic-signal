@@ -81,7 +81,7 @@ export const ObservatoryPage: React.FC<ObservatoryPageProps> = ({
     dataStore.recordLocalConfirmation(projectId);
     setStrategicConfirmations(prev => ({
       ...prev,
-      [projectId]: (prev[projectId] ?? (STRATEGIC_PROJECTS_LIST.find(p => p.id === projectId)?.confirmationsCount || 100)) + 1
+      [projectId]: (prev[projectId] ?? (STRATEGIC_PROJECTS_LIST.find(p => p.id === projectId)?.confirmationsCount || 0)) + 1
     }));
   };
 
@@ -596,7 +596,7 @@ export const ObservatoryPage: React.FC<ObservatoryPageProps> = ({
                         type="button"
                         disabled={dataStore.hasUserConfirmed(activeStrategicProject.id)}
                         onClick={() => handleConfirmStrategic(activeStrategicProject.id)}
-                        className={`w-full sm:w-auto py-2.5 px-3.5 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 shadow-2xs ${
+                        className={`w-full sm:w-auto py-2.5 px-3.5 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-2xs ${
                           dataStore.hasUserConfirmed(activeStrategicProject.id)
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 cursor-default'
                             : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 cursor-pointer'
@@ -605,7 +605,11 @@ export const ObservatoryPage: React.FC<ObservatoryPageProps> = ({
                       >
                         <ThumbsUp className={`w-3.5 h-3.5 ${dataStore.hasUserConfirmed(activeStrategicProject.id) ? 'text-emerald-600 fill-emerald-600/20' : 'text-slate-500'}`} />
                         <span>
-                          {dataStore.hasUserConfirmed(activeStrategicProject.id) ? '✓ Confirmé' : 'Confirmer'} ({strategicConfirmations[activeStrategicProject.id] ?? activeStrategicProject.confirmationsCount})
+                          {dataStore.hasUserConfirmed(activeStrategicProject.id) ? '✓ Confirmé' : 'Confirmer'}
+                          {(() => {
+                            const count = strategicConfirmations[activeStrategicProject.id] ?? activeStrategicProject.confirmationsCount;
+                            return count > 0 ? ` (${count})` : '';
+                          })()}
                         </span>
                       </button>
                     </div>
@@ -863,17 +867,24 @@ export const ObservatoryPage: React.FC<ObservatoryPageProps> = ({
                 </span>
               </div>
 
-              {/* Sober Notice Démonstrative locale (Zero emojis) */}
+              {/* Highly Visible & Explicit Notice Démonstrative locale */}
               {localProofs.some(p => p.is_demo) && (
-                <div className="bg-slate-50 border border-slate-200 border-l-4 border-l-slate-400 rounded-2xl p-4 shadow-2xs">
-                  <div className="space-y-0.5 text-xs">
-                    <div className="font-bold text-slate-900 flex items-center gap-2">
-                      <span>Exemples Illustratifs • Projets Communaux & Quartiers</span>
-                      <span className="text-[10px] bg-slate-200 text-slate-800 px-2 py-0.5 rounded-full font-bold">Modèles Démonstratifs</span>
+                <div className="bg-amber-50/80 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 shadow-xs">
+                  <div className="flex items-start gap-3.5">
+                    <div className="p-2.5 bg-amber-200 text-amber-950 rounded-xl flex-shrink-0 mt-0.5 shadow-2xs">
+                      <Info className="w-5 h-5 text-amber-950" />
                     </div>
-                    <p className="text-slate-600 leading-relaxed text-[11.5px]">
-                      Ces fiches locales illustrent concrètement comment les constats photographiques permettent de vérifier l'avancement des chantiers municipaux. Dès la validation des signalements transmis par les citoyens de votre commune, cet espace basculera automatiquement sur les preuves de terrain de votre localité.
-                    </p>
+                    <div className="space-y-1 text-xs">
+                      <div className="font-black text-amber-950 text-sm sm:text-base flex flex-wrap items-center gap-2">
+                        <span>Fiches Démonstratives en attente de constats réels</span>
+                        <span className="text-[10px] bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider shadow-xs">
+                          Exemples Illustratifs
+                        </span>
+                      </div>
+                      <p className="text-amber-900 leading-relaxed text-xs sm:text-sm">
+                        Les cartes ci-dessous sont des <strong>exemples illustratifs</strong> servant de modèle visuel (statut, photos, constats) pour guider les sentinelles citoyennes. <strong>Aucun chiffre n'est inventé</strong> : dès qu'un citoyen transmet une photo réelle via <em>« Déposer un Constat Terrain »</em>, ces fiches de démonstration s'effacent pour afficher les vrais constats du terrain.
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -995,10 +1006,24 @@ export const ObservatoryPage: React.FC<ObservatoryPageProps> = ({
                     return (
                       <div 
                         key={proof.id}
-                        className="bg-white rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:border-brand-blue/40 transition-all duration-200 overflow-hidden flex flex-col justify-between group"
+                        className={`bg-white rounded-2xl border ${
+                          proof.is_demo ? 'border-amber-300 ring-2 ring-amber-200/70' : 'border-slate-200'
+                        } shadow-xs hover:shadow-md hover:border-brand-blue/40 transition-all duration-200 overflow-hidden flex flex-col justify-between group`}
                       >
                         <div>
                           
+                          {/* Prominent Demo Top Header Banner if is_demo */}
+                          {proof.is_demo && (
+                            <div className="bg-amber-400 text-slate-950 px-4 py-1.5 text-[11px] font-black uppercase tracking-wider flex items-center justify-between border-b border-amber-500">
+                              <span className="flex items-center gap-1.5">
+                                <span>⚠️ EXEMPLE ILLUSTRATIF</span>
+                              </span>
+                              <span className="text-[10px] bg-slate-950 text-amber-300 px-2 py-0.5 rounded font-black">
+                                MODÈLE DÉMO
+                              </span>
+                            </div>
+                          )}
+
                           {/* Media Container */}
                           <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-slate-900">
                             {proof.media_type === 'VIDEO' && proof.video_url ? (
@@ -1012,7 +1037,7 @@ export const ObservatoryPage: React.FC<ObservatoryPageProps> = ({
                                 src={proof.photo_url || proof.image_url}
                                 alt={proof.project_title || "Preuve citoyenne"}
                                 onError={(e) => {
-                                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=800&q=80';
+                                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=800&q=80';
                                 }}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                               />
@@ -1026,25 +1051,29 @@ export const ObservatoryPage: React.FC<ObservatoryPageProps> = ({
                               </span>
                             </div>
 
-                            {/* Demonstration Pill if is_demo */}
-                            {proof.is_demo && (
-                              <div className="absolute top-3 left-3 pointer-events-none bg-slate-900/80 backdrop-blur-xs text-amber-300 border border-amber-400/40 px-2.5 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1">
-                                <span>Exemple Illustratif</span>
+                            {/* Floating Demonstration Pill if is_demo */}
+                            {proof.is_demo ? (
+                              <div className="absolute top-3 left-3 pointer-events-none bg-amber-400 text-slate-950 font-black px-2.5 py-1 rounded-lg text-xs shadow-md border border-amber-500 flex items-center gap-1">
+                                <span>EXEMPLE ILLUSTRATIF</span>
                               </div>
-                            )}
-
-                            {/* Media Type Badge */}
-                            {!proof.is_demo && (
+                            ) : (
                               <div className="absolute top-3 left-3 pointer-events-none bg-black/60 backdrop-blur-xs text-white px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1">
                                 {proof.media_type === 'VIDEO' ? <Video className="w-3 h-3 text-sky-400" /> : <Camera className="w-3 h-3 text-orange-400" />}
                                 <span>{proof.media_type === 'VIDEO' ? 'Vidéo' : 'Photo HD'}</span>
                               </div>
                             )}
 
-                            <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white px-2.5 py-0.5 rounded text-[11px] font-semibold flex items-center gap-1 pointer-events-none">
-                              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                              <span>Observation vérifiée</span>
-                            </div>
+                            {/* Bottom tag over media */}
+                            {proof.is_demo ? (
+                              <div className="absolute bottom-3 left-3 bg-slate-950/90 text-amber-300 border border-amber-400/40 px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider flex items-center gap-1 pointer-events-none shadow-sm">
+                                <span>Simulation visuelle de constat</span>
+                              </div>
+                            ) : (
+                              <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white px-2.5 py-0.5 rounded text-[11px] font-semibold flex items-center gap-1 pointer-events-none">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                <span>Observation vérifiée</span>
+                              </div>
+                            )}
                           </div>
 
                           {/* Body Content */}
@@ -1105,7 +1134,10 @@ export const ObservatoryPage: React.FC<ObservatoryPageProps> = ({
                                 title={isProofConfirmed ? "Vous avez déjà confirmé cette observation depuis ce navigateur" : "Confirmer cette observation citoyenne"}
                               >
                                 <ThumbsUp className={`w-3.5 h-3.5 ${isProofConfirmed ? 'text-emerald-600 fill-emerald-600/20' : 'text-emerald-600'}`} />
-                                <span>{isProofConfirmed ? '✓ Confirmé' : 'Confirmer'} ({proof.confirmations_count})</span>
+                                <span>
+                                  {isProofConfirmed ? '✓ Confirmé' : 'Confirmer'}
+                                  {proof.confirmations_count > 0 ? ` (${proof.confirmations_count})` : ''}
+                                </span>
                               </button>
                             );
                           })()}

@@ -79,6 +79,6 @@ export const STRATEGIC_PROJECTS_LIST: StrategicProject[] = [
       sourceLabel: 'Enquête de terrain & Source Facebook vérifiée'
     },
     budgetProjectId: 'proj-infra-seguela-touba-104mrd',
-    confirmationsCount: 142
+    confirmationsCount: 0
   }
 ];

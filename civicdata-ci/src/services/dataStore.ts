@@ -539,9 +539,26 @@ class DataStore {
       if (storedProofs) {
         const parsed = JSON.parse(storedProofs);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          const defaultMap = new Map(INITIAL_CITIZEN_PROOFS.map(p => [p.id, p]));
           const existingIds = new Set(parsed.map((p: any) => p.id));
           const missingDefaults = INITIAL_CITIZEN_PROOFS.filter(p => !existingIds.has(p.id));
-          this.proofs = [...parsed, ...missingDefaults];
+          
+          // Merge while ensuring demo defaults have updated authentic photos and no fabricated elevated confirmations
+          this.proofs = [...parsed.map((p: any) => {
+            const def = defaultMap.get(p.id);
+            if (def && def.is_demo) {
+              return {
+                ...p,
+                image_url: def.image_url,
+                photo_url: def.photo_url,
+                confirmations_count: (p.confirmations_count && p.confirmations_count > 5) ? 0 : (p.confirmations_count || 0)
+              };
+            }
+            if (def && p.id === 'proof-real-seguela-touba-1' && p.confirmations_count > 5) {
+              return { ...p, confirmations_count: 0 };
+            }
+            return p;
+          }), ...missingDefaults];
         }
       }
     } catch (e) {
@@ -1015,7 +1032,7 @@ class DataStore {
 
     const idx = this.proofs.findIndex(p => p.id === proofId);
     if (idx !== -1) {
-      this.proofs[idx].confirmations_count = (this.proofs[idx].confirmations_count || 1) + 1;
+      this.proofs[idx].confirmations_count = (this.proofs[idx].confirmations_count || 0) + 1;
       this.recordLocalConfirmation(proofId);
       this.saveProofs();
       this.notify();
