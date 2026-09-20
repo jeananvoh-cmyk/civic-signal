@@ -438,18 +438,13 @@ const Index = () => {
           
           {/* OPÉRATEUR 1 : CIE (Électricité & Éclairage Public) */}
           <div className="space-y-3.5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border/70">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
-                  <Zap className="h-4 w-4" />
-                </div>
-                <h3 className="font-display text-base sm:text-lg font-extrabold text-foreground">
-                  CIE · Électricité &amp; Éclairage Public
-                </h3>
+            <div className="flex items-center gap-2.5 pb-2 border-b border-border/70">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                <Zap className="h-4 w-4" />
               </div>
-              <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full w-fit">
-                Conforme portail officiel CIE
-              </span>
+              <h3 className="font-display text-base sm:text-lg font-extrabold text-foreground">
+                CIE · Électricité &amp; Éclairage Public
+              </h3>
             </div>
             <div className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
               {CIE_INCIDENTS.map((item) => (
@@ -483,18 +478,13 @@ const Index = () => {
 
           {/* OPÉRATEUR 2 : SODECI (Eau Potable & Assainissement) */}
           <div className="space-y-3.5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border/70">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400">
-                  <Droplets className="h-4 w-4" />
-                </div>
-                <h3 className="font-display text-base sm:text-lg font-extrabold text-foreground">
-                  SODECI · Eau Potable &amp; Assainissement
-                </h3>
+            <div className="flex items-center gap-2.5 pb-2 border-b border-border/70">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400">
+                <Droplets className="h-4 w-4" />
               </div>
-              <span className="text-[11px] font-semibold text-sky-700 dark:text-sky-300 bg-sky-500/10 border border-sky-500/20 px-2.5 py-0.5 rounded-full w-fit">
-                Conforme portail officiel SODECI
-              </span>
+              <h3 className="font-display text-base sm:text-lg font-extrabold text-foreground">
+                SODECI · Eau Potable &amp; Assainissement
+              </h3>
             </div>
             <div className="grid gap-3.5 grid-cols-1 sm:grid-cols-3">
               {SODECI_INCIDENTS.map((item) => (
@@ -528,18 +518,13 @@ const Index = () => {
 
           {/* OPÉRATEUR 3 : MAIRIES & SERVICES TECHNIQUES MUNICIPAUX */}
           <div className="space-y-3.5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border/70">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                  <Landmark className="h-4 w-4" />
-                </div>
-                <h3 className="font-display text-base sm:text-lg font-extrabold text-foreground">
-                  Services Municipaux · Voirie &amp; Salubrité (14 Communes)
-                </h3>
+            <div className="flex items-center gap-2.5 pb-2 border-b border-border/70">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                <Landmark className="h-4 w-4" />
               </div>
-              <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full w-fit">
-                Compétences techniques communales
-              </span>
+              <h3 className="font-display text-base sm:text-lg font-extrabold text-foreground">
+                Services Municipaux · Voirie &amp; Salubrité
+              </h3>
             </div>
             <div className="grid gap-3.5 grid-cols-1 sm:grid-cols-3">
               {MAIRIE_INCIDENTS.map((item) => (
