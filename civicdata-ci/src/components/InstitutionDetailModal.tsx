@@ -90,13 +90,30 @@ const ModalLeaderAvatar: React.FC<{
 
   return (
     <div className="relative group flex-shrink-0">
-      <img
-        src={effectivePhotoUrl}
-        alt={name}
-        onError={() => setHasError(true)}
-        className={`${isPresidence ? 'w-16 h-16 sm:w-20 sm:h-20 ring-2 ring-amber-400 border-2 border-amber-300' : 'w-14 h-14 sm:w-16 sm:h-16 border-2 border-white ring-2 ring-slate-100'} rounded-2xl object-cover object-top shadow-md bg-white`}
-      />
-      <div className={`absolute -bottom-1 -right-1 ${isPresidence ? 'bg-amber-500 text-slate-950' : 'bg-emerald-600 text-white'} p-0.5 rounded-full shadow-xs`} title="En fonction officielle">
+      <div className={`relative overflow-hidden rounded-2xl shadow-md bg-gradient-to-b from-slate-800 via-slate-900 to-slate-950 ${isPresidence ? 'w-16 h-16 sm:w-20 sm:h-20 ring-2 ring-amber-400 border-2 border-amber-300' : 'w-14 h-14 sm:w-16 sm:h-16 border-2 border-white ring-2 ring-slate-100'}`}>
+        {/* Bokeh arrière-plan flouté pour harmoniser les fonds de paysage ou de foule */}
+        <img
+          src={effectivePhotoUrl}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover object-center filter blur-md scale-125 opacity-35 pointer-events-none"
+        />
+        {/* Filtre studio doux */}
+        <div 
+          className="absolute inset-0 pointer-events-none z-10 opacity-75"
+          style={{
+            background: 'radial-gradient(circle at 50% 35%, transparent 40%, rgba(15, 23, 42, 0.45) 75%, rgba(15, 23, 42, 0.75) 100%)'
+          }}
+        />
+        {/* Photo principale cadrée */}
+        <img
+          src={effectivePhotoUrl}
+          alt={name}
+          onError={() => setHasError(true)}
+          className="relative z-0 w-full h-full object-cover object-[50%_15%] filter contrast-[1.03] brightness-[0.98]"
+        />
+      </div>
+      <div className={`absolute -bottom-1 -right-1 z-20 ${isPresidence ? 'bg-amber-500 text-slate-950' : 'bg-emerald-600 text-white'} p-0.5 rounded-full shadow-xs`} title="En fonction officielle">
         <ShieldCheck className="w-3 h-3" />
       </div>
     </div>

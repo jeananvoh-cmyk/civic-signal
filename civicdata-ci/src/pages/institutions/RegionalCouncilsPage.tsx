@@ -4,6 +4,7 @@ import { Institution, BudgetProject } from '../../types';
 import { formatFCFA, formatAmountInWords, getInstitutionLeaderGender } from '../../utils/formatters';
 import { OfficialDocRequestModal } from '../../components/OfficialDocRequestModal';
 import { InstitutionDetailModal } from '../../components/InstitutionDetailModal';
+import { LeaderPortrait } from '../../components/LeaderPortrait';
 
 interface RegionalCouncilsPageProps {
   onBack: () => void;
@@ -222,15 +223,12 @@ export const RegionalCouncilsPage: React.FC<RegionalCouncilsPageProps> = ({
             <div key={inst.id} className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm hover:shadow-md hover:border-brand-blue/50 transition-all flex flex-col justify-between group">
               <div>
                 <div className="flex items-start gap-4 mb-3">
-                  {inst.leader_photo_url ? (
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 min-w-[5rem] max-w-[5rem] sm:min-w-[6rem] sm:max-w-[6rem] aspect-square rounded-2xl overflow-hidden border-2 border-slate-100 shadow-sm flex-shrink-0 cursor-zoom-in group/photo">
-                      <img 
-                        src={inst.leader_photo_url} 
-                        alt={inst.leader_name || inst.name}
-                        className="w-full h-full object-cover object-top transition-transform duration-300 ease-out group-hover/photo:scale-125" 
-                      />
-                    </div>
-                  ) : null}
+                  <LeaderPortrait
+                    photoUrl={inst.leader_photo_url}
+                    name={inst.leader_name || inst.name}
+                    title={inst.leader_title || 'Président'}
+                    sizeClass="w-20 h-20 sm:w-24 sm:h-24 min-w-[5rem] max-w-[5rem] sm:min-w-[6rem] sm:max-w-[6rem]"
+                  />
 
                   <div className="space-y-1 flex-1">
                     <div className="flex items-center gap-1.5 flex-wrap mb-1">
