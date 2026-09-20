@@ -7,6 +7,7 @@ import { OfficialDocRequestModal } from '../../components/OfficialDocRequestModa
 import { CommuneComparatorModal } from '../../components/CommuneComparatorModal';
 import { InstitutionDetailModal } from '../../components/InstitutionDetailModal';
 import { LeaderPortrait } from '../../components/LeaderPortrait';
+import { PaginationBar } from '../../components/PaginationBar';
 
 interface MunicipalitiesPageProps {
   onBack: () => void;
@@ -37,7 +38,7 @@ export const MunicipalitiesPage: React.FC<MunicipalitiesPageProps> = ({
       [id]: !prev[id]
     }));
   };
-  const PAGE_SIZE = 8;
+  const [pageSize, setPageSize] = useState(8);
 
   // Modal states
   const [selectedInstForDoc, setSelectedInstForDoc] = useState<Institution | null>(null);
@@ -138,10 +139,10 @@ export const MunicipalitiesPage: React.FC<MunicipalitiesPageProps> = ({
   });
 
   // Pagination calculation
-  const totalPages = Math.ceil(sortedMairies.length / PAGE_SIZE) || 1;
+  const totalPages = Math.ceil(sortedMairies.length / pageSize) || 1;
   const safePage = Math.min(Math.max(1, page), totalPages);
-  const startIndex = (safePage - 1) * PAGE_SIZE;
-  const endIndex = Math.min(startIndex + PAGE_SIZE, sortedMairies.length);
+  const startIndex = (safePage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, sortedMairies.length);
   const paginatedMairies = sortedMairies.slice(startIndex, endIndex);
 
   return (
@@ -605,49 +606,18 @@ export const MunicipalitiesPage: React.FC<MunicipalitiesPageProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* PAGINATION BAR (Matching design: < [ Page X / Y ] >  AFFICHAGE X-Y SUR Z) */}
+      {/* PAGINATION BAR                                                            */}
       {/* ========================================================================= */}
-      {sortedMairies.length > 0 && (
-        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 mt-8">
-          
-          {/* Left Side: Buttons & Page Indicator */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                setPage(p => Math.max(1, p - 1));
-                window.scrollTo({ top: 350, behavior: 'smooth' });
-              }}
-              disabled={safePage <= 1}
-              className="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-black text-base shadow-2xs"
-              aria-label="Page précédente"
-            >
-              ‹
-            </button>
-
-            <div className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-brand-blue font-black text-xs sm:text-sm shadow-2xs">
-              Page {safePage} / {totalPages}
-            </div>
-
-            <button
-              onClick={() => {
-                setPage(p => Math.min(totalPages, p + 1));
-                window.scrollTo({ top: 350, behavior: 'smooth' });
-              }}
-              disabled={safePage >= totalPages}
-              className="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-black text-base shadow-2xs"
-              aria-label="Page suivante"
-            >
-              ›
-            </button>
-          </div>
-
-          {/* Right Side: Total Counter */}
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-            AFFICHAGE {startIndex + 1}-{endIndex} SUR {sortedMairies.length}
-          </div>
-
-        </div>
-      )}
+      <PaginationBar
+        currentPage={safePage}
+        totalPages={totalPages}
+        totalItems={sortedMairies.length}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        pageSizeOptions={[8, 16, 24, 48]}
+        itemLabel="commune"
+      />
 
       {/* Modals */}
       <OfficialDocRequestModal
