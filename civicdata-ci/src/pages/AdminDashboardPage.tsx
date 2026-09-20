@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { BudgetProject, ProjectStatus, Institution, NewsArticle, SiteSettings, CitizenProof } from '../types';
 import { dataStore } from '../services/dataStore';
 import { formatFCFA, formatDateFR, getStatusConfig, formatAmountInWords, calculateContractualElapsedPercentage } from '../utils/formatters';
+import { processLeaderPhotoFile } from '../utils/imageHelpers';
 import { SocialPostGenerator } from '../components/SocialPostGenerator';
 import { CaidpRiManager } from '../components/CaidpRiManager';
 import { ModeratorManager } from '../components/ModeratorManager';
@@ -679,6 +680,45 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
     }
   };
 
+  const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
+
+  const handleModalPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsProcessingPhoto(true);
+      const optimizedUrl = await processLeaderPhotoFile(file);
+      setInstForm(prev => ({ ...prev, leader_photo_url: optimizedUrl }));
+      showToast('Photo importée et optimisée en WebP (format studio) !');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erreur lors de l'import de la photo.";
+      showToast(msg, 'error');
+    } finally {
+      setIsProcessingPhoto(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleQuickPhotoUpload = async (inst: Institution, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      showToast('Optimisation de la photo en cours...', 'info');
+      const optimizedUrl = await processLeaderPhotoFile(file);
+      const updated: Institution = {
+        ...inst,
+        leader_photo_url: optimizedUrl,
+      };
+      dataStore.updateInstitution(updated);
+      showToast(`Photo de ${inst.leader_name || inst.name} mise à jour avec succès !`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erreur lors de l'import de la photo.";
+      showToast(msg, 'error');
+    } finally {
+      e.target.value = '';
+    }
+  };
+
   // ==========================================
   // 3. NEWS & REPORTS (CMS) STATE
   // ==========================================
@@ -1308,21 +1348,38 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                 >
                   <div className="space-y-3">
                     <div className="flex items-start gap-3">
-                      {/* Photo / Avatar with Zoom */}
-                      {hasPhoto ? (
-                        <div className="w-16 h-16 rounded-xl overflow-hidden border border-slate-200 shadow-xs flex-shrink-0 cursor-zoom-in group/photo relative bg-white">
+                      {/* Photo / Avatar avec Importation Rapide */}
+                      <div className="relative group/avatar w-16 h-16 rounded-xl overflow-hidden border border-slate-200 shadow-xs flex-shrink-0 bg-slate-900">
+                        {hasPhoto ? (
                           <img 
                             src={inst.leader_photo_url} 
                             alt={inst.leader_name || inst.name}
-                            className="w-full h-full object-cover object-top transition-transform duration-300 group-hover/photo:scale-125"
+                            className="w-full h-full object-cover object-[50%_15%] transition-transform duration-300 group-hover/avatar:scale-110"
                           />
-                        </div>
-                      ) : (
-                        <div className="w-16 h-16 rounded-xl bg-slate-200/80 border border-slate-300/70 text-slate-600 flex flex-col items-center justify-center font-bold text-xs flex-shrink-0">
-                          <span className="text-xl"></span>
-                          <span className="text-[8px] uppercase tracking-wider text-slate-400 font-extrabold">À ajouter</span>
-                        </div>
-                      )}
+                        ) : (
+                          <div className="w-full h-full bg-slate-100 text-slate-400 flex flex-col items-center justify-center font-bold text-xs">
+                            <User className="w-5 h-5 text-slate-300 mb-0.5" />
+                            <span className="text-[8px] uppercase tracking-wider text-slate-400 font-extrabold">+ Photo</span>
+                          </div>
+                        )}
+
+                        {/* Bouton rapide d'importation au survol */}
+                        <input
+                          type="file"
+                          id={`quick-photo-${inst.id}`}
+                          accept="image/png,image/jpeg,image/webp,image/jpg"
+                          className="hidden"
+                          onChange={(e) => handleQuickPhotoUpload(inst, e)}
+                        />
+                        <label
+                          htmlFor={`quick-photo-${inst.id}`}
+                          className="absolute inset-0 bg-slate-950/80 backdrop-blur-2xs opacity-0 group-hover/avatar:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer z-10"
+                          title="Cliquez pour importer ou remplacer la photo (Optimisation WebP studio automatique)"
+                        >
+                          <Camera className="w-4 h-4 mb-0.5 text-brand-orange" />
+                          <span className="text-[8px] font-black uppercase tracking-wider">Modifier</span>
+                        </label>
+                      </div>
 
                       {/* Header info */}
                       <div className="min-w-0 flex-1">
@@ -3023,41 +3080,92 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
 
             <form onSubmit={handleSaveInstitution} className="space-y-4 text-xs">
               
-              {/* Photo Live Preview & Photo URL Input */}
+              {/* Photo Live Preview & Photo Import / URL Input */}
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                <div className="flex items-center gap-4">
-                  {instForm.leader_photo_url ? (
-                    <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-brand-blue shadow-sm flex-shrink-0 bg-white">
-                      <img 
-                        src={instForm.leader_photo_url} 
-                        alt="Aperçu"
-                        className="w-full h-full object-cover object-top"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = 'none';
-                        }}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  {/* Photo Preview */}
+                  <div className="relative group/avatar w-24 h-24 rounded-2xl overflow-hidden border-2 border-brand-blue shadow-sm flex-shrink-0 bg-slate-900">
+                    {instForm.leader_photo_url ? (
+                      <>
+                        <img 
+                          src={instForm.leader_photo_url} 
+                          alt="Aperçu de l'élu"
+                          className="w-full h-full object-cover object-[50%_15%]"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                          <span className="text-[9px] font-black text-white uppercase tracking-wider bg-slate-900/80 px-2 py-1 rounded">Aperçu</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="w-full h-full bg-slate-100 text-slate-400 flex flex-col items-center justify-center font-bold">
+                        <User className="w-8 h-8 text-slate-300 mb-1" />
+                        <span className="text-[9px] text-slate-400 uppercase font-black">Aucune photo</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions & File Upload */}
+                  <div className="flex-1 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="block font-black text-slate-800 uppercase tracking-wider text-[11px]">
+                        Photo Officielle de l'Élu / Responsable
+                      </label>
+                      {instForm.leader_photo_url && (
+                        <button
+                          type="button"
+                          onClick={() => setInstForm({ ...instForm, leader_photo_url: '' })}
+                          className="text-red-600 hover:text-red-700 text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Supprimer la photo</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        type="file"
+                        id="modal-leader-photo-upload"
+                        accept="image/png,image/jpeg,image/webp,image/jpg"
+                        className="hidden"
+                        onChange={handleModalPhotoUpload}
+                        disabled={isProcessingPhoto}
+                      />
+                      <label
+                        htmlFor="modal-leader-photo-upload"
+                        className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                          isProcessingPhoto
+                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                            : 'bg-brand-blue hover:bg-brand-blue-dark text-white hover:shadow-md'
+                        }`}
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{isProcessingPhoto ? 'Optimisation en cours...' : 'Importer une photo depuis l\'appareil'}</span>
+                      </label>
+
+                      {instForm.leader_photo_url?.startsWith('data:image/webp') && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[10px]">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Format WebP optimisé
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="space-y-1 pt-1">
+                      <span className="text-[10px] text-slate-500 block font-medium">
+                        Ou renseigner un lien URL web direct (.jpg, .png) :
+                      </span>
+                      <input
+                        type="url"
+                        value={instForm.leader_photo_url}
+                        onChange={(e) => setInstForm({ ...instForm, leader_photo_url: e.target.value })}
+                        placeholder="https://.../photo-officielle.jpg"
+                        className="w-full p-2 bg-white border border-slate-300 rounded-xl font-mono text-xs focus:ring-2 focus:ring-brand-blue"
                       />
                     </div>
-                  ) : (
-                    <div className="w-20 h-20 rounded-2xl bg-slate-200 text-slate-600 flex flex-col items-center justify-center font-bold flex-shrink-0">
-                      <span className="text-2xl"></span>
-                      <span className="text-[8px] text-slate-400 uppercase font-black">Aucune photo</span>
-                    </div>
-                  )}
-
-                  <div className="flex-1 space-y-1">
-                    <label className="block font-black text-slate-800 uppercase tracking-wider text-[10px]">
-                      Lien URL de la Photo Officielle (.jpg, .png)
-                    </label>
-                    <input
-                      type="url"
-                      value={instForm.leader_photo_url}
-                      onChange={(e) => setInstForm({ ...instForm, leader_photo_url: e.target.value })}
-                      placeholder="https://.../photo-officielle.jpg"
-                      className="w-full p-2.5 bg-white border border-slate-300 rounded-xl font-mono text-xs focus:ring-2 focus:ring-brand-blue"
-                    />
-                    <p className="text-[10px] text-slate-500">
-                      L'image s'affiche instantanément ci-contre dès la saisie.
-                    </p>
                   </div>
                 </div>
               </div>
