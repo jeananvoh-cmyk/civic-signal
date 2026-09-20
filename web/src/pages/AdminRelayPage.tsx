@@ -361,22 +361,36 @@ function generateProfessionalSubject(group: RelayGroup): string {
 async function sendResendDirectEmail({
   apiKey,
   toEmail,
+  toEmails,
   ccEmail,
+  ccEmails,
   subject,
   htmlContent,
 }: {
   apiKey: string;
-  toEmail: string;
+  toEmail?: string;
+  toEmails?: string[];
   ccEmail?: string;
+  ccEmails?: string[];
   subject: string;
   htmlContent: string;
 }) {
   const cleanKey = apiKey.trim();
-  const cleanTo = toEmail.trim().toLowerCase();
-  const cleanCc = ccEmail ? ccEmail.trim().toLowerCase() : "";
+  const rawTos = toEmails && toEmails.length > 0 ? toEmails : (toEmail ? [toEmail] : []);
+  const cleanTos = rawTos.map((e) => e.trim().toLowerCase()).filter(Boolean);
+
+  const rawCcs = ccEmails && ccEmails.length > 0
+    ? ccEmails
+    : (ccEmail ? ccEmail.split(",").map((s) => s.trim()) : []);
+  const cleanCcs = rawCcs
+    .map((e) => e.trim().toLowerCase())
+    .filter((e) => Boolean(e) && !cleanTos.includes(e));
 
   if (!cleanKey) {
     return { ok: false, status: 400, error: "Aucune clé API Resend renseignée dans l'onglet Paramètres." };
+  }
+  if (cleanTos.length === 0) {
+    return { ok: false, status: 400, error: "Aucun destinataire spécifié pour l'envoi." };
   }
 
   const fromVariants = [
@@ -399,12 +413,12 @@ async function sendResendDirectEmail({
       try {
         const payload: any = {
           from: fromAddr,
-          to: [cleanTo],
+          to: cleanTos,
           subject,
           html: htmlContent,
         };
-        if (cleanCc && cleanCc !== cleanTo) {
-          payload.cc = [cleanCc];
+        if (cleanCcs.length > 0) {
+          payload.cc = cleanCcs;
         }
 
         const res = await fetch(endpoint, {
@@ -442,7 +456,7 @@ async function sendResendDirectEmail({
   }
 
   if (bestStatus === 403 || bestError.toLowerCase().includes("only send to") || bestError.toLowerCase().includes("sandbox")) {
-    bestError = `Resend restreint l'envoi vers (${cleanTo}). Pour tester l'envoi, renseignez votre email dans "Email de test" dans l'onglet Paramètres ou basculez en mode TEST.`;
+    bestError = `Resend en Mode Sandbox restreint l'envoi vers (${cleanTos.join(", ")}). Pour tester l'envoi, renseignez votre email dans "Email de test" dans l'onglet Paramètres ou validez votre nom de domaine sur Resend.com.`;
   } else if (bestStatus === 401 || bestError.toLowerCase().includes("api key")) {
     bestError = "La clé API Resend renseignée est invalide. Veuillez vérifier votre clé (re_...) dans Paramètres.";
   }
@@ -713,6 +727,28 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
         <!-- Corps de l'email -->
         <div style="padding: 26px 24px;">
           
+          ${isCIE ? `
+          <div style="margin: 0 0 20px 0; padding: 12px 16px; background: #f8fafc; border-left: 4px solid #f59e0b; border-radius: 6px;">
+            <div style="font-weight: 800; font-size: 11px; color: #0f172a; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
+              Transmission Officielle Conjointe — Exploitant Réseau &amp; Régulateur de Secteur
+            </div>
+            <div style="font-size: 12px; color: #334155; line-height: 1.6;">
+              <strong>Opérateur délégataire :</strong> Compagnie Ivoirienne d'Électricité (CIE)<br/>
+              <strong>Autorité de régulation en copie (CC) :</strong> ANARE-CI (Régulation &amp; Contrôle de la Qualité de Service)
+            </div>
+          </div>
+          ` : isSODECI ? `
+          <div style="margin: 0 0 20px 0; padding: 12px 16px; background: #f8fafc; border-left: 4px solid #0284c7; border-radius: 6px;">
+            <div style="font-weight: 800; font-size: 11px; color: #0f172a; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
+              Transmission Officielle Conjointe — Concessionnaire d'Eau &amp; Régulateur d'État
+            </div>
+            <div style="font-size: 12px; color: #334155; line-height: 1.6;">
+              <strong>Opérateur délégataire :</strong> Société de Distribution d'Eau de la Côte d'Ivoire (SODECI)<br/>
+              <strong>Autorité de régulation en copie (CC) :</strong> ONEP (Office National de l'Eau Potable)
+            </div>
+          </div>
+          ` : ""}
+
           <div style="margin: 0 0 16px; font-size: 15px; color: #1e293b; line-height: 1.7;">
             ${salutationTitle}
           </div>
@@ -942,6 +978,21 @@ function useRelayConfig() {
   return useQuery({
     queryKey: ["relay-config"],
     queryFn: async () => {
+      // 1. Tenter l'RPC SECURITY DEFINER (contourne les restrictions RLS)
+      try {
+        const { data: rpcData, error: rpcErr } = await (supabase as any).rpc("admin_get_relay_config");
+        if (!rpcErr && rpcData && Array.isArray(rpcData) && rpcData.length > 0) {
+          const fetched = Object.fromEntries(
+            (rpcData as { key: string; value: string }[]).map((r) => [r.key, r.value]),
+          );
+          return {
+            ...DEFAULT_CONFIG,
+            ...fetched,
+          } as RelayConfig;
+        }
+      } catch (_) {}
+
+      // 2. Fallback lecture directe table
       const { data, error } = await (supabase as any)
         .from("relay_config")
         .select("key, value");
@@ -1184,19 +1235,30 @@ const AdminRelayPage = () => {
     opFilter?: string;
     targetTitle?: string;
     destEmail?: string;
+    regulatorCc?: string;
     count?: number;
   }>({ isOpen: false, isBulk: false });
 
   const handleRequestSendSingle = (group: RelayGroup) => {
     const isTest = effectiveConfig?.test_mode === "true";
+    let regulatorInfo = "";
+    if (group.operator === "CIE" || group.operator === "ANARE") {
+      const regEmail = getOperatorTargetEmail("ANARE", group.commune, effectiveConfig);
+      regulatorInfo = `ANARE-CI (${regEmail})`;
+    } else if (group.operator === "SODECI" || group.operator === "ONEP") {
+      const regEmail = getOperatorTargetEmail("ONEP", group.commune, effectiveConfig);
+      regulatorInfo = `ONEP (${regEmail})`;
+    }
+
     if (!isTest) {
       setProdModalConfig({
         isOpen: true,
         isBulk: false,
         relayIds: group.relayIds,
         groupKey: group.key,
-        targetTitle: `${group.commune} (${OPERATOR_CONFIG[group.operator]?.label || group.operator})`,
+        targetTitle: `${group.commune} (${OPERATOR_CONFIG[group.operator]?.label || group.operator}${regulatorInfo ? ` + Régulateur` : ""})`,
         destEmail: group.email_to,
+        regulatorCc: regulatorInfo || undefined,
         count: group.quartiers.length,
       });
     } else {
@@ -1206,16 +1268,34 @@ const AdminRelayPage = () => {
 
   const handleRequestSendBulk = (opFilter: string) => {
     const isTest = effectiveConfig?.test_mode === "true";
-    const targets = pendingGroups.filter((g) => opFilter === "ALL" || g.operator === opFilter);
+    const targets = pendingGroups.filter((g) => {
+      if (opFilter === "ALL") return true;
+      if (opFilter === "CIE" || opFilter === "ANARE") return g.operator === "CIE" || g.operator === "ANARE";
+      if (opFilter === "SODECI" || opFilter === "ONEP") return g.operator === "SODECI" || g.operator === "ONEP";
+      return g.operator === opFilter;
+    });
     if (targets.length === 0) return;
 
     if (!isTest) {
+      let bulkTitle = "Tous les opérateurs";
+      let regCc: string | undefined = undefined;
+      if (opFilter === "CIE" || opFilter === "ANARE") {
+        bulkTitle = "CIE + Régulateur ANARE-CI";
+        regCc = `ANARE-CI (${effectiveConfig?.anare_ci_email || "contact@anare.ci"})`;
+      } else if (opFilter === "SODECI" || opFilter === "ONEP") {
+        bulkTitle = "SODECI + Régulateur ONEP";
+        regCc = `ONEP (${effectiveConfig?.onep_ci_email || "contact@onep.ci"})`;
+      } else if (opFilter === "MAIRIE") {
+        bulkTitle = "Mairies (Services Techniques)";
+      }
+
       setProdModalConfig({
         isOpen: true,
         isBulk: true,
         opFilter,
-        targetTitle: opFilter === "ALL" ? "Tous les opérateurs" : OPERATOR_CONFIG[opFilter as keyof typeof OPERATOR_CONFIG]?.label || opFilter,
+        targetTitle: bulkTitle,
         destEmail: opFilter === "ALL" ? "Adresses officielles de tous les groupes" : targets[0]?.email_to,
+        regulatorCc: regCc,
         count: targets.length,
       });
     } else {
@@ -1316,45 +1396,89 @@ const AdminRelayPage = () => {
     sent:    logs.filter((l) => l.operator === "MAIRIE" && l.report?.commune === m.label && l.status === "sent").length,
   })).filter((m) => m.total > 0);
 
-  // ── Envoi effectif d'un groupe d'e-mails (CIE / SODECI / ANARE / ONEP / MAIRIE) ──────
+  // ── Envoi effectif d'un groupe d'e-mails (CIE + ANARE / SODECI + ONEP / MAIRIE) ──────
   const sendSingleGroupInternal = async (group: RelayGroup) => {
     const resendApiKey = (draftConfig?.resend_api_key || effectiveConfig?.resend_api_key || "").trim();
-    if (!resendApiKey) {
-      throw new Error("Aucune clé API Resend n'est configurée dans l'onglet Paramètres. Veuillez saisir votre clé API Resend (re_...).");
-    }
-
     const isTest = effectiveConfig?.test_mode === "true";
     const testEmail = (draftConfig?.test_email || effectiveConfig?.test_email || "jeananvoh@gmail.com").trim();
-    const ccEmail = (draftConfig?.cc_email || effectiveConfig?.cc_email || "jeananvoh@gmail.com").trim();
-    const targetOperatorEmail = getOperatorTargetEmail(group.operator, group.commune, effectiveConfig, group.email_to);
-    const finalTo = isTest ? testEmail : targetOperatorEmail;
+    const adminCc = (draftConfig?.cc_email || effectiveConfig?.cc_email || "jeananvoh@gmail.com").trim();
+
+    // 1. Résolution des adresses : Opérateur principal + Régulateur conjoint
+    let primaryTargetEmail = getOperatorTargetEmail(group.operator, group.commune, effectiveConfig, group.email_to);
+    let regulatorEmail = "";
+    let regulatorName = "";
+
+    if (group.operator === "CIE") {
+      regulatorEmail = getOperatorTargetEmail("ANARE", group.commune, effectiveConfig);
+      regulatorName = "ANARE-CI";
+    } else if (group.operator === "SODECI") {
+      regulatorEmail = getOperatorTargetEmail("ONEP", group.commune, effectiveConfig);
+      regulatorName = "ONEP";
+    } else if (group.operator === "ANARE") {
+      regulatorEmail = primaryTargetEmail;
+      primaryTargetEmail = getOperatorTargetEmail("CIE", group.commune, effectiveConfig);
+      regulatorName = "ANARE-CI";
+    } else if (group.operator === "ONEP") {
+      regulatorEmail = primaryTargetEmail;
+      primaryTargetEmail = getOperatorTargetEmail("SODECI", group.commune, effectiveConfig);
+      regulatorName = "ONEP";
+    }
+
+    const ccList = [regulatorEmail, adminCc].filter(
+      (e) => e && e.trim() && e.toLowerCase() !== primaryTargetEmail.toLowerCase()
+    );
+    const finalTo = isTest ? testEmail : primaryTargetEmail;
+    const finalCc = isTest ? "" : [...new Set(ccList)].join(", ");
+
     const baseSubject = generateProfessionalSubject(group);
     const subject = isTest
-      ? `[MODE TEST → ${targetOperatorEmail}] ${baseSubject}`
+      ? `[MODE TEST → ${group.operator}: ${primaryTargetEmail}${regulatorEmail ? ` + CC ${regulatorName}: ${regulatorEmail}` : ""}] ${baseSubject}`
       : `[OFFICIEL · SIGNA-CI] ${baseSubject.replace("[SIGNA-CI] ", "")}`;
 
     const html = buildBatchEmailHtmlClient(group, isTest);
 
-    // 1. Tenter l'envoi réel Resend via le proxy client Same-Origin
-    const resendRes = await sendResendDirectEmail({
-      apiKey: resendApiKey,
-      toEmail: finalTo,
-      ccEmail: ccEmail,
-      subject,
-      htmlContent: html,
-    });
+    // 2. Tentative d'envoi réel Resend si clé API fournie
+    let resendRes: { ok: boolean; data?: any; error?: string; status?: number } = { ok: false, status: 500 };
 
-    if (!resendRes.ok) {
-      let diag = resendRes.error || "Refus d'envoi par l'API Resend.";
-      if (resendRes.status === 403 || diag.toLowerCase().includes("only send to your own")) {
-        diag = `Resend en Mode Sandbox restreint l'envoi vers l'adresse exacte de votre compte Resend.com. Pour envoyer à (${finalTo}), renseignez cette adresse comme 'Email de test' dans l'onglet Paramètres ou ajoutez votre domaine sur Resend.com.`;
-      } else if (resendRes.status === 401 || diag.toLowerCase().includes("invalid api key")) {
-        diag = "La clé API Resend renseignée est invalide. Veuillez vérifier votre clé (re_...) dans l'onglet Paramètres.";
-      }
-      throw new Error(diag);
+    if (resendApiKey) {
+      resendRes = await sendResendDirectEmail({
+        apiKey: resendApiKey,
+        toEmail: finalTo,
+        ccEmail: finalCc,
+        subject,
+        htmlContent: html,
+      });
     }
 
-    // 2. Mettre à jour le statut des relais en "sent" dans la base Supabase
+    // 3. Si échec ou absence de clé locale, tenter l'Edge Function Supabase relay-to-operator
+    if (!resendRes.ok) {
+      try {
+        const { data: edgeData, error: edgeErr } = await supabase.functions.invoke("relay-to-operator", {
+          body: { relay_ids: group.relayIds },
+        });
+        if (!edgeErr && edgeData && (edgeData.sent > 0 || edgeData.processed > 0)) {
+          resendRes = { ok: true, status: 200, data: edgeData };
+        }
+      } catch (_) {}
+    }
+
+    // 4. Gestion finale du résultat : Mode TEST vs Mode Production
+    if (!resendRes.ok) {
+      if (isTest) {
+        // En mode TEST : simulation acceptée avec succès
+        console.log(`[MODE TEST] Relais simulé vers ${finalTo} pour ${group.operator} + ${regulatorName || "Régulateur"}`);
+        resendRes = { ok: true, status: 200, data: "simulated-test" };
+      } else {
+        // En mode Production : message d'erreur clair et détaillé
+        let diag = resendRes.error || "Impossible de contacter le serveur d'envoi.";
+        if (!resendApiKey) {
+          diag = "Aucune clé API Resend n'est configurée dans Paramètres. Veuillez saisir votre clé API (re_...) pour envoyer en production, ou activez le Mode TEST pour simuler.";
+        }
+        throw new Error(diag);
+      }
+    }
+
+    // 5. Mettre à jour le statut des relais en "sent" dans la base Supabase
     const nowIso = new Date().toISOString();
     const { error: rpcErr } = await (supabase as any).rpc("admin_mark_relay_sent", { p_relay_ids: group.relayIds });
     if (rpcErr) {
@@ -1364,16 +1488,19 @@ const AdminRelayPage = () => {
         .in("id", group.relayIds);
     }
 
-    // 3. Notifier les citoyens
+    // 6. Notifier les citoyens avec la mention conjointe Opérateur + Régulateur
     const { data: notifLogs } = await (supabase as any).from("relay_logs").select("*, report:reports(*)").in("id", group.relayIds);
     if (notifLogs && notifLogs.length > 0) {
+      const entityTitle = regulatorName ? `${group.operator} & ${regulatorName}` : group.operator;
       const notifs = notifLogs
         .filter((l: any) => l.report)
         .map((l: any) => ({
           user_id: l.report.user_id,
           report_id: l.report.id,
-          title: `Transmis à ${l.operator}`,
-          message: `Votre signalement à ${l.report.commune} (${l.report.quartier}) a été transmis aux services de ${l.operator} par l'équipe SIGNA-CI.`,
+          title: `Transmis à ${entityTitle}`,
+          message: regulatorName
+            ? `Votre signalement à ${l.report.commune} (${l.report.quartier}) a été transmis conjointement aux services de la ${group.operator} et à l'autorité de régulation ${regulatorName}.`
+            : `Votre signalement à ${l.report.commune} (${l.report.quartier}) a été transmis aux services de ${l.operator} par l'équipe SIGNA-CI.`,
         }));
       if (notifs.length > 0) {
         try {
@@ -1382,7 +1509,14 @@ const AdminRelayPage = () => {
       }
     }
 
-    return { sent: group.relayIds.length, finalTo, isTest };
+    return { 
+      sent: group.relayIds.length, 
+      finalTo, 
+      isTest, 
+      operator: group.operator, 
+      regulator: regulatorName,
+      isSimulated: resendRes.data === "simulated-test" 
+    };
   };
 
   // ── Envoi manuel d'un groupe ───────────────────────────────────────────────
@@ -1446,51 +1580,22 @@ const AdminRelayPage = () => {
         throw new Error("Impossible de récupérer les détails du groupe de signalements.");
       }
 
-      // Envoi du groupe principal (ex: CIE ou SODECI)
+      // Envoi conjoint du groupe (Opérateur principal + Régulateur officiel en CC)
       const mainResult = await sendSingleGroupInternal(targetGroup);
 
-      // Si c'est un groupe CIE et que ANARE est activé, envoyer obligatoirement le mail de régulation ANARE-CI
-      if (targetGroup.operator === "CIE" && effectiveConfig?.anare_auto_dispatch !== "false") {
-        let linkedAnare = pendingGroups.find(
-          (g) => g.operator === "ANARE" && g.commune === targetGroup!.commune
-        );
-        if (!linkedAnare) {
-          linkedAnare = {
-            ...targetGroup,
-            key: `ANARE::${targetGroup.commune}`,
-            operator: "ANARE",
-            email_to: getOperatorTargetEmail("ANARE", targetGroup.commune, effectiveConfig),
-          };
-        }
-        if (linkedAnare) {
-          try {
-            await sendSingleGroupInternal(linkedAnare);
-          } catch (err) {
-            console.warn("Auto-dispatch ANARE warning:", err);
-          }
-        }
-      }
-
-      // Si c'est un groupe SODECI et que ONEP est activé, envoyer obligatoirement le mail de régulation ONEP
-      if (targetGroup.operator === "SODECI" && effectiveConfig?.onep_auto_dispatch !== "false") {
-        let linkedOnep = pendingGroups.find(
-          (g) => g.operator === "ONEP" && g.commune === targetGroup!.commune
-        );
-        if (!linkedOnep) {
-          linkedOnep = {
-            ...targetGroup,
-            key: `ONEP::${targetGroup.commune}`,
-            operator: "ONEP",
-            email_to: getOperatorTargetEmail("ONEP", targetGroup.commune, effectiveConfig),
-          };
-        }
-        if (linkedOnep) {
-          try {
-            await sendSingleGroupInternal(linkedOnep);
-          } catch (err) {
-            console.warn("Auto-dispatch ONEP warning:", err);
-          }
-        }
+      // Si le groupe est CIE ou SODECI, synchroniser aussi le statut des relais régulateurs correspondants
+      if (targetGroup.operator === "CIE" || targetGroup.operator === "ANARE") {
+        await (supabase as any)
+          .from("relay_logs")
+          .update({ status: "sent", sent_at: new Date().toISOString() })
+          .in("operator", ["CIE", "ANARE"])
+          .in("report_id", targetGroup.quartiers.map((q) => q.reportId).filter(Boolean));
+      } else if (targetGroup.operator === "SODECI" || targetGroup.operator === "ONEP") {
+        await (supabase as any)
+          .from("relay_logs")
+          .update({ status: "sent", sent_at: new Date().toISOString() })
+          .in("operator", ["SODECI", "ONEP"])
+          .in("report_id", targetGroup.quartiers.map((q) => q.reportId).filter(Boolean));
       }
 
       return mainResult;
@@ -1507,13 +1612,14 @@ const AdminRelayPage = () => {
       });
       queryClient.invalidateQueries({ queryKey: ["admin-relay-logs-all"] });
 
+      const entities = data?.regulator ? `${data.operator} + ${data.regulator}` : data?.operator || "l'opérateur";
       const destMsg = data?.isTest
-        ? `Transmis à votre e-mail de test (${data?.finalTo})`
-        : `Transmis au destinataire officiel (${data?.finalTo})`;
+        ? `Transmis en mode TEST à ${data?.finalTo} (${entities})`
+        : `Transmis à ${data?.finalTo} (avec copie de régulation ${data?.regulator || ""})`;
 
       toast({
-        title: "✉️ Email Resend transmis avec succès",
-        description: `${data?.sent ?? 0} signalement(s) traités. ${destMsg}. Vérifiez également votre dossier Spam / Courrier indésirable.`,
+        title: data?.isSimulated ? "Relais simulé avec succès (Mode TEST)" : "Transmission conjointe envoyée avec succès",
+        description: `${data?.sent ?? 0} signalement(s) traités pour ${entities}. ${destMsg}.`,
       });
     },
     onError: (err: any) => {
@@ -1543,7 +1649,7 @@ const AdminRelayPage = () => {
       });
       queryClient.invalidateQueries({ queryKey: ["admin-relay-logs-all"] });
       toast({
-        title: "🗑️ Fiche de relais retirée",
+        title: "Fiche de relais retirée",
         description: "La fiche a été supprimée de la file d'attente avec succès.",
       });
     },
@@ -1558,26 +1664,18 @@ const AdminRelayPage = () => {
 
   const sendAllOperatorGroups = async (opFilter: string) => {
     let targets = pendingGroups.filter((g) => {
-      if (g.operator === "ANARE" && effectiveConfig?.anare_auto_dispatch === "false") return false;
-      if (g.operator === "ONEP" && effectiveConfig?.onep_auto_dispatch === "false") return false;
-      return opFilter === "ALL" || g.operator === opFilter;
+      if (opFilter === "ALL") return true;
+      if (opFilter === "CIE" || opFilter === "ANARE") return g.operator === "CIE" || g.operator === "ANARE";
+      if (opFilter === "SODECI" || opFilter === "ONEP") return g.operator === "SODECI" || g.operator === "ONEP";
+      return g.operator === opFilter;
     });
-
-    if (opFilter === "CIE" && effectiveConfig?.anare_auto_dispatch !== "false") {
-      const anareTargets = pendingGroups.filter((g) => g.operator === "ANARE");
-      targets = [...targets, ...anareTargets.filter((a) => !targets.some((t) => t.key === a.key))];
-    }
-
-    if (opFilter === "SODECI" && effectiveConfig?.onep_auto_dispatch !== "false") {
-      const onepTargets = pendingGroups.filter((g) => g.operator === "ONEP");
-      targets = [...targets, ...onepTargets.filter((o) => !targets.some((t) => t.key === o.key))];
-    }
 
     if (targets.length === 0) return;
 
     setBulkSending(true);
     let successCount = 0;
     let failCount = 0;
+    let lastErrorMsg = "";
 
     for (const group of targets) {
       try {
@@ -1586,17 +1684,19 @@ const AdminRelayPage = () => {
           groupKey: group.key,
         });
         successCount++;
-      } catch (_) {
+      } catch (err: any) {
         failCount++;
+        lastErrorMsg = err?.message || "Erreur lors de la transmission";
       }
     }
 
     setBulkSending(false);
     toast({
-      title: `⚡ Envoi des relais terminé (${successCount}/${targets.length})`,
+      title: `Envoi des relais (${successCount}/${targets.length})`,
       description: failCount > 0 
-        ? `${successCount} groupe(s) transmis avec succès. ${failCount} groupe(s) ont rencontré une alerte.`
-        : `Tous les ${successCount} groupe(s) de signalements ${opFilter !== "ALL" ? opFilter : ""} (opérateurs & régulateurs) ont été transmis par e-mail avec succès.`,
+        ? `${successCount} groupe(s) transmis. ${failCount} échec(s) : ${lastErrorMsg}`
+        : `Tous les ${successCount} groupe(s) (${opFilter !== "ALL" ? opFilter : "toutes catégories"}) ont été transmis conjointement par e-mail avec succès.`,
+      variant: failCount > 0 && successCount === 0 ? "destructive" : "default",
     });
   };
 
@@ -2004,7 +2104,15 @@ const AdminRelayPage = () => {
         /* ── VUE : À ENVOYER ───────────────────────────────────────────── */
         (() => {
           const filteredPendingGroups = pendingGroups.filter((g) => {
-            if (pendingOpFilter !== "ALL" && g.operator !== pendingOpFilter) return false;
+            if (pendingOpFilter !== "ALL") {
+              if (pendingOpFilter === "CIE" || pendingOpFilter === "ANARE") {
+                if (g.operator !== "CIE" && g.operator !== "ANARE") return false;
+              } else if (pendingOpFilter === "SODECI" || pendingOpFilter === "ONEP") {
+                if (g.operator !== "SODECI" && g.operator !== "ONEP") return false;
+              } else if (g.operator !== pendingOpFilter) {
+                return false;
+              }
+            }
             if (!searchRelayQuery.trim()) return true;
             const q = searchRelayQuery.toLowerCase().trim();
             const matchCommune = g.commune.toLowerCase().includes(q);
@@ -2042,23 +2150,24 @@ const AdminRelayPage = () => {
 
                   <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
                     {[
-                      { id: "ALL", label: "Tous les relais", count: pendingGroups.length, activeCls: "bg-emerald-600 hover:bg-emerald-500 text-white" },
-                      { id: "CIE", label: "⚡ CIE", count: pendingGroups.filter((g) => g.operator === "CIE").length, activeCls: "bg-amber-600 hover:bg-amber-500 text-white" },
-                      { id: "SODECI", label: "💧 SODECI", count: pendingGroups.filter((g) => g.operator === "SODECI").length, activeCls: "bg-sky-600 hover:bg-sky-500 text-white" },
-                      { id: "MAIRIE", label: "🏛️ Mairies", count: pendingGroups.filter((g) => g.operator === "MAIRIE").length, activeCls: "bg-orange-600 hover:bg-orange-500 text-white" },
-                      { id: "ANARE", label: "⚖️ ANARE-CI", count: pendingGroups.filter((g) => g.operator === "ANARE").length, activeCls: "bg-amber-700 hover:bg-amber-600 text-white" },
-                      { id: "ONEP", label: "🛡️ ONEP", count: pendingGroups.filter((g) => g.operator === "ONEP").length, activeCls: "bg-teal-600 hover:bg-teal-500 text-white" },
+                      { id: "ALL", label: "Tous les relais", icon: null, count: pendingGroups.length, activeCls: "bg-emerald-600 hover:bg-emerald-500 text-white" },
+                      { id: "CIE", label: "CIE", icon: Zap, count: pendingGroups.filter((g) => g.operator === "CIE" || g.operator === "ANARE").length, activeCls: "bg-amber-600 hover:bg-amber-500 text-white" },
+                      { id: "SODECI", label: "SODECI", icon: Droplets, count: pendingGroups.filter((g) => g.operator === "SODECI" || g.operator === "ONEP").length, activeCls: "bg-sky-600 hover:bg-sky-500 text-white" },
+                      { id: "MAIRIE", label: "Mairies", icon: Landmark, count: pendingGroups.filter((g) => g.operator === "MAIRIE").length, activeCls: "bg-orange-600 hover:bg-orange-500 text-white" },
+                      { id: "ANARE", label: "ANARE-CI", icon: Scale, count: pendingGroups.filter((g) => g.operator === "ANARE" || g.operator === "CIE").length, activeCls: "bg-amber-700 hover:bg-amber-600 text-white" },
+                      { id: "ONEP", label: "ONEP", icon: ShieldCheck, count: pendingGroups.filter((g) => g.operator === "ONEP" || g.operator === "SODECI").length, activeCls: "bg-teal-600 hover:bg-teal-500 text-white" },
                     ].map((f) => (
                       <button
                         key={f.id}
                         onClick={() => setPendingOpFilter(f.id)}
                         className={cn(
-                          "h-8 px-3 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5",
+                          "h-8 px-3 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0",
                           pendingOpFilter === f.id
                             ? f.activeCls
                             : "border border-border/80 bg-background hover:bg-muted text-foreground/80"
                         )}
                       >
+                        {f.icon && <f.icon className="h-3.5 w-3.5 shrink-0" />}
                         <span>{f.label}</span>
                         <span
                           className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
@@ -2085,6 +2194,10 @@ const AdminRelayPage = () => {
                       ? "Envoi en masse..."
                       : pendingOpFilter === "ALL"
                       ? `Tout envoyer par Email (${pendingGroups.length})`
+                      : pendingOpFilter === "CIE" || pendingOpFilter === "ANARE"
+                      ? `Envoyer tous les relais CIE + ANARE-CI (${filteredPendingGroups.length})`
+                      : pendingOpFilter === "SODECI" || pendingOpFilter === "ONEP"
+                      ? `Envoyer tous les relais SODECI + ONEP (${filteredPendingGroups.length})`
                       : `Envoyer tous les relais ${OPERATOR_CONFIG[pendingOpFilter]?.label || pendingOpFilter} (${filteredPendingGroups.length})`}
                   </Button>
                 )}
@@ -2112,7 +2225,7 @@ const AdminRelayPage = () => {
                       className="gap-2 bg-primary text-primary-foreground font-bold shadow-md hover:scale-105 transition-transform"
                     >
                       <RefreshCw className={`h-4 w-4 ${syncAllMutation.isPending ? "animate-spin" : ""}`} />
-                      {syncAllMutation.isPending ? "Synchronisation en cours..." : "⚡ Synchroniser tous les signalements validés"}
+                      {syncAllMutation.isPending ? "Synchronisation en cours..." : "Synchroniser tous les signalements validés"}
                     </Button>
                   </div>
                 </div>
@@ -2149,7 +2262,7 @@ const AdminRelayPage = () => {
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground flex-wrap">
                               <span className="flex items-center gap-1">
                                 <MapPin className="h-3 w-3" />
                                 {group.quartiers.length} quartier{group.quartiers.length > 1 ? "s" : ""}
@@ -2163,7 +2276,22 @@ const AdminRelayPage = () => {
                                     : (group.totalConfirmations > 1 ? `${group.totalConfirmations} foyers (corroboration)` : "1 foyer (corroboration)");
                                 })()}
                               </span>
-                              <span className="hidden sm:block">{group.email_to}</span>
+                              <span className="hidden sm:inline font-mono">{group.email_to}</span>
+                              {(() => {
+                                const isElec = group.operator === "CIE" || group.operator === "ANARE";
+                                const isWater = group.operator === "SODECI" || group.operator === "ONEP";
+                                if (!isElec && !isWater) return null;
+                                const regName = isElec ? "ANARE-CI" : "ONEP";
+                                const regEmail = isElec 
+                                  ? getOperatorTargetEmail("ANARE", group.commune, effectiveConfig)
+                                  : getOperatorTargetEmail("ONEP", group.commune, effectiveConfig);
+                                return (
+                                  <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
+                                    <Scale className="h-3 w-3" />
+                                    CC Régulateur : {regName} ({regEmail})
+                                  </span>
+                                );
+                              })()}
                             </div>
 
                             {/* Bandeau d'information Point Focal Mairie */}
@@ -2173,7 +2301,7 @@ const AdminRelayPage = () => {
                                 <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                                   {mCfg.focalName && (
                                     <span className="bg-orange-500/10 text-orange-700 dark:text-orange-300 px-2 py-0.5 rounded-md font-bold border border-orange-500/20 flex items-center gap-1">
-                                      👤 Point Focal ST : {mCfg.focalName}
+                                      <Users className="h-3 w-3" /> Point Focal ST : {mCfg.focalName}
                                     </span>
                                   )}
                                   {mCfg.whatsapp && (
@@ -2182,8 +2310,8 @@ const AdminRelayPage = () => {
                                     </span>
                                   )}
                                   {mCfg.email && (
-                                    <span className="bg-muted/50 text-muted-foreground px-2 py-0.5 rounded-md font-medium border border-border">
-                                      ✉️ ST : {mCfg.email}
+                                    <span className="bg-muted/50 text-muted-foreground px-2 py-0.5 rounded-md font-medium border border-border flex items-center gap-1">
+                                      <MailCheck className="h-3 w-3" /> ST : {mCfg.email}
                                     </span>
                                   )}
                                 </div>
@@ -2306,8 +2434,8 @@ const AdminRelayPage = () => {
                                     : `[SIGNA-CI] Rapport d'intervention — ${group.commune} (${OPERATOR_CONFIG[group.operator]?.label || group.operator})`;
                                   navigator.clipboard.writeText(`DESTINATAIRE: ${finalTo}\nSUJET: ${subject}\n\n${html}`);
                                   toast({
-                                    title: "📋 Email copié !",
-                                    description: `Le sujet et le contenu HTML ont été copiés dans le presse-papier pour ${finalTo}.`,
+                                    title: "Email copié dans le presse-papier",
+                                    description: `Le sujet et le contenu HTML ont été copiés pour ${finalTo}.`,
                                   });
                                 }}
                               >
@@ -2326,7 +2454,11 @@ const AdminRelayPage = () => {
                                 }`}
                               >
                                 <Send className="h-3.5 w-3.5" />
-                                {isSending ? "Envoi…" : `Email ${opCfg.label}`}
+                                {isSending ? "Envoi…" : (() => {
+                                  if (group.operator === "CIE" || group.operator === "ANARE") return "Email CIE + ANARE-CI";
+                                  if (group.operator === "SODECI" || group.operator === "ONEP") return "Email SODECI + ONEP";
+                                  return `Email ${opCfg.label}`;
+                                })()}
                               </Button>
                             </>
                           )}
@@ -2345,16 +2477,23 @@ const AdminRelayPage = () => {
                           const targetReportId = q.reportId || group.relayIds[0];
 
                           const specificLabel = q.description && q.description.trim() ? extractInfraLabel(q.description.trim()) : null;
-                          const iconPrefix = q.serviceType === "electricity" ? "⚡" : q.serviceType === "water" ? "💧" : (q.category === "eclairage_public" || specificLabel?.toLowerCase().includes("lampadaire")) ? "💡" : "🏛️";
                           const typeLabel = (specificLabel && isQuartierInfra)
-                            ? `${iconPrefix} ${specificLabel}`
+                            ? specificLabel
                             : q.serviceType === "electricity"
-                            ? "⚡ Électricité"
+                            ? "Électricité"
                             : q.serviceType === "water"
-                            ? "💧 Eau"
+                            ? "Eau potable"
                             : q.serviceType === "streetlighting" || q.category === "eclairage_public"
-                            ? "💡 Éclairage public"
-                            : "🏛️ Infrastructure / Voirie";
+                            ? "Éclairage public"
+                            : "Infrastructure / Voirie";
+
+                          const ServiceIcon = q.serviceType === "electricity"
+                            ? Zap
+                            : q.serviceType === "water"
+                            ? Droplets
+                            : (q.category === "eclairage_public" || specificLabel?.toLowerCase().includes("lampadaire"))
+                            ? Zap
+                            : Building2;
 
                           const dateFormatted = q.createdAt ? safeFormatDate(q.createdAt, "d MMMM yyyy à HH:mm") : null;
                           const durationFormatted = q.createdAt ? safeFormatDuration(q.createdAt) : null;
@@ -2366,7 +2505,8 @@ const AdminRelayPage = () => {
                             >
                               <div className="flex flex-col gap-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 shrink-0">
+                                  <span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20 shrink-0 flex items-center gap-1">
+                                    <ServiceIcon className="h-3 w-3" />
                                     {typeLabel}
                                   </span>
                                   <span className="text-sm font-bold text-foreground">
@@ -3070,8 +3210,8 @@ const AdminRelayPage = () => {
                       </div>
 
                       <div>
-                        <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
-                          👤 Nom / Poste Point Focal ST
+                        <label className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1 mb-1">
+                          <Users className="h-3 w-3" /> Nom / Poste Point Focal ST
                         </label>
                         <input
                           type="text"
@@ -3113,7 +3253,7 @@ const AdminRelayPage = () => {
                 className="gap-2 bg-primary text-primary-foreground font-bold shadow-lg"
               >
                 <Save className={`h-4 w-4 ${saveConfig.isPending ? "animate-spin" : ""}`} />
-                {saveConfig.isPending ? "Enregistrement..." : "💾 Enregistrer les modifications"}
+                {saveConfig.isPending ? "Enregistrement..." : "Enregistrer les modifications"}
               </Button>
             </motion.div>
           )}
@@ -3127,7 +3267,7 @@ const AdminRelayPage = () => {
           <DialogHeader>
             <DialogTitle className="text-red-600 dark:text-red-500 flex items-center gap-2 text-base font-extrabold">
               <AlertTriangle className="h-5 w-5 text-red-600 animate-pulse" />
-              🛑 CONFIRMATION DE SÉCURITÉ — MODE PRODUCTION
+              CONFIRMATION DE SÉCURITÉ — MODE PRODUCTION
             </DialogTitle>
             <DialogDescription className="text-foreground/90 text-xs mt-1.5 font-medium">
               Le <strong className="text-red-600 font-bold">MODE PRODUCTION (Réel)</strong> est actuellement activé sur SIGNA-CI.
@@ -3140,11 +3280,19 @@ const AdminRelayPage = () => {
               <strong className="text-foreground font-bold">{prodModalConfig.targetTitle}</strong>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground font-semibold">Destinataire principal :</span>
+              <span className="text-muted-foreground font-semibold">Destinataire principal (TO) :</span>
               <code className="bg-background px-2 py-0.5 rounded font-mono font-bold text-red-600">{prodModalConfig.destEmail}</code>
             </div>
+            {prodModalConfig.regulatorCc && (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground font-semibold">Régulateur conjoint (CC) :</span>
+                <code className="bg-background px-2 py-0.5 rounded font-mono font-bold text-amber-600 dark:text-amber-400">
+                  {prodModalConfig.regulatorCc}
+                </code>
+              </div>
+            )}
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground font-semibold">Copie conforme (CC) :</span>
+              <span className="text-muted-foreground font-semibold">Copie administration (CC) :</span>
               <code className="bg-background px-2 py-0.5 rounded font-mono font-bold text-emerald-600">
                 {effectiveConfig?.cc_email || effectiveConfig?.test_email || "jeananvoh@gmail.com"}
               </code>
@@ -3158,7 +3306,7 @@ const AdminRelayPage = () => {
           </div>
 
           <p className="text-[11px] text-muted-foreground italic mt-2">
-            ⚠️ Cet e-mail sera immédiatement transmis à l'adresse de production officielle de l'opérateur. Une copie conforme (CC) vous sera automatiquement délivrée.
+            Cet e-mail sera immédiatement transmis à l'adresse de production officielle de l'opérateur et du régulateur officiel. Une copie conforme (CC) vous sera automatiquement délivrée.
           </p>
 
           <DialogFooter className="flex-col sm:flex-row gap-2 mt-4">
@@ -3170,7 +3318,7 @@ const AdminRelayPage = () => {
                 saveConfig.mutate(newCfg);
                 setProdModalConfig({ ...prodModalConfig, isOpen: false });
                 toast({
-                  title: "🛡️ Basculé en Mode TEST Sécurisé",
+                  title: "Basculé en Mode TEST Sécurisé",
                   description: "Le mode TEST est réactivé. Vous pouvez tester vos envois en toute sécurité.",
                 });
               }}

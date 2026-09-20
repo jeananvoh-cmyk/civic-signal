@@ -557,7 +557,8 @@ const SuiviPage = () => {
                               {infraLabel}
                             </span>
                           )}
-                          {r.pada_commune_code && (
+                          {/* PADA affiché uniquement pour les infrastructures publiques (lampadaires, voirie, caniveaux) pour préserver l'anonymat des foyers privés */}
+                          {isInfra && r.pada_commune_code && (
                             <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border">
                               PADA {r.pada_commune_code}
                             </span>
