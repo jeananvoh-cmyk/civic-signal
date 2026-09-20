@@ -10,7 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { COMMUNES } from "@/lib/communes";
 import { getQuartiers } from "@/lib/quartiers";
 import { toast } from "sonner";
-import { ChevronRight, Check, Loader2 } from "lucide-react";
+import { Check, Loader2, Phone, MapPin, Building2, ShieldCheck } from "lucide-react";
 
 interface OnboardingModalProps {
   open: boolean;
@@ -21,12 +21,6 @@ interface OnboardingModalProps {
   initialPhone?: string | null;
   missingFields: string[];
 }
-
-const STEPS = [
-  { id: "commune", label: "Votre commune" },
-  { id: "quartier", label: "Votre quartier" },
-  { id: "phone", label: "Votre téléphone" },
-] as const;
 
 const OnboardingModal = ({
   open,
@@ -44,34 +38,29 @@ const OnboardingModal = ({
   const [phone, setPhone] = useState(initialPhone ?? "");
   const [saving, setSaving] = useState(false);
 
-  // Determine which steps are actually needed
-  const neededSteps = STEPS.filter((s) => missingFields.includes(s.id));
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const currentStep = neededSteps[currentIndex];
-
   const quartiers = commune ? getQuartiers(commune) : [];
 
+  const isCommuneNeeded = missingFields.includes("commune");
+  const isQuartierNeeded = missingFields.includes("quartier");
+  const isPhoneNeeded = missingFields.includes("phone");
+
   const canProceed = () => {
-    if (!currentStep) return false;
-    if (currentStep.id === "commune") return commune.trim() !== "";
-    if (currentStep.id === "quartier") return quartier.trim() !== "";
-    if (currentStep.id === "phone") return phone.trim().length >= 8;
-    return false;
+    if (isCommuneNeeded && !commune.trim()) return false;
+    if (isQuartierNeeded && !quartier.trim()) return false;
+    if (isPhoneNeeded && phone.trim().length < 8) return false;
+    return true;
   };
 
-  const handleNext = async () => {
-    if (currentIndex < neededSteps.length - 1) {
-      setCurrentIndex((i) => i + 1);
-      return;
-    }
-    // Last step → save and call onComplete
+  const handleSave = async () => {
     if (!user) return;
+    if (!canProceed()) return;
+
     setSaving(true);
     try {
       const updateData: Record<string, string> = {};
-      if (missingFields.includes("commune")) updateData.commune = commune.trim();
-      if (missingFields.includes("quartier")) updateData.quartier = quartier.trim();
-      if (missingFields.includes("phone")) updateData.phone = phone.trim();
+      if (isCommuneNeeded) updateData.commune = commune.trim();
+      if (isQuartierNeeded) updateData.quartier = quartier.trim();
+      if (isPhoneNeeded) updateData.phone = phone.trim();
 
       const { error } = await supabase
         .from("profiles")
@@ -80,6 +69,7 @@ const OnboardingModal = ({
 
       if (error) throw error;
 
+      toast.success("Profil complété avec succès !");
       onComplete({ commune: commune.trim(), quartier: quartier.trim(), phone: phone.trim() });
     } catch {
       toast.error("Erreur lors de la sauvegarde du profil");
@@ -88,53 +78,31 @@ const OnboardingModal = ({
     }
   };
 
-  const totalSteps = neededSteps.length;
-  const isLast = currentIndex === totalSteps - 1;
-
-  if (!currentStep) return null;
-
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-lg font-bold">
-            Complétez votre profil
+      <DialogContent className="sm:max-w-md rounded-2xl">
+        <DialogHeader className="text-left space-y-1">
+          <div className="flex items-center gap-2 text-primary font-semibold text-xs tracking-wide uppercase">
+            <ShieldCheck className="h-4 w-4" /> Complétion du profil citoyen
+          </div>
+          <DialogTitle className="text-xl font-extrabold text-foreground">
+            Dernière étape avant envoi
           </DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
-            Ces informations permettent de contextualiser votre signalement et renforcer sa crédibilité.
+          <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+            Ces informations permettent de contextualiser votre signalement et de certifier sa crédibilité auprès des opérateurs.
           </DialogDescription>
         </DialogHeader>
 
-        {/* Progress dots */}
-        {totalSteps > 1 && (
-          <div className="flex items-center gap-2 justify-center py-1">
-            {neededSteps.map((step, i) => (
-              <div
-                key={step.id}
-                className={`h-2 rounded-full transition-all duration-300 ${
-                  i < currentIndex
-                    ? "bg-primary w-2"
-                    : i === currentIndex
-                    ? "bg-primary w-6"
-                    : "bg-muted w-2"
-                }`}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Step label */}
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide text-center">
-          Étape {currentIndex + 1} / {totalSteps} — {currentStep.label}
-        </p>
-
-        {/* Step content */}
-        <div className="py-2 space-y-3">
-          {currentStep.id === "commune" && (
+        {/* Unified Single-Screen Form */}
+        <div className="py-2 space-y-4">
+          {/* Field: Commune */}
+          {isCommuneNeeded && (
             <div className="space-y-1.5">
-              <Label htmlFor="onb-commune">Commune de résidence</Label>
+              <Label htmlFor="onb-commune" className="text-xs font-bold flex items-center gap-1.5">
+                <Building2 className="h-3.5 w-3.5 text-primary" /> Commune de résidence *
+              </Label>
               <Select value={commune} onValueChange={(v) => { setCommune(v); setQuartier(""); }}>
-                <SelectTrigger id="onb-commune">
+                <SelectTrigger id="onb-commune" className="h-11 rounded-xl">
                   <SelectValue placeholder="Choisissez votre commune" />
                 </SelectTrigger>
                 <SelectContent>
@@ -143,15 +111,15 @@ const OnboardingModal = ({
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                Votre commune de résidence habituelle à Abidjan.
-              </p>
             </div>
           )}
 
-          {currentStep.id === "quartier" && (
+          {/* Field: Quartier */}
+          {isQuartierNeeded && (
             <div className="space-y-1.5">
-              <Label>Quartier</Label>
+              <Label className="text-xs font-bold flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 text-primary" /> Quartier *
+              </Label>
               {commune ? (
                 <QuartierCombobox
                   quartiers={quartiers}
@@ -159,48 +127,48 @@ const OnboardingModal = ({
                   onChange={setQuartier}
                 />
               ) : (
-                <p className="text-sm text-muted-foreground italic">Sélectionnez d'abord une commune.</p>
+                <p className="text-xs text-muted-foreground italic bg-muted/40 p-2.5 rounded-xl">
+                  Sélectionnez d'abord une commune ci-dessus.
+                </p>
               )}
-              <p className="text-xs text-muted-foreground">
-                Votre quartier précis dans {commune || "la commune"}.
-              </p>
             </div>
           )}
 
-          {currentStep.id === "phone" && (
+          {/* Field: Phone / WhatsApp */}
+          {isPhoneNeeded && (
             <div className="space-y-1.5">
-              <Label htmlFor="onb-phone">Numéro WhatsApp</Label>
+              <Label htmlFor="onb-phone" className="text-xs font-bold flex items-center gap-1.5">
+                <Phone className="h-3.5 w-3.5 text-emerald-600" /> Numéro WhatsApp *
+              </Label>
               <Input
                 id="onb-phone"
                 type="tel"
                 placeholder="+225 07 XX XX XX XX"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                autoFocus
+                className="h-11 rounded-xl"
               />
-              <p className="text-xs text-muted-foreground">
-                Utilisé uniquement pour vous contacter si besoin de précisions sur votre signalement. Jamais publié.
+              <p className="text-[11px] text-muted-foreground leading-tight">
+                🔒 Votre numéro reste <strong>confidentiel</strong>. Il sert uniquement aux relances et à la transmission d'interventions.
               </p>
             </div>
           )}
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-between gap-3 pt-1">
-          <Button variant="ghost" size="sm" onClick={onClose} className="text-muted-foreground">
+        <div className="flex items-center justify-between gap-3 pt-2 border-t border-border">
+          <Button variant="ghost" size="sm" onClick={onClose} className="text-xs text-muted-foreground">
             Plus tard
           </Button>
           <Button
-            onClick={handleNext}
+            onClick={handleSave}
             disabled={!canProceed() || saving}
-            className="gap-2"
+            className="py-5 px-5 text-sm font-bold rounded-xl gap-2 bg-primary text-primary-foreground hover:opacity-90 shadow-md"
           >
             {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : isLast ? (
-              <><Check className="h-4 w-4" /> Enregistrer et signaler</>
+              <><Loader2 className="h-4 w-4 animate-spin" /> Enregistrement...</>
             ) : (
-              <><ChevronRight className="h-4 w-4" /> Suivant</>
+              <><Check className="h-4 w-4" /> Enregistrer et envoyer</>
             )}
           </Button>
         </div>

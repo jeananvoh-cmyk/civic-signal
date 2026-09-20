@@ -5,6 +5,7 @@ import {
   Send, MapPin, Navigation, Loader2, Users, Baby, Heart, UserRound,
   ChevronDown, Plus, Minus, ArrowLeft, Camera, MessageSquare, Clock,
   LogIn, UserPlus, AlertTriangle, CheckCircle2, ShieldAlert, Layers, Link2,
+  Zap, Droplets,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -67,11 +68,11 @@ const ReportPage = () => {
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<"all" | "infrastructure" | "outage">(() => {
     const cat = searchParams.get("category");
     const typ = searchParams.get("type");
-    if (cat === "infrastructure" || typ === "street_light" || typ === "pothole" || typ === "drain_blocked" || typ === "water_leak" || typ === "cie_pole" || typ === "cie_hazard") {
-      return "infrastructure";
-    }
-    if (cat === "outage" || typ === "electricity_outage" || typ === "water_outage") {
-      return "outage";
+    if (cat === "infrastructure") return "infrastructure";
+    if (cat === "outage") return "outage";
+    if (typ) {
+      const match = REPORT_TYPES.find((t) => t.id === typ);
+      if (match) return match.reportCategory;
     }
     return "all";
   });
@@ -97,6 +98,7 @@ const ReportPage = () => {
   const [elderly, setElderly] = useState(0);
   const [showDesc, setShowDesc] = useState(false);
   const [showPhoto, setShowPhoto] = useState(false);
+  const [noPhotoReason, setNoPhotoReason] = useState(false);
   const [showTime, setShowTime] = useState(false);
   const [showPeople, setShowPeople] = useState(false);
   const [gpsConsent, setGpsConsent] = useState(false);
@@ -104,6 +106,7 @@ const ReportPage = () => {
   // CIE / SODECI — compteur & contrat
   const [meterNumber, setMeterNumber] = useState("");
   const [contractType, setContractType] = useState<"prepaid" | "postpaid">("prepaid");
+  const [showMeter, setShowMeter] = useState(false);
 
   // GPS
   const [latitude, setLatitude] = useState<number | null>(null);
@@ -233,6 +236,16 @@ const ReportPage = () => {
   }, [quartier, commune, selectedType, user]);
 
   const captureGPS = async (showError = true) => {
+    if (typeof window !== "undefined" && !window.isSecureContext && window.location.hostname !== "localhost") {
+      setGpsLoading(false);
+      if (showError) {
+        toast.info("Connexion non sécurisée (HTTP)", {
+          description: "La géolocalisation automatique nécessite HTTPS. Choisissez votre commune ci-dessous.",
+        });
+      }
+      return;
+    }
+
     if (!navigator.geolocation) {
       setGpsLoading(false);
       if (showError) toast.error("Géolocalisation non supportée");
@@ -243,39 +256,31 @@ const ReportPage = () => {
     setGpsRetrying(false);
     setGpsWeakSignal(false);
 
-    const getPosition = (highAccuracy = true): Promise<GeolocationPosition> =>
+    const getPosition = (highAccuracy = true, timeoutMs = 6000): Promise<GeolocationPosition> =>
       new Promise((resolve, reject) =>
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: highAccuracy,
-          timeout: highAccuracy ? 10000 : 8000,
+          timeout: timeoutMs,
           maximumAge: 30000,
         })
       );
 
-    // Jusqu'à 3 tentatives — on garde la lecture avec la meilleure précision
     let bestPos: GeolocationPosition | null = null;
-    const MAX_ATTEMPTS = 3;
-    const GOOD_ACCURACY_M = 80;
-    const WEAK_ACCURACY_M = 300;
+    let lastGpsError: GeolocationPositionError | null = null;
 
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-      try {
-        if (attempt > 1) {
-          setGpsRetrying(true);
-          await new Promise((r) => setTimeout(r, 2000));
-        }
-        let pos: GeolocationPosition;
+    try {
+      // Tentative 1 : haute précision (GPS matériel)
+      bestPos = await getPosition(true, 6000);
+    } catch (err: any) {
+      lastGpsError = err;
+      // Si la permission est expressément refusée (code 1), inutile d'insister
+      if (err?.code !== 1) {
         try {
-          pos = await getPosition(true);
-        } catch {
-          pos = await getPosition(false);
+          // Tentative 2 : basse précision (antennes mobiles / Wi-Fi réseau), plus rapide et fiable en intérieur
+          bestPos = await getPosition(false, 4000);
+        } catch (err2: any) {
+          lastGpsError = err2;
         }
-        if (!bestPos || pos.coords.accuracy < bestPos.coords.accuracy) {
-          bestPos = pos;
-        }
-        if (bestPos.coords.accuracy <= GOOD_ACCURACY_M) break; // assez précis
-      } catch {
-        break;
       }
     }
 
@@ -299,8 +304,23 @@ const ReportPage = () => {
           }
         }
       } catch { /* silent */ }
+
       setGpsLoading(false);
-      if (showError) toast.error("Impossible d'obtenir votre position. Vérifiez les permissions GPS.");
+      if (showError) {
+        if (lastGpsError?.code === 1) {
+          toast.info("Permissions GPS non accordées", {
+            description: "Vous pouvez choisir simplement votre commune ci-dessous pour continuer.",
+          });
+        } else if (lastGpsError?.code === 2) {
+          toast.info("Service de localisation désactivé", {
+            description: "Activez le GPS de votre téléphone ou choisissez votre commune ci-dessous.",
+          });
+        } else {
+          toast.info("Signal GPS non détecté", {
+            description: "Choisissez directement votre commune ci-dessous pour continuer.",
+          });
+        }
+      }
       return;
     }
 
@@ -311,6 +331,7 @@ const ReportPage = () => {
     setLatitude(lat);
     setLongitude(lon);
     setGpsAccuracy(accuracy);
+    const WEAK_ACCURACY_M = 300;
     setGpsWeakSignal(accuracy > WEAK_ACCURACY_M);
 
     // Résolution 4 tiers (GeoJSON → Nominatim → Google → Haversine)
@@ -353,11 +374,9 @@ const ReportPage = () => {
     setCommune(found.nom);
     setOutsidePilotZone(false);
     setGpsSource("manual");
-    if (latitude === null || longitude === null) {
-      setLatitude(found.centerLat);
-      setLongitude(found.centerLon);
-      setGpsAccuracy(1000);
-    }
+    setLatitude(found.centerLat);
+    setLongitude(found.centerLon);
+    setGpsAccuracy(50);
     toast.success(`Commune sélectionnée : ${found.nom}`, {
       description: "Vous pouvez à présent choisir votre quartier ci-dessous.",
     });
@@ -538,7 +557,7 @@ const ReportPage = () => {
   const handleSubmit = async () => {
     if (limitReached) { toast.error(`Limite de ${DAILY_LIMIT} signalements / jour atteinte`); return; }
     if (latitude === null || longitude === null) { toast.error("Position GPS requise"); return; }
-    if (!gpsFromPhoto && storedGpsAgeMin === null && gpsAccuracy !== null && gpsAccuracy > 300 && !isAdmin && !isTestAccount) {
+    if (gpsSource !== "manual" && !gpsFromPhoto && storedGpsAgeMin === null && gpsAccuracy !== null && gpsAccuracy > 300 && !isAdmin && !isTestAccount) {
       toast.error("Signal GPS trop imprécis", {
         description: `Précision actuelle : ± ${Math.round(gpsAccuracy)} m. Déplacez-vous près d'une fenêtre et relancez la localisation.`,
         action: { label: "Relocaliser", onClick: () => captureGPS(true) },
@@ -560,10 +579,16 @@ const ReportPage = () => {
         return;
       }
     }
-    if (!gpsConsent) { toast.error("Acceptez l'utilisation de votre position GPS"); return; }
-    if (selectedType.reportCategory === "infrastructure" && photoUrls.length === 0) {
-      toast.error("Une photo est obligatoire pour ce type de signalement");
+    if (selectedType.reportCategory === "infrastructure" && photoUrls.length === 0 && !noPhotoReason) {
+      toast.error("Une photo est requise (ou cochez l'option photo impossible)");
       setShowPhoto(true);
+      return;
+    }
+    if (noPhotoReason && (description || "").trim().length < 30) {
+      toast.error("Description détaillée d'au moins 30 caractères requise sans photo", {
+        description: "Veuillez préciser l'emplacement exact et l'état du problème.",
+      });
+      setShowDesc(true);
       return;
     }
 
@@ -600,7 +625,7 @@ const ReportPage = () => {
       const vulnParts: string[] = [];
       if (!isInfra) {
         if (babies > 0) vulnParts.push(`${babies} bébé(s)`);
-        if (pregnant > 0) vulnParts.push(`${pregnant} femme(s) enceinte(s)`);
+        if (pregnant > 0) vulnParts.push(`${pregnant} femme(s) enceinte(s) ou nourrice(s)`);
         if (elderly > 0) vulnParts.push(`${elderly} personne(s) âgée(s)`);
       }
       const impactInfo = !isInfra
@@ -617,7 +642,7 @@ const ReportPage = () => {
 
       // PADA public info : uniquement pour la voirie/infrastructure publique, pas dans la description textuelle des coupures privées
       const padaInfo = isInfra && padaAddress?.formattedAddress ? ` [PADA : ${padaAddress.formattedAddress}]` : "";
-      const fullFinalDesc = `${fullDesc}${padaInfo}`.slice(0, 700);
+      const fullFinalDesc = `${fullDesc}${padaInfo}`.slice(0, 600);
 
       const client_submission_id = crypto.randomUUID();
 
@@ -627,11 +652,11 @@ const ReportPage = () => {
         service_type: selectedType.serviceType,
         report_category: selectedType.reportCategory,
         description: fullFinalDesc,
-        location: isInfra && padaAddress?.formattedAddress
+        location: (isInfra && padaAddress?.formattedAddress
           ? `${commune} - ${padaAddress.formattedAddress}`
           : effectiveQuartierName
           ? `${commune} - ${effectiveQuartierName}`
-          : commune,
+          : commune).slice(0, 450),
         commune,
         quartier: effectiveQuartierName,
         latitude,
@@ -731,88 +756,85 @@ const ReportPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container max-w-2xl mx-auto py-6 px-4 pb-28 sm:pb-36">
+      <main className="w-full max-w-2xl mx-auto py-5 px-3.5 sm:px-6 pb-28 sm:pb-36 overflow-x-hidden">
         <div className="space-y-4">
 
-          {/* Indicateur de progression */}
-            {/* Stepper 3 Étapes */}
-            <div className="mb-6 space-y-2.5">
-              <div className="flex items-center justify-between gap-1 sm:gap-2">
-                {[
-                  { s: 1, label: "Localisation", icon: "📍" },
-                  { s: 2, label: "Incident", icon: "⚡" },
-                  { s: 3, label: "Preuves & Envoi", icon: "📸" },
-                ].map(({ s, label }) => {
-                  const isCompleted =
-                    (s === 1 && Boolean(commune && resolvedQuartier && latitude)) ||
-                    (s === 2 && Boolean(selectedType));
-                  const isCurrent = step === s;
-                  const canClick =
-                    s === 1 ||
-                    (s === 2 && Boolean(commune && resolvedQuartier)) ||
-                    (s === 3 && Boolean(commune && resolvedQuartier && selectedType));
+          {/* Stepper 3 Étapes — Centré, Ergonomique & 100% Responsive */}
+          <div className="mb-5 space-y-2.5">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-3">
+              {[
+                { s: 1, label: "Lieu", fullLabel: "1. Localisation" },
+                { s: 2, label: "Incident", fullLabel: "2. Incident" },
+                { s: 3, label: "Preuves", fullLabel: "3. Preuves & Envoi" },
+              ].map(({ s, label, fullLabel }) => {
+                const isCompleted =
+                  (s === 1 && Boolean(commune && resolvedQuartier && latitude)) ||
+                  (s === 2 && Boolean(selectedType));
+                const isCurrent = step === s;
+                const canClick =
+                  s === 1 ||
+                  (s === 2 && Boolean(commune && resolvedQuartier)) ||
+                  (s === 3 && Boolean(commune && resolvedQuartier && selectedType));
 
-                  return (
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    disabled={!canClick}
+                    onClick={() => { if (canClick) setStep(s as 1 | 2 | 3); }}
+                    className={cn(
+                      "flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2 px-1 rounded-xl transition-all select-none text-center",
+                      isCurrent
+                        ? "bg-primary/10 text-primary font-bold shadow-xs border border-primary/25"
+                        : isCompleted
+                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold border border-emerald-500/20"
+                        : "bg-muted/40 text-muted-foreground border border-transparent",
+                      !canClick && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
                     <div
-                      key={s}
-                      onClick={() => { if (canClick) setStep(s as 1 | 2 | 3); }}
                       className={cn(
-                        "flex items-center gap-2 flex-1 last:flex-none cursor-pointer select-none transition-all",
-                        !canClick && "cursor-not-allowed opacity-50"
+                        "flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-full text-[11px] sm:text-xs font-bold transition-all",
+                        isCurrent
+                          ? "bg-primary text-primary-foreground shadow-xs scale-105"
+                          : isCompleted
+                          ? "bg-emerald-600 text-white"
+                          : "bg-muted text-muted-foreground border"
                       )}
                     >
-                      <div
-                        className={cn(
-                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all shadow-xs",
-                          isCurrent
-                            ? "bg-primary text-primary-foreground ring-2 ring-primary/30 ring-offset-2 scale-105"
-                            : isCompleted
-                            ? "bg-emerald-600 text-white"
-                            : "bg-muted text-muted-foreground"
-                        )}
-                      >
-                        {isCompleted && !isCurrent ? <CheckCircle2 className="h-4 w-4" /> : s}
-                      </div>
-                      <div className="hidden sm:block min-w-0">
-                        <p className={cn("text-xs font-bold truncate", isCurrent ? "text-foreground" : "text-muted-foreground")}>
-                          {label}
-                        </p>
-                      </div>
-                      {s < 3 && (
-                        <div
-                          className={cn(
-                            "flex-1 h-0.5 mx-1 transition-colors",
-                            step > s ? "bg-emerald-600" : "bg-muted"
-                          )}
-                        />
-                      )}
+                      {isCompleted && !isCurrent ? <CheckCircle2 className="h-3.5 w-3.5" /> : s}
                     </div>
-                  );
-                })}
-              </div>
-              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                <motion.div
-                  className="h-full rounded-full bg-primary"
-                  animate={{
-                    width: step === 1 ? "33%" : step === 2 ? "66%" : "100%",
-                  }}
-                  transition={{ duration: 0.35, ease: "easeOut" }}
-                />
-              </div>
+                    <span className="text-[11px] sm:text-xs font-bold truncate">
+                      <span className="sm:hidden">{label}</span>
+                      <span className="hidden sm:inline">{fullLabel}</span>
+                    </span>
+                  </button>
+                );
+              })}
             </div>
+            <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+              <motion.div
+                className="h-full rounded-full bg-primary"
+                animate={{
+                  width: step === 1 ? "33.33%" : step === 2 ? "66.66%" : "100%",
+                }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+              />
+            </div>
+          </div>
 
-            {/* Compteur journalier */}
-            {dailyCount !== null && (
-              <div className={`mb-4 rounded-xl border p-2.5 text-center text-xs font-medium ${
-                limitReached
-                  ? "border-destructive/30 bg-destructive/5 text-destructive"
-                  : "border-border bg-card text-muted-foreground"
-              }`}>
-                {limitReached
-                  ? `Limite atteinte : ${dailyCount}/${DAILY_LIMIT} signalements aujourd'hui`
-                  : `${dailyCount}/${DAILY_LIMIT} signalements utilisés aujourd'hui`}
-              </div>
-            )}
+          {/* Compteur journalier */}
+          {dailyCount !== null && (
+            <div className={`mb-4 rounded-xl border p-2.5 text-center text-xs font-medium ${
+              limitReached
+                ? "border-destructive/30 bg-destructive/5 text-destructive"
+                : "border-border bg-card text-muted-foreground"
+            }`}>
+              {limitReached
+                ? `Limite atteinte : ${dailyCount}/${DAILY_LIMIT} signalements aujourd'hui`
+                : `${dailyCount}/${DAILY_LIMIT} signalements utilisés aujourd'hui`}
+            </div>
+          )}
 
         <AnimatePresence mode="wait">
 
@@ -822,9 +844,9 @@ const ReportPage = () => {
           {step === 1 && (
             <motion.div
               key="step1"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
               className="space-y-4"
             >
@@ -835,48 +857,73 @@ const ReportPage = () => {
                 </p>
               </div>
 
-              {/* Bannière de localisation automatique */}
-              <div className="rounded-2xl border-2 border-emerald-500/30 bg-emerald-500/8 p-3.5 sm:p-4 flex items-center justify-between gap-2.5 sm:gap-3 shadow-xs">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
-                    <MapPin className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[11px] sm:text-xs font-semibold text-emerald-800 dark:text-emerald-300 leading-tight">
-                      Localisation automatique détectée
-                    </p>
-                    <h4 className="text-sm sm:text-base font-black text-foreground leading-snug break-words mt-0.5">
-                      {detectedCommune ? (
-                        <>
-                          Vous êtes à <span className="text-emerald-600 dark:text-emerald-400 font-black">{detectedCommune.nom}</span>
-                        </>
-                      ) : gpsLoading ? (
-                        <span className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold">
-                          <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" /> Détection de votre commune…
-                        </span>
-                      ) : (
-                        <span>Position en cours de détection…</span>
-                      )}
-                    </h4>
+              {/* 1. En cours de géolocalisation */}
+              {gpsLoading && (
+                <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-4 flex items-center justify-between gap-3 shadow-xs">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground leading-tight">
+                        Détection automatique
+                      </p>
+                      <h4 className="text-sm sm:text-base font-bold text-foreground leading-snug break-words mt-0.5">
+                        Localisation de votre commune en cours…
+                      </h4>
+                    </div>
                   </div>
                 </div>
+              )}
 
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => captureGPS(true)}
-                  disabled={gpsLoading}
-                  className="shrink-0 text-xs h-8 px-2 sm:px-2.5 rounded-lg text-emerald-700 hover:bg-emerald-500/15 gap-1 font-semibold"
-                  title="Réactualiser votre position"
-                >
-                  <Navigation className={`h-3.5 w-3.5 ${gpsLoading ? "animate-spin" : ""}`} />
-                  <span className="hidden xs:inline sm:inline">{gpsLoading ? "Détection…" : "Actualiser"}</span>
-                  <span className="xs:hidden sm:hidden">{gpsLoading ? "…" : "Recharger"}</span>
-                </Button>
-              </div>
+              {/* 2. Commune détectée automatiquement OU sélectionnée manuellement */}
+              {!gpsLoading && detectedCommune && !outsidePilotZone && (
+                <div className="rounded-2xl border-2 border-emerald-500/30 bg-emerald-500/8 p-3.5 sm:p-4 flex items-center justify-between gap-2.5 sm:gap-3 shadow-xs">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                      <MapPin className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] sm:text-xs font-semibold text-emerald-800 dark:text-emerald-300 leading-tight">
+                        {gpsSource === "manual" ? "Commune sélectionnée" : "Localisation automatique détectée"}
+                      </p>
+                      <h4 className="text-sm sm:text-base font-black text-foreground leading-snug break-words mt-0.5">
+                        Vous êtes à <span className="text-emerald-600 dark:text-emerald-400 font-black">{detectedCommune.nom}</span>
+                      </h4>
+                    </div>
+                  </div>
 
-              {/* Fallback si GPS indisponible ou hors zone */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setDetectedCommune(null);
+                        setCommune("");
+                      }}
+                      className="text-xs h-8 px-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted font-medium"
+                      title="Changer de commune"
+                    >
+                      Modifier
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => captureGPS(true)}
+                      disabled={gpsLoading}
+                      className="text-xs h-8 px-2 sm:px-2.5 rounded-lg text-emerald-700 hover:bg-emerald-500/15 gap-1 font-semibold"
+                      title="Réactualiser votre position"
+                    >
+                      <Navigation className={`h-3.5 w-3.5 ${gpsLoading ? "animate-spin" : ""}`} />
+                      <span className="hidden xs:inline sm:inline">Actualiser</span>
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. Fallback si GPS indisponible, refusé ou hors zone (Uniquement si aucune commune n'est détectée) */}
               {!gpsLoading && (!detectedCommune || outsidePilotZone) && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
@@ -893,22 +940,24 @@ const ReportPage = () => {
                       ? "Position hors des 14 communes du Grand Abidjan"
                       : "Position GPS non détectée"}
                   </h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
+                  <p className="text-xs text-muted-foreground leading-relaxed max-w-md mx-auto">
                     {outsidePilotZone
                       ? "SIGNA·CI couvre les 14 communes du Grand Abidjan. Choisissez directement votre commune ci-dessous :"
-                      : "Votre géolocalisation automatique n'a pas abouti. Vous pouvez sélectionner votre commune ci-dessous :"}
+                      : "La géolocalisation automatique n'a pas pu déterminer votre position. Choisissez simplement votre commune ci-dessous pour continuer :"}
                   </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => captureGPS(true)}
-                    disabled={gpsLoading}
-                    className="mx-auto"
-                  >
-                    <Navigation className="h-3.5 w-3.5 mr-1.5" />
-                    Réessayer la géolocalisation
-                  </Button>
+                  <div className="flex items-center justify-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => captureGPS(true)}
+                      disabled={gpsLoading}
+                      className="text-xs font-semibold gap-1.5"
+                    >
+                      <Navigation className="h-3.5 w-3.5" />
+                      Réessayer la géolocalisation
+                    </Button>
+                  </div>
 
                   {/* Choix manuel direct de secours */}
                   <div className="pt-3 border-t border-amber-500/20 text-left space-y-3">
@@ -989,7 +1038,7 @@ const ReportPage = () => {
                     onClick={handleLocationNext}
                     disabled={!commune || !resolvedQuartier || !latitude}
                   >
-                    Continuer vers le type de problème →
+                    Choisir le problème →
                   </Button>
                 </div>
               )}
@@ -1002,9 +1051,9 @@ const ReportPage = () => {
           {step === 2 && (
             <motion.div
               key="step2"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
               className="space-y-4"
             >
@@ -1282,11 +1331,11 @@ const ReportPage = () => {
           {step === 3 && selectedType && (
             <motion.div
               key="step3"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
-              className="space-y-4 pb-32 md:pb-0"
+              className="space-y-4 pb-10"
             >
               {/* En-tête */}
               <div className="flex items-center gap-3">
@@ -1368,159 +1417,137 @@ const ReportPage = () => {
                 </div>
               )}
 
-              {/* ── Détails ── */}
-              <div className="space-y-3">
-                <p className="text-xs text-center text-muted-foreground">
-                  {selectedType.reportCategory === "infrastructure"
-                    ? "Une photo est obligatoire pour ce type de signalement"
-                    : "Ajoutez des détails pour aider vos voisins (optionnel)"}
-                </p>
-
-                {/* Grille de boutons */}
-                <div className={`grid gap-2 ${selectedType.reportCategory === "outage" ? "grid-cols-2" : "grid-cols-2"}`}>
-                  {/* Note */}
-                  <button
-                    type="button"
-                    onClick={() => setShowDesc(!showDesc)}
-                    aria-expanded={showDesc}
-                    aria-controls="panel-note"
-                    className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
-                      showDesc
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                    }`}
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    Note
-                    {description && <span className="h-2 w-2 rounded-full bg-primary" />}
-                  </button>
-
-                  {/* Photo */}
-                  <button
-                    type="button"
-                    onClick={() => setShowPhoto(!showPhoto)}
-                    aria-expanded={showPhoto}
-                    aria-controls="panel-photo"
-                    className={cn(
-                      "flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all",
-                      showPhoto
-                        ? "border-primary bg-primary/10 text-primary"
-                        : selectedType.reportCategory === "infrastructure" && photoUrls.length === 0
-                        ? "border-amber-400 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                        : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                    )}
-                  >
-                    <Camera className="h-4 w-4" />
-                    Photo{selectedType.reportCategory === "infrastructure" ? " *" : ""}
-                    {photoUrls.length > 0 && <span className="h-2 w-2 rounded-full bg-primary" />}
-                    {selectedType.reportCategory === "infrastructure" && photoUrls.length === 0 && !showPhoto && (
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
-                      </span>
-                    )}
-                  </button>
-
-                  {/* Heure — coupures uniquement */}
-                  {selectedType.reportCategory === "outage" && (
-                    <button
-                      type="button"
-                      onClick={() => setShowTime(!showTime)}
-                      aria-expanded={showTime}
-                      aria-controls="panel-time"
-                      className={`flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
-                        showTime
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
-                      }`}
-                    >
-                      <Clock className="h-4 w-4" />
-                      Heure début
-                      {startTime && <span className="h-2 w-2 rounded-full bg-primary" />}
-                    </button>
-                  )}
-
-                </div>
-
-                {/* ── Compteur CIE / SODECI ── optionnel, accélère la transmission SIGNA → opérateur */}
-                {(selectedType.id === "electricity_outage" || selectedType.id === "water_outage") && (
-                  <div className="rounded-xl border-2 border-amber-400/40 bg-amber-50/60 dark:bg-amber-900/10 overflow-hidden">
-                    <div className="px-4 py-3 flex items-center gap-2">
-                      <span className="text-lg">{selectedType.id === "electricity_outage" ? "⚡" : "💧"}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-foreground leading-tight">
-                          Informations {selectedType.id === "electricity_outage" ? "CIE" : "SODECI"} <span className="text-muted-foreground font-normal text-xs">(optionnel)</span>
-                        </p>
-                        <p className="text-xs text-muted-foreground leading-snug mt-0.5">
-                          SIGNA·CI transmettra votre signalement à l'opérateur — ces infos accélèrent la prise en charge
-                        </p>
+              {/* ── 1. Pour les Coupures : Heure de Début Immédiate ── */}
+              {selectedType.reportCategory === "outage" && (
+                <div className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-xs">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <Clock className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-foreground truncate">Début de la coupure</p>
+                        <p className="text-xs text-muted-foreground truncate">Depuis quand n'avez-vous plus de service ?</p>
                       </div>
                     </div>
-                    <div className="border-t border-amber-400/30 px-4 pb-3 pt-2 space-y-3">
-                      {/* Type de contrat */}
-                      <div>
-                        <p className="text-xs font-semibold text-foreground mb-1.5">Type de contrat</p>
-                        <div className="flex gap-2">
-                          {(["prepaid", "postpaid"] as const).map((ct) => (
-                            <button
-                              key={ct}
-                              type="button"
-                              onClick={() => setContractType(ct)}
-                              className={`flex-1 rounded-lg border-2 py-2 text-sm font-semibold transition-all ${
-                                contractType === ct
-                                  ? "border-amber-500 bg-amber-500/15 text-amber-700 dark:text-amber-400"
-                                  : "border-border bg-card text-muted-foreground hover:border-amber-400/60"
-                              }`}
-                            >
-                              {ct === "prepaid" ? "Prépayé" : "Postpayé"}
-                            </button>
-                          ))}
-                        </div>
+                    <Input
+                      id="start-time"
+                      type="time"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      className="w-24 text-center text-xs font-bold h-9 bg-background shrink-0"
+                    />
+                  </div>
+
+                  {/* Raccourcis tactiles rapides */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    {[
+                      { label: "À l'instant", mins: 0 },
+                      { label: "Il y a 30 min", mins: 30 },
+                      { label: "Il y a 1h", mins: 60 },
+                      { label: "Ce matin (08:00)", custom: "08:00" },
+                    ].map((pill) => {
+                      const isCurrent = pill.custom
+                        ? startTime === pill.custom
+                        : pill.mins === 0
+                        ? !startTime
+                        : false;
+                      return (
+                        <button
+                          key={pill.label}
+                          type="button"
+                          onClick={() => {
+                            if (pill.custom) {
+                              setStartTime(pill.custom);
+                            } else if (pill.mins === 0) {
+                              setStartTime("");
+                            } else {
+                              const d = new Date(Date.now() - pill.mins * 60 * 1000);
+                              const hh = String(d.getHours()).padStart(2, "0");
+                              const mm = String(d.getMinutes()).padStart(2, "0");
+                              setStartTime(`${hh}:${mm}`);
+                            }
+                          }}
+                          className={cn(
+                            "px-2.5 py-1 text-xs font-semibold rounded-lg border transition-all cursor-pointer",
+                            isCurrent
+                              ? "border-primary bg-primary/15 text-primary font-bold shadow-xs"
+                              : "border-border bg-muted/40 hover:bg-muted text-foreground"
+                          )}
+                        >
+                          {pill.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ── 2. Pour les Coupures : Foyer & Personnes Vulnérables ── */}
+              {selectedType.reportCategory === "outage" && (
+                <div className="rounded-2xl border border-border bg-card p-4 space-y-4 shadow-xs">
+                  {/* Ligne 1 : Taille globale du foyer */}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-primary shrink-0" />
+                        <p className="text-sm font-bold text-foreground">Personnes dans votre foyer</p>
                       </div>
-                      {/* Numéro de compteur */}
-                      <div>
-                        <label htmlFor="meter-number" className="text-xs font-semibold text-foreground block mb-1.5">
-                          Numéro de compteur
-                        </label>
-                        <Input
-                          id="meter-number"
-                          placeholder="Ex: 1234567890"
-                          value={meterNumber}
-                          onChange={(e) => setMeterNumber(e.target.value.trim())}
-                          maxLength={20}
-                          inputMode="numeric"
-                          className="bg-background"
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Permet à la {selectedType.id === "electricity_outage" ? "CIE" : "SODECI"} de vous identifier et vous contacter directement
-                        </p>
-                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Nombre total d'habitants impactés
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 bg-muted/50 rounded-xl p-1 border border-border/50">
+                      <button
+                        type="button"
+                        onClick={() => setImpactedPeople(Math.max(1, impactedPeople - 1))}
+                        aria-label="Diminuer le nombre d'habitants"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-card text-foreground hover:bg-muted border border-border/60 transition-colors shadow-xs"
+                      >
+                        <Minus className="h-3.5 w-3.5" />
+                      </button>
+                      <span className="w-6 text-center text-sm font-black tabular-nums">{impactedPeople}</span>
+                      <button
+                        type="button"
+                        onClick={() => setImpactedPeople(Math.min(50, impactedPeople + 1))}
+                        aria-label="Augmenter le nombre d'habitants"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-card text-foreground hover:bg-muted border border-border/60 transition-colors shadow-xs"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   </div>
-                )}
 
-                {/* Personnes vulnérables — accordion visible (coupures uniquement) */}
-                {selectedType.reportCategory === "outage" && (
-                  <div className="rounded-xl border-2 border-border bg-card overflow-hidden transition-colors">
-                    {/* Header avec toggle Oui/Non */}
-                    <div className="flex items-center justify-between px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-semibold text-foreground">
-                          Personnes vulnérables dans votre foyer ?
-                        </span>
-                        {(babies + pregnant + elderly > 0) && (
-                          <span className="inline-flex items-center rounded-full bg-destructive/10 border border-destructive/20 px-1.5 py-0.5 text-xs font-bold text-destructive">
-                            ⚠️ Priorité haute
-                          </span>
-                        )}
+                  {/* Ligne 2 : Encart Personnes Vulnérables */}
+                  <div className="rounded-xl border border-border/70 bg-muted/30 p-3.5 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-sm font-bold text-foreground">Personnes vulnérables ?</span>
+                          {(babies + pregnant + elderly > 0) && (
+                            <span className="inline-flex items-center rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-300">
+                              ⚡ Priorité haute
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Bébés, femmes enceintes/allaitantes, aînés
+                        </p>
                       </div>
-                      <div className="flex items-center gap-1 rounded-lg bg-muted p-0.5">
+                      {/* Toggle Oui / Non robuste et ergonomique */}
+                      <div className="flex items-center rounded-xl bg-background border border-border p-1 shrink-0 shadow-xs">
                         <button
                           type="button"
-                          onClick={() => { setShowPeople(false); setBabies(0); setPregnant(0); setElderly(0); }}
-                          className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
-                            !showPeople ? "bg-card shadow text-foreground" : "text-muted-foreground"
+                          onClick={() => {
+                            setShowPeople(false);
+                            setBabies(0);
+                            setPregnant(0);
+                            setElderly(0);
+                          }}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                            !showPeople
+                              ? "bg-muted text-foreground shadow-xs"
+                              : "text-muted-foreground hover:text-foreground"
                           }`}
                         >
                           Non
@@ -1528,169 +1555,320 @@ const ReportPage = () => {
                         <button
                           type="button"
                           onClick={() => setShowPeople(true)}
-                          className={`rounded-md px-3 py-1 text-xs font-semibold transition-all ${
-                            showPeople ? "bg-card shadow text-foreground" : "text-muted-foreground"
+                          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all ${
+                            showPeople
+                              ? "bg-primary text-primary-foreground shadow-xs"
+                              : "text-muted-foreground hover:text-foreground"
                           }`}
                         >
-                          Oui →
+                          Oui
                         </button>
                       </div>
                     </div>
 
-                    {/* Contenu accordion */}
+                    {/* Accordéon sous-compteurs */}
                     <AnimatePresence>
                       {showPeople && (
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="overflow-hidden"
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden pt-2 space-y-2 border-t border-border/60"
                         >
-                          <div className="border-t border-border px-4 pt-3 pb-3 space-y-1">
-                            <p className="text-xs text-muted-foreground mb-3">
-                              Ces informations priorisent votre signalement auprès des opérateurs.
-                            </p>
-                            {[
-                              { label: "Personnes impactées", emoji: "👥", val: impactedPeople, set: setImpactedPeople, min: 1, max: 50 },
-                              { label: "Bébés / Nourrissons (0-2 ans)", emoji: "👶", val: babies, set: setBabies, min: 0, max: 20 },
-                              { label: "Femmes enceintes", emoji: "🤰", val: pregnant, set: setPregnant, min: 0, max: 20 },
-                              { label: "Personnes âgées (65+ ans)", emoji: "👴", val: elderly, set: setElderly, min: 0, max: 20 },
-                            ].map(({ label, emoji, val, set, min, max }) => (
-                              <div key={label} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-                                <span className="text-sm flex items-center gap-2">
-                                  <span className="text-base">{emoji}</span>
-                                  <span className="text-foreground">{label}</span>
+                          <p className="text-[11px] text-muted-foreground italic">
+                            Précisez pour prioriser l'envoi des équipes d'astreinte :
+                          </p>
+                          {[
+                            {
+                              label: "Bébés / Nourrissons (0-2 ans)",
+                              sub: "Biberons, chaleur, soins",
+                              emoji: "👶",
+                              val: babies,
+                              set: setBabies,
+                              min: 0,
+                              max: 20
+                            },
+                            {
+                              label: "Femmes enceintes ou allaitantes (nourrices)",
+                              sub: "Grossesse ou allaitement en cours",
+                              emoji: "🤰",
+                              val: pregnant,
+                              set: setPregnant,
+                              min: 0,
+                              max: 20
+                            },
+                            {
+                              label: "Personnes âgées (65+ ans)",
+                              sub: "Santé fragile, autonomie",
+                              emoji: "👵",
+                              val: elderly,
+                              set: setElderly,
+                              min: 0,
+                              max: 20
+                            },
+                          ].map(({ label, sub, emoji, val, set, min, max }) => (
+                            <div
+                              key={label}
+                              className="flex items-center justify-between py-2 border-b border-border/40 last:border-0 gap-2"
+                            >
+                              <div className="min-w-0 flex items-center gap-2.5">
+                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-card border border-border/60 text-base shadow-xs">
+                                  {emoji}
                                 </span>
-                                <div className="flex items-center gap-2.5">
-                                  <button
-                                    type="button"
-                                    onClick={() => set(Math.max(min, val - 1))}
-                                    aria-label={`Diminuer ${label}`}
-                                    className="flex h-8 w-8 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                                  >
-                                    <Minus className="h-3 w-3" aria-hidden="true" />
-                                  </button>
-                                  <span className="w-5 text-center text-sm font-bold tabular-nums" aria-live="polite">{val}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => set(Math.min(max, val + 1))}
-                                    aria-label={`Augmenter ${label}`}
-                                    className="flex h-8 w-8 items-center justify-center rounded-full border border-border hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                                  >
-                                    <Plus className="h-3 w-3" aria-hidden="true" />
-                                  </button>
+                                <div className="min-w-0">
+                                  <p className="text-xs sm:text-sm font-semibold text-foreground truncate">{label}</p>
+                                  <p className="text-[10px] text-muted-foreground truncate">{sub}</p>
                                 </div>
                               </div>
-                            ))}
-                            {(babies + pregnant + elderly > 0) && (
-                              <p className="text-xs text-red-600 font-medium pt-1">
-                                ⚠️ Personnes vulnérables détectées — urgence élevée automatique
-                              </p>
-                            )}
-                          </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => set(Math.max(min, val - 1))}
+                                  aria-label={`Diminuer ${label}`}
+                                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card hover:bg-muted text-foreground transition-colors shadow-xs"
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </button>
+                                <span className="w-5 text-center text-sm font-black tabular-nums">{val}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => set(Math.min(max, val + 1))}
+                                  aria-label={`Augmenter ${label}`}
+                                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card hover:bg-muted text-foreground transition-colors shadow-xs"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+
+                          {(babies + pregnant + elderly > 0) && (
+                            <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                              <span>⚡</span>
+                              <span>Priorité d'intervention maximale transmise à la CIE / SODECI</span>
+                            </div>
+                          )}
                         </motion.div>
                       )}
                     </AnimatePresence>
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Panneau Note */}
+              {/* ── 3. Preuve Visuelle & Précisions (Photo / Note) ── */}
+              <div className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-foreground">Photos & Précisions</p>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedType.reportCategory === "infrastructure"
+                        ? "Une photo est requise pour documenter la dégradation"
+                        : "Ajoutez une photo ou une note descriptive (optionnel)"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Boutons d'action Photo / Note */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPhoto(!showPhoto)}
+                    className={cn(
+                      "flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-2.5 text-xs sm:text-sm font-bold transition-all",
+                      showPhoto || selectedType.reportCategory === "infrastructure"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : selectedType.reportCategory === "infrastructure" && photoUrls.length === 0
+                        ? "border-amber-400 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                        : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                    )}
+                  >
+                    <Camera className="h-4 w-4 shrink-0" />
+                    <span>Photo{selectedType.reportCategory === "infrastructure" ? " *" : ""}</span>
+                    {photoUrls.length > 0 && <span className="h-2 w-2 rounded-full bg-primary" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowDesc(!showDesc)}
+                    className={cn(
+                      "flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-2.5 text-xs sm:text-sm font-bold transition-all",
+                      showDesc
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                    )}
+                  >
+                    <MessageSquare className="h-4 w-4 shrink-0" />
+                    <span>Note</span>
+                    {description && <span className="h-2 w-2 rounded-full bg-primary" />}
+                  </button>
+                </div>
+
+                {/* Tiroir Photo DIRECTEMENT sous les boutons */}
+                <AnimatePresence>
+                  {(showPhoto || selectedType.reportCategory === "infrastructure") && (
+                    <motion.div
+                      key="photo-upload"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden pt-2"
+                    >
+                      <PhotoUpload
+                        onPhotosChanged={setPhotoUrls}
+                        onGpsFromPhoto={async (lat, lng) => {
+                          setLatitude(lat);
+                          setLongitude(lng);
+                          setGpsFromPhoto(true);
+                          setGpsAccuracy(10);
+                          setStoredGpsAgeMin(null);
+                          try {
+                            const result = await resolveCommune(lat, lng, 10);
+                            setGpsSource(result.source);
+                            if (!result.outsidePilotZone && result.commune) {
+                              setDetectedCommune(result.commune);
+                              setCommune(result.commune.nom);
+                              setOutsidePilotZone(false);
+                            }
+                          } catch { /* silent */ }
+                        }}
+                        photoUrls={photoUrls}
+                        isInfrastructure={selectedType.reportCategory === "infrastructure"}
+                        allowNoPhotoToggle={true}
+                        noPhotoChecked={noPhotoReason}
+                        onNoPhotoToggle={(checked) => {
+                          setNoPhotoReason(checked);
+                          if (checked) setShowDesc(true);
+                        }}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Tiroir Note DIRECTEMENT sous les boutons */}
                 <AnimatePresence>
                   {showDesc && (
                     <motion.div
-                      key="desc"
-                      id="panel-note"
+                      key="desc-input"
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="overflow-hidden"
+                      className="overflow-hidden pt-2 space-y-1.5"
                     >
-                      <div className="rounded-xl border border-border bg-card p-3 space-y-2">
-                        <label htmlFor="description" className="text-xs font-medium text-muted-foreground">Note complémentaire</label>
-                        <Textarea
-                          id="description"
-                          placeholder="Décrivez la situation en quelques mots..."
-                          value={description}
-                          onChange={(e) => setDescription(e.target.value.slice(0, MAX_DESCRIPTION_LENGTH))}
-                          rows={3}
-                          autoFocus
-                        />
-                        <p className={`text-xs text-right ${description.length >= MAX_DESCRIPTION_LENGTH ? "text-destructive font-medium" : "text-muted-foreground"}`}>{description.length}/{MAX_DESCRIPTION_LENGTH}</p>
-                      </div>
+                      <label htmlFor="description" className="text-xs font-semibold text-foreground">
+                        Note complémentaire pour vos voisins & l'équipe d'intervention
+                      </label>
+                      <Textarea
+                        id="description"
+                        placeholder="Ex: Disjoncteur général qui a sauté, étincelles sur le poteau, robinet complètement à sec..."
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value.slice(0, MAX_DESCRIPTION_LENGTH))}
+                        rows={3}
+                        className="bg-background text-sm"
+                      />
+                      <p className={`text-xs text-right ${description.length >= MAX_DESCRIPTION_LENGTH ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                        {description.length}/{MAX_DESCRIPTION_LENGTH}
+                      </p>
                     </motion.div>
                   )}
                 </AnimatePresence>
-
-                {/* Panneau Photo */}
-                <AnimatePresence>
-                  {showPhoto && (
-                    <motion.div
-                      key="photo"
-                      id="panel-photo"
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="rounded-xl border border-border bg-card p-3">
-                        <PhotoUpload
-                          onPhotosChanged={setPhotoUrls}
-                          onGpsFromPhoto={async (lat, lng) => {
-                            setLatitude(lat);
-                            setLongitude(lng);
-                            setGpsFromPhoto(true);
-                            setGpsAccuracy(10); // EXIF = très précis
-                            setStoredGpsAgeMin(null);
-                            // Option C : résoudre la commune depuis les coordonnées EXIF
-                            try {
-                              const result = await resolveCommune(lat, lng, 10);
-                              setGpsSource(result.source);
-                              if (!result.outsidePilotZone && result.commune) {
-                                setDetectedCommune(result.commune);
-                                setCommune(result.commune.nom);
-                                setOutsidePilotZone(false);
-                              }
-                            } catch { /* silent */ }
-                          }}
-                          photoUrls={photoUrls}
-                          isInfrastructure={selectedType.reportCategory === "infrastructure"}
-                        />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Panneau Heure */}
-                <AnimatePresence>
-                  {showTime && selectedType.reportCategory === "outage" && (
-                    <motion.div
-                      key="time"
-                      id="panel-time"
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
-                        <div className="flex-1">
-                          <label htmlFor="start-time" className="text-sm font-medium">Début de la coupure</label>
-                          <p className="text-xs text-muted-foreground">Laissez vide si ça vient de commencer</p>
-                        </div>
-                        <Input
-                          id="start-time"
-                          type="time"
-                          value={startTime}
-                          onChange={(e) => setStartTime(e.target.value)}
-                          className="w-28 text-center"
-                        />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
               </div>
 
-              {/* Visiteur non connecté → Aha moment */}
+              {/* ── 4. Compteur CIE / SODECI (Optionnel et Repliable) ── */}
+              {(selectedType.id === "electricity_outage" || selectedType.id === "water_outage") && (
+                <div className="rounded-2xl border border-amber-400/40 bg-amber-500/5 overflow-hidden transition-all shadow-xs">
+                  <button
+                    type="button"
+                    onClick={() => setShowMeter(!showMeter)}
+                    className="w-full px-4 py-3 flex items-center justify-between gap-3 text-left hover:bg-amber-500/10 transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {selectedType.id === "electricity_outage" ? (
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                          <Zap className="h-4 w-4" />
+                        </div>
+                      ) : (
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-500/20 text-sky-600 dark:text-sky-400">
+                          <Droplets className="h-4 w-4" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-xs sm:text-sm font-bold text-foreground truncate">
+                          Compteur ou contrat {selectedType.id === "electricity_outage" ? "CIE" : "SODECI"}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {meterNumber ? `Compteur : ${meterNumber}` : "Facultatif — accélère le rétablissement ciblé"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {meterNumber ? (
+                        <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                          Renseigné
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                          Optionnel
+                        </span>
+                      )}
+                      <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", showMeter && "rotate-180")} />
+                    </div>
+                  </button>
+
+                  <AnimatePresence>
+                    {showMeter && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="border-t border-amber-400/30 px-4 pb-3 pt-3 space-y-3 overflow-hidden"
+                      >
+                        {/* Type de contrat */}
+                        <div>
+                          <p className="text-xs font-semibold text-foreground mb-1.5">Type de contrat</p>
+                          <div className="flex gap-2">
+                            {(["prepaid", "postpaid"] as const).map((ct) => (
+                              <button
+                                key={ct}
+                                type="button"
+                                onClick={() => setContractType(ct)}
+                                className={`flex-1 rounded-xl border-2 py-2 text-xs font-bold transition-all ${
+                                  contractType === ct
+                                    ? "border-amber-500 bg-amber-500/20 text-amber-800 dark:text-amber-200"
+                                    : "border-border bg-card text-muted-foreground hover:border-amber-400/60"
+                                }`}
+                              >
+                                {ct === "prepaid" ? "Prépayé (Carte)" : "Postpayé (Facture)"}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Numéro de compteur */}
+                        <div>
+                          <label htmlFor="meter-number" className="text-xs font-semibold text-foreground block mb-1.5">
+                            Numéro de compteur
+                          </label>
+                          <Input
+                            id="meter-number"
+                            placeholder="Ex: 1234567890"
+                            value={meterNumber}
+                            onChange={(e) => setMeterNumber(e.target.value.trim())}
+                            maxLength={20}
+                            inputMode="numeric"
+                            className="bg-background text-sm"
+                          />
+                          <p className="text-[11px] text-muted-foreground mt-1">
+                            Permet à l'opérateur d'identifier précisément votre raccordement
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+
+              {/* ── 5. Visiteur non connecté → Aha moment ── */}
               {!user ? (
                 <div className="rounded-2xl border-2 border-primary/30 bg-primary/5 p-5 text-center space-y-3">
                   <div className="flex justify-center">
@@ -1728,7 +1906,7 @@ const ReportPage = () => {
                   </div>
                 </div>
               ) : (
-                <div className="fixed bottom-16 left-0 right-0 z-20 border-t border-border bg-background/95 backdrop-blur-md px-4 py-3 space-y-3 md:static md:z-auto md:bg-transparent md:backdrop-blur-none md:border-0 md:px-0 md:py-0">
+                <div className="space-y-3 pt-2">
                   {/* Avertissement GPS manquant */}
                   {!gpsLoading && latitude === null && (
                     <div className="flex items-center gap-2.5 rounded-xl border border-warning/40 bg-warning/8 px-3 py-2.5">
@@ -1748,7 +1926,7 @@ const ReportPage = () => {
                   )}
 
                   {/* Consentement GPS */}
-                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5">
                     <div className="flex items-start gap-3">
                       <Checkbox
                         id="gps-consent"
@@ -1756,7 +1934,7 @@ const ReportPage = () => {
                         onCheckedChange={(c) => setGpsConsent(c === true)}
                         className="mt-0.5"
                       />
-                      <label htmlFor="gps-consent" className="text-sm leading-relaxed cursor-pointer">
+                      <label htmlFor="gps-consent" className="text-xs sm:text-sm leading-relaxed cursor-pointer">
                         J'accepte que ma position GPS soit utilisée <strong>uniquement</strong> pour géolocaliser ce signalement.{" "}
                         <Link to="/confidentialite" className="text-primary underline text-xs">Politique de confidentialité</Link>
                       </label>
@@ -1766,7 +1944,8 @@ const ReportPage = () => {
                   {/* Bouton envoyer */}
                   <Button
                     type="button"
-                    className="w-full py-6 text-base font-bold"
+                    size="lg"
+                    className="w-full py-6 text-base font-bold rounded-2xl shadow-lg hover:opacity-95 transition-all"
                     style={{
                       backgroundColor: selectedCommuneData?.couleur || selectedType.color,
                       color: "white",
@@ -1817,7 +1996,7 @@ const ReportPage = () => {
                   onClick={handleLocationNext}
                   className="py-3 px-4 sm:px-6 text-xs sm:text-base font-bold rounded-xl shadow-lg bg-primary text-primary-foreground hover:opacity-90 transition-all shrink-0"
                 >
-                  Continuer vers l'incident →
+                  Choisir le problème →
                 </Button>
               </div>
             </motion.div>
@@ -1857,9 +2036,10 @@ const ReportPage = () => {
                   size="lg"
                   onClick={handleTypeNext}
                   style={{ backgroundColor: selectedType.color, color: "white" }}
-                  className="py-3 px-4 sm:px-6 text-xs sm:text-base font-bold rounded-xl shadow-lg hover:opacity-95 transition-all shrink-0 gap-1.5"
+                  className="py-2.5 px-3 sm:py-3 sm:px-6 text-xs sm:text-base font-bold rounded-xl shadow-lg hover:opacity-95 transition-all shrink-0 gap-1.5"
                 >
-                  Continuer vers les preuves →
+                  <span className="sm:hidden">Preuves →</span>
+                  <span className="hidden sm:inline">Continuer vers les preuves →</span>
                 </Button>
               </div>
             </motion.div>

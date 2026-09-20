@@ -107,14 +107,14 @@ export const REPORT_TYPES: ReportTypeConfig[] = [
   {
     id: "water_leak",
     emoji: "🚿",
-    label: "Fuite d'eau",
-    description: "Fuite d'eau à l'extérieur de votre maison",
+    label: "Fuite d'eau (Voie publique)",
+    description: "Fuite d'eau sur le réseau extérieur, la chaussée ou le trottoir",
     image: fuiteEauIcon,
     color: "#06B6D4",
     serviceType: "water",
     reportCategory: "infrastructure",
     operator: "SODECI",
-    defaultDesc: (c) => `Fuite d'eau à l'extérieur de la maison à ${c}`,
+    defaultDesc: (c) => `Fuite d'eau sur le réseau extérieur SODECI à ${c}`,
   },
   {
     id: "sodeci_other",

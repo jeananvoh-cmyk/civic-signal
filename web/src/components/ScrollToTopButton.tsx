@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function ScrollToTopButton() {
+  const location = useLocation();
   const [visible, setVisible] = useState(false);
+
+  if (location.pathname.startsWith("/signaler") || location.pathname.startsWith("/auth")) return null;
 
   useEffect(() => {
     const handleScroll = () => {

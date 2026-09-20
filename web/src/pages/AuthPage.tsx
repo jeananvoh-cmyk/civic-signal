@@ -1,12 +1,27 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, User, Phone, Building2, Home, Eye, EyeOff, Mail, Sparkles, ShieldCheck } from "lucide-react";
+import { 
+  ArrowLeft, 
+  User, 
+  Phone, 
+  Building2, 
+  Home, 
+  Eye, 
+  EyeOff, 
+  Mail, 
+  KeyRound, 
+  ShieldCheck, 
+  Zap, 
+  Droplets, 
+  Landmark, 
+  MapPin, 
+  MailCheck 
+} from "lucide-react";
 import SignaLogo from "@/components/SignaLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useGoBack } from "@/hooks/useGoBack";
@@ -25,16 +40,16 @@ function getPasswordStrength(pwd: string): { score: number; label: string; color
   if (/[^A-Za-z0-9]/.test(pwd)) score++;
 
   if (score <= 2) return { score, label: "Faible", color: "bg-red-500" };
-  if (score === 3) return { score, label: "Moyen", color: "bg-orange-400" };
-  return { score, label: "Fort", color: "bg-green-500" };
+  if (score === 3) return { score, label: "Moyen", color: "bg-amber-500" };
+  return { score, label: "Robuste", color: "bg-emerald-600" };
 }
 
 function PasswordStrengthBar({ password }: { password: string }) {
   const { score, label, color } = getPasswordStrength(password);
   if (!password) return null;
   return (
-    <div className="space-y-1.5">
-      <div className="flex gap-1">
+    <div className="space-y-1.5 pt-1">
+      <div className="flex gap-1.5" aria-hidden="true">
         {[1, 2, 3, 4, 5].map((i) => (
           <div
             key={i}
@@ -45,11 +60,12 @@ function PasswordStrengthBar({ password }: { password: string }) {
         ))}
       </div>
       <p className={`text-xs font-medium ${
-        score <= 2 ? "text-red-500" : score === 3 ? "text-orange-500" : "text-green-600"
+        score <= 2 ? "text-red-500 dark:text-red-400" : score === 3 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
       }`}>
         {label}
-        {score <= 2 && " — ajoutez des chiffres et majuscules"}
-        {score >= 4 && " — excellent !"}
+        {score <= 2 && " — ajoutez des majuscules et des chiffres"}
+        {score === 3 && " — ajoutez un caractère spécial"}
+        {score >= 4 && " — mot de passe sécurisé"}
       </p>
     </div>
   );
@@ -62,18 +78,17 @@ function GoogleButton({ loading, onClick }: { loading: boolean; onClick: () => v
       type="button"
       onClick={onClick}
       disabled={loading}
-      className="w-full h-12 flex items-center justify-center gap-3 rounded-xl border-2 border-border/80 bg-background hover:bg-muted/50 hover:border-emerald-500/40 transition-all font-bold text-sm text-foreground shadow-xs active:scale-[0.99] disabled:opacity-50 group cursor-pointer"
-      aria-label="Continuer avec mon compte Google Gmail"
+      className="w-full h-12 flex items-center justify-center gap-3 rounded-xl border border-border/80 bg-background hover:bg-muted/50 hover:border-emerald-500/40 transition-all font-semibold text-sm text-foreground shadow-xs active:scale-[0.99] disabled:opacity-50 group cursor-pointer"
+      aria-label="Continuer avec mon compte Google"
     >
-      {/* Logo Google Officiel SVG */}
-      <svg width="20" height="20" viewBox="0 0 18 18" className="shrink-0 transition-transform group-hover:scale-110">
+      <svg width="20" height="20" viewBox="0 0 18 18" className="shrink-0 transition-transform group-hover:scale-105" aria-hidden="true">
         <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
         <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
         <path fill="#FBBC05" d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"/>
         <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z"/>
       </svg>
       <span className="truncate">
-        {loading ? "Connexion à SIGNA.ci..." : "Continuer avec Google (Gmail)"}
+        {loading ? "Connexion en cours..." : "Continuer avec Google (Gmail)"}
       </span>
     </button>
   );
@@ -82,10 +97,10 @@ function GoogleButton({ loading, onClick }: { loading: boolean; onClick: () => v
 // ── Séparateur ────────────────────────────────────────────────────────────────
 function Divider() {
   return (
-    <div className="flex items-center gap-3 my-1">
-      <div className="flex-1 h-px bg-border" />
+    <div className="flex items-center gap-3 my-1" aria-hidden="true">
+      <div className="flex-1 h-px bg-border/80" />
       <span className="text-xs text-muted-foreground font-medium">ou</span>
-      <div className="flex-1 h-px bg-border" />
+      <div className="flex-1 h-px bg-border/80" />
     </div>
   );
 }
@@ -144,12 +159,12 @@ const AuthPage = () => {
     }
   };
 
-  // ── Magic Link ────────────────────────────────────────────────────────────
+  // ── Lien par email (Magic Link sécurisé) ──────────────────────────────────
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     const email = identifier.trim();
     if (!email || isPhone(email)) {
-      toast.error("Entrez une adresse email valide pour recevoir le lien.");
+      toast.error("Veuillez saisir une adresse email valide.");
       return;
     }
     setLoading(true);
@@ -180,7 +195,7 @@ const AuthPage = () => {
         ? await supabase.auth.signInWithPassword({ phone: trimmed, password })
         : await supabase.auth.signInWithPassword({ email: trimmed, password });
       if (result.error) throw result.error;
-      toast.success("Connexion réussie !");
+      toast.success("Connexion réussie.");
       navigate(redirectAfter);
     } catch (error: any) {
       toast.error(getUserFriendlyError(error));
@@ -193,11 +208,11 @@ const AuthPage = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPwd) {
-      toast.error("Les mots de passe ne correspondent pas.");
+      toast.error("Les deux mots de passe ne correspondent pas.");
       return;
     }
     if (password.length < 8) {
-      toast.error("Le mot de passe doit contenir au moins 8 caractères.");
+      toast.error("Le mot de passe doit comporter au moins 8 caractères.");
       return;
     }
     setLoading(true);
@@ -216,14 +231,14 @@ const AuthPage = () => {
 
       const newUser = result.data.user;
       if (newUser && (!newUser.identities || newUser.identities.length === 0)) {
-        toast.info("Vous avez déjà un compte ! Connectez-vous ou utilisez « Mot de passe oublié ».", { duration: 6000 });
+        toast.info("Un compte existe déjà avec cet identifiant. Connectez-vous ou réinitialisez votre mot de passe.", { duration: 6000 });
         setMode("login");
         return;
       }
       toast.success(
         isPhone(trimmed)
-          ? "Compte créé ! Vérifiez votre SMS pour confirmer."
-          : "Compte créé ! Vérifiez votre email pour confirmer."
+          ? "Compte créé. Veuillez consulter votre SMS pour confirmer l'inscription."
+          : "Compte créé. Veuillez vérifier vos emails pour valider l'inscription."
       );
       setMode("login");
     } catch (error: any) {
@@ -240,14 +255,14 @@ const AuthPage = () => {
     try {
       const trimmed = identifier.trim();
       if (isPhone(trimmed)) {
-        toast.error("La réinitialisation par téléphone n'est pas disponible. Utilisez votre email.");
+        toast.error("La réinitialisation par numéro de téléphone n'est pas disponible. Utilisez votre adresse email.");
         return;
       }
       const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
         redirectTo: `${window.location.origin}/auth`,
       });
       if (error) throw error;
-      toast.success("Lien de réinitialisation envoyé !");
+      toast.success("Lien de réinitialisation transmis par email.");
       setMode("login");
     } catch (error: any) {
       toast.error(getUserFriendlyError(error));
@@ -260,16 +275,18 @@ const AuthPage = () => {
   const signupValid = privacyConsent && password.length >= 8 && password === confirmPwd && pwdStrength.score >= 3;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4 py-8 sm:p-6 lg:p-10">
+    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4 py-6 sm:p-6 lg:p-10">
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-5xl"
       >
-        <div className="mb-6">
+        {/* Navigation retour */}
+        <div className="mb-4 sm:mb-6">
           <button
+            type="button"
             onClick={goBack}
-            className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors bg-background/80 backdrop-blur-xs px-3.5 py-1.5 rounded-xl border border-border/60 shadow-xs"
+            className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors bg-background/90 backdrop-blur-xs px-3.5 py-2 rounded-xl border border-border/70 shadow-xs cursor-pointer"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Retour à l'application
@@ -277,79 +294,90 @@ const AuthPage = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-          {/* ── PANNEAU GAUCHE : IDENTITÉ & VALEUR CIVIQUE (Desktop & Tablet) ── */}
-          <div className="lg:col-span-6 space-y-6 pt-1">
+          {/* ── PANNEAU GAUCHE : PRÉSENTATION DES SERVICES (Visible uniquement sur Desktop & Tablette large) ── */}
+          <div className="hidden lg:block lg:col-span-6 space-y-6 pt-1">
             <div className="space-y-3">
               <Link to="/" className="inline-block transition-transform hover:scale-105 active:scale-95" title="Accueil SIGNA.ci">
                 <SignaLogo size="lg" />
               </Link>
               <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight leading-tight">
-                La plateforme citoyenne qui fait bouger les lignes <span className="whitespace-nowrap">à Abidjan 🇨🇮</span>
+                Plateforme citoyenne des services publics à Abidjan
               </h1>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Connectez-vous pour signaler des anomalies, corroborer les pannes de vos voisins et suivre l'avancement des réparations en temps réel.
+                Connectez-vous pour signaler des incidents, corroborer les anomalies de votre quartier et suivre l'avancement des réparations en temps réel.
               </p>
             </div>
 
-            {/* 4 Avantages Clés */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
-              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-card border border-border/80 shadow-xs">
-                <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold text-base shrink-0">
-                  ⚡
+            {/* Piliers de services publics avec icônes techniques */}
+            <div className="grid grid-cols-1 gap-3">
+              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-card border border-border/80 shadow-xs">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <Zap className="h-4 w-4" />
                 </div>
                 <div>
                   <h2 className="text-xs font-bold text-foreground">CIE (Électricité &amp; Éclairage)</h2>
-                  <p className="text-[11px] text-muted-foreground leading-snug">Coupures de courant, transformateurs et lampadaires en panne.</p>
+                  <p className="text-[11px] text-muted-foreground leading-snug">Coupures d'électricité, transformateurs et éclairage public hors service.</p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-card border border-border/80 shadow-xs">
-                <div className="w-8 h-8 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center font-bold text-base shrink-0">
-                  💧
+              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-card border border-border/80 shadow-xs">
+                <div className="w-9 h-9 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+                  <Droplets className="h-4 w-4" />
                 </div>
                 <div>
                   <h2 className="text-xs font-bold text-foreground">SODECI (Eau Potable)</h2>
-                  <p className="text-[11px] text-muted-foreground leading-snug">Robinets à sec, baisses de pression et fuites sur la voie publique.</p>
+                  <p className="text-[11px] text-muted-foreground leading-snug">Interruptions de distribution, baisses de pression et fuites sur voirie.</p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-card border border-border/80 shadow-xs">
-                <div className="w-8 h-8 rounded-xl bg-teal-500/10 text-teal-600 flex items-center justify-center font-bold text-base shrink-0">
-                  🏛️
+              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-card border border-border/80 shadow-xs">
+                <div className="w-9 h-9 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+                  <Landmark className="h-4 w-4" />
                 </div>
                 <div>
-                  <h2 className="text-xs font-bold text-foreground">Mairies (Voirie &amp; Salubrité)</h2>
-                  <p className="text-[11px] text-muted-foreground leading-snug">Nids-de-poule, caniveaux bouchés et salubrité des quartiers.</p>
+                  <h2 className="text-xs font-bold text-foreground">Services Municipaux (Voirie &amp; Salubrité)</h2>
+                  <p className="text-[11px] text-muted-foreground leading-snug">Dégradations de chaussée, caniveaux obstrués et salubrité urbaine.</p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-card border border-border/80 shadow-xs">
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold text-base shrink-0">
-                  🛡️
+              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-card border border-border/80 shadow-xs">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="h-4 w-4" />
                 </div>
                 <div>
-                  <h2 className="text-xs font-bold text-foreground">Vie Privée (Loi n° 2013-450)</h2>
-                  <p className="text-[11px] text-muted-foreground leading-snug">Coordonnées confidentielles et floutage GPS (~150 m) sur la carte.</p>
+                  <h2 className="text-xs font-bold text-foreground">Protection des données (Loi n° 2013-450)</h2>
+                  <p className="text-[11px] text-muted-foreground leading-snug">Coordonnées confidentielles et floutage géographique des coordonnées privées.</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-2 rounded-xl w-fit">
-              <span>📍 14 Communes du Grand Abidjan</span>
-              <span>·</span>
-              <span>100% Citoyen &amp; Gratuit</span>
+            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-2 rounded-xl w-fit">
+              <MapPin className="h-3.5 w-3.5 shrink-0" />
+              <span>14 communes du Grand Abidjan</span>
+              <span className="text-emerald-400 dark:text-emerald-600">·</span>
+              <span>Accès citoyen gratuit</span>
             </div>
           </div>
 
-          {/* ── PANNEAU DROIT : FORMULAIRE AUTHENTIFICATION ── */}
+          {/* ── PANNEAU DROIT / MOBILE FIRST : FORMULAIRE D'ACCÈS ── */}
           <div className="lg:col-span-6 w-full max-w-md mx-auto">
+            {/* En-tête compact spécifique pour smartphone */}
+            <div className="lg:hidden text-center mb-4 space-y-1">
+              <Link to="/" className="inline-block transition-transform hover:scale-105 active:scale-95" title="Accueil SIGNA.ci">
+                <SignaLogo size="md" />
+              </Link>
+              <p className="text-xs text-muted-foreground font-medium">
+                Services publics et voirie du Grand Abidjan
+              </p>
+            </div>
+
             {/* Onglets Rapides Connexion / Inscription */}
             <div className="flex rounded-2xl border border-border/80 bg-card p-1.5 mb-3 shadow-xs">
               <button
                 type="button"
                 onClick={() => setMode("login")}
                 className={cn(
-                  "flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer",
+                  "flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer",
                   mode === "login"
                     ? "bg-emerald-600 text-white shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
@@ -361,7 +389,7 @@ const AuthPage = () => {
                 type="button"
                 onClick={() => setMode("signup")}
                 className={cn(
-                  "flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer",
+                  "flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer",
                   mode === "signup"
                     ? "bg-emerald-600 text-white shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
@@ -372,391 +400,434 @@ const AuthPage = () => {
             </div>
 
             <AnimatePresence mode="wait">
-              <motion.div key={mode} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
-            {/* ── CONNEXION ─────────────────────────────────────────────────── */}
-            {mode === "login" && (
-              <div className="rounded-3xl border border-border/80 bg-card p-6 sm:p-7 shadow-sm space-y-4">
-                <div>
-                  <h2 className="font-display text-xl font-black text-foreground">Connexion</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">Accédez à votre espace citoyen SIGNA.ci</p>
-                </div>
+              <motion.div 
+                key={mode} 
+                initial={{ opacity: 0, y: 6 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                exit={{ opacity: 0, y: -6 }} 
+                transition={{ duration: 0.16 }}
+              >
+                {/* ── FORMULAIRE : CONNEXION ─────────────────────────────────── */}
+                {mode === "login" && (
+                  <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-7 shadow-sm space-y-4">
+                    <div>
+                      <h2 className="font-display text-xl font-black text-foreground">Connexion</h2>
+                      <p className="text-xs text-muted-foreground mt-0.5">Accédez à votre espace citoyen SIGNA.ci</p>
+                    </div>
 
-            {/* Google */}
-            <GoogleButton loading={googleLoading} onClick={handleGoogle} />
+                    {/* Google OAuth */}
+                    <GoogleButton loading={googleLoading} onClick={handleGoogle} />
 
-            <Divider />
+                    <Divider />
 
-            {/* Toggle Lien / Mot de passe */}
-            <div className="flex rounded-xl border border-border/80 bg-muted/40 p-1">
-              <button
-                type="button"
-                onClick={() => { setLoginMethod("magic"); setMagicSent(false); }}
-                className={cn(
-                  "flex-1 py-2 text-xs font-bold flex items-center justify-center gap-1.5 rounded-lg transition-all",
-                  loginMethod === "magic"
-                    ? "bg-emerald-600 text-white shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
+                    {/* Sélecteur de méthode de connexion */}
+                    <div className="grid grid-cols-2 gap-1 rounded-xl border border-border/80 bg-muted/40 p-1">
+                      <button
+                        type="button"
+                        onClick={() => { setLoginMethod("magic"); setMagicSent(false); }}
+                        className={cn(
+                          "py-2 px-2 text-xs font-bold flex items-center justify-center gap-1.5 rounded-lg transition-all cursor-pointer",
+                          loginMethod === "magic"
+                            ? "bg-emerald-600 text-white shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <Mail className="h-3.5 w-3.5 shrink-0" />
+                        <span>Lien par email</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLoginMethod("password")}
+                        className={cn(
+                          "py-2 px-2 text-xs font-bold flex items-center justify-center gap-1.5 rounded-lg transition-all cursor-pointer",
+                          loginMethod === "password"
+                            ? "bg-emerald-600 text-white shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <KeyRound className="h-3.5 w-3.5 shrink-0" />
+                        <span>Mot de passe</span>
+                      </button>
+                    </div>
+
+                    {/* Méthode 1 : Lien par email */}
+                    {loginMethod === "magic" && !magicSent && (
+                      <form onSubmit={handleMagicLink} className="space-y-3">
+                        <div className="relative">
+                          <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                          <Input
+                            type="email"
+                            placeholder="Votre adresse email"
+                            value={identifier}
+                            onChange={(e) => setIdentifier(e.target.value)}
+                            className="h-12 pl-10 rounded-xl text-base sm:text-sm focus-visible:ring-emerald-500"
+                            autoComplete="email"
+                            inputMode="email"
+                            required
+                          />
+                        </div>
+                        <Button
+                          type="submit"
+                          disabled={loading}
+                          className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-xs transition-all active:scale-[0.99] cursor-pointer"
+                        >
+                          {loading ? "Envoi du lien en cours..." : "Recevoir le lien de connexion"}
+                        </Button>
+                        <p className="text-[11px] text-center text-muted-foreground leading-relaxed">
+                          Connexion sécurisée sans mot de passe à retenir.
+                        </p>
+                      </form>
+                    )}
+
+                    {/* État de confirmation d'envoi du lien */}
+                    {loginMethod === "magic" && magicSent && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-5 text-center space-y-2.5"
+                      >
+                        <div className="w-12 h-12 rounded-full bg-emerald-600/15 text-emerald-600 mx-auto flex items-center justify-center">
+                          <MailCheck className="h-6 w-6" />
+                        </div>
+                        <p className="font-bold text-emerald-700 dark:text-emerald-400 text-sm">Lien envoyé</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Consultez votre boîte mail <span className="font-semibold text-foreground">{identifier}</span> et cliquez sur le lien pour vous connecter.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setMagicSent(false)}
+                          className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-semibold cursor-pointer pt-1"
+                        >
+                          Modifier l'adresse email
+                        </button>
+                      </motion.div>
+                    )}
+
+                    {/* Méthode 2 : Identifiant et mot de passe */}
+                    {loginMethod === "password" && (
+                      <form onSubmit={handleLogin} className="space-y-3">
+                        <div className="relative">
+                          <User className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                          <Input
+                            placeholder="Email ou numéro de téléphone"
+                            value={identifier}
+                            onChange={(e) => setIdentifier(e.target.value)}
+                            className="h-12 pl-10 rounded-xl text-base sm:text-sm focus-visible:ring-emerald-500"
+                            autoComplete="username"
+                            required
+                          />
+                        </div>
+                        <div className="relative">
+                          <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                          <Input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Mot de passe"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="h-12 pl-10 pr-12 rounded-xl text-base sm:text-sm focus-visible:ring-emerald-500"
+                            autoComplete="current-password"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-foreground focus-visible:outline-none rounded-lg cursor-pointer"
+                            aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                        <Button
+                          type="submit"
+                          disabled={loading}
+                          className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-xs transition-all active:scale-[0.99] cursor-pointer"
+                        >
+                          {loading ? "Connexion..." : "Se connecter"}
+                        </Button>
+                        <div className="text-center pt-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setMode("forgot")}
+                            className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer"
+                          >
+                            Mot de passe oublié ?
+                          </button>
+                        </div>
+                      </form>
+                    )}
+
+                    <div className="pt-2 text-center border-t border-border/70">
+                      <button
+                        type="button"
+                        onClick={() => setMode("signup")}
+                        className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        Pas encore de compte ?{" "}
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline">Créer un compte</span>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-center gap-1.5 pt-1 text-[11px] text-muted-foreground">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Données personnelles protégées · Loi n° 2013-450</span>
+                    </div>
+                  </div>
                 )}
-              >
-                <Sparkles className="h-3.5 w-3.5" /> Lien magique
-              </button>
-              <button
-                type="button"
-                onClick={() => setLoginMethod("password")}
-                className={cn(
-                  "flex-1 py-2 text-xs font-bold flex items-center justify-center gap-1.5 rounded-lg transition-all",
-                  loginMethod === "password"
-                    ? "bg-emerald-600 text-white shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
+
+                {/* ── FORMULAIRE : CRÉATION DE COMPTE ───────────────────────── */}
+                {mode === "signup" && (
+                  <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-7 shadow-sm space-y-4">
+                    <div>
+                      <h2 className="font-display text-xl font-black text-foreground">Créer un compte</h2>
+                      <p className="text-xs text-muted-foreground mt-0.5">Rejoignez la communauté citoyenne SIGNA.ci</p>
+                    </div>
+
+                    {/* Google */}
+                    <GoogleButton loading={googleLoading} onClick={handleGoogle} />
+
+                    <Divider />
+
+                    <form onSubmit={handleSignup} className="space-y-3">
+                      {/* Nom complet */}
+                      <div className="relative">
+                        <User className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                        <Input
+                          placeholder="Nom complet"
+                          value={displayName}
+                          onChange={(e) => setDisplayName(e.target.value)}
+                          className="h-12 pl-10 rounded-xl text-base sm:text-sm focus-visible:ring-emerald-500"
+                          autoComplete="name"
+                          required
+                        />
+                      </div>
+
+                      {/* Identifiant Email ou Téléphone */}
+                      <div className="relative">
+                        <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                        <Input
+                          placeholder="Adresse email ou téléphone"
+                          value={identifier}
+                          onChange={(e) => setIdentifier(e.target.value)}
+                          className="h-12 pl-10 rounded-xl text-base sm:text-sm focus-visible:ring-emerald-500"
+                          autoComplete="username"
+                          required
+                        />
+                      </div>
+
+                      {/* Téléphone optionnel si email renseigné */}
+                      {!isPhone(identifier) && (
+                        <div className="relative">
+                          <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                          <Input
+                            placeholder="Téléphone (optionnel)"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            className="h-12 pl-10 rounded-xl text-base sm:text-sm focus-visible:ring-emerald-500"
+                            autoComplete="tel"
+                            inputMode="tel"
+                          />
+                        </div>
+                      )}
+
+                      {/* Mot de passe */}
+                      <div className="space-y-1.5">
+                        <div className="relative">
+                          <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                          <Input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Mot de passe (8 caractères min.)"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="h-12 pl-10 pr-12 rounded-xl text-base sm:text-sm focus-visible:ring-emerald-500"
+                            autoComplete="new-password"
+                            required
+                            minLength={8}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-foreground focus-visible:outline-none rounded-lg cursor-pointer"
+                            aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                        {password && <PasswordStrengthBar password={password} />}
+                      </div>
+
+                      {/* Confirmation mot de passe */}
+                      <div className="relative">
+                        <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                        <Input
+                          type={showConfirm ? "text" : "password"}
+                          placeholder="Confirmer le mot de passe"
+                          value={confirmPwd}
+                          onChange={(e) => setConfirmPwd(e.target.value)}
+                          aria-invalid={confirmPwd.length > 0 && confirmPwd !== password}
+                          aria-describedby={confirmPwd !== password && confirmPwd.length > 0 ? "confirm-pwd-error" : undefined}
+                          className={cn(
+                            "h-12 pl-10 pr-12 rounded-xl text-base sm:text-sm focus-visible:ring-emerald-500",
+                            confirmPwd && confirmPwd !== password && "border-destructive focus-visible:ring-destructive",
+                            confirmPwd && confirmPwd === password && "border-emerald-500 focus-visible:ring-emerald-500"
+                          )}
+                          autoComplete="new-password"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirm(!showConfirm)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-foreground focus-visible:outline-none rounded-lg cursor-pointer"
+                          aria-label={showConfirm ? "Masquer la confirmation" : "Afficher la confirmation"}
+                        >
+                          {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                        {confirmPwd && confirmPwd !== password && (
+                          <p id="confirm-pwd-error" role="alert" className="text-xs text-destructive mt-1">
+                            Les mots de passe ne correspondent pas
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Type de profil (tactile sans émojis) */}
+                      <div className="space-y-1.5 pt-1">
+                        <Label className="text-xs font-bold text-foreground">Type de compte</Label>
+                        <div className="grid grid-cols-2 gap-2.5">
+                          <button
+                            type="button"
+                            onClick={() => setUserType("household")}
+                            className={cn(
+                              "flex items-center justify-center gap-2 h-11 px-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer",
+                              userType === "household"
+                                ? "border-emerald-600 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-bold shadow-xs"
+                                : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                            )}
+                          >
+                            <Home className="h-4 w-4 shrink-0" />
+                            <span>Particulier / Ménage</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setUserType("business")}
+                            className={cn(
+                              "flex items-center justify-center gap-2 h-11 px-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer",
+                              userType === "business"
+                                ? "border-emerald-600 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-bold shadow-xs"
+                                : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                            )}
+                          >
+                            <Building2 className="h-4 w-4 shrink-0" />
+                            <span>Professionnel / PME</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Consentement confidentialité et conditions */}
+                      <div className="rounded-xl border border-border/80 bg-muted/40 p-3.5">
+                        <label htmlFor="privacy-consent" className="flex items-start gap-3 cursor-pointer">
+                          <Checkbox
+                            id="privacy-consent"
+                            checked={privacyConsent}
+                            onCheckedChange={(c) => setPrivacyConsent(c === true)}
+                            className="mt-0.5 shrink-0"
+                          />
+                          <span className="text-xs leading-relaxed text-muted-foreground select-none">
+                            J'atteste avoir <strong className="text-foreground">18 ans ou plus</strong> et j'accepte la{" "}
+                            <Link to="/confidentialite" target="_blank" className="text-emerald-600 dark:text-emerald-400 underline font-semibold">
+                              politique de confidentialité
+                            </Link>{" "}
+                            ainsi que les{" "}
+                            <Link to="/cgu" target="_blank" className="text-emerald-600 dark:text-emerald-400 underline font-semibold">
+                              conditions d'utilisation
+                            </Link>.
+                          </span>
+                        </label>
+                      </div>
+
+                      <Button
+                        type="submit"
+                        disabled={loading || !signupValid}
+                        className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-xs transition-all active:scale-[0.99] disabled:opacity-50 cursor-pointer"
+                      >
+                        {loading ? "Création du compte..." : "Créer mon compte"}
+                      </Button>
+
+                      {!signupValid && !loading && (privacyConsent || password.length > 0) && (
+                        <p className="text-[11px] text-center text-muted-foreground">
+                          {!privacyConsent
+                            ? "Cochez la case pour accepter les conditions"
+                            : password.length < 8
+                            ? "Le mot de passe doit comporter au moins 8 caractères"
+                            : pwdStrength.score < 3
+                            ? "Renforcez votre mot de passe avec des chiffres et majuscules"
+                            : password !== confirmPwd
+                            ? "Les deux mots de passe ne sont pas identiques"
+                            : null}
+                        </p>
+                      )}
+                    </form>
+
+                    <div className="pt-2 text-center border-t border-border/70">
+                      <button
+                        type="button"
+                        onClick={() => setMode("login")}
+                        className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        Déjà inscrit ?{" "}
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline">Se connecter</span>
+                      </button>
+                    </div>
+                  </div>
                 )}
-              >
-                <Eye className="h-3.5 w-3.5" /> Mot de passe
-              </button>
-            </div>
 
-            {/* Magic Link */}
-            {loginMethod === "magic" && !magicSent && (
-              <form onSubmit={handleMagicLink} className="space-y-3">
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    type="email"
-                    placeholder="Votre adresse email"
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    className="h-11 pl-10 rounded-xl text-sm focus-visible:ring-emerald-500"
-                    required
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-xs transition-all hover:scale-[1.01] active:scale-[0.99]"
-                >
-                  {loading ? "Envoi du lien..." : "Recevoir le lien magique →"}
-                </Button>
-                <p className="text-[11px] text-center text-muted-foreground leading-relaxed">
-                  Connexion instantanée sécurisée par email sans avoir à retenir de mot de passe.
-                </p>
-              </form>
-            )}
+                {/* ── FORMULAIRE : MOT DE PASSE OUBLIÉ ───────────────────────── */}
+                {mode === "forgot" && (
+                  <div className="rounded-3xl border border-border/80 bg-card p-5 sm:p-7 shadow-sm space-y-4">
+                    <div>
+                      <h2 className="font-display text-xl font-black text-foreground">Mot de passe oublié</h2>
+                      <p className="text-xs text-muted-foreground mt-0.5">Recevez un lien par email pour réinitialiser votre accès</p>
+                    </div>
 
-            {/* Magic Link envoyé */}
-            {loginMethod === "magic" && magicSent && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-center space-y-2"
-              >
-                <div className="text-3xl">📬</div>
-                <p className="font-bold text-emerald-700 dark:text-emerald-400 text-sm">Lien envoyé !</p>
-                <p className="text-xs text-muted-foreground">
-                  Vérifiez votre boîte mail <strong>{identifier}</strong> et cliquez sur le lien pour vous connecter.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setMagicSent(false)}
-                  className="text-xs text-emerald-600 hover:underline font-semibold"
-                >
-                  Changer d'email
-                </button>
+                    <form onSubmit={handleForgotPassword} className="space-y-3">
+                      <div className="relative">
+                        <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                        <Input
+                          type="email"
+                          placeholder="Votre adresse email"
+                          value={identifier}
+                          onChange={(e) => setIdentifier(e.target.value)}
+                          className="h-12 pl-10 rounded-xl text-base sm:text-sm focus-visible:ring-emerald-500"
+                          autoComplete="email"
+                          inputMode="email"
+                          required
+                        />
+                      </div>
+                      <Button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-xs transition-all active:scale-[0.99] cursor-pointer"
+                      >
+                        {loading ? "Envoi en cours..." : "Envoyer le lien de réinitialisation"}
+                      </Button>
+                    </form>
+
+                    <div className="pt-2 text-center border-t border-border/70">
+                      <button
+                        type="button"
+                        onClick={() => setMode("login")}
+                        className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        Retour à la <span className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline">connexion</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </motion.div>
-            )}
-
-            {/* Mot de passe */}
-            {loginMethod === "password" && (
-              <form onSubmit={handleLogin} className="space-y-3">
-                <Input
-                  placeholder="Email ou numéro de téléphone"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  className="h-11 rounded-xl text-sm focus-visible:ring-emerald-500"
-                  required
-                />
-                <div className="relative">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Mot de passe"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="h-11 rounded-xl text-sm pr-12 focus-visible:ring-emerald-500"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none rounded"
-                    aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-xs transition-all hover:scale-[1.01] active:scale-[0.99]"
-                >
-                  {loading ? "Connexion..." : "Se connecter"}
-                </Button>
-                <div className="text-center">
-                  <button
-                    type="button"
-                    onClick={() => setMode("forgot")}
-                    className="text-xs text-muted-foreground hover:text-foreground underline"
-                  >
-                    Mot de passe oublié ?
-                  </button>
-                </div>
-              </form>
-            )}
-
-            <div className="pt-2 text-center border-t border-border/70">
-              <button
-                type="button"
-                onClick={() => setMode("signup")}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                Pas encore de compte ?{" "}
-                <span className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline">Créer un compte</span>
-              </button>
-            </div>
-
-            <div className="flex items-center justify-center gap-1.5 pt-1 text-[10px] text-muted-foreground">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Données protégées · Respect de la Loi n° 2013-450</span>
-            </div>
+            </AnimatePresence>
           </div>
-        )}
-
-        {/* ── INSCRIPTION ───────────────────────────────────────────────── */}
-        {mode === "signup" && (
-          <div className="rounded-3xl border border-border/80 bg-card p-6 sm:p-7 shadow-sm space-y-4">
-            <div>
-              <h2 className="font-display text-xl font-black text-foreground">Créer un compte</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Rejoignez la communauté citoyenne SIGNA.ci</p>
-            </div>
-
-            {/* Google — le plus rapide */}
-            <GoogleButton loading={googleLoading} onClick={handleGoogle} />
-
-            <Divider />
-
-            <form onSubmit={handleSignup} className="space-y-3">
-              {/* Nom */}
-              <div className="relative">
-                <User className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Nom complet"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  className="h-11 pl-10 rounded-xl text-sm focus-visible:ring-emerald-500"
-                  required
-                />
-              </div>
-
-              {/* Email ou téléphone */}
-              <Input
-                placeholder="Email ou numéro de téléphone"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                className="h-11 rounded-xl text-sm focus-visible:ring-emerald-500"
-                required
-              />
-
-              {/* Téléphone optionnel si email */}
-              {!isPhone(identifier) && (
-                <div className="relative">
-                  <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Téléphone (optionnel)"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="h-11 pl-10 rounded-xl text-sm focus-visible:ring-emerald-500"
-                  />
-                </div>
-              )}
-
-              {/* Mot de passe */}
-              <div className="space-y-2">
-                <div className="relative">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Mot de passe (8 caractères min.)"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="h-11 rounded-xl text-sm pr-12 focus-visible:ring-emerald-500"
-                    required
-                    minLength={8}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none rounded cursor-pointer"
-                    aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                {password && <PasswordStrengthBar password={password} />}
-              </div>
-
-              {/* Confirmation mot de passe */}
-              <div className="relative">
-                <Input
-                  type={showConfirm ? "text" : "password"}
-                  placeholder="Confirmer le mot de passe"
-                  value={confirmPwd}
-                  onChange={(e) => setConfirmPwd(e.target.value)}
-                  aria-invalid={confirmPwd.length > 0 && confirmPwd !== password}
-                  aria-describedby={confirmPwd !== password && confirmPwd.length > 0 ? "confirm-pwd-error" : undefined}
-                  className={cn(
-                    "h-11 rounded-xl text-sm pr-12 focus-visible:ring-emerald-500",
-                    confirmPwd && confirmPwd !== password && "border-destructive focus-visible:ring-destructive",
-                    confirmPwd && confirmPwd === password && "border-success focus-visible:ring-success"
-                  )}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none rounded cursor-pointer"
-                  aria-label={showConfirm ? "Masquer la confirmation" : "Afficher la confirmation"}
-                >
-                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-                {confirmPwd && confirmPwd !== password && (
-                  <p id="confirm-pwd-error" role="alert" className="text-xs text-destructive mt-1">Les mots de passe ne correspondent pas</p>
-                )}
-              </div>
-
-              {/* Type de profil */}
-              <div className="space-y-1.5 pt-1">
-                <Label className="text-xs font-bold text-foreground">Type de profil</Label>
-                <RadioGroup
-                  value={userType}
-                  onValueChange={(v) => setUserType(v as "household" | "business")}
-                  className="flex gap-4"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="household" id="auth-household" />
-                    <Label htmlFor="auth-household" className="flex items-center gap-1.5 text-xs font-medium cursor-pointer">
-                      <Home className="h-3.5 w-3.5 text-emerald-600" /> Ménage
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="business" id="auth-business" />
-                    <Label htmlFor="auth-business" className="flex items-center gap-1.5 text-xs font-medium cursor-pointer">
-                      <Building2 className="h-3.5 w-3.5 text-emerald-600" /> Entreprise
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              {/* Consentement */}
-              <div className="rounded-xl border border-border/80 bg-muted/40 p-3">
-                <div className="flex items-start gap-2.5">
-                  <Checkbox
-                    id="privacy-consent"
-                    checked={privacyConsent}
-                    onCheckedChange={(c) => setPrivacyConsent(c === true)}
-                    className="mt-0.5"
-                  />
-                  <label
-                    htmlFor="privacy-consent"
-                    className="text-[11px] leading-relaxed cursor-pointer text-muted-foreground"
-                  >
-                    Je certifie avoir <strong className="text-foreground">18 ans ou plus</strong> et j'accepte la{" "}
-                    <Link to="/confidentialite" target="_blank" className="text-emerald-600 dark:text-emerald-400 underline font-semibold">
-                      politique de confidentialité
-                    </Link>{" "}
-                    et les{" "}
-                    <Link to="/cgu" target="_blank" className="text-emerald-600 dark:text-emerald-400 underline font-semibold">
-                      conditions d'utilisation
-                    </Link>.
-                  </label>
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={loading || !signupValid}
-                className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-xs transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
-              >
-                {loading ? "Création..." : "Créer mon compte"}
-              </Button>
-              {!signupValid && !loading && (privacyConsent || password.length > 0) && (
-                <p className="text-[11px] text-center text-muted-foreground">
-                  {!privacyConsent
-                    ? "Acceptez la politique de confidentialité pour continuer"
-                    : password.length < 8
-                    ? "Le mot de passe doit contenir au moins 8 caractères"
-                    : pwdStrength.score < 3
-                    ? "Renforcez votre mot de passe (ajoutez majuscules et chiffres)"
-                    : password !== confirmPwd
-                    ? "Les mots de passe ne correspondent pas"
-                    : null}
-                </p>
-              )}
-            </form>
-
-            <div className="pt-2 text-center border-t border-border/70">
-              <button
-                type="button"
-                onClick={() => setMode("login")}
-                className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-              >
-                Déjà un compte ?{" "}
-                <span className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline">Se connecter</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── MOT DE PASSE OUBLIÉ ───────────────────────────────────────── */}
-        {mode === "forgot" && (
-          <div className="rounded-3xl border border-border/80 bg-card p-6 sm:p-7 shadow-sm space-y-4">
-            <div>
-              <h2 className="font-display text-xl font-black text-foreground">Mot de passe oublié</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Recevez un lien pour réinitialiser votre mot de passe</p>
-            </div>
-            <form onSubmit={handleForgotPassword} className="space-y-3">
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type="email"
-                  placeholder="Votre email"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  className="h-11 pl-10 rounded-xl text-sm focus-visible:ring-emerald-500"
-                  required
-                />
-              </div>
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full h-11 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-xs transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
-              >
-                {loading ? "Envoi..." : "Envoyer le lien"}
-              </Button>
-            </form>
-            <div className="pt-2 text-center border-t border-border/70">
-              <button
-                type="button"
-                onClick={() => setMode("login")}
-                className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-              >
-                Retour à la <span className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline">connexion</span>
-              </button>
-            </div>
-          </div>
-        )}
-            </motion.div>
-          </AnimatePresence>
         </div>
-      </div>
-    </motion.div>
-  </div>
-);
+      </motion.div>
+    </div>
+  );
 };
 
 export default AuthPage;

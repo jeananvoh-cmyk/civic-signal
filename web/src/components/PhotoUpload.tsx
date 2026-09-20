@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { Camera, X, Loader2, MapPin, ImageIcon, AlertTriangle, ChevronDown, ChevronUp, CheckCircle2, XCircle, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -16,6 +17,9 @@ interface PhotoUploadProps {
   photoUrls: string[];
   isInfrastructure?: boolean;
   reportId?: string;
+  allowNoPhotoToggle?: boolean;
+  noPhotoChecked?: boolean;
+  onNoPhotoToggle?: (checked: boolean) => void;
 }
 
 const MAX_OUTPUT_PX = 1920;
@@ -144,6 +148,9 @@ const PhotoUpload = ({
   onGpsFromPhoto,
   photoUrls,
   isInfrastructure = false,
+  allowNoPhotoToggle = false,
+  noPhotoChecked = false,
+  onNoPhotoToggle,
 }: PhotoUploadProps) => {
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
@@ -360,6 +367,24 @@ const PhotoUpload = ({
       <p className="text-xs text-muted-foreground">
         📸 Appareil photo ou Galerie · JPG, PNG, HEIC, WEBP · Max {MAX_PHOTOS} photos
       </p>
+
+      {/* Option d'échappement : Photo impossible (nuit / danger) */}
+      {allowNoPhotoToggle && isInfrastructure && photoUrls.length === 0 && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/8 p-3 flex items-start gap-2.5 transition-all">
+          <Checkbox
+            id="no-photo-opt"
+            checked={noPhotoChecked}
+            onCheckedChange={(c) => onNoPhotoToggle?.(c === true)}
+            className="mt-0.5 shrink-0"
+          />
+          <label htmlFor="no-photo-opt" className="text-xs text-foreground leading-snug cursor-pointer select-none">
+            <strong>Photo impossible actuellement</strong> (obscurité nocturne / zone dangereuse)
+            <span className="block text-[11px] text-muted-foreground mt-0.5">
+              💡 Vous devrez saisir une description détaillée d'au moins 30 caractères à l'étape suivante.
+            </span>
+          </label>
+        </div>
+      )}
 
       {/* Recommandations photo — infrastructure uniquement */}
       {isInfrastructure && (

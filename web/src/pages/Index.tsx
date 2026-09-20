@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils";
 import {
   Zap, Users, ArrowRight, MapPin,
   CheckCircle2, Droplets, Wrench, Navigation,
-  Lightbulb, Waves, Construction, ShieldCheck, ChevronRight
+  Lightbulb, Waves, Construction, ShieldCheck, ChevronRight,
+  TowerControl, AlertTriangle, Droplet, Trash2, Megaphone, Map, Landmark
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -13,91 +14,145 @@ import { COMMUNES } from "@/lib/communes";
 import { COMMUNE_LOGOS } from "@/lib/commune-logos";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
+import { cleanDescription } from "@/lib/report-display";
 
 const ROTATING_WORDS = [
   { text: "coupures d'électricité (CIE)", color: "text-amber-500 dark:text-amber-400" },
-  { text: "coupures d'eau (SODECI)",         color: "text-sky-500 dark:text-sky-400" },
-  { text: "lampadaires éteints (Mairie)",     color: "text-yellow-600 dark:text-yellow-400" },
-  { text: "caniveaux bouchés (Mairie)",      color: "text-teal-600 dark:text-teal-400" },
-  { text: "nids de poules & voirie",         color: "text-slate-700 dark:text-slate-200" },
+  { text: "coupures d'eau potable (SODECI)", color: "text-sky-500 dark:text-sky-400" },
+  { text: "lampadaires & éclairage (CIE)", color: "text-amber-600 dark:text-amber-400" },
+  { text: "fuites d'eau & égouts (SODECI)", color: "text-sky-600 dark:text-sky-400" },
+  { text: "nids-de-poule & voirie (Mairies)", color: "text-emerald-600 dark:text-emerald-400" },
 ];
 
-const POLE_RESEAUX = [
+// ─── 1. CIE (Électricité & Éclairage Public) ──────────────────────────────────
+// Conforme au portail officiel CIE (cie.ci : Éclairage public, Poteaux/Pylônes, Branchements dangereux, Pannes)
+const CIE_INCIDENTS = [
   {
     type: "electricity_outage",
     Icon: Zap,
-    label: "Coupures d'électricité",
-    operator: "CIE · Réseau National",
-    desc: "Pannes de secteur, câbles tombés, transformateurs",
-    border: "border-amber-500/20 hover:border-amber-500/50",
+    label: "Coupure d'électricité",
+    desc: "Interruption du courant, transformateur en panne, baisses de tension",
+    border: "border-amber-500/25 hover:border-amber-500/60",
     bg: "bg-amber-500/5 hover:bg-amber-500/10",
     iconBg: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
     textColor: "text-amber-600 dark:text-amber-400",
   },
   {
+    type: "street_light",
+    Icon: Lightbulb,
+    label: "Éclairage public",
+    desc: "Lampadaires éteints, ampoules grillées, candélabres hors service",
+    border: "border-amber-500/25 hover:border-amber-500/60",
+    bg: "bg-amber-500/5 hover:bg-amber-500/10",
+    iconBg: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+    textColor: "text-amber-600 dark:text-amber-400",
+  },
+  {
+    type: "cie_pole",
+    Icon: TowerControl,
+    label: "Poteaux / Pylônes",
+    desc: "Poteau électrique penché ou brisé, câbles à terre, pylône endommagé",
+    border: "border-amber-500/25 hover:border-amber-500/60",
+    bg: "bg-amber-500/5 hover:bg-amber-500/10",
+    iconBg: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+    textColor: "text-amber-600 dark:text-amber-400",
+  },
+  {
+    type: "cie_hazard",
+    Icon: AlertTriangle,
+    label: "Branchements dangereux",
+    desc: "Fils électriques dénudés, étincelles au poteau, risque d'électrocution",
+    border: "border-amber-500/25 hover:border-amber-500/60",
+    bg: "bg-amber-500/5 hover:bg-amber-500/10",
+    iconBg: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+    textColor: "text-amber-600 dark:text-amber-400",
+  },
+];
+
+// ─── 2. SODECI (Eau Potable & Assainissement) ─────────────────────────────────
+// Conforme au portail officiel SODECI (masodecienligne.ci : Canalisation publique, Fuite d'eau, Réseau eau potable)
+const SODECI_INCIDENTS = [
+  {
     type: "water_outage",
     Icon: Droplets,
-    label: "Coupures d'eau potable",
-    operator: "SODECI · Réseau Distribution",
-    desc: "Baisse de pression, robinets secs, fuites de conduites",
-    border: "border-sky-500/20 hover:border-sky-500/50",
+    label: "Coupure d'eau potable",
+    desc: "Robinets à sec, manque prolongé de pression ou eau trouble",
+    border: "border-sky-500/25 hover:border-sky-500/60",
+    bg: "bg-sky-500/5 hover:bg-sky-500/10",
+    iconBg: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+    textColor: "text-sky-600 dark:text-sky-400",
+  },
+  {
+    type: "water_leak",
+    Icon: Droplet,
+    label: "Fuite d'eau extérieure",
+    desc: "Fuite sur voie publique, conduite percée ou compteur extérieur fuyant",
+    border: "border-sky-500/25 hover:border-sky-500/60",
+    bg: "bg-sky-500/5 hover:bg-sky-500/10",
+    iconBg: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+    textColor: "text-sky-600 dark:text-sky-400",
+  },
+  {
+    type: "canalisation_sodeci",
+    Icon: Waves,
+    label: "Canalisation publique",
+    desc: "Égout bouché, débordement de vos regards, reflux d'assainissement",
+    border: "border-sky-500/25 hover:border-sky-500/60",
     bg: "bg-sky-500/5 hover:bg-sky-500/10",
     iconBg: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
     textColor: "text-sky-600 dark:text-sky-400",
   },
 ];
 
-const POLE_MAIRIE = [
+// ─── 3. SERVICES TECHNIQUES MUNICIPAUX (14 Communes du Grand Abidjan) ─────────
+// Compétences techniques des Mairies (Voirie, Caniveaux communaux, Salubrité)
+const MAIRIE_INCIDENTS = [
   {
-    type: "street_light",
-    Icon: Lightbulb,
-    label: "Éclairage Public & Lampadaires",
-    operator: "Services Municipaux · CIE",
-    desc: "Candélabres éteints, ampoules grillées, zones sombres",
-    border: "border-orange-500/20 hover:border-orange-500/50",
-    bg: "bg-orange-500/5 hover:bg-orange-500/10",
-    iconBg: "bg-orange-500/15 text-orange-600 dark:text-orange-400",
-    textColor: "text-orange-600 dark:text-orange-400",
+    type: "pothole",
+    Icon: Construction,
+    label: "Nids-de-poule & Chaussée",
+    desc: "Nids-de-poule, chaussée défoncée, bitume arraché, obstacles sur voirie",
+    border: "border-emerald-500/25 hover:border-emerald-500/60",
+    bg: "bg-emerald-500/5 hover:bg-emerald-500/10",
+    iconBg: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+    textColor: "text-emerald-600 dark:text-emerald-400",
   },
   {
     type: "drain_blocked",
     Icon: Waves,
-    label: "Caniveaux & Assainissement",
-    operator: "Mairie & ONAD",
-    desc: "Caniveaux obstrués, eaux stagnantes, risques d'inondation",
-    border: "border-teal-500/20 hover:border-teal-500/50",
-    bg: "bg-teal-500/5 hover:bg-teal-500/10",
-    iconBg: "bg-teal-500/15 text-teal-600 dark:text-teal-400",
-    textColor: "text-teal-600 dark:text-teal-400",
+    label: "Caniveaux communaux",
+    desc: "Caniveaux de voirie obstrués par les déchets, eaux stagnantes, risques de débordement",
+    border: "border-emerald-500/25 hover:border-emerald-500/60",
+    bg: "bg-emerald-500/5 hover:bg-emerald-500/10",
+    iconBg: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+    textColor: "text-emerald-600 dark:text-emerald-400",
   },
   {
-    type: "pothole",
-    Icon: Construction,
-    label: "Voirie & Chaussée dégradée",
-    operator: "Services Techniques Mairie",
-    desc: "Nids de poules, chaussée défoncée, obstacles dangereux",
-    border: "border-slate-400/20 hover:border-slate-400/50",
-    bg: "bg-slate-500/5 hover:bg-slate-500/10",
-    iconBg: "bg-slate-500/15 text-slate-700 dark:text-slate-300",
-    textColor: "text-slate-700 dark:text-slate-300",
+    type: "illegal_dump",
+    Icon: Trash2,
+    label: "Dépôts sauvages & Salubrité",
+    desc: "Accumulation d'ordures non collectées, dépôts sauvages sur l'espace public communal",
+    border: "border-emerald-500/25 hover:border-emerald-500/60",
+    bg: "bg-emerald-500/5 hover:bg-emerald-500/10",
+    iconBg: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+    textColor: "text-emerald-600 dark:text-emerald-400",
   },
 ];
 
 const STEPS = [
   {
     step: "01",
-    emoji: "📢",
+    Icon: Megaphone,
     title: "Documentez l'incident",
     headline: "Précis & en 30 secondes",
-    desc: "Signalez une coupure CIE/SODECI ou une panne municipale avec géolocalisation et photo.",
+    desc: "Signalez une panne CIE, SODECI ou voirie municipale avec géolocalisation et photo.",
     color: "text-emerald-600 dark:text-emerald-400",
     bg: "bg-emerald-500/10",
     border: "border-emerald-500/25",
   },
   {
     step: "02",
-    emoji: "🤝",
+    Icon: Users,
     title: "Confirmez ensemble",
     headline: "Solidarité de quartier",
     desc: "Les voisins confirment la coupure en 1 clic pour attester l'ampleur et éliminer les faux signalements.",
@@ -107,7 +162,7 @@ const STEPS = [
   },
   {
     step: "03",
-    emoji: "🛠️",
+    Icon: CheckCircle2,
     title: "Suivez le rétablissement",
     headline: "Transparence & Réparation",
     desc: "Suivez la transmission aux équipes techniques et la résolution jusqu'au rétablissement complet.",
@@ -292,8 +347,8 @@ const Index = () => {
                 to="/signaler"
                 className="group flex items-center gap-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white px-7 py-3.5 font-extrabold text-base shadow-[0_6px_24px_rgba(5,150,105,0.3)] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-lg">
-                  📢
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-white">
+                  <Megaphone className="h-5 w-5" />
                 </div>
                 <div className="flex flex-col text-left leading-tight">
                   <span className="text-base font-extrabold tracking-wide">Documenter un incident</span>
@@ -306,8 +361,8 @@ const Index = () => {
                 to="/carte"
                 className="group flex items-center gap-3 rounded-2xl border-2 border-sky-300 bg-sky-50/90 hover:bg-sky-100 text-sky-950 dark:border-sky-800 dark:bg-sky-950/40 dark:hover:bg-sky-900/60 dark:text-sky-200 px-7 py-3.5 font-bold text-base shadow-sm backdrop-blur-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
               >
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/20 text-sky-600 dark:text-sky-400 font-extrabold text-lg">
-                  🗺️
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/20 text-sky-600 dark:text-sky-400 font-extrabold">
+                  <Map className="h-5 w-5" />
                 </div>
                 <div className="flex flex-col text-left leading-tight">
                   <span className="text-base font-extrabold tracking-wide">Explorer la Carte en direct</span>
@@ -363,91 +418,153 @@ const Index = () => {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════
-          3. PÔLES DE SIGNALEMENT EN 2 SECTEURS CLAIRS (Réseaux vs Mairie)
+          3. PÔLES DE SIGNALEMENT ORGANISÉS SELON LES OPÉRATEURS OFFICIELS
+          (CIE · SODECI · MAIRIES & SERVICES MUNICIPAUX)
       ══════════════════════════════════════════════════════════════ */}
       <section className="container py-14">
         <div className="mb-10 text-center">
-          <span className="inline-block rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-extrabold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-            CIE · SODECI · MAIRIES &amp; SERVICES MUNICIPAUX
+          <span className="inline-block rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-extrabold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">
+            CATÉGORIES OFFICIELLES PAR OPÉRATEUR
           </span>
           <h2 className="mt-3 font-display text-2xl sm:text-3xl font-extrabold text-foreground">
             Que souhaitez-vous signaler aujourd'hui ?
           </h2>
           <p className="mx-auto mt-2 max-w-2xl text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            Des coupures de réseaux (CIE, SODECI) aux pannes de voirie gérées par votre Mairie (éclairage public, caniveaux, chaussée) : sélectionnez votre situation pour lancer l'alerte.
+            Sélectionnez votre incident selon l'opérateur responsable (CIE, SODECI ou Services Techniques Mairie) pour diriger l'alerte vers le service technique compétent.
           </p>
         </div>
 
-        <div className="space-y-8 max-w-5xl mx-auto">
+        <div className="space-y-10 max-w-5xl mx-auto">
           
-          {/* PÔLE 1 : RÉSEAUX DOMESTIQUES CIE & SODECI */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 text-xs font-black">
-                ⚡
+          {/* OPÉRATEUR 1 : CIE (Électricité & Éclairage Public) */}
+          <div className="space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border/70">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                  <Zap className="h-4 w-4" />
+                </div>
+                <h3 className="font-display text-base sm:text-lg font-extrabold text-foreground">
+                  CIE · Électricité &amp; Éclairage Public
+                </h3>
+              </div>
+              <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full w-fit">
+                Conforme portail officiel CIE
               </span>
-              <h3 className="font-display text-base font-bold text-foreground uppercase tracking-wide">
-                Pôle 1 : Coupures Réseaux Domestiques (Foyers &amp; Entreprises)
-              </h3>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {POLE_RESEAUX.map((item) => (
+            <div className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+              {CIE_INCIDENTS.map((item) => (
                 <Link
                   key={item.type}
                   to={`/signaler?type=${item.type}`}
                   className={cn(
-                    "group flex items-start gap-4 rounded-2xl border p-5 transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99]",
+                    "group flex flex-col justify-between rounded-2xl border p-4 sm:p-5 transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] bg-card",
                     item.border,
                     item.bg
                   )}
                 >
-                  <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl", item.iconBg)}>
-                    <item.Icon className="h-6 w-6" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className={cn("font-bold text-base", item.textColor)}>{item.label}</p>
-                      <ArrowRight className={cn("h-4 w-4 transition-transform group-hover:translate-x-1", item.textColor)} />
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", item.iconBg)}>
+                        <item.Icon className="h-5 w-5" />
+                      </div>
+                      <ArrowRight className={cn("h-4 w-4 opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0", item.textColor)} />
                     </div>
-                    <p className="text-xs font-semibold text-muted-foreground mt-0.5">{item.operator}</p>
-                    <p className="text-xs text-muted-foreground/80 mt-1 leading-relaxed">{item.desc}</p>
+                    <p className={cn("font-bold text-sm sm:text-base leading-snug", item.textColor)}>{item.label}</p>
+                    <p className="text-xs text-muted-foreground/85 mt-1.5 leading-relaxed">{item.desc}</p>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
+                    <span>Opérateur : CIE</span>
+                    <span className={cn("font-bold group-hover:underline", item.textColor)}>Signaler →</span>
                   </div>
                 </Link>
               ))}
             </div>
           </div>
 
-          {/* PÔLE 2 : VOIRIE & CADRE DE VIE MUNICIPAL (MAIRIE) */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-black">
-                🏛️
+          {/* OPÉRATEUR 2 : SODECI (Eau Potable & Assainissement) */}
+          <div className="space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border/70">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400">
+                  <Droplets className="h-4 w-4" />
+                </div>
+                <h3 className="font-display text-base sm:text-lg font-extrabold text-foreground">
+                  SODECI · Eau Potable &amp; Assainissement
+                </h3>
+              </div>
+              <span className="text-[11px] font-semibold text-sky-700 dark:text-sky-300 bg-sky-500/10 border border-sky-500/20 px-2.5 py-0.5 rounded-full w-fit">
+                Conforme portail officiel SODECI
               </span>
-              <h3 className="font-display text-base font-bold text-foreground uppercase tracking-wide">
-                Pôle 2 : Voirie &amp; Salubrité Municipale (Services Techniques Mairie)
-              </h3>
             </div>
-            <div className="grid gap-4 md:grid-cols-3">
-              {POLE_MAIRIE.map((item) => (
+            <div className="grid gap-3.5 grid-cols-1 sm:grid-cols-3">
+              {SODECI_INCIDENTS.map((item) => (
                 <Link
                   key={item.type}
                   to={`/signaler?type=${item.type}`}
                   className={cn(
-                    "group flex flex-col justify-between rounded-2xl border p-5 transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99]",
+                    "group flex flex-col justify-between rounded-2xl border p-4 sm:p-5 transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] bg-card",
                     item.border,
                     item.bg
                   )}
                 >
                   <div>
-                    <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl mb-3", item.iconBg)}>
-                      <item.Icon className="h-5 w-5" />
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", item.iconBg)}>
+                        <item.Icon className="h-5 w-5" />
+                      </div>
+                      <ArrowRight className={cn("h-4 w-4 opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0", item.textColor)} />
                     </div>
-                    <p className={cn("font-bold text-sm sm:text-base", item.textColor)}>{item.label}</p>
-                    <p className="text-[11px] font-semibold text-muted-foreground mt-0.5">{item.operator}</p>
-                    <p className="text-xs text-muted-foreground/80 mt-1 leading-relaxed">{item.desc}</p>
+                    <p className={cn("font-bold text-sm sm:text-base leading-snug", item.textColor)}>{item.label}</p>
+                    <p className="text-xs text-muted-foreground/85 mt-1.5 leading-relaxed">{item.desc}</p>
                   </div>
-                  <div className={cn("inline-flex items-center gap-1 text-xs font-bold mt-4", item.textColor)}>
-                    Signaler à la Mairie <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
+                  <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
+                    <span>Opérateur : SODECI</span>
+                    <span className={cn("font-bold group-hover:underline", item.textColor)}>Signaler →</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* OPÉRATEUR 3 : MAIRIES & SERVICES TECHNIQUES MUNICIPAUX */}
+          <div className="space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border/70">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                  <Landmark className="h-4 w-4" />
+                </div>
+                <h3 className="font-display text-base sm:text-lg font-extrabold text-foreground">
+                  Services Municipaux · Voirie &amp; Salubrité (14 Communes)
+                </h3>
+              </div>
+              <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full w-fit">
+                Compétences techniques communales
+              </span>
+            </div>
+            <div className="grid gap-3.5 grid-cols-1 sm:grid-cols-3">
+              {MAIRIE_INCIDENTS.map((item) => (
+                <Link
+                  key={item.type}
+                  to={`/signaler?type=${item.type}`}
+                  className={cn(
+                    "group flex flex-col justify-between rounded-2xl border p-4 sm:p-5 transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] bg-card",
+                    item.border,
+                    item.bg
+                  )}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", item.iconBg)}>
+                        <item.Icon className="h-5 w-5" />
+                      </div>
+                      <ArrowRight className={cn("h-4 w-4 opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0", item.textColor)} />
+                    </div>
+                    <p className={cn("font-bold text-sm sm:text-base leading-snug", item.textColor)}>{item.label}</p>
+                    <p className="text-xs text-muted-foreground/85 mt-1.5 leading-relaxed">{item.desc}</p>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
+                    <span>Services Municipaux Mairie</span>
+                    <span className={cn("font-bold group-hover:underline", item.textColor)}>Signaler →</span>
                   </div>
                 </Link>
               ))}
@@ -536,12 +653,13 @@ const Index = () => {
             {nearbyReports.map((r) => {
               const isElec = r.service_type === "electricity";
               const isInfra = r.report_category === "infrastructure";
-              const infraLabel = isInfra ? extractInfraLabel(r.description) : null;
-              const icon = isInfra
-                ? <span className="text-base leading-none">{infraEmoji(infraLabel)}</span>
-                : isElec
-                  ? <Zap className="h-4 w-4 text-amber-500" />
-                  : <Droplets className="h-4 w-4 text-sky-500" />;
+              const icon = isElec ? (
+                <Zap className="h-4 w-4 text-amber-500" />
+              ) : isInfra ? (
+                <Construction className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              ) : (
+                <Droplets className="h-4 w-4 text-sky-500" />
+              );
 
               return (
                 <Link
@@ -597,8 +715,8 @@ const Index = () => {
                 transition={{ delay: i * 0.1, duration: 0.4 }}
                 className="relative flex flex-col items-center text-center p-6 rounded-2xl border border-border/70 bg-card shadow-sm hover:shadow-md transition-all"
               >
-                <div className={`relative mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border ${step.border} ${step.bg} text-2xl`}>
-                  {step.emoji}
+                <div className={`relative mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border ${step.border} ${step.bg}`}>
+                  <step.Icon className={cn("h-6 w-6", step.color)} />
                   <span className={`absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-background text-[9px] font-black tabular-nums ${step.color}`}>
                     {step.step}
                   </span>

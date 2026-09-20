@@ -191,7 +191,7 @@ const ConfirmationPage = () => {
         )}
       </AnimatePresence>
 
-      <main className="container max-w-md py-8 px-4">
+      <main className="w-full max-w-md mx-auto py-8 px-4">
 
         {/* Icône de succès */}
         <motion.div

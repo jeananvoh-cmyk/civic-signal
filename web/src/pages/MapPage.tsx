@@ -561,6 +561,14 @@ const MapPage = () => {
               </Button>
             </div>
 
+            {/* Bannière Pédagogique : Floutage GPS & Confidentialité (Loi 2013-450) */}
+            <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/8 p-2.5 flex items-center gap-2.5 text-xs shadow-2xs">
+              <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <p className="text-[11px] text-muted-foreground leading-snug">
+                <strong className="text-foreground font-bold">Confidentialité garantie :</strong> La position des foyers est floutée de ~150m conformément à la Loi ivoirienne n° 2013-450.
+              </p>
+            </div>
+
             {/* BARRE DE FILTRES UNIFIÉE : ÉNERGIE & RECHERCHE */}
             <div className="space-y-2 pt-1">
               {/* Sélecteur de service segmenté */}

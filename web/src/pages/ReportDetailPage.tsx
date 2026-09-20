@@ -126,6 +126,7 @@ const ReportDetailPage = () => {
   const isResolveAction = searchParams.get("action") === "resolve";
   const goBack = useGoBack("/tableau-de-bord");
   const { user } = useAuth();
+  const { isAdmin, isModerator } = useUserRole();
   const { data: thresholdStr } = useRelayConfig("corroboration_threshold", "3");
   const corroborationThreshold = parseInt(thresholdStr ?? "3", 10);
 
@@ -452,7 +453,6 @@ const ReportDetailPage = () => {
     );
   }
 
-  const { isAdmin, isModerator } = useUserRole();
   const color = COMMUNE_COLORS[report.commune] || "#888";
   const isElec = report.service_type === "electricity";
   const isResolved = report.status === "resolved";

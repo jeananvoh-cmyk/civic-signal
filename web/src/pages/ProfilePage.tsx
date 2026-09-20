@@ -960,11 +960,11 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container max-w-6xl px-0 sm:px-4 py-0 sm:py-6">
+      <main className="container max-w-6xl px-0 sm:px-4 py-0 sm:py-6 overflow-x-hidden">
         <AnimatePresence mode="wait">
           {!activeSection ? (
             /* ═══ MAIN MENU VIEW ═══ */
-            <motion.div key="menu" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="pb-20">
+            <motion.div key="menu" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="pb-20">
 
               {/* ── Profile Card Header ── */}
               <div className="bg-gradient-to-b from-primary/15 via-primary/5 to-background pb-4 pt-6 px-4">
@@ -1136,7 +1136,7 @@ const ProfilePage = () => {
             </motion.div>
           ) : (
             /* ═══ SECTION VIEW ═══ */
-            <motion.div key={activeSection} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="pb-20">
+            <motion.div key={activeSection} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="pb-20">
 
               {/* Sticky section header */}
               <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-background/95 backdrop-blur-sm px-4 py-3">
