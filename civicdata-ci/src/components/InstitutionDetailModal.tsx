@@ -23,7 +23,6 @@ import {
   GraduationCap,
   Briefcase,
   Award,
-  Sparkles,
   FolderOpen,
   Info,
   Scale
@@ -586,7 +585,7 @@ export const InstitutionDetailModal: React.FC<InstitutionDetailModalProps> = ({
               <div className="bg-gradient-to-r from-blue-900 via-brand-blue to-sky-800 rounded-2xl p-4 sm:p-5 text-white shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1">
                   <div className="inline-flex items-center gap-1.5 bg-brand-orange text-white px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider">
-                    <Sparkles className="w-3 h-3" />
+                    <Building2 className="w-3 h-3" />
                     <span>Observatoire Citoyen</span>
                   </div>
                   <h3 className="text-base sm:text-lg font-black tracking-tight">

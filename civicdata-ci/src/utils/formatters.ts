@@ -89,7 +89,7 @@ export function getStatusConfig(status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLET
         label: 'Voté au Budget',
         badgeClass: 'bg-slate-100 text-slate-700 border-slate-200 font-bold',
         dotClass: 'bg-slate-400',
-        icon: '️',
+        icon: '',
         progressColor: 'bg-slate-400',
       };
     case 'IN_PROGRESS':
@@ -113,7 +113,7 @@ export function getStatusConfig(status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLET
         label: 'Voté au Budget',
         badgeClass: 'bg-slate-100 text-slate-700 border-slate-200 font-bold',
         dotClass: 'bg-slate-400',
-        icon: '️',
+        icon: '',
         progressColor: 'bg-slate-400',
       };
   }

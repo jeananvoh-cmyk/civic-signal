@@ -18,6 +18,8 @@ export interface Institution {
   contact_email?: string;
   contact_phone?: string;
   website?: string;
+  web_status?: 'FONCTIONNEL' | 'INACTIF' | 'AUCUN';
+  web_observations?: string;
   address?: string;
   // Responsable de l'Information (RI) - Loi d'accès à l'information publique
   info_officer_name?: string;

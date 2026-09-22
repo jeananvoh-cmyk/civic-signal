@@ -20,7 +20,7 @@ import {
   CheckCircle2,
   Play,
   Layers,
-  Sparkles,
+  ArrowRight,
   ExternalLink,
   Landmark
 } from 'lucide-react';
@@ -259,7 +259,9 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
                             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                             <span>{proofs[0].citizen_status_claim === 'COMPLETED' ? 'Terminé sur le terrain' : proofs[0].citizen_status_claim === 'IN_PROGRESS' ? 'En cours d\'exécution' : 'Non démarré'}</span>
                           </div>
-                          <span className="text-xs font-semibold text-slate-600 hover:text-slate-900">Voir les médias ➔</span>
+                          <span className="text-xs font-semibold text-slate-600 hover:text-slate-900 inline-flex items-center gap-1">
+                            Voir les médias <ArrowRight className="w-3.5 h-3.5" />
+                          </span>
                         </div>
                       ) : (
                         <div className="p-3 bg-white rounded-xl border border-slate-200 text-xs text-slate-500 italic">

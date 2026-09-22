@@ -20,8 +20,7 @@ import {
   Award, 
   AlertCircle,
   Briefcase,
-  Layers,
-  Sparkles
+  Layers
 } from 'lucide-react';
 import { dataStore, CaidpRequestEvent, CaidpRequestStats } from '../services/dataStore';
 import { sanitizeCsvCell } from '../utils/security';

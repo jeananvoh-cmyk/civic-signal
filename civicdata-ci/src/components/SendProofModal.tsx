@@ -22,7 +22,7 @@ import {
   Search,
   ArrowRight,
   ArrowLeft,
-  Sparkles,
+  Clock,
   Navigation,
   Trash2,
   Check,
@@ -483,7 +483,7 @@ export const SendProofModal: React.FC<SendProofModalProps> = ({
               {hasDraftRestored && !targetProject && (
                 <div className="mt-2.5 px-3 py-1.5 bg-amber-50 border border-amber-200/80 rounded-xl flex items-center justify-between text-xs text-amber-800">
                   <span className="flex items-center gap-1.5 font-medium">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                     Brouillon non envoyé restauré
                   </span>
                   <button
@@ -876,8 +876,8 @@ export const SendProofModal: React.FC<SendProofModalProps> = ({
 
                 {/* Pedagogical Hint */}
                 <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 flex items-start gap-3 shadow-2xs">
-                  <div className="w-7 h-7 rounded-xl bg-blue-100 text-brand-blue flex items-center justify-center flex-shrink-0 mt-0.5 text-sm font-bold">
-                    ℹ️
+                  <div className="w-7 h-7 rounded-xl bg-blue-100 text-brand-blue flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Info className="w-4 h-4" />
                   </div>
                   <div className="space-y-0.5">
                     <div className="font-bold text-slate-900">

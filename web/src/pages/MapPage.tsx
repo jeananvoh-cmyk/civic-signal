@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Zap, Droplets, Landmark, AlertTriangle, Flame, RefreshCw,
   CheckCircle2, MapPin, Search, ArrowLeft, Compass, ExternalLink,
-  Shield, List, Map as MapIcon, X as XIcon, Plus, ChevronRight,
+  Shield, ShieldCheck, List, Map as MapIcon, X as XIcon, Plus, ChevronRight,
   Clock, Users, Radio, Info, Layers
 } from "lucide-react";
 import Header from "@/components/Header";

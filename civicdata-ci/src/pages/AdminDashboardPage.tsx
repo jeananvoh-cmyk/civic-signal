@@ -20,7 +20,6 @@ import {
   Edit, 
   Trash2, 
   Search, 
-  Sparkles, 
   Share2, 
   Clock, 
   Check, 
@@ -208,7 +207,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           `🔗 Suivre sur Suivi Budget CI : https://suivibudget.ci/observatory`;
       } else {
         message = `Bonjour ${proof.citizen_name || 'cher citoyen'},\n\n` +
-          `ℹ️ Votre constat citoyen [${trackingCode}] concernant le chantier "${projectTitle}" n'a pas pu être validé en l'état par l'équipe de modération.\n\n` +
+          `[Information] Votre constat citoyen [${trackingCode}] concernant le chantier "${projectTitle}" n'a pas pu être validé en l'état par l'équipe de modération.\n\n` +
           `Motif : Les éléments photographiques transmis ne permettent pas d'attester avec certitude de l'état d'avancement des travaux ou de la localisation.\n\n` +
           `Vous pouvez déposer un nouveau constat avec une photo plus nette ou un repère visible sur : https://suivibudget.ci/observatory\n\n` +
           `Merci pour votre contribution citoyenne ! 🇨🇮`;
@@ -553,11 +552,20 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   // ==========================================
   const [isQuickWebModalOpen, setIsQuickWebModalOpen] = useState(false);
   const [quickWebInst, setQuickWebInst] = useState<Institution | null>(null);
-  const [quickWebForm, setQuickWebForm] = useState({
+  const [quickWebForm, setQuickWebForm] = useState<{
+    website: string;
+    facebook_url: string;
+    contact_phone: string;
+    contact_email: string;
+    web_status: 'FONCTIONNEL' | 'INACTIF' | 'AUCUN';
+    web_observations: string;
+  }>({
     website: '',
     facebook_url: '',
     contact_phone: '',
     contact_email: '',
+    web_status: 'AUCUN',
+    web_observations: '',
   });
 
   const handleOpenQuickWebEdit = (inst: Institution) => {
@@ -567,6 +575,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       facebook_url: inst.facebook_url || '',
       contact_phone: inst.contact_phone || inst.info_officer_phone || '',
       contact_email: inst.contact_email || inst.info_officer_email || '',
+      web_status: inst.web_status || (inst.website ? 'FONCTIONNEL' : 'AUCUN'),
+      web_observations: inst.web_observations || '',
     });
     setIsQuickWebModalOpen(true);
   };
@@ -591,6 +601,8 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       facebook_url: cleanFacebook,
       contact_phone: quickWebForm.contact_phone.trim(),
       contact_email: quickWebForm.contact_email.trim(),
+      web_status: cleanWebsite ? (quickWebForm.web_status === 'AUCUN' ? 'FONCTIONNEL' : quickWebForm.web_status) : 'AUCUN',
+      web_observations: quickWebForm.web_observations.trim(),
     };
 
     dataStore.updateInstitution(updated);
@@ -943,7 +955,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <span className="text-sm">️</span>
+            <Building2 className="w-4 h-4 text-amber-500" />
             <span>Répertoire CAIDP</span>
             <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800">
               {dataStore.getCaidpDirectory().length}
@@ -1067,7 +1079,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <Sparkles className="w-4 h-4 text-amber-500" />
+            <Share2 className="w-4 h-4 text-brand-orange" />
             <span>Studio Social Media</span>
           </button>
 
@@ -1787,7 +1799,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                             return (
                               <div className="text-[9.5px] text-slate-400 mt-1 font-medium" title={`Démarrage : ${p.start_date}, Durée : ${p.contractual_duration_months} mois`}>
                                 Délai écoulé : <strong className={elapsed.isOverdue ? 'text-rose-600 font-bold' : 'text-slate-600'}>{elapsed.percent}%</strong>
-                                {elapsed.isOverdue && <span className="text-rose-600 font-bold ml-0.5">⚠️</span>}
+                                {elapsed.isOverdue && <AlertTriangle className="w-3 h-3 text-rose-600 inline ml-1 align-text-bottom" />}
                               </div>
                             );
                           })() : null}
@@ -2210,7 +2222,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-6">
             <div className="border-b border-slate-100 pb-4">
               <div className="flex items-center gap-2">
-                <span className="p-2 rounded-xl bg-slate-100 text-slate-800 font-bold text-lg">️</span>
+                <span className="p-2 rounded-xl bg-slate-100 text-slate-800 font-bold">
+                  <Settings className="w-5 h-5 text-slate-700" />
+                </span>
                 <h3 className="text-xl font-extrabold text-navy-900">
                   Configuration Générale & Bandeau d'Annonce Flash
                 </h3>
@@ -2345,14 +2359,16 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
             </div>
 
             {pwdChangeError && (
-              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-xs font-semibold">
-                ️ {pwdChangeError}
+              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-xs font-semibold flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{pwdChangeError}</span>
               </div>
             )}
 
             {pwdChangeSuccess && (
-              <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-bold">
-                {pwdChangeSuccess}
+              <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-bold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{pwdChangeSuccess}</span>
               </div>
             )}
 
@@ -2939,6 +2955,16 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                                   <span>Aucun site web</span>
                                 </span>
                               )}
+                              {inst.web_status === 'INACTIF' && (
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-100 text-amber-800">
+                                  Inactif / En travaux
+                                </span>
+                              )}
+                              {inst.web_status === 'FONCTIONNEL' && (
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-100 text-emerald-800">
+                                  Fonctionnel
+                                </span>
+                              )}
                               <button
                                 onClick={() => handleOpenQuickWebEdit(inst)}
                                 className="p-1 rounded-md text-slate-400 hover:text-sky-700 hover:bg-sky-50 transition-colors cursor-pointer"
@@ -2947,6 +2973,11 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                                 <Edit className="w-3.5 h-3.5" />
                               </button>
                             </div>
+                            {inst.web_observations && (
+                              <div className="text-[10px] text-slate-500 italic mt-1 max-w-xs" title={inst.web_observations}>
+                                Obs: {inst.web_observations}
+                              </div>
+                            )}
                           </td>
                           <td className="py-3 px-4">
                             {inst.facebook_url ? (
@@ -3059,7 +3090,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-2xl bg-brand-blue/10 text-brand-blue flex items-center justify-center font-bold text-lg">
-                  ️
+                  <Building2 className="w-5 h-5" />
                 </div>
                 <div>
                   <h4 className="text-base font-extrabold text-navy-900">
@@ -3191,10 +3222,10 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                     onChange={(e) => setInstForm({ ...instForm, type: e.target.value as any })}
                     className="w-full p-2.5 border border-slate-300 rounded-xl"
                   >
-                    <option value="MAIRIE"> Mairie / Commune</option>
-                    <option value="REGION">️ Conseil Régional</option>
-                    <option value="INSTITUTION">️ Grande Institution</option>
-                    <option value="MINISTERE"> Ministère / Gouvernement</option>
+                    <option value="MAIRIE">Mairie / Commune</option>
+                    <option value="REGION">Conseil Régional</option>
+                    <option value="INSTITUTION">Grande Institution</option>
+                    <option value="MINISTERE">Ministère / Gouvernement</option>
                   </select>
                 </div>
               </div>
@@ -3894,7 +3925,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
                   .map(inst => (
                     <option key={inst.id} value={inst.id}>
-                      {inst.type === 'REGION' ? '[Région]' : '[Mairie]'} {inst.name} {inst.website ? '✓ (Site renseigné)' : '⚠ (Sans site)'}
+                      {inst.type === 'REGION' ? '[Région]' : '[Mairie]'} {inst.name} {inst.website ? '✓ (Site renseigné)' : '(Sans site)'}
                     </option>
                   ))}
               </select>
@@ -3967,6 +3998,37 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                     onChange={(e) => setQuickWebForm(prev => ({ ...prev, contact_email: e.target.value }))}
                     placeholder="contact@mairie.ci"
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-slate-400"
+                  />
+                </div>
+              </div>
+
+              {/* Statut d'audit et Observations */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700">
+                    Statut Audit Web
+                  </label>
+                  <select
+                    value={quickWebForm.web_status}
+                    onChange={(e) => setQuickWebForm(prev => ({ ...prev, web_status: e.target.value as any }))}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30"
+                  >
+                    <option value="FONCTIONNEL">Fonctionnel / Actif</option>
+                    <option value="INACTIF">Inactif / Suspendu / En travaux</option>
+                    <option value="AUCUN">Aucun site web officiel</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700">
+                    Observations de l'Audit
+                  </label>
+                  <input
+                    type="text"
+                    value={quickWebForm.web_observations}
+                    onChange={(e) => setQuickWebForm(prev => ({ ...prev, web_observations: e.target.value }))}
+                    placeholder="ex: Erreur 404, page d'attente OVH, refonte en cours..."
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30"
                   />
                 </div>
               </div>

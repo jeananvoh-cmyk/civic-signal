@@ -21,7 +21,6 @@ import {
   Landmark,
   FileSpreadsheet,
   FileText,
-  Sparkles,
   Check,
   CheckSquare,
   Square,
@@ -648,7 +647,7 @@ export const OfficialDocRequestModal: React.FC<OfficialDocRequestModalProps> = (
                             <div className={`text-[11px] p-2 rounded-xl flex items-start gap-1.5 leading-snug ${
                               isSelected ? 'bg-white/80 text-blue-950 font-medium' : 'bg-amber-50/80 text-amber-950 border border-amber-200/60'
                             }`}>
-                              <span className="shrink-0 text-xs">💡</span>
+                              <Info className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
                               <span><strong>En clair :</strong> {doc.easyExplanation}</span>
                             </div>
                           )}

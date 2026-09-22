@@ -1,6 +1,6 @@
 import { matchesSmartSearch } from '../utils/searchHelpers';
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, X, Building2, Landmark, User, FileText, ArrowRight, CornerDownLeft, Sparkles, MapPin } from 'lucide-react';
+import { Search, X, Building2, Landmark, User, FileText, ArrowRight, CornerDownLeft, MapPin } from 'lucide-react';
 import { Institution, BudgetProject } from '../types';
 import { GOVERNMENT_OFFICIALS, OfficialLeader } from '../data/governmentData';
 import { NATIONAL_INSTITUTIONS_DATA } from '../data/nationalBudgetData';
@@ -159,7 +159,7 @@ export const SpotlightSearchModal: React.FC<SpotlightSearchModalProps> = ({
           {!query.trim() && (
             <div className="py-8 text-center space-y-4">
               <div className="inline-flex p-3 rounded-2xl bg-brand-blue/10 text-brand-blue">
-                <Sparkles className="w-6 h-6" />
+                <Search className="w-6 h-6" />
               </div>
               <div className="space-y-1">
                 <h4 className="text-sm font-black text-slate-900">Recherche Universelle Suivi Budget CI</h4>
@@ -209,7 +209,7 @@ export const SpotlightSearchModal: React.FC<SpotlightSearchModalProps> = ({
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-brand-blue/10 text-brand-blue flex items-center justify-center font-bold text-sm">
-                        ️
+                        <Building2 className="w-4 h-4" />
                       </div>
                       <div>
                         <div className="text-xs font-bold text-slate-900 group-hover:text-brand-blue transition-colors">
@@ -243,7 +243,7 @@ export const SpotlightSearchModal: React.FC<SpotlightSearchModalProps> = ({
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-orange-50 text-brand-orange flex items-center justify-center font-bold text-sm">
-                        ️
+                        <MapPin className="w-4 h-4" />
                       </div>
                       <div>
                         <div className="text-xs font-bold text-slate-900 group-hover:text-brand-orange transition-colors">
@@ -313,7 +313,7 @@ export const SpotlightSearchModal: React.FC<SpotlightSearchModalProps> = ({
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-bold text-sm">
-                        ️
+                        <Landmark className="w-4 h-4" />
                       </div>
                       <div>
                         <div className="text-xs font-bold text-slate-900 group-hover:text-brand-blue transition-colors">
@@ -347,14 +347,14 @@ export const SpotlightSearchModal: React.FC<SpotlightSearchModalProps> = ({
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-bold text-sm flex-shrink-0">
-                        ️
+                        <FileText className="w-4 h-4" />
                       </div>
                       <div>
                         <div className="text-xs font-bold text-slate-900 group-hover:text-brand-blue transition-colors line-clamp-1">
                           {p.title}
                         </div>
                         <div className="text-[11px] text-slate-500 flex items-center gap-2">
-                          <span> {p.commune_name || p.region_name}</span>
+                          <span>{p.commune_name || p.region_name}</span>
                           <span>•</span>
                           <span className="font-black text-slate-900">{formatFCFA(p.budget_amount_fcfa)}</span> <span className="text-brand-blue font-bold">({formatAmountInWords(p.budget_amount_fcfa)})</span>
                         </div>
