@@ -1320,41 +1320,38 @@ const AdminRelayPage = () => {
 
   const handleTestKey = async () => {
     const key = (draftConfig?.resend_api_key || effectiveConfig?.resend_api_key || "").trim();
-    if (!key) {
-      toast({
-        title: "Aucune clé Resend",
-        description: "Veuillez d'abord saisir votre clé API Resend (re_...).",
-        variant: "destructive",
-      });
-      return;
-    }
     setTestingKey(true);
     try {
       const targetEmail = (effectiveConfig?.test_email || "jeananvoh@gmail.com").trim();
-      let res = await sendResendDirectEmail({
-        apiKey: key,
-        toEmail: targetEmail,
-        subject: "[SIGNA-CI] Test de connexion Clé API Resend",
-        htmlContent: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #10b981; border-radius: 8px;">
-          <h2 style="color: #10b981;">✅ Clé API Resend Fonctionnelle</h2>
-          <p>Félicitations ! Votre clé API Resend est correctement configurée et active sur SIGNA-CI.</p>
-          <p style="color: #6b7280; font-size: 12px;">Test réalisé le ${new Date().toLocaleString("fr-FR")}</p>
-        </div>`,
-        isTest: true,
-      });
+      let res: { ok: boolean; error?: string; data?: any } = { ok: false };
 
+      // 1. Si une clé valide est explicitement saisie dans l'interface, tester l'envoi direct
+      if (key && !key.startsWith("••••") && key !== "......" && key.length > 10) {
+        res = await sendResendDirectEmail({
+          apiKey: key,
+          toEmail: targetEmail,
+          subject: "[SIGNA-CI] Test de connexion Clé API Resend",
+          htmlContent: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #10b981; border-radius: 8px;">
+            <h2 style="color: #10b981;">✅ Clé API Resend Fonctionnelle</h2>
+            <p>Félicitations ! Votre clé API Resend est correctement configurée et active sur SIGNA-CI.</p>
+            <p style="color: #6b7280; font-size: 12px;">Test réalisé le ${new Date().toLocaleString("fr-FR")}</p>
+          </div>`,
+          isTest: true,
+        });
+      }
+
+      // 2. Si pas de clé front-end ou échec direct, tester via l'Edge Function (qui utilise RESEND_API_KEY dans Supabase Secrets de manière 100% sécurisée)
       if (!res.ok) {
-        // Tentative de secours via l'Edge Function pour contourner d'éventuels blocages direct du navigateur (CORS)
         try {
           const { data: edgeData, error: edgeErr } = await supabase.functions.invoke("relay-to-operator", {
             body: {
               action: "test_email",
-              resend_api_key: key,
+              ...(key && !key.startsWith("••••") && key !== "......" && key.length > 10 ? { resend_api_key: key } : {}),
               to_email: targetEmail,
-              subject: "[SIGNA-CI] Test de validation Clé API Resend",
+              subject: "[SIGNA-CI] Test de validation Clé API Resend (Côté Serveur)",
               html: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #10b981; border-radius: 8px;">
-                <h2 style="color: #10b981;">✅ Clé API Resend Fonctionnelle</h2>
-                <p>Félicitations ! Votre clé API Resend est correctement configurée et active sur SIGNA-CI via le relais de messagerie.</p>
+                <h2 style="color: #10b981;">✅ Clé API Resend Fonctionnelle (Sécurisée Serveur)</h2>
+                <p>Félicitations ! Votre clé API Resend est active et sécurisée côté serveur sur SIGNA-CI.</p>
                 <p style="color: #6b7280; font-size: 12px;">Test réalisé le ${new Date().toLocaleString("fr-FR")}</p>
               </div>`,
             },
@@ -1363,8 +1360,12 @@ const AdminRelayPage = () => {
             res = { ok: true, data: edgeData };
           } else if (edgeData?.error) {
             res.error = edgeData.error;
+          } else if (edgeErr) {
+            res.error = edgeErr.message;
           }
-        } catch (_) {}
+        } catch (e: any) {
+          if (!res.error) res.error = e.message;
+        }
       }
 
       if (res.ok) {
@@ -1375,7 +1376,7 @@ const AdminRelayPage = () => {
       } else {
         toast({
           title: "❌ Échec de la distribution Resend",
-          description: `Resend a refusé l'envoi : ${res.error}`,
+          description: res.error || "Aucune clé valide n'a été détectée (ni dans l'interface, ni dans les Secrets Supabase).",
           variant: "destructive",
         });
       }
@@ -2960,9 +2961,22 @@ const AdminRelayPage = () => {
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
-                      <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-                      <span>Aucune clé API Resend enregistrée (Emails uniquement simulés).</span>
+                    <div className="flex items-center justify-between rounded-lg border border-slate-500/20 bg-slate-500/5 px-3 py-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <KeyRound className="h-4 w-4 text-primary shrink-0" />
+                        <span>Saisissez une clé ci-dessous ou configurez <code>RESEND_API_KEY</code> dans Supabase Secrets.</span>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={handleTestKey}
+                        disabled={testingKey}
+                        className="h-7 text-[11px] gap-1"
+                      >
+                        <Zap className={`h-3 w-3 ${testingKey ? "animate-spin" : ""}`} />
+                        {testingKey ? "Test..." : "Tester la connexion"}
+                      </Button>
                     </div>
                   )}
 
@@ -2985,6 +2999,10 @@ const AdminRelayPage = () => {
                     >
                       {showResendKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
+                  </div>
+                  <div className="text-[11px] text-muted-foreground leading-relaxed flex items-center gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                    <span><strong>Sécurité :</strong> Vous pouvez soit renseigner la clé ici (accessible uniquement aux administrateurs), soit la placer directement dans <strong>Supabase Secrets</strong> (<code className="text-[10px] bg-muted px-1 py-0.5 rounded">RESEND_API_KEY</code>) pour un confinement 100% côté serveur.</span>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
                     🔒 La clé est stockée de manière sécurisée. Seuls les 4 derniers caractères apparaissent dans l'indicateur de statut.
