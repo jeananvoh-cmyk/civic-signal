@@ -345,26 +345,66 @@ async function sendEmail(opts: {
   html: string;
   fromEmail: string;
   apiKey: string;
+  isTest?: boolean;
 }): Promise<{ ok: boolean; error?: string }> {
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${opts.apiKey}`,
-    },
-    body: JSON.stringify({
-      from: `SIGNA-CI <${opts.fromEmail}>`,
-      to: [opts.to],
-      subject: opts.subject,
-      html: opts.html,
-    }),
-  });
+  const cleanKey = opts.apiKey.trim();
+  const cleanTo = opts.to.trim();
 
-  if (!res.ok) {
-    const body = await res.text();
-    return { ok: false, error: body };
+  // En mode test, privilégier onboarding@resend.dev pour garantir la réception immédiate
+  // sans dépendre de la validation préalable des enregistrements DNS du domaine signa.ci
+  const fromVariants = opts.isTest
+    ? [
+        "SIGNA-CI Test <onboarding@resend.dev>",
+        "onboarding@resend.dev",
+        `SIGNA-CI <${opts.fromEmail}>`,
+        opts.fromEmail,
+      ]
+    : [
+        `SIGNA-CI <${opts.fromEmail}>`,
+        opts.fromEmail,
+        "SIGNA-CI <onboarding@resend.dev>",
+        "onboarding@resend.dev",
+      ];
+
+  let lastError = "Erreur inconnue lors de l'envoi d'email Resend";
+  for (const fromAddr of fromVariants) {
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${cleanKey}`,
+        },
+        body: JSON.stringify({
+          from: fromAddr,
+          to: [cleanTo],
+          subject: opts.subject,
+          html: opts.html,
+        }),
+      });
+
+      if (res.ok) {
+        return { ok: true };
+      }
+
+      const bodyText = await res.text();
+      lastError = bodyText;
+
+      // Si l'erreur est spécifiquement liée au domaine non vérifié, passer à la variante suivante
+      if (
+        !bodyText.toLowerCase().includes("not verified") &&
+        !bodyText.toLowerCase().includes("domain") &&
+        res.status === 401
+      ) {
+        // Clé API invalide : inutile de retenter d'autres expéditeurs
+        break;
+      }
+    } catch (e: any) {
+      lastError = e?.message || lastError;
+    }
   }
-  return { ok: true };
+
+  return { ok: false, error: lastError };
 }
 
 // ── Handler principal ─────────────────────────────────────────────────────────
@@ -377,23 +417,13 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    const resendEnvApiKey = Deno.env.get("RESEND_API_KEY");
     const fromEmail =
       Deno.env.get("RELAY_FROM_EMAIL") ?? "contact@signa.ci";
 
+    // Lecture unique du corps de requête (pour ne pas verrouiller le flux du body)
     const body =
       req.method === "POST" ? await req.json().catch(() => ({})) : {};
-    const keyToUse = (body.resend_api_key || resendApiKey || "").trim();
-
-    if (!keyToUse && body.action !== "relay") {
-      return new Response(
-        JSON.stringify({ error: "RESEND_API_KEY non configuré" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
@@ -437,32 +467,44 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Récupérer la configuration de relais depuis la base de données
     const { data: configRows } = await supabase
       .from("relay_config")
       .select("key, value");
     const config = Object.fromEntries(
       (configRows ?? []).map((r: { key: string; value: string }) => [r.key, r.value]),
     );
-    const isTestMode  = config["test_mode"]   === "true";
-    const testEmail   = config["test_email"]  ?? "";
+
+    const isTestMode = body.test_mode !== undefined
+      ? Boolean(body.test_mode)
+      : (config["test_mode"] === "true");
+    const testEmail   = (body.test_email || config["test_email"] || "").trim();
     const emailCIE    = config["email_cie"]    || "reclamation@cie.ci";
     const emailSODECI = config["email_sodeci"] || "reclamation@sodeci.ci";
     const emailONEP   = config["email_onep"]   || "reclamation@onep.ci";
     const emailANARE  = config["email_anare"]  || "reclamation@anare.ci";
 
-    const body =
-      req.method === "POST" ? await req.json().catch(() => ({})) : {};
+    // Résolution robuste et unifiée de la clé API Resend :
+    // 1. Clé passée dynamiquement par l'admin dans le body
+    // 2. Clé enregistrée dans la table relay_config
+    // 3. Variable d'environnement RESEND_API_KEY dans Supabase Secrets
+    const finalApiKey = (
+      body.resend_api_key ||
+      config["resend_api_key"] ||
+      resendEnvApiKey ||
+      ""
+    ).trim();
 
     // Mode direct de test de la clé Resend ou d'envoi de secours sans blocage CORS
     if (body.action === "test_email" || body.action === "test_resend_key") {
-      const keyToUse = (body.resend_api_key || resendApiKey || "").trim();
+      const keyToUse = (body.resend_api_key || finalApiKey).trim();
       const targetTo = (body.to_email || testEmail || "jeananvoh@gmail.com").trim();
       const subjectToUse = body.subject || "[SIGNA-CI] Test de connexion API Resend";
       const htmlToUse = body.html || "<p>Test de validation de la clé API Resend réussi !</p>";
 
       if (!keyToUse) {
         return new Response(
-          JSON.stringify({ ok: false, error: "Aucune clé API Resend fournie" }),
+          JSON.stringify({ ok: false, error: "Aucune clé API Resend fournie ni trouvée dans la configuration." }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -473,6 +515,7 @@ Deno.serve(async (req) => {
         html: htmlToUse,
         fromEmail,
         apiKey: keyToUse,
+        isTest: true,
       });
 
       return new Response(
@@ -481,10 +524,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!resendApiKey && !isTestMode) {
+    if (!finalApiKey && !isTestMode) {
       return new Response(
         JSON.stringify({
-          error: "RESEND_API_KEY non configuré dans Supabase. Activez le Mode TEST dans l'onglet Paramètres pour simuler l'envoi d'emails.",
+          error: "RESEND_API_KEY non configuré. Veuillez saisir votre clé API Resend (re_...) dans l'onglet Paramètres.",
         }),
         {
           status: 400,
@@ -617,13 +660,14 @@ Deno.serve(async (req) => {
         : `[OFFICIEL · SIGNA-CI] ${subject.replace("[SIGNA-CI] ", "")}`;
 
       let result: { ok: boolean; error?: string } = { ok: true };
-      if (resendApiKey) {
+      if (finalApiKey) {
         result = await sendEmail({
           to: finalTo,
           subject: finalSubject,
           html,
           fromEmail,
-          apiKey: resendApiKey,
+          apiKey: finalApiKey,
+          isTest: isTestMode,
         });
       } else {
         console.log(`[MODE TEST SIMULÉ] Envoi simulé à ${finalTo} (${group.reports.length} signalements)`);
@@ -669,6 +713,7 @@ Deno.serve(async (req) => {
         sent,
         errors,
         groups: groups.size,
+        simulated: !finalApiKey,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

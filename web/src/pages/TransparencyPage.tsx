@@ -228,7 +228,7 @@ const TransparencyPage = () => {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Open Data · Données Publiques Certifiées</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Open Data · Données Citoyennes Vérifiées</span>
             </div>
             <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-extrabold text-foreground tracking-tight">
               Transparence &amp; Baromètre d'Impact
@@ -308,7 +308,7 @@ const TransparencyPage = () => {
                   <div className="flex items-center gap-2">
                     <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                     <span className="text-[11px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-                      Baromètre National · SIGNA.ci CivicTech
+                      Baromètre National · SIGNA.ci
                     </span>
                   </div>
                   <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground mt-1">

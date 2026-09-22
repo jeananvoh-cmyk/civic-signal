@@ -38,14 +38,14 @@ const AboutPage = () => {
             </div>
             <div>
               <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-xs font-black tracking-widest text-emerald-700 dark:text-emerald-300 uppercase">
-                CIVICTECH · SIGNALER · SUIVRE · RÉPARER
+                SIGNALER · SUIVRE · RÉPARER
               </span>
             </div>
             <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold text-foreground mt-4 tracking-tight">
               L'engagement citoyen au service de nos infrastructures urbaines
             </h1>
             <p className="mt-4 text-muted-foreground text-sm sm:text-base leading-relaxed">
-              SIGNA.ci est une initiative technologique et citoyenne indépendante (CivicTech) dédiée à l'amélioration du cadre de vie à Abidjan et dans toute la Côte d'Ivoire.
+              SIGNA.ci est une initiative technologique et citoyenne indépendante dédiée à l'amélioration du cadre de vie à Abidjan et dans toute la Côte d'Ivoire.
             </p>
           </div>
 

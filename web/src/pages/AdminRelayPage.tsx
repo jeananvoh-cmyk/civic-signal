@@ -366,6 +366,7 @@ async function sendResendDirectEmail({
   ccEmails,
   subject,
   htmlContent,
+  isTest = false,
 }: {
   apiKey: string;
   toEmail?: string;
@@ -374,6 +375,7 @@ async function sendResendDirectEmail({
   ccEmails?: string[];
   subject: string;
   htmlContent: string;
+  isTest?: boolean;
 }) {
   const cleanKey = apiKey.trim();
   const rawTos = toEmails && toEmails.length > 0 ? toEmails : (toEmail ? [toEmail] : []);
@@ -393,12 +395,20 @@ async function sendResendDirectEmail({
     return { ok: false, status: 400, error: "Aucun destinataire spécifié pour l'envoi." };
   }
 
-  const fromVariants = [
-    "SIGNA-CI <contact@signa.ci>",
-    "contact@signa.ci",
-    "SIGNA-CI <onboarding@resend.dev>",
-    "onboarding@resend.dev",
-  ];
+  // En mode test, privilégier onboarding@resend.dev pour garantir la distribution sans dépendre de la validation DNS du domaine signa.ci
+  const fromVariants = isTest
+    ? [
+        "SIGNA-CI Test <onboarding@resend.dev>",
+        "onboarding@resend.dev",
+        "SIGNA-CI <contact@signa.ci>",
+        "contact@signa.ci",
+      ]
+    : [
+        "SIGNA-CI <contact@signa.ci>",
+        "contact@signa.ci",
+        "SIGNA-CI <onboarding@resend.dev>",
+        "onboarding@resend.dev",
+      ];
 
   const endpoints = [
     "/api/resend-proxy",
@@ -417,7 +427,8 @@ async function sendResendDirectEmail({
           subject,
           html: htmlContent,
         };
-        if (cleanCcs.length > 0) {
+        // En mode test avec onboarding@resend.dev, Resend sandbox bloque si des adresses CC tierces sont présentes
+        if (cleanCcs.length > 0 && !fromAddr.includes("resend.dev")) {
           payload.cc = cleanCcs;
         }
 
@@ -444,7 +455,8 @@ async function sendResendDirectEmail({
         bestError = errorMsg;
         bestStatus = res.status;
 
-        if (res.status === 403 || errorMsg.toLowerCase().includes("sandbox") || errorMsg.toLowerCase().includes("only send to")) {
+        // Si l'erreur est spécifiquement la restriction sandbox de Resend (destinataire différent du compte Resend)
+        if (errorMsg.toLowerCase().includes("only send to") || errorMsg.toLowerCase().includes("testing emails to your own email")) {
           break;
         }
       } catch (err: any) {
@@ -1319,7 +1331,7 @@ const AdminRelayPage = () => {
     setTestingKey(true);
     try {
       const targetEmail = (effectiveConfig?.test_email || "jeananvoh@gmail.com").trim();
-      const res = await sendResendDirectEmail({
+      let res = await sendResendDirectEmail({
         apiKey: key,
         toEmail: targetEmail,
         subject: "[SIGNA-CI] Test de connexion Clé API Resend",
@@ -1328,16 +1340,42 @@ const AdminRelayPage = () => {
           <p>Félicitations ! Votre clé API Resend est correctement configurée et active sur SIGNA-CI.</p>
           <p style="color: #6b7280; font-size: 12px;">Test réalisé le ${new Date().toLocaleString("fr-FR")}</p>
         </div>`,
+        isTest: true,
       });
+
+      if (!res.ok) {
+        // Tentative de secours via l'Edge Function pour contourner d'éventuels blocages direct du navigateur (CORS)
+        try {
+          const { data: edgeData, error: edgeErr } = await supabase.functions.invoke("relay-to-operator", {
+            body: {
+              action: "test_email",
+              resend_api_key: key,
+              to_email: targetEmail,
+              subject: "[SIGNA-CI] Test de validation Clé API Resend",
+              html: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #10b981; border-radius: 8px;">
+                <h2 style="color: #10b981;">✅ Clé API Resend Fonctionnelle</h2>
+                <p>Félicitations ! Votre clé API Resend est correctement configurée et active sur SIGNA-CI via le relais de messagerie.</p>
+                <p style="color: #6b7280; font-size: 12px;">Test réalisé le ${new Date().toLocaleString("fr-FR")}</p>
+              </div>`,
+            },
+          });
+          if (!edgeErr && edgeData?.ok) {
+            res = { ok: true, data: edgeData };
+          } else if (edgeData?.error) {
+            res.error = edgeData.error;
+          }
+        } catch (_) {}
+      }
+
       if (res.ok) {
         toast({
           title: "✅ Clé API Resend Valide !",
-          description: `Un email de test de confirmation a été distribué à ${targetEmail}.`,
+          description: `Un email de test a été réellement distribué à ${targetEmail}.`,
         });
       } else {
         toast({
-          title: "❌ Échec de la validation Resend",
-          description: `Resend a refusé la clé (${res.status}) : ${res.error}`,
+          title: "❌ Échec de la distribution Resend",
+          description: `Resend a refusé l'envoi : ${res.error}`,
           variant: "destructive",
         });
       }
@@ -1396,17 +1434,17 @@ const AdminRelayPage = () => {
     sent:    logs.filter((l) => l.operator === "MAIRIE" && l.report?.commune === m.label && l.status === "sent").length,
   })).filter((m) => m.total > 0);
 
-  // ── Envoi effectif d'un groupe d'e-mails (CIE + ANARE / SODECI + ONEP / MAIRIE) ──────
+  // ── Fonction interne pour envoyer un groupe individuel ─────────────────────
   const sendSingleGroupInternal = async (group: RelayGroup) => {
+    const isTest = effectiveConfig.test_mode === "true";
+    const testEmail = effectiveConfig.test_email || "jeananvoh@gmail.com";
     const resendApiKey = (draftConfig?.resend_api_key || effectiveConfig?.resend_api_key || "").trim();
-    const isTest = effectiveConfig?.test_mode === "true";
-    const testEmail = (draftConfig?.test_email || effectiveConfig?.test_email || "jeananvoh@gmail.com").trim();
-    const adminCc = (draftConfig?.cc_email || effectiveConfig?.cc_email || "jeananvoh@gmail.com").trim();
+    const adminCc = effectiveConfig.cc_email || "jeananvoh@gmail.com";
 
-    // 1. Résolution des adresses : Opérateur principal + Régulateur conjoint
-    let primaryTargetEmail = getOperatorTargetEmail(group.operator, group.commune, effectiveConfig, group.email_to);
-    let regulatorEmail = "";
-    let regulatorName = "";
+    // 1. Déterminer l'Opérateur principal et le Régulateur officiel en CC
+    let primaryTargetEmail = group.email_to;
+    let regulatorEmail: string | null = null;
+    let regulatorName: string | null = null;
 
     if (group.operator === "CIE") {
       regulatorEmail = getOperatorTargetEmail("ANARE", group.commune, effectiveConfig);
@@ -1438,7 +1476,7 @@ const AdminRelayPage = () => {
     const html = buildBatchEmailHtmlClient(group, isTest);
 
     // 2. Tentative d'envoi réel Resend si clé API fournie
-    let resendRes: { ok: boolean; data?: any; error?: string; status?: number } = { ok: false, status: 500 };
+    let resendRes: { ok: boolean; data?: any; error?: string; status?: number; simulated?: boolean } = { ok: false, status: 500 };
 
     if (resendApiKey) {
       resendRes = await sendResendDirectEmail({
@@ -1447,6 +1485,7 @@ const AdminRelayPage = () => {
         ccEmail: finalCc,
         subject,
         htmlContent: html,
+        isTest,
       });
     }
 
@@ -1454,22 +1493,30 @@ const AdminRelayPage = () => {
     if (!resendRes.ok) {
       try {
         const { data: edgeData, error: edgeErr } = await supabase.functions.invoke("relay-to-operator", {
-          body: { relay_ids: group.relayIds },
+          body: {
+            relay_ids: group.relayIds,
+            resend_api_key: resendApiKey,
+            action: "relay",
+            test_mode: isTest,
+            test_email: testEmail,
+          },
         });
         if (!edgeErr && edgeData && (edgeData.sent > 0 || edgeData.processed > 0)) {
-          resendRes = { ok: true, status: 200, data: edgeData };
+          resendRes = { ok: true, status: 200, data: edgeData, simulated: Boolean(edgeData.simulated) };
+        } else if (edgeData?.error) {
+          resendRes.error = edgeData.error;
         }
       } catch (_) {}
     }
 
     // 4. Gestion finale du résultat : Mode TEST vs Mode Production
     if (!resendRes.ok) {
-      if (isTest) {
-        // En mode TEST : simulation acceptée avec succès
+      if (isTest && !resendApiKey) {
+        // En mode TEST sans clé API configurée : simulation explicite acceptée
         console.log(`[MODE TEST] Relais simulé vers ${finalTo} pour ${group.operator} + ${regulatorName || "Régulateur"}`);
-        resendRes = { ok: true, status: 200, data: "simulated-test" };
+        resendRes = { ok: true, status: 200, data: "simulated-test", simulated: true };
       } else {
-        // En mode Production : message d'erreur clair et détaillé
+        // En mode Production ou si une clé API a été configurée mais a échoué
         let diag = resendRes.error || "Impossible de contacter le serveur d'envoi.";
         if (!resendApiKey) {
           diag = "Aucune clé API Resend n'est configurée dans Paramètres. Veuillez saisir votre clé API (re_...) pour envoyer en production, ou activez le Mode TEST pour simuler.";
@@ -1509,13 +1556,14 @@ const AdminRelayPage = () => {
       }
     }
 
+    const isSimulated = Boolean(resendRes.simulated || resendRes.data === "simulated-test");
     return { 
       sent: group.relayIds.length, 
       finalTo, 
       isTest, 
       operator: group.operator, 
       regulator: regulatorName,
-      isSimulated: resendRes.data === "simulated-test" 
+      isSimulated,
     };
   };
 
@@ -1618,8 +1666,12 @@ const AdminRelayPage = () => {
         : `Transmis à ${data?.finalTo} (avec copie de régulation ${data?.regulator || ""})`;
 
       toast({
-        title: data?.isSimulated ? "Relais simulé avec succès (Mode TEST)" : "Transmission conjointe envoyée avec succès",
-        description: `${data?.sent ?? 0} signalement(s) traités pour ${entities}. ${destMsg}.`,
+        title: data?.isSimulated
+          ? "Simulation réussie (Mode TEST sans clé)"
+          : "Transmission par e-mail réussie !",
+        description: data?.isSimulated
+          ? `${data?.sent ?? 0} signalement(s) traités en simulation. Pour une réception réelle dans votre boîte, ajoutez votre clé Resend dans l'onglet Paramètres.`
+          : `${data?.sent ?? 0} signalement(s) réellement distribués à ${data?.finalTo}. ${destMsg}.`,
       });
     },
     onError: (err: any) => {

@@ -135,7 +135,7 @@ export default function Footer() {
 
         {/* 📜 Copyright & Licence Libre */}
         <div className="pt-4 border-t border-slate-900/60 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p>© {new Date().getFullYear()} SIGNA.ci — CivicTech Côte d'Ivoire. Logiciel libre sous licence AGPL-3.0.</p>
+          <p>© {new Date().getFullYear()} SIGNA.ci — Côte d'Ivoire. Logiciel libre sous licence AGPL-3.0.</p>
           <p className="text-[11px] text-slate-500">
             Plateforme participative d'intérêt général pour l'amélioration continue des infrastructures publiques.
           </p>

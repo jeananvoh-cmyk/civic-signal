@@ -167,7 +167,7 @@ const BrandPage = () => {
                     SIGNA<span className="text-emerald-500">.ci</span>
                   </div>
                   <div className="text-xs sm:text-sm font-semibold tracking-widest uppercase opacity-75 mt-1">
-                    Civic Tech Côte d'Ivoire
+                    Plateforme Citoyenne · Côte d'Ivoire
                   </div>
                 </div>
               </div>
