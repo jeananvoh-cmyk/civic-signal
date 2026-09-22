@@ -255,8 +255,8 @@ function isValidResendApiKey(key: string | undefined | null): boolean {
 function maskApiKey(key: string | undefined | null): string {
   if (!isValidResendApiKey(key)) return "";
   const trimmed = key!.trim();
-  const suffix = trimmed.slice(-4);
-  return `re_••••••••${suffix}`;
+  const prefix = trimmed.slice(0, 7);
+  return `${prefix}••••••••••••••••`;
 }
 
 // ─── Résolution dynamique des adresses e-mails cibles ────────────────────────
@@ -1323,8 +1323,9 @@ const AdminRelayPage = () => {
   const [testingKey, setTestingKey] = useState(false);
 
   const handleTestKey = async () => {
+    // Clé à tester : nouvelle clé en cours de saisie, ou clé sécurisée déjà enregistrée en base
     const rawKey = (
-      draftConfig?.resend_api_key !== undefined
+      (draftConfig?.resend_api_key && draftConfig.resend_api_key.trim() !== "")
         ? draftConfig.resend_api_key
         : (effectiveConfig?.resend_api_key || "")
     ).trim();
@@ -1360,7 +1361,7 @@ const AdminRelayPage = () => {
       if (res.ok) {
         toast({
           title: "✅ Clé API Resend Valide !",
-          description: `Un email de test a été réellement distribué à ${targetEmail}. N'oubliez pas de cliquer sur « Enregistrer la config » en haut à droite pour la mémoriser.`,
+          description: `Un email de test a été réellement distribué à ${targetEmail}. ${draftConfig?.resend_api_key ? "N'oubliez pas de cliquer sur « Enregistrer la config » en haut à droite pour la mémoriser." : ""}`,
         });
       } else {
         toast({
@@ -2926,14 +2927,14 @@ const AdminRelayPage = () => {
                   </div>
 
                   {/* Indicateur visuel de statut de la clé */}
-                  {isValidResendApiKey(draftConfig?.resend_api_key ?? effectiveConfig?.resend_api_key) ? (
-                    <div className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
-                      <div className="flex items-center gap-2">
+                  {isValidResendApiKey(effectiveConfig?.resend_api_key) ? (
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-800 dark:text-emerald-200">
+                      <div className="flex items-center gap-2 min-w-0">
                         <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                        <div>
+                        <div className="min-w-0">
                           <span className="font-semibold">Clé configurée &amp; sécurisée : </span>
-                          <code className="font-mono text-xs bg-emerald-500/20 px-1.5 py-0.5 rounded">
-                            {maskApiKey(draftConfig?.resend_api_key ?? effectiveConfig?.resend_api_key)}
+                          <code className="font-mono text-xs bg-emerald-500/20 px-1.5 py-0.5 rounded font-bold break-all">
+                            {maskApiKey(draftConfig?.resend_api_key || effectiveConfig?.resend_api_key)}
                           </code>
                         </div>
                       </div>
@@ -2943,15 +2944,15 @@ const AdminRelayPage = () => {
                         variant="outline"
                         onClick={handleTestKey}
                         disabled={testingKey}
-                        className="h-7 text-[11px] border-emerald-500/40 hover:bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 gap-1"
+                        className="w-full sm:w-auto h-7 text-[11px] border-emerald-500/40 hover:bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 gap-1.5 font-bold shrink-0"
                       >
                         <Zap className={`h-3 w-3 ${testingKey ? "animate-spin" : ""}`} />
                         {testingKey ? "Test..." : "Tester la clé"}
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
-                      <div className="flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-800 dark:text-amber-200">
+                      <div className="flex items-center gap-2 min-w-0">
                         <KeyRound className="h-4 w-4 text-amber-600 shrink-0" />
                         <span>Collez votre clé API Resend (<code>re_...</code>) ci-dessous pour activer l'envoi.</span>
                       </div>
@@ -2961,7 +2962,7 @@ const AdminRelayPage = () => {
                         variant="outline"
                         onClick={handleTestKey}
                         disabled={testingKey}
-                        className="h-7 text-[11px] border-amber-500/40 hover:bg-amber-500/20 text-amber-900 dark:text-amber-100 gap-1"
+                        className="w-full sm:w-auto h-7 text-[11px] border-amber-500/40 hover:bg-amber-500/20 text-amber-900 dark:text-amber-100 gap-1.5 font-bold shrink-0"
                       >
                         <Zap className={`h-3 w-3 ${testingKey ? "animate-spin" : ""}`} />
                         {testingKey ? "Test..." : "Tester la clé"}
@@ -2969,36 +2970,55 @@ const AdminRelayPage = () => {
                     </div>
                   )}
 
-                  {/* Saisie avec bouton Oeil de masquage */}
-                  <div className="relative">
-                    <input
-                      type={showResendKey ? "text" : "password"}
-                      value={
-                        draftConfig?.resend_api_key !== undefined
-                          ? draftConfig.resend_api_key
-                          : (isValidResendApiKey(effectiveConfig?.resend_api_key) ? (effectiveConfig?.resend_api_key ?? "") : "")
-                      }
-                      onChange={(e) =>
-                        setDraftConfig({ ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), resend_api_key: e.target.value })
-                      }
-                      placeholder="Collez votre clé re_123456789..."
-                      className="w-full rounded-lg border border-border bg-background pl-3 pr-10 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/40"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowResendKey(!showResendKey)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
-                      title={showResendKey ? "Masquer la clé" : "Afficher la clé"}
-                    >
-                      {showResendKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
+                  {/* Saisie avec protection DOM et aperçu masqué anti-espionnage */}
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <input
+                        type="password"
+                        value={draftConfig?.resend_api_key ?? ""}
+                        onChange={(e) =>
+                          setDraftConfig({ ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), resend_api_key: e.target.value.trim() })
+                        }
+                        placeholder={
+                          isValidResendApiKey(effectiveConfig?.resend_api_key)
+                            ? "•••••••••••••••••••••••••••• (Clé déjà enregistrée — saisir pour remplacer)"
+                            : "Collez votre clé re_123456789..."
+                        }
+                        className="w-full rounded-lg border border-border bg-background pl-3 pr-10 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowResendKey(!showResendKey)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                        title={showResendKey ? "Masquer le début de la clé" : "Vérifier le début de la clé"}
+                      >
+                        {showResendKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+
+                    {/* Aperçu sécurisé du début uniquement si demandé par l'admin */}
+                    {showResendKey && (
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 p-2.5 rounded-lg bg-muted/70 border border-border text-xs animate-in fade-in duration-150">
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
+                          <span>
+                            Début vérifié : <strong className="font-mono text-primary font-bold">{
+                              (draftConfig?.resend_api_key || effectiveConfig?.resend_api_key || "").slice(0, 8)
+                            }••••••••••••••••</strong>
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground font-medium">
+                          Fin masquée pour votre sécurité anti-espionnage
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-[11px] text-muted-foreground leading-relaxed flex items-center gap-1.5">
-                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                    <span><strong>Sécurité :</strong> Vous pouvez soit renseigner la clé ici (accessible uniquement aux administrateurs), soit la placer directement dans <strong>Supabase Secrets</strong> (<code className="text-[10px] bg-muted px-1 py-0.5 rounded">RESEND_API_KEY</code>) pour un confinement 100% côté serveur.</span>
+                  <div className="text-[11px] text-muted-foreground leading-relaxed flex items-start sm:items-center gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5 sm:mt-0" />
+                    <span><strong>Protection active :</strong> La clé enregistrée n'est jamais exposée en clair dans la page HTML afin de bloquer les logiciels espions et extensions de navigateur malveillantes.</span>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    🔒 La clé est stockée de manière sécurisée. Seuls les 4 derniers caractères apparaissent dans l'indicateur de statut.
+                    Seuls les premiers caractères du préfixe apparaissent dans l'indicateur de statut.
                   </p>
                 </div>
               </div>
@@ -3326,56 +3346,71 @@ const AdminRelayPage = () => {
 
       {/* Modale de sécurité d'envoi en Production */}
       <Dialog open={prodModalConfig.isOpen} onOpenChange={(open) => !open && setProdModalConfig({ ...prodModalConfig, isOpen: false })}>
-        <DialogContent className="max-w-md bg-card border-red-500/40 p-6 shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-red-600 dark:text-red-500 flex items-center gap-2 text-base font-extrabold">
-              <AlertTriangle className="h-5 w-5 text-red-600 animate-pulse" />
-              CONFIRMATION DE SÉCURITÉ — MODE PRODUCTION
+        <DialogContent className="w-[94vw] max-w-lg max-h-[92vh] overflow-y-auto bg-card border-red-500/40 p-4 sm:p-6 shadow-2xl rounded-2xl">
+          <DialogHeader className="pr-8 text-left space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30">
+                <AlertTriangle className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                Mode Production Actif
+              </span>
+              <span className="text-[11px] text-muted-foreground font-medium">Transmission officielle</span>
+            </div>
+            <DialogTitle className="text-foreground text-base sm:text-lg font-extrabold tracking-tight">
+              Confirmation de transmission officielle
             </DialogTitle>
-            <DialogDescription className="text-foreground/90 text-xs mt-1.5 font-medium">
-              Le <strong className="text-red-600 font-bold">MODE PRODUCTION (Réel)</strong> est actuellement activé sur SIGNA-CI.
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              Les signalements sélectionnés seront directement transmis aux concessionnaires et régulateurs officiels.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 space-y-2.5 text-xs text-foreground mt-2">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground font-semibold">Cible / Opérateur :</span>
-              <strong className="text-foreground font-bold">{prodModalConfig.targetTitle}</strong>
+          <div className="bg-red-500/5 border border-red-500/25 rounded-xl p-3.5 sm:p-4 space-y-3 text-xs mt-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 pb-2 border-b border-border/50">
+              <span className="text-muted-foreground font-medium">Cible / Opérateur :</span>
+              <strong className="text-foreground font-bold sm:text-right">{prodModalConfig.targetTitle}</strong>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground font-semibold">Destinataire principal (TO) :</span>
-              <code className="bg-background px-2 py-0.5 rounded font-mono font-bold text-red-600">{prodModalConfig.destEmail}</code>
+
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 pb-2 border-b border-border/50">
+              <span className="text-muted-foreground font-medium shrink-0">Destinataire principal (TO) :</span>
+              <code className="bg-background px-2 py-1 rounded font-mono font-bold text-red-600 dark:text-red-400 border border-red-500/20 break-all text-[11px] sm:text-right sm:max-w-[65%]">
+                {prodModalConfig.destEmail}
+              </code>
             </div>
+
             {prodModalConfig.regulatorCc && (
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground font-semibold">Régulateur conjoint (CC) :</span>
-                <code className="bg-background px-2 py-0.5 rounded font-mono font-bold text-amber-600 dark:text-amber-400">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 pb-2 border-b border-border/50">
+                <span className="text-muted-foreground font-medium shrink-0">Régulateur conjoint (CC) :</span>
+                <code className="bg-background px-2 py-1 rounded font-mono font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20 break-all text-[11px] sm:text-right sm:max-w-[65%]">
                   {prodModalConfig.regulatorCc}
                 </code>
               </div>
             )}
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground font-semibold">Copie administration (CC) :</span>
-              <code className="bg-background px-2 py-0.5 rounded font-mono font-bold text-emerald-600">
+
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 pb-2 border-b border-border/50">
+              <span className="text-muted-foreground font-medium shrink-0">Copie administration (CC) :</span>
+              <code className="bg-background px-2 py-1 rounded font-mono font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 break-all text-[11px] sm:text-right sm:max-w-[65%]">
                 {effectiveConfig?.cc_email || effectiveConfig?.test_email || "jeananvoh@gmail.com"}
               </code>
             </div>
+
             {prodModalConfig.count && (
-              <div className="flex items-center justify-between pt-1 border-t border-red-500/20">
-                <span className="text-muted-foreground font-semibold">Relais concernés :</span>
-                <span className="font-bold text-foreground">{prodModalConfig.count} groupe(s)</span>
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-muted-foreground font-medium">Relais concernés :</span>
+                <span className="font-extrabold text-foreground bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-xs">
+                  {prodModalConfig.count} groupe(s)
+                </span>
               </div>
             )}
           </div>
 
-          <p className="text-[11px] text-muted-foreground italic mt-2">
+          <p className="text-[11px] text-muted-foreground italic leading-relaxed mt-2.5">
             Cet e-mail sera immédiatement transmis à l'adresse de production officielle de l'opérateur et du régulateur officiel. Une copie conforme (CC) vous sera automatiquement délivrée.
           </p>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2 mt-4">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-5">
             <Button
+              type="button"
               variant="outline"
-              size="sm"
+              size="default"
               onClick={() => {
                 const newCfg = { ...effectiveConfig, test_mode: "true" };
                 saveConfig.mutate(newCfg);
@@ -3385,15 +3420,16 @@ const AdminRelayPage = () => {
                   description: "Le mode TEST est réactivé. Vous pouvez tester vos envois en toute sécurité.",
                 });
               }}
-              className="w-full sm:w-auto text-amber-600 border-amber-500/40 hover:bg-amber-500/10 font-bold text-xs gap-1.5"
+              className="w-full sm:w-auto text-amber-700 dark:text-amber-300 border-amber-500/40 hover:bg-amber-500/10 font-bold text-xs gap-1.5 h-10"
             >
-              <FlaskConical className="h-4 w-4" />
+              <FlaskConical className="h-4 w-4 shrink-0" />
               Basculer en Mode TEST
             </Button>
 
             <Button
+              type="button"
               variant="destructive"
-              size="sm"
+              size="default"
               onClick={() => {
                 const cfg = prodModalConfig;
                 setProdModalConfig({ ...prodModalConfig, isOpen: false });
@@ -3403,9 +3439,9 @@ const AdminRelayPage = () => {
                   sendGroup.mutate({ relay_ids: cfg.relayIds, groupKey: cfg.groupKey });
                 }
               }}
-              className="w-full sm:w-auto bg-red-600 hover:bg-red-700 font-extrabold text-xs gap-1.5 shadow-md"
+              className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs gap-1.5 shadow-md h-10"
             >
-              <Send className="h-4 w-4" />
+              <Send className="h-4 w-4 shrink-0" />
               Confirmer l'Envoi PRODUCTION
             </Button>
           </DialogFooter>
