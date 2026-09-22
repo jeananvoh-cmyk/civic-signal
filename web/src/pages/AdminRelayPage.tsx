@@ -244,15 +244,19 @@ interface RelayConfig {
   [key: string]: string;
 }
 
-// ─── Masquage sécurisé des clés API ─────────────────────────────────────────
+// ─── Validation et masquage sécurisé des clés API Resend ──────────────────────
+
+function isValidResendApiKey(key: string | undefined | null): boolean {
+  if (!key || typeof key !== "string") return false;
+  const trimmed = key.trim();
+  return trimmed.startsWith("re_") && trimmed.length >= 15;
+}
 
 function maskApiKey(key: string | undefined | null): string {
-  if (!key || key.trim() === "") return "";
-  const trimmed = key.trim();
-  if (trimmed.length <= 6) return "••••••••";
-  const prefix = trimmed.startsWith("re_") ? "re_" : trimmed.slice(0, 3);
+  if (!isValidResendApiKey(key)) return "";
+  const trimmed = key!.trim();
   const suffix = trimmed.slice(-4);
-  return `${prefix}••••••••${suffix}`;
+  return `re_••••••••${suffix}`;
 }
 
 // ─── Résolution dynamique des adresses e-mails cibles ────────────────────────
@@ -1319,64 +1323,49 @@ const AdminRelayPage = () => {
   const [testingKey, setTestingKey] = useState(false);
 
   const handleTestKey = async () => {
-    const key = (draftConfig?.resend_api_key || effectiveConfig?.resend_api_key || "").trim();
+    const rawKey = (
+      draftConfig?.resend_api_key !== undefined
+        ? draftConfig.resend_api_key
+        : (effectiveConfig?.resend_api_key || "")
+    ).trim();
+
     setTestingKey(true);
     try {
       const targetEmail = (effectiveConfig?.test_email || "jeananvoh@gmail.com").trim();
-      let res: { ok: boolean; error?: string; data?: any } = { ok: false };
 
-      // 1. Si une clé valide est explicitement saisie dans l'interface, tester l'envoi direct
-      if (key && !key.startsWith("••••") && key !== "......" && key.length > 10) {
-        res = await sendResendDirectEmail({
-          apiKey: key,
-          toEmail: targetEmail,
-          subject: "[SIGNA-CI] Test de connexion Clé API Resend",
-          htmlContent: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #10b981; border-radius: 8px;">
-            <h2 style="color: #10b981;">✅ Clé API Resend Fonctionnelle</h2>
-            <p>Félicitations ! Votre clé API Resend est correctement configurée et active sur SIGNA-CI.</p>
-            <p style="color: #6b7280; font-size: 12px;">Test réalisé le ${new Date().toLocaleString("fr-FR")}</p>
-          </div>`,
-          isTest: true,
+      // Vérifier si une clé réelle re_... est présente
+      if (!isValidResendApiKey(rawKey)) {
+        toast({
+          title: "Clé API Resend requise",
+          description: "Veuillez coller votre nouvelle clé Resend (commençant par re_...) dans le champ ci-dessous avant de lancer le test.",
+          variant: "destructive",
         });
+        setTestingKey(false);
+        return;
       }
 
-      // 2. Si pas de clé front-end ou échec direct, tester via l'Edge Function (qui utilise RESEND_API_KEY dans Supabase Secrets de manière 100% sécurisée)
-      if (!res.ok) {
-        try {
-          const { data: edgeData, error: edgeErr } = await supabase.functions.invoke("relay-to-operator", {
-            body: {
-              action: "test_email",
-              ...(key && !key.startsWith("••••") && key !== "......" && key.length > 10 ? { resend_api_key: key } : {}),
-              to_email: targetEmail,
-              subject: "[SIGNA-CI] Test de validation Clé API Resend (Côté Serveur)",
-              html: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #10b981; border-radius: 8px;">
-                <h2 style="color: #10b981;">✅ Clé API Resend Fonctionnelle (Sécurisée Serveur)</h2>
-                <p>Félicitations ! Votre clé API Resend est active et sécurisée côté serveur sur SIGNA-CI.</p>
-                <p style="color: #6b7280; font-size: 12px;">Test réalisé le ${new Date().toLocaleString("fr-FR")}</p>
-              </div>`,
-            },
-          });
-          if (!edgeErr && edgeData?.ok) {
-            res = { ok: true, data: edgeData };
-          } else if (edgeData?.error) {
-            res.error = edgeData.error;
-          } else if (edgeErr) {
-            res.error = edgeErr.message;
-          }
-        } catch (e: any) {
-          if (!res.error) res.error = e.message;
-        }
-      }
+      // Envoi du test direct via l'API Resend
+      const res = await sendResendDirectEmail({
+        apiKey: rawKey,
+        toEmail: targetEmail,
+        subject: "[SIGNA-CI] Test de connexion Clé API Resend",
+        htmlContent: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #10b981; border-radius: 8px;">
+          <h2 style="color: #10b981;">✅ Clé API Resend Fonctionnelle</h2>
+          <p>Félicitations ! Votre clé API Resend est correctement configurée et active sur SIGNA-CI.</p>
+          <p style="color: #6b7280; font-size: 12px;">Test réalisé le ${new Date().toLocaleString("fr-FR")}</p>
+        </div>`,
+        isTest: true,
+      });
 
       if (res.ok) {
         toast({
           title: "✅ Clé API Resend Valide !",
-          description: `Un email de test a été réellement distribué à ${targetEmail}.`,
+          description: `Un email de test a été réellement distribué à ${targetEmail}. N'oubliez pas de cliquer sur « Enregistrer la config » en haut à droite pour la mémoriser.`,
         });
       } else {
         toast({
-          title: "❌ Échec de la distribution Resend",
-          description: res.error || "Aucune clé valide n'a été détectée (ni dans l'interface, ni dans les Secrets Supabase).",
+          title: "❌ Échec du test Resend",
+          description: res.error || "La clé API Resend a été rejetée. Veuillez vérifier votre clé sur resend.com/api-keys.",
           variant: "destructive",
         });
       }
@@ -1479,7 +1468,7 @@ const AdminRelayPage = () => {
     // 2. Tentative d'envoi réel Resend si clé API fournie
     let resendRes: { ok: boolean; data?: any; error?: string; status?: number; simulated?: boolean } = { ok: false, status: 500 };
 
-    if (resendApiKey) {
+    if (isValidResendApiKey(resendApiKey)) {
       resendRes = await sendResendDirectEmail({
         apiKey: resendApiKey,
         toEmail: finalTo,
@@ -1496,7 +1485,7 @@ const AdminRelayPage = () => {
         const { data: edgeData, error: edgeErr } = await supabase.functions.invoke("relay-to-operator", {
           body: {
             relay_ids: group.relayIds,
-            resend_api_key: resendApiKey,
+            ...(isValidResendApiKey(resendApiKey) ? { resend_api_key: resendApiKey } : {}),
             action: "relay",
             test_mode: isTest,
             test_email: testEmail,
@@ -1512,15 +1501,15 @@ const AdminRelayPage = () => {
 
     // 4. Gestion finale du résultat : Mode TEST vs Mode Production
     if (!resendRes.ok) {
-      if (isTest && !resendApiKey) {
+      if (isTest && !isValidResendApiKey(resendApiKey)) {
         // En mode TEST sans clé API configurée : simulation explicite acceptée
         console.log(`[MODE TEST] Relais simulé vers ${finalTo} pour ${group.operator} + ${regulatorName || "Régulateur"}`);
         resendRes = { ok: true, status: 200, data: "simulated-test", simulated: true };
       } else {
         // En mode Production ou si une clé API a été configurée mais a échoué
         let diag = resendRes.error || "Impossible de contacter le serveur d'envoi.";
-        if (!resendApiKey) {
-          diag = "Aucune clé API Resend n'est configurée dans Paramètres. Veuillez saisir votre clé API (re_...) pour envoyer en production, ou activez le Mode TEST pour simuler.";
+        if (!isValidResendApiKey(resendApiKey)) {
+          diag = "Aucune clé API Resend valide n'est configurée dans Paramètres. Veuillez renseigner votre clé (re_...) pour envoyer en production, ou activez le Mode TEST pour simuler.";
         }
         throw new Error(diag);
       }
@@ -2937,14 +2926,14 @@ const AdminRelayPage = () => {
                   </div>
 
                   {/* Indicateur visuel de statut de la clé */}
-                  {effectiveConfig.resend_api_key && effectiveConfig.resend_api_key.trim() !== "" ? (
+                  {isValidResendApiKey(draftConfig?.resend_api_key ?? effectiveConfig?.resend_api_key) ? (
                     <div className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
                       <div className="flex items-center gap-2">
                         <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         <div>
                           <span className="font-semibold">Clé configurée &amp; sécurisée : </span>
                           <code className="font-mono text-xs bg-emerald-500/20 px-1.5 py-0.5 rounded">
-                            {maskApiKey(effectiveConfig.resend_api_key)}
+                            {maskApiKey(draftConfig?.resend_api_key ?? effectiveConfig?.resend_api_key)}
                           </code>
                         </div>
                       </div>
@@ -2961,10 +2950,10 @@ const AdminRelayPage = () => {
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between rounded-lg border border-slate-500/20 bg-slate-500/5 px-3 py-2 text-xs text-muted-foreground">
+                    <div className="flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
                       <div className="flex items-center gap-2">
-                        <KeyRound className="h-4 w-4 text-primary shrink-0" />
-                        <span>Saisissez une clé ci-dessous ou configurez <code>RESEND_API_KEY</code> dans Supabase Secrets.</span>
+                        <KeyRound className="h-4 w-4 text-amber-600 shrink-0" />
+                        <span>Collez votre clé API Resend (<code>re_...</code>) ci-dessous pour activer l'envoi.</span>
                       </div>
                       <Button
                         type="button"
@@ -2972,10 +2961,10 @@ const AdminRelayPage = () => {
                         variant="outline"
                         onClick={handleTestKey}
                         disabled={testingKey}
-                        className="h-7 text-[11px] gap-1"
+                        className="h-7 text-[11px] border-amber-500/40 hover:bg-amber-500/20 text-amber-900 dark:text-amber-100 gap-1"
                       >
                         <Zap className={`h-3 w-3 ${testingKey ? "animate-spin" : ""}`} />
-                        {testingKey ? "Test..." : "Tester la connexion"}
+                        {testingKey ? "Test..." : "Tester la clé"}
                       </Button>
                     </div>
                   )}
@@ -2984,7 +2973,11 @@ const AdminRelayPage = () => {
                   <div className="relative">
                     <input
                       type={showResendKey ? "text" : "password"}
-                      value={draftConfig?.resend_api_key ?? effectiveConfig?.resend_api_key ?? ""}
+                      value={
+                        draftConfig?.resend_api_key !== undefined
+                          ? draftConfig.resend_api_key
+                          : (isValidResendApiKey(effectiveConfig?.resend_api_key) ? (effectiveConfig?.resend_api_key ?? "") : "")
+                      }
                       onChange={(e) =>
                         setDraftConfig({ ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), resend_api_key: e.target.value })
                       }
