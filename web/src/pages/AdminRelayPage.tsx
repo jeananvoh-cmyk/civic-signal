@@ -1351,7 +1351,7 @@ const AdminRelayPage = () => {
         toEmail: targetEmail,
         subject: "[SIGNA-CI] Test de connexion Clé API Resend",
         htmlContent: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #10b981; border-radius: 8px;">
-          <h2 style="color: #10b981;">✅ Clé API Resend Fonctionnelle</h2>
+          <h2 style="color: #10b981;">Clé API Resend Fonctionnelle</h2>
           <p>Félicitations ! Votre clé API Resend est correctement configurée et active sur SIGNA-CI.</p>
           <p style="color: #6b7280; font-size: 12px;">Test réalisé le ${new Date().toLocaleString("fr-FR")}</p>
         </div>`,
@@ -1360,12 +1360,12 @@ const AdminRelayPage = () => {
 
       if (res.ok) {
         toast({
-          title: "✅ Clé API Resend Valide !",
+          title: "Clé API Resend Valide !",
           description: `Un email de test a été réellement distribué à ${targetEmail}. ${draftConfig?.resend_api_key ? "N'oubliez pas de cliquer sur « Enregistrer la config » en haut à droite pour la mémoriser." : ""}`,
         });
       } else {
         toast({
-          title: "❌ Échec du test Resend",
+          title: "Échec du test Resend",
           description: res.error || "La clé API Resend a été rejetée. Veuillez vérifier votre clé sur resend.com/api-keys.",
           variant: "destructive",
         });
@@ -1948,13 +1948,13 @@ const AdminRelayPage = () => {
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-red-600 dark:bg-red-700 text-white font-bold p-3.5 px-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xl border-2 border-red-700"
+          className="bg-red-600 dark:bg-red-700 text-white font-bold p-3.5 px-4 sm:px-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xl border-2 border-red-700"
         >
           <div className="flex items-center gap-3">
             <AlertTriangle className="h-6 w-6 text-yellow-300 shrink-0 animate-bounce" />
             <div>
-              <div className="font-black text-sm tracking-wide flex items-center gap-2">
-                🚨 MODE PRODUCTION (RÉEL) ACTIF !
+              <div className="font-black text-sm tracking-wide flex items-center gap-2 flex-wrap">
+                <span>MODE PRODUCTION (RÉEL) ACTIF !</span>
                 <span className="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded font-mono font-extrabold uppercase">DANGER ENVOI RÉEL</span>
               </div>
               <div className="text-xs text-red-100 font-medium mt-0.5">
@@ -1969,11 +1969,11 @@ const AdminRelayPage = () => {
               const newCfg = { ...effectiveConfig, test_mode: "true" };
               saveConfig.mutate(newCfg);
               toast({
-                title: "🛡️ Mode TEST Sécurisé Activé",
+                title: "Mode TEST Sécurisé Activé",
                 description: "Les e-mails partent à présent uniquement vers votre e-mail de test sans contacter les opérateurs.",
               });
             }}
-            className="bg-white text-red-700 hover:bg-red-50 font-black border border-red-200 text-xs h-8 gap-1.5 shrink-0 shadow-md"
+            className="w-full sm:w-auto bg-white text-red-700 hover:bg-red-50 font-black border border-red-200 text-xs h-8 gap-1.5 shrink-0 shadow-md"
           >
             <FlaskConical className="h-4 w-4 text-amber-600" />
             Basculer en Mode TEST Sécurisé
@@ -2169,10 +2169,10 @@ const AdminRelayPage = () => {
           return (
             <div className="space-y-4">
               {/* Barre de filtrage par opérateur & recherche instantanée */}
-              <div className="flex flex-wrap items-center justify-between gap-3 bg-card border border-border p-3 rounded-xl shadow-xs">
-                <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-card border border-border p-3 rounded-xl shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1 min-w-0">
                   {/* Barre de recherche instantanée */}
-                  <div className="relative w-full sm:w-64">
+                  <div className="relative w-full sm:w-64 shrink-0">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                     <input
                       type="text"
@@ -2191,7 +2191,7 @@ const AdminRelayPage = () => {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 w-full scrollbar-none">
                     {[
                       { id: "ALL", label: "Tous les relais", icon: null, count: pendingGroups.length, activeCls: "bg-emerald-600 hover:bg-emerald-500 text-white" },
                       { id: "CIE", label: "CIE", icon: Zap, count: pendingGroups.filter((g) => g.operator === "CIE" || g.operator === "ANARE").length, activeCls: "bg-amber-600 hover:bg-amber-500 text-white" },
@@ -2204,7 +2204,7 @@ const AdminRelayPage = () => {
                         key={f.id}
                         onClick={() => setPendingOpFilter(f.id)}
                         className={cn(
-                          "h-8 px-3 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0",
+                          "h-8 px-2.5 sm:px-3 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap",
                           pendingOpFilter === f.id
                             ? f.activeCls
                             : "border border-border/80 bg-background hover:bg-muted text-foreground/80"
@@ -2230,7 +2230,7 @@ const AdminRelayPage = () => {
                     variant="default"
                     disabled={bulkSending}
                     onClick={() => handleRequestSendBulk(pendingOpFilter)}
-                    className="h-8 text-xs font-bold gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-sm shrink-0"
+                    className="w-full lg:w-auto h-8 text-xs font-bold gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-sm shrink-0"
                   >
                     <Send className={`h-3.5 w-3.5 ${bulkSending ? "animate-spin" : ""}`} />
                     {bulkSending
@@ -2286,13 +2286,13 @@ const AdminRelayPage = () => {
                         group.hasCritical ? "border-red-500/50" : "border-border"
                       }`}
                     >
-                      {/* Header du groupe */}
-                      <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-card border-b border-border">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${opCfg.bg} shrink-0`}>
+                      {/* Header du groupe - responsive mobile et desktop */}
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3.5 sm:p-4 bg-card border-b border-border">
+                        <div className="flex items-start sm:items-center gap-3 min-w-0">
+                          <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${opCfg.bg} shrink-0 mt-0.5 sm:mt-0`}>
                             <opCfg.icon className={`h-5 w-5 ${opCfg.color}`} />
                           </div>
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className={`font-bold text-sm ${opCfg.color}`}>{opCfg.label}</span>
                               <span className="text-muted-foreground text-xs">·</span>
@@ -2305,7 +2305,7 @@ const AdminRelayPage = () => {
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground flex-wrap">
+                            <div className="flex items-center gap-2 sm:gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                               <span className="flex items-center gap-1">
                                 <MapPin className="h-3 w-3" />
                                 {group.quartiers.length} quartier{group.quartiers.length > 1 ? "s" : ""}
@@ -2319,7 +2319,7 @@ const AdminRelayPage = () => {
                                     : (group.totalConfirmations > 1 ? `${group.totalConfirmations} foyers (corroboration)` : "1 foyer (corroboration)");
                                 })()}
                               </span>
-                              <span className="hidden sm:inline font-mono">{group.email_to}</span>
+                              <span className="inline-block font-mono text-[11px] max-w-[180px] sm:max-w-none truncate">{group.email_to}</span>
                               {(() => {
                                 const isElec = group.operator === "CIE" || group.operator === "ANARE";
                                 const isWater = group.operator === "SODECI" || group.operator === "ONEP";
@@ -2329,9 +2329,9 @@ const AdminRelayPage = () => {
                                   ? getOperatorTargetEmail("ANARE", group.commune, effectiveConfig)
                                   : getOperatorTargetEmail("ONEP", group.commune, effectiveConfig);
                                 return (
-                                  <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
                                     <Scale className="h-3 w-3" />
-                                    CC Régulateur : {regName} ({regEmail})
+                                    CC : {regName}
                                   </span>
                                 );
                               })()}
@@ -2363,7 +2363,7 @@ const AdminRelayPage = () => {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-1.5 flex-wrap justify-start md:justify-end w-full md:w-auto pt-2.5 md:pt-0 border-t border-border/40 md:border-t-0">
                           {rejectConfirm === group.key ? (
                             <>
                               <span className="text-xs text-muted-foreground hidden sm:block">Confirmer ?</span>
@@ -2896,7 +2896,7 @@ const AdminRelayPage = () => {
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium"
               />
               <p className="text-[11px] text-muted-foreground">
-                📩 Cet e-mail recevra automatiquement une copie (CC) de <strong>tous les e-mails transmis aux opérateurs</strong>, que ce soit en mode Production ou en mode Test.
+                Cet e-mail recevra automatiquement une copie (CC) de <strong>tous les e-mails transmis aux opérateurs</strong>, que ce soit en mode Production ou en mode Test.
               </p>
             </div>
 
