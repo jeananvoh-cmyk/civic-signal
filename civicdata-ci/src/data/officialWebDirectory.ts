@@ -85,11 +85,18 @@ export const OFFICIAL_REGIONS_WEB_DATA: Record<string, Omit<OfficialWebEntry, 't
     nom: "District Autonome d'Abidjan",
     chefLieu: 'Abidjan',
     statutWeb: 'FONCTIONNEL',
-    url: 'https://abidjan.district.ci/',
+    url: 'https://abidjan.district.ci/index.php',
     observations: 'Portail institutionnel métropolitain actif',
   },
+  'yamoussoukro': {
+    nom: 'District Autonome de Yamoussoukro',
+    chefLieu: 'Yamoussoukro',
+    statutWeb: 'FONCTIONNEL',
+    url: 'https://www.districtyakro.ci/',
+    observations: 'Portail officiel du District Autonome de Yamoussoukro',
+  },
 
-  // --- Site officiel existant mais inactif / maintenance / expiré (6 régions + 1 district) ---
+  // --- Site officiel existant mais inactif / maintenance / expiré (6 régions) ---
   'tonkpi': {
     nom: 'Conseil Régional du Tonkpi',
     chefLieu: 'Man',
@@ -131,13 +138,6 @@ export const OFFICIAL_REGIONS_WEB_DATA: Record<string, Omit<OfficialWebEntry, 't
     statutWeb: 'INACTIF',
     url: 'http://regionindeniedjuablin.ci',
     observations: 'Domaine non renouvelé',
-  },
-  'yamoussoukro': {
-    nom: 'District Autonome de Yamoussoukro',
-    chefLieu: 'Yamoussoukro',
-    statutWeb: 'INACTIF',
-    url: 'http://districtyamoussoukro.ci',
-    observations: 'Site souvent inaccessible / maintenance prolongée',
   },
 
   // --- Aucun site web officiel (20 régions) ---
