@@ -8,8 +8,6 @@ export default function ScrollToTopButton() {
   const location = useLocation();
   const [visible, setVisible] = useState(false);
 
-  if (location.pathname.startsWith("/signaler") || location.pathname.startsWith("/auth")) return null;
-
   useEffect(() => {
     const handleScroll = () => {
       // Visible après 250px de défilement vers le bas
@@ -19,6 +17,9 @@ export default function ScrollToTopButton() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const isHidden = location.pathname.startsWith("/signaler") || location.pathname.startsWith("/auth");
+  if (isHidden) return null;
 
   const scrollToTop = () => {
     window.scrollTo({
