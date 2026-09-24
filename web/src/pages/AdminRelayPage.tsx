@@ -372,7 +372,7 @@ async function sendResendDirectEmail({
   htmlContent,
   isTest = false,
 }: {
-  apiKey: string;
+  apiKey?: string;
   toEmail?: string;
   toEmails?: string[];
   ccEmail?: string;
@@ -381,103 +381,34 @@ async function sendResendDirectEmail({
   htmlContent: string;
   isTest?: boolean;
 }) {
-  const cleanKey = apiKey.trim();
   const rawTos = toEmails && toEmails.length > 0 ? toEmails : (toEmail ? [toEmail] : []);
   const cleanTos = rawTos.map((e) => e.trim().toLowerCase()).filter(Boolean);
 
-  const rawCcs = ccEmails && ccEmails.length > 0
-    ? ccEmails
-    : (ccEmail ? ccEmail.split(",").map((s) => s.trim()) : []);
-  const cleanCcs = rawCcs
-    .map((e) => e.trim().toLowerCase())
-    .filter((e) => Boolean(e) && !cleanTos.includes(e));
-
-  if (!cleanKey) {
-    return { ok: false, status: 400, error: "Aucune clé API Resend renseignée dans l'onglet Paramètres." };
-  }
   if (cleanTos.length === 0) {
     return { ok: false, status: 400, error: "Aucun destinataire spécifié pour l'envoi." };
   }
 
-  // En mode test, privilégier onboarding@resend.dev pour garantir la distribution sans dépendre de la validation DNS du domaine signa.ci
-  const fromVariants = isTest
-    ? [
-        "SIGNA-CI Test <onboarding@resend.dev>",
-        "onboarding@resend.dev",
-        "SIGNA-CI <contact@signa.ci>",
-        "contact@signa.ci",
-      ]
-    : [
-        "SIGNA-CI <contact@signa.ci>",
-        "contact@signa.ci",
-        "SIGNA-CI <onboarding@resend.dev>",
-        "onboarding@resend.dev",
-      ];
+  try {
+    const { data, error } = await supabase.functions.invoke("relay-to-operator", {
+      body: {
+        action: "test_email",
+        resend_api_key: apiKey ? apiKey.trim() : undefined,
+        to_email: cleanTos[0],
+        subject,
+        html: htmlContent,
+        test_mode: isTest,
+      },
+    });
 
-  const endpoints = [
-    "/api/resend-proxy",
-    "https://api.resend.com/emails",
-  ];
-
-  let bestError = "Impossible de contacter le serveur d'envoi Resend.";
-  let bestStatus = 500;
-
-  for (const fromAddr of fromVariants) {
-    for (const endpoint of endpoints) {
-      try {
-        const payload: any = {
-          from: fromAddr,
-          to: cleanTos,
-          subject,
-          html: htmlContent,
-        };
-        // En mode test avec onboarding@resend.dev, Resend sandbox bloque si des adresses CC tierces sont présentes
-        if (cleanCcs.length > 0 && !fromAddr.includes("resend.dev")) {
-          payload.cc = cleanCcs;
-        }
-
-        const res = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${cleanKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
-
-        const resText = await res.text();
-        let parsed: any = null;
-        try {
-          parsed = JSON.parse(resText);
-        } catch (_) {}
-
-        if (res.ok && (parsed?.id || res.status === 200)) {
-          return { ok: true, data: resText, id: parsed?.id || "sent-ok" };
-        }
-
-        const errorMsg = parsed?.message || parsed?.name || resText || `Erreur HTTP ${res.status}`;
-        bestError = errorMsg;
-        bestStatus = res.status;
-
-        // Si l'erreur est spécifiquement la restriction sandbox de Resend (destinataire différent du compte Resend)
-        if (errorMsg.toLowerCase().includes("only send to") || errorMsg.toLowerCase().includes("testing emails to your own email")) {
-          break;
-        }
-      } catch (err: any) {
-        if (err?.message && !err.message.includes("fetch")) {
-          bestError = err.message;
-        }
-      }
+    if (error || (data && !data.ok)) {
+      const errMsg = data?.error || error?.message || "Échec de l'envoi via le service relais Resend.";
+      return { ok: false, status: 400, error: errMsg };
     }
-  }
 
-  if (bestStatus === 403 || bestError.toLowerCase().includes("only send to") || bestError.toLowerCase().includes("sandbox")) {
-    bestError = `Resend en Mode Sandbox restreint l'envoi vers (${cleanTos.join(", ")}). Pour tester l'envoi, renseignez votre email dans "Email de test" dans l'onglet Paramètres ou validez votre nom de domaine sur Resend.com.`;
-  } else if (bestStatus === 401 || bestError.toLowerCase().includes("api key")) {
-    bestError = "La clé API Resend renseignée est invalide. Veuillez vérifier votre clé (re_...) dans Paramètres.";
+    return { ok: true, status: 200, data, id: "sent-ok" };
+  } catch (err: any) {
+    return { ok: false, status: 500, error: err?.message || "Impossible de contacter le service relais Supabase." };
   }
-
-  return { ok: false, status: bestStatus, error: bestError };
 }
 
 // ─── Helpers de Date Sécurisés ────────────────────────────────────────────────
@@ -1466,59 +1397,45 @@ const AdminRelayPage = () => {
 
     const html = buildBatchEmailHtmlClient(group, isTest);
 
-    // 2. Tentative d'envoi réel Resend si clé API fournie
+    // 2. Transmission sécurisée via l'Edge Function Supabase relay-to-operator (côté serveur, aucun blocage CORS)
     let resendRes: { ok: boolean; data?: any; error?: string; status?: number; simulated?: boolean } = { ok: false, status: 500 };
 
-    if (isValidResendApiKey(resendApiKey)) {
-      resendRes = await sendResendDirectEmail({
-        apiKey: resendApiKey,
-        toEmail: finalTo,
-        ccEmail: finalCc,
-        subject,
-        htmlContent: html,
-        isTest,
+    try {
+      const { data: edgeData, error: edgeErr } = await supabase.functions.invoke("relay-to-operator", {
+        body: {
+          relay_ids: group.relayIds,
+          ...(isValidResendApiKey(resendApiKey) ? { resend_api_key: resendApiKey } : {}),
+          action: "relay",
+          test_mode: isTest,
+          test_email: testEmail,
+          html,
+          subject,
+        },
       });
-    }
 
-    // 3. Si échec ou absence de clé locale, tenter l'Edge Function Supabase relay-to-operator
-    if (!resendRes.ok) {
-      try {
-        const { data: edgeData, error: edgeErr } = await supabase.functions.invoke("relay-to-operator", {
-          body: {
-            relay_ids: group.relayIds,
-            ...(isValidResendApiKey(resendApiKey) ? { resend_api_key: resendApiKey } : {}),
-            action: "relay",
-            test_mode: isTest,
-            test_email: testEmail,
-            html,
-            subject,
-          },
-        });
-        if (!edgeErr && edgeData && (edgeData.sent > 0 || edgeData.processed > 0)) {
-          resendRes = { ok: true, status: 200, data: edgeData, simulated: Boolean(edgeData.simulated) };
-        } else if (edgeData?.error) {
-          resendRes.error = edgeData.error;
-        }
-      } catch (_) {}
-    }
-
-    // 4. Gestion finale du résultat : Mode TEST vs Mode Production
-    if (!resendRes.ok) {
-      if (isTest && !isValidResendApiKey(resendApiKey)) {
-        // En mode TEST sans clé API configurée : simulation explicite acceptée
-        console.log(`[MODE TEST] Relais simulé vers ${finalTo} pour ${group.operator} + ${regulatorName || "Régulateur"}`);
-        resendRes = { ok: true, status: 200, data: "simulated-test", simulated: true };
+      if (!edgeErr && edgeData && edgeData.sent > 0) {
+        resendRes = { ok: true, status: 200, data: edgeData, simulated: Boolean(edgeData.simulated) };
+      } else if (!edgeErr && edgeData && isTest && !isValidResendApiKey(resendApiKey) && edgeData.simulated) {
+        // En mode test sans clé API : simulation acceptée
+        resendRes = { ok: true, status: 200, data: edgeData, simulated: true };
       } else {
-        // En mode Production ou si une clé API a été configurée mais a échoué
-        let diag = resendRes.error || "Impossible de contacter le serveur d'envoi.";
-        if (!isValidResendApiKey(resendApiKey)) {
-          diag = "Aucune clé API Resend valide n'est configurée dans Paramètres. Veuillez renseigner votre clé (re_...) pour envoyer en production, ou activez le Mode TEST pour simuler.";
-        }
-        throw new Error(diag);
+        const errMsg = edgeData?.lastError || edgeData?.error || edgeErr?.message || (edgeData?.errors > 0 ? `Échec d'envoi Resend (${edgeData.errors} erreur(s))` : "Aucun e-mail n'a pu être distribué.");
+        resendRes = { ok: false, status: 400, error: errMsg };
       }
+    } catch (err: any) {
+      resendRes = { ok: false, status: 500, error: err?.message || "Impossible de contacter le service relais Supabase." };
     }
 
-    // 5. Mettre à jour le statut des relais en "sent" dans la base Supabase
+    // 3. Gestion stricte : En cas d'échec, interrompre immédiatement SANS marquer en "sent"
+    if (!resendRes.ok) {
+      let diag = resendRes.error || "Impossible de contacter le serveur d'envoi.";
+      if (!isValidResendApiKey(resendApiKey) && !isTest) {
+        diag = "Aucune clé API Resend valide n'est configurée dans Paramètres. Veuillez renseigner votre clé (re_...) pour envoyer en production, ou activez le Mode TEST.";
+      }
+      throw new Error(diag);
+    }
+
+    // 4. Mettre à jour le statut des relais en "sent" dans la base Supabase UNIQUEMENT après succès confirmé
     const nowIso = new Date().toISOString();
     const { error: rpcErr } = await (supabase as any).rpc("admin_mark_relay_sent", { p_relay_ids: group.relayIds });
     if (rpcErr) {

@@ -380,11 +380,18 @@ async function sendEmail(opts: {
   const cleanKey = opts.apiKey.trim();
   const cleanTo = opts.to.trim();
 
-  // En mode test, privilégier onboarding@resend.dev pour garantir la réception immédiate
-  // sans dépendre de la validation préalable des enregistrements DNS du domaine signa.ci
+  if (!cleanKey) {
+    return { ok: false, error: "Aucune clé API Resend n'a été fournie." };
+  }
+  if (!cleanTo) {
+    return { ok: false, error: "Adresse email destinataire manquante." };
+  }
+
+  // En mode test avec la clé sandbox Resend :
+  // L'adresse 'from' doit obligatoirement être onboarding@resend.dev (sans nom d'affichage personnalisé)
+  // et le destinataire doit correspondre à l'email du compte Resend.
   const fromVariants = opts.isTest
     ? [
-        "SIGNA-CI Test <onboarding@resend.dev>",
         "onboarding@resend.dev",
         `SIGNA-CI <${opts.fromEmail}>`,
         opts.fromEmail,
@@ -392,13 +399,15 @@ async function sendEmail(opts: {
     : [
         `SIGNA-CI <${opts.fromEmail}>`,
         opts.fromEmail,
-        "SIGNA-CI <onboarding@resend.dev>",
         "onboarding@resend.dev",
       ];
 
   let lastError = "Erreur inconnue lors de l'envoi d'email Resend";
+  let lastStatus = 500;
+
   for (const fromAddr of fromVariants) {
     try {
+      console.log(`[Resend] Tentative d'envoi depuis "${fromAddr}" vers "${cleanTo}" (isTest: ${opts.isTest})`);
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -414,23 +423,40 @@ async function sendEmail(opts: {
       });
 
       if (res.ok) {
+        console.log(`[Resend] E-mail envoyé avec succès à ${cleanTo} via ${fromAddr}`);
         return { ok: true };
       }
 
+      lastStatus = res.status;
       const bodyText = await res.text();
-      lastError = bodyText;
+      console.warn(`[Resend] Rejet HTTP ${res.status} pour expéditeur "${fromAddr}":`, bodyText);
 
-      // Si l'erreur est spécifiquement liée au domaine non vérifié, passer à la variante suivante
-      if (
-        !bodyText.toLowerCase().includes("not verified") &&
-        !bodyText.toLowerCase().includes("domain") &&
-        res.status === 401
-      ) {
-        // Clé API invalide : inutile de retenter d'autres expéditeurs
+      let parsed: any = null;
+      try {
+        parsed = JSON.parse(bodyText);
+      } catch (_) {}
+
+      const msg = parsed?.message || parsed?.name || bodyText;
+      lastError = msg;
+
+      // Diagnostic clair selon le motif de rejet Resend
+      if (lastStatus === 401 || msg.toLowerCase().includes("api key") || msg.toLowerCase().includes("restricted")) {
+        lastError = `Clé API Resend invalide ou restreinte (${msg}). Veuillez vérifier votre clé sur resend.com/api-keys.`;
+        break; // Clé invalide : inutile d'essayer d'autres expéditeurs
+      }
+
+      if (msg.toLowerCase().includes("only send to") || msg.toLowerCase().includes("testing emails to your own email")) {
+        lastError = `Restriction Sandbox Resend : Vous ne pouvez envoyer des e-mails qu'à l'adresse associée à votre compte Resend (${msg}). Pour envoyer aux opérateurs réels (CIE, SODECI, etc.), vous devez ajouter et vérifier le domaine signa.ci sur https://resend.com/domains.`;
         break;
+      }
+
+      if (msg.toLowerCase().includes("not verified") || msg.toLowerCase().includes("domain")) {
+        lastError = `Domaine non vérifié (${msg}). Pour envoyer des courriels depuis contact@signa.ci, ajoutez et configurez les enregistrements DNS (DKIM/SPF) du domaine signa.ci sur https://resend.com/domains.`;
+        continue; // Continuer vers onboarding@resend.dev si disponible
       }
     } catch (e: any) {
       lastError = e?.message || lastError;
+      console.error(`[Resend] Erreur réseau :`, e);
     }
   }
 
@@ -464,32 +490,60 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", ""),
-    );
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+
+    const token = authHeader.replace("Bearer ", "").trim();
+    let isAllowed = false;
+
+    // 1. Accès via Service Role Key (cron jobs / appels internes)
+    if (token === serviceRoleKey) {
+      isAllowed = true;
+    } else {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // 2. Superadmin propriétaire
+      if (user.email?.toLowerCase() === "jeananvoh@gmail.com") {
+        isAllowed = true;
+      }
+
+      // 3. Vérifier rôle dans user_roles ou profiles
+      if (!isAllowed) {
+        const { data: userRoles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id);
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        const rolesSet = new Set<string>();
+        if (profile?.role) rolesSet.add(profile.role);
+        (userRoles ?? []).forEach((r: { role: string }) => rolesSet.add(r.role));
+
+        if (rolesSet.has("admin") || rolesSet.has("moderator")) {
+          isAllowed = true;
+        }
+      }
+
+      // 4. Fallback RPC has_role
+      if (!isAllowed) {
+        try {
+          const { data: hasAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
+          const { data: hasMod } = await supabase.rpc("has_role", { _user_id: user.id, _role: "moderator" });
+          if (hasAdmin === true || hasMod === true) {
+            isAllowed = true;
+          }
+        } catch (_) {}
+      }
     }
 
-    // Vérifier rôle (admin ou moderator dans user_roles ou profiles)
-    const { data: userRoles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id);
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    const rolesSet = new Set<string>();
-    if (profile?.role) rolesSet.add(profile.role);
-    (userRoles ?? []).forEach((r: { role: string }) => rolesSet.add(r.role));
-
-    const isAllowed = rolesSet.has("admin") || rolesSet.has("moderator");
     if (!isAllowed) {
       return new Response(JSON.stringify({ error: "Accès refusé : Rôle admin ou modérateur requis." }), {
         status: 403,
@@ -586,7 +640,7 @@ Deno.serve(async (req) => {
       if (!keyToUse) {
         return new Response(
           JSON.stringify({ ok: false, error: "Aucune clé API Resend fournie ni trouvée dans la configuration." }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -601,7 +655,7 @@ Deno.serve(async (req) => {
 
       return new Response(
         JSON.stringify({ ok: testRes.ok, error: testRes.error }),
-        { status: testRes.ok ? 200 : 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -632,18 +686,20 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Récupérer les fiches ciblées (permet le renvoi ou la relance même après une erreur précédente)
     const { data: relays, error: relayErr } = await supabase
       .from("relay_logs")
       .select("id, report_id, operator, email_to")
-      .in("id", relay_ids)
-      .eq("status", "pending");
+      .in("id", relay_ids);
 
     if (relayErr) throw relayErr;
     if (!relays || relays.length === 0) {
       return new Response(
         JSON.stringify({
           processed: 0,
-          message: "Aucun relay pending trouvé pour ces IDs",
+          sent: 0,
+          errors: 0,
+          message: "Aucun enregistrement de relais trouvé pour ces identifiants.",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
@@ -713,6 +769,7 @@ Deno.serve(async (req) => {
 
     let sent = 0;
     let errors = 0;
+    let lastRelayError: string | null = null;
 
     for (const [, group] of groups) {
       const serviceLabel =
@@ -780,6 +837,7 @@ Deno.serve(async (req) => {
 
         sent += group.relayIds.length;
       } else {
+        lastRelayError = result.error || "Erreur de transmission d'email";
         await supabase
           .from("relay_logs")
           .update({ status: "error", error_message: result.error })
@@ -790,11 +848,13 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
+        ok: sent > 0,
         processed: relays.length,
         sent,
         errors,
         groups: groups.size,
         simulated: !finalApiKey,
+        lastError: errors > 0 ? (lastRelayError || "Échec d'envoi") : null,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
