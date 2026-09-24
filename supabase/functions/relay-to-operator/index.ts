@@ -529,8 +529,59 @@ Deno.serve(async (req) => {
     if (body.action === "test_email" || body.action === "test_resend_key") {
       const keyToUse = (body.resend_api_key || finalApiKey).trim();
       const targetTo = (body.to_email || testEmail || "jeananvoh@gmail.com").trim();
-      const subjectToUse = body.subject || "[SIGNA-CI] Test de connexion API Resend";
-      const htmlToUse = body.html || "<p>Test de validation de la clé API Resend réussi !</p>";
+      const subjectToUse = body.subject || "[SIGNA-CI] Test de connexion Clé API Resend";
+      const nowStr = new Date().toLocaleString("fr-FR", { timeZone: "Africa/Abidjan" });
+      const defaultTestHtml = `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 25px -5px rgba(0,0,0,0.08);border:1px solid #cbd5e1;">
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#059669,#047857);padding:26px 32px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td>
+                  <span style="background:rgba(255,255,255,0.2);color:#ffffff;font-size:10px;font-weight:800;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:1px;">
+                    ✅ TEST DE CONNEXION RÉUSSI
+                  </span>
+                  <h1 style="margin:8px 0 0;font-size:22px;font-weight:900;color:#ffffff;">
+                    Clé API Resend Fonctionnelle
+                  </h1>
+                </td>
+                <td align="right" width="50">
+                  <img src="https://signa.ci/signa-logo-official.png" alt="SIGNA-CI" width="48" height="48" style="border-radius:10px;background:#ffffff;padding:4px;display:block;" />
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <!-- Body -->
+        <tr><td style="padding:28px 32px;">
+          <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:20px;margin-bottom:20px;">
+            <h3 style="margin:0 0 8px;color:#166534;font-size:16px;font-weight:800;">Félicitations !</h3>
+            <p style="margin:0;color:#14532d;font-size:14px;line-height:1.6;">
+              Votre clé API Resend est correctement configurée et en capacité de délivrer des courriels officiels pour la plateforme <strong>SIGNA.ci</strong>.
+            </p>
+          </div>
+          <table width="100%" style="font-size:13px;color:#475569;margin-bottom:20px;">
+            <tr><td style="padding:4px 0;"><strong>Destinataire test :</strong> <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;color:#0f172a;">${escapeHtml(targetTo)}</code></td></tr>
+            <tr><td style="padding:4px 0;"><strong>Horodatage (Abidjan) :</strong> ${nowStr}</td></tr>
+            <tr><td style="padding:4px 0;"><strong>Statut :</strong> <span style="color:#059669;font-weight:700;">Prêt pour la production / relais opérateurs</span></td></tr>
+          </table>
+          <p style="margin:20px 0 0;color:#94a3b8;font-size:11px;text-align:center;border-top:1px solid #e2e8f0;padding-top:16px;">
+            🤝 <strong>SIGNA-CI</strong> · Plateforme Civique de Signalement des Services Publics · République de Côte d'Ivoire
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+      const htmlToUse = body.html || defaultTestHtml;
 
       if (!keyToUse) {
         return new Response(

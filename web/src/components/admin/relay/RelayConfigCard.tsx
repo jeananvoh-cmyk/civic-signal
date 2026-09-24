@@ -161,49 +161,81 @@ export const RelayConfigCard: React.FC<RelayConfigCardProps> = ({
         </div>
       </div>
 
-      <div className="pt-2 border-t border-border/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="w-full sm:w-80">
-          <Label className="text-xs font-semibold flex items-center gap-1.5">
-            <KeyRound className="h-3.5 w-3.5 text-primary" /> Clé API Resend (Resend.com)
-          </Label>
-          <div className="relative mt-1">
-            <Input
-              type={showApiKey ? "text" : "password"}
-              value={resendApiKeyInput}
-              onChange={(e) => setResendApiKeyInput(e.target.value)}
-              placeholder="re_123456789..."
-              className="text-xs pr-8 font-mono"
-            />
-            <button
+      <div className="pt-3 border-t border-border/60 space-y-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="w-full sm:w-80">
+            <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+              <KeyRound className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> Clé API Resend (`re_...`)
+              <span className="text-[10px] text-muted-foreground font-normal ml-auto">Depuis resend.com/api-keys</span>
+            </Label>
+
+            {resendApiKeyInput ? (
+              <div className="mt-1 flex items-center gap-2 p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-mono">
+                <span className="font-semibold flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Clé configurée :
+                </span>
+                <span className="bg-emerald-500/20 px-1.5 py-0.5 rounded text-[11px]">
+                  re_••••••••{resendApiKeyInput.slice(-4)}
+                </span>
+              </div>
+            ) : null}
+
+            <div className="relative mt-1.5">
+              <Input
+                type={showApiKey ? "text" : "password"}
+                value={resendApiKeyInput}
+                onChange={(e) => setResendApiKeyInput(e.target.value)}
+                placeholder="Saisissez ou modifiez votre clé re_123456..."
+                className="text-xs pr-8 font-mono bg-background"
+              />
+              <button
+                type="button"
+                onClick={() => setShowApiKey(!showApiKey)}
+                className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground transition-colors"
+                title={showApiKey ? "Masquer la clé" : "Afficher la clé"}
+              >
+                {showApiKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+            <Button
               type="button"
-              onClick={() => setShowApiKey(!showApiKey)}
-              className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground"
+              variant="outline"
+              onClick={handleTestKey}
+              disabled={isTestingKey}
+              className="gap-1.5 text-xs font-semibold border-emerald-500/40 hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-xs"
             >
-              {showApiKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-            </button>
+              <FlaskConical className="h-3.5 w-3.5 text-emerald-500" />
+              {isTestingKey ? "Test en cours..." : "Tester la clé"}
+            </Button>
+
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="gap-1.5 font-bold text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs"
+            >
+              <Save className="h-3.5 w-3.5" />
+              {isSaving ? "Enregistrement..." : "Sauvegarder"}
+            </Button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleTestKey}
-            disabled={isTestingKey}
-            className="gap-1.5 text-xs font-semibold border-amber-500/40 hover:bg-amber-500/10 text-amber-600 dark:text-amber-400"
-          >
-            <FlaskConical className="h-3.5 w-3.5" />
-            {isTestingKey ? "Test en cours..." : "Tester la clé Resend"}
-          </Button>
-
-          <Button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="gap-1.5 font-bold text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
-          >
-            <Save className="h-3.5 w-3.5" />
-            {isSaving ? "Enregistrement..." : "Sauvegarder"}
-          </Button>
+        {/* Note sur les bonnes pratiques de sécurité */}
+        <div className="p-3 rounded-xl bg-muted/40 border border-border/80 text-[11px] text-muted-foreground space-y-1.5">
+          <div className="flex items-center gap-1.5 font-semibold text-foreground">
+            <span className="text-emerald-600 dark:text-emerald-400 font-bold">🔒 Bonnes Pratiques de Sécurité Clé Resend :</span>
+          </div>
+          <ul className="list-disc pl-4 space-y-1 text-muted-foreground/90 leading-relaxed">
+            <li>
+              <strong>Sécurité de stockage :</strong> La clé est protégée en base de données par Row Level Security (RLS) et accessible uniquement aux administrateurs identifiés.
+            </li>
+            <li>
+              <strong>Recommandation Confinement 100% Serveur :</strong> Vous pouvez également ajouter la variable <code className="bg-muted px-1 py-0.5 rounded text-foreground font-mono">RESEND_API_KEY</code> dans <strong>Supabase Secrets / Vault</strong>. Si la variable système est présente, elle sera prioritaire et la clé ne transitera jamais dans le navigateur.
+            </li>
+          </ul>
         </div>
       </div>
     </div>
