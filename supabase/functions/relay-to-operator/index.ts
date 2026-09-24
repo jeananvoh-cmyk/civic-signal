@@ -729,16 +729,16 @@ Deno.serve(async (req) => {
         .map((r) => r.quartier)
         .join(", ");
       const subject = `[SIGNA-CI] ${serviceLabel} — ${group.commune} · ${group.reports.length} quartier${group.reports.length > 1 ? "s" : ""} (${quartiersStr})`;
-      const html = buildBatchEmailHtml(
+      const html = body.html || buildBatchEmailHtml(
         group.operator,
         group.commune,
         group.reports,
       );
 
       const finalTo = (isTestMode && testEmail) ? testEmail : group.email_to;
-      const finalSubject = (isTestMode && testEmail)
+      const finalSubject = body.subject || ((isTestMode && testEmail)
         ? `[MODE TEST → ${group.email_to}] ${subject}`
-        : `[OFFICIEL · SIGNA-CI] ${subject.replace("[SIGNA-CI] ", "")}`;
+        : `[OFFICIEL · SIGNA-CI] ${subject.replace("[SIGNA-CI] ", "")}`);
 
       let result: { ok: boolean; error?: string } = { ok: true };
       if (finalApiKey) {

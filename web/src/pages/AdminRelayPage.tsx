@@ -1490,6 +1490,8 @@ const AdminRelayPage = () => {
             action: "relay",
             test_mode: isTest,
             test_email: testEmail,
+            html,
+            subject,
           },
         });
         if (!edgeErr && edgeData && (edgeData.sent > 0 || edgeData.processed > 0)) {
