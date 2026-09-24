@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface RelayConfigCardProps {
   effectiveConfig: Record<string, string>;
@@ -42,6 +44,32 @@ export const RelayConfigCard: React.FC<RelayConfigCardProps> = ({
       cc_email: ccEmail.trim(),
       resend_api_key: resendApiKeyInput.trim(),
     });
+  };
+
+  const [isTestingKey, setIsTestingKey] = React.useState(false);
+
+  const handleTestKey = async () => {
+    setIsTestingKey(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("relay-to-operator", {
+        body: {
+          action: "test_resend_key",
+          resend_api_key: resendApiKeyInput.trim() || undefined,
+          to_email: testEmail.trim() || undefined,
+        },
+      });
+
+      if (error || (data && !data.ok)) {
+        const errMsg = error?.message || data?.error || "Échec du test de la clé Resend";
+        toast.error(`Connexion Resend échouée : ${errMsg}`);
+      } else {
+        toast.success("✅ Clé API Resend valide ! Email de test envoyé avec succès.");
+      }
+    } catch (err: any) {
+      toast.error(`Erreur test Resend : ${err?.message || "Erreur de connexion"}`);
+    } finally {
+      setIsTestingKey(false);
+    }
   };
 
   return (
@@ -156,14 +184,27 @@ export const RelayConfigCard: React.FC<RelayConfigCardProps> = ({
           </div>
         </div>
 
-        <Button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="gap-1.5 font-bold text-xs bg-primary hover:bg-primary/90 text-primary-foreground shrink-0 shadow-sm"
-        >
-          <Save className="h-3.5 w-3.5" />
-          {isSaving ? "Enregistrement..." : "Sauvegarder la configuration"}
-        </Button>
+        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleTestKey}
+            disabled={isTestingKey}
+            className="gap-1.5 text-xs font-semibold border-amber-500/40 hover:bg-amber-500/10 text-amber-600 dark:text-amber-400"
+          >
+            <FlaskConical className="h-3.5 w-3.5" />
+            {isTestingKey ? "Test en cours..." : "Tester la clé Resend"}
+          </Button>
+
+          <Button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="gap-1.5 font-bold text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
+          >
+            <Save className="h-3.5 w-3.5" />
+            {isSaving ? "Enregistrement..." : "Sauvegarder"}
+          </Button>
+        </div>
       </div>
     </div>
   );

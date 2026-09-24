@@ -212,3 +212,44 @@ export function normalizeCommuneName(commune: string): string {
   if (c.includes('anyama')) return 'Anyama';
   return commune;
 }
+
+/**
+ * Async dynamic loader for commune doors dataset to support dynamic chunk loading
+ */
+export async function loadDoorNumbersForCommuneAsync(commune: string): Promise<PadaDoorNumber[]> {
+  const norm = normalizeCommuneName(commune);
+  const syncDoors = getDoorNumbersByCommune(norm);
+  if (syncDoors && syncDoors.length > 0) {
+    return syncDoors;
+  }
+
+  const slugMap: Record<string, string> = {
+    'Abobo': 'abobo',
+    'Adjamé': 'adjame',
+    'Anyama': 'anyama',
+    'Attécoubé': 'attecoube',
+    'Bingerville': 'bingerville',
+    'Cocody': 'cocody',
+    'Koumassi': 'koumassi',
+    'Marcory': 'marcory',
+    'Plateau': 'plateau',
+    'Port-Bouët': 'port-bouet',
+    'Songon': 'songon',
+    'Treichville': 'treichville',
+    'Yopougon': 'yopougon'
+  };
+
+  const slug = slugMap[norm];
+  if (!slug) return [];
+
+  try {
+    const mod = await import(`./doors/${slug}.json`);
+    const doors = mod.default as PadaDoorNumber[];
+    // Cache dynamically
+    PADA_COMMUNE_DOORS_REGISTRY[norm] = doors;
+    return doors;
+  } catch {
+    return [];
+  }
+}
+

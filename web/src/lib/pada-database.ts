@@ -16,11 +16,12 @@ import {
   getDoorNumbersByCommune,
   getDoorNumbersByWay,
   getDoorsByWayFast,
+  loadDoorNumbersForCommuneAsync,
   type PadaDoorNumber
 } from '../data/pada';
 import { normalizeQuartier } from './quartiers';
 
-export { PADA_DOOR_NUMBERS, getDoorNumbersByCommune, getDoorNumbersByWay, getDoorsByWayFast, type PadaDoorNumber };
+export { PADA_DOOR_NUMBERS, getDoorNumbersByCommune, getDoorNumbersByWay, getDoorsByWayFast, loadDoorNumbersForCommuneAsync, normalizeCommuneName, type PadaDoorNumber };
 
 export interface PadaWay {
   id: string;             // ex: "166710" ou "PADA-B-001"

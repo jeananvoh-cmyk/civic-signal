@@ -249,76 +249,106 @@ function buildBatchEmailHtml(
   return `<!DOCTYPE html>
 <html lang="fr">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f8fafc;font-family:Inter,Helvetica,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 16px;">
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px;">
     <tr><td align="center">
-      <table width="640" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px -2px rgba(0,0,0,0.08);border:1px solid #e2e8f0;">
+      <table width="680" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 25px -5px rgba(0,0,0,0.08);border:1px solid #cbd5e1;">
 
-        <!-- Header bande couleur -->
+        <!-- En-tête officiel avec Logo et Bandeau Gradient -->
         <tr>
-          <td style="background:${headerGradient};padding:28px 32px;">
-            <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.9);text-transform:uppercase;letter-spacing:1.2px;font-weight:700;">
-              🤝 Coopération Territoriale & Appui Technique · SIGNA-CI — Côte d'Ivoire
-            </p>
-            <h1 style="margin:8px 0 0;font-size:22px;font-weight:800;color:#ffffff;line-height:1.3;">
-              ${serviceIcon} ${serviceLabel}
-            </h1>
-            <p style="margin:10px 0 0;font-size:14px;color:rgba(255,255,255,0.95);line-height:1.6;">
-              Commune de <strong>${escapeHtml(commune)}</strong>
-              &nbsp;·&nbsp;${byQuartier.size} quartier${byQuartier.size > 1 ? "s" : ""}
-              &nbsp;·&nbsp;<strong>${totalCitizens}</strong> concitoyen${totalCitizens > 1 ? "s" : ""} concerné${totalCitizens > 1 ? "s" : ""}
-            </p>
+          <td style="background:${headerGradient};padding:30px 36px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="vertical-align:middle;">
+                  <span style="background:rgba(255,255,255,0.2);color:#ffffff;font-size:10px;font-weight:800;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:1.2px;display:inline-block;margin-bottom:8px;">
+                    🤝 RELAIS INSTITUTIONNEL OFFICIEL
+                  </span>
+                  <h1 style="margin:0;font-size:24px;font-weight:900;color:#ffffff;line-height:1.2;letter-spacing:-0.3px;">
+                    ${serviceIcon} ${serviceLabel}
+                  </h1>
+                  <p style="margin:6px 0 0;font-size:14px;color:rgba(255,255,255,0.95);font-weight:500;">
+                    Commune de <strong>${escapeHtml(commune)}</strong> · Grand Abidjan, Côte d'Ivoire
+                  </p>
+                </td>
+                <td align="right" style="vertical-align:top;width:60px;">
+                  <img src="https://signa.ci/signa-logo-official.png" alt="SIGNA-CI" width="56" height="56" style="border-radius:12px;background:#ffffff;padding:4px;box-shadow:0 2px 8px rgba(0,0,0,0.15);display:block;" />
+                </td>
+              </tr>
+            </table>
           </td>
         </tr>
 
-        <!-- Corps -->
-        <tr><td style="padding:28px 32px;">
-          <p style="margin:0 0 18px;color:#1e293b;font-size:15px;line-height:1.8;">
+        <!-- Grille d'Indicateurs Clés (KPI) -->
+        <tr>
+          <td style="background:#f8fafc;padding:16px 36px;border-bottom:1px solid #e2e8f0;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td width="33%" style="text-align:center;padding:8px;border-right:1px solid #e2e8f0;">
+                  <div style="font-size:20px;font-weight:900;color:#0f172a;">${byQuartier.size}</div>
+                  <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Quartier${byQuartier.size > 1 ? "s" : ""} affecté${byQuartier.size > 1 ? "s" : ""}</div>
+                </td>
+                <td width="33%" style="text-align:center;padding:8px;border-right:1px solid #e2e8f0;">
+                  <div style="font-size:20px;font-weight:900;color:${accentColor};">${totalCitizens}</div>
+                  <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Concitoyen${totalCitizens > 1 ? "s" : ""} confirmé${totalCitizens > 1 ? "s" : ""}</div>
+                </td>
+                <td width="34%" style="text-align:center;padding:8px;">
+                  <div style="font-size:20px;font-weight:900;color:#059669;">${reports.length}</div>
+                  <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Ticket${reports.length > 1 ? "s" : ""} PADA enregistrés</div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Corps de l'email -->
+        <tr><td style="padding:30px 36px;">
+          <p style="margin:0 0 18px;color:#0f172a;font-size:15px;line-height:1.8;font-weight:500;">
             ${salutation}
           </p>
           ${introBody}
           ${verifiedBlock}
 
-          <!-- Tableau des quartiers -->
-          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-bottom:24px;">
-            <tr style="background:#f8fafc;">
-              <th style="padding:10px 16px;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;text-align:left;letter-spacing:0.5px;">Quartier / Voie PADA</th>
-              <th style="padding:10px 16px;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;text-align:center;letter-spacing:0.5px;">${citizenColLabel}</th>
-              <th style="padding:10px 16px;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;text-align:left;letter-spacing:0.5px;">Horodatage</th>
-              <th style="padding:10px 16px;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;text-align:left;letter-spacing:0.5px;">Itinéraire GPS</th>
+          <!-- Tableau synthétique par quartier -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #cbd5e1;border-radius:10px;overflow:hidden;margin-bottom:24px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+            <tr style="background:#f1f5f9;">
+              <th style="padding:12px 16px;font-size:11px;font-weight:800;color:#334155;text-transform:uppercase;text-align:left;letter-spacing:0.6px;">Quartier & Adressage PADA</th>
+              <th style="padding:12px 16px;font-size:11px;font-weight:800;color:#334155;text-transform:uppercase;text-align:center;letter-spacing:0.6px;">${citizenColLabel}</th>
+              <th style="padding:12px 16px;font-size:11px;font-weight:800;color:#334155;text-transform:uppercase;text-align:left;letter-spacing:0.6px;">Ancienneté</th>
+              <th style="padding:12px 16px;font-size:11px;font-weight:800;color:#334155;text-transform:uppercase;text-align:left;letter-spacing:0.6px;">Localisation GPS</th>
             </tr>
             ${reportRows}
           </table>
 
           ${!isMairie && reports.some((r) => r.meter_number || r.reporter_phone) ? `
-          <div style="margin-bottom:24px;padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
-            <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:0.5px;">📋 Contacts Abonnés Référents & Numéros de Compteur</p>
-            <ul style="margin:0;padding:0 0 0 18px;font-size:12px;color:#334155;line-height:1.7;">
+          <div style="margin-bottom:24px;padding:18px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;">
+            <p style="margin:0 0 10px;font-size:12px;font-weight:800;color:#0f172a;text-transform:uppercase;letter-spacing:0.5px;">📋 Répertoire des Compteurs & Contacts Abonnés</p>
+            <ul style="margin:0;padding:0 0 0 20px;font-size:12px;color:#334155;line-height:1.8;">
               ${reports.filter((r) => r.meter_number || r.reporter_phone).map((r) => `
                 <li>
-                  <strong>${escapeHtml(r.quartier)}</strong> :
-                  ${r.meter_number ? `Compteur <code>${escapeHtml(r.meter_number)}</code> (${r.contract_type === "postpaid" ? "Postpayé" : "Prépayé"})` : ""}
-                  ${r.reporter_phone ? ` · Contact: <strong>${escapeHtml(r.reporter_phone)}</strong>` : ""}
+                  <strong style="color:#0f172a;">${escapeHtml(r.quartier)}</strong> :
+                  ${r.meter_number ? `N° Compteur <code style="background:#e2e8f0;padding:2px 6px;border-radius:4px;font-weight:700;color:#0f172a;">${escapeHtml(r.meter_number)}</code> (${r.contract_type === "postpaid" ? "Postpayé" : "Prépayé"})` : ""}
+                  ${r.reporter_phone ? ` · Tel Abonné : <strong style="color:#059669;">${escapeHtml(r.reporter_phone)}</strong>` : ""}
                 </li>
               `).join("")}
             </ul>
           </div>
           ` : ""}
 
-          <div style="margin-top:20px;padding:16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:13px;color:#166534;line-height:1.7;">
-            <strong>🌿 Esprit de Concertation & Collaboration Active :</strong><br>
-            L'équipe SIGNA-CI se tient à votre entière disposition pour tout renseignement complémentaire et pour relayer avec fierté la clôture et le rétablissement de vos interventions auprès des concitoyens.
+          <div style="margin-top:20px;padding:18px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;font-size:13px;color:#14532d;line-height:1.7;">
+            <strong style="font-size:14px;color:#166534;">🌿 Engagement de Suivi & Rétablissement :</strong><br>
+            Dès l'amorçage ou la clôture de vos travaux de réparation, nous vous invitons à mettre à jour le statut sur votre console dédiée ou à nous répondre directement afin que nous puissions notifier les concitoyens concernés.
           </div>
 
-          <table width="100%" style="margin-top:24px;"><tr><td align="center">
-            <a href="https://signa.ci/tableau-de-bord"
-               style="background:${headerGradient};color:#ffffff;text-decoration:none;font-weight:800;font-size:14px;padding:12px 28px;border-radius:8px;display:inline-block;letter-spacing:0.2px;">
-              Consulter la Carte des Interventions →
+          <table width="100%" style="margin-top:28px;"><tr><td align="center">
+            <a href="https://signa.ci/partenaire"
+               style="background:${headerGradient};color:#ffffff;text-decoration:none;font-weight:900;font-size:14px;padding:14px 32px;border-radius:10px;display:inline-block;letter-spacing:0.3px;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+              Accéder à l'Espace Partenaire & Suivi →
             </a>
           </td></tr></table>
 
-          <p style="margin:24px 0 0;color:#64748b;font-size:11px;line-height:1.7;border-top:1px solid #e2e8f0;padding-top:20px;text-align:center;">
-            🤝 <strong>SIGNA-CI</strong> · Plateforme d'Alliance Citoyenne pour des Quartiers Sains & Sécurisés · Abidjan, Côte d'Ivoire
+          <p style="margin:28px 0 0;color:#64748b;font-size:11px;line-height:1.7;border-top:1px solid #e2e8f0;padding-top:20px;text-align:center;">
+            🤝 <strong>SIGNA-CI</strong> · Plateforme Civique de Signalement des Services Publics · République de Côte d'Ivoire<br>
+            <span style="color:#94a3b8;">Référentiel Cadastral PADA (MCLU) · Conduite d'Eau & Réseau Électrique National</span>
           </p>
         </td></tr>
       </table>
