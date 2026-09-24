@@ -1746,10 +1746,18 @@ const AdminRelayPage = () => {
   // ── Sauvegarder la config ──────────────────────────────────────────────────
   const saveConfig = useMutation({
     mutationFn: async (cfg: RelayConfig) => {
+      // S'assurer de préserver la clé API Resend existante si la clé dans le draft est vide ou omise
+      const finalCfg = { ...cfg };
+      if (!finalCfg.resend_api_key || finalCfg.resend_api_key.trim() === "") {
+        if (relayConfig?.resend_api_key && isValidResendApiKey(relayConfig.resend_api_key)) {
+          finalCfg.resend_api_key = relayConfig.resend_api_key;
+        }
+      }
+
       // 1. Tenter l'RPC SECURITY DEFINER (contourne les restrictions RLS)
       try {
         const { error: rpcErr } = await (supabase as any).rpc("admin_save_relay_config", {
-          p_config: cfg,
+          p_config: finalCfg,
         });
         if (!rpcErr) return;
       } catch (_) {
@@ -1757,7 +1765,7 @@ const AdminRelayPage = () => {
       }
 
       // 2. Fallback direct client (inclut label pour eviter l'erreur constraint Not Null)
-      const rows = Object.entries(cfg).map(([key, value]) => ({
+      const rows = Object.entries(finalCfg).map(([key, value]) => ({
         key,
         value: value ?? "",
         label: key,
@@ -1770,7 +1778,7 @@ const AdminRelayPage = () => {
 
       if (error) {
         // 3. Dernier recours : mises a jour individuelles par clé
-        const updatePromises = Object.entries(cfg).map(([key, value]) =>
+        const updatePromises = Object.entries(finalCfg).map(([key, value]) =>
           (supabase as any)
             .from("relay_config")
             .update({ value: value ?? "", updated_at: new Date().toISOString() })
@@ -2875,7 +2883,7 @@ const AdminRelayPage = () => {
                   const newMode = checked ? "true" : "false";
                   const newCfg = { ...(effectiveConfig as RelayConfig), test_mode: newMode };
                   setDraftConfig(newCfg);
-                  saveConfigMutation.mutate(newCfg);
+                  saveConfig.mutate(newCfg);
                 }}
               />
             </div>
@@ -3059,7 +3067,7 @@ const AdminRelayPage = () => {
                     const newMode = checked ? "true" : "false";
                     const newCfg = { ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), anare_auto_dispatch: newMode };
                     setDraftConfig(newCfg);
-                    saveConfigMutation.mutate(newCfg, {
+                    saveConfig.mutate(newCfg, {
                       onSuccess: () => {
                         syncAllMutation.mutate();
                       },
@@ -3089,7 +3097,7 @@ const AdminRelayPage = () => {
                     const newMode = checked ? "true" : "false";
                     const newCfg = { ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), onep_auto_dispatch: newMode };
                     setDraftConfig(newCfg);
-                    saveConfigMutation.mutate(newCfg, {
+                    saveConfig.mutate(newCfg, {
                       onSuccess: () => {
                         syncAllMutation.mutate();
                       },
@@ -3255,7 +3263,7 @@ const AdminRelayPage = () => {
                               [enabledKey]: checked ? "true" : "false",
                             };
                             setDraftConfig(newCfg);
-                            saveConfigMutation.mutate(newCfg);
+                            saveConfig.mutate(newCfg);
                           }}
                         />
                       </div>

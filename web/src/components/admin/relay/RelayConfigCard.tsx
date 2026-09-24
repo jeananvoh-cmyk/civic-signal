@@ -42,7 +42,7 @@ export const RelayConfigCard: React.FC<RelayConfigCardProps> = ({
       email_anare: emailANARE.trim(),
       email_onep: emailONEP.trim(),
       cc_email: ccEmail.trim(),
-      resend_api_key: resendApiKeyInput.trim(),
+      resend_api_key: resendApiKeyInput.trim() || effectiveConfig?.resend_api_key || "",
     });
   };
 
