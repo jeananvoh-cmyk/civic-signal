@@ -387,27 +387,24 @@ async function sendEmail(opts: {
     return { ok: false, error: "Adresse email destinataire manquante." };
   }
 
-  // En mode test avec la clé sandbox Resend :
-  // L'adresse 'from' doit obligatoirement être onboarding@resend.dev (sans nom d'affichage personnalisé)
-  // et le destinataire doit correspondre à l'email du compte Resend.
-  const fromVariants = opts.isTest
-    ? [
-        "onboarding@resend.dev",
-        `SIGNA-CI <${opts.fromEmail}>`,
-        opts.fromEmail,
-      ]
-    : [
-        `SIGNA-CI <${opts.fromEmail}>`,
-        opts.fromEmail,
-        "onboarding@resend.dev",
-      ];
+  // Le domaine signa.ci est officiellement vérifié sur Resend (resend.com/domains).
+  // L'adresse expéditrice DOIT TOUJOURS correspondre au domaine vérifié :
+  // ex: "SIGNA-CI <contact@signa.ci>" ou "SIGNA-CI <relais@signa.ci>".
+  // NE JAMAIS forcer "onboarding@resend.dev" car les clés API créées pour le domaine signa.ci
+  // sont rejetées avec HTTP 403 Forbidden ("API key does not have permission to send from onboarding@resend.dev").
+  const fromVariants = [
+    `SIGNA-CI <${opts.fromEmail}>`,
+    opts.fromEmail,
+    "SIGNA-CI <contact@signa.ci>",
+    "contact@signa.ci",
+  ];
 
   let lastError = "Erreur inconnue lors de l'envoi d'email Resend";
   let lastStatus = 500;
 
   for (const fromAddr of fromVariants) {
     try {
-      console.log(`[Resend] Tentative d'envoi depuis "${fromAddr}" vers "${cleanTo}" (isTest: ${opts.isTest})`);
+      console.log(`[Resend] Envoi depuis "${fromAddr}" vers "${cleanTo}" (isTest: ${opts.isTest})`);
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -440,19 +437,14 @@ async function sendEmail(opts: {
       lastError = msg;
 
       // Diagnostic clair selon le motif de rejet Resend
-      if (lastStatus === 401 || msg.toLowerCase().includes("api key") || msg.toLowerCase().includes("restricted")) {
-        lastError = `Clé API Resend invalide ou restreinte (${msg}). Veuillez vérifier votre clé sur resend.com/api-keys.`;
+      if (lastStatus === 401 || (msg.toLowerCase().includes("api key") && !msg.toLowerCase().includes("permission"))) {
+        lastError = `Clé API Resend non reconnue (${msg}). Veuillez vérifier votre clé sur resend.com/api-keys.`;
         break; // Clé invalide : inutile d'essayer d'autres expéditeurs
       }
 
-      if (msg.toLowerCase().includes("only send to") || msg.toLowerCase().includes("testing emails to your own email")) {
-        lastError = `Restriction Sandbox Resend : Vous ne pouvez envoyer des e-mails qu'à l'adresse associée à votre compte Resend (${msg}). Pour envoyer aux opérateurs réels (CIE, SODECI, etc.), vous devez ajouter et vérifier le domaine signa.ci sur https://resend.com/domains.`;
-        break;
-      }
-
       if (msg.toLowerCase().includes("not verified") || msg.toLowerCase().includes("domain")) {
-        lastError = `Domaine non vérifié (${msg}). Pour envoyer des courriels depuis contact@signa.ci, ajoutez et configurez les enregistrements DNS (DKIM/SPF) du domaine signa.ci sur https://resend.com/domains.`;
-        continue; // Continuer vers onboarding@resend.dev si disponible
+        lastError = `Erreur de configuration Resend (${msg}). L'expéditeur doit être sur le domaine vérifié signa.ci (ex: contact@signa.ci).`;
+        continue;
       }
     } catch (e: any) {
       lastError = e?.message || lastError;
@@ -569,15 +561,23 @@ Deno.serve(async (req) => {
     const emailANARE  = config["email_anare"]  || "reclamation@anare.ci";
 
     // Résolution robuste et unifiée de la clé API Resend :
-    // 1. Clé passée dynamiquement par l'admin dans le body
-    // 2. Clé enregistrée dans la table relay_config
+    // 1. Clé passée dynamiquement par l'admin dans le body (si réelle et non masquée)
+    // 2. Clé enregistrée dans la table relay_config (si réelle et non masquée)
     // 3. Variable d'environnement RESEND_API_KEY dans Supabase Secrets
-    const finalApiKey = (
-      body.resend_api_key ||
-      config["resend_api_key"] ||
-      resendEnvApiKey ||
-      ""
-    ).trim();
+    function cleanApiKey(k?: string | null): string | null {
+      if (!k || typeof k !== "string") return null;
+      const t = k.trim();
+      if (t.startsWith("re_") && t.length >= 15 && !t.includes("•") && !t.includes("*")) {
+        return t;
+      }
+      return null;
+    }
+
+    const finalApiKey =
+      cleanApiKey(body.resend_api_key) ||
+      cleanApiKey(config["resend_api_key"]) ||
+      cleanApiKey(resendEnvApiKey) ||
+      "";
 
     // Mode direct de test de la clé Resend ou d'envoi de secours sans blocage CORS
     if (body.action === "test_email" || body.action === "test_resend_key") {

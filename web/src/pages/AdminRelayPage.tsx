@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import {
   Send, Clock, CheckCircle2, XCircle, RefreshCw,
-  Zap, Droplets, AlertTriangle, MailCheck, MapPin, Users,
+  Zap, Droplets, AlertTriangle, Mail, MailCheck, MapPin, Users,
   ChevronDown, ChevronUp, ExternalLink, Settings, FlaskConical,
   ShieldCheck, Save, Ban, MessageCircle, Building2, Landmark, TicketCheck,
   Scale, Copy, Eye, EyeOff, KeyRound, Calendar, Filter, Trash2, Search,
@@ -249,7 +249,7 @@ interface RelayConfig {
 function isValidResendApiKey(key: string | undefined | null): boolean {
   if (!key || typeof key !== "string") return false;
   const trimmed = key.trim();
-  return trimmed.startsWith("re_") && trimmed.length >= 15;
+  return trimmed.startsWith("re_") && trimmed.length >= 15 && !trimmed.includes("•") && !trimmed.includes("*");
 }
 
 function maskApiKey(key: string | undefined | null): string {
@@ -267,41 +267,42 @@ function getOperatorTargetEmail(
   config: RelayConfig | null,
   fallbackLogEmail?: string
 ): string {
-  const defaultAdmin = (config?.cc_email || config?.test_email || "jeananvoh@gmail.com").trim();
-  if (!config) return fallbackLogEmail || defaultAdmin;
-
   if (operator === "CIE") {
-    const email = config.email_cie?.trim();
+    const email = config?.email_cie?.trim();
     if (email && email.length > 0) return email;
-    return defaultAdmin;
+    if (fallbackLogEmail && !fallbackLogEmail.includes("jeananvoh") && fallbackLogEmail.includes("@")) return fallbackLogEmail;
+    return "reclamation@cie.ci";
   }
   if (operator === "ANARE") {
-    const email = config.email_anare?.trim();
+    const email = config?.email_anare?.trim();
     if (email && email.length > 0) return email;
-    const cieEmail = config.email_cie?.trim();
+    const cieEmail = config?.email_cie?.trim();
     if (cieEmail && cieEmail.length > 0) return cieEmail;
-    return defaultAdmin;
+    return "reclamation@anare.ci";
   }
   if (operator === "SODECI") {
-    const email = config.email_sodeci?.trim();
+    const email = config?.email_sodeci?.trim();
     if (email && email.length > 0) return email;
-    return defaultAdmin;
+    if (fallbackLogEmail && !fallbackLogEmail.includes("jeananvoh") && fallbackLogEmail.includes("@")) return fallbackLogEmail;
+    return "reclamation@sodeci.ci";
   }
   if (operator === "ONEP") {
-    const email = config.email_onep?.trim();
+    const email = config?.email_onep?.trim();
     if (email && email.length > 0) return email;
-    const sodeciEmail = config.email_sodeci?.trim();
+    const sodeciEmail = config?.email_sodeci?.trim();
     if (sodeciEmail && sodeciEmail.length > 0) return sodeciEmail;
-    return defaultAdmin;
+    return "reclamation@onep.ci";
   }
   if (operator === "MAIRIE") {
     const slug = (commune || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-    const mairieEmail = config[`mairie_${slug}_email`]?.trim() || config[`email_mairie_${slug}`]?.trim();
+    const mairieEmail = config?.[`mairie_${slug}_email`]?.trim() || config?.[`email_mairie_${slug}`]?.trim();
     if (mairieEmail && mairieEmail.length > 0) return mairieEmail;
-    return defaultAdmin;
+    if (fallbackLogEmail && !fallbackLogEmail.includes("jeananvoh") && fallbackLogEmail.includes("@")) return fallbackLogEmail;
+    return `technique@${slug || "mairie"}.ci`;
   }
 
-  return fallbackLogEmail || defaultAdmin;
+  if (fallbackLogEmail && !fallbackLogEmail.includes("jeananvoh") && fallbackLogEmail.includes("@")) return fallbackLogEmail;
+  return "reclamation@cie.ci";
 }
 
 // ─── Génération d'objets de mails professionnels et sérieux ─────────────────
@@ -1665,11 +1666,13 @@ const AdminRelayPage = () => {
   // ── Sauvegarder la config ──────────────────────────────────────────────────
   const saveConfig = useMutation({
     mutationFn: async (cfg: RelayConfig) => {
-      // S'assurer de préserver la clé API Resend existante si la clé dans le draft est vide ou omise
+      // S'assurer de préserver la clé API Resend existante si la clé dans le draft est vide, omise ou masquée
       const finalCfg = { ...cfg };
-      if (!finalCfg.resend_api_key || finalCfg.resend_api_key.trim() === "") {
+      if (!finalCfg.resend_api_key || finalCfg.resend_api_key.trim() === "" || finalCfg.resend_api_key.includes("•") || finalCfg.resend_api_key.includes("*")) {
         if (relayConfig?.resend_api_key && isValidResendApiKey(relayConfig.resend_api_key)) {
           finalCfg.resend_api_key = relayConfig.resend_api_key;
+        } else {
+          delete finalCfg.resend_api_key;
         }
       }
 
@@ -2246,7 +2249,16 @@ const AdminRelayPage = () => {
                                     : (group.totalConfirmations > 1 ? `${group.totalConfirmations} foyers (corroboration)` : "1 foyer (corroboration)");
                                 })()}
                               </span>
-                              <span className="inline-block font-mono text-[11px] max-w-[180px] sm:max-w-none truncate">{group.email_to}</span>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono bg-muted/70 text-foreground/80 border border-border/60" title={`Email officiel du service : ${group.email_to}`}>
+                                <Mail className="h-3 w-3 text-muted-foreground shrink-0" />
+                                <span>Destinataire : <strong className="font-semibold text-foreground">{group.email_to}</strong></span>
+                              </span>
+                              {effectiveConfig?.test_mode === "true" && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20" title={`En mode test, l'e-mail sera distribué à : ${effectiveConfig?.test_email || "Email de test"}`}>
+                                  <FlaskConical className="h-3 w-3 shrink-0 text-amber-600" />
+                                  <span>Test → <strong>{effectiveConfig?.test_email || "Email de test"}</strong></span>
+                                </span>
+                              )}
                               {(() => {
                                 const isElec = group.operator === "CIE" || group.operator === "ANARE";
                                 const isWater = group.operator === "SODECI" || group.operator === "ONEP";
@@ -2828,128 +2840,133 @@ const AdminRelayPage = () => {
             </div>
 
             {effectiveConfig.test_mode === "true" && (
-              <div className="mt-4 space-y-3">
-                <div>
-                  <label className="text-xs font-semibold text-foreground block mb-1.5">
-                    Email de test — reçoit tous les emails à la place des opérateurs
-                  </label>
-                  <input
-                    type="email"
-                    value={draftConfig?.test_email ?? effectiveConfig?.test_email ?? ""}
-                    onChange={(e) =>
-                      setDraftConfig({ ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), test_email: e.target.value })
-                    }
-                    placeholder="votre@email.com"
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-                  />
-                </div>
-
-                <div className="pt-3 border-t border-border/50 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                      <KeyRound className="h-3.5 w-3.5 text-primary" />
-                      <span>Clé API Resend (`re_...`)</span>
-                    </label>
-                    <span className="text-[10px] text-muted-foreground font-normal">Depuis resend.com/api-keys</span>
-                  </div>
-
-                  {/* Indicateur visuel de statut de la clé */}
-                  {isValidResendApiKey(effectiveConfig?.resend_api_key) ? (
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-800 dark:text-emerald-200">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                        <div className="min-w-0">
-                          <span className="font-semibold">Clé configurée &amp; sécurisée : </span>
-                          <code className="font-mono text-xs bg-emerald-500/20 px-1.5 py-0.5 rounded font-bold break-all">
-                            {maskApiKey(draftConfig?.resend_api_key || effectiveConfig?.resend_api_key)}
-                          </code>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={handleTestKey}
-                        disabled={testingKey}
-                        className="w-full sm:w-auto h-7 text-[11px] border-emerald-500/40 hover:bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 gap-1.5 font-bold shrink-0"
-                      >
-                        <Zap className={`h-3 w-3 ${testingKey ? "animate-spin" : ""}`} />
-                        {testingKey ? "Test..." : "Tester la clé"}
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-800 dark:text-amber-200">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <KeyRound className="h-4 w-4 text-amber-600 shrink-0" />
-                        <span>Collez votre clé API Resend (<code>re_...</code>) ci-dessous pour activer l'envoi.</span>
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={handleTestKey}
-                        disabled={testingKey}
-                        className="w-full sm:w-auto h-7 text-[11px] border-amber-500/40 hover:bg-amber-500/20 text-amber-900 dark:text-amber-100 gap-1.5 font-bold shrink-0"
-                      >
-                        <Zap className={`h-3 w-3 ${testingKey ? "animate-spin" : ""}`} />
-                        {testingKey ? "Test..." : "Tester la clé"}
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Saisie avec protection DOM et aperçu masqué anti-espionnage */}
-                  <div className="space-y-2">
-                    <div className="relative">
-                      <input
-                        type="password"
-                        value={draftConfig?.resend_api_key ?? ""}
-                        onChange={(e) =>
-                          setDraftConfig({ ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), resend_api_key: e.target.value.trim() })
-                        }
-                        placeholder={
-                          isValidResendApiKey(effectiveConfig?.resend_api_key)
-                            ? "•••••••••••••••••••••••••••• (Clé déjà enregistrée — saisir pour remplacer)"
-                            : "Collez votre clé re_123456789..."
-                        }
-                        className="w-full rounded-lg border border-border bg-background pl-3 pr-10 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/40"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowResendKey(!showResendKey)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
-                        title={showResendKey ? "Masquer le début de la clé" : "Vérifier le début de la clé"}
-                      >
-                        {showResendKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-
-                    {/* Aperçu sécurisé du début uniquement si demandé par l'admin */}
-                    {showResendKey && (
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 p-2.5 rounded-lg bg-muted/70 border border-border text-xs animate-in fade-in duration-150">
-                        <div className="flex items-center gap-2">
-                          <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
-                          <span>
-                            Début vérifié : <strong className="font-mono text-primary font-bold">{
-                              (draftConfig?.resend_api_key || effectiveConfig?.resend_api_key || "").slice(0, 8)
-                            }••••••••••••••••</strong>
-                          </span>
-                        </div>
-                        <span className="text-[10px] text-muted-foreground font-medium">
-                          Fin masquée pour votre sécurité anti-espionnage
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground leading-relaxed flex items-start sm:items-center gap-1.5">
-                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5 sm:mt-0" />
-                    <span><strong>Protection active :</strong> La clé enregistrée n'est jamais exposée en clair dans la page HTML afin de bloquer les logiciels espions et extensions de navigateur malveillantes.</span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Seuls les premiers caractères du préfixe apparaissent dans l'indicateur de statut.
-                  </p>
-                </div>
+              <div className="mt-4 pt-4 border-t border-border/50">
+                <label className="text-xs font-semibold text-foreground block mb-1.5 flex items-center gap-1.5">
+                  <FlaskConical className="h-3.5 w-3.5 text-amber-600" />
+                  <span>Email de test — reçoit tous les emails à la place des concessionnaires</span>
+                </label>
+                <input
+                  type="email"
+                  value={draftConfig?.test_email ?? effectiveConfig?.test_email ?? ""}
+                  onChange={(e) =>
+                    setDraftConfig({ ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), test_email: e.target.value })
+                  }
+                  placeholder="votre@email.com"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  En mode TEST, aucun e-mail n'est transmis aux concessionnaires réels. Tous les envois sont routés vers cette adresse de test.
+                </p>
               </div>
             )}
+          </div>
+
+          {/* Passerelle E-mails (Resend) — Toujours accessible en test et en production */}
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <KeyRound className="h-4 w-4 text-primary" />
+                  <span>Passerelle E-mails Opérateurs (Resend)</span>
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Expédition officielle depuis l'adresse vérifiée <strong>contact@signa.ci</strong> vers les opérateurs et régulateurs.
+                </p>
+              </div>
+              <span className="text-[10px] text-muted-foreground font-normal hidden sm:inline-block">Depuis resend.com/api-keys</span>
+            </div>
+
+            {/* Indicateur visuel de statut de la clé */}
+            {isValidResendApiKey(draftConfig?.resend_api_key || effectiveConfig?.resend_api_key) ? (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-800 dark:text-emerald-200">
+                <div className="flex items-center gap-2 min-w-0">
+                  <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="font-semibold">Clé configurée &amp; active : </span>
+                    <code className="font-mono text-xs bg-emerald-500/20 px-1.5 py-0.5 rounded font-bold break-all">
+                      {maskApiKey(draftConfig?.resend_api_key || effectiveConfig?.resend_api_key)}
+                    </code>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleTestKey}
+                  disabled={testingKey}
+                  className="w-full sm:w-auto h-7 text-[11px] border-emerald-500/40 hover:bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 gap-1.5 font-bold shrink-0"
+                >
+                  <Zap className={`h-3 w-3 ${testingKey ? "animate-spin" : ""}`} />
+                  {testingKey ? "Test..." : "Tester la clé"}
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-800 dark:text-amber-200">
+                <div className="flex items-center gap-2 min-w-0">
+                  <KeyRound className="h-4 w-4 text-amber-600 shrink-0" />
+                  <span>Collez votre clé API Resend (<code>re_...</code>) pour activer l'envoi vers les opérateurs.</span>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleTestKey}
+                  disabled={testingKey}
+                  className="w-full sm:w-auto h-7 text-[11px] border-amber-500/40 hover:bg-amber-500/20 text-amber-900 dark:text-amber-100 gap-1.5 font-bold shrink-0"
+                >
+                  <Zap className={`h-3 w-3 ${testingKey ? "animate-spin" : ""}`} />
+                  {testingKey ? "Test..." : "Tester la clé"}
+                </Button>
+              </div>
+            )}
+
+            {/* Saisie avec protection DOM et aperçu masqué anti-espionnage */}
+            <div className="space-y-2">
+              <div className="relative">
+                <input
+                  type="password"
+                  value={draftConfig?.resend_api_key ?? ""}
+                  onChange={(e) =>
+                    setDraftConfig({ ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), resend_api_key: e.target.value.trim() })
+                  }
+                  placeholder={
+                    isValidResendApiKey(effectiveConfig?.resend_api_key)
+                      ? "•••••••••••••••••••••••••••• (Clé déjà enregistrée — saisir pour remplacer)"
+                      : "Collez votre clé re_123456789..."
+                  }
+                  className="w-full rounded-lg border border-border bg-background pl-3 pr-10 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowResendKey(!showResendKey)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                  title={showResendKey ? "Masquer le début de la clé" : "Vérifier le début de la clé"}
+                >
+                  {showResendKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+
+              {/* Aperçu sécurisé du début uniquement si demandé par l'admin */}
+              {showResendKey && (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 p-2.5 rounded-lg bg-muted/70 border border-border text-xs animate-in fade-in duration-150">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span>
+                      Début vérifié : <strong className="font-mono text-primary font-bold">{
+                        (draftConfig?.resend_api_key || effectiveConfig?.resend_api_key || "").slice(0, 8)
+                      }••••••••••••••••</strong>
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground font-medium">
+                    Fin masquée pour votre sécurité anti-espionnage
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="text-[11px] text-muted-foreground leading-relaxed flex items-start sm:items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5 sm:mt-0" />
+              <span><strong>Domaine vérifié :</strong> L'expédition s'effectue officiellement via <code>contact@signa.ci</code> (SPF/DKIM validés sur Resend).</span>
+            </div>
           </div>
 
           {/* Dispatching Automatique des Régulateurs (ANARE-CI & ONEP) */}
