@@ -115,6 +115,8 @@ export function useOfflineQueue() {
           await putQueueEntry({ ...uploading, status: "sent", updated_at: new Date().toISOString(), last_error: undefined });
           await deleteQueueEntry(uploading.id);
           sent++;
+          // Pause anti-saturation pour connexions mobiles instables
+          await new Promise((r) => setTimeout(r, 400));
         } catch (error) {
           await putQueueEntry({ ...uploading, status: "failed", updated_at: new Date().toISOString(), last_error: error instanceof Error ? error.message : "Échec d'envoi" });
         }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Search, MapPin, Check, Info, AlertCircle, X, ShieldCheck } from "lucide-react";
+import { Search, MapPin, Check, Info, AlertCircle, X, ShieldCheck, Compass } from "lucide-react";
 import { getPadaCode } from "@/lib/pada-codes";
 import { searchPadaWays, searchPadaWaysScored, PadaWay, ScoredPadaWay, PADA_BOULEVARDS } from "@/lib/pada-database";
 import { Input } from "@/components/ui/input";
@@ -449,14 +449,20 @@ export function PadaAddressInput({
           />
         </div>
         <div>
-          <label className="text-[11px] font-bold text-foreground block mb-1">
-            Point de repère visible <span className="font-normal text-muted-foreground">(facilite l'arrivée)</span>
+          <label className="text-[11px] font-bold text-foreground flex items-center justify-between mb-1">
+            <span className="flex items-center gap-1.5">
+              <Compass className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+              Point de repère visible
+            </span>
+            <span className="text-[9px] font-black uppercase text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded tracking-wider">
+              Recommandé terrain
+            </span>
           </label>
           <Input
             value={landmark}
             onChange={(e) => handleLandmarkChange(e.target.value)}
-            placeholder="Ex: Face Pharmacie Saint-Jean"
-            className="text-xs h-10 bg-background rounded-lg"
+            placeholder="Ex: À 50m de la pharmacie, face maquis, carrefour..."
+            className="text-xs h-10 bg-background rounded-lg border-emerald-500/30 focus-visible:ring-emerald-500"
           />
         </div>
       </div>

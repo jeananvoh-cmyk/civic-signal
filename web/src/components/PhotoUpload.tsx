@@ -22,9 +22,9 @@ interface PhotoUploadProps {
   onNoPhotoToggle?: (checked: boolean) => void;
 }
 
-const MAX_OUTPUT_PX = 1920;
-const JPEG_QUALITY_HIGH = 0.90;
-const JPEG_QUALITY_LOW  = 0.82;
+const MAX_OUTPUT_PX = 1280;
+const JPEG_QUALITY_HIGH = 0.80;
+const JPEG_QUALITY_LOW  = 0.72;
 
 // ── Calcul d'empreinte SHA-256 sur le Blob propre final ──────────────────────
 export async function computeBlobHash(blob: Blob): Promise<string> {
