@@ -269,34 +269,34 @@ function getOperatorTargetEmail(
 ): string {
   if (operator === "CIE") {
     const email = config?.email_cie?.trim();
-    if (email && email.length > 0) return email;
+    if (email && email.length > 0 && !email.includes("jeananvoh")) return email;
     if (fallbackLogEmail && !fallbackLogEmail.includes("jeananvoh") && fallbackLogEmail.includes("@")) return fallbackLogEmail;
     return "reclamation@cie.ci";
   }
   if (operator === "ANARE") {
     const email = config?.email_anare?.trim();
-    if (email && email.length > 0) return email;
+    if (email && email.length > 0 && !email.includes("jeananvoh")) return email;
     const cieEmail = config?.email_cie?.trim();
-    if (cieEmail && cieEmail.length > 0) return cieEmail;
+    if (cieEmail && cieEmail.length > 0 && !cieEmail.includes("jeananvoh")) return cieEmail;
     return "reclamation@anare.ci";
   }
   if (operator === "SODECI") {
     const email = config?.email_sodeci?.trim();
-    if (email && email.length > 0) return email;
+    if (email && email.length > 0 && !email.includes("jeananvoh")) return email;
     if (fallbackLogEmail && !fallbackLogEmail.includes("jeananvoh") && fallbackLogEmail.includes("@")) return fallbackLogEmail;
     return "reclamation@sodeci.ci";
   }
   if (operator === "ONEP") {
     const email = config?.email_onep?.trim();
-    if (email && email.length > 0) return email;
+    if (email && email.length > 0 && !email.includes("jeananvoh")) return email;
     const sodeciEmail = config?.email_sodeci?.trim();
-    if (sodeciEmail && sodeciEmail.length > 0) return sodeciEmail;
+    if (sodeciEmail && sodeciEmail.length > 0 && !sodeciEmail.includes("jeananvoh")) return sodeciEmail;
     return "reclamation@onep.ci";
   }
   if (operator === "MAIRIE") {
     const slug = (commune || "").toLowerCase().replace(/[^a-z0-9]/g, "");
     const mairieEmail = config?.[`mairie_${slug}_email`]?.trim() || config?.[`email_mairie_${slug}`]?.trim();
-    if (mairieEmail && mairieEmail.length > 0) return mairieEmail;
+    if (mairieEmail && mairieEmail.length > 0 && !mairieEmail.includes("jeananvoh")) return mairieEmail;
     if (fallbackLogEmail && !fallbackLogEmail.includes("jeananvoh") && fallbackLogEmail.includes("@")) return fallbackLogEmail;
     return `technique@${slug || "mairie"}.ci`;
   }
@@ -926,6 +926,15 @@ function useRelayConfig() {
   return useQuery({
     queryKey: ["relay-config"],
     queryFn: async () => {
+      const sanitizeFetched = (raw: Record<string, string>): Record<string, string> => {
+        const cleaned = { ...raw };
+        if (cleaned.email_cie && cleaned.email_cie.includes("jeananvoh")) cleaned.email_cie = DEFAULT_CONFIG.email_cie;
+        if (cleaned.email_sodeci && cleaned.email_sodeci.includes("jeananvoh")) cleaned.email_sodeci = DEFAULT_CONFIG.email_sodeci;
+        if (cleaned.email_anare && cleaned.email_anare.includes("jeananvoh")) cleaned.email_anare = DEFAULT_CONFIG.email_anare;
+        if (cleaned.email_onep && cleaned.email_onep.includes("jeananvoh")) cleaned.email_onep = DEFAULT_CONFIG.email_onep;
+        return cleaned;
+      };
+
       // 1. Tenter l'RPC SECURITY DEFINER (contourne les restrictions RLS)
       try {
         const { data: rpcData, error: rpcErr } = await (supabase as any).rpc("admin_get_relay_config");
@@ -935,7 +944,7 @@ function useRelayConfig() {
           );
           return {
             ...DEFAULT_CONFIG,
-            ...fetched,
+            ...sanitizeFetched(fetched),
           } as RelayConfig;
         }
       } catch (_) {}
@@ -953,7 +962,7 @@ function useRelayConfig() {
       );
       return {
         ...DEFAULT_CONFIG,
-        ...fetched,
+        ...sanitizeFetched(fetched),
       } as RelayConfig;
     },
     staleTime: 0,
@@ -1668,6 +1677,11 @@ const AdminRelayPage = () => {
     mutationFn: async (cfg: RelayConfig) => {
       // S'assurer de préserver la clé API Resend existante si la clé dans le draft est vide, omise ou masquée
       const finalCfg = { ...cfg };
+      if (finalCfg.email_cie && finalCfg.email_cie.includes("jeananvoh")) finalCfg.email_cie = DEFAULT_CONFIG.email_cie;
+      if (finalCfg.email_sodeci && finalCfg.email_sodeci.includes("jeananvoh")) finalCfg.email_sodeci = DEFAULT_CONFIG.email_sodeci;
+      if (finalCfg.email_anare && finalCfg.email_anare.includes("jeananvoh")) finalCfg.email_anare = DEFAULT_CONFIG.email_anare;
+      if (finalCfg.email_onep && finalCfg.email_onep.includes("jeananvoh")) finalCfg.email_onep = DEFAULT_CONFIG.email_onep;
+
       if (!finalCfg.resend_api_key || finalCfg.resend_api_key.trim() === "" || finalCfg.resend_api_key.includes("•") || finalCfg.resend_api_key.includes("*")) {
         if (relayConfig?.resend_api_key && isValidResendApiKey(relayConfig.resend_api_key)) {
           finalCfg.resend_api_key = relayConfig.resend_api_key;

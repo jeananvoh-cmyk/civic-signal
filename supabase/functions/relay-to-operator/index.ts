@@ -555,10 +555,10 @@ Deno.serve(async (req) => {
       ? Boolean(body.test_mode)
       : (config["test_mode"] === "true");
     const testEmail   = (body.test_email || config["test_email"] || "").trim();
-    const emailCIE    = config["email_cie"]    || "reclamation@cie.ci";
-    const emailSODECI = config["email_sodeci"] || "reclamation@sodeci.ci";
-    const emailONEP   = config["email_onep"]   || "reclamation@onep.ci";
-    const emailANARE  = config["email_anare"]  || "reclamation@anare.ci";
+    const emailCIE    = (config["email_cie"] && !config["email_cie"].includes("jeananvoh")) ? config["email_cie"].trim() : "reclamation@cie.ci";
+    const emailSODECI = (config["email_sodeci"] && !config["email_sodeci"].includes("jeananvoh")) ? config["email_sodeci"].trim() : "reclamation@sodeci.ci";
+    const emailONEP   = (config["email_onep"] && !config["email_onep"].includes("jeananvoh")) ? config["email_onep"].trim() : "reclamation@onep.ci";
+    const emailANARE  = (config["email_anare"] && !config["email_anare"].includes("jeananvoh")) ? config["email_anare"].trim() : "reclamation@anare.ci";
 
     // Résolution robuste et unifiée de la clé API Resend :
     // 1. Clé passée dynamiquement par l'admin dans le body (si réelle et non masquée)
@@ -581,7 +581,7 @@ Deno.serve(async (req) => {
 
     // Mode direct de test de la clé Resend ou d'envoi de secours sans blocage CORS
     if (body.action === "test_email" || body.action === "test_resend_key") {
-      const keyToUse = (body.resend_api_key || finalApiKey).trim();
+      const keyToUse = cleanApiKey(body.resend_api_key) || finalApiKey;
       const targetTo = (body.to_email || testEmail || "jeananvoh@gmail.com").trim();
       const subjectToUse = body.subject || "[SIGNA-CI] Test de connexion Clé API Resend";
       const nowStr = new Date().toLocaleString("fr-FR", { timeZone: "Africa/Abidjan" });
@@ -706,15 +706,39 @@ Deno.serve(async (req) => {
     }
 
     const reportIds = (relays as RelayLog[]).map((r) => r.report_id);
-    const { data: reports } = await supabase
+    const { data: reports, error: reportsErr } = await supabase
       .from("reports")
       .select(
-        "id, user_id, ticket_code, pada_commune_code, pada_street_name, pada_formatted_address, service_type, commune, quartier, description, verifications, urgency, latitude, longitude, created_at, meter_number, contract_type, reporter_phone",
+        "id, user_id, service_type, commune, quartier, location, description, verifications, urgency, latitude, longitude, created_at, meter_number, contract_type, cie_ticket_number",
       )
       .in("id", reportIds);
 
+    if (reportsErr) {
+      console.error("[relay-to-operator] Erreur récupération signalements:", reportsErr);
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: `Erreur base de données lors de la récupération des signalements: ${reportsErr.message}`,
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Récupération des téléphones des utilisateurs depuis profiles si existants
+    const userIds = [...new Set((reports ?? []).map((r: any) => r.user_id).filter(Boolean))];
+    const { data: profiles } = userIds.length > 0
+      ? await supabase.from("profiles").select("user_id, phone").in("user_id", userIds)
+      : { data: [] };
+    const phoneMap = new Map((profiles ?? []).map((p: any) => [p.user_id, p.phone]));
+
     const reportMap = new Map(
-      (reports ?? []).map((r: Report) => [r.id, r]),
+      (reports ?? []).map((r: any) => [
+        r.id,
+        {
+          ...r,
+          reporter_phone: phoneMap.get(r.user_id) || null,
+        } as Report,
+      ]),
     );
 
     type Group = {
@@ -728,7 +752,10 @@ Deno.serve(async (req) => {
 
     for (const relay of relays as RelayLog[]) {
       const report = reportMap.get(relay.report_id);
-      if (!report) continue;
+      if (!report) {
+        console.warn(`[relay-to-operator] Rapport non trouvé pour relay_id ${relay.id} (report_id: ${relay.report_id})`);
+        continue;
+      }
 
       let resolvedEmail: string;
       if (relay.operator === "CIE") {
@@ -740,14 +767,14 @@ Deno.serve(async (req) => {
       } else if (relay.operator === "ANARE") {
         resolvedEmail = emailANARE;
       } else {
-        const slug = report.commune
+        const slug = (report.commune || "")
           .toLowerCase()
           .normalize("NFD")
           .replace(/[\u0300-\u036f]/g, "")
           .replace(/[^a-z0-9]/g, "");
         const enabled = config[`mairie_${slug}_enabled`] === "true";
         const email   = config[`mairie_${slug}_email`] ?? "";
-        resolvedEmail = (enabled && email) ? email : "";
+        resolvedEmail = (enabled && email && !email.includes("jeananvoh")) ? email : `technique@${slug || "mairie"}.ci`;
       }
 
       if (!resolvedEmail) continue;
@@ -765,6 +792,20 @@ Deno.serve(async (req) => {
       const g = groups.get(key)!;
       g.relayIds.push(relay.id);
       g.reports.push(report);
+    }
+
+    if (groups.size === 0) {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          processed: relays.length,
+          sent: 0,
+          errors: relays.length,
+          message: `Aucun groupe constitué pour les ${relays.length} signalements ciblés.`,
+          lastError: "Les données du signalement sont introuvables ou incomplètes dans la table reports.",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     let sent = 0;
