@@ -96,7 +96,7 @@ const HistoryPage = () => {
             </div>
             <ShareButton
               title="Mon impact SIGNA-CI"
-              text={`J'ai fait ${reports.length} signalement(s) de coupures sur SIGNA-CI ! 🔌💧`}
+              text={`J'ai transmis ${reports.length} signalement(s) de services publics sur SIGNA-CI.`}
               url={window.location.origin}
             />
           </div>
@@ -184,8 +184,9 @@ const HistoryPage = () => {
                       {serviceIcon}
                       <span className="text-sm font-bold">{serviceLabel}</span>
                     </div>
-                    <Badge variant="outline" className={cn("text-white border-white/30", isResolved ? "bg-white/20" : "bg-white/10")}>
-                      {isResolved ? "✅ Résolu" : "🔴 Actif"}
+                    <Badge variant="outline" className={cn("text-white border-white/30 flex items-center gap-1.5", isResolved ? "bg-white/20" : "bg-white/10")}>
+                      <span className={cn("h-1.5 w-1.5 rounded-full bg-white", !isResolved && "animate-pulse")} />
+                      <span>{isResolved ? "Résolu" : "Actif"}</span>
                     </Badge>
                   </div>
                   <div className="p-4">
@@ -220,7 +221,8 @@ const HistoryPage = () => {
                       />
                       {r.status === "active" && r.verifications === 0 && (Date.now() - new Date(r.created_at).getTime()) > 7 * 86400000 && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 border border-warning/30 px-2 py-0.5 text-xs font-semibold text-warning">
-                          ⚠ Non pris en charge
+                          <AlertTriangle className="h-3 w-3 shrink-0" />
+                          <span>Non pris en charge</span>
                         </span>
                       )}
                     </div>
@@ -238,7 +240,7 @@ const HistoryPage = () => {
                               transition={{ type: "spring", stiffness: 320, damping: 22 }}
                               className="mt-3 flex items-center gap-2 rounded-xl bg-green-500/10 border border-green-500/20 px-3 py-2"
                             >
-                              <span className="text-base">🎉</span>
+                              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
                               <p className="text-xs font-semibold text-green-700 dark:text-green-400">
                                 Résolution confirmée — merci pour votre suivi citoyen !
                               </p>

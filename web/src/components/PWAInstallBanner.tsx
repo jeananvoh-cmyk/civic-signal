@@ -59,7 +59,7 @@ const PWAInstallBanner = () => {
     const outcome = await install();
     setInstalling(false);
     if (outcome === "accepted") {
-      toast.success("✅ SIGNA-CI installée sur votre écran d'accueil !");
+      toast.success("SIGNA-CI installée sur votre écran d'accueil !");
       setVisible(false);
     } else {
       handleSnooze();

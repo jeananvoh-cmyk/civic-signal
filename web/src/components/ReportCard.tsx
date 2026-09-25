@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Report, SERVICE_CONFIG, URGENCY_CONFIG } from "@/lib/data";
-import { Clock, CheckCircle2, Users, MapPin } from "lucide-react";
+import { Clock, CheckCircle2, Users, MapPin, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
@@ -44,8 +44,8 @@ const ReportCard = ({ report, index }: { report: Report; index: number }) => {
           <div className="mb-1 flex flex-wrap items-center gap-2">
             <Badge className={urgency.colorClass}>{urgency.label}</Badge>
             {report.urgency === "critical" && (
-              <Badge className="bg-destructive text-destructive-foreground animate-pulse">
-                🔥 Critique
+              <Badge className="bg-destructive text-destructive-foreground animate-pulse inline-flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3 inline" /> Critique
               </Badge>
             )}
             {report.status === "resolved" && (

@@ -7,7 +7,7 @@ import {
   Zap, Droplets, Clock, Trophy, ChevronDown, Radio, Flame, AlertTriangle,
   MapPin, Siren, Landmark, CheckCircle2, Info, Wrench, HelpCircle,
   ShieldCheck, Send, Building2, Users, BarChart2, Filter, Sparkles,
-  Search, LayoutGrid, List, SlidersHorizontal, ArrowUpDown, X, ArrowRight,
+  Search, LayoutGrid, List, SlidersHorizontal, ArrowUpDown, X, ArrowRight, Lightbulb,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -175,8 +175,8 @@ const ReportRow = ({ r, variant }: { r: PriorityReport; variant: "critical" | "h
             <MapPin className="h-3 w-3" />{r.location}
           </span>
           {people !== null && (
-            <span className="flex items-center gap-0.5 text-xs font-semibold text-foreground">
-              👤 {people} personne{people > 1 ? "s" : ""} impactée{people > 1 ? "s" : ""}
+            <span className="flex items-center gap-1 text-xs font-semibold text-foreground">
+              <Users className="h-3 w-3 text-muted-foreground" /> {people} personne{people > 1 ? "s" : ""} impactée{people > 1 ? "s" : ""}
             </span>
           )}
           {r.verifications === 0 ? (
@@ -595,7 +595,7 @@ const DashboardPage = () => {
           </div>
         </motion.div>
 
-        {/* 🚀 Boutons d'Action Principaux Uniformisés (Documenter & Confirmer) */}
+        {/* Actions principales (Documenter & Confirmer) */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -607,8 +607,8 @@ const DashboardPage = () => {
             className="group flex items-center justify-between rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white px-6 sm:px-7 py-4 font-extrabold text-base sm:text-lg shadow-[0_8px_32px_rgba(5,150,105,0.35)] transition-all duration-200 hover:scale-[1.01] active:scale-[0.98]"
           >
             <div className="flex items-center gap-3.5">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 text-xl backdrop-blur-sm shrink-0">
-                📢
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur-sm shrink-0">
+                <AlertTriangle className="h-5 w-5" />
               </div>
               <div className="flex flex-col text-left leading-tight">
                 <span className="text-base sm:text-lg font-extrabold tracking-wide">Documenter un incident</span>
@@ -623,8 +623,8 @@ const DashboardPage = () => {
             className="group flex items-center justify-between rounded-2xl border-2 border-sky-300 bg-sky-50/90 hover:bg-sky-100 text-sky-950 dark:border-sky-800 dark:bg-sky-950/40 dark:hover:bg-sky-900/60 dark:text-sky-200 px-6 sm:px-7 py-4 font-bold text-base sm:text-lg shadow-sm backdrop-blur-md transition-all duration-200 hover:scale-[1.01] active:scale-[0.98]"
           >
             <div className="flex items-center gap-3.5">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/20 text-sky-600 dark:text-sky-400 font-extrabold text-xl shrink-0">
-                ✓
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/20 text-sky-600 dark:text-sky-400 shrink-0">
+                <CheckCircle2 className="h-5 w-5" />
               </div>
               <div className="flex flex-col text-left leading-tight">
                 <span className="text-base sm:text-lg font-extrabold tracking-wide">Confirmer un constat</span>
@@ -635,7 +635,7 @@ const DashboardPage = () => {
           </Link>
         </motion.div>
 
-        {/* 👑 Centre de Commandement & Actions Rapides — Admin & Modérateurs */}
+        {/* Espace Opérations — Admin & Modérateurs */}
         {canValidate && (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -970,11 +970,12 @@ const DashboardPage = () => {
                   const operator = isInfraType
                     ? infraOperator(infraLabel, z.commune)
                     : isElecService ? "CIE" : "SODECI";
-                  const icon = isLampadaire
-                    ? "💡"
-                    : isInfraType
-                    ? infraEmoji(infraLabel)
-                    : isElecService ? "⚡" : "💧";
+                  const renderIcon = () => {
+                    if (isLampadaire) return <Lightbulb className="h-5 w-5 text-amber-500" />;
+                    if (isElecService) return <Zap className="h-5 w-5 text-amber-500" />;
+                    if (isInfraType) return <Landmark className="h-5 w-5 text-emerald-600" />;
+                    return <Droplets className="h-5 w-5 text-blue-500" />;
+                  };
                   const typeLabel = isLampadaire
                     ? "Lampadaire / Éclairage public"
                     : isInfraType
@@ -993,7 +994,9 @@ const DashboardPage = () => {
                       className="flex items-center gap-3 rounded-xl bg-card border border-border px-4 py-3"
                       style={{ borderLeftColor: communeColor, borderLeftWidth: 4 }}
                     >
-                      <span className="text-xl shrink-0">{icon}</span>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted shrink-0">
+                        {renderIcon()}
+                      </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-foreground truncate">{typeLabel}</p>
                         <p className="text-xs text-muted-foreground truncate">
@@ -1133,10 +1136,17 @@ const DashboardPage = () => {
               <CollapsibleContent>
                 <div className="mt-2 rounded-2xl border border-border bg-card shadow-card overflow-hidden divide-y divide-border">
                   {topQuartiers.map((q, i) => {
-                    const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`;
+                    const medal = `#${i + 1}`;
                     return (
                       <div key={`${q.commune}-${q.quartier}`} className="flex items-center gap-3 sm:gap-4 px-3 sm:px-5 py-3 hover:bg-secondary/50 transition-colors">
-                        <span className="text-base sm:text-lg font-bold w-6 sm:w-8 text-center shrink-0">{medal}</span>
+                        <span className={`text-xs font-black px-2 py-0.5 rounded-md border text-center shrink-0 w-8 ${
+                          i === 0 ? "bg-amber-500/15 border-amber-500/40 text-amber-800 dark:text-amber-300" :
+                          i === 1 ? "bg-slate-200 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300" :
+                          i === 2 ? "bg-amber-700/10 border-amber-700/30 text-amber-900 dark:text-amber-400" :
+                          "bg-muted border-border text-muted-foreground"
+                        }`}>
+                          {medal}
+                        </span>
                         <div className="flex-1 min-w-0">
                           <button
                             onClick={() => navigate(`/commune/${encodeURIComponent(q.commune)}`)}
@@ -1197,11 +1207,18 @@ const DashboardPage = () => {
                     {leaderboard.map((c, i) => {
                       const totalActifs = c.electricite_actifs + c.eau_actifs + c.mairie_actifs;
                       const totalAll = c.electricite_total + c.eau_total + c.mairie_total;
-                      const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`;
+                      const medal = `#${i + 1}`;
 
                       return (
                         <div key={c.commune} className="flex items-center gap-4 px-5 py-4 hover:bg-secondary/50 transition-colors">
-                          <span className="text-lg font-bold w-8 text-center">{medal}</span>
+                          <span className={`text-xs font-black px-2 py-0.5 rounded-md border text-center shrink-0 w-8 ${
+                            i === 0 ? "bg-amber-500/15 border-amber-500/40 text-amber-800 dark:text-amber-300" :
+                            i === 1 ? "bg-slate-200 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300" :
+                            i === 2 ? "bg-amber-700/10 border-amber-700/30 text-amber-900 dark:text-amber-400" :
+                            "bg-muted border-border text-muted-foreground"
+                          }`}>
+                            {medal}
+                          </span>
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg overflow-hidden border border-border" style={{ backgroundColor: COMMUNE_LOGOS[c.commune] ? '#fff' : c.couleur }}>
                             {COMMUNE_LOGOS[c.commune] ? (
                               <img src={COMMUNE_LOGOS[c.commune]} alt={c.commune} className="h-full w-full object-contain p-0.5" />
@@ -1277,9 +1294,9 @@ const DashboardPage = () => {
                   <SelectValue placeholder="Trier par..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="activity">🔴 Plus d'incidents</SelectItem>
-                  <SelectItem value="alphabetical">🔤 Alphabétique (A-Z)</SelectItem>
-                  <SelectItem value="population">👥 Plus peuplées</SelectItem>
+                  <SelectItem value="activity">Incidents actifs</SelectItem>
+                  <SelectItem value="alphabetical">Ordre alphabétique (A-Z)</SelectItem>
+                  <SelectItem value="population">Population</SelectItem>
                 </SelectContent>
               </Select>
             </div>

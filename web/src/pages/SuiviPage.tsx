@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Zap, Droplets, Clock, MapPin, TrendingUp, RefreshCw, Info, Search, Ticket, Landmark, Copy } from "lucide-react";
+import { Zap, Droplets, Clock, MapPin, TrendingUp, RefreshCw, Info, Search, Ticket, Landmark, Copy, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -59,22 +59,22 @@ function getComputedStatus(report: Report): ComputedStatus {
 const STATUS_META: Record<ComputedStatus, { label: string; emoji: string; pill: string }> = {
   nouveau: {
     label: "Nouveau",
-    emoji: "🔴",
+    emoji: "",
     pill: "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800",
   },
   en_cours: {
     label: "En cours",
-    emoji: "🟡",
+    emoji: "",
     pill: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800",
   },
   resolu: {
     label: "Résolu",
-    emoji: "🟢",
+    emoji: "",
     pill: "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800",
   },
   non_pris: {
     label: "Non pris en charge",
-    emoji: "⚫",
+    emoji: "",
     pill: "text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700",
   },
 };
@@ -243,14 +243,20 @@ const SuiviPage = () => {
     .filter((r) => r.status === "active")
     .slice(0, 20)
     .map((r) => ({
-      icon: r.service_type === "electricity" ? "⚡" : "💧",
+      icon: r.report_category === "infrastructure" ? (
+        <Landmark className="h-3.5 w-3.5 text-primary" />
+      ) : r.service_type === "electricity" ? (
+        <Zap className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
+      ) : (
+        <Droplets className="h-3.5 w-3.5 text-blue-500 fill-blue-500" />
+      ),
       text: `${r.computedStatus === "en_cours" ? "En cours" : "Nouveau"} · ${r.communeLabel}${r.quartier ? `, ${r.quartier}` : ""} · ${formatAge(r.created_at)}`,
-      category: r.service_type === "electricity" ? "ÉLEC" : "EAU",
+      category: r.report_category === "infrastructure" ? "VOIRIE" : r.service_type === "electricity" ? "ÉLEC" : "EAU",
     }));
 
   // Fallback when no active reports
   const tickerFallback = [
-    { icon: "✅", text: "Aucune coupure active pour l'instant — Abidjan tourne !", category: "STATUT" },
+    { icon: <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />, text: "Aucune coupure active pour l'instant — Abidjan tourne !", category: "STATUT" },
   ];
 
   return (
@@ -326,7 +332,7 @@ const SuiviPage = () => {
                   <span className="text-sm font-normal text-muted-foreground">actifs</span>{" "}
                   <span className="text-sm text-muted-foreground">/ {elecTotal} total</span>
                 </div>
-                <div className="text-sm text-muted-foreground">⚡ Électricité</div>
+                <div className="text-sm text-muted-foreground">Électricité</div>
               </div>
             </CardContent>
           </Card>
@@ -341,7 +347,7 @@ const SuiviPage = () => {
                   <span className="text-sm font-normal text-muted-foreground">actifs</span>{" "}
                   <span className="text-sm text-muted-foreground">/ {eauTotal} total</span>
                 </div>
-                <div className="text-sm text-muted-foreground">💧 Eau</div>
+                <div className="text-sm text-muted-foreground">Eau</div>
               </div>
             </CardContent>
           </Card>
@@ -361,7 +367,7 @@ const SuiviPage = () => {
               </CardHeader>
               <CardContent className="space-y-2.5">
                 {topCommunes.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Aucune zone active 🎉</p>
+                  <p className="text-sm text-muted-foreground">Aucun incident actif dans les zones suivies</p>
                 ) : (
                   topCommunes.map(([commune, count], i) => (
                     <div key={commune} className="flex items-center gap-2">
@@ -393,7 +399,7 @@ const SuiviPage = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 {oldestUnresolved.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Aucun problème actif 🎉</p>
+                  <p className="text-sm text-muted-foreground">Aucun problème actif</p>
                 ) : (
                   oldestUnresolved.map((r) => {
                     const isElec = r.service_type === "electricity";
@@ -407,7 +413,13 @@ const SuiviPage = () => {
                         : "text-muted-foreground";
                     return (
                       <div key={r.id} className="flex items-start gap-2 text-sm">
-                        <span className="text-base shrink-0">{isElec ? "⚡" : "💧"}</span>
+                        <span className="shrink-0 mt-0.5">
+                          {isElec ? (
+                            <Zap className="h-4 w-4 text-amber-500" />
+                          ) : (
+                            <Droplets className="h-4 w-4 text-blue-500" />
+                          )}
+                        </span>
                         <div className="flex-1 min-w-0">
                           <p className="truncate font-medium text-foreground">
                             {r.description.slice(0, 55)}{r.description.length > 55 ? "…" : ""}
@@ -454,10 +466,10 @@ const SuiviPage = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="nouveau">🔴 Nouveau</SelectItem>
-                <SelectItem value="en_cours">🟡 En cours</SelectItem>
-                <SelectItem value="resolu">🟢 Résolu</SelectItem>
-                <SelectItem value="non_pris">⚫ Non pris en charge</SelectItem>
+                <SelectItem value="nouveau">Nouveau</SelectItem>
+                <SelectItem value="en_cours">En cours</SelectItem>
+                <SelectItem value="resolu">Résolu</SelectItem>
+                <SelectItem value="non_pris">Non pris en charge</SelectItem>
               </SelectContent>
             </Select>
 
@@ -467,9 +479,9 @@ const SuiviPage = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toutes catégories</SelectItem>
-                <SelectItem value="electricity">⚡ Électricité (CIE)</SelectItem>
-                <SelectItem value="water">💧 Eau (SODECI)</SelectItem>
-                <SelectItem value="infrastructure">💡 Lampadaires & Voiries</SelectItem>
+                <SelectItem value="electricity">Électricité (CIE)</SelectItem>
+                <SelectItem value="water">Eau (SODECI)</SelectItem>
+                <SelectItem value="infrastructure">Infrastructures & Équipements</SelectItem>
               </SelectContent>
             </Select>
 
@@ -493,7 +505,7 @@ const SuiviPage = () => {
                   sortBy === "priority" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
                 }`}
               >
-                🎯 Priorité
+                Priorité
               </button>
               <button
                 onClick={() => setSortBy("date")}
@@ -501,7 +513,7 @@ const SuiviPage = () => {
                   sortBy === "date" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
                 }`}
               >
-                📅 Date
+                Date
               </button>
             </div>
           </div>
@@ -512,8 +524,8 @@ const SuiviPage = () => {
               Chargement des signalements…
             </div>
           ) : filteredReports.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">
-              <p className="text-4xl mb-3">🎉</p>
+            <div className="text-center py-16 text-muted-foreground flex flex-col items-center justify-center">
+              <CheckCircle2 className="h-10 w-10 text-emerald-600 mb-3" />
               <p className="font-medium">Aucun signalement pour ces critères</p>
             </div>
           ) : (
@@ -539,8 +551,14 @@ const SuiviPage = () => {
                     onClick={() => navigate(`/signalement/${r.id}`)}
                   >
                     <CardContent className="p-3 flex items-start gap-3">
-                      <span className="text-xl shrink-0 mt-0.5">
-                        {isLampadaire ? "💡" : isInfra ? infraEmoji(infraLabel) : isElec ? "⚡" : "💧"}
+                      <span className="shrink-0 mt-0.5">
+                        {isElec ? (
+                          <Zap className="h-5 w-5 text-amber-500" />
+                        ) : isInfra ? (
+                          <Landmark className="h-5 w-5 text-emerald-600" />
+                        ) : (
+                          <Droplets className="h-5 w-5 text-blue-500" />
+                        )}
                       </span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-1 flex-wrap">
@@ -549,8 +567,9 @@ const SuiviPage = () => {
                             {ticketCode}
                           </span>
                           <PriorityBadge priority={r.priority} showScore={canValidate} showFactors={canValidate} />
-                          <span className={`inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 ${meta.pill}`}>
-                            {meta.emoji} {meta.label}
+                          <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold rounded-full px-2 py-0.5 ${meta.pill}`}>
+                            <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" />
+                            {meta.label}
                           </span>
                           {isInfra && infraLabel && (
                             <span className="inline-flex items-center rounded-full bg-teal-500/10 px-2 py-0.5 text-xs font-semibold text-teal-700 dark:text-teal-400">

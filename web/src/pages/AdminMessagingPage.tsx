@@ -51,7 +51,7 @@ const AdminMessagingPage = () => {
 
       const count = data as number;
       setLastResult({ count, commune, quartier });
-      toast.success(`📢 Message envoyé à ${count} utilisateur${count > 1 ? "s" : ""}`);
+      toast.success(`Message diffusé à ${count} utilisateur${count > 1 ? "s" : ""}`);
 
       // Send Web Push notifications to subscribed users
       supabase.functions.invoke("send-push", {
@@ -178,7 +178,7 @@ const AdminMessagingPage = () => {
           <div className="rounded-xl bg-secondary/50 p-4 space-y-1">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Aperçu</p>
             <p className="text-sm font-bold text-foreground">{title}</p>
-            <p className="text-sm text-muted-foreground">📢 {message}</p>
+            <p className="text-sm text-muted-foreground">{message}</p>
             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
               <Users className="h-3 w-3" />
               Cible : {commune}{quartier ? `, ${quartier}` : " (tous quartiers)"}

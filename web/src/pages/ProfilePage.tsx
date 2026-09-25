@@ -8,7 +8,7 @@ import {
   Zap, Droplets, Info, History, Trash2, AlertTriangle, LogOut,
   Filter, CalendarDays, XCircle, CheckCheck, Download, Award,
   BookOpen, ExternalLink, Scale, Lightbulb, ShieldCheck, Camera, Loader2, ScanLine,
-  Gauge, BatteryMedium, ArrowLeft,
+  Gauge, BatteryMedium, ArrowLeft, Sun, Moon, Monitor,
 } from "lucide-react";
 import { useElectricity } from "@/hooks/useElectricity";
 import { formatDaysRemaining } from "@/lib/consumptionEngine";
@@ -196,11 +196,11 @@ const RightsTabContent = () => {
               <div className="px-4 pb-4 border-t border-border pt-3">
                 <div className="flex gap-2">
                   <div className="flex-1 flex items-center gap-2 rounded-lg border border-border bg-background p-2 text-left">
-                    <span className="text-base">💧</span>
+                    <Droplets className="h-4 w-4 text-blue-500 shrink-0" />
                     <span className="text-xs font-bold text-blue-600 dark:text-blue-400">ODD 6 — Eau propre</span>
                   </div>
                   <div className="flex-1 flex items-center gap-2 rounded-lg border border-border bg-background p-2 text-left">
-                    <span className="text-base">⚡</span>
+                    <Zap className="h-4 w-4 text-amber-500 shrink-0" />
                     <span className="text-xs font-bold text-amber-600 dark:text-amber-400">ODD 7 — Énergie</span>
                   </div>
                 </div>
@@ -1020,12 +1020,12 @@ const ProfilePage = () => {
                 {/* ODD chips */}
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <button onClick={() => setShowOddDialog("odd6")} className="flex items-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/5 p-2.5 hover:bg-blue-500/10 transition-colors text-left">
-                    <span className="text-lg shrink-0">💧</span>
+                    <Droplets className="h-4 w-4 text-blue-500 shrink-0" />
                     <div className="min-w-0"><p className="text-xs font-bold text-blue-600 dark:text-blue-400 leading-tight">ODD 6</p><p className="text-xs text-muted-foreground leading-tight">Eau propre</p></div>
                     <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto shrink-0" />
                   </button>
                   <button onClick={() => setShowOddDialog("odd7")} className="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 p-2.5 hover:bg-amber-500/10 transition-colors text-left">
-                    <span className="text-lg shrink-0">⚡</span>
+                    <Zap className="h-4 w-4 text-amber-500 shrink-0" />
                     <div className="min-w-0"><p className="text-xs font-bold text-amber-600 dark:text-amber-400 leading-tight">ODD 7</p><p className="text-xs text-muted-foreground leading-tight">Énergie propre</p></div>
                     <ExternalLink className="h-3 w-3 text-muted-foreground ml-auto shrink-0" />
                   </button>
@@ -1507,16 +1507,23 @@ const ProfilePage = () => {
                         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary"><Palette className="h-4 w-4 text-secondary-foreground" /></div>
                         <div><p className="font-semibold text-sm text-foreground">Thème</p><p className="text-xs text-muted-foreground">{profile.theme === "system" ? "Système" : profile.theme === "dark" ? "Sombre" : "Clair"}</p></div>
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => update("theme", profile.theme === "system" ? "light" : profile.theme === "light" ? "dark" : "system")}>
-                        {profile.theme === "system" ? "☀️" : profile.theme === "light" ? "🌙" : "⚙️"}
+                      <Button variant="outline" size="sm" onClick={() => update("theme", profile.theme === "system" ? "light" : profile.theme === "light" ? "dark" : "system")} className="gap-1.5">
+                        {profile.theme === "system" ? <Monitor className="h-4 w-4" /> : profile.theme === "light" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                        <span className="text-xs">{profile.theme === "system" ? "Système" : profile.theme === "light" ? "Clair" : "Sombre"}</span>
                       </Button>
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10"><Palette className="h-4 w-4 text-primary" /></div>
-                        <div><p className="font-semibold text-sm text-foreground">Couleurs SIGNA·CI</p><p className="text-xs text-muted-foreground">{isIvoire ? "🟠 Thème Ivoire (orange soleil)" : "🔵 Thème SIGNA·CI (bleu institutionnel)"}</p></div>
+                        <div>
+                          <p className="font-semibold text-sm text-foreground">Couleurs SIGNA·CI</p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                            <span className={`inline-block h-2 w-2 rounded-full ${isIvoire ? "bg-amber-500" : "bg-blue-600"}`} />
+                            {isIvoire ? "Thème Ivoire (orange national)" : "Thème SIGNA·CI (bleu institutionnel)"}
+                          </p>
+                        </div>
                       </div>
-                      <Button variant="outline" size="sm" onClick={toggleBrandTheme}>{isIvoire ? "→ Bleu" : "→ Ivoire 🟠"}</Button>
+                      <Button variant="outline" size="sm" onClick={toggleBrandTheme}>{isIvoire ? "Activer Bleu" : "Activer Ivoire"}</Button>
                     </div>
                   </div>
                 )}
@@ -1533,9 +1540,9 @@ const ProfilePage = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
               {showOddDialog === "odd6" ? (
-                <><span className="text-xl">💧</span> ODD 6 — Eau propre et assainissement</>
+                <><Droplets className="h-5 w-5 text-blue-500 inline shrink-0" /> ODD 6 — Eau propre et assainissement</>
               ) : (
-                <><span className="text-xl">⚡</span> ODD 7 — Énergie propre et d'un coût abordable</>
+                <><Zap className="h-5 w-5 text-amber-500 inline shrink-0" /> ODD 7 — Énergie propre et d'un coût abordable</>
               )}
             </DialogTitle>
             <DialogDescription className="text-sm">

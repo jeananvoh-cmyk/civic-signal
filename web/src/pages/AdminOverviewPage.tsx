@@ -429,11 +429,11 @@ const AdminOverviewPage = () => {
                   onClick={() => navigate(`/admin/signalements?commune=${encodeURIComponent(cp.commune)}&status=active`)}
                   className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-bold text-foreground transition-all hover:scale-105"
                 >
-                  <span>📍 {cp.commune}</span>
-                  <span className="flex items-center gap-1 font-mono text-[11px] text-amber-700 dark:text-amber-300">
-                    {cp.elec > 0 && <span title={`${cp.elec} coupure(s) élec`}>⚡{cp.elec}</span>}
-                    {cp.water > 0 && <span title={`${cp.water} coupure(s) eau`}>💧{cp.water}</span>}
-                    {cp.infra > 0 && <span title={`${cp.infra} voirie`}>🏗️{cp.infra}</span>}
+                  <span className="flex items-center gap-1"><MapPin className="h-3 w-3 text-muted-foreground" /> {cp.commune}</span>
+                  <span className="flex items-center gap-1.5 font-mono text-[11px] text-amber-700 dark:text-amber-300">
+                    {cp.elec > 0 && <span className="inline-flex items-center gap-0.5" title={`${cp.elec} coupure(s) élec`}><Zap className="h-3 w-3 text-amber-500 fill-amber-500" />{cp.elec}</span>}
+                    {cp.water > 0 && <span className="inline-flex items-center gap-0.5" title={`${cp.water} coupure(s) eau`}><Droplets className="h-3 w-3 text-blue-500 fill-blue-500" />{cp.water}</span>}
+                    {cp.infra > 0 && <span className="inline-flex items-center gap-0.5" title={`${cp.infra} voirie`}><Landmark className="h-3 w-3 text-primary" />{cp.infra}</span>}
                   </span>
                   <ArrowRight className="h-3 w-3 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
                 </button>

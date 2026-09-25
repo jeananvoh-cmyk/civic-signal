@@ -128,11 +128,11 @@ const CguPage = () => {
                   En cas de danger imminent pour la vie humaine (incendie, électrocution en cours, inondation mortelle, accident grave), vous devez immédiatement composer les numéros officiels d'urgence de la République de Côte d'Ivoire :
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-semibold text-foreground">
-                  <div className="p-2.5 rounded-xl bg-background/80 border border-rose-500/20">🚒 Sapeurs-Pompiers (GSPM) : <strong>180</strong></div>
-                  <div className="p-2.5 rounded-xl bg-background/80 border border-rose-500/20">👮 Police Nationale : <strong>170 / 110 / 111</strong></div>
-                  <div className="p-2.5 rounded-xl bg-background/80 border border-rose-500/20">🚑 SAMU : <strong>185</strong></div>
-                  <div className="p-2.5 rounded-xl bg-background/80 border border-rose-500/20">⚡ CIE Dépannage Urgence : <strong>179</strong></div>
-                  <div className="p-2.5 rounded-xl bg-background/80 border border-rose-500/20 sm:col-span-2">💧 SODECI Urgence : <strong>175</strong></div>
+                  <div className="p-2.5 rounded-xl bg-background/80 border border-rose-500/20">Sapeurs-Pompiers (GSPM) : <strong>180</strong></div>
+                  <div className="p-2.5 rounded-xl bg-background/80 border border-rose-500/20">Police Nationale : <strong>170 / 110 / 111</strong></div>
+                  <div className="p-2.5 rounded-xl bg-background/80 border border-rose-500/20">SAMU : <strong>185</strong></div>
+                  <div className="p-2.5 rounded-xl bg-background/80 border border-rose-500/20">CIE Dépannage Urgence : <strong>179</strong></div>
+                  <div className="p-2.5 rounded-xl bg-background/80 border border-rose-500/20 sm:col-span-2">SODECI Urgence : <strong>175</strong></div>
                 </div>
               </div>
             </Section>
@@ -197,7 +197,7 @@ const CguPage = () => {
               </ul>
               
               <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 mt-3">
-                <strong>⚠️ Rappel Légal (Loi n° 2013-451 sur la Cybercriminalité) :</strong> La soumission intentionnelle de faux signalements, l'usurpation d'identité, la diffusion de fausses nouvelles ou les tentatives de saturation (spam/DDoS) constituent des infractions pénales passibles des peines prévues par la législation ivoirienne.
+                <strong>Rappel Légal (Loi n° 2013-451 sur la Cybercriminalité) :</strong> La soumission intentionnelle de faux signalements, l'usurpation d'identité, la diffusion de fausses nouvelles ou les tentatives de saturation (spam/DDoS) constituent des infractions pénales passibles des peines prévues par la législation ivoirienne.
               </div>
             </Section>
 

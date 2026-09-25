@@ -143,8 +143,8 @@ const NeighborCorroboration = ({ reportId, onDone, onReportLoaded }: NeighborCor
       setConfirmed(true);
       const isInfra = report?.report_category === "infrastructure";
       toast.success(isInfra
-        ? "✅ Merci ! Votre demande de réparation a été enregistrée."
-        : "✅ Merci ! Votre confirmation a été enregistrée.");
+        ? "Merci ! Votre demande de réparation a été enregistrée."
+        : "Merci ! Votre confirmation a été enregistrée.");
     } catch (err: any) {
       const msg = err.message || "Erreur";
       if (msg.includes("déjà confirmé")) {

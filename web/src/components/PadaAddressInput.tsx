@@ -238,26 +238,29 @@ export function PadaAddressInput({
                                 </span>
                               )}
                               {!item.isExactDoor && item.probabilityLabel === "Haute" && (
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                                  🟢 Très probable
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                  Très probable
                                 </span>
                               )}
                               {item.probabilityLabel === "Incompatible" && (
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
-                                  ⚠️ N° trop élevé ({way.longueurM}m max)
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
+                                  <AlertCircle className="h-3 w-3 shrink-0" />
+                                  N° hors gabarit ({way.longueurM}m max)
                                 </span>
                               )}
                             </div>
 
                             {item.matchReason && (
-                              <p className="text-[10px] text-primary font-semibold mt-0.5">
-                                💡 {item.matchReason}
+                              <p className="text-[10px] text-primary font-semibold mt-0.5 flex items-center gap-1">
+                                <Info className="h-3 w-3 shrink-0" />
+                                <span>{item.matchReason}</span>
                               </p>
                             )}
 
                             {way.ancienNom && !item.matchReason?.includes("Alias") && (
                               <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
-                                📍 Ancien nom : <span className="font-semibold">{way.ancienNom}</span>
+                                Ancienne dénomination : <span className="font-semibold">{way.ancienNom}</span>
                               </p>
                             )}
                             {way.quartier && (
@@ -316,7 +319,8 @@ export function PadaAddressInput({
           {!searchTerm && suggestionsScored.length > 0 && (
             <div className="pt-1">
               <div className="flex items-center gap-1.5 mb-1.5 text-[11px] font-semibold text-muted-foreground">
-                <span>📍 Voies principales suggérées {quartier ? `(${quartier})` : `(${commune})`} :</span>
+                <MapPin className="h-3 w-3 text-primary shrink-0" />
+                <span>Voies principales suggérées {quartier ? `(${quartier})` : `(${commune})`} :</span>
               </div>
               <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
                 {suggestionsScored.slice(0, 4).map((item) => (
@@ -384,18 +388,18 @@ export function PadaAddressInput({
 
             {selectedWay.ancienNom && (
               <p className="text-xs text-amber-800 dark:text-amber-300 font-medium">
-                🏛️ Ancienne dénomination : <span className="font-bold">{selectedWay.ancienNom}</span>
+                Ancienne dénomination : <span className="font-bold">{selectedWay.ancienNom}</span>
               </p>
             )}
 
             {selectedDoorId && (
               <p className="text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-300">
-                🎫 Réf. Cadastre PADA : <code>{selectedDoorId}</code>
+                Réf. Cadastre PADA : <code>{selectedDoorId}</code>
               </p>
             )}
 
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1.5 text-xs text-muted-foreground font-semibold border-t border-emerald-500/10">
-              <span>📍 Code Postal : <strong className="text-foreground">{padaCode}</strong></span>
+              <span>Code Postal : <strong className="text-foreground">{padaCode}</strong></span>
               <span>•</span>
               <span>Commune : <strong className="text-foreground">{commune}</strong></span>
               {selectedWay.quartier && (

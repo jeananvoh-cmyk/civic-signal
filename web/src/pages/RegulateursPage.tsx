@@ -226,7 +226,7 @@ const RegulateursPage = () => {
           >
             <div className="flex items-center gap-3.5">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-600 font-extrabold text-xl shrink-0">
-                ⚡
+                <Zap className="h-6 w-6" />
               </div>
               <div>
                 <div className="text-xs font-black uppercase tracking-wider text-amber-700 dark:text-amber-300">
@@ -253,7 +253,7 @@ const RegulateursPage = () => {
           >
             <div className="flex items-center gap-3.5">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/20 text-blue-600 font-extrabold text-xl shrink-0">
-                💧
+                <Droplets className="h-6 w-6" />
               </div>
               <div>
                 <div className="text-xs font-black uppercase tracking-wider text-blue-700 dark:text-blue-300">

@@ -276,8 +276,9 @@ export const ResolutionTimelineModal = ({
                 4. Preuve de Réparation (Avant / Après)
               </span>
               {isPendingReview && (
-                <Badge variant="outline" className="text-[10px] font-bold text-amber-600 border-amber-500/40 bg-amber-500/10">
-                  Preuve à modérer ⚠️
+                <Badge variant="outline" className="text-[10px] font-bold text-amber-600 border-amber-500/40 bg-amber-500/10 inline-flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  <span>Preuve à modérer</span>
                 </Badge>
               )}
               {isRejectedProof && (

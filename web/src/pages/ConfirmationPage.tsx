@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Radio, Users, BarChart3, Zap, ArrowRight, MapPin, Award, MessageCircle, Copy, Check, Ticket, Landmark } from "lucide-react";
+import { CheckCircle2, Radio, Users, BarChart3, Zap, Droplets, FileText, ArrowRight, MapPin, Award, MessageCircle, Copy, Check, Ticket, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import ShareButton from "@/components/ShareButton";
@@ -23,7 +23,6 @@ const ConfirmationPage = () => {
   const [showBadge, setShowBadge] = useState(false);
   const commune = searchParams.get("commune") || "";
   const typeLabel = searchParams.get("type") || "Signalement";
-  const typeEmoji = searchParams.get("emoji") || "⚡";
   const quartier = searchParams.get("quartier") || "";
   const serviceType = searchParams.get("service") || "";
 
@@ -218,15 +217,22 @@ const ConfirmationPage = () => {
           <h1 className="font-display text-2xl font-extrabold text-foreground">
             Signalement envoyé !
           </h1>
-          <p className="mt-1 text-muted-foreground">
-            {typeEmoji} <span className="font-semibold">{typeLabel}</span>
+          <p className="mt-1 text-muted-foreground flex items-center justify-center gap-1.5">
+            {serviceType === "electricity" ? (
+              <Zap className="h-4 w-4 text-amber-500" />
+            ) : serviceType === "water" ? (
+              <Droplets className="h-4 w-4 text-blue-500" />
+            ) : (
+              <Landmark className="h-4 w-4 text-primary" />
+            )}
+            <span className="font-semibold">{typeLabel}</span>
             {commune && (
               <> — <span className="font-semibold" style={{ color: accentColor }}>{commune}</span></>
             )}
           </p>
         </motion.div>
 
-        {/* 🎫 Ticket de Suivi & Référence Unique */}
+        {/* Ticket de Suivi & Référence Unique */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -362,8 +368,9 @@ const ConfirmationPage = () => {
               animate={{ opacity: 1, scale: 1 }}
               className="mt-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 p-3"
             >
-              <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400">
-                🎯 Signalement fortement confirmé !
+              <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 flex items-center justify-center gap-1.5">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                <span>Signalement fortement confirmé !</span>
               </p>
               <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-0.5">
                 Il sera traité en priorité par les autorités.
@@ -402,8 +409,9 @@ const ConfirmationPage = () => {
                   Dès que votre signalement est confirmé par vos voisins, notre équipe le transmet directement à la {operatorName} via WhatsApp en votre nom. Vous n'avez rien d'autre à faire.
                 </p>
                 {neighborCount !== null && neighborCount > 0 && (
-                  <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold mt-1.5">
-                    ✓ {neighborCount + 1} signalement{neighborCount > 0 ? "s" : ""} déjà dans ce secteur — transmission prioritaire
+                  <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold mt-1.5 flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                    <span>{neighborCount + 1} signalement{neighborCount > 0 ? "s" : ""} déjà dans ce secteur — transmission prioritaire</span>
                   </p>
                 )}
               </div>
@@ -419,8 +427,9 @@ const ConfirmationPage = () => {
           className="rounded-2xl border-2 border-green-500/30 bg-green-500/5 p-4 space-y-3"
         >
           <div className="text-center space-y-1">
-            <p className="text-sm font-bold text-foreground">
-              📣 Alertez vos voisins — renforcez votre signalement
+            <p className="text-sm font-bold text-foreground flex items-center justify-center gap-1.5">
+              <Users className="h-4 w-4 text-emerald-600" />
+              <span>Alertez vos voisins — renforcez votre signalement</span>
             </p>
             <p className="text-xs text-muted-foreground leading-relaxed">
               Plus votre signalement est confirmé, plus vite il sera traité.
@@ -444,8 +453,9 @@ const ConfirmationPage = () => {
             className="mb-3"
           >
             <Button asChild className="w-full py-5 font-bold text-base gap-2 hover:opacity-90 active:opacity-80 transition-opacity" style={{ backgroundColor: accentColor }}>
-              <Link to={`/signalement/${reportId}`}>
-                📋 Consulter mon signalement
+              <Link to={`/signalement/${reportId}`} className="flex items-center justify-center gap-2">
+                <FileText className="h-4 w-4" />
+                <span>Consulter mon signalement</span>
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>

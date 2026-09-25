@@ -224,7 +224,8 @@ const PartnersPage = () => {
             transition={{ duration: 0.5 }}
           >
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary mb-4">
-              🤝 Espace Partenaires &amp; Collectivités
+              <Building2 className="h-3.5 w-3.5" />
+              <span>Espace Partenaires &amp; Collectivités</span>
             </span>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground leading-tight">
               Traitez les signalements citoyens<br className="hidden sm:block" /> plus vite, mieux, ensemble.
@@ -385,16 +386,16 @@ const PartnersPage = () => {
             <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-6 flex flex-col justify-between space-y-4 hover:border-slate-700 transition-colors">
               <div className="space-y-3">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-800 text-slate-300 text-xs font-bold">
-                  🥉 Palier 1 · Open Data
+                  Niveau 1 · Open Data
                 </div>
                 <h3 className="text-lg font-bold text-white">Accès Données Libres (Open311)</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
                   Accès instantané et sans frais aux flux de données publiques anonymisées et géoréférencées (~150 m) pour les observatoires et citoyens.
                 </p>
                 <ul className="space-y-2 text-xs text-slate-300 pt-2">
-                  <li className="flex items-center gap-2">✓ API GeoReport v2 standard</li>
-                  <li className="flex items-center gap-2">✓ Exports CSV / JSON publics</li>
-                  <li className="flex items-center gap-2">✓ Licence Open Source AGPL-3.0</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> API GeoReport v2 standard</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> Exports CSV / JSON publics</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> Licence Open Source AGPL-3.0</li>
                 </ul>
               </div>
               <div className="pt-4 border-t border-slate-800">
@@ -410,17 +411,17 @@ const PartnersPage = () => {
               </div>
               <div className="space-y-3">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-bold">
-                  🥈 Palier 2 · Portail Dédié
+                  Niveau 2 · Portail Dédié
                 </div>
                 <h3 className="text-lg font-bold text-white">Console Services Techniques</h3>
                 <p className="text-xs text-slate-300 leading-relaxed">
                   Espace d'administration dédié pour la Mairie ou le Régulateur permettant de suivre, qualifier et clôturer les incidents en direct.
                 </p>
                 <ul className="space-y-2 text-xs text-slate-200 pt-2">
-                  <li className="flex items-center gap-2">✓ Tableau de bord par commune / secteur</li>
-                  <li className="flex items-center gap-2">✓ Mise à jour des statuts d'intervention</li>
-                  <li className="flex items-center gap-2">✓ Réponse officielle visible par les riverains</li>
-                  <li className="flex items-center gap-2">✓ Rapports mensuels pour Conseil Municipal</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> Tableau de bord par commune / secteur</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> Mise à jour des statuts d'intervention</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> Réponse officielle visible par les riverains</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> Rapports mensuels pour Conseil Municipal</li>
                 </ul>
               </div>
               <div className="pt-4 border-t border-emerald-900/60">
@@ -433,17 +434,17 @@ const PartnersPage = () => {
             <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-6 flex flex-col justify-between space-y-4 hover:border-slate-700 transition-colors">
               <div className="space-y-3">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-purple-500/20 text-purple-400 text-xs font-bold">
-                  🥇 Palier 3 · Intégration Certifiée
+                  Niveau 3 · Intégration Certifiée
                 </div>
                 <h3 className="text-lg font-bold text-white">Connecteur Métier & SIG / CRM</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
                   Interconnexion automatisée avec vos systèmes informatiques internes (ArcGIS, QGIS, GMAO, CRM) et assistance technique prioritaire.
                 </p>
                 <ul className="space-y-2 text-xs text-slate-300 pt-2">
-                  <li className="flex items-center gap-2">✓ Webhooks temps réel & API bidirectionnelle</li>
-                  <li className="flex items-center gap-2">✓ Adresses PADA exactes pour équipes d'urgence</li>
-                  <li className="flex items-center gap-2">✓ SLA 99.9% & Support dédié 24/7</li>
-                  <li className="flex items-center gap-2">✓ Formation sur site des agents techniques</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-purple-400 shrink-0" /> Webhooks temps réel & API bidirectionnelle</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-purple-400 shrink-0" /> Adresses PADA exactes pour équipes d'urgence</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-purple-400 shrink-0" /> SLA 99.9% & Support dédié 24/7</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-purple-400 shrink-0" /> Formation sur site des agents techniques</li>
                 </ul>
               </div>
               <div className="pt-4 border-t border-slate-800">
@@ -566,7 +567,8 @@ function PartnerRequestForm() {
       <div className="container max-w-2xl px-4 space-y-8">
         <div className="text-center space-y-2">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-            📝 Demande d'Accès Partenaire &amp; Collectivité
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            <span>Demande d'Accès Partenaire &amp; Collectivité</span>
           </span>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground">Rejoignez l'écosystème SIGNA-CI</h2>
           <p className="text-sm text-muted-foreground">
@@ -576,8 +578,8 @@ function PartnerRequestForm() {
 
         {submitted ? (
           <div className="p-8 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-3">
-            <div className="h-12 w-12 rounded-full bg-emerald-500 text-white mx-auto flex items-center justify-center text-xl font-bold">
-              ✓
+            <div className="h-12 w-12 rounded-full bg-emerald-500 text-white mx-auto flex items-center justify-center">
+              <CheckCircle2 className="h-6 w-6" />
             </div>
             <h3 className="text-lg font-bold text-foreground">Merci pour votre demande !</h3>
             <p className="text-xs text-muted-foreground max-w-md mx-auto">

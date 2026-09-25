@@ -485,7 +485,7 @@ const MairieDashboardPage = () => {
       const msg = status === "processing"
         ? "Chantier pris en charge par l'équipe municipale"
         : status === "resolved"
-        ? "Incident marqué Résolu et clôturé ✅"
+        ? "Incident marqué comme résolu et clôturé"
         : "Fiche d'intervention mise à jour";
       toast.success(msg);
       setActionDialog(null);
@@ -882,10 +882,10 @@ const MairieDashboardPage = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Toutes les catégories</SelectItem>
-                  <SelectItem value="voirie">🚧 Voirie &amp; Nids-de-poule</SelectItem>
-                  <SelectItem value="lampadaire">💡 Éclairage &amp; Lampadaire</SelectItem>
-                  <SelectItem value="caniveau">🌊 Caniveau &amp; Drainage</SelectItem>
-                  <SelectItem value="salubrite">🗑️ Salubrité &amp; Déchets</SelectItem>
+                  <SelectItem value="voirie">Voirie &amp; Nids-de-poule</SelectItem>
+                  <SelectItem value="lampadaire">Éclairage &amp; Lampadaire</SelectItem>
+                  <SelectItem value="caniveau">Caniveau &amp; Drainage</SelectItem>
+                  <SelectItem value="salubrite">Salubrité &amp; Déchets</SelectItem>
                 </SelectContent>
               </Select>
             </div>

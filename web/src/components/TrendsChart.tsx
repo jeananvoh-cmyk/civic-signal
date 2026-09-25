@@ -434,8 +434,8 @@ const TrendsChart = ({ className = "" }: TrendsChartProps) => {
               }}
             />
             <Legend wrapperStyle={{ fontSize: "11px" }} />
-            <Area type="monotone" dataKey="actifs" name="🔴 En cours (Non résolus)" stroke="hsl(var(--destructive))" fill="url(#gradActifs)" strokeWidth={2} />
-            <Area type="monotone" dataKey="resolus" name="✅ Résolus" stroke="hsl(var(--success))" fill="url(#gradResolus2)" strokeWidth={2} />
+            <Area type="monotone" dataKey="actifs" name="En cours (Non résolus)" stroke="hsl(var(--destructive))" fill="url(#gradActifs)" strokeWidth={2} />
+            <Area type="monotone" dataKey="resolus" name="Résolus" stroke="hsl(var(--success))" fill="url(#gradResolus2)" strokeWidth={2} />
           </AreaChart>
         </ResponsiveContainer>
       ) : (
@@ -453,8 +453,8 @@ const TrendsChart = ({ className = "" }: TrendsChartProps) => {
               }}
             />
             <Legend wrapperStyle={{ fontSize: "11px" }} />
-            <Bar dataKey="actifs" name="🔴 En cours (non résolus)" fill="hsl(var(--destructive))" stackId="status" radius={[0, 0, 0, 0]} />
-            <Bar dataKey="resolus" name="✅ Résolus" fill="hsl(var(--success))" stackId="status" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="actifs" name="En cours (Non résolus)" fill="hsl(var(--destructive))" stackId="status" radius={[0, 0, 0, 0]} />
+            <Bar dataKey="resolus" name="Résolus" fill="hsl(var(--success))" stackId="status" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       )}

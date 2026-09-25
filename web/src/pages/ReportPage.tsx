@@ -961,8 +961,8 @@ const ReportPage = () => {
 
                   {/* Choix manuel direct de secours */}
                   <div className="pt-3 border-t border-amber-500/20 text-left space-y-3">
-                    <label className="text-xs font-bold text-foreground block">
-                      📍 Choisir ma commune :
+                    <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5 text-primary" /> Choisir ma commune :
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {COMMUNES.map((c) => (
@@ -1084,8 +1084,8 @@ const ReportPage = () => {
               <div className="flex items-center justify-center gap-1.5 flex-wrap pt-1">
                 {[
                   { id: "all", label: "Tous" },
-                  { id: "outage", label: "⚡💧 Coupures foyer" },
-                  { id: "infrastructure", label: "🚧 Voirie & Équipements" },
+                  { id: "outage", label: "Coupures domestiques" },
+                  { id: "infrastructure", label: "Infrastructures & Équipements" },
                 ].map((f) => (
                   <button
                     key={f.id}
@@ -1525,8 +1525,8 @@ const ReportPage = () => {
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-sm font-bold text-foreground">Personnes vulnérables ?</span>
                           {(babies + pregnant + elderly > 0) && (
-                            <span className="inline-flex items-center rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-300">
-                              ⚡ Priorité haute
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-300">
+                              <Zap className="h-3 w-3" /> Priorité haute
                             </span>
                           )}
                         </div>
@@ -1583,7 +1583,7 @@ const ReportPage = () => {
                             {
                               label: "Bébés / Nourrissons (0-2 ans)",
                               sub: "Biberons, chaleur, soins",
-                              emoji: "👶",
+                              icon: Baby,
                               val: babies,
                               set: setBabies,
                               min: 0,
@@ -1592,7 +1592,7 @@ const ReportPage = () => {
                             {
                               label: "Femmes enceintes ou allaitantes (nourrices)",
                               sub: "Grossesse ou allaitement en cours",
-                              emoji: "🤰",
+                              icon: Heart,
                               val: pregnant,
                               set: setPregnant,
                               min: 0,
@@ -1601,20 +1601,20 @@ const ReportPage = () => {
                             {
                               label: "Personnes âgées (65+ ans)",
                               sub: "Santé fragile, autonomie",
-                              emoji: "👵",
+                              icon: UserRound,
                               val: elderly,
                               set: setElderly,
                               min: 0,
                               max: 20
                             },
-                          ].map(({ label, sub, emoji, val, set, min, max }) => (
+                          ].map(({ label, sub, icon: IconComponent, val, set, min, max }) => (
                             <div
                               key={label}
                               className="flex items-center justify-between py-2 border-b border-border/40 last:border-0 gap-2"
                             >
                               <div className="min-w-0 flex items-center gap-2.5">
-                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-card border border-border/60 text-base shadow-xs">
-                                  {emoji}
+                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-card border border-border/60 text-primary shadow-xs">
+                                  <IconComponent className="h-4 w-4" />
                                 </span>
                                 <div className="min-w-0">
                                   <p className="text-xs sm:text-sm font-semibold text-foreground truncate">{label}</p>
@@ -1645,7 +1645,7 @@ const ReportPage = () => {
 
                           {(babies + pregnant + elderly > 0) && (
                             <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
-                              <span>⚡</span>
+                              <Zap className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
                               <span>Priorité d'intervention maximale transmise à la CIE / SODECI</span>
                             </div>
                           )}
@@ -1872,8 +1872,8 @@ const ReportPage = () => {
               {!user ? (
                 <div className="rounded-2xl border-2 border-primary/30 bg-primary/5 p-5 text-center space-y-3">
                   <div className="flex justify-center">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-                      <span className="text-2xl">✅</span>
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <CheckCircle2 className="h-7 w-7" />
                     </div>
                   </div>
                   <div>
@@ -2076,7 +2076,11 @@ const ReportPage = () => {
                   <div key={r.id} className="rounded-xl border border-border bg-card p-4 space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xl">{isElec ? "⚡" : "💧"}</span>
+                        {isElec ? (
+                          <Zap className="h-5 w-5 text-amber-500 shrink-0" />
+                        ) : (
+                          <Droplets className="h-5 w-5 text-blue-500 shrink-0" />
+                        )}
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-foreground">
                             {isElec ? "Électricité" : "Eau"}

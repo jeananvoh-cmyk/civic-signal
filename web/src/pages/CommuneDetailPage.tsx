@@ -241,7 +241,7 @@ const CommuneDetailPage = () => {
             </Button>
             <ShareButton
               title={`SIGNA-CI — ${decodedName}`}
-              text={`📊 ${decodedName} : ${totalActifs} coupure${totalActifs !== 1 ? "s" : ""} active${totalActifs !== 1 ? "s" : ""} (⚡${totalElecActifs} 💧${totalEauActifs})`}
+              text={`SIGNA-CI — ${decodedName} : ${totalActifs} incident${totalActifs !== 1 ? "s" : ""} actif${totalActifs !== 1 ? "s" : ""} (${totalElecActifs} CIE · ${totalEauActifs} SODECI)`}
             />
           </div>
 
@@ -519,16 +519,16 @@ const CommuneDetailPage = () => {
                       <div className="flex items-center justify-between gap-2 mb-2">
                         <div className="flex items-center gap-1.5">
                           {isInfra ? (
-                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-500/15 text-orange-600 text-xs font-bold">
-                              🏛️
+                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-500/15 text-orange-600">
+                              <Landmark className="h-4 w-4" />
                             </span>
                           ) : isElec ? (
-                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 text-xs font-bold">
-                              ⚡
+                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600">
+                              <Zap className="h-4 w-4" />
                             </span>
                           ) : (
-                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/15 text-sky-600 text-xs font-bold">
-                              💧
+                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-500/15 text-sky-600">
+                              <Droplets className="h-4 w-4" />
                             </span>
                           )}
                           <span className="text-xs font-bold text-foreground">
@@ -538,13 +538,14 @@ const CommuneDetailPage = () => {
 
                         <span
                           className={cn(
-                            "rounded-full px-2.5 py-0.5 text-[11px] font-extrabold",
+                            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold",
                             isActive
                               ? "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"
                               : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                           )}
                         >
-                          {isActive ? "🔴 En cours" : "✅ Résolu"}
+                          <span className={cn("h-1.5 w-1.5 rounded-full", isActive ? "bg-rose-500 animate-pulse" : "bg-emerald-500")} />
+                          <span>{isActive ? "En cours" : "Résolu"}</span>
                         </span>
                       </div>
 
@@ -554,8 +555,9 @@ const CommuneDetailPage = () => {
                       </p>
                       {/* L'adresse de voirie précise n'est affichée publiquement que pour les infrastructures publiques (ex: nids de poule, lampadaires) */}
                       {isInfra && r.location && (
-                        <p className="text-xs text-muted-foreground font-medium mt-1 line-clamp-1">
-                          📍 {r.location}
+                        <p className="text-xs text-muted-foreground font-medium mt-1 line-clamp-1 flex items-center gap-1">
+                          <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+                          <span>{r.location}</span>
                         </p>
                       )}
                       <p className="text-xs text-muted-foreground/90 line-clamp-2 mt-1.5 bg-muted/40 p-2 rounded-lg">
@@ -567,10 +569,10 @@ const CommuneDetailPage = () => {
                       <span>Débuté {timeAgo}</span>
                       {r.verifications > 0 ? (
                         <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                          ✓ {r.verifications} confirmation{r.verifications > 1 ? "s" : ""}
+                          {r.verifications} confirmation{r.verifications > 1 ? "s" : ""}
                         </span>
                       ) : (
-                        <span className="text-amber-600 dark:text-amber-400 font-medium">⏳ En attente de voisins</span>
+                        <span className="text-muted-foreground font-medium">En attente de voisins</span>
                       )}
                     </div>
                   </div>

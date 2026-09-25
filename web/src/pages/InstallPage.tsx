@@ -175,8 +175,9 @@ const InstallPage = () => {
         </Card>
 
         {/* APK note */}
-        <p className="text-center text-sm text-muted-foreground mt-8">
-          📱 Une version APK pour Android sera bientôt disponible pour les testeurs.
+        <p className="text-center text-sm text-muted-foreground mt-8 flex items-center justify-center gap-1.5">
+          <Smartphone className="h-4 w-4 text-primary" />
+          <span>Une version APK pour Android sera bientôt disponible pour les testeurs.</span>
         </p>
       </main>
     </div>

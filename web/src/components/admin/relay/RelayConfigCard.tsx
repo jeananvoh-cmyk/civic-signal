@@ -63,7 +63,7 @@ export const RelayConfigCard: React.FC<RelayConfigCardProps> = ({
         const errMsg = error?.message || data?.error || "Échec du test de la clé Resend";
         toast.error(`Connexion Resend échouée : ${errMsg}`);
       } else {
-        toast.success("✅ Clé API Resend valide ! Email de test envoyé avec succès.");
+        toast.success("Clé API Resend valide ! Email de test envoyé avec succès.");
       }
     } catch (err: any) {
       toast.error(`Erreur test Resend : ${err?.message || "Erreur de connexion"}`);

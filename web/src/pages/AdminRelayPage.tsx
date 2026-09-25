@@ -6,7 +6,7 @@ import {
   Zap, Droplets, AlertTriangle, Mail, MailCheck, MapPin, Users,
   ChevronDown, ChevronUp, ExternalLink, Settings, FlaskConical,
   ShieldCheck, Save, Ban, MessageCircle, Building2, Landmark, TicketCheck,
-  Scale, Copy, Eye, EyeOff, KeyRound, Calendar, Filter, Trash2, Search,
+  Scale, Copy, Eye, EyeOff, KeyRound, Calendar, Filter, Trash2, Search, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -479,8 +479,6 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
   const isMairie = group.operator === "MAIRIE";
 
   const isInfraGroup = isMairie || isANARE || isONEP || group.quartiers.some(q => checkIfInfra(q.category, q.description));
-
-  const serviceEmoji = isCIE && isInfraGroup ? "💡" : isCIE ? "⚡" : isSODECI && isInfraGroup ? "🚿" : isSODECI ? "💧" : isANARE ? "⚖️" : isONEP ? "💧" : "🏗️";
   const serviceTitle = isANARE
     ? "Transmission Partenariale — Infrastructure Électrique & Éclairage Public (ANARE-CI / CIE)"
     : isONEP
@@ -531,15 +529,19 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
   const cardsHtml = group.quartiers.map((q, idx) => {
     const isCrit = q.urgency === "critical";
     const isHigh = q.urgency === "high";
-    const urgencyDot = isCrit ? "🔴" : isHigh ? "🟠" : "🟡";
+    const urgencyDot = isCrit
+      ? `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;margin-right:6px;"></span>`
+      : isHigh
+      ? `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f97316;margin-right:6px;"></span>`
+      : `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#eab308;margin-right:6px;"></span>`;
     const urgencyText = (URGENCY_CONFIG[q.urgency]?.label || q.urgency).toUpperCase();
 
     const extractedTag = (q.description && q.description.trim()) ? extractInfraLabel(q.description.trim()) : null;
     const isQuartierInfra = isMairie || isANARE || isONEP || checkIfInfra(q.category, q.description);
     const typeLabel = (extractedTag && isQuartierInfra) ? extractedTag : (q.category ? q.category.replace(/_/g, " ") : null);
     const categoryLabel = typeLabel
-      ? `${infraEmoji(typeLabel)} ${typeLabel.toUpperCase()}`
-      : isMairie ? "🏗️ VOIRIE & CADRE DE VIE" : isCIE ? "⚡ ÉLECTRICITÉ" : "💧 EAU POTABLE";
+      ? typeLabel.toUpperCase()
+      : isMairie ? "VOIRIE & CADRE DE VIE" : isCIE ? "ÉLECTRICITÉ" : "EAU POTABLE";
 
     const locParts: string[] = [];
     if (q.description && q.description.trim()) {
@@ -574,12 +576,12 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
             <tr style="border-bottom: 1px solid #f1f5f9;">
               <td style="padding: 14px 20px; color: #64748b; font-weight: 600;">Commune & Quartier</td>
               <td style="padding: 14px 20px; color: #0f172a; font-weight: 800;">
-                📍 ${group.commune} — <span style="color: #0369a1;">${q.name}</span>
+                ${group.commune} — <span style="color: #0369a1;">${q.name}</span>
               </td>
             </tr>
             ${q.addressText ? `
             <tr style="border-bottom: 1px solid #f1f5f9; background: #f0fdf4;">
-              <td style="padding: 14px 20px; color: #166534; font-weight: 700;">🏛️ Adressage Officiel PADA</td>
+              <td style="padding: 14px 20px; color: #166534; font-weight: 700;">Adressage Cadastral PADA</td>
               <td style="padding: 14px 20px; color: #14532d; font-weight: 800;">
                 ${q.addressText}
               </td>
@@ -589,10 +591,10 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
             <tr style="border-bottom: 1px solid #f1f5f9;">
               <td style="padding: 14px 20px; color: #64748b; font-weight: 600;">Coordonnées GPS Terrain</td>
               <td style="padding: 14px 20px; color: #0f172a; font-weight: 700;">
-                📍 <code>${q.lat.toFixed(5)}, ${q.lng.toFixed(5)}</code>
+                <code>${q.lat.toFixed(5)}, ${q.lng.toFixed(5)}</code>
                 <div style="margin-top: 6px;">
                   <a href="https://www.google.com/maps/search/?api=1&query=${q.lat},${q.lng}" target="_blank" style="display: inline-block; padding: 6px 14px; background: #0284c7; color: #ffffff; border-radius: 6px; font-size: 12px; font-weight: 800; text-decoration: none;">
-                    🗺️ Ouvrir l'itinéraire d'intervention Google Maps
+                    Ouvrir l'itinéraire Google Maps
                   </a>
                 </div>
               </td>
@@ -606,7 +608,7 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
             <tr style="border-bottom: 1px solid #f1f5f9;">
               <td style="padding: 14px 20px; color: #64748b; font-weight: 600;">Horodatage initial</td>
               <td style="padding: 14px 20px; color: #334155; font-weight: 700;">
-                📅 ${safeFormatDate(q.createdAt, "d MMMM yyyy à HH:mm")}
+                ${safeFormatDate(q.createdAt, "d MMMM yyyy à HH:mm")}
                 ${safeFormatDuration(q.createdAt) ? `<span style="color: #dc2626; font-size: 12px; font-weight: 800; margin-left: 8px;">(${safeFormatDuration(q.createdAt)})</span>` : ""}
               </td>
             </tr>
@@ -630,7 +632,7 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
               <td style="padding: 14px 20px; color: #64748b; font-weight: 600;">Fiche de Suivi Citoyen</td>
               <td style="padding: 14px 20px;">
                 <a href="https://signa.ci/signalement/${q.reportId}" target="_blank" style="display: inline-block; padding: 6px 14px; background: #f1f5f9; color: #0369a1; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; font-weight: 800; text-decoration: none;">
-                  🔗 Consulter l'historique complet sur SIGNA.ci
+                  Consulter la fiche sur SIGNA.ci
                 </a>
               </td>
             </tr>
@@ -642,8 +644,8 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
   }).join("");
 
   const modeBadgeHtml = isTest
-    ? `<span style="background: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 4px; font-weight: 800; margin-left: 6px;">⚠️ ENVIRONNEMENT DE TEST</span>`
-    : `<span style="background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 4px; font-weight: 800; margin-left: 6px;">🤝 TRANSMISSION COLLABORATIVE</span>`;
+    ? `<span style="background: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 4px; font-weight: 800; margin-left: 6px;">ENVIRONNEMENT DE TEST</span>`
+    : `<span style="background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 4px; font-weight: 800; margin-left: 6px;">TRANSMISSION COLLABORATIVE</span>`;
 
   return `
     <!DOCTYPE html>
@@ -656,7 +658,7 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
         <div style="background: ${gradientHeader}; padding: 28px 24px; color: #ffffff;">
           <div style="display: table; width: 100%; margin-bottom: 12px;">
             <div style="display: table-cell; vertical-align: middle; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.95);">
-              🤝 COOPÉRATION TERRITORIALE · <span style="background: rgba(255,255,255,0.25); padding: 2px 6px; border-radius: 4px; color: #ffffff;">SIGNA-CI</span> ${modeBadgeHtml}
+              COOPÉRATION TERRITORIALE · <span style="background: rgba(255,255,255,0.25); padding: 2px 6px; border-radius: 4px; color: #ffffff;">SIGNA-CI</span> ${modeBadgeHtml}
             </div>
             <div style="display: table-cell; vertical-align: middle; text-align: right;">
               <span style="background: rgba(255,255,255,0.25); color: #ffffff; padding: 4px 14px; border-radius: 20px; font-weight: 800; font-size: 12px; display: inline-block;">
@@ -710,7 +712,7 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
 
           ${!isInfraGroup && group.reporters && group.reporters.length > 0 ? `
             <div style="margin-top: 20px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
-              <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 8px;">📋 Contacts Abonnés Référents (Sous réserve de vérification) :</div>
+              <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 8px;">Contacts Abonnés Référents (Sous réserve de vérification) :</div>
               <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: #334155; line-height: 1.7;">
                 ${group.reporters.map(r => `
                   <li>
@@ -725,14 +727,14 @@ function buildBatchEmailHtmlClient(group: RelayGroup, isTest: boolean = false): 
 
           <!-- Bloc Partenarial & Entraide -->
           <div style="margin-top: 24px; padding: 18px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; font-size: 13px; color: #166534; line-height: 1.7;">
-            <strong>🌿 Esprit de Concertation & Collaboration Active :</strong><br/>
+            <strong>Cadre de Concertation Citoyenne :</strong><br/>
             Notre vocation commune est d'accélérer l'amélioration du cadre de vie et la résolution des pannes dans nos quartiers. L'équipe SIGNA-CI se tient à votre entière disposition pour tout complément d'information et pour relayer avec fierté auprès des usagers la bonne exécution de vos interventions.
           </div>
 
           <!-- Footer Institutionnel -->
           <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e2e8f0; text-align: center; font-size: 11px; color: #64748b; line-height: 1.6; font-family: sans-serif;">
-            <div style="font-weight: 800; color: #0f172a; font-size: 12px; margin-bottom: 4px;">🤝 SIGNA-CI · Plateforme d'Alliance Citoyenne pour des Quartiers Sains & Sécurisés</div>
-            <div>📍 District Autonome d'Abidjan, République de Côte d'Ivoire · 🌐 <a href="https://signa.ci" style="color: #0284c7; text-decoration: none; font-weight: 700;">https://signa.ci</a> · ✉️ <a href="mailto:contact@signa.ci" style="color: #0284c7; text-decoration: none; font-weight: 600;">contact@signa.ci</a></div>
+            <div style="font-weight: 800; color: #0f172a; font-size: 12px; margin-bottom: 4px;">SIGNA-CI · Plateforme Civique de Signalement des Services Publics</div>
+            <div>District Autonome d'Abidjan, République de Côte d'Ivoire · <a href="https://signa.ci" style="color: #0284c7; text-decoration: none; font-weight: 700;">https://signa.ci</a> · <a href="mailto:contact@signa.ci" style="color: #0284c7; text-decoration: none; font-weight: 600;">contact@signa.ci</a></div>
           </div>
 
         </div>
@@ -2128,9 +2130,9 @@ const AdminRelayPage = () => {
                     {searchRelayQuery && (
                       <button
                         onClick={() => setSearchRelayQuery("")}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs font-bold"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       >
-                        ✕
+                        <X className="h-3.5 w-3.5" />
                       </button>
                     )}
                   </div>
@@ -2716,9 +2718,9 @@ const AdminRelayPage = () => {
                                 href={`https://www.google.com/maps/search/?api=1&query=${log.report.latitude},${log.report.longitude}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="ml-2 text-primary hover:underline font-semibold"
+                                className="ml-2 text-primary hover:underline font-semibold inline-flex items-center gap-1"
                               >
-                                📍 Voir sur Google Maps
+                                <ExternalLink className="h-3 w-3" /> Voir sur Google Maps
                               </a>
                             </div>
                           )}
@@ -3000,7 +3002,9 @@ const AdminRelayPage = () => {
               <div className="flex items-center justify-between p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/5">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs text-foreground">⚖️ ANARE-CI — Régulateur Électricité</span>
+                    <span className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                      <Scale className="h-3.5 w-3.5 text-primary" /> ANARE-CI — Régulateur Électricité
+                    </span>
                     {effectiveConfig.anare_auto_dispatch !== "false" ? (
                       <span className="text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-extrabold px-2 py-0.5 rounded">Activé par défaut</span>
                     ) : (
@@ -3030,7 +3034,9 @@ const AdminRelayPage = () => {
               <div className="flex items-center justify-between p-3.5 rounded-xl border border-cyan-500/30 bg-cyan-500/5">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs text-foreground">💧 ONEP — Office National de l'Eau Potable</span>
+                    <span className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                      <Droplets className="h-3.5 w-3.5 text-blue-500" /> ONEP — Office National de l'Eau Potable
+                    </span>
                     {effectiveConfig.onep_auto_dispatch !== "false" ? (
                       <span className="text-[10px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-extrabold px-2 py-0.5 rounded">Activé par défaut</span>
                     ) : (
@@ -3148,9 +3154,9 @@ const AdminRelayPage = () => {
               {searchMairieQuery && (
                 <button
                   onClick={() => setSearchMairieQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  ✕
+                  <X className="h-3.5 w-3.5" />
                 </button>
               )}
             </div>
@@ -3222,7 +3228,7 @@ const AdminRelayPage = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-3 pt-2 border-t border-border/40">
                       <div>
                         <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
-                          ✉️ E-mail Services Techniques
+                          <Mail className="h-3 w-3 inline mr-1 text-muted-foreground" /> E-mail Services Techniques
                         </label>
                         <input
                           type="email"
@@ -3237,7 +3243,7 @@ const AdminRelayPage = () => {
 
                       <div>
                         <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
-                          🟢 WhatsApp Point Focal ST
+                          <MessageCircle className="h-3 w-3 inline mr-1 text-emerald-600" /> WhatsApp Point Focal ST
                         </label>
                         <input
                           type="tel"

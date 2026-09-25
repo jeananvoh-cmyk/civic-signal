@@ -1,7 +1,7 @@
 import { Radio } from "lucide-react";
 
 export interface TickerItem {
-  icon?: string;
+  icon?: React.ReactNode;
   text: string;
   category?: string;
 }

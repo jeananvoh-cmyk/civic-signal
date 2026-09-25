@@ -12,6 +12,7 @@ import {
   Wrench,
   ChevronRight,
   Eye,
+  Camera,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -159,10 +160,10 @@ export const FieldInterventionsTab = ({
             className="text-xs h-9 rounded-lg border border-input bg-background px-2.5 text-foreground"
           >
             <option value="all">Tous les états</option>
-            <option value="in_progress">Chantiers en cours 🚧</option>
-            <option value="unassigned">Sans équipe assignée ⚠️</option>
-            <option value="pending_proof">Preuves en revue 📸</option>
-            <option value="resolved">Clôturés ✓</option>
+            <option value="in_progress">Chantiers en cours</option>
+            <option value="unassigned">Sans équipe assignée</option>
+            <option value="pending_proof">Preuves en revue</option>
+            <option value="resolved">Clôturés</option>
           </select>
         </div>
       </div>
@@ -212,8 +213,9 @@ export const FieldInterventionsTab = ({
                     ) : null}
 
                     {item.repairStatus === "pending_review" && (
-                      <Badge className="text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30">
-                        📸 Preuve en attente de validation
+                      <Badge className="text-[10px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30 flex items-center gap-1">
+                        <Camera className="h-3 w-3" />
+                        <span>Preuve en attente de validation</span>
                       </Badge>
                     )}
                   </div>

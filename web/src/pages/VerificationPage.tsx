@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle2, Clock, Power, Zap, Droplets, Loader2, PartyPopper, AlertTriangle,
   ThumbsUp, Trash2, Wrench, ArrowRight, ArrowLeft, ZoomIn, Eye, Sparkles, Filter,
-  ShieldCheck, Check, Layers, Copy, MapPin, Camera
+  ShieldCheck, Check, Layers, Copy, MapPin, Camera, Landmark, Info, RefreshCw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -195,7 +195,7 @@ const VerificationPage = () => {
           throw error;
         }
       } else {
-        toast.success("✅ Signalement validé et certifié !", {
+        toast.success("Signalement validé et certifié !", {
           description: `Impact renforcé pour ${cur.commune}, quartier ${cur.quartier}`,
         });
       }
@@ -217,14 +217,14 @@ const VerificationPage = () => {
   const handleSkipCurrent = useCallback(() => {
     if (actionLoading) return;
     if ("vibrate" in navigator) navigator.vibrate([15]);
-    toast.info("⏭️ Signalement passé");
+    toast.info("Signalement passé au suivant");
     setTriageIndex((prev) => prev + 1);
   }, [actionLoading]);
 
   const handleDuplicateCurrent = useCallback(() => {
     if (actionLoading) return;
     if ("vibrate" in navigator) navigator.vibrate([20]);
-    toast.warning("⚠️ Noté comme doublon potentiel");
+    toast.warning("Noté comme doublon potentiel");
     setTriageIndex((prev) => prev + 1);
   }, [actionLoading]);
 
@@ -514,7 +514,8 @@ const VerificationPage = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/60">
                   <div>
                     <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-                      <span>⚡ Mode Triage Éclair</span>
+                      <Zap className="h-5 w-5 text-amber-500 fill-amber-500" />
+                      <span>Mode Triage Rapide</span>
                       <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-semibold">
                         Terrain & Modération
                       </span>
@@ -527,7 +528,7 @@ const VerificationPage = () => {
                   {/* Badge Gamification Session */}
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-900 dark:text-amber-200 text-xs font-bold shrink-0 shadow-2xs">
                     <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                    <span>🎯 {sessionVerifiedCount} certifiés cette session</span>
+                    <span>{sessionVerifiedCount} certifié{sessionVerifiedCount > 1 ? "s" : ""} cette session</span>
                   </div>
                 </div>
 
@@ -588,16 +589,18 @@ const VerificationPage = () => {
                         Tous les signalements pour cette zone ont été vérifiés. Merci pour votre engagement civique !
                       </p>
                     </div>
-                    <div className="inline-block px-4 py-2 rounded-xl bg-card border border-border text-xs font-bold text-foreground">
-                      🎉 {sessionVerifiedCount} signalement{sessionVerifiedCount > 1 ? "s" : ""} certifié{sessionVerifiedCount > 1 ? "s" : ""} dans cette session
+                    <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-card border border-border text-xs font-bold text-foreground">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      <span>{sessionVerifiedCount} signalement{sessionVerifiedCount > 1 ? "s" : ""} certifié{sessionVerifiedCount > 1 ? "s" : ""} dans cette session</span>
                     </div>
                     <div className="pt-2">
                       <Button
                         type="button"
                         onClick={fetchTriageReports}
-                        className="font-bold bg-primary text-primary-foreground rounded-xl px-6 py-2.5"
+                        className="font-bold bg-primary text-primary-foreground rounded-xl px-6 py-2.5 gap-2"
                       >
-                        Recharger la file ↺
+                        <RefreshCw className="h-4 w-4" />
+                        <span>Recharger la file</span>
                       </Button>
                     </div>
                   </motion.div>
@@ -664,7 +667,8 @@ const VerificationPage = () => {
                         ) : (
                           <div className="p-6 text-center bg-muted/10 border-b border-border/50">
                             <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
-                              <span>📷</span> Déclaration citoyenne sans photo
+                              <Camera className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span>Déclaration citoyenne sans photo</span>
                             </p>
                           </div>
                         )}
@@ -678,8 +682,9 @@ const VerificationPage = () => {
                               <span>{cur.commune}, quartier {cur.quartier}</span>
                             </div>
                             {cur.street_name && (
-                              <p className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold mt-1 pl-5">
-                                🏠 Voie PADA : {cur.street_name} {cur.door_number ? `· Porte n° ${cur.door_number}` : ""}
+                              <p className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold mt-1 pl-5 flex items-center gap-1">
+                                <MapPin className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                <span>Voie PADA : {cur.street_name} {cur.door_number ? `· Porte n° ${cur.door_number}` : ""}</span>
                               </p>
                             )}
                           </div>
@@ -729,8 +734,9 @@ const VerificationPage = () => {
                           <div className="flex items-center justify-between text-xs pt-1 border-t border-border/50">
                             <CorroborationStatus verifications={cur.verifications} reportCategory={cur.report_category} compact />
                             {cur.urgency === "critical" && (
-                              <span className="px-2 py-0.5 rounded-md bg-destructive/15 text-destructive font-black text-[10px]">
-                                🔥 URGENCE ÉLEVÉE
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-destructive/15 text-destructive font-bold text-[10px]">
+                                <AlertTriangle className="h-3 w-3" />
+                                <span>Urgence élevée</span>
                               </span>
                             )}
                           </div>
@@ -778,8 +784,9 @@ const VerificationPage = () => {
                           </div>
 
                           {/* Astuce Raccourcis Clavier sur Desktop */}
-                          <p className="text-[11px] text-center text-muted-foreground hidden sm:block">
-                            💡 Raccourcis clavier : <strong>Flèche droite [→]</strong> pour valider · <strong>Flèche gauche [←]</strong> pour passer · <strong>Touche [D]</strong> pour doublon
+                          <p className="text-[11px] text-center text-muted-foreground hidden sm:flex items-center justify-center gap-1.5">
+                            <Info className="h-3.5 w-3.5 text-primary shrink-0" />
+                            <span>Raccourcis clavier : <strong>Flèche droite [→]</strong> pour valider · <strong>Flèche gauche [←]</strong> pour passer · <strong>Touche [D]</strong> pour doublon</span>
                           </p>
                         </div>
                       </motion.div>
@@ -867,7 +874,7 @@ const VerificationPage = () => {
 
                     {isResolved ? (
                       <div className="flex items-center justify-center gap-2 p-6">
-                        <PartyPopper className="h-6 w-6 text-success" />
+                        <CheckCircle2 className="h-6 w-6 text-success" />
                         <span className="font-bold text-success">
                           {RESOLUTION[isInfra ? "infrastructure" : "outage"].cardResolved}
                         </span>
@@ -876,7 +883,10 @@ const VerificationPage = () => {
                       <div className="p-4">
                         <p className="text-sm text-muted-foreground mb-2">{r.description}</p>
                         {r.quartier && (
-                          <p className="text-xs text-muted-foreground mb-3">📍 {r.quartier}</p>
+                          <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1">
+                            <MapPin className="h-3 w-3 shrink-0" />
+                            <span>{r.quartier}</span>
+                          </p>
                         )}
 
                         {/* Corroboration status */}
@@ -886,7 +896,8 @@ const VerificationPage = () => {
 
                         {r.urgency === "critical" && (
                           <div className="flex items-center gap-1.5 text-xs text-destructive font-semibold animate-pulse mb-3">
-                            🔥 Signalement critique — escalade automatique
+                            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                            <span>Signalement critique — escalade automatique</span>
                           </div>
                         )}
 
@@ -949,7 +960,6 @@ const VerificationPage = () => {
             {resolveTarget && (() => {
               const isInfra = resolveTarget.report_category === "infrastructure";
               const isElec = resolveTarget.service_type === "electricity";
-              const emoji = isInfra ? "🏗️" : isElec ? "⚡" : "💧";
               const label = isInfra
                 ? "Le problème a été réparé à"
                 : isElec
@@ -962,7 +972,15 @@ const VerificationPage = () => {
                     animate={{ scale: 1, opacity: 1 }}
                     className="rounded-xl bg-success/10 p-4 text-center"
                   >
-                    <div className="text-3xl mb-2">{emoji}</div>
+                    <div className="flex justify-center mb-2">
+                      {isInfra ? (
+                        <Landmark className="h-8 w-8 text-primary" />
+                      ) : isElec ? (
+                        <Zap className="h-8 w-8 text-amber-500 fill-amber-500" />
+                      ) : (
+                        <Droplets className="h-8 w-8 text-blue-500 fill-blue-500" />
+                      )}
+                    </div>
                     <p className="text-sm font-semibold text-foreground">
                       {label}{" "}
                       <span className="font-bold" style={{ color: COMMUNE_COLORS[resolveTarget.commune] }}>
@@ -1003,7 +1021,10 @@ const VerificationPage = () => {
                             : "border-border bg-muted/40 text-muted-foreground hover:bg-muted"
                         )}
                       >
-                        <p className="flex items-center gap-1 font-bold">✅ Avec transfert</p>
+                        <p className="flex items-center gap-1.5 font-bold">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                          <span>Avec transfert</span>
+                        </p>
                         <p className="text-[10px] font-normal opacity-80 mt-0.5 leading-tight">Transmis aux services partenaires SIGNA</p>
                       </button>
                       <button
@@ -1016,7 +1037,10 @@ const VerificationPage = () => {
                             : "border-border bg-muted/40 text-muted-foreground hover:bg-muted"
                         )}
                       >
-                        <p className="flex items-center gap-1 font-bold">ℹ️ Sans transfert</p>
+                        <p className="flex items-center gap-1.5 font-bold">
+                          <Info className="h-3.5 w-3.5 text-blue-600" />
+                          <span>Sans transfert</span>
+                        </p>
                         <p className="text-[10px] font-normal opacity-80 mt-0.5 leading-tight">Constat terrain / Maintenance spontanée</p>
                       </button>
                     </div>
@@ -1061,13 +1085,13 @@ const VerificationPage = () => {
             {deleteTarget && (
               <div className="rounded-lg border border-border bg-muted/50 p-3">
                 <div className="flex items-center gap-2 text-sm">
-                  <span>{
-                    deleteTarget.report_category === "infrastructure"
-                      ? "🏗️"
-                      : deleteTarget.service_type === "electricity"
-                        ? "⚡"
-                        : "💧"
-                  }</span>
+                  {deleteTarget.report_category === "infrastructure" ? (
+                    <Landmark className="h-4 w-4 text-primary shrink-0" />
+                  ) : deleteTarget.service_type === "electricity" ? (
+                    <Zap className="h-4 w-4 text-amber-500 shrink-0" />
+                  ) : (
+                    <Droplets className="h-4 w-4 text-blue-500 shrink-0" />
+                  )}
                   <span className="font-medium">{deleteTarget.commune}</span>
                   {deleteTarget.quartier && <span className="text-muted-foreground">· {deleteTarget.quartier}</span>}
                 </div>

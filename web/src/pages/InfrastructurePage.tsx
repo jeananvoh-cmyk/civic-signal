@@ -76,7 +76,6 @@ function InfraFeedCard({
   const isSodeci = Boolean((label && INFRA_SODECI.has(label)) || stLower === "water" || stLower === "sodeci" || descLower.includes("fuite") || descLower.includes("canalisation") || descLower.includes("égout") || descLower.includes("egout") || descLower.includes("eau"));
 
   const opLabel = isCie ? "CIE · Électricité" : isSodeci ? "SODECI · Eau" : "Mairie · Voirie";
-  const opIcon = isCie ? "💡" : isSodeci ? "💧" : "🚧";
 
   return (
     <article
@@ -104,7 +103,7 @@ function InfraFeedCard({
         {/* Top Header Overlay: Opérateur & Statut */}
         <div className="absolute top-2.5 inset-x-2.5 flex items-center justify-between gap-2">
           <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-black/70 text-white backdrop-blur-md border border-white/15 shadow-sm">
-            <span>{opIcon}</span>
+            {isCie ? <Zap className="h-3 w-3 text-amber-400 shrink-0" /> : isSodeci ? <Droplets className="h-3 w-3 text-cyan-400 shrink-0" /> : <Landmark className="h-3 w-3 text-emerald-400 shrink-0" />}
             <span className="truncate max-w-[140px]">{opLabel}</span>
           </span>
 
@@ -254,10 +253,10 @@ type SortFilter = "newest" | "supported";
 const PAGE_SIZE = 40;
 
 const OPERATOR_FILTERS: { key: OperatorFilter; label: string; icon: string; color: string }[] = [
-  { key: "all", label: "Tous les opérateurs", icon: "🌐", color: "bg-slate-900 text-white dark:bg-white dark:text-slate-900" },
-  { key: "cie", label: "⚡ CIE (Lampadaires & Réseau)", icon: "💡", color: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30" },
-  { key: "sodeci", label: "💧 SODECI (Fuites & Tuyaux)", icon: "💧", color: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30" },
-  { key: "mairie", label: "🏛️ Mairie (Nids-de-poule & Voirie)", icon: "🚧", color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30" },
+  { key: "all", label: "Tous les opérateurs", icon: "", color: "bg-slate-900 text-white dark:bg-white dark:text-slate-900" },
+  { key: "cie", label: "CIE (Lampadaires & Réseau)", icon: "", color: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30" },
+  { key: "sodeci", label: "SODECI (Fuites & Canalisations)", icon: "", color: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30" },
+  { key: "mairie", label: "Mairie (Nids-de-poule & Voirie)", icon: "", color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30" },
 ];
 
 /** Escape HTML special chars to prevent XSS in Leaflet popup strings */
@@ -518,7 +517,12 @@ export default function InfrastructurePage() {
       const isCie = r.service_type === "electricity" || descLower.includes("lampadaire") || descLower.includes("éclairage") || descLower.includes("eclairage") || descLower.includes("poteau");
       const isSodeci = r.service_type === "water" || descLower.includes("fuite") || descLower.includes("canalisation");
 
-      const iconEmoji = isCie ? "💡" : isSodeci ? "💧" : "🚧";
+      const iconSvg = isCie
+        ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`
+        : isSodeci
+        ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`
+        : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="21" x2="21" y2="21"/><line x1="6" y1="21" x2="6" y2="10"/><line x1="18" y1="21" x2="18" y2="10"/><path d="M12 2L2 7h20L12 2z"/></svg>`;
+
       const bgColor = isResolved ? "#10b981" : isCie ? "#f59e0b" : isSodeci ? "#3b82f6" : "#059669";
       const isSelected = selectedReport?.id === r.id;
 
@@ -533,14 +537,13 @@ export default function InfrastructurePage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: ${isSelected ? 20 : 16}px;
           box-shadow: 0 4px 12px rgba(0,0,0,0.35);
           cursor: pointer;
           transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
           transform: ${isSelected ? "scale(1.15)" : "scale(1)"};
         ">
-          <span>${iconEmoji}</span>
-          ${isResolved ? `<span style="position: absolute; top: -4px; right: -4px; background: #16a34a; color: white; width: 16px; height: 16px; border-radius: 50%; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; border: 1.5px solid white;">✓</span>` : ""}
+          ${iconSvg}
+          ${isResolved ? `<span style="position: absolute; top: -4px; right: -4px; background: #16a34a; color: white; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid white;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>` : ""}
           ${r.support_count > 0 && !isResolved ? `<span style="position: absolute; bottom: -4px; right: -4px; background: #dc2626; color: white; padding: 0 4px; height: 16px; border-radius: 999px; font-size: 9px; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 1.5px solid white;">${r.support_count}</span>` : ""}
         </div>
       `;
@@ -561,16 +564,16 @@ export default function InfrastructurePage() {
             <span style="font-size: 16px;">${iconEmoji}</span>
             <div>
               <div style="font-weight: 800; font-size: 12px; color: #0f172a; line-height: 1.2;">${escHtml(r.quartier || r.commune)}</div>
-              <div style="font-size: 10px; color: #64748b;">${escHtml(r.commune)} · ${isResolved ? "✅ Réparé" : "⏳ En attente"}</div>
+              <div style="font-size: 10px; color: #64748b;">${escHtml(r.commune)} · <span style="color: ${isResolved ? '#16a34a' : '#d97706'}; font-weight: 700;">${isResolved ? "Réparé" : "En attente"}</span></div>
             </div>
           </div>
           <p style="font-size: 11px; color: #334155; margin: 4px 0 8px 0; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
             ${escHtml(cleanDescription(r.description))}
           </p>
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 6px;">
-            <span style="font-size: 10px; font-weight: 700; color: #16a34a;">👍 ${r.support_count} soutiens</span>
+            <span style="font-size: 10px; font-weight: 700; color: #16a34a;">${r.support_count} soutiens</span>
             <button id="view-report-${r.id}" style="background: #10b981; color: white; border: none; border-radius: 6px; padding: 3px 8px; font-size: 10px; font-weight: 700; cursor: pointer;">
-              Ouvrir la fiche ➔
+              Ouvrir la fiche
             </button>
           </div>
         </div>
@@ -659,11 +662,11 @@ export default function InfrastructurePage() {
           toast.info("Soutien retiré.");
         } else {
           await supabase.from("report_support_votes").insert({ report_id: reportId, user_id: user.id });
-          toast.success("✊ Soutien enregistré ! Cela augmente la priorité d'intervention.");
+          toast.success("Soutien citoyen enregistré. La priorité d'intervention a été actualisée.");
         }
       } else if (data) {
         if (data.voted) {
-          toast.success("✊ Soutien enregistré ! Cela augmente la priorité d'intervention.");
+          toast.success("Soutien citoyen enregistré. La priorité d'intervention a été actualisée.");
         } else {
           toast.info("Soutien retiré.");
         }
@@ -741,8 +744,8 @@ export default function InfrastructurePage() {
       setRepaired((prev) => new Set(prev).add(reportId));
       toast.success(
         data?.resolved
-          ? "🎉 Réparation validée et certifiée sur le terrain !"
-          : "✅ Confirmation enregistrée avec vérification de proximité."
+          ? "Réparation validée et certifiée sur le terrain."
+          : "Confirmation citoyenne enregistrée avec vérification de proximité."
       );
       fetchReports();
     } catch (err: any) {
@@ -765,7 +768,7 @@ export default function InfrastructurePage() {
         p_reason: "Contesté par un riverain : le problème persiste sur le terrain.",
       });
       if (error) throw error;
-      toast.success("⚠️ Signalement réactivé. Les équipes et la communauté sont notifiées.");
+      toast.success("Signalement réactivé. Les équipes techniques et la communauté sont notifiées.");
       fetchReports();
     } catch (err: any) {
       toast.error("Impossible de réouvrir : " + (err?.message || ""));
@@ -821,7 +824,7 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
             color: "#ffffff",
             weight: 3,
             fillOpacity: 1,
-          }).addTo(mapInstance.current).bindPopup("📍 Vous êtes ici").openPopup();
+          }).addTo(mapInstance.current).bindPopup("Votre position actuelle").openPopup();
         }
       },
       () => toast.error("Impossible de récupérer votre position GPS.")
@@ -942,8 +945,8 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                   className="h-8 px-2 rounded-lg bg-background border border-border/80 text-[11px] font-semibold text-foreground focus:outline-none"
                 >
                   <option value="all">Statut : Tous</option>
-                  <option value="active">🔴 En attente (Actifs)</option>
-                  <option value="resolved">✅ Réparés</option>
+                  <option value="active">En attente (Actifs)</option>
+                  <option value="resolved">Réparés</option>
                 </select>
 
                 {/* Opérateur */}
@@ -953,9 +956,9 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                   className="h-8 px-2 rounded-lg bg-background border border-border/80 text-[11px] font-semibold text-foreground focus:outline-none"
                 >
                   <option value="all">Réseau : Tous</option>
-                  <option value="cie">💡 CIE (Électricité)</option>
-                  <option value="sodeci">💧 SODECI (Eau)</option>
-                  <option value="mairie">🚧 Mairie (Voirie)</option>
+                  <option value="cie">CIE (Électricité)</option>
+                  <option value="sodeci">SODECI (Eau)</option>
+                  <option value="mairie">Mairie (Voirie)</option>
                 </select>
 
                 {/* Commune */}
@@ -1059,7 +1062,7 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                           ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
                           : "bg-destructive/10 text-destructive border-destructive/30"
                       )}>
-                        {selectedReport.status === "resolved" ? "✅ Résolu" : "🔴 En attente"}
+                        {selectedReport.status === "resolved" ? "Résolu" : "En attente"}
                       </Badge>
                     </div>
 
@@ -1128,8 +1131,8 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                         <Clock className="h-3.5 w-3.5" />
                         Signalé le {new Date(selectedReport.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
                       </span>
-                      <span className="font-bold text-emerald-700 dark:text-emerald-300">
-                        👍 {selectedReport.support_count || 0} soutien(s) citoyen(s)
+                      <span className="font-bold text-emerald-700 dark:text-emerald-300 inline-flex items-center gap-1">
+                        <ThumbsUp className="h-3.5 w-3.5" /> {selectedReport.support_count || 0} soutien(s) citoyen(s)
                       </span>
                     </div>
 
@@ -1145,7 +1148,7 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                         )}
                       >
                         <ThumbsUp className="h-4 w-4 stroke-[2.5]" />
-                        <span>{supported.has(selectedReport.id) ? "Soutien enregistré ✓" : "Soutenir la réparation"}</span>
+                        <span>{supported.has(selectedReport.id) ? "Soutien enregistré" : "Soutenir la réparation"}</span>
                         <span className="ml-1 px-1.5 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-black">
                           {selectedReport.support_count || 0}
                         </span>
@@ -1171,7 +1174,7 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                           className="w-full text-xs font-bold h-8 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
                         >
                           <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                          {repaired.has(selectedReport.id) ? "Confirmation envoyée ✓" : "C'est déjà réparé ? Confirmer"}
+                          {repaired.has(selectedReport.id) ? "Confirmation envoyée" : "C'est déjà réparé ? Confirmer"}
                         </Button>
                       </div>
                     ) : (
@@ -1270,8 +1273,8 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
             ) : filteredReports.length === 0 ? (
               /* Empty State */
               <div className="p-8 text-center space-y-3">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted text-2xl">
-                  🔍
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                  <Search className="h-6 w-6 text-muted-foreground" />
                 </div>
                 <h3 className="text-sm font-bold text-foreground">Aucune panne trouvée</h3>
                 <p className="text-xs text-muted-foreground max-w-xs mx-auto">
@@ -1352,16 +1355,16 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
           {/* Floating Live Legend (Desktop / Tablet) */}
           <div className="hidden sm:flex absolute top-4 left-4 z-[400] items-center gap-3 px-3.5 py-2 rounded-2xl bg-card/90 backdrop-blur-md border border-border/80 shadow-lg text-xs font-semibold">
             <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300">
-              <span className="h-2.5 w-2.5 rounded-full bg-amber-500 inline-block"></span> 💡 CIE
+              <span className="h-2.5 w-2.5 rounded-full bg-amber-500 inline-block"></span> CIE (Électricité)
             </span>
             <span className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
-              <span className="h-2.5 w-2.5 rounded-full bg-blue-500 inline-block"></span> 💧 SODECI
+              <span className="h-2.5 w-2.5 rounded-full bg-blue-500 inline-block"></span> SODECI (Eau)
             </span>
             <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-600 inline-block"></span> 🚧 Mairie
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-600 inline-block"></span> Mairie (Voirie)
             </span>
             <span className="flex items-center gap-1.5 text-green-700 dark:text-green-300 border-l border-border pl-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-green-500 inline-block"></span> ✓ Réparé
+              <span className="h-2.5 w-2.5 rounded-full bg-green-500 inline-block"></span> Réparé
             </span>
           </div>
         </div>
@@ -1428,7 +1431,10 @@ _SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
                   size="sm"
                   className="rounded-xl text-xs font-bold h-8 bg-emerald-600 hover:bg-emerald-500 text-white"
                 >
-                  <span>Fiche & Updates ➔</span>
+                  <span className="flex items-center gap-1">
+                    <span>Fiche & Updates</span>
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </span>
                 </Button>
               </div>
             </motion.div>

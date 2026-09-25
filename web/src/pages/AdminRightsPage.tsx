@@ -28,7 +28,7 @@ function ItemEditor({
   onChange: (items: RightsItem[]) => void;
   label: string;
 }) {
-  const add = () => onChange([...items, { icon: "✅", title: "", description: "" }]);
+  const add = () => onChange([...items, { icon: "", title: "", description: "" }]);
   const remove = (i: number) => onChange(items.filter((_, idx) => idx !== i));
   const update = (i: number, field: keyof RightsItem, value: string) => {
     const copy = [...items];
@@ -109,9 +109,9 @@ function ResourceEditor({
             <Select value={r.type} onValueChange={(v) => update(i, "type", v)}>
               <SelectTrigger className="w-32 h-9 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="electricity">⚡ Électricité</SelectItem>
-                <SelectItem value="water">💧 Eau</SelectItem>
-                <SelectItem value="general">📋 Général</SelectItem>
+                <SelectItem value="electricity">Électricité</SelectItem>
+                <SelectItem value="water">Eau</SelectItem>
+                <SelectItem value="general">Général</SelectItem>
               </SelectContent>
             </Select>
             <Button type="button" variant="ghost" size="icon" onClick={() => remove(i)} className="shrink-0 text-destructive hover:text-destructive">
@@ -200,10 +200,10 @@ function ContactEditor({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="electricity">⚡ Électricité</SelectItem>
-                <SelectItem value="water">💧 Eau</SelectItem>
-                <SelectItem value="general">📋 Général</SelectItem>
-                <SelectItem value="emergency">🚨 Urgence</SelectItem>
+                <SelectItem value="electricity">Électricité</SelectItem>
+                <SelectItem value="water">Eau</SelectItem>
+                <SelectItem value="general">Général</SelectItem>
+                <SelectItem value="emergency">Urgence</SelectItem>
               </SelectContent>
             </Select>
             <Button

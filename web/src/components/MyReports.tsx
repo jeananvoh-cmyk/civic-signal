@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Zap, Droplets, Trash2, CheckCircle2, Clock, Loader2, AlertTriangle, Users, Wrench, Camera } from "lucide-react";
+import { Zap, Droplets, Trash2, CheckCircle2, Clock, Loader2, AlertTriangle, Users, Wrench, Camera, Landmark } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -106,7 +107,7 @@ const MyReports = ({ profileComplete = false }: { profileComplete?: boolean }) =
         p_resolved_at: new Date(resolveTime).toISOString(),
       });
       if (error) throw error;
-      toast.success("✅ Signalement résolu !");
+      toast.success("Signalement marqué comme résolu !");
       setResolveTarget(null);
       fetchReports();
     } catch (err: any) {
@@ -195,18 +196,21 @@ const MyReports = ({ profileComplete = false }: { profileComplete?: boolean }) =
                     {isActive ? "Actif" : "Résolu"}
                   </Badge>
                   {profileComplete && isActive && (
-                    <Badge variant="outline" className="text-[10px] gap-1" style={{ borderColor: "hsl(45 93% 47%)", color: "hsl(45 93% 47%)" }}>
-                      ✅ Profil vérifié
+                    <Badge variant="outline" className="text-[10px] gap-1 inline-flex items-center" style={{ borderColor: "hsl(45 93% 47%)", color: "hsl(45 93% 47%)" }}>
+                      <CheckCircle2 className="h-3 w-3" />
+                      <span>Profil vérifié</span>
                     </Badge>
                   )}
                   {r.urgency === "critical" && (
-                    <Badge className="bg-destructive text-destructive-foreground animate-pulse">
-                      🔥 Critique
+                    <Badge className="bg-destructive text-destructive-foreground animate-pulse inline-flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      <span>Critique</span>
                     </Badge>
                   )}
                   {r.verifications >= 3 && r.urgency !== "critical" && (
-                    <Badge variant="outline" className={isInfra ? "border-emerald-500 text-emerald-600" : "border-amber-500 text-amber-500"}>
-                      {isInfra ? "🤝" : "⚡"} {r.verifications} {isInfra ? `soutien${r.verifications > 1 ? "s" : ""}` : "confirmations"}
+                    <Badge variant="outline" className={cn("inline-flex items-center gap-1", isInfra ? "border-emerald-500 text-emerald-600" : "border-amber-500 text-amber-500")}>
+                      {isInfra ? <Users className="h-3 w-3" /> : <Zap className="h-3 w-3" />}
+                      <span>{r.verifications} {isInfra ? `soutien${r.verifications > 1 ? "s" : ""}` : "confirmations"}</span>
                     </Badge>
                   )}
                   {canSeeQuartierCounts && isActive && r.quartier && (() => {
@@ -258,10 +262,23 @@ const MyReports = ({ profileComplete = false }: { profileComplete?: boolean }) =
       <Dialog open={!!resolveTarget} onOpenChange={(open) => !open && setResolveTarget(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>
-              {resolveTarget?.report_category === "infrastructure"
-                ? `🏗️ Problème résolu ?`
-                : resolveTarget?.service_type === "electricity" ? "⚡ Électricité rétablie ?" : "💧 Eau rétablie ?"}
+            <DialogTitle className="flex items-center gap-2">
+              {resolveTarget?.report_category === "infrastructure" ? (
+                <>
+                  <Landmark className="h-5 w-5 text-primary" />
+                  <span>Problème résolu ?</span>
+                </>
+              ) : resolveTarget?.service_type === "electricity" ? (
+                <>
+                  <Zap className="h-5 w-5 text-amber-500" />
+                  <span>Électricité rétablie ?</span>
+                </>
+              ) : (
+                <>
+                  <Droplets className="h-5 w-5 text-blue-500" />
+                  <span>Eau rétablie ?</span>
+                </>
+              )}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
@@ -318,7 +335,7 @@ const MyReports = ({ profileComplete = false }: { profileComplete?: boolean }) =
               onClick={handleResolve}
               disabled={resolving || !resolveTime}
             >
-              {resolving ? "Envoi..." : resolveTarget?.report_category === "infrastructure" ? "Clôturer sans photo" : "✅ Confirmer le rétablissement"}
+              {resolving ? "Envoi..." : resolveTarget?.report_category === "infrastructure" ? "Clôturer sans photo" : "Confirmer le rétablissement"}
             </Button>
           </div>
         </DialogContent>
@@ -355,7 +372,11 @@ const MyReports = ({ profileComplete = false }: { profileComplete?: boolean }) =
           {deleteTarget && (
             <div className="rounded-lg border border-border bg-muted/50 p-3">
               <div className="flex items-center gap-2 text-sm">
-                <span>{deleteTarget.service_type === "electricity" ? "⚡" : "💧"}</span>
+                <span>{deleteTarget.service_type === "electricity" ? (
+                  <Zap className="h-4 w-4 text-amber-500 inline" />
+                ) : (
+                  <Droplets className="h-4 w-4 text-blue-500 inline" />
+                )}</span>
                 <span className="font-medium">{deleteTarget.commune}</span>
                 {deleteTarget.quartier && <span className="text-muted-foreground">· {deleteTarget.quartier}</span>}
               </div>

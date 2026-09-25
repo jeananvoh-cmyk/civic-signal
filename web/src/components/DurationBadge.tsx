@@ -64,7 +64,7 @@ export default function DurationBadge({
           </span>
         </TooltipTrigger>
         <TooltipContent side="top" className="max-w-xs text-xs">
-          <p className="font-semibold">{meta.emoji} {meta.label}</p>
+          <p className="font-semibold">{meta.label}</p>
           <p className="text-muted-foreground">{meta.description}</p>
           {confidence === "estimated" && (
             <p className="mt-1 text-muted-foreground italic">

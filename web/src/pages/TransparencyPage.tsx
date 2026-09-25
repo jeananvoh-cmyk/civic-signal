@@ -515,11 +515,11 @@ const TransparencyPage = () => {
 
                     <div className="space-y-2.5 text-xs">
                       {[
-                        { name: "⚡ Coupure Courant (CIE)", count: "42 %", color: "bg-amber-500" },
-                        { name: "💧 Pénurie d'Eau (SODECI)", count: "31 %", color: "bg-blue-500" },
-                        { name: "🚧 Nids-de-poule & Chaussée", count: "14 %", color: "bg-teal-500" },
-                        { name: "💡 Lampadaire éteint", count: "8 %", color: "bg-yellow-500" },
-                        { name: "🌊 Caniveau / Inondation", count: "5 %", color: "bg-indigo-500" },
+                        { name: "Coupure Courant (CIE)", count: "42 %", color: "bg-amber-500" },
+                        { name: "Pénurie d'Eau (SODECI)", count: "31 %", color: "bg-blue-500" },
+                        { name: "Voirie & Chaussée dégradée", count: "14 %", color: "bg-teal-500" },
+                        { name: "Éclairage public défaillant", count: "8 %", color: "bg-yellow-500" },
+                        { name: "Assainissement & Caniveaux", count: "5 %", color: "bg-indigo-500" },
                       ].map((cat) => (
                         <div key={cat.name} className="flex items-center justify-between">
                           <span className="text-muted-foreground font-medium truncate max-w-[160px]">
@@ -630,7 +630,7 @@ const TransparencyPage = () => {
                     ].map((row) => {
                       const ok = row.actual <= row.target;
                       const ratioPct = Math.min(Math.round((row.actual / row.target) * 100), 100);
-                      const badge = ok ? "✅ Dans les délais" : "⚠️ Hors délai";
+                      const badge = ok ? "Dans les délais" : "Hors délai";
                       const badgeClass = ok
                         ? "text-emerald-600 bg-emerald-500/10 border-emerald-500/20"
                         : "text-amber-600 bg-amber-500/10 border-amber-500/20";
@@ -758,7 +758,11 @@ const TransparencyPage = () => {
                 {/* Podium communes — classement */}
                 {stats.by_commune && stats.by_commune.length >= 3 && (() => {
                   const sorted = [...stats.by_commune].sort((a, b) => b.resolution_rate - a.resolution_rate);
-                  const medals = ["🥇", "🥈", "🥉"];
+                  const rankBadges = [
+                    { label: "#1", bg: "bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30" },
+                    { label: "#2", bg: "bg-slate-400/20 text-slate-700 dark:text-slate-300 border-slate-400/30" },
+                    { label: "#3", bg: "bg-orange-600/20 text-orange-800 dark:text-orange-300 border-orange-600/30" },
+                  ];
                   return (
                     <motion.div
                       initial={{ opacity: 0, y: 12 }}
@@ -780,7 +784,9 @@ const TransparencyPage = () => {
                           const color = COMMUNE_COLORS[c.commune] || "#888";
                           return (
                             <div key={c.commune} className="flex flex-col items-center gap-1.5">
-                              <span className="text-2xl">{medals[rank]}</span>
+                              <span className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-black border ${rankBadges[rank].bg}`}>
+                                {rankBadges[rank].label}
+                              </span>
                               <p className="text-xs font-bold text-foreground text-center max-w-[80px] truncate">{c.commune}</p>
                               <p className="text-xs font-extrabold" style={{ color }}>{c.resolution_rate}%</p>
                               <div
@@ -801,7 +807,7 @@ const TransparencyPage = () => {
 
             </div>
 
-            {/* 🚪 PORTAILS CIBLÉS EN 3 COLONNES (FixMyStreet Style) */}
+            {/* PORTAILS CIBLÉS EN 3 COLONNES (FixMyStreet Style) */}
             <motion.div
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}

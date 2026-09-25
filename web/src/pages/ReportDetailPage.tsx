@@ -7,7 +7,7 @@ import {
   Clock, Users, AlertTriangle, ExternalLink, Loader2, Shield, ThumbsUp,
   LogIn, UserPlus, Wrench, PartyPopper, Radio, AlertOctagon,
   Ticket, Landmark, Copy, Check, Pencil, X, Save, ShieldCheck, Camera, FileCheck2,
-  Layers, HardHat
+  Layers, HardHat, Baby, Heart, UserRound, Bell, BarChart3
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -322,7 +322,7 @@ const ReportDetailPage = () => {
         });
 
       if (isResolveAction && formattedReport.status !== "resolved") {
-        toast.info("⚡ Confirmez si le service est rétabli en cliquant sur 'Oui, rétabli !'", { duration: 6000 });
+        toast.info("Confirmez si le service est rétabli en cliquant sur 'Oui, rétabli !'", { duration: 6000 });
       }
 
       // Charger l'historique des statuts
@@ -487,7 +487,7 @@ const ReportDetailPage = () => {
   const corroborateLabel = isInfra
     ? "Je soutiens cette demande"
     : "Je confirme cette coupure";
-  const corroboratedLabel = isInfra ? "Soutien enregistré ✓" : "Confirmation enregistrée ✓";
+  const corroboratedLabel = isInfra ? "Soutien enregistré" : "Confirmation enregistrée";
   const shareText = isInfra
     ? `🚧 INFRASTRUCTURE — ${report.quartier ? `${report.quartier}, ` : ""}${report.commune}\n\n${cleanDescription(report.description)}\n\n✊ Soutenez cette demande sur SIGNA-CI :`
     : `${isElec ? "⚡" : "💧"} ALERTE COUPURE — ${report.quartier ? `${report.quartier}, ` : ""}${report.commune}\n\nCoupure ${isElec ? "d'électricité" : "d'eau"} en cours. Toujours sans intervention.\n📢 Rejoignez-nous sur SIGNA-CI pour faire pression sur ${isElec ? "CIE" : "SODECI"}.\nPlus on est nombreux, plus vite ils interviennent !`;
@@ -502,7 +502,7 @@ const ReportDetailPage = () => {
       });
       if (error) throw error;
       setReport((prev) => prev ? { ...prev, status: "active", resolved_at: null } : prev);
-      toast.success("⚠️ Signalement réouvert. Les équipes techniques ont été notifiées.");
+      toast.success("Signalement réouvert. Les équipes techniques ont été notifiées.");
     } catch (err: any) {
       toast.error("Impossible de réouvrir : " + (err?.message || ""));
     } finally {
@@ -520,7 +520,7 @@ const ReportDetailPage = () => {
         .eq("id", report.id);
       if (error) throw error;
       setReport((prev) => prev ? { ...prev, status: "resolved", resolved_at: new Date().toISOString() } : prev);
-      toast.success("✅ Signalement marqué comme résolu ! Merci pour votre civisme.");
+      toast.success("Signalement marqué comme résolu ! Merci pour votre civisme.");
     } catch (err: any) {
       toast.error("Impossible de clôturer pour le moment : " + (err?.message || ""));
     } finally {
@@ -541,13 +541,13 @@ const ReportDetailPage = () => {
         }
         setCorroborated(true);
         setReport((prev) => prev ? { ...prev, verifications: prev.verifications + 1 } : prev);
-        toast.success(`✅ ${corroboratedLabel} — merci !`);
+        toast.success(`${corroboratedLabel} — merci !`);
       } else {
         const { error } = await supabase.rpc("corroborate_report", { p_report_id: report.id });
         if (error) throw error;
         setCorroborated(true);
         setReport((prev) => prev ? { ...prev, verifications: prev.verifications + 1 } : prev);
-        toast.success(`✅ ${corroboratedLabel} — merci !`);
+        toast.success(`${corroboratedLabel} — merci !`);
       }
     } catch (err: any) {
       const msg = err?.message || "";
@@ -713,8 +713,9 @@ const ReportDetailPage = () => {
                       Comparatif Travaux : Avant / Après Réparation
                     </span>
                   </div>
-                  <Badge variant="outline" className="text-[10px] border-emerald-500/40 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10">
-                    Preuve validée ✓
+                  <Badge variant="outline" className="text-[10px] border-emerald-500/40 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    <span>Preuve validée</span>
                   </Badge>
                 </div>
 
@@ -961,7 +962,7 @@ const ReportDetailPage = () => {
                   <span className="text-sm font-bold">{isInfra ? (extractInfraLabel(report.description) ?? "Infrastructure") : (SERVICE_LABELS[report.service_type] ?? report.service_type)}</span>
                 </div>
                 <Badge variant="outline" className={`text-white border-white/30 ${isResolved ? "bg-white/20" : "bg-white/10"}`}>
-                  {isResolved ? "✅ Résolu" : "🔴 Actif"}
+                  {isResolved ? "Résolu" : "Actif"}
                 </Badge>
               </div>
 
@@ -973,7 +974,7 @@ const ReportDetailPage = () => {
                   {report.quartier && <span className="text-sm text-muted-foreground">· {report.quartier}</span>}
                 </div>
 
-                {/* 🎫 Référence Officielle de Ticket & PADA */}
+                {/* Référence Officielle de Ticket & PADA */}
                 <div className="rounded-xl border border-border/80 bg-muted/30 p-3.5 space-y-2 text-xs">
                   <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2">
                     <div className="flex items-center gap-2">
@@ -1169,9 +1170,9 @@ const ReportDetailPage = () => {
                   <div className="rounded-xl bg-warning/10 border border-warning/20 px-3.5 py-2.5 text-xs text-warning space-y-0.5">
                     <p className="font-semibold">Personnes vulnérables signalées</p>
                     <div className="flex gap-3 flex-wrap">
-                      {report.babies > 0 && <span>👶 {report.babies} bébé{report.babies > 1 ? "s" : ""}</span>}
-                      {report.pregnant > 0 && <span>🤰 {report.pregnant} femme{report.pregnant > 1 ? "s" : ""} enceinte{report.pregnant > 1 ? "s" : ""}</span>}
-                      {report.elderly > 0 && <span>👴 {report.elderly} personne{report.elderly > 1 ? "s" : ""} âgée{report.elderly > 1 ? "s" : ""}</span>}
+                      {report.babies > 0 && <span className="inline-flex items-center gap-1"><Baby className="h-3.5 w-3.5" /> {report.babies} bébé{report.babies > 1 ? "s" : ""}</span>}
+                      {report.pregnant > 0 && <span className="inline-flex items-center gap-1"><Heart className="h-3.5 w-3.5" /> {report.pregnant} femme{report.pregnant > 1 ? "s" : ""} enceinte{report.pregnant > 1 ? "s" : ""}</span>}
+                      {report.elderly > 0 && <span className="inline-flex items-center gap-1"><UserRound className="h-3.5 w-3.5" /> {report.elderly} personne{report.elderly > 1 ? "s" : ""} âgée{report.elderly > 1 ? "s" : ""}</span>}
                     </div>
                   </div>
                 )}
@@ -1266,8 +1267,8 @@ const ReportDetailPage = () => {
                     <ShieldCheck className="h-4 w-4" />
                   )}
                   {corroborated
-                    ? "Panne Certifiée sur le Terrain ✓"
-                    : "🛡️ Certifier ce signalement sur le terrain"}
+                    ? "Panne Certifiée sur le Terrain"
+                    : "Certifier ce signalement sur le terrain"}
                 </Button>
                 <p className="text-center text-[11px] text-muted-foreground">
                   Appose le badge officiel « Certifié par l'Ambassadeur » sur la fiche
@@ -1313,7 +1314,7 @@ const ReportDetailPage = () => {
               >
                 <div className="text-center space-y-1">
                   <p className="text-base font-extrabold text-foreground">
-                    {isInfra ? "🚧 Vous voyez aussi ce problème ?" : `${isElec ? "⚡" : "💧"} Vous subissez aussi cette coupure ?`}
+                    {isInfra ? "Vous constatez aussi ce problème ?" : "Vous subissez aussi cette coupure ?"}
                   </p>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     {isInfra
@@ -1325,15 +1326,18 @@ const ReportDetailPage = () => {
                 {/* Bénéfices rapides */}
                 <div className="grid grid-cols-3 gap-2 text-center">
                   {[
-                    { icon: "✅", text: isInfra ? "Soutenir" : "Confirmer" },
-                    { icon: "🔔", text: "Être alerté" },
-                    { icon: "📊", text: "Suivre" },
-                  ].map((b) => (
-                    <div key={b.text} className="rounded-xl bg-background/60 border border-border px-2 py-2">
-                      <p className="text-lg">{b.icon}</p>
-                      <p className="text-[11px] font-semibold text-muted-foreground mt-0.5">{b.text}</p>
-                    </div>
-                  ))}
+                    { icon: CheckCircle2, text: isInfra ? "Soutenir" : "Confirmer" },
+                    { icon: Bell, text: "Être alerté" },
+                    { icon: BarChart3, text: "Suivre" },
+                  ].map((b) => {
+                    const IconComp = b.icon;
+                    return (
+                      <div key={b.text} className="rounded-xl bg-background/60 border border-border px-2 py-2 flex flex-col items-center justify-center">
+                        <IconComp className="h-5 w-5 text-primary mb-1" />
+                        <p className="text-[11px] font-semibold text-muted-foreground">{b.text}</p>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div className="space-y-2">

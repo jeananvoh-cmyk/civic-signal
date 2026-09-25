@@ -338,7 +338,7 @@ const PartnerDashboardPage = () => {
       const msg = status === "processing"
         ? "Prise en charge validée · Transmise au centre de supervision"
         : status === "resolved"
-        ? "Incident marqué Résolu et clôturé ✅"
+        ? "Incident marqué comme résolu et clôturé"
         : "Statut mis à jour";
       toast.success(msg);
     },
@@ -677,10 +677,10 @@ const PartnerDashboardPage = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cie" className="text-xs font-bold text-amber-600">⚡ CIE (Électricité)</SelectItem>
-                    <SelectItem value="sodeci" className="text-xs font-bold text-sky-600">💧 SODECI (Eau Potable)</SelectItem>
-                    <SelectItem value="mairie" className="text-xs font-bold text-emerald-600">🏛️ Mairie (Voirie / DST)</SelectItem>
-                    <SelectItem value="ngo" className="text-xs font-bold text-indigo-600">🤝 Observatoire Citoyen</SelectItem>
+                    <SelectItem value="cie" className="text-xs font-bold text-amber-600">CIE (Électricité)</SelectItem>
+                    <SelectItem value="sodeci" className="text-xs font-bold text-sky-600">SODECI (Eau Potable)</SelectItem>
+                    <SelectItem value="mairie" className="text-xs font-bold text-emerald-600">Mairie (Voirie / DST)</SelectItem>
+                    <SelectItem value="ngo" className="text-xs font-bold text-indigo-600">Observatoire Citoyen</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -3,7 +3,7 @@ import Footer from "@/components/Footer";
 import {
   Shield, Mail, Database, Eye, Trash2, Globe, Scale, Lock,
   Building, CheckCircle2, ExternalLink, FileText, ArrowRight,
-  ShieldCheck, Smartphone, KeyRound
+  ShieldCheck, Smartphone, KeyRound, User, MapPin, Camera
 } from "lucide-react";
 import { usePageMeta } from "@/hooks/usePageMeta";
 
@@ -139,19 +139,25 @@ const PrivacyPolicyPage = () => {
               
               <div className="grid sm:grid-cols-2 gap-4 my-2">
                 <div className="p-4 rounded-2xl bg-muted/50 border border-border">
-                  <span className="font-bold text-foreground text-xs block mb-1">👤 Données d'Identification</span>
+                  <span className="font-bold text-foreground text-xs flex items-center gap-1.5 mb-1">
+                    <User className="h-3.5 w-3.5 text-primary" />
+                    Données d'Identification
+                  </span>
                   <span className="text-xs text-muted-foreground">Adresse email (pour le suivi), prénom et nom (facultatifs), numéro de téléphone (facultatif).</span>
                 </div>
                 <div className="p-4 rounded-2xl bg-muted/50 border border-border">
-                  <span className="font-bold text-foreground text-xs block mb-1">📍 Données de Signalement</span>
+                  <span className="font-bold text-foreground text-xs flex items-center gap-1.5 mb-1">
+                    <MapPin className="h-3.5 w-3.5 text-primary" />
+                    Données de Signalement
+                  </span>
                   <span className="text-xs text-muted-foreground">Commune, quartier, numéro de porte PADA, coordonnées GPS de l'incident, photographies des équipements.</span>
                 </div>
               </div>
 
               <div className="p-4 rounded-2xl bg-muted/50 border border-border my-3 space-y-1.5">
                 <span className="font-bold text-foreground text-xs flex items-center gap-1.5">
-                  <FileText className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                  📷 Photographies & Relevés de Compteurs (Traitement OCR)
+                  <Camera className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  Photographies & Relevés de Compteurs (Traitement OCR)
                 </span>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Lorsque vous importez une photo de compteur ou d'équipement (CIE/SODECI), un traitement de reconnaissance optique de caractères (OCR) est effectué localement ou de manière sécurisée pour extraire uniquement l'index numérique du compteur ou la référence d'équipement. Les informations nominatives figurant éventuellement sur les factures papier sont automatiquement purgées avant tout enregistrement.

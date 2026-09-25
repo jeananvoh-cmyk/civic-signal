@@ -741,7 +741,7 @@ const AdminQuartiersPage = () => {
               className="border-emerald-500/50 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700 font-bold gap-2 shadow-2xs"
             >
               <RefreshCw className={`h-4 w-4 ${syncOfficialMutation.isPending ? "animate-spin" : "text-emerald-600"}`} />
-              ⚡ Synchroniser les 14 communes ({missingQuartiers.length} officiels)
+              Synchroniser les 14 communes ({missingQuartiers.length} officiels)
             </Button>
           )}
           <Button

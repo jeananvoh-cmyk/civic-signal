@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Shield, ShieldCheck, UserPlus, Trash2, Plus, Pencil, KeyRound, FlaskConical, Handshake } from "lucide-react";
+import { Shield, ShieldCheck, UserPlus, Trash2, Plus, Pencil, KeyRound, FlaskConical, Handshake, Mail, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -424,7 +424,10 @@ const AdminUsersPage = () => {
                         : "border-border text-muted-foreground hover:border-primary/50"
                     }`}
                   >
-                    <div className="font-semibold mb-0.5">📧 Envoyer un email</div>
+                    <div className="font-semibold mb-0.5 flex items-center gap-1.5">
+                      <Mail className="h-3.5 w-3.5" />
+                      <span>Envoyer un email</span>
+                    </div>
                     <div className="text-xs opacity-70">L'utilisateur reçoit un lien de réinitialisation</div>
                   </button>
                   <button
@@ -436,7 +439,10 @@ const AdminUsersPage = () => {
                         : "border-border text-muted-foreground hover:border-primary/50"
                     }`}
                   >
-                    <div className="font-semibold mb-0.5">🔑 Définir directement</div>
+                    <div className="font-semibold mb-0.5 flex items-center gap-1.5">
+                      <Key className="h-3.5 w-3.5" />
+                      <span>Définir directement</span>
+                    </div>
                     <div className="text-xs opacity-70">Choisir le nouveau mot de passe maintenant</div>
                   </button>
                 </div>

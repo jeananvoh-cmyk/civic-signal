@@ -432,26 +432,29 @@ const MapPage = () => {
 
       if (hasOutage) {
         if (coupureFilter === "all" && elecActifs > 0 && eauActifs > 0) {
-          // Double badge ⚡ & 💧
+          // Double badge Élec & Eau
           markerHtml = `
             <div style="position:relative;display:flex;align-items:center;cursor:pointer;transform:${isSelected ? 'scale(1.15)' : 'scale(1)'};transition:transform .2s;">
-              <div style="background:#f59e0b;color:white;padding:4px 7px;border-radius:12px 0 0 12px;font-size:11px;font-weight:900;display:flex;align-items:center;gap:2px;border:2px solid white;border-right:1px solid rgba(255,255,255,0.4);box-shadow:0 3px 10px rgba(0,0,0,.35);">
-                <span>⚡</span>${elecActifs}
+              <div style="background:#f59e0b;color:white;padding:4px 7px;border-radius:12px 0 0 12px;font-size:11px;font-weight:900;display:flex;align-items:center;gap:3px;border:2px solid white;border-right:1px solid rgba(255,255,255,0.4);box-shadow:0 3px 10px rgba(0,0,0,.35);">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>${elecActifs}
               </div>
-              <div style="background:#3b82f6;color:white;padding:4px 7px;border-radius:0 12px 12px 0;font-size:11px;font-weight:900;display:flex;align-items:center;gap:2px;border:2px solid white;border-left:none;box-shadow:0 3px 10px rgba(0,0,0,.35);">
-                <span>💧</span>${eauActifs}
+              <div style="background:#3b82f6;color:white;padding:4px 7px;border-radius:0 12px 12px 0;font-size:11px;font-weight:900;display:flex;align-items:center;gap:3px;border:2px solid white;border-left:none;box-shadow:0 3px 10px rgba(0,0,0,.35);">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>${eauActifs}
               </div>
               ${hasVerified ? `<span style="position:absolute;top:-6px;right:-6px;background:#16a34a;color:white;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;border:2px solid white;">✓</span>` : ''}
             </div>
           `;
         } else {
           // Simple badge avec nombre
-          const emoji = (coupureFilter === "electricity" || elecActifs > 0) ? "⚡" : "💧";
-          const bg = (coupureFilter === "electricity" || elecActifs > 0) ? "#f59e0b" : "#3b82f6";
+          const isElecService = coupureFilter === "electricity" || elecActifs > 0;
+          const bg = isElecService ? "#f59e0b" : "#3b82f6";
+          const iconSvg = isElecService
+            ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`
+            : `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`;
 
           markerHtml = `
-            <div style="position:relative;background:${bg};color:white;min-width:38px;height:38px;border-radius:999px;padding:0 8px;display:flex;align-items:center;justify-content:center;gap:2px;font-size:12px;font-weight:900;border:2.5px solid white;box-shadow:0 4px 12px rgba(0,0,0,.4);cursor:pointer;transform:${isSelected ? 'scale(1.2)' : 'scale(1)'};transition:transform .2s;">
-              <span>${emoji}</span>
+            <div style="position:relative;background:${bg};color:white;min-width:38px;height:38px;border-radius:999px;padding:0 8px;display:flex;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:900;border:2.5px solid white;box-shadow:0 4px 12px rgba(0,0,0,.4);cursor:pointer;transform:${isSelected ? 'scale(1.2)' : 'scale(1)'};transition:transform .2s;">
+              ${iconSvg}
               <span>${actifs}</span>
               ${hasVerified ? `<span style="position:absolute;top:-5px;right:-5px;background:#16a34a;color:white;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;border:2px solid white;">✓</span>` : ''}
             </div>
@@ -531,12 +534,12 @@ const MapPage = () => {
                 </button>
                 <ShareButton
                   title="Météo Coupures Abidjan"
-                  text={`${totals.actifs} coupure(s) active(s) sur le Grand Abidjan en ce moment 📊`}
+                  text={`${totals.actifs} coupure(s) active(s) sur le Grand Abidjan en ce moment`}
                 />
               </div>
             </div>
 
-            {/* ⚡ BOUTON D'ACTION PRIMAIRE HÉRO : SIGNALER UNE COUPURE ⚡ */}
+            {/* BOUTON D'ACTION PRIMAIRE HÉRO : SIGNALER UNE COUPURE */}
             <div className="flex items-center gap-2">
               <Button
                 asChild
@@ -581,7 +584,8 @@ const MapPage = () => {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <span>⚡💧 Tous</span>
+                  <Layers className="h-3 w-3" />
+                  <span>Tous</span>
                   <span className="text-[10px] opacity-75 font-normal">({totals.elec + totals.eau})</span>
                 </button>
 
@@ -715,9 +719,17 @@ const MapPage = () => {
                                 : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
                             }`}
                           >
-                            {targetCommune.actifs > 0
-                              ? `🔴 ${targetCommune.actifs} coupure${targetCommune.actifs > 1 ? "s" : ""} en cours`
-                              : "🟢 Réseau 100% stable"}
+                            {targetCommune.actifs > 0 ? (
+                              <span className="flex items-center gap-1.5">
+                                <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />
+                                {targetCommune.actifs} coupure{targetCommune.actifs > 1 ? "s" : ""} en cours
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1.5">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                Réseau 100% stable
+                              </span>
+                            )}
                           </Badge>
                         </div>
 
@@ -845,7 +857,11 @@ const MapPage = () => {
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="text-xl">{totals.hasOutages ? "⚠️" : "🟢"}</span>
+                    {totals.hasOutages ? (
+                      <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                    ) : (
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    )}
                     <div>
                       <h3 className="text-xs sm:text-sm font-extrabold">
                         {totals.hasOutages
@@ -854,7 +870,7 @@ const MapPage = () => {
                       </h3>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         {totals.hasOutages
-                          ? `⚡ ${totals.elec} secteur(s) CIE · 💧 ${totals.eau} secteur(s) SODECI`
+                          ? `${totals.elec} incident(s) CIE · ${totals.eau} incident(s) SODECI`
                           : "0 incident rapporté par les citoyens ces dernières heures."}
                       </p>
                     </div>
@@ -903,12 +919,13 @@ const MapPage = () => {
                         <div className="flex items-center gap-2 shrink-0">
                           {hasOutage ? (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-extrabold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                              <span>⚡💧</span>
+                              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
                               <span>{c.actifs}</span>
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                              <span>✓ Stable</span>
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                              <span>Stable</span>
                             </span>
                           )}
 
@@ -981,13 +998,13 @@ const MapPage = () => {
           {/* Live Legend (Desktop) */}
           <div className="hidden sm:flex absolute bottom-4 left-4 z-[400] items-center gap-3 px-3.5 py-2 rounded-2xl bg-card/90 backdrop-blur-md border border-border/80 shadow-lg text-xs font-semibold">
             <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300">
-              <span className="h-2.5 w-2.5 rounded-full bg-amber-500 inline-block" /> ⚡ CIE
+              <span className="h-2.5 w-2.5 rounded-full bg-amber-500 inline-block" /> CIE (Électricité)
             </span>
             <span className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
-              <span className="h-2.5 w-2.5 rounded-full bg-blue-500 inline-block" /> 💧 SODECI
+              <span className="h-2.5 w-2.5 rounded-full bg-blue-500 inline-block" /> SODECI (Eau)
             </span>
             <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 border-l border-border pl-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 inline-block" /> ✓ Réseau Stable
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 inline-block" /> Réseau Stable
             </span>
           </div>
 
@@ -1012,10 +1029,18 @@ const MapPage = () => {
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <h4 className="text-sm font-extrabold text-foreground">{target.nom}</h4>
-                          <p className="text-xs text-muted-foreground">
-                            {target.actifs > 0
-                              ? `🔴 ${target.actifs} coupure(s) en cours`
-                              : "🟢 Réseau 100% stable"}
+                          <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                            {target.actifs > 0 ? (
+                              <>
+                                <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />
+                                <span>{target.actifs} coupure(s) en cours</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                <span>Réseau 100% stable</span>
+                              </>
+                            )}
                           </p>
                         </div>
 

@@ -28,10 +28,10 @@ import { getDisplayTicketCode, formatPadaAddress, getCommunePadaCode } from "@/l
 import { COMMUNES } from "@/lib/communes";
 
 const URGENCY_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  low: { label: "🟢 Faible", variant: "secondary" },
-  medium: { label: "🟡 Moyen", variant: "outline" },
-  high: { label: "🟠 Élevé", variant: "default" },
-  critical: { label: "🔴 Critique", variant: "destructive" },
+  low: { label: "Faible", variant: "secondary" },
+  medium: { label: "Moyen", variant: "outline" },
+  high: { label: "Élevé", variant: "default" },
+  critical: { label: "Critique", variant: "destructive" },
 };
 
 const AdminReportsPage = () => {
@@ -575,8 +575,8 @@ const AdminReportsPage = () => {
       queryClient.invalidateQueries({ queryKey: ["admin-reports-pending"] });
       toast.success(
         decision === "approved"
-          ? "✅ Preuve de réparation validée ! Signalement clos."
-          : "❌ Preuve de réparation rejetée. Le signalement reste actif."
+          ? "Preuve de réparation validée. Signalement clos."
+          : "Preuve de réparation rejetée. Le signalement reste actif."
       );
       setSelectedReport(null);
     },
@@ -620,7 +620,7 @@ const AdminReportsPage = () => {
       logAudit({ action: "report_forwarded_to_operator", target_type: "report", target_id: reportId });
       queryClient.invalidateQueries({ queryKey: ["admin-reports-validated"] });
       setSelectedReport((prev: any) => prev ? { ...prev, forwarded_to_operator_at: new Date().toISOString() } : prev);
-      toast.success("✅ Signalement marqué comme transmis à l'opérateur.");
+      toast.success("Signalement marqué comme transmis à l'opérateur.");
     },
     onError: (err: any) => toast.error(getUserFriendlyError(err)),
   });
@@ -740,17 +740,17 @@ const AdminReportsPage = () => {
 
                 {/* Badge Statut */}
                 {isResolved ? (
-                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px] px-1.5 py-0">
-                    ✅ Résolu
+                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px] px-1.5 py-0 flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3" /> Résolu
                   </Badge>
                 ) : isChronic ? (
-                  <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 text-[10px] px-1.5 py-0">
-                    🔴 Chronique ({durationLabel})
+                  <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 text-[10px] px-1.5 py-0 flex items-center gap-1">
+                    <AlertOctagon className="h-3 w-3" /> Chronique ({durationLabel})
                   </Badge>
                 ) : (
                   <Badge
                     variant="outline"
-                    className={`text-[10px] px-1.5 py-0 ${
+                    className={`text-[10px] px-1.5 py-0 flex items-center gap-1 ${
                       elapsedHours >= 24
                         ? "bg-destructive/10 text-destructive border-destructive/30 font-bold"
                         : elapsedHours >= 10
@@ -758,14 +758,14 @@ const AdminReportsPage = () => {
                         : "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
                     }`}
                   >
-                    🟠 Actif (⏱ {durationLabel})
+                    <Clock className="h-3 w-3" /> Actif ({durationLabel})
                   </Badge>
                 )}
 
                 {/* Badge Preuve Citoyenne */}
                 {report.repair_status === "pending_review" && (
-                  <Badge variant="outline" className="bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/50 text-[10px] px-1.5 py-0 font-bold animate-pulse">
-                    📸 Preuve citoyenne
+                  <Badge variant="outline" className="bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/50 text-[10px] px-1.5 py-0 font-bold animate-pulse flex items-center gap-1">
+                    <Camera className="h-3 w-3" /> Preuve citoyenne
                   </Badge>
                 )}
 
@@ -1143,9 +1143,9 @@ const AdminReportsPage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tous les services</SelectItem>
-                    <SelectItem value="electricity">⚡ Électricité (CIE)</SelectItem>
-                    <SelectItem value="water">💧 Eau (SODECI)</SelectItem>
-                    <SelectItem value="mairie">🏗️ Voirie & Mairie</SelectItem>
+                    <SelectItem value="electricity">Électricité (CIE)</SelectItem>
+                    <SelectItem value="water">Eau (SODECI)</SelectItem>
+                    <SelectItem value="mairie">Voirie & Mairie</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1168,7 +1168,7 @@ const AdminReportsPage = () => {
                   className={`h-7 text-xs px-2.5 ${statusFilter === "active" ? "bg-amber-600 hover:bg-amber-700" : "text-amber-700 dark:text-amber-300 border-amber-500/30"}`}
                   onClick={() => setStatusFilter("active")}
                 >
-                  🟠 Actifs ({countValidatedActiveTotal})
+                  Actifs ({countValidatedActiveTotal})
                 </Button>
                 <Button
                   size="sm"
@@ -1176,7 +1176,7 @@ const AdminReportsPage = () => {
                   className={`h-7 text-xs px-2.5 ${statusFilter === "resolved" ? "bg-emerald-600 hover:bg-emerald-700" : "text-emerald-700 dark:text-emerald-300 border-emerald-500/30"}`}
                   onClick={() => setStatusFilter("resolved")}
                 >
-                  ✅ Résolus ({countValidatedResolved})
+                  Résolus ({countValidatedResolved})
                 </Button>
                 <Button
                   size="sm"
@@ -1184,7 +1184,7 @@ const AdminReportsPage = () => {
                   className={`h-7 text-xs px-2.5 ${statusFilter === "critical" ? "bg-destructive hover:bg-destructive/90" : "text-destructive border-destructive/30"}`}
                   onClick={() => setStatusFilter("critical")}
                 >
-                  🔴 Critiques
+                  Critiques
                 </Button>
                 <Button
                   size="sm"
@@ -1192,7 +1192,7 @@ const AdminReportsPage = () => {
                   className={`h-7 text-xs px-2.5 ${statusFilter === "pending_proof" ? "bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold shadow-xs" : "text-amber-800 dark:text-amber-300 border-amber-500/40"}`}
                   onClick={() => setStatusFilter("pending_proof")}
                 >
-                  📸 Preuves citoyennes ({countPendingRepairProof})
+                  Preuves citoyennes ({countPendingRepairProof})
                 </Button>
               </div>
 
@@ -1464,7 +1464,7 @@ const AdminReportsPage = () => {
                       className={`h-8 text-xs font-medium ${escaladeFilter !== "unrelayed" ? "border-amber-500/50 text-amber-700 dark:text-amber-400" : ""}`}
                       onClick={() => setEscaladeFilter("unrelayed")}
                     >
-                      🚨 À relayer ({escaladeNotifs.filter((n: any) => !n.is_relayed).length})
+                      À relayer ({escaladeNotifs.filter((n: any) => !n.is_relayed).length})
                     </Button>
                     <Button
                       size="sm"
@@ -1472,7 +1472,7 @@ const AdminReportsPage = () => {
                       className={`h-8 text-xs font-medium ${escaladeFilter !== "relayed" ? "border-emerald-500/50 text-emerald-700 dark:text-emerald-400" : "bg-emerald-600 hover:bg-emerald-700"}`}
                       onClick={() => setEscaladeFilter("relayed")}
                     >
-                      🟢 Déjà transmis ({escaladeNotifs.filter((n: any) => n.is_relayed).length})
+                      Déjà transmis ({escaladeNotifs.filter((n: any) => n.is_relayed).length})
                     </Button>
                   </div>
 
@@ -1563,16 +1563,14 @@ const AdminReportsPage = () => {
                         {report && (
                           <div className="rounded-xl border border-border bg-muted/30 px-3 py-2.5 space-y-1.5">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm">
-                                {isInfra ? infraEmoji(extractInfraLabel(report?.description || "")) : isElec ? "⚡" : "💧"}
-                              </span>
+                              {isInfra ? <Landmark className="h-4 w-4 text-emerald-600 shrink-0" /> : isElec ? <Zap className="h-4 w-4 text-amber-500 shrink-0" /> : <Droplets className="h-4 w-4 text-blue-500 shrink-0" />}
                               <span className="text-sm font-semibold text-foreground">
                                 {report.commune}{report.quartier ? `, ${report.quartier}` : ""}
                               </span>
                               <Badge variant="outline" className={`text-xs px-1.5 ${
                                 isChronic ? "border-destructive/50 text-destructive" : "border-orange-500/50 text-orange-600"
                               }`}>
-                                {isChronic ? "🔴 Chronique" : "🟠 Actif"}
+                                {isChronic ? "Chronique" : "Actif"}
                               </Badge>
                               {ageDays !== null && (
                                 <Badge variant="outline" className="text-xs px-1.5 border-border text-muted-foreground">
@@ -1603,7 +1601,7 @@ const AdminReportsPage = () => {
                               size="sm" variant={isRelayed ? "ghost" : "default"}
                               className={`h-7 text-xs gap-1 ${
                                 isRelayed
-                                  ? "text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300"
+                                    ? "text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300"
                                   : "bg-primary text-primary-foreground font-semibold shadow-sm"
                               }`}
                               disabled={addToRelayMutation.isPending}
@@ -1617,7 +1615,7 @@ const AdminReportsPage = () => {
                                 }
                               }}
                             >
-                              <Send className="h-3 w-3" /> {isRelayed ? "✓ Déjà relayé (Renvoyer)" : "📩 Relayer aux Opérateurs"}
+                              <Send className="h-3 w-3" /> {isRelayed ? "Déjà relayé (Renvoyer)" : "Relayer aux Opérateurs"}
                             </Button>
                           )}
                           {waLink && (
@@ -1716,7 +1714,7 @@ const AdminReportsPage = () => {
             </SheetHeader>
             {selectedReport && (
               <div className="space-y-4">
-                {/* 🎫 Référence Ticket & Adressage PADA */}
+                {/* Référence Ticket & Adressage PADA */}
                 <div className="rounded-xl border border-border/80 bg-muted/40 p-3 space-y-2 text-xs">
                   <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2">
                     <div className="flex items-center gap-2">

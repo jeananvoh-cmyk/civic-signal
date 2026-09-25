@@ -27,7 +27,7 @@ import { toast } from "sonner";
 const POSTER_THEMES = [
   {
     id: "general",
-    label: "🌟 Général (Toutes pannes & Voirie)",
+    label: "Général (Toutes pannes & Voirie)",
     headline: "Une panne d'eau, de courant ou un nid-de-poule ?",
     subhead: "Documentons-le ensemble pour accélérer la réparation !",
     icon: Sparkles,
@@ -38,7 +38,7 @@ const POSTER_THEMES = [
   },
   {
     id: "water",
-    label: "💧 Eau Potable & Pénuries (SODECI)",
+    label: "Eau Potable & Pénuries (SODECI)",
     headline: "Coupure d'eau ou fuite sur la chaussée ?",
     subhead: "Alertez le quartier et la SODECI en 30 secondes !",
     icon: Droplets,
@@ -49,7 +49,7 @@ const POSTER_THEMES = [
   },
   {
     id: "electricity",
-    label: "⚡ Électricité & Lampadaires (CIE)",
+    label: "Électricité & Lampadaires (CIE)",
     headline: "Coupure de courant ou lampadaire éteint ?",
     subhead: "Flashez pour informer le quartier et lancer l'alerte !",
     icon: Zap,
@@ -60,7 +60,7 @@ const POSTER_THEMES = [
   },
   {
     id: "infrastructure",
-    label: "🚧 Voirie, Caniveaux & Salubrité (Mairie)",
+    label: "Voirie, Caniveaux & Salubrité (Mairie)",
     headline: "Chaussée dégradée, caniveau bouché ou ordures ?",
     subhead: "Transmettez l'incident directement aux Services Techniques !",
     icon: Wrench,
@@ -419,27 +419,27 @@ export default function PostersPage() {
                       SCANNEZ AVEC VOTRE SMARTPHONE
                     </div>
                     <div className="text-xs font-bold text-emerald-700">
-                      👉 Aucun téléchargement · 100% Gratuit · Sans inscription obligatoire
+                      Aucun téléchargement requis · 100% Gratuit · Sans inscription obligatoire
                     </div>
                   </div>
                 </div>
 
                 {/* ── 4. Les 3 Étapes Simples ── */}
                 <div className="grid grid-cols-3 gap-3 text-center py-2">
-                  <div className="p-3 rounded-2xl bg-slate-100 border border-slate-200">
-                    <div className="text-lg font-black text-slate-900 mb-1">1. 📸</div>
+                  <div className="p-3 rounded-2xl bg-slate-100 border border-slate-200 flex flex-col items-center">
+                    <div className="h-7 w-7 rounded-full bg-slate-900 text-white font-black text-xs flex items-center justify-center mb-1.5">1</div>
                     <div className="text-[11px] font-extrabold text-slate-900 uppercase">Prenez en photo</div>
                     <div className="text-[10px] text-slate-500 mt-0.5">Le lampadaire, la fuite ou le nid-de-poule</div>
                   </div>
 
-                  <div className="p-3 rounded-2xl bg-slate-100 border border-slate-200">
-                    <div className="text-lg font-black text-slate-900 mb-1">2. 📍</div>
+                  <div className="p-3 rounded-2xl bg-slate-100 border border-slate-200 flex flex-col items-center">
+                    <div className="h-7 w-7 rounded-full bg-slate-900 text-white font-black text-xs flex items-center justify-center mb-1.5">2</div>
                     <div className="text-[11px] font-extrabold text-slate-900 uppercase">Localisez</div>
                     <div className="text-[10px] text-slate-500 mt-0.5">Localisation précise dans notre quartier</div>
                   </div>
 
-                  <div className="p-3 rounded-2xl bg-slate-100 border border-slate-200">
-                    <div className="text-lg font-black text-slate-900 mb-1">3. 🔔</div>
+                  <div className="p-3 rounded-2xl bg-slate-100 border border-slate-200 flex flex-col items-center">
+                    <div className="h-7 w-7 rounded-full bg-slate-900 text-white font-black text-xs flex items-center justify-center mb-1.5">3</div>
                     <div className="text-[11px] font-extrabold text-slate-900 uppercase">Alertez</div>
                     <div className="text-[10px] text-slate-500 mt-0.5">La Mairie, la CIE et la SODECI sont notifiées</div>
                   </div>
@@ -450,13 +450,13 @@ export default function PostersPage() {
               {/* ── 5. Bas de Page Institutionnel & Données ── */}
               <div className="pt-6 border-t-2 border-slate-900 mt-6 space-y-3 text-center">
                 <div className="flex flex-wrap items-center justify-center gap-4 text-[10px] font-bold text-slate-600 uppercase tracking-wider">
-                  <span>🏢 MAIRIE DE {selectedCommune}</span>
+                  <span>MAIRIE DE {selectedCommune}</span>
                   <span>•</span>
-                  <span>⚡ CIE (ÉLECTRICITÉ)</span>
+                  <span>CIE (ÉLECTRICITÉ)</span>
                   <span>•</span>
-                  <span>💧 SODECI (EAU POTABLE)</span>
+                  <span>SODECI (EAU POTABLE)</span>
                   <span>•</span>
-                  <span>🏛️ RÉGULATEURS ANARE &amp; ONEP</span>
+                  <span>RÉGULATEURS ANARE &amp; ONEP</span>
                 </div>
 
                 <div className="text-[9px] text-slate-500 leading-tight">

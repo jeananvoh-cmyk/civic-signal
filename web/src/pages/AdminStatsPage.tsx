@@ -645,7 +645,10 @@ const AdminStatsPage = () => {
                       <span>{c.resolus} résolu{c.resolus > 1 ? "s" : ""}</span>
                       <span>{(c.population / 1000).toFixed(0)}k hab.</span>
                       {vulnCount > 0 && (
-                        <span className="text-destructive font-medium">❤ {vulnCount} vulnérable{vulnCount > 1 ? "s" : ""}</span>
+                        <span className="text-destructive font-medium flex items-center gap-1">
+                          <Heart className="h-3 w-3 inline shrink-0" />
+                          <span>{vulnCount} vulnérable{vulnCount > 1 ? "s" : ""}</span>
+                        </span>
                       )}
                     </div>
                   </motion.div>

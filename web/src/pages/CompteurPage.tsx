@@ -4,7 +4,7 @@ import { useGoBack } from "@/hooks/useGoBack";
 import { motion } from "framer-motion";
 import {
   Zap, Plus, ArrowLeft, Gauge, History,
-  RefreshCw, Trash2, Building2, CheckCircle2, XCircle, AlertCircle, Hash,
+  RefreshCw, Trash2, Building2, CheckCircle2, XCircle, AlertCircle, Hash, Key,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -543,8 +543,9 @@ export default function CompteurPage() {
                         {format(new Date(r.recharged_at), "d MMMM yyyy · HH:mm", { locale: fr })}
                       </p>
                       {r.token_code && (
-                        <p className="text-xs font-mono text-muted-foreground mt-0.5">
-                          🔑 {r.token_code}
+                        <p className="text-xs font-mono text-muted-foreground mt-0.5 flex items-center gap-1">
+                          <Key className="h-3 w-3 shrink-0" />
+                          <span>{r.token_code}</span>
                         </p>
                       )}
                     </div>

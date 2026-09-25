@@ -12,8 +12,9 @@ interface PriorityBadgeProps {
 
 const PriorityBadge = ({ priority, showScore = false, showFactors = false, className = "" }: PriorityBadgeProps) => {
   const badge = (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${priority.pillClass} ${className}`}>
-      {priority.emoji} {priority.level}
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-bold ${priority.pillClass} ${className}`}>
+      <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" />
+      <span>{priority.level} · {priority.label}</span>
       {showScore && <span className="opacity-70">({priority.score})</span>}
     </span>
   );

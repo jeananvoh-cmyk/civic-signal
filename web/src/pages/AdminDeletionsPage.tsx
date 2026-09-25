@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Trash2, Zap, Droplets, Clock, Download, Search } from "lucide-react";
+import { Trash2, Zap, Droplets, Clock, Download, Search, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -177,8 +177,9 @@ const AdminDeletionsPage = () => {
 
                         {/* Reason */}
                         <div className="rounded-lg bg-destructive/5 border border-destructive/10 p-2.5 mb-2">
-                          <p className="text-sm text-foreground font-medium">
-                            💬 {d.reason}
+                          <p className="text-sm text-foreground font-medium flex items-start gap-1.5">
+                            <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                            <span>{d.reason}</span>
                           </p>
                         </div>
 

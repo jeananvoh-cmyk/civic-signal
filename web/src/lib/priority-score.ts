@@ -186,22 +186,22 @@ function neglectPoints(days: number): { pts: number; label: string } {
 const PRIORITY_META: Record<PriorityLevel, { label: string; emoji: string; pillClass: string }> = {
   P1: {
     label: "Critique",
-    emoji: "🔴",
+    emoji: "",
     pillClass: "text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-950/40 border border-red-300 dark:border-red-800",
   },
   P2: {
     label: "Élevé",
-    emoji: "🟠",
+    emoji: "",
     pillClass: "text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-950/40 border border-orange-300 dark:border-orange-800",
   },
   P3: {
     label: "Modéré",
-    emoji: "🟡",
+    emoji: "",
     pillClass: "text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800",
   },
   P4: {
     label: "Faible",
-    emoji: "🟢",
+    emoji: "",
     pillClass: "text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-950/40 border border-green-300 dark:border-green-800",
   },
 };
