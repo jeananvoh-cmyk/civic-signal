@@ -7,6 +7,7 @@ import {
   ChevronDown, ChevronUp, ExternalLink, Settings, FlaskConical,
   ShieldCheck, Save, Ban, MessageCircle, Building2, Landmark, TicketCheck,
   Scale, Copy, Eye, EyeOff, KeyRound, Calendar, Filter, Trash2, Search, X,
+  CheckSquare, Square,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -269,39 +270,39 @@ function getOperatorTargetEmail(
 ): string {
   if (operator === "CIE") {
     const email = config?.email_cie?.trim();
-    if (email && email.length > 0 && !email.includes("jeananvoh")) return email;
-    if (fallbackLogEmail && !fallbackLogEmail.includes("jeananvoh") && fallbackLogEmail.includes("@")) return fallbackLogEmail;
+    if (email && email.length > 0) return email;
+    if (fallbackLogEmail && fallbackLogEmail.includes("@")) return fallbackLogEmail;
     return "reclamation@cie.ci";
   }
   if (operator === "ANARE") {
     const email = config?.email_anare?.trim();
-    if (email && email.length > 0 && !email.includes("jeananvoh")) return email;
+    if (email && email.length > 0) return email;
     const cieEmail = config?.email_cie?.trim();
-    if (cieEmail && cieEmail.length > 0 && !cieEmail.includes("jeananvoh")) return cieEmail;
-    return "reclamation@anare.ci";
+    if (cieEmail && cieEmail.length > 0) return cieEmail;
+    return "info@anareci.org";
   }
   if (operator === "SODECI") {
     const email = config?.email_sodeci?.trim();
-    if (email && email.length > 0 && !email.includes("jeananvoh")) return email;
-    if (fallbackLogEmail && !fallbackLogEmail.includes("jeananvoh") && fallbackLogEmail.includes("@")) return fallbackLogEmail;
-    return "reclamation@sodeci.ci";
+    if (email && email.length > 0) return email;
+    if (fallbackLogEmail && fallbackLogEmail.includes("@")) return fallbackLogEmail;
+    return "contact@sodeci.ci";
   }
   if (operator === "ONEP") {
     const email = config?.email_onep?.trim();
-    if (email && email.length > 0 && !email.includes("jeananvoh")) return email;
+    if (email && email.length > 0) return email;
     const sodeciEmail = config?.email_sodeci?.trim();
-    if (sodeciEmail && sodeciEmail.length > 0 && !sodeciEmail.includes("jeananvoh")) return sodeciEmail;
-    return "reclamation@onep.ci";
+    if (sodeciEmail && sodeciEmail.length > 0) return sodeciEmail;
+    return "contact@onep.ci";
   }
   if (operator === "MAIRIE") {
     const slug = (commune || "").toLowerCase().replace(/[^a-z0-9]/g, "");
     const mairieEmail = config?.[`mairie_${slug}_email`]?.trim() || config?.[`email_mairie_${slug}`]?.trim();
-    if (mairieEmail && mairieEmail.length > 0 && !mairieEmail.includes("jeananvoh")) return mairieEmail;
-    if (fallbackLogEmail && !fallbackLogEmail.includes("jeananvoh") && fallbackLogEmail.includes("@")) return fallbackLogEmail;
+    if (mairieEmail && mairieEmail.length > 0) return mairieEmail;
+    if (fallbackLogEmail && fallbackLogEmail.includes("@")) return fallbackLogEmail;
     return `technique@${slug || "mairie"}.ci`;
   }
 
-  if (fallbackLogEmail && !fallbackLogEmail.includes("jeananvoh") && fallbackLogEmail.includes("@")) return fallbackLogEmail;
+  if (fallbackLogEmail && fallbackLogEmail.includes("@")) return fallbackLogEmail;
   return "reclamation@cie.ci";
 }
 
@@ -3065,57 +3066,94 @@ const AdminRelayPage = () => {
           </div>
 
           {/* Emails + WhatsApp opérateurs réseau & régulateurs */}
-          <div className="rounded-xl border border-border bg-card p-5 space-y-5">
-            <p className="text-sm font-semibold text-foreground">Opérateurs & Régulateurs</p>
+          <div className="rounded-xl border border-border bg-card p-5 space-y-5 shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
+              <div>
+                <p className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-primary" />
+                  Opérateurs & Régulateurs (Adresses d'expédition)
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Saisissez ou modifiez librement les e-mails et numéros WhatsApp officiels. Aucune adresse n'est verrouillée.
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  if (draftConfig) {
+                    saveConfig.mutate(draftConfig);
+                  } else {
+                    toast({ title: "Aucune modification à sauvegarder." });
+                  }
+                }}
+                disabled={saveConfig.isPending}
+                className="h-8 text-xs font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xs"
+              >
+                <Save className="h-3.5 w-3.5" />
+                {saveConfig.isPending ? "Enregistrement..." : "Enregistrer les adresses"}
+              </Button>
+            </div>
+
             {[
               {
                 emailKey: "email_cie",      waKey: "whatsapp_cie",
                 label: "CIE — Électricité (Concessionnaire)", icon: Zap,          color: "text-yellow-600",
-                emailPlaceholder: "reclamation@cie.ci", waPlaceholder: "+225 07 00 00 00 00",
+                emailPlaceholder: "reclamation@cie.ci", waPlaceholder: "+225 01 50 17 91 79",
               },
               {
                 emailKey: "email_anare",    waKey: "whatsapp_anare",
                 label: "ANARE-CI — Régulateur Électricité & Éclairage Public", icon: Scale, color: "text-amber-600",
-                emailPlaceholder: "reclamation@anare.ci", waPlaceholder: "+225 07 00 00 00 00",
+                emailPlaceholder: "info@anareci.org", waPlaceholder: "+225 01 41 92 17 70",
               },
               {
                 emailKey: "email_sodeci",   waKey: "whatsapp_sodeci",
                 label: "SODECI — Eau Potable (Concessionnaire)", icon: Droplets,     color: "text-sky-600",
-                emailPlaceholder: "reclamation@sodeci.ci", waPlaceholder: "+225 07 00 00 00 00",
+                emailPlaceholder: "contact@sodeci.ci", waPlaceholder: "+225 07 00 00 00 00",
               },
               {
                 emailKey: "email_onep",     waKey: "whatsapp_onep",
                 label: "ONEP — Régulateur & Office National de l'Eau Potable", icon: ShieldCheck, color: "text-cyan-600",
-                emailPlaceholder: "reclamation@onep.ci", waPlaceholder: "+225 07 00 00 00 00",
+                emailPlaceholder: "contact@onep.ci", waPlaceholder: "+225 07 00 00 00 00",
               },
             ].map(({ emailKey, waKey, label, icon: Icon, color, emailPlaceholder, waPlaceholder }) => (
               <div key={emailKey} className="space-y-2 border-b border-border/50 pb-4 last:border-0 last:pb-0">
-                <label className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                <label className="flex items-center gap-1.5 text-xs font-bold text-foreground">
                   <Icon className={`h-3.5 w-3.5 ${color}`} />
                   {label}
                 </label>
-                {/* Email */}
-                <input
-                  type="email"
-                  value={draftConfig?.[emailKey] ?? effectiveConfig[emailKey] ?? ""}
-                  onChange={(e) =>
-                    setDraftConfig({ ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), [emailKey]: e.target.value })
-                  }
-                  placeholder={emailPlaceholder}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium"
-                />
-                {/* WhatsApp */}
-                <div className="flex items-center gap-2">
-                  <MessageCircle className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                  <input
-                    type="tel"
-                    value={draftConfig?.[waKey] ?? effectiveConfig[waKey] ?? ""}
-                    onChange={(e) =>
-                      setDraftConfig({ ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), [waKey]: e.target.value })
-                    }
-                    placeholder={waPlaceholder}
-                    className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
+                      E-mail officiel de destination (Librement modifiable)
+                    </label>
+                    <input
+                      type="email"
+                      value={draftConfig?.[emailKey] ?? effectiveConfig[emailKey] ?? ""}
+                      onChange={(e) =>
+                        setDraftConfig({ ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), [emailKey]: e.target.value })
+                      }
+                      placeholder={emailPlaceholder}
+                      className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40 font-semibold shadow-2xs text-foreground"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold text-muted-foreground block mb-1">
+                      WhatsApp Point Focal / Réclamation
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <MessageCircle className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                      <input
+                        type="tel"
+                        value={draftConfig?.[waKey] ?? effectiveConfig[waKey] ?? ""}
+                        onChange={(e) =>
+                          setDraftConfig({ ...(effectiveConfig as RelayConfig), ...(draftConfig || {}), [waKey]: e.target.value })
+                        }
+                        placeholder={waPlaceholder}
+                        className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/40 font-mono font-semibold shadow-2xs text-foreground"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -3123,7 +3161,7 @@ const AdminRelayPage = () => {
 
           {/* Mairies & Services Techniques Municipaux de Côte d'Ivoire */}
           <div className="rounded-xl border border-border bg-card p-5 space-y-4 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-bold text-foreground flex items-center gap-2">
                   <Landmark className="h-4 w-4 text-orange-500" />
@@ -3133,12 +3171,59 @@ const AdminRelayPage = () => {
                   Renseignez l'e-mail officiel et le <strong>numéro WhatsApp du Point Focal des Services Techniques</strong> de chaque mairie.
                 </p>
               </div>
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-orange-500/10 text-orange-600 border border-orange-500/20">
-                {MAIRIES_COTE_DIVOIRE.filter(
-                  (m) => (draftConfig?.[`mairie_${m.slug}_enabled`] ?? effectiveConfig[`mairie_${m.slug}_enabled`]) === "true" ||
-                         Boolean(draftConfig?.[`mairie_${m.slug}_email`] ?? effectiveConfig[`mairie_${m.slug}_email`])
-                ).length} / {MAIRIES_COTE_DIVOIRE.length} mairies configurées
-              </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-orange-500/10 text-orange-600 border border-orange-500/20">
+                  {MAIRIES_COTE_DIVOIRE.filter(
+                    (m) => (draftConfig?.[`mairie_${m.slug}_enabled`] ?? effectiveConfig[`mairie_${m.slug}_enabled`]) === "true" ||
+                           Boolean(draftConfig?.[`mairie_${m.slug}_email`] ?? effectiveConfig[`mairie_${m.slug}_email`])
+                  ).length} / {MAIRIES_COTE_DIVOIRE.length} mairies configurées
+                </span>
+
+                {/* Boutons Tout Cocher / Tout Décocher */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const newCfg = { ...(effectiveConfig as RelayConfig), ...(draftConfig || {}) };
+                    MAIRIES_COTE_DIVOIRE.forEach((m) => {
+                      newCfg[`mairie_${m.slug}_enabled`] = "true";
+                    });
+                    setDraftConfig(newCfg);
+                    saveConfig.mutate(newCfg);
+                    toast({
+                      title: "Toutes les mairies activées",
+                      description: `${MAIRIES_COTE_DIVOIRE.length} mairies ont été cochées et activées.`,
+                    });
+                  }}
+                  className="h-8 text-xs font-bold gap-1.5 border-orange-500/40 text-orange-600 dark:text-orange-400 hover:bg-orange-500/10"
+                >
+                  <CheckSquare className="h-3.5 w-3.5" />
+                  Tout cocher
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const newCfg = { ...(effectiveConfig as RelayConfig), ...(draftConfig || {}) };
+                    MAIRIES_COTE_DIVOIRE.forEach((m) => {
+                      newCfg[`mairie_${m.slug}_enabled`] = "false";
+                    });
+                    setDraftConfig(newCfg);
+                    saveConfig.mutate(newCfg);
+                    toast({
+                      title: "Toutes les mairies désactivées",
+                      description: "Les mairies ont été décochées.",
+                    });
+                  }}
+                  className="h-8 text-xs font-bold gap-1.5 border-border hover:bg-muted text-muted-foreground"
+                >
+                  <Square className="h-3.5 w-3.5" />
+                  Tout décocher
+                </Button>
+              </div>
             </div>
 
             {/* Moteur de recherche Mairies */}

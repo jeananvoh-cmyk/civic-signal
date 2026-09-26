@@ -5,8 +5,9 @@ import { cn } from "@/lib/utils";
 import {
   Zap, Users, ArrowRight, MapPin,
   CheckCircle2, Droplets, Wrench, Navigation,
-  Lightbulb, Waves, Construction, ShieldCheck, ChevronRight,
-  TowerControl, AlertTriangle, Droplet, Trash2, Megaphone, Map, Landmark
+  Lightbulb, Waves, Route, ShieldCheck, ChevronRight,
+  UtilityPole, AlertTriangle, Droplet, Trash2, Megaphone, Map, Landmark,
+  Filter
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -49,7 +50,7 @@ const CIE_INCIDENTS = [
   },
   {
     type: "cie_pole",
-    Icon: TowerControl,
+    Icon: UtilityPole,
     label: "Poteaux / Pylônes",
     desc: "Poteau électrique penché ou brisé, câbles à terre, pylône endommagé",
     border: "border-amber-500/25 hover:border-amber-500/60",
@@ -109,7 +110,7 @@ const SODECI_INCIDENTS = [
 const MAIRIE_INCIDENTS = [
   {
     type: "pothole",
-    Icon: Construction,
+    Icon: Route,
     label: "Nids-de-poule & Chaussée",
     desc: "Nids-de-poule, chaussée défoncée, bitume arraché, obstacles sur voirie",
     border: "border-emerald-500/25 hover:border-emerald-500/60",
@@ -119,7 +120,7 @@ const MAIRIE_INCIDENTS = [
   },
   {
     type: "drain_blocked",
-    Icon: Waves,
+    Icon: Filter,
     label: "Caniveaux communaux",
     desc: "Caniveaux de voirie obstrués par les déchets, eaux stagnantes, risques de débordement",
     border: "border-emerald-500/25 hover:border-emerald-500/60",
