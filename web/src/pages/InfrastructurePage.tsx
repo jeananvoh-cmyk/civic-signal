@@ -523,6 +523,7 @@ export default function InfrastructurePage() {
       const descLower = (r.description || "").toLowerCase();
       const isCie = r.service_type === "electricity" || descLower.includes("lampadaire") || descLower.includes("éclairage") || descLower.includes("eclairage") || descLower.includes("poteau");
       const isSodeci = r.service_type === "water" || descLower.includes("fuite") || descLower.includes("canalisation");
+      const iconEmoji = isCie ? "⚡" : isSodeci ? "💧" : "🚧";
 
       const iconSvg = isCie
         ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`

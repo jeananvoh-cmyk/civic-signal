@@ -31,7 +31,40 @@ vi.mock("leaflet", () => {
   return { default: L, ...L };
 });
 
-// Mock Supabase client
+const mockReports = [
+  {
+    id: "rep-1",
+    status: "open",
+    service_type: "electricity",
+    description: "Poteau électrique tombé à terre",
+    commune: "Cocody",
+    quartier: "Angré 8è Tranche",
+    latitude: 5.35,
+    longitude: -4.01,
+    support_count: 5,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    is_vulnerable_zone: false,
+    user_id: "usr-1",
+  },
+  {
+    id: "rep-2",
+    status: "resolved",
+    service_type: "water",
+    description: "Coupure d'eau au robinet",
+    commune: "Yopougon",
+    quartier: "Siporex",
+    latitude: 5.32,
+    longitude: -4.08,
+    support_count: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    is_vulnerable_zone: true,
+    user_id: "usr-2",
+  }
+];
+
+// Mock Supabase client returning mock data to trigger rendering logic loops
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: {
@@ -55,13 +88,13 @@ vi.mock("@/integrations/supabase/client", () => ({
         order: vi.fn(() => builder),
         limit: vi.fn(() => builder),
         range: vi.fn(() => builder),
-        single: vi.fn(() => Promise.resolve({ data: null, error: null })),
-        maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
-        then: (resolve: any) => resolve({ data: [], error: null, count: 0 }),
+        single: vi.fn(() => Promise.resolve({ data: mockReports[0], error: null })),
+        maybeSingle: vi.fn(() => Promise.resolve({ data: mockReports[0], error: null })),
+        then: (resolve: any) => resolve({ data: mockReports, error: null, count: mockReports.length }),
       };
       return builder;
     }),
-    rpc: vi.fn(() => Promise.resolve({ data: [], error: null })),
+    rpc: vi.fn(() => Promise.resolve({ data: mockReports, error: null })),
     storage: {
       from: vi.fn(() => ({
         upload: vi.fn(() => Promise.resolve({ data: { path: "test.jpg" }, error: null })),
@@ -74,6 +107,7 @@ vi.mock("@/integrations/supabase/client", () => ({
       subscribe: vi.fn().mockReturnThis(),
       unsubscribe: vi.fn(),
     })),
+    removeChannel: vi.fn(),
   },
 }));
 
@@ -163,7 +197,7 @@ const pagesToTest = [
 
 describe("All pages render test suite", () => {
   pagesToTest.forEach(({ name, component: Component, path }) => {
-    it(`renders ${name} without throwing a runtime render crash`, async () => {
+    it(`renders ${name} with mock data without throwing a runtime render crash`, async () => {
       cleanup();
       const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false } },
