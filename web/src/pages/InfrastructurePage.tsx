@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 import { useSignedUrl } from "@/hooks/useSignedUrl";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import Supercluster from "supercluster";
 
 // Image plein écran dans le lightbox
 function LightboxImage({ path, fallbackImage }: { path: string; fallbackImage?: string }) {
@@ -305,6 +306,7 @@ export default function InfrastructurePage() {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstance = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
+  const clusterIndexRef = useRef<Supercluster<any, any> | null>(null);
 
   // Fetch all infrastructure reports
   const fetchReports = useCallback(async () => {
@@ -496,17 +498,13 @@ export default function InfrastructurePage() {
     };
   }, []);
 
-  // Update Markers on Map
+  // Update Markers & Clusters on Map
   useEffect(() => {
     const map = mapInstance.current;
     if (!map) return;
 
-    // Clear old markers
-    markersRef.current.forEach((marker) => marker.remove());
-    markersRef.current.clear();
-
-    filteredReports.forEach((r) => {
-      // Use exact coordinates or fallback approximate coordinates by commune
+    // 1. Build GeoJSON points for Supercluster with deterministic coordinates
+    const points = filteredReports.map((r) => {
       let lat = r.latitude;
       let lon = r.longitude;
 
@@ -515,8 +513,7 @@ export default function InfrastructurePage() {
         const commObj = COMMUNES.find((c) => c.nom.toLowerCase() === rCommune || rCommune.includes(c.nom.toLowerCase()));
         const baseLat = commObj ? commObj.centerLat : 5.3600;
         const baseLon = commObj ? commObj.centerLon : -3.9670;
-        
-        // slight random jitter to prevent exact overlap
+
         const hash = r.id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
         const jitterLat = ((hash % 100) - 50) * 0.0004;
         const jitterLon = (((hash * 13) % 100) - 50) * 0.0004;
@@ -524,120 +521,377 @@ export default function InfrastructurePage() {
         lon = baseLon + jitterLon;
       }
 
-      const isResolved = r.status === "resolved";
-      const descLower = (r.description || "").toLowerCase();
-      const isCie = r.service_type === "electricity" || descLower.includes("lampadaire") || descLower.includes("éclairage") || descLower.includes("eclairage") || descLower.includes("poteau");
-      const isSodeci = r.service_type === "water" || descLower.includes("fuite") || descLower.includes("canalisation");
-      const iconEmoji = isCie ? "⚡" : isSodeci ? "💧" : "🚧";
+      return {
+        type: "Feature" as const,
+        properties: {
+          report: r,
+        },
+        geometry: {
+          type: "Point" as const,
+          coordinates: [lon, lat], // GeoJSON format: [longitude, latitude]
+        },
+      };
+    });
 
-      const iconSvg = isCie
-        ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`
-        : isSodeci
-        ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`
-        : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="21" x2="21" y2="21"/><line x1="6" y1="21" x2="6" y2="10"/><line x1="18" y1="21" x2="18" y2="10"/><path d="M12 2L2 7h20L12 2z"/></svg>`;
+    // 2. Initialize Supercluster with operator metrics tracking
+    const clusterIndex = new Supercluster<any, any>({
+      radius: 52,
+      maxZoom: 16,
+      map: (props) => {
+        const r = props.report;
+        const descLower = (r.description || "").toLowerCase();
+        const isCie = r.service_type === "electricity" || descLower.includes("lampadaire") || descLower.includes("éclairage") || descLower.includes("eclairage") || descLower.includes("poteau");
+        const isSodeci = r.service_type === "water" || descLower.includes("fuite") || descLower.includes("canalisation");
+        const hasDanger = descLower.includes("danger") || descLower.includes("étincelle") || descLower.includes("câble tombé") || descLower.includes("cable tombe") ? 1 : 0;
+        return {
+          cieCount: isCie ? 1 : 0,
+          sodeciCount: isSodeci ? 1 : 0,
+          mairieCount: !isCie && !isSodeci ? 1 : 0,
+          hasDanger,
+        };
+      },
+      reduce: (acc, props) => {
+        acc.cieCount = (acc.cieCount || 0) + (props.cieCount || 0);
+        acc.sodeciCount = (acc.sodeciCount || 0) + (props.sodeciCount || 0);
+        acc.mairieCount = (acc.mairieCount || 0) + (props.mairieCount || 0);
+        acc.hasDanger = (acc.hasDanger || 0) + (props.hasDanger || 0);
+      },
+    });
 
-      const bgColor = isResolved ? "#10b981" : isCie ? "#f59e0b" : isSodeci ? "#3b82f6" : "#059669";
-      const isSelected = selectedReport?.id === r.id;
+    clusterIndex.load(points);
+    clusterIndexRef.current = clusterIndex;
 
-      const markerHtml = `
-        <div style="
-          position: relative;
-          width: ${isSelected ? 44 : 36}px;
-          height: ${isSelected ? 44 : 36}px;
-          background: ${bgColor};
-          border: ${isSelected ? "3px solid #000" : "2.5px solid #fff"};
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.35);
-          cursor: pointer;
-          transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-          transform: ${isSelected ? "scale(1.15)" : "scale(1)"};
-        ">
-          ${iconSvg}
-          ${isResolved ? `<span style="position: absolute; top: -4px; right: -4px; background: #16a34a; color: white; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid white;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>` : ""}
-          ${r.support_count > 0 && !isResolved ? `<span style="position: absolute; bottom: -4px; right: -4px; background: #dc2626; color: white; padding: 0 4px; height: 16px; border-radius: 999px; font-size: 9px; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 1.5px solid white;">${r.support_count}</span>` : ""}
-        </div>
-      `;
+    // 3. Render function for clusters & individual markers
+    const renderMarkers = () => {
+      const activeMap = mapInstance.current;
+      const index = clusterIndexRef.current;
+      if (!activeMap || !index) return;
 
-      const customIcon = L.divIcon({
-        className: "",
-        html: markerHtml,
-        iconSize: [isSelected ? 44 : 36, isSelected ? 44 : 36],
-        iconAnchor: [isSelected ? 22 : 18, isSelected ? 22 : 18],
-      });
+      // Clear existing markers
+      markersRef.current.forEach((marker) => marker.remove());
+      markersRef.current.clear();
 
-      const marker = L.marker([lat, lon], { icon: customIcon }).addTo(map);
+      // Safe bounds retrieval (supports real browser and mock tests)
+      const bounds = typeof activeMap.getBounds === "function" ? activeMap.getBounds() : null;
+      const bbox: [number, number, number, number] = bounds
+        ? [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()]
+        : [-4.3, 5.2, -3.7, 5.5];
+      const zoom = typeof activeMap.getZoom === "function" ? Math.floor(activeMap.getZoom()) : 12;
 
-      // Popup Content
-      const popupHtml = `
-        <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 220px; max-width: 260px; padding: 4px;">
-          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
-            <span style="font-size: 16px;">${iconEmoji}</span>
-            <div>
-              <div style="font-weight: 800; font-size: 12px; color: #0f172a; line-height: 1.2;">${escHtml(r.quartier || r.commune)}</div>
-              <div style="font-size: 10px; color: #64748b;">${escHtml(r.commune)} · <span style="color: ${isResolved ? '#16a34a' : '#d97706'}; font-weight: 700;">${isResolved ? "Réparé" : "En attente"}</span></div>
+      let clusters: any[] = [];
+      try {
+        clusters = index.getClusters(bbox, zoom);
+      } catch {
+        clusters = [];
+      }
+
+      clusters.forEach((feature) => {
+        const [cLon, cLat] = feature.geometry.coordinates;
+        const isCluster = Boolean(feature.properties?.cluster);
+
+        if (isCluster) {
+          const count = feature.properties.point_count;
+          const clusterId = feature.properties.cluster_id;
+          const cieCount = feature.properties.cieCount || 0;
+          const sodeciCount = feature.properties.sodeciCount || 0;
+          const mairieCount = feature.properties.mairieCount || 0;
+          const hasDanger = Boolean(feature.properties.hasDanger);
+
+          // Color & Icon by dominant service in cluster
+          let clusterBg = "linear-gradient(135deg, #0f172a, #334155)";
+          let clusterIcon = `<span style="font-size: 11px;">📍</span>`;
+
+          if (cieCount > 0 && sodeciCount === 0 && mairieCount === 0) {
+            clusterBg = "linear-gradient(135deg, #f59e0b, #d97706)";
+            clusterIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`;
+          } else if (sodeciCount > 0 && cieCount === 0 && mairieCount === 0) {
+            clusterBg = "linear-gradient(135deg, #3b82f6, #1d4ed8)";
+            clusterIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`;
+          } else if (mairieCount > 0 && cieCount === 0 && sodeciCount === 0) {
+            clusterBg = "linear-gradient(135deg, #059669, #047857)";
+            clusterIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 2 8 16.5A1.5 1.5 0 0 1 20.7 21H3.3a1.5 1.5 0 0 1-1.3-2.5L10 2a2 2 0 0 1 4 0Z"/><path d="m6 13 12 0"/><path d="m8.5 8 7 0"/></svg>`;
+          }
+
+          const size = count < 10 ? 38 : count < 50 ? 44 : 50;
+
+          const clusterHtml = `
+            <div style="
+              position: relative;
+              width: ${size}px;
+              height: ${size}px;
+              background: ${clusterBg};
+              border: 2.5px solid #ffffff;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 3px;
+              color: white;
+              box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+              cursor: pointer;
+              font-family: system-ui, -apple-system, sans-serif;
+              transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            " title="${count} signalements regroupés (Cliquez pour zoomer)">
+              ${clusterIcon}
+              <span style="font-size: ${count < 10 ? 12 : 13}px; font-weight: 900; line-height: 1;">${count}</span>
+              ${hasDanger ? `<span style="position: absolute; top: -3px; right: -3px; background: #ef4444; width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid #ffffff;"></span>` : ""}
             </div>
-          </div>
-          <p style="font-size: 11px; color: #334155; margin: 4px 0 8px 0; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-            ${escHtml(cleanDescription(r.description))}
-          </p>
-          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 6px;">
-            <span style="font-size: 10px; font-weight: 700; color: #16a34a;">${r.support_count} soutiens</span>
-            <button id="view-report-${r.id}" style="background: #10b981; color: white; border: none; border-radius: 6px; padding: 3px 8px; font-size: 10px; font-weight: 700; cursor: pointer;">
-              Ouvrir la fiche
-            </button>
-          </div>
-        </div>
-      `;
+          `;
 
-      marker.bindPopup(popupHtml);
+          const clusterCustomIcon = L.divIcon({
+            className: "",
+            html: clusterHtml,
+            iconSize: [size, size],
+            iconAnchor: [size / 2, size / 2],
+          });
 
-      marker.on("popupopen", () => {
-        const btn = document.getElementById(`view-report-${r.id}`);
-        if (btn) {
-          btn.onclick = () => {
+          const clusterMarker = L.marker([cLat, cLon], { icon: clusterCustomIcon }).addTo(activeMap);
+
+          clusterMarker.on("click", () => {
+            try {
+              const expansionZoom = index.getClusterExpansionZoom(clusterId);
+              const currentZoom = typeof activeMap.getZoom === "function" ? activeMap.getZoom() : 12;
+
+              if (expansionZoom > currentZoom && expansionZoom <= 18) {
+                if (typeof activeMap.flyTo === "function") {
+                  activeMap.flyTo([cLat, cLon], expansionZoom, { duration: 0.5 });
+                } else if (typeof activeMap.setView === "function") {
+                  activeMap.setView([cLat, cLon], expansionZoom);
+                }
+              } else {
+                // If points are at the exact same coordinates, open multi-report list popup
+                const leaves = index.getLeaves(clusterId, 30);
+                const leavesHtml = `
+                  <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 230px; max-width: 270px; padding: 4px;">
+                    <div style="font-weight: 800; font-size: 12px; color: #0f172a; margin-bottom: 6px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+                      📍 ${leaves.length} signalements à cet endroit
+                    </div>
+                    <div style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
+                      ${leaves.map((leaf: any) => {
+                        const lr = leaf.properties.report;
+                        const isCieL = lr.service_type === "electricity";
+                        const isSodeciL = lr.service_type === "water";
+                        const emoji = isCieL ? "⚡" : isSodeciL ? "💧" : "🚧";
+                        return `
+                          <div style="padding: 6px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; font-size: 11px;">
+                            <div style="font-weight: 700; color: #1e293b; display: flex; align-items: center; justify-content: space-between;">
+                              <span>${emoji} ${escHtml(lr.quartier || lr.commune)}</span>
+                              <span style="font-size: 9px; color: ${lr.status === 'resolved' ? '#16a34a' : '#d97706'}; font-weight: 800;">
+                                ${lr.status === 'resolved' ? 'Réparé' : 'En attente'}
+                              </span>
+                            </div>
+                            <p style="margin: 3px 0 6px 0; color: #475569; font-size: 10px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                              ${escHtml(cleanDescription(lr.description))}
+                            </p>
+                            <button id="open-cluster-report-${lr.id}" style="width: 100%; background: #10b981; color: white; border: none; border-radius: 6px; padding: 4px; font-size: 10px; font-weight: 700; cursor: pointer;">
+                              Ouvrir la fiche
+                            </button>
+                          </div>
+                        `;
+                      }).join("")}
+                    </div>
+                  </div>
+                `;
+                clusterMarker.bindPopup(leavesHtml).openPopup();
+                clusterMarker.on("popupopen", () => {
+                  leaves.forEach((leaf: any) => {
+                    const lr = leaf.properties.report;
+                    const btn = document.getElementById(`open-cluster-report-${lr.id}`);
+                    if (btn) {
+                      btn.onclick = () => {
+                        setSelectedReport(lr);
+                        if (window.innerWidth < 1024) {
+                          setMobileBottomSheetOpen(true);
+                        }
+                      };
+                    }
+                  });
+                });
+              }
+            } catch {
+              // Graceful fallback
+            }
+          });
+
+          markersRef.current.set(`cluster-${clusterId}`, clusterMarker);
+        } else {
+          // Individual Point Marker
+          const r = feature.properties.report;
+          const isResolved = r.status === "resolved";
+          const descLower = (r.description || "").toLowerCase();
+          const isCie = r.service_type === "electricity" || descLower.includes("lampadaire") || descLower.includes("éclairage") || descLower.includes("eclairage") || descLower.includes("poteau");
+          const isSodeci = r.service_type === "water" || descLower.includes("fuite") || descLower.includes("canalisation");
+          const iconEmoji = isCie ? "⚡" : isSodeci ? "💧" : "🚧";
+
+          // Icon: CIE = Bolt, SODECI = Droplet, Mairie = Traffic Cone (Voirie urbaine)
+          const iconSvg = isCie
+            ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`
+            : isSodeci
+            ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`
+            : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m14 2 8 16.5A1.5 1.5 0 0 1 20.7 21H3.3a1.5 1.5 0 0 1-1.3-2.5L10 2a2 2 0 0 1 4 0Z"/><path d="m6 13 12 0"/><path d="m8.5 8 7 0"/></svg>`;
+
+          // Operator color remains visible; resolved status gets a green ring and checkmark badge
+          const opColor = isCie ? "#f59e0b" : isSodeci ? "#3b82f6" : "#059669";
+          const isSelected = selectedReport?.id === r.id;
+
+          const markerHtml = `
+            <div style="
+              position: relative;
+              width: ${isSelected ? 44 : 36}px;
+              height: ${isSelected ? 44 : 36}px;
+              background: ${opColor};
+              opacity: ${isResolved ? "0.85" : "1"};
+              border: ${isSelected ? "3px solid #000" : isResolved ? "2.5px solid #16a34a" : "2.5px solid #fff"};
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+              cursor: pointer;
+              transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+              transform: ${isSelected ? "scale(1.15)" : "scale(1)"};
+            ">
+              ${iconSvg}
+              ${isResolved ? `
+                <span style="position: absolute; top: -5px; right: -5px; background: #16a34a; color: white; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </span>
+              ` : ""}
+              ${r.support_count > 0 && !isResolved ? `
+                <span style="position: absolute; bottom: -5px; right: -5px; background: #0f172a; color: #38bdf8; padding: 0 5px; height: 17px; min-width: 17px; border-radius: 999px; font-size: 9px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 2px; border: 1.5px solid #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.35);">
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+                  <span>${r.support_count}</span>
+                </span>
+              ` : ""}
+            </div>
+          `;
+
+          const customIcon = L.divIcon({
+            className: "",
+            html: markerHtml,
+            iconSize: [isSelected ? 44 : 36, isSelected ? 44 : 36],
+            iconAnchor: [isSelected ? 22 : 18, isSelected ? 22 : 18],
+          });
+
+          const marker = L.marker([cLat, cLon], { icon: customIcon }).addTo(activeMap);
+
+          // Popup Content
+          const popupHtml = `
+            <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 220px; max-width: 260px; padding: 4px;">
+              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                <span style="font-size: 16px;">${iconEmoji}</span>
+                <div>
+                  <div style="font-weight: 800; font-size: 12px; color: #0f172a; line-height: 1.2;">${escHtml(r.quartier || r.commune)}</div>
+                  <div style="font-size: 10px; color: #64748b;">${escHtml(r.commune)} · <span style="color: ${isResolved ? '#16a34a' : '#d97706'}; font-weight: 700;">${isResolved ? "Réparé" : "En attente"}</span></div>
+                </div>
+              </div>
+              <p style="font-size: 11px; color: #334155; margin: 4px 0 8px 0; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                ${escHtml(cleanDescription(r.description))}
+              </p>
+              <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 6px;">
+                <span style="font-size: 10px; font-weight: 700; color: #0284c7; display: flex; align-items: center; gap: 3px;">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+                  ${r.support_count} soutien${r.support_count > 1 ? "s" : ""}
+                </span>
+                <button id="view-report-${r.id}" style="background: #10b981; color: white; border: none; border-radius: 6px; padding: 3px 8px; font-size: 10px; font-weight: 700; cursor: pointer;">
+                  Ouvrir la fiche
+                </button>
+              </div>
+            </div>
+          `;
+
+          marker.bindPopup(popupHtml);
+
+          marker.on("popupopen", () => {
+            const btn = document.getElementById(`view-report-${r.id}`);
+            if (btn) {
+              btn.onclick = () => {
+                setSelectedReport(r);
+                if (window.innerWidth < 1024) {
+                  setMobileBottomSheetOpen(true);
+                }
+              };
+            }
+          });
+
+          marker.on("click", () => {
             setSelectedReport(r);
             if (window.innerWidth < 1024) {
               setMobileBottomSheetOpen(true);
             }
-          };
+          });
+
+          markersRef.current.set(r.id, marker);
         }
       });
+    };
 
-      marker.on("click", () => {
-        setSelectedReport(r);
-        if (window.innerWidth < 1024) {
-          setMobileBottomSheetOpen(true);
-        }
-      });
+    // Attach map listeners so clusters recalculate during pan/zoom
+    if (typeof map.on === "function") {
+      map.on("moveend", renderMarkers);
+      map.on("zoomend", renderMarkers);
+    }
 
-      markersRef.current.set(r.id, marker);
-    });
+    // Initial render
+    renderMarkers();
 
     // If commune filter changed, center map on commune
     if (communeFilter !== "all") {
       const c = COMMUNES.find((item) => item.nom.toLowerCase() === communeFilter.toLowerCase());
       if (c) {
-        map.flyTo([c.centerLat, c.centerLon], 14, { duration: 1 });
+        if (typeof map.flyTo === "function") {
+          map.flyTo([c.centerLat, c.centerLon], 14, { duration: 1 });
+        } else if (typeof map.setView === "function") {
+          map.setView([c.centerLat, c.centerLon], 14);
+        }
       }
     }
+
+    return () => {
+      if (typeof map.off === "function") {
+        map.off("moveend", renderMarkers);
+        map.off("zoomend", renderMarkers);
+      }
+    };
   }, [filteredReports, selectedReport, communeFilter]);
 
   // Handle select report & pan map
   const handleSelectReport = (r: InfraReport) => {
     setSelectedReport(r);
-    const marker = markersRef.current.get(r.id);
-    if (marker && mapInstance.current) {
-      const latLng = marker.getLatLng();
-      mapInstance.current.flyTo(latLng, 15, { duration: 0.8 });
-      marker.openPopup();
+    if (mapInstance.current) {
+      let lat = r.latitude;
+      let lon = r.longitude;
+
+      if (!lat || !lon) {
+        const rCommune = (r.commune || "").trim().toLowerCase();
+        const commObj = COMMUNES.find((c) => c.nom.toLowerCase() === rCommune || rCommune.includes(c.nom.toLowerCase()));
+        const baseLat = commObj ? commObj.centerLat : 5.3600;
+        const baseLon = commObj ? commObj.centerLon : -3.9670;
+        const hash = r.id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const jitterLat = ((hash % 100) - 50) * 0.0004;
+        const jitterLon = (((hash * 13) % 100) - 50) * 0.0004;
+        lat = baseLat + jitterLat;
+        lon = baseLon + jitterLon;
+      }
+
+      if (typeof mapInstance.current.flyTo === "function") {
+        mapInstance.current.flyTo([lat, lon], 17, { duration: 0.6 });
+      } else if (typeof mapInstance.current.setView === "function") {
+        mapInstance.current.setView([lat, lon], 17);
+      }
+
+      setTimeout(() => {
+        const marker = markersRef.current.get(r.id);
+        if (marker && typeof marker.openPopup === "function") {
+          marker.openPopup();
+        }
+      }, 700);
     }
     if (window.innerWidth < 1024) {
       setMobileBottomSheetOpen(true);
     }
   };
+
 
   // Support / Vote Infrastructure Report
   const handleSupport = async (reportId: string, e?: React.MouseEvent) => {
@@ -1392,10 +1646,16 @@ export default function InfrastructurePage() {
             <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
               <span className="h-2.5 w-2.5 rounded-full bg-emerald-600 inline-block"></span> Mairie (Voirie)
             </span>
-            <span className="flex items-center gap-1.5 text-green-700 dark:text-green-300 border-l border-border pl-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-green-500 inline-block"></span> Réparé
+            <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 border-l border-border pl-2.5">
+              <span className="h-4 w-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[9px] font-black border border-white/80">✓</span>
+              Résolu
+            </span>
+            <span className="hidden md:flex items-center gap-1.5 text-slate-700 dark:text-slate-300 border-l border-border pl-2.5">
+              <span className="h-4 px-1.5 rounded-full bg-slate-800 text-white flex items-center justify-center text-[9px] font-black">10+</span>
+              Regroupement
             </span>
           </div>
+
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════
