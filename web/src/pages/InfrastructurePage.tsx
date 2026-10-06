@@ -464,22 +464,29 @@ export default function InfrastructurePage() {
 
     // Invalidation de taille immédiate + progressive pour garantir l'affichage des tuiles
     requestAnimationFrame(() => {
-      map.invalidateSize();
+      if (mapInstance.current && typeof map.invalidateSize === "function") map.invalidateSize();
     });
 
-    const timer1 = setTimeout(() => map.invalidateSize(), 150);
-    const timer2 = setTimeout(() => map.invalidateSize(), 500);
+    const timer1 = setTimeout(() => {
+      if (mapInstance.current && typeof map.invalidateSize === "function") map.invalidateSize();
+    }, 150);
+    const timer2 = setTimeout(() => {
+      if (mapInstance.current && typeof map.invalidateSize === "function") map.invalidateSize();
+    }, 500);
 
-    const resizeObserver = new ResizeObserver(() => {
-      map.invalidateSize();
-    });
-    resizeObserver.observe(container);
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => {
+        if (mapInstance.current && typeof map.invalidateSize === "function") map.invalidateSize();
+      });
+      resizeObserver.observe(container);
+    }
 
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
-      resizeObserver.disconnect();
-      map.remove();
+      if (resizeObserver) resizeObserver.disconnect();
+      if (mapInstance.current && typeof map.remove === "function") map.remove();
       mapInstance.current = null;
     };
   }, []);

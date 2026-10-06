@@ -387,7 +387,9 @@ const DashboardPage = () => {
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
-      supabase.removeChannel(channel);
+      if (channel && typeof supabase?.removeChannel === "function") {
+        supabase.removeChannel(channel);
+      }
     };
   }, [fetchAll]);
 

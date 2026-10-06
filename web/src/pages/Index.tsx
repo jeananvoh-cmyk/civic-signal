@@ -221,7 +221,13 @@ function useLiveData() {
       .subscribe();
 
     const poll = setInterval(fetchCounts, 30_000);
-    return () => { cancelled = true; supabase.removeChannel(channel); clearInterval(poll); };
+    return () => {
+      cancelled = true;
+      if (channel && typeof supabase?.removeChannel === "function") {
+        supabase.removeChannel(channel);
+      }
+      clearInterval(poll);
+    };
   }, []);
 
   return { liveCount, liveActive };
