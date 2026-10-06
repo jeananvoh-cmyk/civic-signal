@@ -55,7 +55,13 @@ const CommuneDetailPage = () => {
   const [impactStats, setImpactStats] = useState<ImpactStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const decodedName = decodeURIComponent(communeName || "");
+  const decodedName = (() => {
+    try {
+      return decodeURIComponent(communeName || "");
+    } catch {
+      return communeName || "";
+    }
+  })();
   const communeInfo = COMMUNES.find((c) => c.nom.toLowerCase() === decodedName.toLowerCase());
   const couleur = communeInfo?.couleur || "#888";
 

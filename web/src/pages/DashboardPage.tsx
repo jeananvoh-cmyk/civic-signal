@@ -520,8 +520,8 @@ const DashboardPage = () => {
   const confirmedZones = (() => {
     const zones = new Map<string, { commune: string; quartier: string; serviceType: string; reportCategory: string; count: number; totalVerifications: number; firstDescription: string }>();
     for (const r of confirmedReports) {
-      const parts = r.location.split(", ");
-      const commune = parts[0] || r.location;
+      const parts = (r.location || "").split(", ");
+      const commune = parts[0] || r.location || "";
       const quartier = parts[1] || "";
       const key = `${commune}|${quartier}|${r.service_type}|${r.report_category}`;
       const existing = zones.get(key);

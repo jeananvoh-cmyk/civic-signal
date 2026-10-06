@@ -151,9 +151,14 @@ const MairieDashboardPage = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const [selectedCommune, setSelectedCommune] = useState<string>(
-    paramCommune ? decodeURIComponent(paramCommune) : "Cocody"
-  );
+  const [selectedCommune, setSelectedCommune] = useState<string>(() => {
+    if (!paramCommune) return "Cocody";
+    try {
+      return decodeURIComponent(paramCommune);
+    } catch {
+      return paramCommune;
+    }
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("all");
   const [selectedStatusTab, setSelectedStatusTab] = useState<string>("all");
