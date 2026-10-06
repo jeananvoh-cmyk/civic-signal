@@ -355,7 +355,7 @@ export default function InfrastructurePage() {
 
       setReports(list);
 
-      // Check if URL specifies a report ID to select
+      // Check if URL specifies a report ID to select, or sync current selectedReport
       const reportIdParam = searchParams.get("id");
       if (reportIdParam) {
         const target = list.find((r) => r.id === reportIdParam);
@@ -363,13 +363,18 @@ export default function InfrastructurePage() {
           setSelectedReport(target);
           if (window.innerWidth < 1024) setMobileBottomSheetOpen(true);
         }
+      } else if (selectedReport) {
+        const target = list.find((r) => r.id === selectedReport.id);
+        if (target) {
+          setSelectedReport(target);
+        }
       }
     } catch (e) {
       console.warn("Error fetching infrastructure reports:", e);
     } finally {
       setLoading(false);
     }
-  }, [user, searchParams]);
+  }, [user, searchParams, selectedReport?.id]);
 
   useEffect(() => {
     fetchReports();
@@ -650,13 +655,21 @@ export default function InfrastructurePage() {
       return next;
     });
 
+    const calcNextCount = (curr: number) => Math.max(0, curr + (already ? -1 : 1));
+
     setReports((prev) =>
       prev.map((r) =>
         r.id === reportId
-          ? { ...r, support_count: Math.max(0, r.support_count + (already ? -1 : 1)) }
+          ? { ...r, support_count: calcNextCount(r.support_count || 0) }
           : r
       )
     );
+
+    if (selectedReport && selectedReport.id === reportId) {
+      setSelectedReport((prev) =>
+        prev ? { ...prev, support_count: calcNextCount(prev.support_count || 0) } : null
+      );
+    }
 
     try {
       const { data, error } = await (supabase as any).rpc("vote_infrastructure_support", {
@@ -679,11 +692,17 @@ export default function InfrastructurePage() {
           toast.info("Soutien retiré.");
         }
         if (typeof data.support_count === "number") {
+          const finalCount = data.support_count;
           setReports((prev) =>
             prev.map((r) =>
-              r.id === reportId ? { ...r, support_count: data.support_count } : r
+              r.id === reportId ? { ...r, support_count: finalCount } : r
             )
           );
+          if (selectedReport && selectedReport.id === reportId) {
+            setSelectedReport((prev) =>
+              prev ? { ...prev, support_count: finalCount } : null
+            );
+          }
         }
       }
     } catch {
@@ -1142,7 +1161,7 @@ export default function InfrastructurePage() {
                         Signalé le {new Date(selectedReport.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
                       </span>
                       <span className="font-bold text-emerald-700 dark:text-emerald-300 inline-flex items-center gap-1">
-                        <ThumbsUp className="h-3.5 w-3.5" /> {selectedReport.support_count || 0} soutien(s) citoyen(s)
+                        <ThumbsUp className="h-3.5 w-3.5" /> {Math.max(selectedReport.support_count || 0, supported.has(selectedReport.id) ? 1 : 0)} soutien(s) citoyen(s)
                       </span>
                     </div>
 
@@ -1160,7 +1179,7 @@ export default function InfrastructurePage() {
                         <ThumbsUp className="h-4 w-4 stroke-[2.5]" />
                         <span>{supported.has(selectedReport.id) ? "Soutien enregistré" : "Soutenir la réparation"}</span>
                         <span className="ml-1 px-1.5 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-black">
-                          {selectedReport.support_count || 0}
+                          {Math.max(selectedReport.support_count || 0, supported.has(selectedReport.id) ? 1 : 0)}
                         </span>
                       </Button>
 
