@@ -55,14 +55,9 @@ const AboutPage = () => {
             {/* Colonne Gauche : Notre Mission (7 cols) */}
             <section className="lg:col-span-7 rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-sm flex flex-col justify-between">
               <div>
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600">
-                    <Heart className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground">Notre Mission Civique</h2>
-                    <p className="text-xs text-muted-foreground">Une passerelle transparente entre les citoyens et les services urbains</p>
-                  </div>
+                <div className="mb-5">
+                  <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground">Notre Mission Civique</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Une passerelle transparente entre les citoyens et les services urbains</p>
                 </div>
 
                 <p className="text-sm text-muted-foreground leading-relaxed">
@@ -95,14 +90,9 @@ const AboutPage = () => {
             {/* Colonne Droite : Comment ça marche en 3 étapes (5 cols) */}
             <section className="lg:col-span-5 rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-sm flex flex-col justify-between">
               <div>
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-600">
-                    <Zap className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h2 className="font-display text-xl font-bold text-foreground">Comment ça marche ?</h2>
-                    <p className="text-xs text-muted-foreground">3 étapes d'action collaborative</p>
-                  </div>
+                <div className="mb-5">
+                  <h2 className="font-display text-xl font-bold text-foreground">Comment ça marche ?</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">3 étapes d'action collaborative</p>
                 </div>
 
                 <div className="space-y-4">
@@ -157,7 +147,7 @@ const AboutPage = () => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               <div className="lg:col-span-7 space-y-3">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 text-sky-700 dark:text-sky-300 text-xs font-black uppercase">
-                  ⭐ Démocratie de Proximité
+                  Démocratie de Proximité
                 </div>
                 <h2 className="font-display text-2xl font-bold text-foreground">
                   Les Ambassadeurs : Les Yeux et la Voix de Chaque Rue
@@ -177,7 +167,7 @@ const AboutPage = () => {
 
               <div className="lg:col-span-5 grid grid-cols-2 gap-3 text-center">
                 <div className="p-4 rounded-2xl bg-muted/40 border border-border">
-                  <p className="text-2xl font-extrabold text-amber-500">⭐ Certifié</p>
+                  <p className="text-2xl font-extrabold text-amber-500">Certifié</p>
                   <p className="text-xs text-muted-foreground mt-1 font-semibold">Preuve de terrain</p>
                 </div>
                 <div className="p-4 rounded-2xl bg-muted/40 border border-border">
