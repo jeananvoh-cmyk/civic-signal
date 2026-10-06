@@ -465,14 +465,11 @@ const Index = () => {
                   )}
                 >
                   <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", item.iconBg)}>
-                        <item.Icon className="h-5 w-5" />
-                      </div>
-                      <ArrowRight className={cn("h-4 w-4 opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0", item.textColor)} />
+                    <div className="flex items-center justify-between mb-2">
+                      <p className={cn("font-bold text-sm sm:text-base leading-snug", item.textColor)}>{item.label}</p>
+                      <ArrowRight className={cn("h-4 w-4 opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0 shrink-0 ml-2", item.textColor)} />
                     </div>
-                    <p className={cn("font-bold text-sm sm:text-base leading-snug", item.textColor)}>{item.label}</p>
-                    <p className="text-xs text-muted-foreground/85 mt-1.5 leading-relaxed">{item.desc}</p>
+                    <p className="text-xs text-muted-foreground/85 mt-1 leading-relaxed">{item.desc}</p>
                   </div>
                   <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
                     <span>Opérateur : CIE</span>
@@ -505,14 +502,11 @@ const Index = () => {
                   )}
                 >
                   <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", item.iconBg)}>
-                        <item.Icon className="h-5 w-5" />
-                      </div>
-                      <ArrowRight className={cn("h-4 w-4 opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0", item.textColor)} />
+                    <div className="flex items-center justify-between mb-2">
+                      <p className={cn("font-bold text-sm sm:text-base leading-snug", item.textColor)}>{item.label}</p>
+                      <ArrowRight className={cn("h-4 w-4 opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0 shrink-0 ml-2", item.textColor)} />
                     </div>
-                    <p className={cn("font-bold text-sm sm:text-base leading-snug", item.textColor)}>{item.label}</p>
-                    <p className="text-xs text-muted-foreground/85 mt-1.5 leading-relaxed">{item.desc}</p>
+                    <p className="text-xs text-muted-foreground/85 mt-1 leading-relaxed">{item.desc}</p>
                   </div>
                   <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
                     <span>Opérateur : SODECI</span>
@@ -545,14 +539,11 @@ const Index = () => {
                   )}
                 >
                   <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", item.iconBg)}>
-                        <item.Icon className="h-5 w-5" />
-                      </div>
-                      <ArrowRight className={cn("h-4 w-4 opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0", item.textColor)} />
+                    <div className="flex items-center justify-between mb-2">
+                      <p className={cn("font-bold text-sm sm:text-base leading-snug", item.textColor)}>{item.label}</p>
+                      <ArrowRight className={cn("h-4 w-4 opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0 shrink-0 ml-2", item.textColor)} />
                     </div>
-                    <p className={cn("font-bold text-sm sm:text-base leading-snug", item.textColor)}>{item.label}</p>
-                    <p className="text-xs text-muted-foreground/85 mt-1.5 leading-relaxed">{item.desc}</p>
+                    <p className="text-xs text-muted-foreground/85 mt-1 leading-relaxed">{item.desc}</p>
                   </div>
                   <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
                     <span>Services Municipaux Mairie</span>
@@ -610,12 +601,6 @@ const Index = () => {
                 transition={{ delay: i * 0.08 }}
                 className="flex flex-col items-center text-center"
               >
-                <div className="mb-2.5 flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200/80 bg-white dark:border-white/15 dark:bg-white/10 shadow-sm backdrop-blur-sm">
-                  <stat.Icon className={cn(
-                    "h-5 w-5 text-slate-700 dark:text-white/80",
-                    stat.live && liveActive ? "animate-pulse text-amber-500" : ""
-                  )} />
-                </div>
                 <p className={cn("font-display text-3xl sm:text-4xl font-extrabold tabular-nums", stat.color)}>
                   {stat.value}
                 </p>
