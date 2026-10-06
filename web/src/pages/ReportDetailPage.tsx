@@ -487,10 +487,33 @@ const ReportDetailPage = () => {
   const corroborateLabel = isInfra
     ? "Je soutiens cette demande"
     : "Je confirme cette coupure";
-  const corroboratedLabel = isInfra ? "Soutien enregistré" : "Confirmation enregistrée";
   const shareText = isInfra
-    ? `🚧 INFRASTRUCTURE — ${report.quartier ? `${report.quartier}, ` : ""}${report.commune}\n\n${cleanDescription(report.description)}\n\n✊ Soutenez cette demande sur SIGNA-CI :`
-    : `${isElec ? "⚡" : "💧"} ALERTE COUPURE — ${report.quartier ? `${report.quartier}, ` : ""}${report.commune}\n\nCoupure ${isElec ? "d'électricité" : "d'eau"} en cours. Toujours sans intervention.\n📢 Rejoignez-nous sur SIGNA-CI pour faire pression sur ${isElec ? "CIE" : "SODECI"}.\nPlus on est nombreux, plus vite ils interviennent !`;
+    ? [
+        `🚧 *SIGNALEMENT INFRASTRUCTURE — ${report.commune.toUpperCase()}*`,
+        `----------------------------------------`,
+        `📌 *Problème* : ${cleanDescription(report.description)}`,
+        `📍 *Localisation* : ${report.quartier ? `${report.quartier}, ` : ""}${report.commune}`,
+        `🎫 *Ticket Officiel* : ${report.ticket_code || report.id.slice(0, 8)}`,
+        `📊 *Statut* : ${isResolved ? "✅ Réparé & Clôturé" : "⏳ En attente d'intervention"}`,
+        ``,
+        `✊ Soutenez ce signalement sur SIGNA-CI pour accélérer la réparation :`,
+        `👉 https://signa.ci/signalement/${report.id}`,
+        `----------------------------------------`,
+        `_SIGNA.ci — La voix citoyenne pour nos infrastructures._`,
+      ].join("\n")
+    : [
+        `${isElec ? "⚡" : "💧"} *ALERTE COUPURE ${isElec ? "ÉLECTRICITÉ (CIE)" : "EAU POTABLE (SODECI)"}*`,
+        `----------------------------------------`,
+        `📍 *Localisation* : ${report.quartier ? `${report.quartier}, ` : ""}${report.commune}`,
+        `🎫 *Ticket Officiel* : ${report.ticket_code || report.id.slice(0, 8)}`,
+        `⏱️ *Situation* : Coupure en cours (toujours sans rétablissement)`,
+        `👥 *Mobilisation* : ${report.verifications || 1} foyer(s) touché(s)`,
+        ``,
+        `📢 Rejoignez-nous sur SIGNA-CI pour faire pression sur la ${isElec ? "CIE" : "SODECI"}. Plus nous sommes nombreux, plus vite l'équipe intervient !`,
+        `👉 https://signa.ci/signalement/${report.id}`,
+        `----------------------------------------`,
+        `_SIGNA.ci — Suivi des coupures en temps réel._`,
+      ].join("\n");
 
   const handleReopen = async () => {
     if (!user) { toast.error("Connectez-vous pour signaler que le problème persiste"); return; }

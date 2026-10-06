@@ -797,22 +797,24 @@ export default function InfrastructurePage() {
     });
     const url = `https://signa.ci/infrastructures?id=${r.id}`;
 
-    const text = `🚨 *SIGNALEMENT CITOYEN SIGNA.ci*
-━━━━━━━━━━━━━━━━━━━━
-💡 *Panne* : ${displayLabel}
-📍 *Commune & Quartier* : ${r.commune} · ${r.quartier || "Abidjan"}
-🏛️ *Adresse PADA* : ${r.location || "Non renseignée"}
-📋 *Réf. Ticket* : ${ticketRef}
-📊 *Statut* : ${statusText}
-👥 *Mobilisation* : ${r.support_count || 1} citoyen(s) soutiennent ce ticket
-
-✊ Voisins de ${r.quartier || r.commune}, cliquez ici pour soutenir et faire accélérer l'intervention :
-🔗 ${url}
-━━━━━━━━━━━━━━━━━━━━
-_SIGNA.ci — La voix citoyenne pour nos infrastructures._`;
+    const text = [
+      `📢 *SIGNALEMENT CITOYEN — SIGNA.ci*`,
+      `----------------------------------------`,
+      `📌 *Panne* : ${displayLabel}`,
+      `📍 *Commune & Quartier* : ${r.commune}${r.quartier ? ` · ${r.quartier}` : ""}`,
+      `🏛️ *Adresse PADA* : ${r.location || "Non renseignée"}`,
+      `📋 *Réf. Ticket* : ${ticketRef}`,
+      `📊 *Statut* : ${statusText}`,
+      `👥 *Mobilisation* : ${r.support_count || 1} citoyen(s) soutiennent ce ticket`,
+      ``,
+      `✊ Voisins de ${r.quartier || r.commune}, soutenez ce signalement pour accélérer l'intervention :`,
+      `👉 ${url}`,
+      `----------------------------------------`,
+      `_SIGNA.ci — La voix citoyenne pour nos infrastructures._`,
+    ].join("\n");
 
     const encoded = encodeURIComponent(text);
-    window.open(`https://wa.me/?text=${encoded}`, "_blank");
+    window.open(`https://api.whatsapp.com/send?text=${encoded}`, "_blank");
   };
 
   // Center on User GPS

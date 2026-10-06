@@ -35,8 +35,8 @@ const ShareButton = ({ title, text, url, className, variant = "outline", size = 
   };
 
   const handleWhatsApp = () => {
-    const message = `${text}\n\n👉 ${shareUrl}`;
-    const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    const fullText = text.includes(shareUrl) ? text : `${text}\n\n👉 ${shareUrl}`;
+    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(fullText)}`;
     window.open(waUrl, "_blank", "noopener,noreferrer");
   };
 

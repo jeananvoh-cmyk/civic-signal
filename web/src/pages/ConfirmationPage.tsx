@@ -122,29 +122,36 @@ const ConfirmationPage = () => {
   });
   const padaCode = getCommunePadaCode(commune);
 
+  const typeEmoji = serviceType === "electricity" ? "⚡" : serviceType === "water" ? "💧" : "🚧";
+
   const shareLines = isOutage
     ? [
-        `${typeEmoji} ALERTE COUPURE — ${locationLabel}`,
-        `🎫 Ticket : ${displayTicket}`,
-        ``,
-        `${typeLabel} en cours. Toujours sans intervention.`,
-        ``,
+        `${typeEmoji} *ALERTE COUPURE — ${locationLabel.toUpperCase()}*`,
+        `----------------------------------------`,
+        `📌 *Type* : ${typeLabel}`,
+        `🎫 *Ticket Officiel* : ${displayTicket}`,
+        `📍 *Localisation* : ${locationLabel}`,
         neighborCount && neighborCount > 0
-          ? `👥 ${neighborCount + 1} signalement${neighborCount > 0 ? "s" : ""} dans le secteur.`
+          ? `👥 *Mobilisation* : ${neighborCount + 1} signalements dans le secteur`
           : ``,
+        ``,
         operatorName
-          ? `📢 Rejoignez-nous sur SIGNA-CI pour faire pression sur ${operatorName}.`
+          ? `📢 Rejoignez-nous sur SIGNA-CI pour faire pression sur la ${operatorName}.`
           : `📢 Signalez sur SIGNA-CI pour être plus forts ensemble.`,
         `Plus on est nombreux, plus vite ils interviennent !`,
+        `----------------------------------------`,
+        `_SIGNA.ci — Suivi des coupures en temps réel._`,
       ].filter(Boolean).join("\n")
     : [
-        `🚧 INFRASTRUCTURE — ${locationLabel}`,
-        `🎫 Ticket : ${displayTicket}`,
+        `🚧 *SIGNALEMENT INFRASTRUCTURE — ${locationLabel.toUpperCase()}*`,
+        `----------------------------------------`,
+        `📌 *Anomalie* : ${typeLabel}`,
+        `🎫 *Ticket Officiel* : ${displayTicket}`,
+        `📍 *Localisation* : ${locationLabel}`,
         ``,
-        `${typeLabel} signalé dans votre quartier.`,
-        ``,
-        `✊ Rejoignez SIGNA-CI pour signaler les problèmes de votre quartier`,
-        `et suivre leur résolution en temps réel.`,
+        `✊ Voisins de ${locationLabel}, rejoignez SIGNA-CI pour suivre ce signalement et faire accélérer la réparation !`,
+        `----------------------------------------`,
+        `_SIGNA.ci — La voix citoyenne pour nos infrastructures._`,
       ].filter(Boolean).join("\n");
 
   const shareText = shareLines;
