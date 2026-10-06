@@ -99,8 +99,8 @@ export const COMMUNE_POLYGONS: CommunePolygon[] = [
     // FHB International Airport: 5.261°N 3.926°W
     nom: "Port-Bouët",
     polygon: [
-      [-4.030, 5.195],
-      [-3.905, 5.195],
+      [-4.030, 5.250],
+      [-3.905, 5.250],
       [-3.905, 5.270],
       [-4.030, 5.270],
     ],
