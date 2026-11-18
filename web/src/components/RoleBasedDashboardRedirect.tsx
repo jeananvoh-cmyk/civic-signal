@@ -1,10 +1,14 @@
-import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-const RoleBasedDashboardRedirect = () => {
+interface RoleBasedDashboardRedirectProps {
+  children: ReactNode;
+}
+
+const RoleBasedDashboardRedirect = ({ children }: RoleBasedDashboardRedirectProps) => {
   const { user, loading } = useAuth();
 
   const { data: isPartner, isLoading: roleLoading } = useQuery({
@@ -22,10 +26,6 @@ const RoleBasedDashboardRedirect = () => {
     staleTime: 30_000,
   });
 
-  useEffect(() => {
-    // Keep this component side-effect free; routing is handled declaratively below.
-  }, []);
-
   if (loading || roleLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -36,7 +36,7 @@ const RoleBasedDashboardRedirect = () => {
 
   if (!user) return <Navigate to="/auth" replace />;
   if (isPartner) return <Navigate to="/partner/dashboard" replace />;
-  return <Navigate to="/tableau-de-bord/citizen" replace />;
+  return <>{children}</>;
 };
 
 export default RoleBasedDashboardRedirect;
