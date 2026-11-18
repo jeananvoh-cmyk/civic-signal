@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Camera, X, Loader2, CheckCircle2, MapPin, ShieldAlert, ImagePlus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { compressImage } from "@/components/PhotoUpload";
+import { toSafeBlobUrl } from "@/lib/safe-url";
 
 interface RepairDeclarationDialogProps {
   open: boolean;
@@ -35,9 +36,18 @@ export const RepairDeclarationDialog = ({
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const trustedPreviewUrlsRef = useRef<Set<string>>(new Set());
   const [note, setNote] = useState("");
   const [captureGps, setCaptureGps] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const urls = trustedPreviewUrlsRef.current;
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+      urls.clear();
+    };
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -53,14 +63,22 @@ export const RepairDeclarationDialog = ({
     const updatedFiles = [...selectedFiles, ...newFiles];
     setSelectedFiles(updatedFiles);
 
-    const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
+    const newPreviews = newFiles.map((file) => {
+      const url = URL.createObjectURL(file);
+      trustedPreviewUrlsRef.current.add(url);
+      return url;
+    });
     setPreviewUrls((prev) => [...prev, ...newPreviews]);
 
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const removePhoto = (index: number) => {
-    URL.revokeObjectURL(previewUrls[index]);
+    const target = previewUrls[index];
+    if (target) {
+      URL.revokeObjectURL(target);
+      trustedPreviewUrlsRef.current.delete(target);
+    }
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
     setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
   };
@@ -151,7 +169,10 @@ export const RepairDeclarationDialog = ({
       });
 
       // Nettoyage et fermeture
-      previewUrls.forEach((url) => URL.revokeObjectURL(url));
+      previewUrls.forEach((url) => {
+        URL.revokeObjectURL(url);
+        trustedPreviewUrlsRef.current.delete(url);
+      });
       setSelectedFiles([]);
       setPreviewUrls([]);
       setNote("");
@@ -199,9 +220,11 @@ export const RepairDeclarationDialog = ({
             </Label>
 
             <div className="grid grid-cols-3 gap-2.5">
-              {previewUrls.map((url, idx) => (
+              {previewUrls.map((url, idx) => {
+                const safeSrc = trustedPreviewUrlsRef.current.has(url) ? toSafeBlobUrl(url) : undefined;
+                return (
                 <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border border-border bg-muted">
-                  <img src={url} alt={`Preuve ${idx + 1}`} className="w-full h-full object-cover" />
+                  <img src={safeSrc} alt={`Preuve ${idx + 1}`} className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={() => removePhoto(idx)}
@@ -214,7 +237,8 @@ export const RepairDeclarationDialog = ({
                     Après #{idx + 1}
                   </span>
                 </div>
-              ))}
+                );
+              })}
 
               {selectedFiles.length < MAX_REPAIR_PHOTOS && (
                 <button
