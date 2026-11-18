@@ -182,7 +182,7 @@ const App = () => {
                     <Route path="/auth" element={<AuthPage />} />
                     <Route path="/signaler" element={<ReportPage />} />
                     <Route path="/signalement" element={<Navigate to="/signaler" replace />} />
-                    <Route path="/tableau-de-bord" element={<DashboardPage />} />
+                    <Route path="/tableau-de-bord" element={<RoleBasedDashboardRedirect><DashboardPage /></RoleBasedDashboardRedirect>} />
                     <Route path="/tableau-de-bord/citizen" element={<Navigate to="/tableau-de-bord" replace />} />
                     <Route path="/carte" element={<MapPage />} />
                     <Route path="/commune/:communeName" element={<CommuneDetailPage />} />
