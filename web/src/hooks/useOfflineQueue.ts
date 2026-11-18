@@ -122,15 +122,20 @@ export function useOfflineQueue() {
         }
       }
     } finally {
-      setFlushing(false);
+      // Refresh the persisted states before allowing the auto-flush effect to run again.
       await refreshQueue();
+      setFlushing(false);
     }
     return sent;
   }, [flushing, refreshQueue]);
 
+  const hasPendingEntries = queue.some((item) => item.status === "pending");
+
   useEffect(() => {
-    if (isOnline && queue.length > 0 && !flushing) void flush();
-  }, [isOnline, queue.length, flushing, flush]);
+    // Failed entries remain available for an explicit/manual retry, but must not
+    // trigger an automatic retry loop while the device is online.
+    if (isOnline && hasPendingEntries && !flushing) void flush();
+  }, [isOnline, hasPendingEntries, flushing, flush]);
 
   return { queue, enqueue, flush, flushing, refreshQueue };
 }
