@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import RoleBasedDashboardRedirect from "@/components/RoleBasedDashboardRedirect";
 import AdminRoute from "@/components/AdminRoute";
 import ProfileCompletionNotifier from "@/components/ProfileCompletionNotifier";
 import PWAInstallBanner from "@/components/PWAInstallBanner";
@@ -182,7 +183,7 @@ const App = () => {
                     <Route path="/auth" element={<AuthPage />} />
                     <Route path="/signaler" element={<ReportPage />} />
                     <Route path="/signalement" element={<Navigate to="/signaler" replace />} />
-                    <Route path="/tableau-de-bord" element={<DashboardPage />} />
+                    <Route path="/tableau-de-bord" element={<RoleBasedDashboardRedirect><DashboardPage /></RoleBasedDashboardRedirect>} />
                     <Route path="/tableau-de-bord/citizen" element={<Navigate to="/tableau-de-bord" replace />} />
                     <Route path="/carte" element={<MapPage />} />
                     <Route path="/commune/:communeName" element={<CommuneDetailPage />} />
