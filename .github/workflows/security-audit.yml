@@ -1,5 +1,8 @@
 name: Security Audit & SAST / SCA
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [ main, master ]
@@ -11,6 +14,9 @@ on:
 
 jobs:
   semgrep-sast:
+    permissions:
+      contents: read
+      security-events: write
     name: Semgrep SAST (OWASP Top 10)
     runs-on: ubuntu-latest
     steps:
