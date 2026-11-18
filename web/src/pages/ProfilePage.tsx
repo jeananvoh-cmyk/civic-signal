@@ -41,6 +41,7 @@ import { useRightsContent } from "@/hooks/useRightsContent";
 import { getQuartiers } from "@/lib/quartiers";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
 import { extractInfraLabel, infraEmoji, cleanDescription } from "@/lib/report-display";
+import { toSafeBlobUrl } from "@/lib/safe-url";
 import {
   type ProfileData,
   type HistoryReport,
@@ -574,7 +575,16 @@ const ProfilePage = () => {
   const [isDirty, setIsDirty] = useState(false);
   const [ocrLoading, setOcrLoading] = useState<"electricity" | "water" | null>(null);
   const [ocrPreview, setOcrPreview] = useState<{ type: "electricity" | "water"; url: string } | null>(null);
+  const trustedPreviewUrlsRef = useRef<Set<string>>(new Set());
   const elecFileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const urls = trustedPreviewUrlsRef.current;
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+      urls.clear();
+    };
+  }, []);
   const waterFileRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<ProfileData>({
     first_name: "",
@@ -735,7 +745,14 @@ const ProfilePage = () => {
   const handleOcrScan = async (file: File, hint: "electricity" | "water") => {
     setOcrLoading(hint);
     const previewUrl = URL.createObjectURL(file);
-    setOcrPreview({ type: hint, url: previewUrl });
+    trustedPreviewUrlsRef.current.add(previewUrl);
+    setOcrPreview((prev) => {
+      if (prev?.url) {
+        URL.revokeObjectURL(prev.url);
+        trustedPreviewUrlsRef.current.delete(prev.url);
+      }
+      return { type: hint, url: previewUrl };
+    });
 
     try {
       // Convertir en base64
@@ -791,6 +808,7 @@ const ProfilePage = () => {
     } finally {
       setOcrLoading(null);
       URL.revokeObjectURL(previewUrl);
+      trustedPreviewUrlsRef.current.delete(previewUrl);
       setOcrPreview(null);
       if (elecFileRef.current) elecFileRef.current.value = "";
       if (waterFileRef.current) waterFileRef.current.value = "";
@@ -1427,7 +1445,7 @@ const ProfilePage = () => {
                         </div>
                         {ocrPreview?.type === "electricity" && (
                           <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-2">
-                            <img src={ocrPreview.url} alt="Aperçu" className="h-14 w-14 rounded object-cover shrink-0" />
+                            <img src={trustedPreviewUrlsRef.current.has(ocrPreview.url) ? toSafeBlobUrl(ocrPreview.url) : undefined} alt="Aperçu" className="h-14 w-14 rounded object-cover shrink-0" />
                             <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin text-amber-500" />Extraction des numéros en cours…</div>
                           </div>
                         )}
@@ -1453,7 +1471,7 @@ const ProfilePage = () => {
                         </div>
                         {ocrPreview?.type === "water" && (
                           <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-2">
-                            <img src={ocrPreview.url} alt="Aperçu" className="h-14 w-14 rounded object-cover shrink-0" />
+                            <img src={trustedPreviewUrlsRef.current.has(ocrPreview.url) ? toSafeBlobUrl(ocrPreview.url) : undefined} alt="Aperçu" className="h-14 w-14 rounded object-cover shrink-0" />
                             <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin text-blue-500" />Extraction des numéros en cours…</div>
                           </div>
                         )}
