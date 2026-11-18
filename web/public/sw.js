@@ -46,14 +46,27 @@ self.addEventListener('notificationclick', (event) => {
 
 // Cache dynamique pour tuiles cartographiques Leaflet (OpenStreetMap / CartoDB)
 const TILE_CACHE = 'signa-tiles-v1';
+const ALLOWED_OSM_HOSTS = new Set([
+  'tile.openstreetmap.org',
+  'a.tile.openstreetmap.org',
+  'b.tile.openstreetmap.org',
+  'c.tile.openstreetmap.org',
+]);
+const ALLOWED_CARTO_HOSTS = new Set([
+  'basemaps.cartocdn.com',
+  'a.basemaps.cartocdn.com',
+  'b.basemaps.cartocdn.com',
+  'c.basemaps.cartocdn.com',
+  'd.basemaps.cartocdn.com',
+]);
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
   // Caching optimisé des tuiles cartographiques pour résilience réseau
   if (
-    url.hostname.includes('tile.openstreetmap.org') ||
-    url.hostname.includes('basemaps.cartocdn.com')
+    url.protocol === 'https:' &&
+    (ALLOWED_OSM_HOSTS.has(url.hostname) || ALLOWED_CARTO_HOSTS.has(url.hostname))
   ) {
     event.respondWith(
       caches.open(TILE_CACHE).then(async (cache) => {
