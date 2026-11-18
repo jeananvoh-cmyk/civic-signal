@@ -560,10 +560,25 @@ Deno.serve(async (req) => {
     const emailONEP   = (config["email_onep"] && !config["email_onep"].includes("jeananvoh")) ? config["email_onep"].trim() : "reclamation@onep.ci";
     const emailANARE  = (config["email_anare"] && !config["email_anare"].includes("jeananvoh")) ? config["email_anare"].trim() : "reclamation@anare.ci";
 
-    // Résolution robuste et unifiée de la clé API Resend :
-    // 1. Clé passée dynamiquement par l'admin dans le body (si réelle et non masquée)
-    // 2. Clé enregistrée dans la table relay_config (si réelle et non masquée)
-    // 3. Variable d'environnement RESEND_API_KEY dans Supabase Secrets
+    // Rejeter toute clé API Resend fournie par le client : le secret doit rester 100% côté serveur.
+    if (
+      typeof body.resend_api_key === "string" &&
+      body.resend_api_key.trim().length > 0
+    ) {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error:
+            "Les clés API Resend fournies par le client sont refusées. Configurez RESEND_API_KEY dans les secrets Supabase.",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    // Résolution strictement serveur de la clé API Resend (variable d'environnement RESEND_API_KEY uniquement)
     function cleanApiKey(k?: string | null): string | null {
       if (!k || typeof k !== "string") return null;
       const t = k.trim();
@@ -573,15 +588,11 @@ Deno.serve(async (req) => {
       return null;
     }
 
-    const finalApiKey =
-      cleanApiKey(body.resend_api_key) ||
-      cleanApiKey(config["resend_api_key"]) ||
-      cleanApiKey(resendEnvApiKey) ||
-      "";
+    const finalApiKey = cleanApiKey(resendEnvApiKey) || "";
 
     // Mode direct de test de la clé Resend ou d'envoi de secours sans blocage CORS
     if (body.action === "test_email" || body.action === "test_resend_key") {
-      const keyToUse = cleanApiKey(body.resend_api_key) || finalApiKey;
+      const keyToUse = finalApiKey;
       const targetTo = (body.to_email || testEmail || "jeananvoh@gmail.com").trim();
       const subjectToUse = body.subject || "[SIGNA-CI] Test de connexion Clé API Resend";
       const nowStr = new Date().toLocaleString("fr-FR", { timeZone: "Africa/Abidjan" });
@@ -639,7 +650,7 @@ Deno.serve(async (req) => {
 
       if (!keyToUse) {
         return new Response(
-          JSON.stringify({ ok: false, error: "Aucune clé API Resend fournie ni trouvée dans la configuration." }),
+          JSON.stringify({ ok: false, error: "RESEND_API_KEY non configuré dans les secrets serveur Supabase." }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -662,7 +673,7 @@ Deno.serve(async (req) => {
     if (!finalApiKey && !isTestMode) {
       return new Response(
         JSON.stringify({
-          error: "RESEND_API_KEY non configuré. Veuillez saisir votre clé API Resend (re_...) dans l'onglet Paramètres.",
+          error: "RESEND_API_KEY non configuré dans les secrets serveur Supabase.",
         }),
         {
           status: 400,

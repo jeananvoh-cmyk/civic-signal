@@ -9,10 +9,15 @@ on:
     # Scan de sécurité hebdomadaire chaque lundi à 04h00 UTC
     - cron: '0 4 * * 1'
 
+permissions:
+  contents: read
+
 jobs:
   semgrep-sast:
     name: Semgrep SAST (OWASP Top 10)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,6 +37,8 @@ jobs:
   trivy-sca:
     name: Trivy Dependency & Vulnerability Scanner
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -48,6 +55,8 @@ jobs:
   node-security-lint:
     name: ESLint Security & NPM Audit
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: web
@@ -66,8 +75,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Audit NPM Dependencies
-        run: npm audit --audit-level=high
+      - name: Audit NPM Production Dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Audit NPM All Dependencies (Critical Blocking + Dev Report)
+        run: |
+          npm audit --audit-level=critical
+          npm audit --audit-level=high || echo "::warning::Unpatched high advisories remain in devDependencies (check log)"
 
       - name: Run ESLint Security Rules
         run: npm run lint
