@@ -72,33 +72,61 @@ const urgencyConfig = {
 
 /* ─── sub-components ──────────────────────────────────────────────────────── */
 
+const KPI_TONE_STYLES = {
+  violet: {
+    overlay: "bg-violet-500/10",
+    iconWrap: "bg-violet-500/15",
+    iconText: "text-violet-500",
+  },
+  pink: {
+    overlay: "bg-pink-500/10",
+    iconWrap: "bg-pink-500/15",
+    iconText: "text-pink-500",
+  },
+  rose: {
+    overlay: "bg-rose-500/10",
+    iconWrap: "bg-rose-500/15",
+    iconText: "text-rose-500",
+  },
+  amber: {
+    overlay: "bg-amber-500/10",
+    iconWrap: "bg-amber-500/15",
+    iconText: "text-amber-500",
+  },
+} as const;
+
+type KpiTone = keyof typeof KPI_TONE_STYLES;
+
 const KpiCard = ({
   icon: Icon,
   value,
   label,
-  color,
+  tone,
   delay = 0,
 }: {
   icon: React.ElementType;
   value: number;
   label: string;
-  color: string;
+  tone: KpiTone;
   delay?: number;
-}) => (
-  <motion.div
-    initial={{ opacity: 0, y: 16 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay, duration: 0.4, ease: "easeOut" }}
-    className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm"
-  >
-    <div className={cn("absolute inset-0 opacity-5", color)} />
-    <div className={cn("mb-3 inline-flex rounded-xl p-2.5", color.replace("bg-", "bg-").replace("/10", "/15"))}>
-      <Icon className={cn("h-5 w-5", color.replace("bg-", "text-").replace("/10", ""))} />
-    </div>
-    <p className="text-3xl font-extrabold tabular-nums tracking-tight text-foreground">{value}</p>
-    <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
-  </motion.div>
-);
+}) => {
+  const styles = KPI_TONE_STYLES[tone];
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay, duration: 0.4, ease: "easeOut" }}
+      className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm"
+    >
+      <div className={cn("absolute inset-0 opacity-5", styles.overlay)} />
+      <div className={cn("mb-3 inline-flex rounded-xl p-2.5", styles.iconWrap)}>
+        <Icon className={cn("h-5 w-5", styles.iconText)} />
+      </div>
+      <p className="text-3xl font-extrabold tabular-nums tracking-tight text-foreground">{value}</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
+    </motion.div>
+  );
+};
 
 const VulnBar = ({ babies, pregnant, elderly }: { babies: number; pregnant: number; elderly: number }) => {
   const total = babies + pregnant + elderly;
@@ -257,28 +285,28 @@ const AdminVulnerablePage = () => {
                   icon={Activity}
                   value={totalImpacted}
                   label="Personnes impactées"
-                  color="bg-violet-500/10"
+                  tone="violet"
                   delay={0}
                 />
                 <KpiCard
                   icon={Baby}
                   value={totalBabies}
                   label="Bébés / Nourrissons"
-                  color="bg-pink-500/10"
+                  tone="pink"
                   delay={0.06}
                 />
                 <KpiCard
                   icon={Heart}
                   value={totalPregnant}
                   label="Femmes enceintes"
-                  color="bg-rose-500/10"
+                  tone="rose"
                   delay={0.12}
                 />
                 <KpiCard
                   icon={Users}
                   value={totalElderly}
                   label="Personnes âgées"
-                  color="bg-amber-500/10"
+                  tone="amber"
                   delay={0.18}
                 />
               </div>
