@@ -106,6 +106,27 @@ export async function storePhotoArtifacts(submissionId: string, artifacts: Photo
   });
 }
 
+/** Atomically replaces all locally stored photo artifacts for a single submissionId. */
+export async function replacePhotoArtifacts(submissionId: string, artifacts: PhotoArtifact[]): Promise<void> {
+  if (typeof indexedDB === "undefined") return;
+  const db = await openPhotoDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    const store = tx.objectStore(STORE);
+    const existingReq = store.index("submissionId").getAll(submissionId);
+    existingReq.onsuccess = () => {
+      const existing = existingReq.result as StoredPhotoArtifact[];
+      for (const record of existing) store.delete(record.key);
+      const createdAt = new Date().toISOString();
+      for (const artifact of artifacts) store.put(toStoredPhotoArtifact(submissionId, artifact, createdAt));
+    };
+    existingReq.onerror = () => reject(existingReq.error ?? new Error("Remplacement des photos impossible"));
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error ?? new Error("Remplacement des photos impossible"));
+    tx.onabort = () => reject(tx.error ?? new Error("Remplacement des photos interrompu"));
+  });
+}
+
 export async function readPhotoArtifacts(submissionId: string): Promise<StoredPhotoArtifact[]> {
   if (typeof indexedDB === "undefined") return [];
   const db = await openPhotoDb();
