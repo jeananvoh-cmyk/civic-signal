@@ -27,6 +27,15 @@ function normalize(value: unknown): string {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
 
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
 function isAllowedInternalUrl(value: unknown): boolean {
   if (typeof value !== "string" || value.length > MAX_URL_LENGTH) return false;
   if (value.startsWith("/")) return !value.startsWith("//");
@@ -91,16 +100,26 @@ Deno.serve(async (req) => {
 
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Internal service-to-service calls must use a dedicated secret.
-    const internalHeader = req.headers.get("x-internal-key");
-    const isInternal = Boolean(INTERNAL_KEY && internalHeader && internalHeader === INTERNAL_KEY);
+    // Internal service-to-service calls are authorized via the server-held
+    // SUPABASE_SERVICE_ROLE_KEY Bearer JWT (from Vault/Edge Functions) or
+    // the dedicated SEND_PUSH_INTERNAL_KEY header.
+    const authHeader = req.headers.get("Authorization");
+    const bearerToken = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice("Bearer ".length).trim()
+      : "";
+    const internalHeader = req.headers.get("x-internal-key") ?? "";
+    const isServiceRole = Boolean(
+      bearerToken && timingSafeEqual(bearerToken, SUPABASE_SERVICE_ROLE_KEY),
+    );
+    const isInternalKey = Boolean(
+      INTERNAL_KEY && internalHeader && timingSafeEqual(internalHeader, INTERNAL_KEY),
+    );
+    const isInternal = isServiceRole || isInternalKey;
 
     if (!isInternal) {
-      const authHeader = req.headers.get("Authorization");
-      if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
+      if (!bearerToken) return json({ error: "Unauthorized" }, 401);
 
-      const token = authHeader.slice("Bearer ".length).trim();
-      const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+      const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(bearerToken);
       if (authError || !user) return json({ error: "Unauthorized" }, 401);
 
       const { data: callerProfile, error: profileError } = await supabaseAdmin
@@ -225,7 +244,8 @@ Deno.serve(async (req) => {
     }
 
     if (body.action === "send-to-user") {
-      const { user_id, title, message, url = "/", report_id } = body;
+      const { user_id, title, url = "/", report_id } = body;
+      const message = typeof body.message === "string" ? body.message : body.body;
       if (typeof user_id !== "string" || !user_id || typeof title !== "string" || !title.trim() || typeof message !== "string" || !message.trim()) {
         return json({ error: "Missing required fields" }, 400);
       }
