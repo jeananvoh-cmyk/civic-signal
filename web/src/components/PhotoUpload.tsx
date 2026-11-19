@@ -177,10 +177,12 @@ const PhotoUpload = ({
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
 
+  const pendingArtifacts = photoArtifacts.filter((artifact) => !artifact.storagePath);
+
   const processFiles = async (files: File[]) => {
     if (!files.length || !user) return;
 
-    const currentPhotoCount = Math.max(photoUrls.length, photoArtifacts.length);
+    const currentPhotoCount = photoUrls.length + pendingArtifacts.length;
     const remaining = MAX_PHOTOS - currentPhotoCount;
     if (remaining <= 0) {
       toast.error(`Maximum ${MAX_PHOTOS} photos par signalement`);
@@ -243,7 +245,7 @@ const PhotoUpload = ({
       const allArtifacts = [...photoArtifacts, ...addedArtifacts];
       if (addedUrls.length > 0) onPhotosChanged(allUrls);
       onArtifactsChanged?.(allArtifacts);
-      const totalCount = Math.max(allUrls.length, allArtifacts.length);
+      const totalCount = allUrls.length + allArtifacts.filter((a) => !a.storagePath).length;
       toast.success(
         isOnline
           ? (addedUrls.length === 1 ? "Photo ajoutée !" : `${addedUrls.length} photos ajoutées simultanément !`)
@@ -261,15 +263,21 @@ const PhotoUpload = ({
     await processFiles(files);
   };
 
-  const removePhoto = (index: number) => {
-    const newUrls = photoUrls.filter((_, i) => i !== index);
-    const newArtifacts = photoArtifacts.filter((_, i) => i !== index);
+  const removeUploadedPhoto = (urlToRemove: string) => {
+    const newUrls = photoUrls.filter((url) => url !== urlToRemove);
+    const newArtifacts = photoArtifacts.filter((artifact) => artifact.storagePath !== urlToRemove);
     onPhotosChanged(newUrls);
     onArtifactsChanged?.(newArtifacts);
     if (newUrls.length === 0 && newArtifacts.length === 0) setGpsSource(null);
   };
 
-  const photoCount = Math.max(photoUrls.length, photoArtifacts.length);
+  const removePendingArtifact = (artifactId: string) => {
+    const newArtifacts = photoArtifacts.filter((artifact) => artifact.id !== artifactId);
+    onArtifactsChanged?.(newArtifacts);
+    if (photoUrls.length === 0 && newArtifacts.length === 0) setGpsSource(null);
+  };
+
+  const photoCount = photoUrls.length + pendingArtifacts.length;
   const canAddMore = photoCount < MAX_PHOTOS;
 
   return (
@@ -305,11 +313,11 @@ const PhotoUpload = ({
           </div>
 
           <div className={`grid gap-2 ${photoCount >= 2 ? "grid-cols-3" : "grid-cols-2"}`}>
-            {photoUrls.map((url, i) => (
-              <PhotoThumb key={url} path={url} onRemove={() => removePhoto(i)} />
+            {photoUrls.map((url) => (
+              <PhotoThumb key={url} path={url} onRemove={() => removeUploadedPhoto(url)} />
             ))}
 
-            {photoArtifacts.map((artifact, i) => !photoUrls[i] ? (
+            {pendingArtifacts.map((artifact) => (
               <div key={artifact.id} className="relative rounded-xl overflow-hidden border border-border aspect-square bg-muted/30 flex flex-col items-center justify-center gap-1">
                 <ImageIcon className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
                 <span className="text-[10px] text-muted-foreground px-2 text-center">Photo prête pour la synchronisation</span>
@@ -319,12 +327,12 @@ const PhotoUpload = ({
                   size="icon"
                   aria-label="Supprimer cette photo"
                   className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full"
-                  onClick={() => removePhoto(i)}
+                  onClick={() => removePendingArtifact(artifact.id)}
                 >
                   <X className="h-3.5 w-3.5" aria-hidden="true" />
                 </Button>
               </div>
-            ) : null)}
+            ))}
 
             {canAddMore && !uploading && (
               <div className="col-span-1 border-2 border-dashed border-border rounded-xl p-1.5 flex flex-col justify-center gap-1 bg-muted/20">
