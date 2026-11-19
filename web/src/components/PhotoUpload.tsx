@@ -10,11 +10,16 @@ import { getUserFriendlyError } from "@/lib/error-utils";
 import { useSignedUrl } from "@/hooks/useSignedUrl";
 import * as exifr from "exifr";
 import { MAX_PHOTOS } from "@/lib/constants";
+import { createPhotoArtifact, type PhotoArtifact } from "@/lib/photo-artifact";
+import { stagePhotoFingerprint, uploadPhotoArtifact } from "@/lib/photo-sync";
 
 interface PhotoUploadProps {
   onPhotosChanged: (urls: string[]) => void;
+  onArtifactsChanged?: (artifacts: PhotoArtifact[]) => void;
   onGpsFromPhoto?: (lat: number, lng: number) => void;
   photoUrls: string[];
+  photoArtifacts?: PhotoArtifact[];
+  isOnline?: boolean;
   isInfrastructure?: boolean;
   reportId?: string;
   allowNoPhotoToggle?: boolean;
@@ -24,7 +29,7 @@ interface PhotoUploadProps {
 
 const MAX_OUTPUT_PX = 1280;
 const JPEG_QUALITY_HIGH = 0.80;
-const JPEG_QUALITY_LOW  = 0.72;
+const JPEG_QUALITY_LOW = 0.72;
 
 // ── Calcul d'empreinte SHA-256 sur le Blob propre final ──────────────────────
 export async function computeBlobHash(blob: Blob): Promise<string> {
@@ -94,7 +99,7 @@ async function extractExifGps(file: File): Promise<{ lat: number; lng: number } 
   try {
     const gps = await exifr.gps(file);
     if (gps && typeof gps.latitude === "number" && typeof gps.longitude === "number"
-        && (gps.latitude !== 0 || gps.longitude !== 0)) {
+      && (gps.latitude !== 0 || gps.longitude !== 0)) {
       return { lat: gps.latitude, lng: gps.longitude };
     }
   } catch {
@@ -104,18 +109,28 @@ async function extractExifGps(file: File): Promise<{ lat: number; lng: number } 
 }
 
 // ── Upload d'un fichier nettoyé (Zéro fuite d'EXIF possible) ───────────────────
-async function uploadSanitizedFile(file: File, userId: string, index: number): Promise<{ path: string; hash: string }> {
+async function preparePhotoArtifact(
+  file: File,
+  exifGps: { lat: number; lng: number } | null,
+): Promise<PhotoArtifact> {
   // Le passage par canvas garantit la suppression intégrale des métadonnées EXIF
   const blob = await compressImage(file);
-  const hash = await computeBlobHash(blob);
+  return createPhotoArtifact(blob, exifGps);
+}
 
-  const path = `${userId}/${Date.now()}_${index}.jpg`;
-  const { error } = await supabase.storage
-    .from("report-photos")
-    .upload(path, blob, { upsert: true, contentType: "image/jpeg" });
-
-  if (error) throw error;
-  return { path, hash };
+async function uploadSanitizedFile(
+  file: File,
+  userId: string,
+  exifGps: { lat: number; lng: number } | null,
+): Promise<{ path: string; artifact: PhotoArtifact }> {
+  const artifact = await preparePhotoArtifact(file, exifGps);
+  const path = await uploadPhotoArtifact(artifact, userId);
+  try {
+    await stagePhotoFingerprint(path, userId, artifact.sha256);
+  } catch {
+    // Non-bloquant côté UI si la table de staging n'est pas encore prête
+  }
+  return { path, artifact };
 }
 
 // ── Sous-composant : vignette d'une photo uploadée ────────────────────────────
@@ -145,8 +160,11 @@ function PhotoThumb({ path, onRemove }: { path: string; onRemove: () => void }) 
 // ── Composant principal ────────────────────────────────────────────────────────
 const PhotoUpload = ({
   onPhotosChanged,
+  onArtifactsChanged,
   onGpsFromPhoto,
   photoUrls,
+  photoArtifacts = [],
+  isOnline = true,
   isInfrastructure = false,
   allowNoPhotoToggle = false,
   noPhotoChecked = false,
@@ -162,7 +180,8 @@ const PhotoUpload = ({
   const processFiles = async (files: File[]) => {
     if (!files.length || !user) return;
 
-    const remaining = MAX_PHOTOS - photoUrls.length;
+    const currentPhotoCount = Math.max(photoUrls.length, photoArtifacts.length);
+    const remaining = MAX_PHOTOS - currentPhotoCount;
     if (remaining <= 0) {
       toast.error(`Maximum ${MAX_PHOTOS} photos par signalement`);
       return;
@@ -177,13 +196,22 @@ const PhotoUpload = ({
 
     let exifExtracted = false;
 
-    const uploadPromises = toProcess.map(async (file, i) => {
+    const uploadPromises = toProcess.map(async (file) => {
       if (!file.type.startsWith("image/") && !file.name.match(/\.(heic|heif)$/i)) {
         throw new Error(`"${file.name}" n'est pas une image valide`);
       }
 
       const exifGps = await extractExifGps(file);
-      const { path } = await uploadSanitizedFile(file, user.id, i);
+      let path: string | null = null;
+      let artifact: PhotoArtifact;
+
+      if (isOnline) {
+        const uploaded = await uploadSanitizedFile(file, user.id, exifGps);
+        path = uploaded.path;
+        artifact = uploaded.artifact;
+      } else {
+        artifact = await preparePhotoArtifact(file, exifGps);
+      }
 
       if (exifGps && onGpsFromPhoto && !exifExtracted) {
         exifExtracted = true;
@@ -195,25 +223,32 @@ const PhotoUpload = ({
         });
       }
 
-      return path;
+      return { path, artifact };
     });
 
     const results = await Promise.allSettled(uploadPromises);
     const addedUrls: string[] = [];
+    const addedArtifacts: PhotoArtifact[] = [];
     results.forEach((r, idx) => {
       if (r.status === "fulfilled") {
-        addedUrls.push(r.value);
+        if (r.value.path) addedUrls.push(r.value.path);
+        addedArtifacts.push(r.value.artifact);
       } else {
         toast.error(getUserFriendlyError(r.reason, `Erreur photo ${idx + 1}`));
       }
     });
 
-    if (addedUrls.length > 0) {
+    if (addedUrls.length > 0 || addedArtifacts.length > 0) {
       const allUrls = [...photoUrls, ...addedUrls];
-      onPhotosChanged(allUrls);
+      const allArtifacts = [...photoArtifacts, ...addedArtifacts];
+      if (addedUrls.length > 0) onPhotosChanged(allUrls);
+      onArtifactsChanged?.(allArtifacts);
+      const totalCount = Math.max(allUrls.length, allArtifacts.length);
       toast.success(
-        addedUrls.length === 1 ? "Photo ajoutée !" : `${addedUrls.length} photos ajoutées simultanément !`,
-        { description: `${allUrls.length}/${MAX_PHOTOS} au total` },
+        isOnline
+          ? (addedUrls.length === 1 ? "Photo ajoutée !" : `${addedUrls.length} photos ajoutées simultanément !`)
+          : (addedArtifacts.length === 1 ? "Photo préparée hors connexion !" : `${addedArtifacts.length} photos préparées hors connexion !`),
+        { description: `${totalCount}/${MAX_PHOTOS} au total` },
       );
     }
 
@@ -228,11 +263,14 @@ const PhotoUpload = ({
 
   const removePhoto = (index: number) => {
     const newUrls = photoUrls.filter((_, i) => i !== index);
+    const newArtifacts = photoArtifacts.filter((_, i) => i !== index);
     onPhotosChanged(newUrls);
-    if (newUrls.length === 0) setGpsSource(null);
+    onArtifactsChanged?.(newArtifacts);
+    if (newUrls.length === 0 && newArtifacts.length === 0) setGpsSource(null);
   };
 
-  const canAddMore = photoUrls.length < MAX_PHOTOS;
+  const photoCount = Math.max(photoUrls.length, photoArtifacts.length);
+  const canAddMore = photoCount < MAX_PHOTOS;
 
   return (
     <div className="space-y-3">
@@ -255,21 +293,38 @@ const PhotoUpload = ({
       />
 
       {/* Grille de photos + boutons d'ajout */}
-      {(photoUrls.length > 0 || uploading) && (
+      {(photoCount > 0 || uploading) && (
         <div className="space-y-2.5">
           <div className="flex items-center justify-between text-xs font-semibold text-foreground px-0.5">
-            <span>Photos du signalement ({photoUrls.length}/{MAX_PHOTOS})</span>
+            <span>Photos du signalement ({photoCount}/{MAX_PHOTOS})</span>
             {canAddMore && (
               <span className="text-[11px] text-muted-foreground font-normal">
-                Encore {MAX_PHOTOS - photoUrls.length} photo(s) possible(s)
+                Encore {MAX_PHOTOS - photoCount} photo(s) possible(s)
               </span>
             )}
           </div>
 
-          <div className={`grid gap-2 ${photoUrls.length >= 2 ? "grid-cols-3" : "grid-cols-2"}`}>
+          <div className={`grid gap-2 ${photoCount >= 2 ? "grid-cols-3" : "grid-cols-2"}`}>
             {photoUrls.map((url, i) => (
               <PhotoThumb key={url} path={url} onRemove={() => removePhoto(i)} />
             ))}
+
+            {photoArtifacts.map((artifact, i) => !photoUrls[i] ? (
+              <div key={artifact.id} className="relative rounded-xl overflow-hidden border border-border aspect-square bg-muted/30 flex flex-col items-center justify-center gap-1">
+                <ImageIcon className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+                <span className="text-[10px] text-muted-foreground px-2 text-center">Photo prête pour la synchronisation</span>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  aria-label="Supprimer cette photo"
+                  className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full"
+                  onClick={() => removePhoto(i)}
+                >
+                  <X className="h-3.5 w-3.5" aria-hidden="true" />
+                </Button>
+              </div>
+            ) : null)}
 
             {canAddMore && !uploading && (
               <div className="col-span-1 border-2 border-dashed border-border rounded-xl p-1.5 flex flex-col justify-center gap-1 bg-muted/20">
@@ -306,7 +361,7 @@ const PhotoUpload = ({
             )}
           </div>
 
-          {gpsSource && photoUrls.length > 0 && (
+          {gpsSource && photoCount > 0 && (
             <div
               className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium w-fit
                 ${gpsSource === "photo"
@@ -323,7 +378,7 @@ const PhotoUpload = ({
       )}
 
       {/* Boutons principaux — visibles uniquement si aucune photo encore */}
-      {photoUrls.length === 0 && !uploading && (
+      {photoCount === 0 && !uploading && (
         <div className="grid grid-cols-2 gap-2.5">
           <Button
             type="button"
@@ -357,10 +412,10 @@ const PhotoUpload = ({
         </div>
       )}
 
-      {photoUrls.length === 0 && uploading && (
+      {photoCount === 0 && uploading && (
         <div className="w-full h-20 border rounded-xl flex flex-col items-center justify-center gap-2 bg-muted/20">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <span className="text-xs text-muted-foreground font-medium">Compression et envoi des photos…</span>
+          <span className="text-xs text-muted-foreground font-medium">Compression et préparation des photos…</span>
         </div>
       )}
 
@@ -369,7 +424,7 @@ const PhotoUpload = ({
       </p>
 
       {/* Option d'échappement : Photo impossible (nuit / danger) */}
-      {allowNoPhotoToggle && isInfrastructure && photoUrls.length === 0 && (
+      {allowNoPhotoToggle && isInfrastructure && photoCount === 0 && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/8 p-3 flex items-start gap-2.5 transition-all">
           <Checkbox
             id="no-photo-opt"
