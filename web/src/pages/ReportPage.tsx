@@ -16,6 +16,7 @@ import { QuartierCombobox } from "@/components/QuartierCombobox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import Header from "@/components/Header";
 import PhotoUpload from "@/components/PhotoUpload";
+import type { PhotoArtifact } from "@/lib/photo-artifact";
 import CorroborationStatus from "@/components/CorroborationStatus";
 import { toast } from "sonner";
 import { getUserFriendlyError } from "@/lib/error-utils";
@@ -91,6 +92,7 @@ const ReportPage = () => {
   // Étape 3 (détails optionnels)
   const [description, setDescription] = useState("");
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [photoArtifacts, setPhotoArtifacts] = useState<PhotoArtifact[]>([]);
   const [startTime, setStartTime] = useState("");
   const [impactedPeople, setImpactedPeople] = useState(1);
   const [babies, setBabies] = useState(0);
@@ -579,7 +581,7 @@ const ReportPage = () => {
         return;
       }
     }
-    if (selectedType.reportCategory === "infrastructure" && photoUrls.length === 0 && !noPhotoReason) {
+    if (selectedType.reportCategory === "infrastructure" && photoUrls.length === 0 && photoArtifacts.length === 0 && !noPhotoReason) {
       toast.error("Une photo est requise (ou cochez l'option photo impossible)");
       setShowPhoto(true);
       return;
@@ -679,7 +681,8 @@ const ReportPage = () => {
       // -- Offline: save to queue and exit ----------------------------------
       if (!isOnline) {
         localStorage.removeItem(DRAFT_KEY);
-        await enqueue(reportPayload);
+        const pendingArtifacts = photoArtifacts.filter((a) => !a.storagePath);
+        await enqueue(reportPayload, pendingArtifacts);
         toast.success("Signalement enregistré hors-ligne. Il sera envoyé automatiquement dès le retour du réseau.", {
           duration: 6000,
         });
@@ -1685,7 +1688,7 @@ const ReportPage = () => {
                   >
                     <Camera className="h-4 w-4 shrink-0" />
                     <span>Photo{selectedType.reportCategory === "infrastructure" ? " *" : ""}</span>
-                    {photoUrls.length > 0 && <span className="h-2 w-2 rounded-full bg-primary" />}
+                    {(photoUrls.length > 0 || photoArtifacts.length > 0) && <span className="h-2 w-2 rounded-full bg-primary" />}
                   </button>
 
                   <button
@@ -1716,6 +1719,7 @@ const ReportPage = () => {
                     >
                       <PhotoUpload
                         onPhotosChanged={setPhotoUrls}
+                        onArtifactsChanged={setPhotoArtifacts}
                         onGpsFromPhoto={async (lat, lng) => {
                           setLatitude(lat);
                           setLongitude(lng);
@@ -1733,6 +1737,8 @@ const ReportPage = () => {
                           } catch { /* silent */ }
                         }}
                         photoUrls={photoUrls}
+                        photoArtifacts={photoArtifacts}
+                        isOnline={isOnline}
                         isInfrastructure={selectedType.reportCategory === "infrastructure"}
                         allowNoPhotoToggle={true}
                         noPhotoChecked={noPhotoReason}
