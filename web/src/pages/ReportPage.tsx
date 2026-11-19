@@ -17,6 +17,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import Header from "@/components/Header";
 import PhotoUpload from "@/components/PhotoUpload";
 import type { PhotoArtifact } from "@/lib/photo-artifact";
+import { deletePhotoArtifacts, storePhotoArtifacts } from "@/lib/offline-photo-store";
+import { submitReportOnlineWithArtifacts } from "@/lib/photo-sync";
 import CorroborationStatus from "@/components/CorroborationStatus";
 import { toast } from "sonner";
 import { getUserFriendlyError } from "@/lib/error-utils";
@@ -93,6 +95,34 @@ const ReportPage = () => {
   const [description, setDescription] = useState("");
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [photoArtifacts, setPhotoArtifacts] = useState<PhotoArtifact[]>([]);
+  const draftSubmissionIdRef = useRef<string>(crypto.randomUUID());
+  const lastAuthUserIdRef = useRef<string | null>(user?.id ?? null);
+
+  useEffect(() => {
+    const currentUserId = user?.id ?? null;
+    if (lastAuthUserIdRef.current !== currentUserId) {
+      lastAuthUserIdRef.current = currentUserId;
+      setPhotoUrls([]);
+      setPhotoArtifacts([]);
+      draftSubmissionIdRef.current = crypto.randomUUID();
+    }
+  }, [user?.id]);
+
+  const handleArtifactsChanged = (nextArtifacts: PhotoArtifact[]) => {
+    setPhotoArtifacts(nextArtifacts);
+    const draftId = draftSubmissionIdRef.current;
+    const unuploaded = nextArtifacts.filter((artifact) => !artifact.storagePath);
+    void (async () => {
+      try {
+        await deletePhotoArtifacts(draftId);
+        if (unuploaded.length > 0) {
+          await storePhotoArtifacts(draftId, unuploaded);
+        }
+      } catch {
+        // Persistance locale best-effort si IndexedDB n'est pas disponible
+      }
+    })();
+  };
   const [startTime, setStartTime] = useState("");
   const [impactedPeople, setImpactedPeople] = useState(1);
   const [babies, setBabies] = useState(0);
@@ -646,7 +676,7 @@ const ReportPage = () => {
       const padaInfo = isInfra && padaAddress?.formattedAddress ? ` [PADA : ${padaAddress.formattedAddress}]` : "";
       const fullFinalDesc = `${fullDesc}${padaInfo}`.slice(0, 600);
 
-      const client_submission_id = crypto.randomUUID();
+      const client_submission_id = draftSubmissionIdRef.current;
 
       const reportPayload = {
         client_submission_id,
@@ -683,6 +713,9 @@ const ReportPage = () => {
         localStorage.removeItem(DRAFT_KEY);
         const pendingArtifacts = photoArtifacts.filter((a) => !a.storagePath);
         await enqueue(reportPayload, pendingArtifacts);
+        setPhotoArtifacts([]);
+        setPhotoUrls([]);
+        draftSubmissionIdRef.current = crypto.randomUUID();
         toast.success("Signalement enregistré hors-ligne. Il sera envoyé automatiquement dès le retour du réseau.", {
           duration: 6000,
         });
@@ -691,9 +724,26 @@ const ReportPage = () => {
         return;
       }
 
-      const { data: insertData, error } = await supabase.from("reports").insert(reportPayload as any).select("id").single();
-
-      if (error) throw error;
+      const submissionResult = await submitReportOnlineWithArtifacts(
+        {
+          userId: user.id,
+          clientSubmissionId: client_submission_id,
+          reportPayload,
+          existingPhotoUrls: photoUrls,
+          photoArtifacts,
+          draftPhotoGroupId: client_submission_id,
+        },
+        {
+          onArtifactUploaded: (uploadedArtifact, storagePath) => {
+            setPhotoArtifacts((prev) =>
+              prev.map((item) =>
+                item.id === uploadedArtifact.id ? { ...item, storagePath } : item,
+              ),
+            );
+            setPhotoUrls((prev) => (prev.includes(storagePath) ? prev : [...prev, storagePath]));
+          },
+        },
+      );
 
       // Si l'utilisateur a saisi un quartier qui n'existe pas dans la liste statique,
       // le soumettre comme proposition en attente de validation admin.
@@ -710,19 +760,22 @@ const ReportPage = () => {
       }
 
       localStorage.removeItem(DRAFT_KEY);
+      setPhotoArtifacts([]);
+      setPhotoUrls([]);
+      draftSubmissionIdRef.current = crypto.randomUUID();
       track("report_submitted", {
         type_id: selectedType!.id,
         category: selectedType!.reportCategory,
         service: selectedType!.serviceType,
         commune,
-        has_photo: photoUrls.length > 0,
+        has_photo: submissionResult.photoUrls.length > 0,
         impacted_people: impactedPeople,
         has_vulnerable: babies > 0 || pregnant > 0 || elderly > 0,
       });
       // Retour haptique sur mobile
       if ("vibrate" in navigator) navigator.vibrate(200);
       toast.success("Signalement envoyé");
-      const reportId = (insertData as any)?.id;
+      const reportId = submissionResult.reportId;
       const params = new URLSearchParams({
         commune,
         type: selectedType.label,
@@ -1719,7 +1772,7 @@ const ReportPage = () => {
                     >
                       <PhotoUpload
                         onPhotosChanged={setPhotoUrls}
-                        onArtifactsChanged={setPhotoArtifacts}
+                        onArtifactsChanged={handleArtifactsChanged}
                         onGpsFromPhoto={async (lat, lng) => {
                           setLatitude(lat);
                           setLongitude(lng);
