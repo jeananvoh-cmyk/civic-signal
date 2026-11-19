@@ -83,6 +83,7 @@ import { getPhotoStoragePath } from "@/lib/photo-storage";
 import {
   deletePhotoArtifacts,
   readPhotoArtifacts,
+  replacePhotoArtifacts,
   storePhotoArtifacts,
   storeQueueEntryWithPhotoArtifacts,
   type StoredPhotoArtifact,
@@ -1317,5 +1318,37 @@ describe("Section C — End-to-end non-regression with IndexedDB & useOfflineQue
     expect(mockStorageUpload).toHaveBeenCalledTimes(1);
     expect(mockFingerprintInsert).toHaveBeenCalledTimes(1);
     expect(await readPhotoArtifacts("sub-off-flow")).toHaveLength(0);
+  });
+
+  it("C4) replacePhotoArtifacts atomically replaces draft photos for one submission without touching others or persisting exifGps", async () => {
+    const fakeIdb = createFakeIndexedDb();
+    Object.defineProperty(globalThis, "indexedDB", {
+      value: fakeIdb.factory,
+      configurable: true,
+      writable: true,
+    });
+
+    const p1 = await makeArtifact("draft-p1");
+    const p2 = await makeArtifact("draft-p2");
+    const otherUserPhoto = await makeArtifact("other-sub-photo");
+
+    await storePhotoArtifacts("draft-1", [p1]);
+    await storePhotoArtifacts("draft-other", [otherUserPhoto]);
+
+    // Replace draft-1 with [p2] -> removes p1, stores p2 without exifGps, preserves draft-other
+    await replacePhotoArtifacts("draft-1", [p2]);
+
+    const draft1Rows = await readPhotoArtifacts("draft-1");
+    const otherRows = await readPhotoArtifacts("draft-other");
+    expect(draft1Rows).toHaveLength(1);
+    expect(draft1Rows[0].id).toBe(p2.id);
+    expect("exifGps" in (draft1Rows[0] as unknown as Record<string, unknown>)).toBe(false);
+    expect(otherRows).toHaveLength(1);
+    expect(otherRows[0].id).toBe(otherUserPhoto.id);
+
+    // Replacing with empty list cleanly deletes draft-1 while leaving draft-other intact
+    await replacePhotoArtifacts("draft-1", []);
+    expect(await readPhotoArtifacts("draft-1")).toHaveLength(0);
+    expect(await readPhotoArtifacts("draft-other")).toHaveLength(1);
   });
 });

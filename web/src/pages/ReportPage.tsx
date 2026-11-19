@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import Header from "@/components/Header";
 import PhotoUpload from "@/components/PhotoUpload";
 import type { PhotoArtifact } from "@/lib/photo-artifact";
-import { deletePhotoArtifacts, storePhotoArtifacts } from "@/lib/offline-photo-store";
+import { deletePhotoArtifacts, replacePhotoArtifacts } from "@/lib/offline-photo-store";
 import { submitReportOnlineWithArtifacts } from "@/lib/photo-sync";
 import CorroborationStatus from "@/components/CorroborationStatus";
 import { toast } from "sonner";
@@ -96,15 +96,22 @@ const ReportPage = () => {
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [photoArtifacts, setPhotoArtifacts] = useState<PhotoArtifact[]>([]);
   const draftSubmissionIdRef = useRef<string>(crypto.randomUUID());
+  const draftPhotoSyncRef = useRef<Promise<void>>(Promise.resolve());
   const lastAuthUserIdRef = useRef<string | null>(user?.id ?? null);
 
   useEffect(() => {
     const currentUserId = user?.id ?? null;
     if (lastAuthUserIdRef.current !== currentUserId) {
+      const previousDraftId = draftSubmissionIdRef.current;
       lastAuthUserIdRef.current = currentUserId;
       setPhotoUrls([]);
       setPhotoArtifacts([]);
       draftSubmissionIdRef.current = crypto.randomUUID();
+      draftPhotoSyncRef.current = draftPhotoSyncRef.current
+        .then(() => deletePhotoArtifacts(previousDraftId))
+        .catch(() => {
+          // Nettoyage best-effort des brouillons photo lors du changement de compte
+        });
     }
   }, [user?.id]);
 
@@ -112,16 +119,11 @@ const ReportPage = () => {
     setPhotoArtifacts(nextArtifacts);
     const draftId = draftSubmissionIdRef.current;
     const unuploaded = nextArtifacts.filter((artifact) => !artifact.storagePath);
-    void (async () => {
-      try {
-        await deletePhotoArtifacts(draftId);
-        if (unuploaded.length > 0) {
-          await storePhotoArtifacts(draftId, unuploaded);
-        }
-      } catch {
+    draftPhotoSyncRef.current = draftPhotoSyncRef.current
+      .then(() => replacePhotoArtifacts(draftId, unuploaded))
+      .catch(() => {
         // Persistance locale best-effort si IndexedDB n'est pas disponible
-      }
-    })();
+      });
   };
   const [startTime, setStartTime] = useState("");
   const [impactedPeople, setImpactedPeople] = useState(1);
@@ -707,6 +709,10 @@ const ReportPage = () => {
           ? { contract_type: contractType || null }
           : {}),
       };
+
+      // Attendre la fin de toute écriture brouillon photo en cours avant
+      // la mise en file hors-ligne ou l'envoi en ligne (évite toute course IndexedDB).
+      await draftPhotoSyncRef.current;
 
       // -- Offline: save to queue and exit ----------------------------------
       if (!isOnline) {
